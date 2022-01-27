@@ -353,6 +353,10 @@ type CheClusterSpecServer struct {
 	// Default plug-ins applied to Devworkspaces.
 	// +optional
 	WorkspacesDefaultPlugins []WorkspacesDefaultPlugins `json:"workspacesDefaultPlugins,omitempty"`
+	// The node selector that limits the nodes that can run the workspace pods.
+	WorkspacePodNodeSelector map[string]string `json:"workspacePodNodeSelector,omitempty"`
+	// The pod tolerations put on the workspace pods to limit where the workspace pods can run.
+	WorkspacePodTolerations []corev1.Toleration `json:"workspacePodTolerations,omitempty"`
 }
 
 // +k8s:openapi-gen=true

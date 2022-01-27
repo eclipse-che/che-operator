@@ -18,8 +18,6 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/utils/pointer"
-
 	"github.com/eclipse-che/che-operator/pkg/util"
 
 	"github.com/stretchr/testify/assert"
@@ -27,7 +25,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 
 	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
-	"github.com/devfile/api/v2/pkg/attributes"
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers"
 	"github.com/devfile/devworkspace-operator/pkg/constants"
@@ -116,8 +113,10 @@ func getSpecObjects(t *testing.T, routing *dwo.DevWorkspaceRouting) (client.Clie
 			Gateway: v2alpha1.CheGatewaySpec{
 				Host: "over.the.rainbow",
 			},
-			WorkspaceDomainEndpoints: v2alpha1.WorkspaceDomainEndpoints{
-				BaseDomain: "down.on.earth",
+			Workspaces: v2alpha1.Workspaces{
+				DomainEndpoints: v2alpha1.DomainEndpoints{
+					BaseDomain: "down.on.earth",
+				},
 			},
 		},
 	}, routing)
@@ -137,22 +136,22 @@ func subdomainDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 					{
 						Name:       "e1",
 						TargetPort: 9999,
-						Exposure:   dw.PublicEndpointExposure,
+						Exposure:   dwo.PublicEndpointExposure,
 						Protocol:   "https",
 						Path:       "/1/",
 					},
 					{
 						Name:       "e2",
 						TargetPort: 9999,
-						Exposure:   dw.PublicEndpointExposure,
+						Exposure:   dwo.PublicEndpointExposure,
 						Protocol:   "http",
 						Path:       "/2.js",
-						Secure:     pointer.BoolPtr(true),
+						Secure:     true,
 					},
 					{
 						Name:       "e3",
 						TargetPort: 9999,
-						Exposure:   dw.PublicEndpointExposure,
+						Exposure:   dwo.PublicEndpointExposure,
 					},
 				},
 			},
@@ -174,10 +173,10 @@ func relocatableDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 					{
 						Name:       "e1",
 						TargetPort: 9999,
-						Exposure:   dw.PublicEndpointExposure,
+						Exposure:   dwo.PublicEndpointExposure,
 						Protocol:   "https",
 						Path:       "/1/",
-						Attributes: attributes.Attributes{
+						Attributes: dwo.Attributes{
 							urlRewriteSupportedEndpointAttributeName: apiext.JSON{Raw: []byte("\"true\"")},
 							string(dwo.TypeEndpointAttribute):        apiext.JSON{Raw: []byte("\"main\"")},
 						},
@@ -185,19 +184,19 @@ func relocatableDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 					{
 						Name:       "e2",
 						TargetPort: 9999,
-						Exposure:   dw.PublicEndpointExposure,
+						Exposure:   dwo.PublicEndpointExposure,
 						Protocol:   "http",
 						Path:       "/2.js",
-						Secure:     pointer.BoolPtr(true),
-						Attributes: attributes.Attributes{
+						Secure:     true,
+						Attributes: dwo.Attributes{
 							urlRewriteSupportedEndpointAttributeName: apiext.JSON{Raw: []byte("\"true\"")},
 						},
 					},
 					{
 						Name:       "e3",
 						TargetPort: 9999,
-						Exposure:   dw.PublicEndpointExposure,
-						Attributes: attributes.Attributes{
+						Exposure:   dwo.PublicEndpointExposure,
+						Attributes: dwo.Attributes{
 							urlRewriteSupportedEndpointAttributeName: apiext.JSON{Raw: []byte("\"true\"")},
 						},
 					},
@@ -461,10 +460,10 @@ func TestUniqueMainEndpoint(t *testing.T) {
 					{
 						Name:       "e1",
 						TargetPort: 9999,
-						Exposure:   dw.PublicEndpointExposure,
+						Exposure:   dwo.PublicEndpointExposure,
 						Protocol:   "https",
 						Path:       "/1/",
-						Attributes: attributes.Attributes{
+						Attributes: dwo.Attributes{
 							urlRewriteSupportedEndpointAttributeName: apiext.JSON{Raw: []byte("\"true\"")},
 							string(dwo.TypeEndpointAttribute):        apiext.JSON{Raw: []byte("\"main\"")},
 							uniqueEndpointAttributeName:              apiext.JSON{Raw: []byte("\"true\"")},
@@ -759,8 +758,10 @@ func TestUsesIngressAnnotationsForWorkspaceEndpointIngresses(t *testing.T) {
 			Gateway: v2alpha1.CheGatewaySpec{
 				Host: "over.the.rainbow",
 			},
-			WorkspaceDomainEndpoints: v2alpha1.WorkspaceDomainEndpoints{
-				BaseDomain: "down.on.earth",
+			Workspaces: v2alpha1.Workspaces{
+				DomainEndpoints: v2alpha1.DomainEndpoints{
+					BaseDomain: "down.on.earth",
+				},
 			},
 			K8s: v2alpha1.CheClusterSpecK8s{
 				IngressAnnotations: map[string]string{
@@ -801,9 +802,11 @@ func TestUsesCustomCertificateForWorkspaceEndpointIngresses(t *testing.T) {
 			Gateway: v2alpha1.CheGatewaySpec{
 				Host: "beyond.comprehension",
 			},
-			WorkspaceDomainEndpoints: v2alpha1.WorkspaceDomainEndpoints{
-				BaseDomain:    "almost.trivial",
-				TlsSecretName: "tlsSecret",
+			Workspaces: v2alpha1.Workspaces{
+				DomainEndpoints: v2alpha1.DomainEndpoints{
+					BaseDomain: "almost.trivial",
+					TlsSecretName: "tlsSecret",
+				},
 			},
 		},
 	}
@@ -880,9 +883,11 @@ func TestUsesCustomCertificateForWorkspaceEndpointRoutes(t *testing.T) {
 			Gateway: v2alpha1.CheGatewaySpec{
 				Host: "beyond.comprehension",
 			},
-			WorkspaceDomainEndpoints: v2alpha1.WorkspaceDomainEndpoints{
-				BaseDomain:    "almost.trivial",
-				TlsSecretName: "tlsSecret",
+			Workspaces: v2alpha1.Workspaces{
+				DomainEndpoints: v2alpha1.DomainEndpoints{
+					BaseDomain: "almost.trivial",
+					TlsSecretName: "tlsSecret",
+				},
 			},
 		},
 	}

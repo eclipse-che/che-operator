@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2021 Red Hat, Inc.
+// Copyright (c) 2019-2022 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -36,7 +36,7 @@ const (
 	SidecarDefaultCpuLimit   = "" // do not provide any value
 	SidecarDefaultCpuRequest = "" // do not provide any value
 
-	PVCStorageSize = "1Gi"
+	PVCStorageSize = "10Gi"
 
 	// DevWorkspaceIDLoggerKey is the key used to log workspace ID in the reconcile
 	DevWorkspaceIDLoggerKey = "devworkspace_id"

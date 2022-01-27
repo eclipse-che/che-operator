@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2021 Red Hat, Inc.
+// Copyright (c) 2019-2022 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -53,8 +53,8 @@ func (r *DevWorkspaceRoutingReconciler) syncRoutes(routing *controllerv1alpha1.D
 	}
 
 	var updatedClusterRoutes []routeV1.Route
-	for _, specIngress := range specRoutes {
-		clusterObj, err := sync.SyncObjectWithCluster(&specIngress, clusterAPI)
+	for _, specRoute := range specRoutes {
+		clusterObj, err := sync.SyncObjectWithCluster(&specRoute, clusterAPI)
 		switch t := err.(type) {
 		case nil:
 			break

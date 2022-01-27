@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2021 Red Hat, Inc.
+// Copyright (c) 2019-2022 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -20,6 +20,7 @@ import (
 	"regexp"
 	"strings"
 
+	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	"github.com/devfile/devworkspace-operator/pkg/constants"
 )
 
@@ -34,6 +35,13 @@ func EndpointName(endpointName string) string {
 	name = NonAlphaNumRegexp.ReplaceAllString(name, "-")
 	name = strings.Trim(name, "-")
 	return name
+}
+
+func PortName(endpoint dw.Endpoint) string {
+	if len(endpoint.Name) <= 15 {
+		return endpoint.Name
+	}
+	return fmt.Sprintf("%d-%s", endpoint.TargetPort, endpoint.Protocol)
 }
 
 func ServiceName(workspaceId string) string {

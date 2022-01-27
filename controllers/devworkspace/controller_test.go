@@ -100,8 +100,10 @@ func TestNoCustomResourceSharedWhenReconcilingNonExistent(t *testing.T) {
 				Host:    "over.the.rainbow",
 				Enabled: pointer.BoolPtr(false),
 			},
-			WorkspaceDomainEndpoints: v2alpha1.WorkspaceDomainEndpoints{
-				BaseDomain: "down.on.earth",
+			Workspaces: v2alpha1.Workspaces{
+				DomainEndpoints: v2alpha1.DomainEndpoints{
+					BaseDomain: "down.on.earth",
+				},
 			},
 		},
 	}))
@@ -137,8 +139,10 @@ func TestAddsCustomResourceToSharedMapOnCreate(t *testing.T) {
 				Host:    "over.the.rainbow",
 				Enabled: pointer.BoolPtr(false),
 			},
-			WorkspaceDomainEndpoints: v2alpha1.WorkspaceDomainEndpoints{
-				BaseDomain: "down.on.earth",
+			Workspaces: v2alpha1.Workspaces{
+				DomainEndpoints: v2alpha1.DomainEndpoints{
+					BaseDomain: "down.on.earth",
+				},
 			},
 		},
 	}))
@@ -186,8 +190,10 @@ func TestUpdatesCustomResourceInSharedMapOnUpdate(t *testing.T) {
 				Enabled: pointer.BoolPtr(false),
 				Host:    "over.the.rainbow",
 			},
-			WorkspaceDomainEndpoints: v2alpha1.WorkspaceDomainEndpoints{
-				BaseDomain: "down.on.earth",
+			Workspaces: v2alpha1.Workspaces{
+				DomainEndpoints: v2alpha1.DomainEndpoints{
+					BaseDomain: "down.on.earth",
+				},
 			},
 		},
 	}))
@@ -288,8 +294,10 @@ func TestRemovesCustomResourceFromSharedMapOnDelete(t *testing.T) {
 				Host:    "over.the.rainbow",
 				Enabled: pointer.BoolPtr(false),
 			},
-			WorkspaceDomainEndpoints: v2alpha1.WorkspaceDomainEndpoints{
-				BaseDomain: "down.on.earth",
+			Workspaces: v2alpha1.Workspaces{
+				DomainEndpoints: v2alpha1.DomainEndpoints{
+					BaseDomain: "down.on.earth",
+				},
 			},
 		},
 	}))
@@ -347,8 +355,10 @@ func TestCustomResourceFinalization(t *testing.T) {
 				Gateway: v2alpha1.CheGatewaySpec{
 					Host: "over.the.rainbow",
 				},
-				WorkspaceDomainEndpoints: v2alpha1.WorkspaceDomainEndpoints{
-					BaseDomain: "down.on.earth",
+				Workspaces: v2alpha1.Workspaces{
+					DomainEndpoints: v2alpha1.DomainEndpoints{
+						BaseDomain: "down.on.earth",
+					},
 				},
 			},
 		}),
@@ -457,8 +467,10 @@ func TestExternalGatewayDetection(t *testing.T) {
 			Namespace: ns,
 		},
 		Spec: v2alpha1.CheClusterSpec{
-			WorkspaceDomainEndpoints: v2alpha1.WorkspaceDomainEndpoints{
-				BaseDomain: "down.on.earth",
+			Workspaces: v2alpha1.Workspaces{
+				DomainEndpoints: v2alpha1.DomainEndpoints{
+					BaseDomain: "down.on.earth",
+				},
 			},
 		},
 	}

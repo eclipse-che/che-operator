@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2021 Red Hat, Inc.
+// Copyright (c) 2019-2022 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -16,6 +16,7 @@
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -42,6 +43,28 @@ type RoutingConfig struct {
 	// On OpenShift, the DevWorkspace Operator will attempt to determine the appropriate
 	// value automatically. Must be specified on Kubernetes.
 	ClusterHostSuffix string `json:"clusterHostSuffix,omitempty"`
+	// ProxyConfig defines the proxy settings that should be used for all DevWorkspaces.
+	// These values are propagated to workspace containers as environment variables.
+	//
+	// On OpenShift, the operator automatically reads values from the "cluster" proxies.config.openshift.io
+	// object and this value only needs to be set to override those defaults. Values for httpProxy
+	// and httpsProxy override the cluster configuration directly. Entries for noProxy are merged
+	// with the noProxy values in the cluster configuration.
+	//
+	// Changes to the proxy configuration are detected by the DevWorkspace Operator and propagated to
+	// DevWorkspaces. However, changing the proxy configuration for the DevWorkspace Operator itself
+	// requires restarting the controller deployment.
+	ProxyConfig *Proxy `json:"proxyConfig,omitempty"`
+}
+
+type Proxy struct {
+	// HttpProxy is the URL of the proxy for HTTP requests, in the format http://USERNAME:PASSWORD@SERVER:PORT/
+	HttpProxy string `json:"httpProxy,omitempty"`
+	// HttpsProxy is the URL of the proxy for HTTPS requests, in the format http://USERNAME:PASSWORD@SERVER:PORT/
+	HttpsProxy string `json:"httpsProxy,omitempty"`
+	// NoProxy is a comma-separated list of hostnames and/or CIDRs for which the proxy should not be used. Ignored
+	// when HttpProxy and HttpsProxy are unset
+	NoProxy string `json:"noProxy,omitempty"`
 }
 
 type WorkspaceConfig struct {
@@ -75,6 +98,17 @@ type WorkspaceConfig struct {
 	// the cluster occasionally encounters FailedScheduling events). Events listed
 	// here will not trigger DevWorkspace failures.
 	IgnoredUnrecoverableEvents []string `json:"ignoredUnrecoverableEvents,omitempty"`
+	// CleanupOnStop governs how the Operator handles stopped DevWorkspaces. If set to
+	// true, additional resources associated with a DevWorkspace (e.g. services, deployments,
+	// configmaps, etc.) will be removed from the cluster when a DevWorkspace has
+	// .spec.started = false. If set to false, resources will be scaled down (e.g. deployments
+	// but the objects will be left on the cluster). The default value is false.
+	CleanupOnStop *bool `json:"cleanupOnStop,omitempty"`
+	// PodSecurityContext overrides the default PodSecurityContext used for all workspace-related
+	// pods created by the DevWorkspace Operator when running on Kubernetes. On OpenShift, this
+	// configuration option is ignored. If set, the entire pod security context is overridden;
+	// values are not merged.
+	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
 }
 
 // DevWorkspaceOperatorConfig is the Schema for the devworkspaceoperatorconfigs API

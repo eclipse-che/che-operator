@@ -13,6 +13,7 @@
 package v2alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
@@ -23,9 +24,8 @@ type CheClusterSpec struct {
 	// If false, Che is disabled and does not resolve the devworkspaces with the che routingClass.
 	Enabled *bool `json:"enabled,omitempty"`
 
-	// Configuration of the workspace endpoints that are exposed on separate domains, as opposed to the subpaths
-	// of the gateway.
-	WorkspaceDomainEndpoints WorkspaceDomainEndpoints `json:"workspaceDomainEndpoints,omitempty"`
+	// Workspaces contains configuration affecting the behavior of workspaces.
+	Workspaces Workspaces `json:"workspaces"`
 
 	// Gateway contains the configuration of the gateway used for workspace endpoint routing.
 	Gateway CheGatewaySpec `json:"gateway,omitempty"`
@@ -34,7 +34,19 @@ type CheClusterSpec struct {
 	K8s CheClusterSpecK8s `json:"k8s,omitempty"`
 }
 
-type WorkspaceDomainEndpoints struct {
+type Workspaces struct {
+	// Configuration of the workspace endpoints that are exposed on separate domains, as opposed to the subpaths
+	// of the gateway.
+	DomainEndpoints DomainEndpoints `json:"domainEndpoints,omitempty"`
+
+	// The node selector that limits the nodes that can run the workspace pods.
+	PodNodeSelector map[string]string `json:"podNodeSelector,omitempty"`
+
+	// The pod tolerations put on the workspace pods to limit where the workspace pods can run.
+	PodTolerations []corev1.Toleration `json:"podTolerations,omitempty"`
+}
+
+type DomainEndpoints struct {
 	// The workspace endpoints that need to be deployed on a subdomain will be deployed on subdomains of this base domain.
 	// This is mandatory on Kubernetes. On OpenShift, an attempt is made to automatically figure out the base domain of
 	// the routes. The resolved value of this property is written to the status.

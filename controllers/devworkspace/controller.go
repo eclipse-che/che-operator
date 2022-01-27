@@ -209,7 +209,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// control of gateway creation
 	changed = false
 
-	workspaceBaseDomain := current.Spec.WorkspaceDomainEndpoints.BaseDomain
+	workspaceBaseDomain := current.Spec.Workspaces.DomainEndpoints.BaseDomain
 
 	if workspaceBaseDomain == "" {
 		workspaceBaseDomain, err = r.detectOpenShiftRouteBaseDomain(current)
@@ -277,7 +277,7 @@ func (r *CheClusterReconciler) validate(cluster *v2alpha1.CheCluster) error {
 	if !util.IsOpenShift {
 		// The validation error messages must correspond to the storage version of the resource, which is currently
 		// v1...
-		if cluster.Spec.WorkspaceDomainEndpoints.BaseDomain == "" {
+		if cluster.Spec.Workspaces.DomainEndpoints.BaseDomain == "" {
 			validationErrors = append(validationErrors, "spec.k8s.ingressDomain must be specified")
 		}
 	}
