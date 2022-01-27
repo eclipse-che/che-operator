@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/Shopify/logrus-bugsnag v0.0.0-00010101000000-000000000000 // indirect
 	github.com/blang/semver/v4 v4.0.0
+	github.com/bitly/go-simplejson v0.0.0-00010101000000-000000000000 // indirect
 	github.com/che-incubator/kubernetes-image-puller-operator v0.0.0-20210929175054-0128446f5af7
 	github.com/devfile/api/v2 v2.0.0-20210917193329-089a48011460
 	github.com/devfile/devworkspace-operator v0.12.2
