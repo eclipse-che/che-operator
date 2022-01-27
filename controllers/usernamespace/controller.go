@@ -44,6 +44,10 @@ import (
 
 const (
 	userSettingsComponentLabelValue = "user-settings"
+	// we're define these here because we're forced to use an older version
+	// of devworkspace operator as our dependency due to different go version
+	nodeSelectorAnnotation = "controller.devfile.io/node-selector"
+	podTolerationsAnnotation = "controller.devfile.io/pod-tolerations"
 )
 
 type CheUserNamespaceReconciler struct {
@@ -520,15 +524,15 @@ func (r *CheUserNamespaceReconciler) reconcileNodeSelectorAndTolerations(ctx con
 	}
 
 	if len(nodeSelector) == 0 {
-		delete(annos, constants.NamespaceNodeSelectorAnnotation)
+		delete(annos, nodeSelectorAnnotation)
 	} else {
-		annos[constants.NamespaceNodeSelectorAnnotation] = nodeSelector
+		annos[nodeSelectorAnnotation] = nodeSelector
 	}
 
 	if len(tolerations) == 0 {
-		delete(annos, constants.NamespacePodTolerationsAnnotation)
+		delete(annos, podTolerationsAnnotation)
 	} else {
-		annos[constants.NamespacePodTolerationsAnnotation] = tolerations
+		annos[podTolerationsAnnotation] = tolerations
 	}
 
 	ns.SetAnnotations(annos)

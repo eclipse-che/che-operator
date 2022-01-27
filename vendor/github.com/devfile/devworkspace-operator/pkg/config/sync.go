@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2022 Red Hat, Inc.
+// Copyright (c) 2019-2021 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -21,7 +21,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/devfile/devworkspace-operator/pkg/config/proxy"
 	routeV1 "github.com/openshift/api/route/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -50,7 +49,7 @@ var (
 func SetConfigForTesting(config *controller.OperatorConfiguration) {
 	configMutex.Lock()
 	defer configMutex.Unlock()
-	internalConfig = defaultConfig.DeepCopy()
+	internalConfig = DefaultConfig.DeepCopy()
 	mergeConfig(config, internalConfig)
 	updatePublicConfig()
 }
@@ -60,42 +59,30 @@ func SetupControllerConfig(client crclient.Client) error {
 		return fmt.Errorf("internal controller configuration is already set up")
 	}
 	internalConfig = &controller.OperatorConfiguration{}
-
 	namespace, err := infrastructure.GetNamespace()
 	if err != nil {
 		return err
 	}
 	configNamespace = namespace
-
 	config, err := getClusterConfig(configNamespace, client)
 	if err != nil {
 		return err
 	}
 	if config == nil {
-		internalConfig = defaultConfig.DeepCopy()
+		internalConfig = DefaultConfig.DeepCopy()
+		updatePublicConfig()
 	} else {
 		syncConfigFrom(config)
 	}
-
 	defaultRoutingSuffix, err := discoverRouteSuffix(client)
 	if err != nil {
 		return err
 	}
-	defaultConfig.Routing.ClusterHostSuffix = defaultRoutingSuffix
+	DefaultConfig.Routing.ClusterHostSuffix = defaultRoutingSuffix
 	if internalConfig.Routing.ClusterHostSuffix == "" {
 		internalConfig.Routing.ClusterHostSuffix = defaultRoutingSuffix
+		updatePublicConfig()
 	}
-
-	clusterProxy, err := proxy.GetClusterProxyConfig(client)
-	if err != nil {
-		return err
-	}
-	defaultConfig.Routing.ProxyConfig = clusterProxy
-	if internalConfig.Routing.ProxyConfig == nil {
-		internalConfig.Routing.ProxyConfig = clusterProxy
-	}
-
-	updatePublicConfig()
 	return nil
 }
 
@@ -123,7 +110,7 @@ func syncConfigFrom(newConfig *controller.DevWorkspaceOperatorConfig) {
 	}
 	configMutex.Lock()
 	defer configMutex.Unlock()
-	internalConfig = defaultConfig.DeepCopy()
+	internalConfig = DefaultConfig.DeepCopy()
 	mergeConfig(newConfig.Config, internalConfig)
 	updatePublicConfig()
 }
@@ -131,14 +118,14 @@ func syncConfigFrom(newConfig *controller.DevWorkspaceOperatorConfig) {
 func restoreDefaultConfig() {
 	configMutex.Lock()
 	defer configMutex.Unlock()
-	internalConfig = defaultConfig.DeepCopy()
+	internalConfig = DefaultConfig.DeepCopy()
 	updatePublicConfig()
 }
 
 func updatePublicConfig() {
 	Routing = internalConfig.Routing.DeepCopy()
 	Workspace = internalConfig.Workspace.DeepCopy()
-	logCurrentConfig()
+	log.Info(fmt.Sprintf("Updated config to [%s]", formatCurrentConfig()))
 }
 
 // discoverRouteSuffix attempts to determine a clusterHostSuffix that is compatible with the current cluster.
@@ -203,12 +190,6 @@ func mergeConfig(from, to *controller.OperatorConfiguration) {
 		if from.Routing.ClusterHostSuffix != "" {
 			to.Routing.ClusterHostSuffix = from.Routing.ClusterHostSuffix
 		}
-		if from.Routing.ProxyConfig != nil {
-			if to.Routing.ProxyConfig == nil {
-				to.Routing.ProxyConfig = &controller.Proxy{}
-			}
-			to.Routing.ProxyConfig = proxy.MergeProxyConfigs(from.Routing.ProxyConfig, defaultConfig.Routing.ProxyConfig)
-		}
 	}
 	if from.Workspace != nil {
 		if to.Workspace == nil {
@@ -232,40 +213,34 @@ func mergeConfig(from, to *controller.OperatorConfiguration) {
 		if from.Workspace.IgnoredUnrecoverableEvents != nil {
 			to.Workspace.IgnoredUnrecoverableEvents = from.Workspace.IgnoredUnrecoverableEvents
 		}
-		if from.Workspace.CleanupOnStop != nil {
-			to.Workspace.CleanupOnStop = from.Workspace.CleanupOnStop
-		}
-		if from.Workspace.PodSecurityContext != nil {
-			to.Workspace.PodSecurityContext = from.Workspace.PodSecurityContext
-		}
 	}
 }
 
-// logCurrentConfig formats the current operator configuration as a plain string
-func logCurrentConfig() {
+// formatCurrentConfig formats the current operator configuration as a plain string
+func formatCurrentConfig() string {
 	if internalConfig == nil {
-		return
+		return ""
 	}
 	var config []string
 	if Routing != nil {
-		if Routing.ClusterHostSuffix != "" && Routing.ClusterHostSuffix != defaultConfig.Routing.ClusterHostSuffix {
+		if Routing.ClusterHostSuffix != "" && Routing.ClusterHostSuffix != DefaultConfig.Routing.ClusterHostSuffix {
 			config = append(config, fmt.Sprintf("routing.clusterHostSuffix=%s", Routing.ClusterHostSuffix))
 		}
-		if Routing.DefaultRoutingClass != defaultConfig.Routing.DefaultRoutingClass {
+		if Routing.DefaultRoutingClass != DefaultConfig.Routing.DefaultRoutingClass {
 			config = append(config, fmt.Sprintf("routing.defaultRoutingClass=%s", Routing.DefaultRoutingClass))
 		}
 	}
 	if Workspace != nil {
-		if Workspace.ImagePullPolicy != defaultConfig.Workspace.ImagePullPolicy {
+		if Workspace.ImagePullPolicy != DefaultConfig.Workspace.ImagePullPolicy {
 			config = append(config, fmt.Sprintf("workspace.imagePullPolicy=%s", Workspace.ImagePullPolicy))
 		}
-		if Workspace.PVCName != defaultConfig.Workspace.PVCName {
+		if Workspace.PVCName != DefaultConfig.Workspace.PVCName {
 			config = append(config, fmt.Sprintf("workspace.pvcName=%s", Workspace.PVCName))
 		}
-		if Workspace.StorageClassName != nil && Workspace.StorageClassName != defaultConfig.Workspace.StorageClassName {
+		if Workspace.StorageClassName != nil && Workspace.StorageClassName != DefaultConfig.Workspace.StorageClassName {
 			config = append(config, fmt.Sprintf("workspace.storageClassName=%s", *Workspace.StorageClassName))
 		}
-		if Workspace.IdleTimeout != defaultConfig.Workspace.IdleTimeout {
+		if Workspace.IdleTimeout != DefaultConfig.Workspace.IdleTimeout {
 			config = append(config, fmt.Sprintf("workspace.idleTimeout=%s", Workspace.IdleTimeout))
 		}
 		if Workspace.IgnoredUnrecoverableEvents != nil {
@@ -276,14 +251,8 @@ func logCurrentConfig() {
 	if internalConfig.EnableExperimentalFeatures != nil && *internalConfig.EnableExperimentalFeatures {
 		config = append(config, "enableExperimentalFeatures=true")
 	}
-
 	if len(config) == 0 {
-		log.Info("Updated config to [(default config)]")
-	} else {
-		log.Info(fmt.Sprintf("Updated config to [%s]", strings.Join(config, ",")))
+		return "(default config)"
 	}
-
-	if internalConfig.Routing.ProxyConfig != nil {
-		log.Info("Resolved proxy configuration", "proxy", internalConfig.Routing.ProxyConfig)
-	}
+	return strings.Join(config, ", ")
 }

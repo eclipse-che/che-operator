@@ -8,7 +8,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/che-incubator/kubernetes-image-puller-operator v0.0.0-20210929175054-0128446f5af7
 	github.com/devfile/api/v2 v2.0.0-20210917193329-089a48011460
-	github.com/devfile/devworkspace-operator v0.2.1-0.20220125153405-cf8ec87a8c23
+	github.com/devfile/devworkspace-operator v0.2.1-0.20211213140302-4226bdb05e56
 	github.com/go-logr/logr v0.4.0
 	github.com/golang/mock v1.5.0
 	github.com/google/go-cmp v0.5.6

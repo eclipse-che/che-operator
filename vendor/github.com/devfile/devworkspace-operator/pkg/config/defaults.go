@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2022 Red Hat, Inc.
+// Copyright (c) 2019-2021 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -15,13 +15,10 @@
 
 package config
 
-import (
-	"github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
-)
+import "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 
-// defaultConfig represents the default configuration for the DevWorkspace Operator.
-var defaultConfig = &v1alpha1.OperatorConfiguration{
+// DefaultConfig represents the default configuration for the DevWorkspace Operator.
+var DefaultConfig = &v1alpha1.OperatorConfiguration{
 	Routing: &v1alpha1.RoutingConfig{
 		DefaultRoutingClass: "basic",
 		ClusterHostSuffix:   "", // is auto discovered when running on OpenShift. Must be defined by CR on Kubernetes.
@@ -31,20 +28,5 @@ var defaultConfig = &v1alpha1.OperatorConfiguration{
 		PVCName:         "claim-devworkspace",
 		IdleTimeout:     "15m",
 		ProgressTimeout: "5m",
-		CleanupOnStop:   &boolFalse,
-		PodSecurityContext: &corev1.PodSecurityContext{
-			RunAsUser:    &int64UID,
-			RunAsGroup:   &int64GID,
-			RunAsNonRoot: &boolTrue,
-			FSGroup:      &int64UID,
-		},
 	},
 }
-
-// Necessary variables for setting pointer values
-var (
-	boolTrue  = true
-	boolFalse = false
-	int64UID  = int64(1234)
-	int64GID  = int64(0)
-)

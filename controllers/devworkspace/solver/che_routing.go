@@ -15,6 +15,8 @@ package solver
 import (
 	"context"
 	"fmt"
+	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
+	"k8s.io/utils/pointer"
 	"path"
 	"strconv"
 	"strings"
@@ -213,7 +215,7 @@ func (c *CheRoutingSolver) cheExposedEndpoints(cheCluster *v2alpha1.CheCluster, 
 
 	for component, endpoints := range componentEndpoints {
 		for _, endpoint := range endpoints {
-			if endpoint.Exposure != dwo.PublicEndpointExposure {
+			if endpoint.Exposure != dw.PublicEndpointExposure {
 				continue
 			}
 
@@ -358,7 +360,7 @@ func exposeAllEndpoints(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspa
 	order := 1
 	for componentName, endpoints := range routing.Spec.Endpoints {
 		for _, e := range endpoints {
-			if e.Exposure != dwo.PublicEndpointExposure {
+			if e.Exposure != dw.PublicEndpointExposure {
 				continue
 			}
 
@@ -495,7 +497,7 @@ func routeForHealthzEndpoint(cfg *gateway.TraefikConfig, dwId string, endpoints 
 	}
 }
 
-func addEndpointToTraefikConfig(componentName string, e dwo.Endpoint, cfg *gateway.TraefikConfig, cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting) {
+func addEndpointToTraefikConfig(componentName string, e dw.Endpoint, cfg *gateway.TraefikConfig, cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting) {
 	routeName, prefix := createEndpointPath(&e, componentName)
 	rulePrefix := fmt.Sprintf("PathPrefix(`%s`)", prefix)
 
@@ -528,7 +530,7 @@ func addEndpointToTraefikConfig(componentName string, e dwo.Endpoint, cfg *gatew
 	}
 }
 
-func createEndpointPath(e *dwo.Endpoint, componentName string) (routeName string, path string) {
+func createEndpointPath(e *dw.Endpoint, componentName string) (routeName string, path string) {
 	if e.Attributes.GetString(uniqueEndpointAttributeName, nil) == "true" {
 		// if endpoint is unique, we're exposing on /componentName/<endpoint-name>
 		routeName = e.Name
@@ -554,7 +556,7 @@ func findServiceForPort(port int32, objs *solvers.RoutingObjects) *corev1.Servic
 	return nil
 }
 
-func findIngressForEndpoint(componentName string, endpoint dwo.Endpoint, objs *solvers.RoutingObjects) *networkingv1.Ingress {
+func findIngressForEndpoint(componentName string, endpoint dw.Endpoint, objs *solvers.RoutingObjects) *networkingv1.Ingress {
 	for i := range objs.Ingresses {
 		ingress := &objs.Ingresses[i]
 
@@ -577,7 +579,7 @@ func findIngressForEndpoint(componentName string, endpoint dwo.Endpoint, objs *s
 	return nil
 }
 
-func findRouteForEndpoint(componentName string, endpoint dwo.Endpoint, objs *solvers.RoutingObjects, dwId string) *routeV1.Route {
+func findRouteForEndpoint(componentName string, endpoint dw.Endpoint, objs *solvers.RoutingObjects, dwId string) *routeV1.Route {
 	service := findServiceForPort(int32(endpoint.TargetPort), objs)
 	if service == nil {
 		service = getCommonService(objs, dwId)
@@ -647,7 +649,7 @@ func getServiceURL(port int32, workspaceID string, workspaceNamespace string) st
 	return fmt.Sprintf("http://%s.%s.svc:%d", common.ServiceName(workspaceID), workspaceNamespace, port)
 }
 
-func getPublicURLPrefixForEndpoint(workspaceID string, machineName string, endpoint dwo.Endpoint) string {
+func getPublicURLPrefixForEndpoint(workspaceID string, machineName string, endpoint dw.Endpoint) string {
 	endpointName := ""
 	if endpoint.Attributes.GetString(uniqueEndpointAttributeName, nil) == "true" {
 		endpointName = endpoint.Name
@@ -663,7 +665,7 @@ func getPublicURLPrefix(workspaceID string, machineName string, port int32, uniq
 	return fmt.Sprintf(uniqueEndpointURLPrefixPattern, workspaceID, machineName, uniqueEndpointName)
 }
 
-func determineEndpointScheme(e dwo.Endpoint) string {
+func determineEndpointScheme(e dw.Endpoint) string {
 	var scheme string
 	if e.Protocol == "" {
 		scheme = "http"
@@ -671,7 +673,7 @@ func determineEndpointScheme(e dwo.Endpoint) string {
 		scheme = string(e.Protocol)
 	}
 
-	upgradeToSecure := e.Secure
+	upgradeToSecure := pointer.BoolPtrDerefOr(e.Secure, false)
 
 	// gateway is always on HTTPS, so if the endpoint is served through the gateway, we need to use the TLS'd variant.
 	if e.Attributes.GetString(urlRewriteSupportedEndpointAttributeName, nil) == "true" {

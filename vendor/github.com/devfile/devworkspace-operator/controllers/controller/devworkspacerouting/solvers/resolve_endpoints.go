@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2022 Red Hat, Inc.
+// Copyright (c) 2019-2021 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -20,6 +20,8 @@ import (
 	"net/url"
 	"strings"
 
+	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
+
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/pkg/constants"
 )
@@ -33,7 +35,7 @@ func getExposedEndpoints(
 
 	for machineName, machineEndpoints := range endpoints {
 		for _, endpoint := range machineEndpoints {
-			if endpoint.Exposure != controllerv1alpha1.PublicEndpointExposure {
+			if endpoint.Exposure != dw.PublicEndpointExposure {
 				continue
 			}
 			endpointUrl, err := resolveURLForEndpoint(endpoint, routingObj)
@@ -54,17 +56,17 @@ func getExposedEndpoints(
 }
 
 func resolveURLForEndpoint(
-	endpoint controllerv1alpha1.Endpoint,
+	endpoint dw.Endpoint,
 	routingObj RoutingObjects) (string, error) {
 	for _, route := range routingObj.Routes {
 		if route.Annotations[constants.DevWorkspaceEndpointNameAnnotation] == endpoint.Name {
-			return getURLForEndpoint(endpoint, route.Spec.Host, route.Spec.Path, route.Spec.TLS != nil)
+			return getURLForEndpoint(endpoint, route.Spec.Host, route.Spec.Path, route.Spec.TLS != nil), nil
 		}
 	}
 	for _, ingress := range routingObj.Ingresses {
 		if ingress.Annotations[constants.DevWorkspaceEndpointNameAnnotation] == endpoint.Name {
 			if len(ingress.Spec.Rules) == 1 {
-				return getURLForEndpoint(endpoint, ingress.Spec.Rules[0].Host, "", false) // no TLS supported for ingresses yet
+				return getURLForEndpoint(endpoint, ingress.Spec.Rules[0].Host, "", false), nil // no TLS supported for ingresses yet
 			} else {
 				return "", fmt.Errorf("ingress %s contains multiple rules", ingress.Name)
 			}
@@ -73,30 +75,25 @@ func resolveURLForEndpoint(
 	return "", fmt.Errorf("could not find ingress/route for endpoint '%s'", endpoint.Name)
 }
 
-func getURLForEndpoint(endpoint controllerv1alpha1.Endpoint, host, basePath string, secure bool) (string, error) {
+func getURLForEndpoint(endpoint dw.Endpoint, host, basePath string, secure bool) string {
 	protocol := endpoint.Protocol
-	if secure && endpoint.Secure {
-		protocol = controllerv1alpha1.EndpointProtocol(getSecureProtocol(string(protocol)))
+	if secure && endpoint.Secure != nil && *endpoint.Secure {
+		protocol = dw.EndpointProtocol(getSecureProtocol(string(protocol)))
 	}
-
-	// Format host/path ensuring only a single '/' character between the two. Can't use path.Join here as it would drop
-	// a trailing '/' if present
-	basehost := fmt.Sprintf("%s/%s", strings.TrimRight(host, "/"), strings.TrimLeft(basePath, "/"))
-	baseUrl := fmt.Sprintf("%s://%s", protocol, basehost)
-
-	url, err := url.Parse(baseUrl)
-	if err != nil {
-		return "", err
-	}
-
+	var p string
 	if endpoint.Path != "" {
-		relPath, err := url.Parse(endpoint.Path)
-		if err != nil {
-			return "", err
-		}
-		url = url.ResolveReference(relPath)
+		// the only one slash should be between these path segments.
+		// Path.join does not suite here since it eats trailing slash which may be critical for the application
+		p = fmt.Sprintf("%s/%s", strings.TrimRight(basePath, "/"), strings.TrimLeft(p, endpoint.Path))
+	} else {
+		p = basePath
 	}
-	return url.String(), nil
+	u := url.URL{
+		Scheme: string(protocol),
+		Host:   host,
+		Path:   p,
+	}
+	return u.String()
 }
 
 // getSecureProtocol takes a (potentially unsecure protocol e.g. http) and returns the secure version (e.g. https).

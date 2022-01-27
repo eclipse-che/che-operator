@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2022 Red Hat, Inc.
+// Copyright (c) 2019-2021 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -89,12 +89,12 @@ func convertConfigMapToConfigCRD(client crclient.Client) (*dw.DevWorkspaceOperat
 	migratedRoutingConfig := &dw.RoutingConfig{}
 	setRoutingConfig := false
 	routingSuffix := configmap.ControllerCfg.GetClusterRoutingSuffix()
-	if routingSuffix != nil && *routingSuffix != defaultConfig.Routing.ClusterHostSuffix {
+	if routingSuffix != nil && *routingSuffix != DefaultConfig.Routing.ClusterHostSuffix {
 		migratedRoutingConfig.ClusterHostSuffix = *routingSuffix
 		setRoutingConfig = true
 	}
 	defaultRoutingClass := configmap.ControllerCfg.GetDefaultRoutingClass()
-	if defaultRoutingClass != nil && *defaultRoutingClass != defaultConfig.Routing.DefaultRoutingClass {
+	if defaultRoutingClass != nil && *defaultRoutingClass != DefaultConfig.Routing.DefaultRoutingClass {
 		migratedRoutingConfig.DefaultRoutingClass = *defaultRoutingClass
 		setRoutingConfig = true
 	}
@@ -102,22 +102,22 @@ func convertConfigMapToConfigCRD(client crclient.Client) (*dw.DevWorkspaceOperat
 	migratedWorkspaceConfig := &dw.WorkspaceConfig{}
 	setWorkspaceConfig := false
 	storageClassName := configmap.ControllerCfg.GetPVCStorageClassName()
-	if storageClassName != defaultConfig.Workspace.StorageClassName {
+	if storageClassName != DefaultConfig.Workspace.StorageClassName {
 		migratedWorkspaceConfig.StorageClassName = storageClassName
 		setWorkspaceConfig = true
 	}
 	sidecarPullPolicy := configmap.ControllerCfg.GetSidecarPullPolicy()
-	if sidecarPullPolicy != nil && *sidecarPullPolicy != defaultConfig.Workspace.ImagePullPolicy {
+	if sidecarPullPolicy != nil && *sidecarPullPolicy != DefaultConfig.Workspace.ImagePullPolicy {
 		migratedWorkspaceConfig.ImagePullPolicy = *sidecarPullPolicy
 		setWorkspaceConfig = true
 	}
 	idleTimeout := configmap.ControllerCfg.GetWorkspaceIdleTimeout()
-	if idleTimeout != nil && *idleTimeout != defaultConfig.Workspace.IdleTimeout {
+	if idleTimeout != nil && *idleTimeout != DefaultConfig.Workspace.IdleTimeout {
 		migratedWorkspaceConfig.IdleTimeout = *idleTimeout
 		setWorkspaceConfig = true
 	}
 	pvcName := configmap.ControllerCfg.GetWorkspacePVCName()
-	if pvcName != nil && *pvcName != defaultConfig.Workspace.PVCName {
+	if pvcName != nil && *pvcName != DefaultConfig.Workspace.PVCName {
 		migratedWorkspaceConfig.PVCName = *pvcName
 		setWorkspaceConfig = true
 	}
