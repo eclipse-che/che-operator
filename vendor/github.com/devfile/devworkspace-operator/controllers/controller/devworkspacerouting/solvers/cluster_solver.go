@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2021 Red Hat, Inc.
+// Copyright (c) 2019-2022 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -21,7 +21,6 @@ import (
 	"github.com/devfile/devworkspace-operator/pkg/common"
 	"github.com/devfile/devworkspace-operator/pkg/constants"
 
-	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
@@ -87,7 +86,7 @@ func (s *ClusterSolver) GetExposedEndpoints(
 
 	for machineName, machineEndpoints := range endpoints {
 		for _, endpoint := range machineEndpoints {
-			if endpoint.Exposure == dw.NoneEndpointExposure {
+			if endpoint.Exposure == controllerv1alpha1.NoneEndpointExposure {
 				continue
 			}
 			url, err := resolveServiceHostnameForEndpoint(endpoint, routingObj.Services)
@@ -106,7 +105,7 @@ func (s *ClusterSolver) GetExposedEndpoints(
 	return exposedEndpoints, true, nil
 }
 
-func resolveServiceHostnameForEndpoint(endpoint dw.Endpoint, services []corev1.Service) (string, error) {
+func resolveServiceHostnameForEndpoint(endpoint controllerv1alpha1.Endpoint, services []corev1.Service) (string, error) {
 	for _, service := range services {
 		if service.Annotations[constants.DevWorkspaceDiscoverableServiceAnnotation] == "true" {
 			continue

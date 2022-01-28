@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Red Hat, Inc.
+// Copyright (c) 2019-2022 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -54,6 +54,10 @@ var deploymentDiffOpts = cmp.Options{
 
 var configmapDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta", "ObjectMeta"),
+}
+
+var secretDiffOpts = cmp.Options{
+	cmpopts.IgnoreFields(corev1.Secret{}, "TypeMeta", "ObjectMeta"),
 }
 
 var routingDiffOpts = cmp.Options{

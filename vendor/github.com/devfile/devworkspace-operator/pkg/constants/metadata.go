@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2021 Red Hat, Inc.
+// Copyright (c) 2019-2022 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -34,7 +34,7 @@ const (
 	// secrets that should be seen by the controller
 	DevWorkspaceWatchSecretLabel = "controller.devfile.io/watch-secret"
 
-	// DevWorkspaceMountLabel is the label key to store if a configmap or secret should be mounted to the devworkspace
+	// DevWorkspaceMountLabel is the label key to store if a configmap, secret, or PVC should be mounted to the devworkspace
 	DevWorkspaceMountLabel = "controller.devfile.io/mount-to-devworkspace"
 
 	// DevWorkspaceGitCredentialLabel is the label key to specify if the secret is a git credential. All secrets who
@@ -61,7 +61,12 @@ const (
 	// DevWorkspaceMountAsAnnotation is the annotation key to configure the way how configmaps or secrets should be mounted.
 	// Supported options:
 	// - "env" - mount as environment variables
-	// - "file" - mount as a file
+	// - "file" - mount as files within the mount path
+	// - "subpath" - mount keys as subpath volume mounts within the mount path
+	// When a configmap or secret is mounted via "file", the keys within the configmap/secret are mounted as files
+	// within a directory, erasing all contents of the directory. Mounting via "subpath" leaves existing files in the
+	// mount directory changed, but prevents on-cluster changes to the configmap/secret propagating to the container
+	// until it is restarted.
 	// If mountAs is not provided, the default behaviour will be to mount as a file.
 	DevWorkspaceMountAsAnnotation = "controller.devfile.io/mount-as"
 
@@ -113,4 +118,12 @@ const (
 	// NamespacedConfigLabelKey is a label applied to configmaps to mark them as a configuration for all DevWorkspaces in
 	// the current namespace.
 	NamespacedConfigLabelKey = "controller.devfile.io/namespaced-config"
+
+	// NamespacePodTolerationsAnnotation is an annotation applied to a namespace to configure pod tolerations for all workspaces
+	// in that namespace. Value should be json-encoded []corev1.Toleration struct.
+	NamespacePodTolerationsAnnotation = "controller.devfile.io/pod-tolerations"
+
+	// NamespaceNodeSelectorAnnotation is an annotation applied to a namespace to configure the node selector for all workspaces
+	// in that namespace. Value should be json-encoded map[string]string
+	NamespaceNodeSelectorAnnotation = "controller.devfile.io/node-selector"
 )

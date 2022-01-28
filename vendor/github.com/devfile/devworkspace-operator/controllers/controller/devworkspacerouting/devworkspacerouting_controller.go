@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2021 Red Hat, Inc.
+// Copyright (c) 2019-2022 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -84,9 +84,6 @@ func (r *DevWorkspaceRoutingReconciler) Reconcile(ctx context.Context, req ctrl.
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
-	if instance.Annotations != nil && instance.Annotations[constants.DevWorkspaceStartedStatusAnnotation] == "false" {
-		return reconcile.Result{}, nil
-	}
 
 	reqLogger = reqLogger.WithValues(constants.DevWorkspaceIDLoggerKey, instance.Spec.DevWorkspaceId)
 	reqLogger.Info("Reconciling DevWorkspaceRouting")
@@ -108,6 +105,10 @@ func (r *DevWorkspaceRoutingReconciler) Reconcile(ctx context.Context, req ctrl.
 	if instance.GetDeletionTimestamp() != nil {
 		reqLogger.Info("Finalizing DevWorkspaceRouting")
 		return reconcile.Result{}, r.finalize(solver, instance)
+	}
+
+	if instance.Annotations != nil && instance.Annotations[constants.DevWorkspaceStartedStatusAnnotation] == "false" {
+		return reconcile.Result{}, nil
 	}
 
 	if instance.Status.Phase == controllerv1alpha1.RoutingFailed {
