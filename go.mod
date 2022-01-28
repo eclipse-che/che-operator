@@ -1,10 +1,9 @@
 module github.com/eclipse-che/che-operator
 
-go 1.15
+go 1.16
 
 require (
 	github.com/Shopify/logrus-bugsnag v0.0.0-00010101000000-000000000000 // indirect
-	github.com/bitly/go-simplejson v0.0.0-00010101000000-000000000000 // indirect
 	github.com/blang/semver/v4 v4.0.0
 	github.com/che-incubator/kubernetes-image-puller-operator v0.0.0-20210929175054-0128446f5af7
 	github.com/devfile/api/v2 v2.0.0-20210917193329-089a48011460
@@ -20,7 +19,6 @@ require (
 	go.uber.org/zap v1.18.1
 	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
 	golang.org/x/tools v0.1.5 // indirect
-	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637 // indirect
 	k8s.io/api v0.21.3
 	k8s.io/apiextensions-apiserver v0.21.3
 	k8s.io/apimachinery v0.21.3
