@@ -19,13 +19,14 @@ import (
 	"strconv"
 	"strings"
 
+	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
+
 	"github.com/eclipse-che/che-operator/pkg/util"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers"
 	"github.com/devfile/devworkspace-operator/pkg/common"

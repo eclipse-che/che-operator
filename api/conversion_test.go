@@ -13,8 +13,11 @@
 package org
 
 import (
+	"encoding/json"
 	"reflect"
 	"testing"
+
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/stretchr/testify/assert"
 
@@ -30,6 +33,19 @@ import (
 )
 
 func TestV1ToV2alpha1(t *testing.T) {
+	tolerations := []corev1.Toleration{
+		{
+			Key:      "a",
+			Operator: corev1.TolerationOpEqual,
+			Value:    "b",
+		},
+	}
+
+	tolBytes, err := json.Marshal(tolerations)
+	assert.NoError(t, err)
+
+	tolerationStr := string(tolBytes)
+
 	v1Obj := v1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "che-cluster",
@@ -71,6 +87,8 @@ func TestV1ToV2alpha1(t *testing.T) {
 				},
 				CustomCheProperties: map[string]string{
 					"CHE_INFRA_OPENSHIFT_ROUTE_HOST_DOMAIN__SUFFIX": "routeDomain",
+					"CHE_WORKSPACE_POD_TOLERATIONS__JSON":           tolerationStr,
+					"CHE_WORKSPACE_POD_NODE__SELECTOR":              "a=b,c=d",
 				},
 			},
 			Storage: v1.CheClusterSpecStorage{
@@ -144,8 +162,8 @@ func TestV1ToV2alpha1(t *testing.T) {
 				t.Error(err)
 			}
 
-			if v2.Spec.WorkspaceDomainEndpoints.BaseDomain != "ingressDomain" {
-				t.Errorf("Unexpected v2.Spec.WorkspaceDomainEndpoints.BaseDomain: %s", v2.Spec.WorkspaceDomainEndpoints.BaseDomain)
+			if v2.Spec.Workspaces.DomainEndpoints.BaseDomain != "ingressDomain" {
+				t.Errorf("Unexpected v2.Spec.Workspaces.DomainEndpoints.BaseDomain: %s", v2.Spec.Workspaces.DomainEndpoints.BaseDomain)
 			}
 		})
 	})
@@ -158,8 +176,8 @@ func TestV1ToV2alpha1(t *testing.T) {
 				t.Error(err)
 			}
 
-			if v2.Spec.WorkspaceDomainEndpoints.BaseDomain != "routeDomain" {
-				t.Errorf("Unexpected v2.Spec.WorkspaceWorkspaceDomainEndpoints.BaseDomainBaseDomain: %s", v2.Spec.WorkspaceDomainEndpoints.BaseDomain)
+			if v2.Spec.Workspaces.DomainEndpoints.BaseDomain != "routeDomain" {
+				t.Errorf("Unexpected v2.Spec.Workspaces.DomainEndpoints.BaseDomain: %s", v2.Spec.Workspaces.DomainEndpoints.BaseDomain)
 			}
 		})
 	})
@@ -172,7 +190,7 @@ func TestV1ToV2alpha1(t *testing.T) {
 				t.Error(err)
 			}
 
-			if v2.Spec.WorkspaceDomainEndpoints.TlsSecretName != "k8sSecret" {
+			if v2.Spec.Workspaces.DomainEndpoints.TlsSecretName != "k8sSecret" {
 				t.Errorf("Unexpected TlsSecretName")
 			}
 		})
@@ -186,7 +204,7 @@ func TestV1ToV2alpha1(t *testing.T) {
 				t.Error(err)
 			}
 
-			if v2.Spec.WorkspaceDomainEndpoints.TlsSecretName != "" {
+			if v2.Spec.Workspaces.DomainEndpoints.TlsSecretName != "" {
 				t.Errorf("Unexpected TlsSecretName")
 			}
 		})
@@ -246,6 +264,18 @@ func TestV1ToV2alpha1(t *testing.T) {
 			t.Errorf("Unexpected Spec.Gateway.ConfigLabels: %v", cmp.Diff(v1Obj.Spec.Server.SingleHostGatewayConfigMapLabels, v2.Spec.Gateway.ConfigLabels))
 		}
 	})
+
+	t.Run("WorkspacePodSelector", func(t *testing.T) {
+		v2 := &v2alpha1.CheCluster{}
+		assert.NoError(t, V1ToV2alpha1(&v1Obj, v2))
+		assert.Equal(t, map[string]string{"a": "b", "c": "d"}, v2.Spec.Workspaces.PodNodeSelector)
+	})
+
+	t.Run("WorkspacePodTolerations", func(t *testing.T) {
+		v2 := &v2alpha1.CheCluster{}
+		assert.NoError(t, V1ToV2alpha1(&v1Obj, v2))
+		assert.Equal(t, tolerations, v2.Spec.Workspaces.PodTolerations)
+	})
 }
 
 func TestV2alpha1ToV1(t *testing.T) {
@@ -259,9 +289,19 @@ func TestV2alpha1ToV1(t *testing.T) {
 		},
 		Spec: v2alpha1.CheClusterSpec{
 			Enabled: pointer.BoolPtr(true),
-			WorkspaceDomainEndpoints: v2alpha1.WorkspaceDomainEndpoints{
-				BaseDomain:    "baseDomain",
-				TlsSecretName: "workspaceSecret",
+			Workspaces: v2alpha1.Workspaces{
+				DomainEndpoints: v2alpha1.DomainEndpoints{
+					BaseDomain:    "baseDomain",
+					TlsSecretName: "workspaceSecret",
+				},
+				PodNodeSelector: map[string]string{"a": "b", "c": "d"},
+				PodTolerations: []corev1.Toleration{
+					{
+						Key:      "a",
+						Operator: corev1.TolerationOpEqual,
+						Value:    "b",
+					},
+				},
 			},
 			Gateway: v2alpha1.CheGatewaySpec{
 				Host:            "v2Host",
@@ -369,7 +409,7 @@ func TestV2alpha1ToV1(t *testing.T) {
 		onFakeOpenShift(func() {
 			v1 := &v1.CheCluster{}
 			v2apha := v2Obj.DeepCopy()
-			v2apha.Spec.WorkspaceDomainEndpoints.BaseDomain = ""
+			v2apha.Spec.Workspaces.DomainEndpoints.BaseDomain = ""
 			err := V2alpha1ToV1(v2apha, v1)
 			if err != nil {
 				t.Error(err)
@@ -454,6 +494,23 @@ func TestV2alpha1ToV1(t *testing.T) {
 			t.Errorf("Unexpected SingleHostGatewayConfigMapLabels: %s", v1.Spec.Server.SingleHostGatewayConfigMapLabels)
 		}
 	})
+
+	t.Run("WorkspacePodNodeSelector", func(t *testing.T) {
+		v1 := &v1.CheCluster{}
+		assert.NoError(t, V2alpha1ToV1(&v2Obj, v1))
+		assert.Equal(t, map[string]string{"a": "b", "c": "d"}, v1.Spec.Server.WorkspacePodNodeSelector)
+	})
+
+	t.Run("WorkspacePodTolerations", func(t *testing.T) {
+		v1 := &v1.CheCluster{}
+		assert.NoError(t, V2alpha1ToV1(&v2Obj, v1))
+		assert.Equal(t, []corev1.Toleration{{
+			Key:      "a",
+			Operator: corev1.TolerationOpEqual,
+			Value:    "b",
+		}}, v1.Spec.Server.WorkspacePodTolerations)
+
+	})
 }
 
 func TestFullCircleV1(t *testing.T) {
@@ -506,10 +563,10 @@ func TestFullCircleV1(t *testing.T) {
 	}
 
 	v2Obj := v2alpha1.CheCluster{}
-	V1ToV2alpha1(&v1Obj, &v2Obj)
+	assert.NoError(t, V1ToV2alpha1(&v1Obj, &v2Obj))
 
 	convertedV1 := v1.CheCluster{}
-	V2alpha1ToV1(&v2Obj, &convertedV1)
+	assert.NoError(t, V2alpha1ToV1(&v2Obj, &convertedV1))
 
 	assert.Empty(t, convertedV1.Annotations[v1StorageAnnotation])
 	assert.NotEmpty(t, convertedV1.Annotations[v2alpha1StorageAnnotation])
@@ -531,9 +588,11 @@ func TestFullCircleV2(t *testing.T) {
 		},
 		Spec: v2alpha1.CheClusterSpec{
 			Enabled: pointer.BoolPtr(true),
-			WorkspaceDomainEndpoints: v2alpha1.WorkspaceDomainEndpoints{
-				BaseDomain:    "baseDomain",
-				TlsSecretName: "workspaceSecret",
+			Workspaces: v2alpha1.Workspaces{
+				DomainEndpoints: v2alpha1.DomainEndpoints{
+					BaseDomain:    "baseDomain",
+					TlsSecretName: "workspaceSecret",
+				},
 			},
 			Gateway: v2alpha1.CheGatewaySpec{
 				Host:            "v2Host",
@@ -555,10 +614,10 @@ func TestFullCircleV2(t *testing.T) {
 	}
 
 	v1Obj := v1.CheCluster{}
-	V2alpha1ToV1(&v2Obj, &v1Obj)
+	assert.NoError(t, V2alpha1ToV1(&v2Obj, &v1Obj))
 
 	convertedV2 := v2alpha1.CheCluster{}
-	V1ToV2alpha1(&v1Obj, &convertedV2)
+	assert.NoError(t, V1ToV2alpha1(&v1Obj, &convertedV2))
 
 	assert.Empty(t, convertedV2.Annotations[v2alpha1StorageAnnotation])
 	assert.NotEmpty(t, convertedV2.Annotations[v1StorageAnnotation])

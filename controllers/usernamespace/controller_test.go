@@ -14,6 +14,7 @@ package usernamespace
 
 import (
 	"context"
+	"encoding/json"
 	"sync"
 	"testing"
 
@@ -62,6 +63,19 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 				GitSelfSignedCert: true,
 				CustomCheProperties: map[string]string{
 					"CHE_INFRA_OPENSHIFT_ROUTE_HOST_DOMAIN__SUFFIX": "root-domain",
+				},
+				WorkspacePodNodeSelector: map[string]string{"a": "b", "c": "d"},
+				WorkspacePodTolerations: []corev1.Toleration{
+					{
+						Key:      "a",
+						Operator: corev1.TolerationOpEqual,
+						Value:    "b",
+					},
+					{
+						Key:      "c",
+						Operator: corev1.TolerationOpEqual,
+						Value:    "d",
+					},
 				},
 			},
 			DevWorkspace: v1.CheClusterSpecDevWorkspace{
@@ -273,7 +287,21 @@ func TestMatchingCheClusterCanBeSelectedUsingLabels(t *testing.T) {
 }
 
 func TestCreatesDataInNamespace(t *testing.T) {
-	test := func(t *testing.T, infraType infrastructure.Type, namespace metav1.Object, objs ...runtime.Object) {
+	expectedPodTolerations, err := json.Marshal([]corev1.Toleration{
+		{
+			Key:      "a",
+			Operator: corev1.TolerationOpEqual,
+			Value:    "b",
+		},
+		{
+			Key:      "c",
+			Operator: corev1.TolerationOpEqual,
+			Value:    "d",
+		},
+	})
+	assert.NoError(t, err)
+
+	test := func(t *testing.T, infraType infrastructure.Type, namespace client.Object, objs ...runtime.Object) {
 		ctx := context.TODO()
 		allObjs := append(objs, namespace.(runtime.Object))
 		scheme, cl, r := setup(infraType, allObjs...)
@@ -323,6 +351,11 @@ func TestCreatesDataInNamespace(t *testing.T) {
 		assert.Equal(t, "true", gitTlsConfig.Labels[constants.DevWorkspaceWatchConfigMapLabel])
 		assert.Equal(t, "the.host.of.git", gitTlsConfig.Data["host"])
 		assert.Equal(t, "the public certificate of the.host.of.git", gitTlsConfig.Data["certificate"])
+
+		updatedNs := namespace.DeepCopyObject().(client.Object)
+		assert.NoError(t, cl.Get(ctx, client.ObjectKeyFromObject(namespace), updatedNs))
+		assert.Equal(t, `{"a":"b","c":"d"}`, updatedNs.GetAnnotations()[nodeSelectorAnnotation])
+		assert.Equal(t, string(expectedPodTolerations), updatedNs.GetAnnotations()[podTolerationsAnnotation])
 	}
 
 	t.Run("k8s", func(t *testing.T) {

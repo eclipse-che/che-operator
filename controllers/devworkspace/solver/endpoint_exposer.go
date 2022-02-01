@@ -66,9 +66,9 @@ func (e *RouteExposer) initFrom(ctx context.Context, cl client.Client, cluster *
 	e.baseDomain = cluster.Status.WorkspaceBaseDomain
 	e.devWorkspaceID = routing.Spec.DevWorkspaceId
 
-	if cluster.Spec.WorkspaceDomainEndpoints.TlsSecretName != "" {
+	if cluster.Spec.Workspaces.DomainEndpoints.TlsSecretName != "" {
 		secret := &corev1.Secret{}
-		err := cl.Get(ctx, client.ObjectKey{Name: cluster.Spec.WorkspaceDomainEndpoints.TlsSecretName, Namespace: cluster.Namespace}, secret)
+		err := cl.Get(ctx, client.ObjectKey{Name: cluster.Spec.Workspaces.DomainEndpoints.TlsSecretName, Namespace: cluster.Namespace}, secret)
 		if err != nil {
 			return err
 		}
@@ -85,7 +85,7 @@ func (e *IngressExposer) initFrom(ctx context.Context, cl client.Client, cluster
 	e.devWorkspaceID = routing.Spec.DevWorkspaceId
 	e.ingressAnnotations = ingressAnnotations
 
-	if cluster.Spec.WorkspaceDomainEndpoints.TlsSecretName != "" {
+	if cluster.Spec.Workspaces.DomainEndpoints.TlsSecretName != "" {
 		tlsSecretName := routing.Spec.DevWorkspaceId + "-endpoints"
 		e.tlsSecretName = tlsSecretName
 
@@ -95,7 +95,7 @@ func (e *IngressExposer) initFrom(ctx context.Context, cl client.Client, cluster
 		err := cl.Get(ctx, client.ObjectKey{Name: tlsSecretName, Namespace: routing.Namespace}, secret)
 		if errors.IsNotFound(err) {
 			secret = &corev1.Secret{}
-			err = cl.Get(ctx, client.ObjectKey{Name: cluster.Spec.WorkspaceDomainEndpoints.TlsSecretName, Namespace: cluster.Namespace}, secret)
+			err = cl.Get(ctx, client.ObjectKey{Name: cluster.Spec.Workspaces.DomainEndpoints.TlsSecretName, Namespace: cluster.Namespace}, secret)
 			if err != nil {
 				return err
 			}

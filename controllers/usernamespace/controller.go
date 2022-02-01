@@ -14,6 +14,9 @@ package usernamespace
 
 import (
 	"context"
+	"encoding/json"
+
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -42,6 +45,10 @@ import (
 
 const (
 	userSettingsComponentLabelValue = "user-settings"
+	// we're define these here because we're forced to use an older version
+	// of devworkspace operator as our dependency due to different go version
+	nodeSelectorAnnotation   = "controller.devfile.io/node-selector"
+	podTolerationsAnnotation = "controller.devfile.io/pod-tolerations"
 )
 
 type CheUserNamespaceReconciler struct {
@@ -230,6 +237,11 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	if err = r.reconcileGitTlsCertificate(ctx, req.Name, checluster, deployContext); err != nil {
 		logrus.Errorf("Failed to reconcile Che git TLS certificate  into namespace '%s': %v", req.Name, err)
+		return ctrl.Result{}, err
+	}
+
+	if err = r.reconcileNodeSelectorAndTolerations(ctx, req.Name, checluster, deployContext); err != nil {
+		logrus.Errorf("Failed to reconcile the workspace pod node selector and tolerations in namespace '%s': %v", req.Name, err)
 		return ctrl.Result{}, err
 	}
 
@@ -471,6 +483,62 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 
 	_, err := deploy.DoSync(deployContext, &target, deploy.ConfigMapDiffOpts)
 	return err
+}
+
+func (r *CheUserNamespaceReconciler) reconcileNodeSelectorAndTolerations(ctx context.Context, targetNs string, checluster *v2alpha1.CheCluster, deployContext *deploy.DeployContext) error {
+	var ns client.Object
+
+	if infrastructure.IsOpenShift() {
+		ns = &projectv1.Project{}
+	} else {
+		ns = &corev1.Namespace{}
+	}
+
+	if err := r.client.Get(ctx, client.ObjectKey{Name: targetNs}, ns); err != nil {
+		return err
+	}
+
+	nodeSelector := ""
+	tolerations := ""
+
+	if len(checluster.Spec.Workspaces.PodNodeSelector) != 0 {
+		serialized, err := json.Marshal(checluster.Spec.Workspaces.PodNodeSelector)
+		if err != nil {
+			return err
+		}
+
+		nodeSelector = string(serialized)
+	}
+
+	if len(checluster.Spec.Workspaces.PodTolerations) != 0 {
+		serialized, err := json.Marshal(checluster.Spec.Workspaces.PodTolerations)
+		if err != nil {
+			return err
+		}
+
+		tolerations = string(serialized)
+	}
+
+	annos := ns.GetAnnotations()
+	if annos == nil {
+		annos = map[string]string{}
+	}
+
+	if len(nodeSelector) == 0 {
+		delete(annos, nodeSelectorAnnotation)
+	} else {
+		annos[nodeSelectorAnnotation] = nodeSelector
+	}
+
+	if len(tolerations) == 0 {
+		delete(annos, podTolerationsAnnotation)
+	} else {
+		annos[podTolerationsAnnotation] = tolerations
+	}
+
+	ns.SetAnnotations(annos)
+
+	return r.client.Update(ctx, ns)
 }
 
 func prefixedName(checluster *v2alpha1.CheCluster, name string) string {

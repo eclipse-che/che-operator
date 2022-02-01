@@ -17,6 +17,7 @@
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -251,6 +252,20 @@ func (in *CheClusterSpecServer) DeepCopyInto(out *CheClusterSpecServer) {
 	if in.WorkspacesDefaultPlugins != nil {
 		in, out := &in.WorkspacesDefaultPlugins, &out.WorkspacesDefaultPlugins
 		*out = make([]WorkspacesDefaultPlugins, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.WorkspacePodNodeSelector != nil {
+		in, out := &in.WorkspacePodNodeSelector, &out.WorkspacePodNodeSelector
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.WorkspacePodTolerations != nil {
+		in, out := &in.WorkspacePodTolerations, &out.WorkspacePodTolerations
+		*out = make([]corev1.Toleration, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

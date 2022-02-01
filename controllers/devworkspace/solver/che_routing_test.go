@@ -113,8 +113,10 @@ func getSpecObjects(t *testing.T, routing *dwo.DevWorkspaceRouting) (client.Clie
 			Gateway: v2alpha1.CheGatewaySpec{
 				Host: "over.the.rainbow",
 			},
-			WorkspaceDomainEndpoints: v2alpha1.WorkspaceDomainEndpoints{
-				BaseDomain: "down.on.earth",
+			Workspaces: v2alpha1.Workspaces{
+				DomainEndpoints: v2alpha1.DomainEndpoints{
+					BaseDomain: "down.on.earth",
+				},
 			},
 		},
 	}, routing)
@@ -756,8 +758,10 @@ func TestUsesIngressAnnotationsForWorkspaceEndpointIngresses(t *testing.T) {
 			Gateway: v2alpha1.CheGatewaySpec{
 				Host: "over.the.rainbow",
 			},
-			WorkspaceDomainEndpoints: v2alpha1.WorkspaceDomainEndpoints{
-				BaseDomain: "down.on.earth",
+			Workspaces: v2alpha1.Workspaces{
+				DomainEndpoints: v2alpha1.DomainEndpoints{
+					BaseDomain: "down.on.earth",
+				},
 			},
 			K8s: v2alpha1.CheClusterSpecK8s{
 				IngressAnnotations: map[string]string{
@@ -798,9 +802,11 @@ func TestUsesCustomCertificateForWorkspaceEndpointIngresses(t *testing.T) {
 			Gateway: v2alpha1.CheGatewaySpec{
 				Host: "beyond.comprehension",
 			},
-			WorkspaceDomainEndpoints: v2alpha1.WorkspaceDomainEndpoints{
-				BaseDomain:    "almost.trivial",
-				TlsSecretName: "tlsSecret",
+			Workspaces: v2alpha1.Workspaces{
+				DomainEndpoints: v2alpha1.DomainEndpoints{
+					BaseDomain:    "almost.trivial",
+					TlsSecretName: "tlsSecret",
+				},
 			},
 		},
 	}
@@ -877,9 +883,11 @@ func TestUsesCustomCertificateForWorkspaceEndpointRoutes(t *testing.T) {
 			Gateway: v2alpha1.CheGatewaySpec{
 				Host: "beyond.comprehension",
 			},
-			WorkspaceDomainEndpoints: v2alpha1.WorkspaceDomainEndpoints{
-				BaseDomain:    "almost.trivial",
-				TlsSecretName: "tlsSecret",
+			Workspaces: v2alpha1.Workspaces{
+				DomainEndpoints: v2alpha1.DomainEndpoints{
+					BaseDomain:    "almost.trivial",
+					TlsSecretName: "tlsSecret",
+				},
 			},
 		},
 	}

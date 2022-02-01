@@ -13,10 +13,14 @@
 package org
 
 import (
+	"encoding/json"
+	"strings"
+
 	v1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/api/v2alpha1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/yaml"
 )
@@ -72,6 +76,10 @@ func V1ToV2alpha1(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) error {
 	v1toV2alpha1_GatewayConfigLabels(v1, v2)
 	v1ToV2alpha1_WorkspaceDomainEndpointsBaseDomain(v1, v2)
 	v1ToV2alpha1_WorkspaceDomainEndpointsTlsSecretName(v1, v2)
+	v1ToV2alpha1_WorkspacePodNodeSelector(v1, v2)
+	if err := v1ToV2alpha1_WorkspacePodTolerations(v1, v2); err != nil {
+		return err
+	}
 	v1ToV2alpha1_K8sIngressAnnotations(v1, v2)
 
 	// we don't need to store the serialized v2 on a v2 object
@@ -111,6 +119,8 @@ func V2alpha1ToV1(v2 *v2alpha1.CheCluster, v1Obj *v1.CheCluster) error {
 	v2alpha1ToV1_GatewayConfigLabels(v1Obj, v2)
 	v2alpha1ToV1_WorkspaceDomainEndpointsBaseDomain(v1Obj, v2)
 	v2alpha1ToV1_WorkspaceDomainEndpointsTlsSecretName(v1Obj, v2)
+	v2alpha1ToV1_WorkspacePodNodeSelector(v1Obj, v2)
+	v2alpha1ToV1_WorkspacePodTolerations(v1Obj, v2)
 	v2alpha1ToV1_K8sIngressAnnotations(v1Obj, v2)
 
 	// we don't need to store the serialized v1 on a v1 object
@@ -129,9 +139,9 @@ func v1ToV2alpha1_Host(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
 
 func v1ToV2alpha1_WorkspaceDomainEndpointsBaseDomain(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
 	if util.IsOpenShift {
-		v2.Spec.WorkspaceDomainEndpoints.BaseDomain = v1.Spec.Server.CustomCheProperties[routeDomainSuffixPropertyKey]
+		v2.Spec.Workspaces.DomainEndpoints.BaseDomain = v1.Spec.Server.CustomCheProperties[routeDomainSuffixPropertyKey]
 	} else {
-		v2.Spec.WorkspaceDomainEndpoints.BaseDomain = v1.Spec.K8s.IngressDomain
+		v2.Spec.Workspaces.DomainEndpoints.BaseDomain = v1.Spec.K8s.IngressDomain
 	}
 }
 
@@ -140,8 +150,44 @@ func v1ToV2alpha1_WorkspaceDomainEndpointsTlsSecretName(v1 *v1.CheCluster, v2 *v
 	// Because we're dealing with endpoints, let's try to use the secret on Kubernetes and nothing (e.g. the default cluster cert on OpenShift)
 	// which is in line with the logic of the Che server.
 	if !util.IsOpenShift {
-		v2.Spec.WorkspaceDomainEndpoints.TlsSecretName = v1.Spec.K8s.TlsSecretName
+		v2.Spec.Workspaces.DomainEndpoints.TlsSecretName = v1.Spec.K8s.TlsSecretName
 	}
+}
+
+func v1ToV2alpha1_WorkspacePodNodeSelector(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
+	selector := v1.Spec.Server.WorkspacePodNodeSelector
+	if len(selector) == 0 {
+		prop := v1.Spec.Server.CustomCheProperties["CHE_WORKSPACE_POD_NODE__SELECTOR"]
+		if prop != "" {
+			selector = map[string]string{}
+			kvs := strings.Split(prop, ",")
+			for _, pair := range kvs {
+				kv := strings.Split(pair, "=")
+				if len(kv) == 2 {
+					selector[kv[0]] = kv[1]
+				}
+			}
+		}
+	}
+	v2.Spec.Workspaces.PodNodeSelector = selector
+}
+
+func v1ToV2alpha1_WorkspacePodTolerations(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) error {
+	tolerations := v1.Spec.Server.WorkspacePodTolerations
+
+	if len(tolerations) == 0 {
+		prop := v1.Spec.Server.CustomCheProperties["CHE_WORKSPACE_POD_TOLERATIONS__JSON"]
+		if prop != "" {
+			tols := []corev1.Toleration{}
+			if err := json.Unmarshal([]byte(prop), &tols); err != nil {
+				return err
+			}
+			tolerations = tols
+		}
+	}
+
+	v2.Spec.Workspaces.PodTolerations = tolerations
+	return nil
 }
 
 func v1ToV2alpha1_GatewayEnabled(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
@@ -197,19 +243,27 @@ func v2alpha1ToV1_WorkspaceDomainEndpointsBaseDomain(v1 *v1.CheCluster, v2 *v2al
 		if v1.Spec.Server.CustomCheProperties == nil {
 			v1.Spec.Server.CustomCheProperties = map[string]string{}
 		}
-		if len(v2.Spec.WorkspaceDomainEndpoints.BaseDomain) > 0 {
-			v1.Spec.Server.CustomCheProperties[routeDomainSuffixPropertyKey] = v2.Spec.WorkspaceDomainEndpoints.BaseDomain
+		if len(v2.Spec.Workspaces.DomainEndpoints.BaseDomain) > 0 {
+			v1.Spec.Server.CustomCheProperties[routeDomainSuffixPropertyKey] = v2.Spec.Workspaces.DomainEndpoints.BaseDomain
 		}
 	} else {
-		v1.Spec.K8s.IngressDomain = v2.Spec.WorkspaceDomainEndpoints.BaseDomain
+		v1.Spec.K8s.IngressDomain = v2.Spec.Workspaces.DomainEndpoints.BaseDomain
 	}
 }
 
 func v2alpha1ToV1_WorkspaceDomainEndpointsTlsSecretName(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
 	// see the comments in the v1 to v2alpha1 conversion method
 	if !util.IsOpenShift {
-		v1.Spec.K8s.TlsSecretName = v2.Spec.WorkspaceDomainEndpoints.TlsSecretName
+		v1.Spec.K8s.TlsSecretName = v2.Spec.Workspaces.DomainEndpoints.TlsSecretName
 	}
+}
+
+func v2alpha1ToV1_WorkspacePodNodeSelector(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
+	v1.Spec.Server.WorkspacePodNodeSelector = v2.Spec.Workspaces.PodNodeSelector
+}
+
+func v2alpha1ToV1_WorkspacePodTolerations(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
+	v1.Spec.Server.WorkspacePodTolerations = v2.Spec.Workspaces.PodTolerations
 }
 
 func v2alpha1ToV1_GatewayImage(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
