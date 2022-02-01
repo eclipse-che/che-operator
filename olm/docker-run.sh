@@ -44,7 +44,7 @@ check() {
 build() {
   printf "%bBuilding image %b${IMAGE_NAME}${NC}..." "${BOLD}" "${BLUE}"
   if docker build --build-arg OPERATOR_SDK_VERSION=${OPERATOR_SDK_VERSION} -t ${IMAGE_NAME} > docker-build-log 2>&1 -<<EOF
-  FROM golang:1.15-alpine
+  FROM golang:1.16-alpine
   ARG OPERATOR_SDK_VERSION
   RUN apk add --no-cache --update curl bash py-pip jq skopeo && pip install yq
   RUN curl -JL https://github.com/operator-framework/operator-sdk/releases/download/${OPERATOR_SDK_VERSION}/operator-sdk_linux_amd64 -o /bin/operator-sdk && chmod u+x /bin/operator-sdk

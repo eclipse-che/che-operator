@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Red Hat, Inc.
+// Copyright (c) 2019-2022 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -35,16 +35,17 @@ import (
 type diffFunc func(spec crclient.Object, cluster crclient.Object) (delete, update bool)
 
 var diffFuncs = map[reflect.Type]diffFunc{
-	reflect.TypeOf(rbacv1.Role{}):                  basicDiffFunc(roleDiffOpts),
-	reflect.TypeOf(rbacv1.RoleBinding{}):           basicDiffFunc(rolebindingDiffOpts),
+	reflect.TypeOf(rbacv1.Role{}):                  allDiffFuncs(labelsAndAnnotationsDiffFunc, basicDiffFunc(roleDiffOpts)),
+	reflect.TypeOf(rbacv1.RoleBinding{}):           allDiffFuncs(labelsAndAnnotationsDiffFunc, basicDiffFunc(rolebindingDiffOpts)),
 	reflect.TypeOf(corev1.ServiceAccount{}):        labelsAndAnnotationsDiffFunc,
-	reflect.TypeOf(appsv1.Deployment{}):            allDiffFuncs(deploymentDiffFunc, basicDiffFunc(deploymentDiffOpts)),
-	reflect.TypeOf(corev1.ConfigMap{}):             basicDiffFunc(configmapDiffOpts),
+	reflect.TypeOf(appsv1.Deployment{}):            allDiffFuncs(deploymentDiffFunc, labelsAndAnnotationsDiffFunc, basicDiffFunc(deploymentDiffOpts)),
+	reflect.TypeOf(corev1.ConfigMap{}):             allDiffFuncs(labelsAndAnnotationsDiffFunc, basicDiffFunc(configmapDiffOpts)),
+	reflect.TypeOf(corev1.Secret{}):                allDiffFuncs(labelsAndAnnotationsDiffFunc, basicDiffFunc(secretDiffOpts)),
 	reflect.TypeOf(v1alpha1.DevWorkspaceRouting{}): allDiffFuncs(routingDiffFunc, labelsAndAnnotationsDiffFunc, basicDiffFunc(routingDiffOpts)),
-	reflect.TypeOf(batchv1.Job{}):                  jobDiffFunc,
-	reflect.TypeOf(corev1.Service{}):               serviceDiffFunc,
-	reflect.TypeOf(networkingv1.Ingress{}):         basicDiffFunc(ingressDiffOpts),
-	reflect.TypeOf(routev1.Route{}):                basicDiffFunc(routeDiffOpts),
+	reflect.TypeOf(batchv1.Job{}):                  allDiffFuncs(labelsAndAnnotationsDiffFunc, jobDiffFunc),
+	reflect.TypeOf(corev1.Service{}):               allDiffFuncs(labelsAndAnnotationsDiffFunc, serviceDiffFunc),
+	reflect.TypeOf(networkingv1.Ingress{}):         allDiffFuncs(labelsAndAnnotationsDiffFunc, basicDiffFunc(ingressDiffOpts)),
+	reflect.TypeOf(routev1.Route{}):                allDiffFuncs(labelsAndAnnotationsDiffFunc, basicDiffFunc(routeDiffOpts)),
 }
 
 // basicDiffFunc returns a diffFunc that specifies an object needs an update if cmp.Equal fails
@@ -76,13 +77,14 @@ func labelsAndAnnotationsDiffFunc(spec, cluster crclient.Object) (delete, update
 // returning the result of the first function to require an update/deletion.
 func allDiffFuncs(funcs ...diffFunc) diffFunc {
 	return func(spec, cluster crclient.Object) (delete, update bool) {
+		// Need to check each function in case one requires the object to be deleted
+		anyDelete, anyUpdate := false, false
 		for _, df := range funcs {
 			shouldDelete, shouldUpdate := df(spec, cluster)
-			if shouldDelete || shouldUpdate {
-				return shouldDelete, shouldUpdate
-			}
+			anyDelete = anyDelete || shouldDelete
+			anyUpdate = anyUpdate || shouldUpdate
 		}
-		return false, false
+		return anyDelete, anyUpdate
 	}
 }
 

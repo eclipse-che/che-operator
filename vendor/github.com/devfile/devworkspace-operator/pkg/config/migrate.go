@@ -1,13 +1,16 @@
 //
-// Copyright (c) 2019-2021 Red Hat, Inc.
-// This program and the accompanying materials are made
-// available under the terms of the Eclipse Public License 2.0
-// which is available at https://www.eclipse.org/legal/epl-2.0/
+// Copyright (c) 2019-2022 Red Hat, Inc.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
-// SPDX-License-Identifier: EPL-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
-// Contributors:
-//   Red Hat, Inc. - initial API and implementation
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 //
 
 package config
@@ -89,12 +92,12 @@ func convertConfigMapToConfigCRD(client crclient.Client) (*dw.DevWorkspaceOperat
 	migratedRoutingConfig := &dw.RoutingConfig{}
 	setRoutingConfig := false
 	routingSuffix := configmap.ControllerCfg.GetClusterRoutingSuffix()
-	if routingSuffix != nil && *routingSuffix != DefaultConfig.Routing.ClusterHostSuffix {
+	if routingSuffix != nil && *routingSuffix != defaultConfig.Routing.ClusterHostSuffix {
 		migratedRoutingConfig.ClusterHostSuffix = *routingSuffix
 		setRoutingConfig = true
 	}
 	defaultRoutingClass := configmap.ControllerCfg.GetDefaultRoutingClass()
-	if defaultRoutingClass != nil && *defaultRoutingClass != DefaultConfig.Routing.DefaultRoutingClass {
+	if defaultRoutingClass != nil && *defaultRoutingClass != defaultConfig.Routing.DefaultRoutingClass {
 		migratedRoutingConfig.DefaultRoutingClass = *defaultRoutingClass
 		setRoutingConfig = true
 	}
@@ -102,22 +105,22 @@ func convertConfigMapToConfigCRD(client crclient.Client) (*dw.DevWorkspaceOperat
 	migratedWorkspaceConfig := &dw.WorkspaceConfig{}
 	setWorkspaceConfig := false
 	storageClassName := configmap.ControllerCfg.GetPVCStorageClassName()
-	if storageClassName != DefaultConfig.Workspace.StorageClassName {
+	if storageClassName != defaultConfig.Workspace.StorageClassName {
 		migratedWorkspaceConfig.StorageClassName = storageClassName
 		setWorkspaceConfig = true
 	}
 	sidecarPullPolicy := configmap.ControllerCfg.GetSidecarPullPolicy()
-	if sidecarPullPolicy != nil && *sidecarPullPolicy != DefaultConfig.Workspace.ImagePullPolicy {
+	if sidecarPullPolicy != nil && *sidecarPullPolicy != defaultConfig.Workspace.ImagePullPolicy {
 		migratedWorkspaceConfig.ImagePullPolicy = *sidecarPullPolicy
 		setWorkspaceConfig = true
 	}
 	idleTimeout := configmap.ControllerCfg.GetWorkspaceIdleTimeout()
-	if idleTimeout != nil && *idleTimeout != DefaultConfig.Workspace.IdleTimeout {
+	if idleTimeout != nil && *idleTimeout != defaultConfig.Workspace.IdleTimeout {
 		migratedWorkspaceConfig.IdleTimeout = *idleTimeout
 		setWorkspaceConfig = true
 	}
 	pvcName := configmap.ControllerCfg.GetWorkspacePVCName()
-	if pvcName != nil && *pvcName != DefaultConfig.Workspace.PVCName {
+	if pvcName != nil && *pvcName != defaultConfig.Workspace.PVCName {
 		migratedWorkspaceConfig.PVCName = *pvcName
 		setWorkspaceConfig = true
 	}
