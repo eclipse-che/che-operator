@@ -44,6 +44,11 @@ func GetPrivilegedPoliciesRulesForKubernetes() []rbacv1.PolicyRule {
 			Resources: []string{"namespaces"},
 			Verbs:     []string{"get", "create", "update", "list"},
 		},
+		{
+			APIGroups: []string{"org.eclipse.che"},
+			Resources: []string{"checlusters"},
+			Verbs:     []string{"get", "list", "watch"},
+		},
 	}
 
 	if !util.IsOpenShift {
