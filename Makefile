@@ -56,21 +56,12 @@ ECLIPSE_CHE_CR=config/samples/org.eclipse.che_v1_checluster.yaml
 
 # legacy crd v1beta1 file names
 ECLIPSE_CHE_CRD_V1BETA1="$(CRD_FOLDER)/org_v1_che_crd-v1beta1.yaml"
-ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1BETA1="$(CRD_FOLDER)/org.eclipse.che_chebackupserverconfigurations_crd-v1beta1.yaml"
-ECLIPSE_CHE_BACKUP_CRD_V1BETA1="$(CRD_FOLDER)/org.eclipse.che_checlusterbackups_crd-v1beta1.yaml"
-ECLIPSE_CHE_RESTORE_CRD_V1BETA1="$(CRD_FOLDER)/org.eclipse.che_checlusterrestores_crd-v1beta1.yaml"
 
 # legacy crd file names
 ECLIPSE_CHE_CRD_V1="$(CRD_FOLDER)/org_v1_che_crd.yaml"
-ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1="$(CRD_FOLDER)/org.eclipse.che_chebackupserverconfigurations_crd.yaml"
-ECLIPSE_CHE_BACKUP_CRD_V1="$(CRD_FOLDER)/org.eclipse.che_checlusterbackups_crd.yaml"
-ECLIPSE_CHE_RESTORE_CRD_V1="$(CRD_FOLDER)/org.eclipse.che_checlusterrestores_crd.yaml"
 
 # default crd names used operator-sdk from the box
 ECLIPSE_CHE_CRD="$(CRD_FOLDER)/org.eclipse.che_checlusters.yaml"
-ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD="$(CRD_FOLDER)/org.eclipse.che_chebackupserverconfigurations.yaml"
-ECLIPSE_CHE_BACKUP_CRD="$(CRD_FOLDER)/org.eclipse.che_checlusterbackups.yaml"
-ECLIPSE_CHE_RESTORE_CRD="$(CRD_FOLDER)/org.eclipse.che_checlusterrestores.yaml"
 
 DEV_WORKSPACE_CONTROLLER_VERSION="v0.12.1"
 DEV_HEADER_REWRITE_TRAEFIK_PLUGIN="main"
@@ -163,56 +154,29 @@ manifests: controller-gen add-license-download ## Generate WebhookConfiguration,
 	# Generate CRDs v1beta1
 	$(CONTROLLER_GEN) $(CRD_BETA_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 	mv "$(ECLIPSE_CHE_CRD)" "$(ECLIPSE_CHE_CRD_V1BETA1)"
-	mv "$(ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD)" "$(ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1BETA1)"
-	mv "$(ECLIPSE_CHE_BACKUP_CRD)" "$(ECLIPSE_CHE_BACKUP_CRD_V1BETA1)"
-	mv "$(ECLIPSE_CHE_RESTORE_CRD)" "$(ECLIPSE_CHE_RESTORE_CRD_V1BETA1)"
 
 	# Generate CRDs v1
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 	mv "$(ECLIPSE_CHE_CRD)" "$(ECLIPSE_CHE_CRD_V1)"
-	mv "$(ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD)" "$(ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1)"
-	mv "$(ECLIPSE_CHE_BACKUP_CRD)" "$(ECLIPSE_CHE_BACKUP_CRD_V1)"
-	mv "$(ECLIPSE_CHE_RESTORE_CRD)" "$(ECLIPSE_CHE_RESTORE_CRD_V1)"
 
 	# remove yaml delimitier, which makes OLM catalog source image broken.
 	sed -i.bak '/---/d' "$(ECLIPSE_CHE_CRD_V1BETA1)"
-	sed -i.bak '/---/d' "$(ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1BETA1)"
-	sed -i.bak '/---/d' "$(ECLIPSE_CHE_BACKUP_CRD_V1BETA1)"
-	sed -i.bak '/---/d' "$(ECLIPSE_CHE_RESTORE_CRD_V1BETA1)"
-	rm -rf "$(ECLIPSE_CHE_CRD_V1BETA1).bak" "$(ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1BETA1).bak" "$(ECLIPSE_CHE_BACKUP_CRD_V1BETA1).bak" "$(ECLIPSE_CHE_RESTORE_CRD_V1BETA1).bak"
+	rm -rf "$(ECLIPSE_CHE_CRD_V1BETA1).bak"
 	sed -i.bak '/---/d' "$(ECLIPSE_CHE_CRD_V1)"
-	sed -i.bak '/---/d' "$(ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1)"
-	sed -i.bak '/---/d' "$(ECLIPSE_CHE_BACKUP_CRD_V1)"
-	sed -i.bak '/---/d' "$(ECLIPSE_CHE_RESTORE_CRD_V1)"
-	rm -rf "$(ECLIPSE_CHE_CRD_V1).bak" "$(ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1).bak" "$(ECLIPSE_CHE_BACKUP_CRD_V1).bak" "$(ECLIPSE_CHE_RESTORE_CRD_V1).bak"
+	rm -rf "$(ECLIPSE_CHE_CRD_V1).bak"
 
 	# remove v1alphav2 version from crd files
 	yq -rYi "del(.spec.versions[1])" "$(ECLIPSE_CHE_CRD_V1BETA1)"
-	yq -rYi "del(.spec.versions[1])" "$(ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1BETA1)"
-	yq -rYi "del(.spec.versions[1])" "$(ECLIPSE_CHE_BACKUP_CRD_V1BETA1)"
-	yq -rYi "del(.spec.versions[1])" "$(ECLIPSE_CHE_RESTORE_CRD_V1BETA1)"
 	yq -rYi "del(.spec.versions[1])" "$(ECLIPSE_CHE_CRD_V1)"
-	yq -rYi "del(.spec.versions[1])" "$(ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1)"
-	yq -rYi "del(.spec.versions[1])" "$(ECLIPSE_CHE_BACKUP_CRD_V1)"
-	yq -rYi "del(.spec.versions[1])" "$(ECLIPSE_CHE_RESTORE_CRD_V1)"
 
 	# remove .spec.subresources.status from crd v1beta1 files
 	yq -rYi ".spec.subresources.status = {}" "$(ECLIPSE_CHE_CRD_V1BETA1)"
-	yq -rYi ".spec.subresources.status = {}" "$(ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1BETA1)"
-	yq -rYi ".spec.subresources.status = {}" "$(ECLIPSE_CHE_BACKUP_CRD_V1BETA1)"
-	yq -rYi ".spec.subresources.status = {}" "$(ECLIPSE_CHE_RESTORE_CRD_V1BETA1)"
 
 	# remove .spec.validation.openAPIV3Schema.type field
 	yq -rYi "del(.spec.validation.openAPIV3Schema.type)" "$(ECLIPSE_CHE_CRD_V1BETA1)"
-	yq -rYi "del(.spec.validation.openAPIV3Schema.type)" "$(ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1BETA1)"
-	yq -rYi "del(.spec.validation.openAPIV3Schema.type)" "$(ECLIPSE_CHE_BACKUP_CRD_V1BETA1)"
-	yq -rYi "del(.spec.validation.openAPIV3Schema.type)" "$(ECLIPSE_CHE_RESTORE_CRD_V1BETA1)"
 
 	# remove "required" attributes from v1beta1 crd files
 	$(MAKE) removeRequiredAttribute "filePath=$(ECLIPSE_CHE_CRD_V1BETA1)"
-	$(MAKE) removeRequiredAttribute "filePath=$(ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1BETA1)"
-	$(MAKE) removeRequiredAttribute "filePath=$(ECLIPSE_CHE_BACKUP_CRD_V1BETA1)"
-	$(MAKE) removeRequiredAttribute "filePath=$(ECLIPSE_CHE_RESTORE_CRD_V1BETA1)"
 
 	$(MAKE) add-license $$(find ./config/crd -not -path "./vendor/*" -name "*.yaml")
 
@@ -324,9 +288,6 @@ create-namespace:
 
 apply-crd:
 	kubectl apply -f ${ECLIPSE_CHE_CRD_V1}
-	kubectl apply -f ${ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1}
-	kubectl apply -f ${ECLIPSE_CHE_BACKUP_CRD_V1}
-	kubectl apply -f ${ECLIPSE_CHE_RESTORE_CRD_V1}
 
 .PHONY: init-cr
 init-cr:
@@ -352,9 +313,6 @@ init-cr:
 
 apply-cr-crd-beta:
 	kubectl apply -f ${ECLIPSE_CHE_CRD_V1BETA1}
-	kubectl apply -f ${ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1BETA1}
-	kubectl apply -f ${ECLIPSE_CHE_BACKUP_CRD_V1BETA1}
-	kubectl apply -f ${ECLIPSE_CHE_RESTORE_CRD_V1BETA1}
 	kubectl apply -f ${ECLIPSE_CHE_CR} -n ${ECLIPSE_CHE_NAMESPACE}
 
 create-env-file: prepare-templates
@@ -688,9 +646,6 @@ update-helmcharts: add-license-download check-requirements
 
 	echo "[INFO] Update helm CRDs $${HELMCHARTS_CRDS}"
 	cp config/crd/bases/org_v1_che_crd.yaml $${HELMCHARTS_CRDS}
-	cp config/crd/bases/org.eclipse.che_chebackupserverconfigurations_crd.yaml $${HELMCHARTS_CRDS}
-	cp config/crd/bases/org.eclipse.che_checlusterbackups_crd.yaml $${HELMCHARTS_CRDS}
-	cp config/crd/bases/org.eclipse.che_checlusterrestores_crd.yaml $${HELMCHARTS_CRDS}
 
 	yq -riY ".metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\"" $${HELMCHARTS_TEMPLATES}/manager.yaml
 	yq -riY ".metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\"" $${HELMCHARTS_TEMPLATES}/service_account.yaml
@@ -702,10 +657,7 @@ update-helmcharts: add-license-download check-requirements
 		chartYaml="helmcharts/$${helmFolder}/Chart.yaml"
 
 		EXAMPLE_FILES=(
-			$${HELMCHARTS_TEMPLATES}/org.eclipse.che_v1_checluster.yaml \
-			config/samples/org_v1_checlusterbackup.yaml \
-			config/samples/org_v1_checlusterrestore.yaml \
-			config/samples/org_v1_chebackupserverconfiguration.yaml
+			$${HELMCHARTS_TEMPLATES}/org.eclipse.che_v1_checluster.yaml
 		)
 
 		CRDS=""

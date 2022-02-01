@@ -17,7 +17,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/eclipse-che/che-operator/controllers/checlusterbackup"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	routev1 "github.com/openshift/api/route/v1"
@@ -209,16 +208,9 @@ func addPartOfCheLabelForObjectsWithLabel(ctx *deploy.DeployContext, labelKey st
 		logrus.Error(getFailedToCreateSelectorErrorMessage())
 		return err
 	}
-	// Do not migrate objects related to backup/restore
-	notPartOfCheBackupSelectorRequirement, err := labels.NewRequirement(deploy.KubernetesPartOfLabelKey, selection.NotEquals, []string{checlusterbackup.BackupCheEclipseOrg})
-	if err != nil {
-		logrus.Error(getFailedToCreateSelectorErrorMessage())
-		return err
-	}
 	objectsToMigrateLabelSelector := labels.NewSelector().
 		Add(*instanceCheSelectorRequirement).
-		Add(*notPartOfCheSelectorRequirement).
-		Add(*notPartOfCheBackupSelectorRequirement)
+		Add(*notPartOfCheSelectorRequirement)
 	listOptions := &client.ListOptions{
 		LabelSelector: objectsToMigrateLabelSelector,
 		Namespace:     ctx.CheCluster.GetNamespace(),

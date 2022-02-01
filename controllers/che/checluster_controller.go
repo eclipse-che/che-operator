@@ -14,7 +14,6 @@ package che
 
 import (
 	"context"
-	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/consolelink"
@@ -282,29 +281,6 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 	deployContext.IsSelfSignedCertificate = isSelfSignedCertificate
-
-	if isCheGoingToBeUpdated(checluster) {
-		// Current operator is newer than deployed Che
-		backupCR, err := getBackupCRForUpdate(deployContext)
-		if err != nil {
-			if errors.IsNotFound(err) {
-				// Create a backup before updating current installation
-				if err := requestBackup(deployContext); err != nil {
-					return ctrl.Result{}, err
-				}
-				// Backup request is successfully submitted
-				// Give some time for the backup
-				return ctrl.Result{RequeueAfter: time.Second * 15}, nil
-			}
-			return ctrl.Result{}, err
-		}
-		if backupCR.Status.State == orgv1.STATE_IN_PROGRESS || backupCR.Status.State == "" {
-			// Backup is still in progress
-			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
-		}
-		// Backup is done or failed
-		// Proceed anyway
-	}
 
 	if deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
 		result, done, err := r.reconcileManager.ReconcileAll(deployContext)

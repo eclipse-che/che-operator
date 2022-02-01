@@ -53,8 +53,6 @@ import (
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	checontroller "github.com/eclipse-che/che-operator/controllers/che"
-	backupcontroller "github.com/eclipse-che/che-operator/controllers/checlusterbackup"
-	restorecontroller "github.com/eclipse-che/che-operator/controllers/checlusterrestore"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/signal"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -259,19 +257,9 @@ func main() {
 	}
 
 	cheReconciler := checontroller.NewReconciler(mgr.GetClient(), nonCachingClient, discoveryClient, mgr.GetScheme(), watchNamespace)
-	backupReconciler := backupcontroller.NewReconciler(mgr.GetClient(), nonCachingClient, mgr.GetScheme(), watchNamespace)
-	restoreReconciler := restorecontroller.NewReconciler(mgr.GetClient(), nonCachingClient, mgr.GetScheme(), watchNamespace)
 
 	if err = cheReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to set up controller", "controller", "CheCluster")
-		os.Exit(1)
-	}
-	if err = backupReconciler.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to set up controller", "controller", "CheClusterBackup")
-		os.Exit(1)
-	}
-	if err = restoreReconciler.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to set up controller", "controller", "CheClusterRestore")
 		os.Exit(1)
 	}
 

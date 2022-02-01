@@ -224,9 +224,6 @@ releaseOlmFiles() {
     echo "[INFO] releaseOlmFiles :: Validate changes"
     grep -q "version: "$RELEASE $openshift/che-operator.clusterserviceversion.yaml
     test -f $openshift/org_v1_che_crd.yaml
-    test -f $openshift/org.eclipse.che_chebackupserverconfigurations_crd.yaml
-    test -f $openshift/org.eclipse.che_checlusterbackups_crd.yaml
-    test -f $openshift/org.eclipse.che_checlusterrestores_crd.yaml
   done
   echo "[INFO] releaseOlmFiles :: Commit changes"
   if git status --porcelain; then

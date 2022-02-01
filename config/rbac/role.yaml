@@ -102,14 +102,6 @@ rules:
   - checlusters
   - checlusters/status
   - checlusters/finalizers
-  - checlusterbackups
-  - checlusterbackups/status
-  - checlusterbackups/finalizers
-  - checlusterrestores
-  - checlusterrestores/status
-  - backupserverconfigurations
-  - backupserverconfigurations/status
-  - chebackupserverconfigurations
   verbs:
   - '*'
 - apiGroups:
