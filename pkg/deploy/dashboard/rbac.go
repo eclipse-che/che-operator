@@ -47,7 +47,7 @@ func GetPrivilegedPoliciesRulesForKubernetes() []rbacv1.PolicyRule {
         {
             APIGroups: []string{"org.eclipse.che"},
             Resources: []string{"checlusters"},
-            Verbs:     []string{"list", "watch"},
+            Verbs:     []string{"get", "list", "watch"},
         },
 	}
 
