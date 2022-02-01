@@ -399,24 +399,6 @@ func ComputeHash256(data []byte) string {
 	return base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 }
 
-func UpdateBackupServerConfiguration(client client.Client, backupServerConfig *orgv1.CheBackupServerConfiguration) error {
-	err := client.Update(context.TODO(), backupServerConfig)
-	if err != nil {
-		logrus.Errorf("Failed to update %s CR: %s", backupServerConfig.Name, err.Error())
-		return err
-	}
-	return nil
-}
-
-func UpdateBackupServerConfigurationStatus(client client.Client, backupServerConfig *orgv1.CheBackupServerConfiguration) error {
-	err := client.Status().Update(context.TODO(), backupServerConfig)
-	if err != nil {
-		logrus.Errorf("Failed to update %s CR status: %s", backupServerConfig.Name, err.Error())
-		return err
-	}
-	return nil
-}
-
 func IsCheMultiUser(cheCluster *orgv1.CheCluster) bool {
 	return cheCluster.Spec.Server.CustomCheProperties == nil || cheCluster.Spec.Server.CustomCheProperties["CHE_MULTIUSER"] != "false"
 }

@@ -42,20 +42,11 @@ downloadLatestReleasedBundleCRCRD() {
   mkdir -p "${STABLE_BUNDLE_PATH}/manifests" "${STABLE_BUNDLE_PATH}/generated/openshift" "${STABLE_BUNDLE_PATH}/metadata"
   PRE_RELEASE_CSV="${STABLE_BUNDLE_PATH}/generated/openshift/che-operator.clusterserviceversion.yaml"
   PRE_RELEASE_CHE_CRD="${STABLE_BUNDLE_PATH}/generated/openshift/org_v1_che_crd.yaml"
-  PRE_RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD="${STABLE_BUNDLE_PATH}/generated/openshift/org.eclipse.che_chebackupserverconfigurations_crd.yaml"
-  PRE_RELEASE_CHE_BACKUP_CRD="${STABLE_BUNDLE_PATH}/generated/openshift/org.eclipse.che_checlusterbackups_crd.yaml"
-  PRE_RELEASE_CHE_RESTORE_CRD="${STABLE_BUNDLE_PATH}/generated/openshift/org.eclipse.che_checlusterrestores_crd.yaml"
 
   wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml" \
       -q -O "${PRE_RELEASE_CSV}"
   wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml" \
       -q -O "${PRE_RELEASE_CHE_CRD}"
-  wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-openshift/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml" \
-      -q -O "${PRE_RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}"
-  wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-openshift/manifests/org.eclipse.che_checlusterbackups_crd.yaml" \
-      -q -O "${PRE_RELEASE_CHE_BACKUP_CRD}"
-  wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-openshift/manifests/org.eclipse.che_checlusterrestores_crd.yaml" \
-      -q -O "${PRE_RELEASE_CHE_RESTORE_CRD}"
 }
 
 if [[ -z "$RELEASE" ]] || [[ -z "$CHANNEL" ]]; then
@@ -77,9 +68,6 @@ echo "[INFO] Last package next version: ${lastPackageNextVersion}"
 STABLE_BUNDLE_PATH=$(getBundlePath $CHANNEL)
 RELEASE_CSV="${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
 RELEASE_CHE_CRD="${STABLE_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
-RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD="${STABLE_BUNDLE_PATH}/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml"
-RELEASE_CHE_BACKUP_CRD="${STABLE_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterbackups_crd.yaml"
-RELEASE_CHE_RESTORE_CRD="${STABLE_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterrestores_crd.yaml"
 
 MANAGER_YAML="${OPERATOR_DIR}/config/manager/manager.yaml"
 
@@ -103,9 +91,6 @@ sed \
 -e "s/createdAt:.*$/createdAt: \"$(date -u +%FT%TZ)\"/" "${LAST_NEXT_CSV}" > "${RELEASE_CSV}"
 
 cp "${NEXT_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml" "${RELEASE_CHE_CRD}"
-cp "${NEXT_BUNDLE_PATH}/manifests/org.eclipse.che_chebackupserverconfigurations.yaml" "${RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}"
-cp "${NEXT_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterbackups.yaml" "${RELEASE_CHE_BACKUP_CRD}"
-cp "${NEXT_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterrestores.yaml" "${RELEASE_CHE_RESTORE_CRD}"
 cp -rf "${NEXT_BUNDLE_PATH}/bundle.Dockerfile" "${STABLE_BUNDLE_PATH}"
 cp -rf "${NEXT_BUNDLE_PATH}/metadata" "${STABLE_BUNDLE_PATH}"
 cp -rf "${NEXT_BUNDLE_PATH}/tests" "${STABLE_BUNDLE_PATH}"
@@ -137,15 +122,6 @@ popd || exit 1
 if [[ -n "${PRE_RELEASE_CSV}" ]] && [[ -n "${PRE_RELEASE_CHE_CRD}" ]]; then
   diff -u "${PRE_RELEASE_CSV}" "${RELEASE_CSV}" > "${RELEASE_CSV}.diff" || true
   diff -u "${PRE_RELEASE_CHE_CRD}" "${RELEASE_CHE_CRD}" > "${RELEASE_CHE_CRD}.diff" || true
-fi
-if [[ -n "${PRE_RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}" ]]; then
-  diff -u "${PRE_RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}" "${RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}" > "${RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}.diff" || true
-fi
-if [[ -n "${PRE_RELEASE_CHE_BACKUP_CRD}" ]]; then
-  diff -u "${PRE_RELEASE_CHE_BACKUP_CRD}" "${RELEASE_CHE_BACKUP_CRD}" > "${RELEASE_CHE_BACKUP_CRD}.diff" || true
-fi
-if [[ -n "${PRE_RELEASE_CHE_RESTORE_CRD}" ]]; then
-  diff -u "${PRE_RELEASE_CHE_RESTORE_CRD}" "${RELEASE_CHE_RESTORE_CRD}" > "${RELEASE_CHE_RESTORE_CRD}.diff" || true
 fi
 
 echo "[INFO] Release bundles successfully created."

@@ -20,6 +20,5 @@ All documentation about how to onboard components in Openshift CI can be found i
 All che operator actions are defined in the `.github/workflows` yamls. Scripts are located in `.github/bin/minikube` folder.
 
 - `operator-on-minikube` for testing Eclipse Che deployment
-- `backup-restore-test-on-minikub` for testing Eclipse Che backup and restore features
 - `upgrade-stable-to-next-on-minikube` for testing Eclipse Che upgrade from the latest stable to a new development version
 - `upgrade-stable-to-stable-on-minikube` for testing Eclipse Che upgrade from the latest stable to a new release version

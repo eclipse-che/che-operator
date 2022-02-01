@@ -39,7 +39,6 @@ var (
 	defaultPostgres13Image                     string
 	defaultSingleHostGatewayImage              string
 	defaultSingleHostGatewayConfigSidecarImage string
-	defaultInternalRestBackupServerImage       string
 	defaultGatewayAuthenticationSidecarImage   string
 	defaultGatewayAuthorizationSidecarImage    string
 	defaultGatewayHeaderProxySidecarImage      string
@@ -190,7 +189,6 @@ func InitDefaultsFromFile(defaultsPath string) {
 	defaultCheWorkspacePluginBrokerMetadataImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_metadata"))
 	defaultCheWorkspacePluginBrokerArtifactsImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts"))
 	defaultCheServerSecureExposerJwtProxyImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image"))
-	defaultInternalRestBackupServerImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_internal_rest_backup_server"))
 
 	// Don't get some k8s specific env
 	if !util.IsOpenShift {
@@ -334,10 +332,6 @@ func DefaultSingleHostGatewayConfigSidecarImage(cr *orgv1.CheCluster) string {
 	return patchDefaultImageName(cr, defaultSingleHostGatewayConfigSidecarImage)
 }
 
-func DefaultInternalBackupServerImage(cr *orgv1.CheCluster) string {
-	return patchDefaultImageName(cr, defaultInternalRestBackupServerImage)
-}
-
 func DefaultGatewayAuthenticationSidecarImage(cr *orgv1.CheCluster) string {
 	return patchDefaultImageName(cr, defaultGatewayAuthenticationSidecarImage)
 }
@@ -455,7 +449,6 @@ func InitDefaultsFromEnv() {
 
 	defaultSingleHostGatewayImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
 	defaultSingleHostGatewayConfigSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))
-	defaultInternalRestBackupServerImage = os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_internal_rest_backup_server"))
 	defaultGatewayAuthenticationSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authentication_sidecar"))
 	defaultGatewayAuthorizationSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authorization_sidecar"))
 	defaultGatewayHeaderProxySidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_header_sidecar"))

@@ -126,9 +126,6 @@ do
 
   echo "   - Update the CRD files"
   cp "${OPERATOR_REPO}/bundle/$channel/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml" "${folderToUpdate}/${LAST_PACKAGE_VERSION}/manifests/checlusters.org.eclipse.che.crd.yaml"
-  cp "${OPERATOR_REPO}/bundle/$channel/eclipse-che-preview-openshift/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml" "${folderToUpdate}/${LAST_PACKAGE_VERSION}/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml"
-  cp "${OPERATOR_REPO}/bundle/$channel/eclipse-che-preview-openshift/manifests/org.eclipse.che_checlusterbackups_crd.yaml" "${folderToUpdate}/${LAST_PACKAGE_VERSION}/manifests/org.eclipse.che_checlusterbackups_crd.yaml"
-  cp "${OPERATOR_REPO}/bundle/$channel/eclipse-che-preview-openshift/manifests/org.eclipse.che_checlusterrestores_crd.yaml" "${folderToUpdate}/${LAST_PACKAGE_VERSION}/manifests/org.eclipse.che_checlusterrestores_crd.yaml"
   echo
 
   cp ${OPERATOR_REPO}/bundle/$channel/eclipse-che-preview-openshift/metadata/* "${folderToUpdate}/${LAST_PACKAGE_VERSION}/metadata"
