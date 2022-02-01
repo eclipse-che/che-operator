@@ -448,11 +448,11 @@
 | [golang.org/x/image@0694c2d4d067f97ebef574d63a763ee8ab559da7](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
 | [golang.org/x/lint@738671d3881b9731cc63024d5d88cf28db875626](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
 | [golang.org/x/mod@v0.4.2](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
-| [golang.org/x/net@a5a99cb37ef4b68617775ab669177656090ab396](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
+| [golang.org/x/net@89ef3d95e781148a0951956029c92a211477f7f9](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
 | [golang.org/x/sync@036812b2e83c0ddf193dd5a34e034151da389d09](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
-| [golang.org/x/sys@0f9fa26af87c481a6877a4ca1330699ba9a30673](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
+| [golang.org/x/sys@04245dca01dae530ad36275d662a90d6b8a5ee29](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
 | [golang.org/x/term@6a3ed077a48de71621ad530f9078fffa0bc0ce32](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
-| [golang.org/x/text@v0.3.4](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
+| [golang.org/x/text@v0.3.6](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
 | [golang.org/x/time@1f47c861a9ac5a6e7645609f91b895398ff31642](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
 | [golang.org/x/tools@v0.1.5](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
 | [golang.org/x/xerrors@5ec99f83aff198f5fbd629d6c8d8eb38a04218ca](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
@@ -460,4 +460,4 @@
 | [golang.org/x/mobile@d3739f865fa66d07c1f506505c18aac71a8ead6e](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
 | [github.com/devfile/api/v2@03e023e7078b64884216d8e6dce8f0cf8b7e74d2](https://github.com/devfile/api.git) | Apache-2.0 | [CQ](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23680) |
 | [github.com/che-incubator/kubernetes-image-puller-operator@0128446f5af78587c0427a35d693bbb8d24036bc](https://github.com/che-incubator/kubernetes-image-puller-operator.git) | EPL-2.0 | todo |
-| [github.com/devfile/devworkspace-operator@728dff7e987c761723d4155fc5758f5673b4e955](https://github.com/devfile/devworkspace-operator.git) | Apache-2.0 | [CQ](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23780) |
+| [github.com/devfile/devworkspace-operator@23b39b88fa997d92185645c94249f16446d1adf4](https://github.com/devfile/devworkspace-operator.git) | Apache-2.0 | [clearlydefined](https://clearlydefined.io/definitions/git/github/devfile/devworkspace-operator/23b39b88fa997d92185645c94249f16446d1adf4) |

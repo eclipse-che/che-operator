@@ -455,7 +455,7 @@ func InitDefaultsFromEnv() {
 
 	defaultSingleHostGatewayImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
 	defaultSingleHostGatewayConfigSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))
-	defaultInternalRestBackupServerImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_internal_rest_backup_server"))
+	defaultInternalRestBackupServerImage = os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_internal_rest_backup_server"))
 	defaultGatewayAuthenticationSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authentication_sidecar"))
 	defaultGatewayAuthorizationSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authorization_sidecar"))
 	defaultGatewayHeaderProxySidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_header_sidecar"))

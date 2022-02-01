@@ -391,14 +391,16 @@ deployDevWorkspaceOperator() {
 
   local cheChannel=${1}
   local devWorkspaceCatalogImage="quay.io/devfile/devworkspace-operator-index:next"
+  local devWorkspaceChannel="next"
 
   if [[ ${cheChannel} == "stable" ]]; then
     devWorkspaceCatalogImage="quay.io/devfile/devworkspace-operator-index:release"
+    devWorkspaceChannel="fast"
   fi
 
   customDevWorkspaceCatalog=$(getDevWorkspaceCustomCatalogSourceName)
   createCatalogSource "${customDevWorkspaceCatalog}" ${devWorkspaceCatalogImage} "Red Hat" "DevWorkspace Operator Catalog"
-  createSubscription "devworkspace-operator" "devworkspace-operator" "fast" "${customDevWorkspaceCatalog}" "Auto"
+  createSubscription "devworkspace-operator" "devworkspace-operator" "${devWorkspaceChannel}" "${customDevWorkspaceCatalog}" "Auto"
 
   waitDevWorkspaceControllerStarted
 }

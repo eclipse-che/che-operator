@@ -18,9 +18,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/devfile/api/v2/pkg/attributes"
-	"k8s.io/utils/pointer"
-
 	"github.com/eclipse-che/che-operator/pkg/util"
 
 	"github.com/stretchr/testify/assert"
@@ -139,22 +136,22 @@ func subdomainDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 					{
 						Name:       "e1",
 						TargetPort: 9999,
-						Exposure:   dw.PublicEndpointExposure,
+						Exposure:   dwo.PublicEndpointExposure,
 						Protocol:   "https",
 						Path:       "/1/",
 					},
 					{
 						Name:       "e2",
 						TargetPort: 9999,
-						Exposure:   dw.PublicEndpointExposure,
+						Exposure:   dwo.PublicEndpointExposure,
 						Protocol:   "http",
 						Path:       "/2.js",
-						Secure:     pointer.BoolPtr(true),
+						Secure:     true,
 					},
 					{
 						Name:       "e3",
 						TargetPort: 9999,
-						Exposure:   dw.PublicEndpointExposure,
+						Exposure:   dwo.PublicEndpointExposure,
 					},
 				},
 			},
@@ -176,10 +173,10 @@ func relocatableDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 					{
 						Name:       "e1",
 						TargetPort: 9999,
-						Exposure:   dw.PublicEndpointExposure,
+						Exposure:   dwo.PublicEndpointExposure,
 						Protocol:   "https",
 						Path:       "/1/",
-						Attributes: attributes.Attributes{
+						Attributes: dwo.Attributes{
 							urlRewriteSupportedEndpointAttributeName: apiext.JSON{Raw: []byte("\"true\"")},
 							string(dwo.TypeEndpointAttribute):        apiext.JSON{Raw: []byte("\"main\"")},
 						},
@@ -187,19 +184,19 @@ func relocatableDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 					{
 						Name:       "e2",
 						TargetPort: 9999,
-						Exposure:   dw.PublicEndpointExposure,
+						Exposure:   dwo.PublicEndpointExposure,
 						Protocol:   "http",
 						Path:       "/2.js",
-						Secure:     pointer.BoolPtr(true),
-						Attributes: attributes.Attributes{
+						Secure:     true,
+						Attributes: dwo.Attributes{
 							urlRewriteSupportedEndpointAttributeName: apiext.JSON{Raw: []byte("\"true\"")},
 						},
 					},
 					{
 						Name:       "e3",
 						TargetPort: 9999,
-						Exposure:   dw.PublicEndpointExposure,
-						Attributes: attributes.Attributes{
+						Exposure:   dwo.PublicEndpointExposure,
+						Attributes: dwo.Attributes{
 							urlRewriteSupportedEndpointAttributeName: apiext.JSON{Raw: []byte("\"true\"")},
 						},
 					},
@@ -463,10 +460,10 @@ func TestUniqueMainEndpoint(t *testing.T) {
 					{
 						Name:       "e1",
 						TargetPort: 9999,
-						Exposure:   dw.PublicEndpointExposure,
+						Exposure:   dwo.PublicEndpointExposure,
 						Protocol:   "https",
 						Path:       "/1/",
-						Attributes: attributes.Attributes{
+						Attributes: dwo.Attributes{
 							urlRewriteSupportedEndpointAttributeName: apiext.JSON{Raw: []byte("\"true\"")},
 							string(dwo.TypeEndpointAttribute):        apiext.JSON{Raw: []byte("\"main\"")},
 							uniqueEndpointAttributeName:              apiext.JSON{Raw: []byte("\"true\"")},
