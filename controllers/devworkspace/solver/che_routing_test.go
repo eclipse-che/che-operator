@@ -331,7 +331,7 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 		}
 
 		t.Run("testHealthzEndpointInMainWorkspaceRoute", func(t *testing.T) {
-			healthzName := "9999-healthz"
+			healthzName := "wsid-9999-healthz"
 			assert.Contains(t, workspaceMainConfig.HTTP.Routers, healthzName)
 			assert.Equal(t, workspaceMainConfig.HTTP.Routers[healthzName].Service, wsid)
 			assert.Equal(t, workspaceMainConfig.HTTP.Routers[healthzName].Rule, "Path(`/wsid/m1/9999/healthz`)")
@@ -423,7 +423,7 @@ func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 		}
 
 		t.Run("testHealthzEndpointInMainWorkspaceRoute", func(t *testing.T) {
-			healthzName := "9999-healthz"
+			healthzName := "wsid-9999-healthz"
 			assert.Contains(t, workspaceMainConfig.HTTP.Routers, healthzName)
 			assert.Equal(t, workspaceMainConfig.HTTP.Routers[healthzName].Service, wsid)
 			assert.Equal(t, workspaceMainConfig.HTTP.Routers[healthzName].Rule, "Path(`/wsid/m1/9999/healthz`)")
@@ -499,7 +499,7 @@ func TestUniqueMainEndpoint(t *testing.T) {
 	assert.NoError(t, yaml.Unmarshal([]byte(traefikMainWorkspaceConfig), &workspaceMainConfig))
 
 	t.Run("testHealthzEndpointInMainWorkspaceRoute", func(t *testing.T) {
-		healthzName := "e1-healthz"
+		healthzName := wsid + "-e1-healthz"
 		assert.Contains(t, workspaceMainConfig.HTTP.Routers, healthzName)
 		assert.Equal(t, workspaceMainConfig.HTTP.Routers[healthzName].Service, wsid)
 		assert.Equal(t, workspaceMainConfig.HTTP.Routers[healthzName].Rule, "Path(`/"+wsid+"/m1/e1/healthz`)")
