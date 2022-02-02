@@ -486,7 +486,8 @@ func routeForHealthzEndpoint(cfg *gateway.TraefikConfig, dwId string, endpoints 
 					middlewares = append(middlewares, dwId+gateway.HeaderRewriteMiddlewareSuffix)
 				}
 				routeName, endpointPath := createEndpointPath(&e, componentName)
-				cfg.HTTP.Routers[routeName+"-healthz"] = &gateway.TraefikConfigRouter{
+				routerName := fmt.Sprintf("%s-%s-healthz", dwId, routeName)
+				cfg.HTTP.Routers[routerName] = &gateway.TraefikConfigRouter{
 					Rule:        fmt.Sprintf("Path(`/%s%s/healthz`)", dwId, endpointPath),
 					Service:     dwId,
 					Middlewares: middlewares,
