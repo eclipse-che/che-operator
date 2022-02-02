@@ -114,8 +114,8 @@ github.com/deislabs/oras v0.8.1/go.mod h1:Mx0rMSbBNaNfY9hjpccEnxkOqJL6KGjtxNHPLC
 github.com/denisenkom/go-mssqldb v0.0.0-20190204142019-df6d76eb9289/go.mod h1:xN/JuLBIz4bjkxNmByTiV1IbhfnYb6oo99phBn4Eqhc=
 github.com/devfile/api/v2 v2.0.0-20210917193329-089a48011460 h1:cmd+3poyUwevcWchYdvE02YT1nQU4SJpA5/wrdLrpWE=
 github.com/devfile/api/v2 v2.0.0-20210917193329-089a48011460/go.mod h1:kLX/nW93gigOHXK3NLeJL2fSS/sgEe+OHu8bo3aoOi4=
-github.com/devfile/devworkspace-operator v0.12.2 h1:6D/2vHHJQACmJdr+uqKi8X4563yseQfs8Hyf25xHZ5k=
-github.com/devfile/devworkspace-operator v0.12.2/go.mod h1:33uEtRwYsox/Jsuh5oqNc4iPNKtprazz15Jc0iX9aTU=
+github.com/devfile/devworkspace-operator v0.12.3 h1:HMUfbQpDg5XBwHOLLiyUPb4hF4RJKVs95BTlL+OI6As=
+github.com/devfile/devworkspace-operator v0.12.3/go.mod h1:33uEtRwYsox/Jsuh5oqNc4iPNKtprazz15Jc0iX9aTU=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:7qlOGliEKZXTDg6OTjfoBKDXWrumCAMpl/TFQ4/5kLM=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/dhui/dktest v0.3.2/go.mod h1:l1/ib23a/CmxAe7yixtrYPc8Iy90Zy2udyaHINM5p58=
