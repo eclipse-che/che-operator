@@ -75,7 +75,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.43.0-421.next
+  name: eclipse-che-preview-openshift.v7.43.0-422.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -968,7 +968,7 @@ spec:
                       - name: RELATED_IMAGE_devfile_registry
                         value: quay.io/eclipse/che-devfile-registry:next
                       - name: RELATED_IMAGE_pvc_jobs
-                        value: registry.access.redhat.com/ubi8-minimal:8.5-218
+                        value: registry.access.redhat.com/ubi8-minimal:8.5-230
                       - name: RELATED_IMAGE_postgres
                         value: quay.io/eclipse/che--centos--postgresql-96-centos7:9.6-b681d78125361519180a6ac05242c296f8906c11eab7e207b5ca9a89b6344392
                       - name: RELATED_IMAGE_postgres_13_3
@@ -984,7 +984,7 @@ spec:
                       - name: RELATED_IMAGE_single_host_gateway_config_sidecar
                         value: quay.io/che-incubator/configbump:0.1.4
                       - name: RELATED_IMAGE_devworkspace_controller
-                        value: quay.io/devfile/devworkspace-controller:v0.11.0
+                        value: quay.io/devfile/devworkspace-controller:v0.12.3
                       - name: RELATED_IMAGE_gateway_authentication_sidecar
                         value: quay.io/openshift/origin-oauth-proxy:4.7
                       - name: RELATED_IMAGE_gateway_authorization_sidecar
@@ -1288,4 +1288,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.43.0-421.next
+  version: 7.43.0-422.next
