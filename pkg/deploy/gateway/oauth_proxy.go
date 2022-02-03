@@ -127,8 +127,8 @@ func skipAuthConfig(instance *orgv1.CheCluster) string {
 	return ""
 }
 
-func getOauthProxyContainerSpec(instance *orgv1.CheCluster) corev1.Container {
-	authnImage := util.GetValue(instance.Spec.Auth.GatewayAuthenticationSidecarImage, deploy.DefaultGatewayAuthenticationSidecarImage(instance))
+func getOauthProxyContainerSpec(ctx *deploy.DeployContext) corev1.Container {
+	authnImage := util.GetValue(ctx.CheCluster.Spec.Auth.GatewayAuthenticationSidecarImage, deploy.DefaultGatewayAuthenticationSidecarImage(ctx.CheCluster))
 	return corev1.Container{
 		Name:            "oauth-proxy",
 		Image:           authnImage,
@@ -154,6 +154,20 @@ func getOauthProxyContainerSpec(instance *orgv1.CheCluster) corev1.Container {
 		},
 		Ports: []corev1.ContainerPort{
 			{ContainerPort: GatewayServicePort, Protocol: "TCP"},
+		},
+		Env: []corev1.EnvVar{
+			{
+				Name:  "http_proxy",
+				Value: ctx.Proxy.HttpProxy,
+			},
+			{
+				Name:  "https_proxy",
+				Value: ctx.Proxy.HttpsProxy,
+			},
+			{
+				Name:  "no_proxy",
+				Value: ctx.Proxy.NoProxy,
+			},
 		},
 	}
 }
