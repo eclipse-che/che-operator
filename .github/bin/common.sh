@@ -286,6 +286,26 @@ getCheVersionFromExistedCSV() {
 }
 
 getCSVName() {
+  local n=0
+  local csvNumber=0
+
+  while [ $n -le 24 ]
+  do
+    csvNumber=$(oc get csv -n openshift-operators --no-headers=true | grep eclipse-che-preview-openshift | wc -l)
+    if [[ $csvNumber == 1 ]]; then
+      break
+      return
+    fi
+
+    sleep 5
+    n=$(( n+1 ))
+  done
+
+  if [[ $csvNumber != 1 ]]; then
+    echo "[ERROR] More than 1 Eclipse Che CSV found"
+    exit 1
+  fi
+
   oc get csv -n openshift-operators | grep eclipse-che-preview-openshift | awk '{print $1}'
 }
 
@@ -384,8 +404,8 @@ spec:
 EOF
 
   sleep 10s
-  if [[ ${installPlan} == "Manual"} ]]; then
-    kubectl wait subscription/"${packageName}" -n openshift-operators --for=condition=InstallPlanPending --timeout=120s
+  if [[ ${installPlan} == "Manual" ]]; then
+    kubectl wait subscription/${name} -n openshift-operators --for=condition=InstallPlanPending --timeout=120s
   fi
 }
 
