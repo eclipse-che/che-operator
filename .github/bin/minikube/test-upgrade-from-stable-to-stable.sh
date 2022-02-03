@@ -26,10 +26,11 @@ source "${OPERATOR_REPO}"/.github/bin/common.sh
 trap "catchFinish" EXIT SIGINT
 
 runTest() {
-  deployEclipseCheOnWithOperator "minikube" ${PREVIOUS_OPERATOR_VERSION_TEMPLATE_PATH} "false"
-  updateEclipseChe "minikube" ${LAST_OPERATOR_VERSION_TEMPLATE_PATH} "false"
+  deployEclipseCheOnWithOperator "/tmp/chectl-${PREVIOUS_PACKAGE_VERSION}/chectl/bin/run" "minikube" ${PREVIOUS_OPERATOR_VERSION_TEMPLATE_PATH} "false"
+  updateEclipseChe "chectl" "minikube" ${LAST_OPERATOR_VERSION_TEMPLATE_PATH} "false"
 }
 
 initDefaults
 initTemplates
+installchectl ${PREVIOUS_PACKAGE_VERSION}
 runTest
