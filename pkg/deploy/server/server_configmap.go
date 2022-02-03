@@ -87,6 +87,7 @@ type CheConfigMap struct {
 	WorkspaceExposure                      string `json:"CHE_INFRA_KUBERNETES_SINGLEHOST_WORKSPACE_EXPOSURE"`
 	SingleHostGatewayConfigMapLabels       string `json:"CHE_INFRA_KUBERNETES_SINGLEHOST_GATEWAY_CONFIGMAP__LABELS"`
 	CheDevWorkspacesEnabled                string `json:"CHE_DEVWORKSPACES_ENABLED"`
+	Http2Disable                           string `json:"HTTP2_DISABLE"`
 }
 
 // GetCheConfigMapData gets env values from CR spec and returns a map with key:value
@@ -265,6 +266,11 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (ch
 		WorkspaceExposure:                      workspaceExposure,
 		SingleHostGatewayConfigMapLabels:       singleHostGatewayConfigMapLabels,
 		CheDevWorkspacesEnabled:                strconv.FormatBool(ctx.CheCluster.Spec.DevWorkspace.Enable),
+		// Disable HTTP2 protocol.
+		// Fix issue with creating config maps on the cluster https://issues.redhat.com/browse/CRW-2677
+		// The root cause is in the HTTP2 protocol support of the okttp3 library that is used by fabric8.kubernetes-client that is used by che-server
+		// In the past, when che-server used Java 8, HTTP1 protocol was used. Now che-sever uses Java 11
+		Http2Disable: strconv.FormatBool(true),
 	}
 
 	data.IdentityProviderUrl = identityProviderURL
