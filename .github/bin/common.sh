@@ -60,7 +60,6 @@ initTemplates() {
 }
 
 getLatestsStableVersions() {
-  git remote remove operator
   git remote add operator https://github.com/eclipse-che/che-operator.git
   git fetch operator -q
   tags=$(git ls-remote --refs --tags operator | sed -n 's|.*refs/tags/\(7.*\)|\1|p' | awk -F. '{ print ($1*1000)+($2*10)+$3" "$1"."$2"."$3}' | sort | tac)
