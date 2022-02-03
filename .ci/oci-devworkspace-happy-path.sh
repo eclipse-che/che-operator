@@ -29,7 +29,7 @@ overrideDefaults() {
 }
 
 deployChe() {
-  deployEclipseCheOnWithOperator "openshift" ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH} "true"
+  deployEclipseCheOnWithOperator "chectl" "openshift" ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH} "true"
 }
 
 initDefaults

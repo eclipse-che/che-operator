@@ -65,6 +65,7 @@ getLatestsStableVersions() {
   tags=$(git ls-remote --refs --tags operator | sed -n 's|.*refs/tags/\(7.*\)|\1|p' | awk -F. '{ print ($1*1000)+($2*10)+$3" "$1"."$2"."$3}' | sort | tac)
   export PREVIOUS_PACKAGE_VERSION=$(echo "${tags}" | sed -n 2p | cut -d ' ' -f2)
   export LAST_PACKAGE_VERSION=$(echo "${tags}" | sed -n 1p | cut -d ' ' -f2)
+  git remote remove operator
 }
 
 copyChectlTemplates() {
@@ -188,9 +189,10 @@ copyCheOperatorImageToMinikube() {
 }
 
 deployEclipseCheOnWithOperator() {
-  local platform=$1
-  local templates=$2
-  local customimage=$3
+  local chectlbin=$1
+  local platform=$2
+  local templates=$3
+  local customimage=$4
 
   local domainFlag=""
   if [[ ${platform} == "minikube" ]]; then
@@ -207,7 +209,7 @@ deployEclipseCheOnWithOperator() {
     yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' ${templates}/che-operator/operator.yaml
   fi
 
-  chectl server:deploy \
+  ${chectlbin} server:deploy \
     --batch \
     --platform ${platform} \
     --installer operator \
@@ -218,9 +220,10 @@ deployEclipseCheOnWithOperator() {
 }
 
 updateEclipseChe() {
-  local platform=$1
-  local templates=$2
-  local customimage=$3
+  local chectlbin=$1
+  local platform=$2
+  local templates=$3
+  local customimage=$4
 
   if [[ ${customimage} == "true"  ]]; then
     if [[ ${platform} == "minikube" ]]; then
@@ -232,7 +235,7 @@ updateEclipseChe() {
     yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' ${templates}/che-operator/operator.yaml
   fi
 
-  chectl server:update \
+  ${chectlbin} server:update \
     --batch \
     --templates ${templates}
 
@@ -283,6 +286,26 @@ getCheVersionFromExistedCSV() {
 }
 
 getCSVName() {
+  local n=0
+  local csvNumber=0
+
+  while [ $n -le 24 ]
+  do
+    csvNumber=$(oc get csv -n openshift-operators --no-headers=true | grep eclipse-che-preview-openshift | wc -l)
+    if [[ $csvNumber == 1 ]]; then
+      break
+      return
+    fi
+
+    sleep 5
+    n=$(( n+1 ))
+  done
+
+  if [[ $csvNumber != 1 ]]; then
+    echo "[ERROR] More than 1 Eclipse Che CSV found"
+    exit 1
+  fi
+
   oc get csv -n openshift-operators | grep eclipse-che-preview-openshift | awk '{print $1}'
 }
 
@@ -381,8 +404,8 @@ spec:
 EOF
 
   sleep 10s
-  if [[ ${installPlan} == "Manual"} ]]; then
-    kubectl wait subscription/"${packageName}" -n openshift-operators --for=condition=InstallPlanPending --timeout=120s
+  if [[ ${installPlan} == "Manual" ]]; then
+    kubectl wait subscription/${name} -n openshift-operators --for=condition=InstallPlanPending --timeout=120s
   fi
 }
 
@@ -479,4 +502,12 @@ forcePullingOlmImages() {
 
   kubectl wait --for=condition=complete --timeout=30s job/force-pulling-olm-images-job -n openshift-operators
   kubectl delete job/force-pulling-olm-images-job -n openshift-operators
+}
+
+installchectl() {
+  local version=$1
+  curl -L https://github.com/che-incubator/chectl/releases/download/${version}/chectl-linux-x64.tar.gz -o /tmp/chectl-${version}.tar.gz
+  rm -rf /tmp/chectl-${version}
+  mkdir /tmp/chectl-${version}
+  tar -xvzf /tmp/chectl-${version}.tar.gz -C /tmp/chectl-${version}
 }

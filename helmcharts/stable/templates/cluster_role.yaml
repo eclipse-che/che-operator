@@ -121,14 +121,6 @@ rules:
       - checlusters/status
       - checlusters/finalizers
       - checlusters/status
-      - checlusterbackups
-      - checlusterbackups/status
-      - checlusterbackups/finalizers
-      - checlusterrestores
-      - checlusterrestores/status
-      - backupserverconfigurations
-      - backupserverconfigurations/status
-      - chebackupserverconfigurations
     verbs:
       - '*'
   - apiGroups:
@@ -678,22 +670,8 @@ rules:
     - '*'
     verbs:
     - '*'
-  # devworkspace-controller-view-workspaces.ClusterRole.yaml
-  - apiGroups:
-    - workspace.devfile.io
-    resources:
-    - devworkspaces
-    - devworkspacetemplates
+  # devworkspace-controller-metrics-reader.ClusterRole.yaml
+  - nonResourceURLs:
+    - /metrics
     verbs:
     - get
-    - list
-    - watch
-  - apiGroups:
-    - controller.devfile.io
-    resources:
-    - devworkspaceroutings
-    - components
-    verbs:
-    - get
-    - list
-    - watch
