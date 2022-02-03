@@ -47,6 +47,7 @@ func TestSyncAllToCluster(t *testing.T) {
 			NonCachingClient: cli,
 			Scheme:           scheme.Scheme,
 		},
+		Proxy: &deploy.Proxy{},
 	}
 
 	err := SyncGatewayToCluster(deployContext)
@@ -90,6 +91,7 @@ func TestNativeUserGateway(t *testing.T) {
 			NonCachingClient: cli,
 			Scheme:           scheme.Scheme,
 		},
+		Proxy: &deploy.Proxy{},
 	}
 
 	err := SyncGatewayToCluster(deployContext)

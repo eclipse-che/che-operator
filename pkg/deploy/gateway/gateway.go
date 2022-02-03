@@ -136,7 +136,7 @@ func syncAll(deployContext *deploy.DeployContext) error {
 		return err
 	}
 
-	depl := getGatewayDeploymentSpec(instance)
+	depl := getGatewayDeploymentSpec(deployContext)
 	if _, err := deploy.Sync(deployContext, &depl, deploy.DefaultDeploymentDiffOpts); err != nil {
 		return err
 	}
@@ -409,10 +409,10 @@ experimental:
 	}
 }
 
-func getGatewayDeploymentSpec(instance *orgv1.CheCluster) appsv1.Deployment {
+func getGatewayDeploymentSpec(ctx *deploy.DeployContext) appsv1.Deployment {
 	terminationGracePeriodSeconds := int64(10)
 
-	deployLabels, labelsSelector := deploy.GetLabelsAndSelector(instance, GatewayServiceName)
+	deployLabels, labelsSelector := deploy.GetLabelsAndSelector(ctx.CheCluster, GatewayServiceName)
 
 	return appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -421,7 +421,7 @@ func getGatewayDeploymentSpec(instance *orgv1.CheCluster) appsv1.Deployment {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayServiceName,
-			Namespace: instance.Namespace,
+			Namespace: ctx.CheCluster.Namespace,
 			Labels:    deployLabels,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -439,18 +439,18 @@ func getGatewayDeploymentSpec(instance *orgv1.CheCluster) appsv1.Deployment {
 					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
 					ServiceAccountName:            GatewayServiceName,
 					RestartPolicy:                 corev1.RestartPolicyAlways,
-					Containers:                    getContainersSpec(instance),
-					Volumes:                       getVolumesSpec(instance),
+					Containers:                    getContainersSpec(ctx),
+					Volumes:                       getVolumesSpec(ctx.CheCluster),
 				},
 			},
 		},
 	}
 }
 
-func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
-	configLabelsMap := util.GetMapValue(instance.Spec.Server.SingleHostGatewayConfigMapLabels, deploy.DefaultSingleHostGatewayConfigMapLabels)
-	gatewayImage := util.GetValue(instance.Spec.Server.SingleHostGatewayImage, deploy.DefaultSingleHostGatewayImage(instance))
-	configSidecarImage := util.GetValue(instance.Spec.Server.SingleHostGatewayConfigSidecarImage, deploy.DefaultSingleHostGatewayConfigSidecarImage(instance))
+func getContainersSpec(ctx *deploy.DeployContext) []corev1.Container {
+	configLabelsMap := util.GetMapValue(ctx.CheCluster.Spec.Server.SingleHostGatewayConfigMapLabels, deploy.DefaultSingleHostGatewayConfigMapLabels)
+	gatewayImage := util.GetValue(ctx.CheCluster.Spec.Server.SingleHostGatewayImage, deploy.DefaultSingleHostGatewayImage(ctx.CheCluster))
+	configSidecarImage := util.GetValue(ctx.CheCluster.Spec.Server.SingleHostGatewayConfigSidecarImage, deploy.DefaultSingleHostGatewayConfigSidecarImage(ctx.CheCluster))
 	configLabels := labels.FormatLabels(configLabelsMap)
 
 	containers := []corev1.Container{
@@ -458,7 +458,7 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 			Name:            "gateway",
 			Image:           gatewayImage,
 			ImagePullPolicy: corev1.PullAlways,
-			VolumeMounts:    getTraefikContainerVolumeMounts(instance),
+			VolumeMounts:    getTraefikContainerVolumeMounts(ctx.CheCluster),
 			Resources: corev1.ResourceRequirements{
 				Limits: corev1.ResourceList{
 					corev1.ResourceMemory: resource.MustParse("4Gi"),
@@ -513,8 +513,8 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 	}
 
 	containers = append(containers,
-		getOauthProxyContainerSpec(instance),
-		getKubeRbacProxyContainerSpec(instance))
+		getOauthProxyContainerSpec(ctx),
+		getKubeRbacProxyContainerSpec(ctx.CheCluster))
 
 	return containers
 }
