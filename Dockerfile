@@ -10,7 +10,7 @@
 #
 
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8/go-toolset
-FROM registry.access.redhat.com/ubi8/go-toolset:1.16.12-2 as builder
+FROM registry.access.redhat.com/ubi8/go-toolset:1.16.12-4 as builder
 ENV GOPATH=/go/
 ARG DEV_WORKSPACE_CONTROLLER_VERSION="v0.12.3"
 ARG DEV_HEADER_REWRITE_TRAEFIK_PLUGIN="main"
