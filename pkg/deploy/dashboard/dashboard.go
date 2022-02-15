@@ -69,23 +69,19 @@ func (d *DashboardReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Re
 		return reconcile.Result{}, false, err
 	}
 
-	// on Kubernetes Dashboard needs privileged SA to work with user's objects
-	// for time being until Kubernetes did not get authentication
-	if !util.IsOpenShift {
-		done, err = deploy.SyncClusterRoleToCluster(ctx, d.getClusterRoleName(ctx), GetPrivilegedPoliciesRulesForKubernetes())
-		if !done {
-			return reconcile.Result{}, false, err
-		}
+	done, err = deploy.SyncClusterRoleToCluster(ctx, d.getClusterRoleName(ctx), GetPrivilegedPoliciesRulesForKubernetes())
+	if !done {
+		return reconcile.Result{}, false, err
+	}
 
-		done, err = deploy.SyncClusterRoleBindingToCluster(ctx, d.getClusterRoleBindingName(ctx), DashboardSA, d.getClusterRoleName(ctx))
-		if !done {
-			return reconcile.Result{}, false, err
-		}
+	done, err = deploy.SyncClusterRoleBindingToCluster(ctx, d.getClusterRoleBindingName(ctx), DashboardSA, d.getClusterRoleName(ctx))
+	if !done {
+		return reconcile.Result{}, false, err
+	}
 
-		err = deploy.AppendFinalizer(ctx, ClusterPermissionsDashboardFinalizer)
-		if err != nil {
-			return reconcile.Result{}, false, err
-		}
+	err = deploy.AppendFinalizer(ctx, ClusterPermissionsDashboardFinalizer)
+	if err != nil {
+		return reconcile.Result{}, false, err
 	}
 
 	// Deploy dashboard
