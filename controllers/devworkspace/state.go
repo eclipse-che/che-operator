@@ -108,12 +108,11 @@ func doesCheClusterWithDevWorkspaceEnabledExist(mgr manager.Manager) (bool, erro
 	if err != nil {
 		return false, err
 	}
-	for _, cheCluster := range cheClusters.Items {
-		if cheCluster.Spec.DevWorkspace.Enable {
-			return true, nil
-		}
-	}
-	return false, nil
+
+	// Previous logic was depended on cheCluster.Spec.DevWorkspace.Enable field.
+	// Since DevWorkspace.Enable is enabled by default, then it is enough to check
+	// CheCluster existence.
+	return len(cheClusters.Items) != 0, nil
 }
 
 func findApiGroup(mgr manager.Manager, apiGroup string) (bool, error) {
