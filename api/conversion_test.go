@@ -137,8 +137,8 @@ func TestV1ToV2alpha1(t *testing.T) {
 			t.Error(err)
 		}
 
-		if *v2.Spec.Enabled {
-			t.Errorf("Unexpected v2.Spec.Enabled: %s", v2.Spec.Gateway.Host)
+		if !*v2.Spec.Enabled {
+			t.Errorf("Unexpected v2.Spec.Enabled: %t", *v2.Spec.Enabled)
 		}
 	})
 
@@ -350,18 +350,6 @@ func TestV2alpha1ToV1(t *testing.T) {
 
 		if !reflect.DeepEqual(&v2Obj.Spec, &restoredV2Spec) {
 			t.Errorf("The spec should be restored verbatim from the annotations, but there's a diff %s", cmp.Diff(&v2Obj.Spec, &restoredV2Spec))
-		}
-	})
-
-	t.Run("Enabled", func(t *testing.T) {
-		v1 := &v1.CheCluster{}
-		err := V2alpha1ToV1(&v2Obj, v1)
-		if err != nil {
-			t.Error(err)
-		}
-
-		if !v1.Spec.DevWorkspace.Enable {
-			t.Errorf("Unexpected v1.Spec.DevWorkspace.Enable: %v", v1.Spec.DevWorkspace.Enable)
 		}
 	})
 

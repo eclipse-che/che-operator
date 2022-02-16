@@ -111,7 +111,6 @@ func V2alpha1ToV1(v2 *v2alpha1.CheCluster, v1Obj *v1.CheCluster) error {
 	}
 	v1Obj.Annotations[v2alpha1StorageAnnotation] = string(v2Spec)
 
-	v2alpha1ToV1_Enabled(v1Obj, v2)
 	v2alpha1ToV1_Host(v1Obj, v2)
 	v2alpha1ToV1_GatewayImage(v1Obj, v2)
 	v2alpha1ToV1_GatewayConfigurerImage(v1Obj, v2)
@@ -130,7 +129,7 @@ func V2alpha1ToV1(v2 *v2alpha1.CheCluster, v1Obj *v1.CheCluster) error {
 }
 
 func v1ToV2alpha1_Enabled(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
-	v2.Spec.Enabled = &v1.Spec.DevWorkspace.Enable
+	v2.Spec.Enabled = pointer.BoolPtr(true)
 }
 
 func v1ToV2alpha1_Host(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
@@ -228,10 +227,6 @@ func v1ToV2alpha1_K8sIngressAnnotations(v1 *v1.CheCluster, v2 *v2alpha1.CheClust
 		}
 		v2.Spec.K8s.IngressAnnotations["kubernetes.io/ingress.class"] = v1.Spec.K8s.IngressClass
 	}
-}
-
-func v2alpha1ToV1_Enabled(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
-	v1.Spec.DevWorkspace.Enable = v2.Spec.IsEnabled()
 }
 
 func v2alpha1ToV1_Host(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {

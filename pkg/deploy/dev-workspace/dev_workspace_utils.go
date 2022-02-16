@@ -103,12 +103,5 @@ func isOnlyOneOperatorManagesDWResources(deployContext *deploy.DeployContext) (b
 		return false, err
 	}
 
-	devWorkspaceEnabledNum := 0
-	for _, cheCluster := range cheClusters.Items {
-		if cheCluster.Spec.DevWorkspace.Enable {
-			devWorkspaceEnabledNum++
-		}
-	}
-
-	return devWorkspaceEnabledNum == 1, nil
+	return len(cheClusters.Items) == 1, nil
 }
