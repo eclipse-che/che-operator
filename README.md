@@ -239,7 +239,6 @@ $ make generate; make manifests
 
 This command will update CRD files:
   - `config/crd/bases/org_v1_che_crd.yaml`
-  - `config/crd/bases/org_v1_che_crd-v1beta1.yaml`
 
 CRD beta yamls should be used for back compatibility with Openshift 3.
 
