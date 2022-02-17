@@ -456,7 +456,12 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 	--channels $(channel) \
 	--default-channel $(channel)
 
-	rm -rf bundle.Dockerfile
+	# Copy bundle.Dockerfile to the bundle dir and patch paths
+	mv bundle.Dockerfile $${BUNDLE_DIR}
+	sed -i 's|bundle/next/eclipse-che-preview-openshift/||' $${BUNDLE_DIR}/bundle.Dockerfile
+
+	# Add specific labels
+	printf "\nLABEL com.redhat.openshift.versions=\"v4.8\"" >> $${BUNDLE_DIR}/bundle.Dockerfile
 
 	cd $${BUNDLE_DIR}/manifests;
 	mv $${GENERATED_CSV_NAME} $${DESIRED_CSV_NAME}

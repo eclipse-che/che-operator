@@ -71,11 +71,11 @@ metadata:
     operatorframework.io/suggested-namespace: openshift-operators
     operators.openshift.io/infrastructure-features: '["disconnected", "proxy-aware",
       "fips"]'
-    operators.operatorframework.io/builder: operator-sdk-v1.6.1+git
+    operators.operatorframework.io/builder: operator-sdk-v1.9.0+git
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.43.0-423.next
+  name: eclipse-che-preview-openshift.v7.44.0-431.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1288,4 +1288,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.43.0-423.next
+  version: 7.44.0-431.next

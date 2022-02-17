@@ -20,9 +20,11 @@ metadata:
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:next
     createdAt: "2021-05-11T18:38:31Z"
-    description: A Kube-native development solution that delivers portable and collaborative developer workspaces.
+    description: A Kube-native development solution that delivers portable and collaborative
+      developer workspaces.
     operatorframework.io/suggested-namespace: openshift-operators
-    operators.openshift.io/infrastructure-features: '["disconnected", "proxy-aware", "fips"]'
+    operators.openshift.io/infrastructure-features: '["disconnected", "proxy-aware",
+      "fips"]'
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
   name: eclipse-che-preview-openshift.v0.0.0
@@ -31,7 +33,8 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - description: The `CheCluster` custom resource allows defining and managing a Che server installation
+    - description: The `CheCluster` custom resource allows defining and managing a
+        Che server installation
       displayName: Eclipse Che instance Specification
       kind: CheCluster
       name: checlusters.org.eclipse.che
@@ -67,21 +70,26 @@ spec:
         name: ""
         version: v1
       specDescriptors:
-      - description: Configuration settings related to the Authentication used by the Che installation.
+      - description: Configuration settings related to the Authentication used by
+          the Che installation.
         displayName: Authentication
         path: auth
-      - description: Deprecated. The value of this flag is ignored. Sidecar functionality is now implemented in Traefik plugin.
+      - description: Deprecated. The value of this flag is ignored. Sidecar functionality
+          is now implemented in Traefik plugin.
         displayName: Gateway Header Rewrite Sidecar Image
         path: auth.gatewayHeaderRewriteSidecarImage
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:hidden
-      - description: Configuration settings related to the database used by the Che installation.
+      - description: Configuration settings related to the database used by the Che
+          installation.
         displayName: Database
         path: database
       - description: DevWorkspace operator configuration
         displayName: Dev Workspace operator
         path: devWorkspace
-      - description: Deploys the DevWorkspace Operator in the cluster. Does nothing when a matching version of the Operator is already installed. Fails when a non-matching version of the Operator is already installed.
+      - description: Deploys the DevWorkspace Operator in the cluster. Does nothing
+          when a matching version of the Operator is already installed. Fails when
+          a non-matching version of the Operator is already installed.
         displayName: Enable DevWorkspace operator (Technology Preview)
         path: devWorkspace.enable
         x-descriptors:
@@ -89,16 +97,23 @@ spec:
       - description: Kubernetes Image Puller configuration
         displayName: Kubernetes Image Puller
         path: imagePuller
-      - description: Configuration settings specific to Che installations made on upstream Kubernetes.
+      - description: Configuration settings specific to Che installations made on
+          upstream Kubernetes.
         displayName: Kubernetes
         path: k8s
-      - description: Configuration settings related to the metrics collection used by the Che installation.
+      - description: Configuration settings related to the metrics collection used
+          by the Che installation.
         displayName: Metrics
         path: metrics
-      - description: General configuration settings related to the Che server, the plugin and devfile registries
+      - description: General configuration settings related to the Che server, the
+          plugin and devfile registries
         displayName: Che server
         path: server
-      - description: Deprecated. The value of this flag is ignored. Defines that a user is allowed to specify a Kubernetes namespace, or an OpenShift project, which differs from the default. It's NOT RECOMMENDED to set to `true` without OpenShift OAuth configured. The OpenShift infrastructure also uses this property.
+      - description: Deprecated. The value of this flag is ignored. Defines that a
+          user is allowed to specify a Kubernetes namespace, or an OpenShift project,
+          which differs from the default. It's NOT RECOMMENDED to set to `true` without
+          OpenShift OAuth configured. The OpenShift infrastructure also uses this
+          property.
         displayName: Allow User Defined Workspace Namespaces
         path: server.allowUserDefinedWorkspaceNamespaces
         x-descriptors:
@@ -108,12 +123,16 @@ spec:
         path: server.devfileRegistryUrl
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:hidden
-      - description: Deprecated. The value of this flag is ignored. The Che Operator will automatically detect whether the router certificate is self-signed and propagate it to other components, such as the Che server.
+      - description: Deprecated. The value of this flag is ignored. The Che Operator
+          will automatically detect whether the router certificate is self-signed
+          and propagate it to other components, such as the Che server.
         displayName: Self Signed Cert
         path: server.selfSignedCert
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:hidden
-      - description: Deprecated. Instructs the Operator to deploy Che in TLS mode. This is enabled by default. Disabling TLS sometimes cause malfunction of some Che components.
+      - description: Deprecated. Instructs the Operator to deploy Che in TLS mode.
+          This is enabled by default. Disabling TLS sometimes cause malfunction of
+          some Che components.
         displayName: Tls Support
         path: server.tlsSupport
         x-descriptors:
@@ -123,11 +142,13 @@ spec:
         path: server.useInternalClusterSVCNames
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:hidden
-      - description: Configuration settings related to the persistent storage used by the Che installation.
+      - description: Configuration settings related to the persistent storage used
+          by the Che installation.
         displayName: Persistent storage
         path: storage
       statusDescriptors:
-      - description: Status of a Che installation. Can be `Available`, `Unavailable`, or `Available, Rolling Update in Progress`.
+      - description: Status of a Che installation. Can be `Available`, `Unavailable`,
+          or `Available, Rolling Update in Progress`.
         displayName: Status
         path: cheClusterRunning
         x-descriptors:
@@ -147,7 +168,8 @@ spec:
         path: devfileRegistryURL
         x-descriptors:
         - urn:alm:descriptor:org.w3:link
-      - description: A URL that points to some URL where to find help related to the current Operator status.
+      - description: A URL that points to some URL where to find help related to the
+          current Operator status.
         displayName: Help link
         path: helpLink
         x-descriptors:
@@ -157,13 +179,16 @@ spec:
         path: keycloakURL
         x-descriptors:
         - urn:alm:descriptor:org.w3:link
-      - description: A human readable message indicating details about why the Pod is in this condition.
+      - description: A human readable message indicating details about why the Pod
+          is in this condition.
         displayName: Message
         path: message
         x-descriptors:
         - urn:alm:descriptor:text
-      - description: OpenShift OAuth secret in `openshift-config` namespace that contains user credentials for HTPasswd identity provider.
-        displayName: OpenShift OAuth secret in `openshift-config` namespace that contains user credentials for HTPasswd identity provider.
+      - description: OpenShift OAuth secret in `openshift-config` namespace that contains
+          user credentials for HTPasswd identity provider.
+        displayName: OpenShift OAuth secret in `openshift-config` namespace that contains
+          user credentials for HTPasswd identity provider.
         path: openShiftOAuthUserCredentialsSecret
         x-descriptors:
         - urn:alm:descriptor:text
@@ -172,7 +197,8 @@ spec:
         path: pluginRegistryURL
         x-descriptors:
         - urn:alm:descriptor:org.w3:link
-      - description: A brief CamelCase message indicating details about why the Pod is in this state.
+      - description: A brief CamelCase message indicating details about why the Pod
+          is in this state.
         displayName: Reason
         path: reason
         x-descriptors:

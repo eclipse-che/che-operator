@@ -12,7 +12,9 @@
 package util
 
 import (
+	"errors"
 	"io/ioutil"
+	"os"
 
 	"github.com/sirupsen/logrus"
 )
@@ -26,6 +28,9 @@ var operator_namespace string
 func readNamespace() string {
 	nsBytes, err := ioutil.ReadFile(namespaceFile)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return ""
+		}
 		logrus.Fatal("Failed to get operator namespace", err)
 	}
 	return string(nsBytes)

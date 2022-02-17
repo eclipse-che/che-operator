@@ -9,7 +9,7 @@ OLM packages scripts are using some required dependencies that need to be instal
  - [Operator SDK v0.17.2](https://github.com/operator-framework/operator-sdk/blob/v0.10.0/doc/user/install-operator-sdk.md)
  - [opm](https://github.com/operator-framework/operator-registry/releases/tag/v1.15.1)
 
-WARNING: Please make sure to use the precise `v1.7.1` version of the `operator-sdk`.
+WARNING: Please make sure to use the precise `v1.9.2` version of the `operator-sdk`.
 
 ## Eclipse Che OLM bundles
 
