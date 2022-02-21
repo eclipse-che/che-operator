@@ -57,17 +57,12 @@ checkCRDs() {
     local checlusterbackup_CRD_V1="config/crd/bases/org.eclipse.che_checlusterbackups_crd.yaml"
     local checlusterrestore_CRD_V1="config/crd/bases/org.eclipse.che_checlusterrestores_crd.yaml"
 
-    local checluster_CRD_V1BETA1="config/crd/bases/org_v1_che_crd-v1beta1.yaml"
-    local chebackupserverconfiguration_CRD_V1BETA1="config/crd/bases/org.eclipse.che_chebackupserverconfigurations_crd-v1beta1.yaml"
-    local checlusterbackup_CRD_V1BETA1="config/crd/bases/org.eclipse.che_checlusterbackups_crd-v1beta1.yaml"
-    local checlusterrestore_CRD_V1BETA1="config/crd/bases/org.eclipse.che_checlusterrestores_crd-v1beta1.yaml"
-
     changedFiles=($(cd ${ROOT_PROJECT_DIR}; git diff --name-only))
     # Check if there are any difference in the crds. If yes, then fail check.
-    if [[ " ${changedFiles[*]} " =~ $checluster_CRD_V1 ]] || [[ " ${changedFiles[*]} " =~ $checluster_CRD_V1BETA1 ]] || \
-       [[ " ${changedFiles[*]} " =~ $chebackupserverconfiguration_CRD_V1 ]] || [[ " ${changedFiles[*]} " =~ $chebackupserverconfiguration_CRD_V1BETA1 ]] || \
-       [[ " ${changedFiles[*]} " =~ $checlusterbackup_CRD_V1 ]] || [[ " ${changedFiles[*]} " =~ $checlusterbackup_CRD_V1BETA1 ]] || \
-       [[ " ${changedFiles[*]} " =~ $checlusterrestore_CRD_V1 ]] || [[ " ${changedFiles[*]} " =~ $checlusterrestore_CRD_V1BETA1 ]]
+    if [[ " ${changedFiles[*]} " =~ $checluster_CRD_V1 ]] || \
+       [[ " ${changedFiles[*]} " =~ $chebackupserverconfiguration_CRD_V1 ]] || \
+       [[ " ${changedFiles[*]} " =~ $checlusterbackup_CRD_V1 ]] || \
+       [[ " ${changedFiles[*]} " =~ $checlusterrestore_CRD_V1 ]]
     then
         echo "[ERROR] CRD file is not up to date: ${BASH_REMATCH}"
         echo "[ERROR] Run 'make update-resources -s' to regenerate CRD files."

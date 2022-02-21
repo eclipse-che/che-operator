@@ -43,7 +43,6 @@ BUNDLE_IMG ?= $(IMAGE_TAG_BASE)-bundle:v$(VERSION)
 IMG ?= quay.io/eclipse/che-operator:next
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
-CRD_BETA_OPTIONS ?= "crd:trivialVersions=true,crdVersions=v1beta1"
 
 OPERATOR_YAML="config/manager/manager.yaml"
 
@@ -53,9 +52,6 @@ ECLIPSE_CHE_NAMESPACE="eclipse-che"
 CRD_FOLDER="config/crd/bases"
 
 ECLIPSE_CHE_CR=config/samples/org.eclipse.che_v1_checluster.yaml
-
-# legacy crd v1beta1 file names
-ECLIPSE_CHE_CRD_V1BETA1="$(CRD_FOLDER)/org_v1_che_crd-v1beta1.yaml"
 
 # legacy crd file names
 ECLIPSE_CHE_CRD_V1="$(CRD_FOLDER)/org_v1_che_crd.yaml"
@@ -126,57 +122,17 @@ download-operator-sdk:
 	chmod +x $${OP_SDK_PATH}
 	echo "[INFO] operator-sdk is ready."
 
-removeRequiredAttribute: SHELL := /bin/bash
-removeRequiredAttribute:
-	REQUIRED=false
-
-	while IFS= read -r line
-	do
-		if [[ $$REQUIRED == true ]]; then
-			if [[ $$line == *"- "* ]]; then
-				continue
-			else
-				REQUIRED=false
-			fi
-		fi
-
-		if [[ $$line == *"required:"* ]]; then
-			REQUIRED=true
-			continue
-		fi
-
-		echo  "$$line" >> $$filePath.tmp
-	done < "$$filePath"
-
-	mv $${filePath}.tmp $${filePath}
-
 manifests: controller-gen add-license-download ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	# Generate CRDs v1beta1
-	$(CONTROLLER_GEN) $(CRD_BETA_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-	mv "$(ECLIPSE_CHE_CRD)" "$(ECLIPSE_CHE_CRD_V1BETA1)"
-
 	# Generate CRDs v1
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 	mv "$(ECLIPSE_CHE_CRD)" "$(ECLIPSE_CHE_CRD_V1)"
 
 	# remove yaml delimitier, which makes OLM catalog source image broken.
-	sed -i.bak '/---/d' "$(ECLIPSE_CHE_CRD_V1BETA1)"
-	rm -rf "$(ECLIPSE_CHE_CRD_V1BETA1).bak"
 	sed -i.bak '/---/d' "$(ECLIPSE_CHE_CRD_V1)"
 	rm -rf "$(ECLIPSE_CHE_CRD_V1).bak"
 
 	# remove v1alphav2 version from crd files
-	yq -rYi "del(.spec.versions[1])" "$(ECLIPSE_CHE_CRD_V1BETA1)"
 	yq -rYi "del(.spec.versions[1])" "$(ECLIPSE_CHE_CRD_V1)"
-
-	# remove .spec.subresources.status from crd v1beta1 files
-	yq -rYi ".spec.subresources.status = {}" "$(ECLIPSE_CHE_CRD_V1BETA1)"
-
-	# remove .spec.validation.openAPIV3Schema.type field
-	yq -rYi "del(.spec.validation.openAPIV3Schema.type)" "$(ECLIPSE_CHE_CRD_V1BETA1)"
-
-	# remove "required" attributes from v1beta1 crd files
-	$(MAKE) removeRequiredAttribute "filePath=$(ECLIPSE_CHE_CRD_V1BETA1)"
 
 	$(MAKE) add-license $$(find ./config/crd -not -path "./vendor/*" -name "*.yaml")
 
@@ -310,10 +266,6 @@ init-cr:
 		fi
 		kubectl apply -f ${ECLIPSE_CHE_CR} -n ${ECLIPSE_CHE_NAMESPACE}
 	fi
-
-apply-cr-crd-beta:
-	kubectl apply -f ${ECLIPSE_CHE_CRD_V1BETA1}
-	kubectl apply -f ${ECLIPSE_CHE_CR} -n ${ECLIPSE_CHE_NAMESPACE}
 
 create-env-file: prepare-templates
 	rm -rf "${ENV_FILE}"
