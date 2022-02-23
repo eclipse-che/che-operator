@@ -31,7 +31,7 @@ func (p *DefaultValuesReconciler) Reconcile(ctx *deploy.DeployContext) (reconcil
 
 	if len(ctx.CheCluster.Spec.Database.ChePostgresSecret) < 1 {
 		if len(ctx.CheCluster.Spec.Database.ChePostgresUser) < 1 || len(ctx.CheCluster.Spec.Database.ChePostgresPassword) < 1 {
-			chePostgresSecret := deploy.DefaultChePostgresSecret()
+			chePostgresSecret := "che-postgres-secret"
 			_, err := deploy.SyncSecretToCluster(ctx, chePostgresSecret, cheNamespace, map[string][]byte{"user": []byte(deploy.DefaultChePostgresUser), "password": []byte(util.GeneratePasswd(12))})
 			if err != nil {
 				return reconcile.Result{}, false, err

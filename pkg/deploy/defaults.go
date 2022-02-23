@@ -256,18 +256,6 @@ func DefaultConsoleLinkImage() string {
 	return getDefaultFromEnv("CONSOLE_LINK_IMAGE")
 }
 
-func DefaultCheIdentitySecret() string {
-	return getDefaultFromEnv("CHE_IDENTITY_SECRET")
-}
-
-func DefaultCheIdentityPostgresSecret() string {
-	return getDefaultFromEnv("CHE_IDENTITY_POSTGRES_SECRET")
-}
-
-func DefaultChePostgresSecret() string {
-	return getDefaultFromEnv("CHE_POSTGRES_SECRET")
-}
-
 func DefaultCheVersion() string {
 	return defaultCheVersion
 }

@@ -75,7 +75,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.44.0-431.next
+  name: eclipse-che-preview-openshift.v7.44.0-432.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1005,12 +1005,6 @@ spec:
                         value: Red Hat Applications
                       - name: CONSOLE_LINK_IMAGE
                         value: /dashboard/assets/branding/loader.svg
-                      - name: CHE_IDENTITY_SECRET
-                        value: che-identity-secret
-                      - name: CHE_IDENTITY_POSTGRES_SECRET
-                        value: che-identity-postgres-secret
-                      - name: CHE_POSTGRES_SECRET
-                        value: che-postgres-secret
                       - name: CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME
                         value: ca-certs
                       - name: MAX_CONCURRENT_RECONCILES
@@ -1288,4 +1282,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.44.0-431.next
+  version: 7.44.0-432.next
