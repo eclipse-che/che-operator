@@ -263,6 +263,13 @@ pushGitChanges() {
 
 createPRToXBranch() {
   echo "[INFO] createPRToXBranch :: Create pull request into ${BRANCH} branch"
+  # retrieve any stashed changes related to check-resources.sh
+  git stash apply stash@{0} || true
+  if git status --porcelain; then
+    git add -A || true # add new generated CSV files in olm/ folder
+    git commit -am "ci: check-resources.sh generated changes" --signoff
+  fi
+  git push origin $BRANCH -f
   if [[ $FORCE_UPDATE == "--force" ]]; then set +e; fi  # don't fail if PR already exists (just force push commits into it)
   hub pull-request $FORCE_UPDATE --base ${BRANCH} --head ${RELEASE_BRANCH} -m "ci: Release version ${RELEASE}"
   set -e
@@ -274,13 +281,15 @@ createPRToMainBranch() {
   local tmpBranch="copy-csv-to-main"
   git checkout -B $tmpBranch
   git diff refs/heads/${BRANCH}...refs/heads/${RELEASE_BRANCH} ':(exclude)config/manager/manager.yaml' ':(exclude)Dockerfile' | git apply -3
+  # retrieve any stashed changes related to check-resources.sh
+  git stash apply stash@{0} || true
   if git status --porcelain; then
     git add -A || true # add new generated CSV files in olm/ folder
     git commit -am "ci: Copy "$RELEASE" csv to main" --signoff
   fi
   git push origin $tmpBranch -f
   if [[ $FORCE_UPDATE == "--force" ]]; then set +e; fi  # don't fail if PR already exists (just force push commits into it)
-  hub pull-request $FORCE_UPDATE --base main --head ${tmpBranch} -m "ci: Copy "$RELEASE" csv to main"
+  hub pull-request $FORCE_UPDATE --base main --head ${tmpBranch} -m "ci: Copy ${RELEASE} csv to main"
   set -e
 }
 
@@ -294,6 +303,7 @@ run() {
   if [[ $CHECK_RESOURCES == "true" ]]; then
     echo "[INFO] Check if resources are up to date"
     . ${RELEASE_DIR}/.github/bin/check-resources.sh
+    git stash push -m "ci: check-resources.sh generated changes" --include-untracked || true
   fi
 
   checkoutToReleaseBranch
