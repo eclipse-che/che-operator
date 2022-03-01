@@ -78,9 +78,14 @@ checkNextOlmBundle() {
 
   changedFiles=($(cd ${ROOT_PROJECT_DIR}; git diff --name-only))
   if [[ " ${changedFiles[*]} " =~ $CSV_OPENSHIFT ]]; then
-    echo "[ERROR] Nighlty bundle is not up to date: ${BASH_REMATCH}"
-    echo "[ERROR] Run 'make update-resources -s' to regenerate next bundle files."
-    exit 1
+    SDK_VERSION=1.9.2
+    echo "[WARNING] Next bundle is not up to date: ${BASH_REMATCH} - will attempt to 'make update-resources -s' using operator-sdk v${SDK_VERSION} to regenerate bundle files ..."
+    export ARCH=$(case $(uname -m) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(uname -m) ;; esac)
+    export OS=$(uname | awk '{print tolower($0)}')
+    curl -sSLo /usr/local/bin/operator-sdk https://github.com/operator-framework/operator-sdk/releases/download/v${SDK_VERSION}/operator-sdk_${OS}_${ARCH}
+    chmod +x /usr/local/bin/operator-sdk
+    operator-sdk version
+    make update-resources -s || echo "[ERROR] Could not regenerate next bundles files! Please run 'make update-resources -s' and commit changes, then try to run make-release.sh again."; exit 1
   else
     echo "[INFO] Next bundles are up to date."
   fi
