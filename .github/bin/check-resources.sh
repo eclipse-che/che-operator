@@ -85,7 +85,12 @@ checkNextOlmBundle() {
     curl -sSLo /usr/local/bin/operator-sdk https://github.com/operator-framework/operator-sdk/releases/download/v${SDK_VERSION}/operator-sdk_${OS}_${ARCH}
     chmod +x /usr/local/bin/operator-sdk
     operator-sdk version
-    make update-resources -s || echo "[ERROR] Could not regenerate next bundles files! Please run 'make update-resources -s' and commit changes, then try to run make-release.sh again."; exit 1
+    make update-resources -s || \
+      { \
+      echo "[ERROR] Could not regenerate next bundle files!"; \
+      echo "[ERROR] Run 'make update-resources -s' to update bundle files"; \
+      exit 1; \
+      }
   else
     echo "[INFO] Next bundles are up to date."
   fi
