@@ -86,7 +86,7 @@ run() {
   echo "$(getCheClusterCRFromExistedCSV)" | oc apply -n "${NAMESPACE}" -f -
   waitEclipseCheDeployed $(getCheVersionFromExistedCSV)
 
-  approveInstallPlan "eclipse-che-operator"
+  approveInstallPlan "${subscription}"
   waitEclipseCheDeployed $(getCheVersionFromExistedCSV)
 }
 
