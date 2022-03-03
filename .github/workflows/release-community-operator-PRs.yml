@@ -42,7 +42,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install operator-courier==2.1.7
           pip install yq
-      - name: Release community operator PRs
+      - name: Release community operator PR
         run: |
           hub version
           git config --global user.name "Mykhailo Kuznietsov"
@@ -67,7 +67,7 @@ jobs:
           echo "{\"text\":\":no_entry_sign: Che Community Operator ${{ github.event.inputs.version }} release has failed: https://github.com/eclipse-che/che-operator/actions/workflows/release-community-operator-PRs.yml\"}" > mattermost.json
       - name: Create success MM message
         run: |
-          echo "{\"text\":\":white_check_mark: Che Community Operator ${{ github.event.inputs.version }} release PR have been created: Kubernetes -> https://github.com/k8s-operatorhub/community-operators/pulls ; Openshift -> https://github.com/redhat-openshift-ecosystem/community-operators-prod/pulls\"}" > mattermost.json
+          echo "{\"text\":\":white_check_mark: Che Community Operator ${{ github.event.inputs.version }} release PR has been created: https://github.com/redhat-openshift-ecosystem/community-operators-prod/pulls\"}" > mattermost.json
       - name: Send MM message
         if: ${{ success() }} || ${{ failure() }}
         uses: mattermost/action-mattermost-notify@1.1.0
