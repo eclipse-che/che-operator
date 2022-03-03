@@ -67,7 +67,7 @@ jobs:
           echo "{\"text\":\":no_entry_sign: Che Community Operator ${{ github.event.inputs.version }} release has failed: https://github.com/eclipse-che/che-operator/actions/workflows/release-community-operator-PRs.yml\"}" > mattermost.json
       - name: Create success MM message
         run: |
-          echo "{\"text\":\":white_check_mark: Che Community Operator ${{ github.event.inputs.version }} release PR has been created: https://github.com/redhat-openshift-ecosystem/community-operators-prod/pulls\"}" > mattermost.json
+          echo "{\"text\":\":white_check_mark: Che Community Operator ${{ github.event.inputs.version }} release PR has been created: https://github.com/redhat-openshift-ecosystem/community-operators-prod/pulls?q=is%3Apr+is%3Aopen+eclipse-che\"}" > mattermost.json
       - name: Send MM message
         if: ${{ success() }} || ${{ failure() }}
         uses: mattermost/action-mattermost-notify@1.1.0
