@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2019-2021 Red Hat, Inc.
+# Copyright (c) 2019-2022 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -43,9 +43,6 @@ if [[ ! ${GITHUB_TOKEN} ]]; then
   exit 1
 fi
 
-GIT_REMOTE_FORK="https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/${fork_org}/community-operators.git"
-GIT_REMOTE_FORK_CLEAN="https://github.com/${fork_org}/community-operators.git"
-
 usage ()
 {
   echo "Usage: $0
@@ -63,29 +60,25 @@ installOPM
 # $BASE_DIR is set to {OPERATOR_DIR}/olm
 OPERATOR_REPO=$(dirname "$BASE_DIR")
 source ${OPERATOR_REPO}/.github/bin/common.sh
-getLatestsStableVersions
+getLatestStableVersions
 
 INDEX_IMAGE="quay.io/eclipse/eclipse-che-openshift-opm-catalog:test"
 packageName="eclipse-che-preview-openshift"
 echo
-echo "## Prepare the OperatorHub package to push to the 'community-operators' repository from local package '${packageName}'"
+echo "## Prepare the OperatorHub package to push to the 'community-operators-prod' repository from local package '${packageName}'"
 manifestPackagesDir=$(mktemp -d -t che-openshift-manifest-packages-XXX)
 echo "[INFO] Folder with manifest packages: ${manifestPackagesDir}"
 packageBaseFolderPath="${manifestPackagesDir}/${packageName}"
-
 sourcePackageFilePath="${packageBaseFolderPath}/package.yaml"
-communityOperatorsLocalGitFolder="${packageBaseFolderPath}/generated/community-operators"
+communityOperatorsLocalGitFolder="${packageBaseFolderPath}/generated/community-operators-prod"
 
-echo "   - Clone the 'community-operators' GitHub repository to temporary folder: ${communityOperatorsLocalGitFolder}"
-
+echo "   - Clone the 'community-operators-prod' GitHub repository to temporary folder: ${communityOperatorsLocalGitFolder}"
 GIT_REMOTE_FORK="https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/${fork_org}/community-operators-prod.git"
 GIT_REMOTE_FORK_CLEAN="https://github.com/${fork_org}/community-operators-prod.git"
 rm -Rf "${communityOperatorsLocalGitFolder}"
 mkdir -p "${communityOperatorsLocalGitFolder}"
 git clone "${GIT_REMOTE_FORK}" "${communityOperatorsLocalGitFolder}" 2>&1 | sed -e 's/^/      /'
 cd "${communityOperatorsLocalGitFolder}"
-git remote add upstream https://github.com/k8s-operatorhub/community-operators
-git remote remove upstream
 git remote add upstream https://github.com/redhat-openshift-ecosystem/community-operators-prod
 
 git fetch upstream ${base_branch}:upstream/${base_branch}
@@ -93,7 +86,7 @@ git fetch upstream ${base_branch}:upstream/${base_branch}
 branch="update-eclipse-che"
 branch="${branch}-operator-${LAST_PACKAGE_VERSION}"
 echo
-echo "   - Create branch '${branch}' in the local 'community-operators' repository: ${communityOperatorsLocalGitFolder}"
+echo "   - Create branch '${branch}' in the local 'community-operators-prod' repository: ${communityOperatorsLocalGitFolder}"
 git checkout upstream/${base_branch}
 git checkout -b "${branch}" 2>&1 | sed -e 's/^/      /'
 
@@ -103,11 +96,11 @@ destinationPackageFilePath="${folderToUpdate}/eclipse-che.package.yaml"
 
 for channel in "${STABLE_CHANNELS[@]}"
 do
-  getLatestsStableVersions
+  getLatestStableVersions
 
   echo
   echo "   - Last package pre-release version of local package: ${LAST_PACKAGE_VERSION}"
-  echo "   - Last package release version of cloned 'community-operators' repository: ${PREVIOUS_PACKAGE_VERSION}"
+  echo "   - Last package release version of cloned 'community-operators-prod' repository: ${PREVIOUS_PACKAGE_VERSION}"
   if [[ "${LAST_PACKAGE_VERSION}" == "${PREVIOUS_PACKAGE_VERSION}" ]] && [[ "${FORCE}" == "" ]]; then
     echo "#### ERROR ####"
     echo "Release ${LAST_PACKAGE_VERSION} already exists in the '${subFolder}/eclipse-che' package !"
@@ -171,8 +164,6 @@ done
 cd "${CURRENT_DIR}"
 
 echo
-echo "Generated pull requests will be here:
-
-https://github.com/k8s-operatorhub/community-operators/pulls/che-incubator-bot
+echo "Generated pull request: 
 https://github.com/redhat-openshift-ecosystem/community-operators-prod/pulls/che-incubator-bot
 "
