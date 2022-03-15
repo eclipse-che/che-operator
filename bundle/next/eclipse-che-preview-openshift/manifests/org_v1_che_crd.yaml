@@ -414,6 +414,9 @@ spec:
                         installed. Fails when a non-matching version of the Operator
                         is already installed.
                       type: boolean
+                    runningLimit:
+                      description: Maximum number of the running workspaces per user.
+                      type: string
                   required:
                     - enable
                   type: object
