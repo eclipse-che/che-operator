@@ -40,7 +40,7 @@ func TestSyncTrustStoreConfigMapToCluster(t *testing.T) {
 	ctx := deploy.GetTestDeployContext(checluster, []runtime.Object{})
 
 	certificates := NewCertificatesReconciler()
-	_, done, err := certificates.syncTrustStoreConfigMapToCluster(ctx)
+	done, err := certificates.syncTrustStoreConfigMapToCluster(ctx)
 	assert.Nil(t, err)
 	assert.True(t, done)
 
@@ -73,7 +73,7 @@ func TestSyncExistedTrustStoreConfigMapToCluster(t *testing.T) {
 	ctx := deploy.GetTestDeployContext(checluster, []runtime.Object{trustStoreConfigMap})
 
 	certificates := NewCertificatesReconciler()
-	_, done, err := certificates.syncTrustStoreConfigMapToCluster(ctx)
+	done, err := certificates.syncTrustStoreConfigMapToCluster(ctx)
 	assert.Nil(t, err)
 	assert.True(t, done)
 
@@ -112,7 +112,7 @@ func TestSyncAdditionalCACertsConfigMapToCluster(t *testing.T) {
 	ctx := deploy.GetTestDeployContext(nil, []runtime.Object{cert1})
 
 	certificates := NewCertificatesReconciler()
-	_, done, err := certificates.syncAdditionalCACertsConfigMapToCluster(ctx)
+	done, err := certificates.syncAdditionalCACertsConfigMapToCluster(ctx)
 	assert.Nil(t, err)
 	assert.True(t, done)
 
@@ -126,11 +126,11 @@ func TestSyncAdditionalCACertsConfigMapToCluster(t *testing.T) {
 	assert.Nil(t, err)
 
 	// check ca-cert-merged
-	_, done, err = certificates.syncAdditionalCACertsConfigMapToCluster(ctx)
+	done, err = certificates.syncAdditionalCACertsConfigMapToCluster(ctx)
 	assert.Nil(t, err)
 	assert.False(t, done)
 
-	_, done, err = certificates.syncAdditionalCACertsConfigMapToCluster(ctx)
+	done, err = certificates.syncAdditionalCACertsConfigMapToCluster(ctx)
 	assert.Nil(t, err)
 	assert.True(t, done)
 

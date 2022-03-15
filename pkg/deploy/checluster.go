@@ -13,8 +13,6 @@ package deploy
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/types"
@@ -27,22 +25,6 @@ func UpdateCheCRSpec(deployContext *DeployContext, field string, value string) e
 		logrus.Infof("Custom resource spec %s updated with %s: %s", deployContext.CheCluster.Name, field, value)
 		return nil
 	}
-	return err
-}
-
-// UpdateCheCRSpecByFields - updates Che CR "spec" fields by field map
-func UpdateCheCRSpecByFields(deployContext *DeployContext, fields map[string]string) (err error) {
-	updateInfo := []string{}
-	for updatedField, value := range fields {
-		updateInfo = append(updateInfo, fmt.Sprintf("%s: %s", updatedField, value))
-	}
-
-	err = deployContext.ClusterAPI.Client.Update(context.TODO(), deployContext.CheCluster)
-	if err == nil {
-		logrus.Infof(fmt.Sprintf("Custom resource spec %s updated with: ", deployContext.CheCluster.Name) + strings.Join(updateInfo, ", "))
-		return nil
-	}
-
 	return err
 }
 

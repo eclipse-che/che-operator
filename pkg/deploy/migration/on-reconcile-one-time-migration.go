@@ -125,17 +125,15 @@ func addPartOfCheLabeltoUserDefinedObjects(ctx *deploy.DeployContext) error {
 	}
 
 	// Database credentials
-	if ctx.CheCluster.Spec.Database.ChePostgresSecret != "" {
-		if err := addPartOfCheLabelToSecret(ctx, ctx.CheCluster.Spec.Database.ChePostgresSecret); err != nil {
-			return err
-		}
+	chePostgresCredentialsSecret := util.GetValue(ctx.CheCluster.Spec.Database.ChePostgresSecret, deploy.DefaultChePostgresCredentialsSecret)
+	if err := addPartOfCheLabelToSecret(ctx, chePostgresCredentialsSecret); err != nil {
+		return err
 	}
 
 	// Legacy config map with additional CA certificates
-	if ctx.CheCluster.Spec.Server.ServerTrustStoreConfigMapName != "" {
-		if err := addPartOfCheLabelToConfigMap(ctx, ctx.CheCluster.Spec.Server.ServerTrustStoreConfigMapName); err != nil {
-			return err
-		}
+	trustStoreConfigMap := util.GetValue(ctx.CheCluster.Spec.Server.ServerTrustStoreConfigMapName, deploy.DefaultServerTrustStoreConfigMapName)
+	if err := addPartOfCheLabelToConfigMap(ctx, trustStoreConfigMap); err != nil {
+		return err
 	}
 
 	// Config map with CA certificates for git

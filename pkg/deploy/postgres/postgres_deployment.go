@@ -36,7 +36,7 @@ var (
 func (p *PostgresReconciler) getDeploymentSpec(clusterDeployment *appsv1.Deployment, ctx *deploy.DeployContext) (*appsv1.Deployment, error) {
 	terminationGracePeriodSeconds := int64(30)
 	labels, labelSelector := deploy.GetLabelsAndSelector(ctx.CheCluster, deploy.PostgresName)
-	chePostgresDb := util.GetValue(ctx.CheCluster.Spec.Database.ChePostgresDb, "dbche")
+	chePostgresDb := util.GetValue(ctx.CheCluster.Spec.Database.ChePostgresDb, deploy.DefaultChePostgresDb)
 	postgresImage, err := getPostgresImage(clusterDeployment, ctx.CheCluster)
 	if err != nil {
 		return nil, err
@@ -171,40 +171,29 @@ func (p *PostgresReconciler) getDeploymentSpec(clusterDeployment *appsv1.Deploym
 
 	container := &deployment.Spec.Template.Spec.Containers[0]
 
-	chePostgresSecret := ctx.CheCluster.Spec.Database.ChePostgresSecret
-	if len(chePostgresSecret) > 0 {
-		container.Env = append(container.Env,
-			corev1.EnvVar{
-				Name: "POSTGRESQL_USER",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						Key: "user",
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: chePostgresSecret,
-						},
+	chePostgresCredentialsSecret := util.GetValue(ctx.CheCluster.Spec.Database.ChePostgresSecret, deploy.DefaultChePostgresCredentialsSecret)
+	container.Env = append(container.Env,
+		corev1.EnvVar{
+			Name: "POSTGRESQL_USER",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					Key: "user",
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: chePostgresCredentialsSecret,
 					},
 				},
-			}, corev1.EnvVar{
-				Name: "POSTGRESQL_PASSWORD",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						Key: "password",
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: chePostgresSecret,
-						},
+			},
+		}, corev1.EnvVar{
+			Name: "POSTGRESQL_PASSWORD",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					Key: "password",
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: chePostgresCredentialsSecret,
 					},
 				},
-			})
-	} else {
-		container.Env = append(container.Env,
-			corev1.EnvVar{
-				Name:  "POSTGRESQL_USER",
-				Value: ctx.CheCluster.Spec.Database.ChePostgresUser,
-			}, corev1.EnvVar{
-				Name:  "POSTGRESQL_PASSWORD",
-				Value: ctx.CheCluster.Spec.Database.ChePostgresPassword,
-			})
-	}
+			},
+		})
 
 	if !util.IsOpenShift {
 		var runAsUser int64 = 26

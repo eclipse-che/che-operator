@@ -232,10 +232,6 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (ch
 
 	data.IdentityProviderUrl = identityProviderURL
 	data.DatabaseURL = "jdbc:postgresql://" + chePostgresHostName + ":" + chePostgresPort + "/" + chePostgresDb
-	if len(ctx.CheCluster.Spec.Database.ChePostgresSecret) < 1 {
-		data.DbUserName = ctx.CheCluster.Spec.Database.ChePostgresUser
-		data.DbPassword = ctx.CheCluster.Spec.Database.ChePostgresPassword
-	}
 
 	out, err := json.Marshal(data)
 	if err != nil {
