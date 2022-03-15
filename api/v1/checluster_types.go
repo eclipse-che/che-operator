@@ -704,6 +704,9 @@ type CheClusterSpecDevWorkspace struct {
 	// This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
 	// +optional
 	ControllerImage string `json:"controllerImage,omitempty"`
+	// Defined quantity maximal running workspaces per user.
+	// +optional
+	RunningLimit string `json:"runningLimit,omitempty"`
 }
 
 // +k8s:openapi-gen=true
