@@ -51,6 +51,10 @@ type CheClusterSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Persistent storage"
 	Storage CheClusterSpecStorage `json:"storage"`
+	// Configuration settings related to the User Dashboard used by the Che installation.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="User Dashboard"
+	Dashboard CheClusterSpecDashboard `json:"dashboard"`
 	// Configuration settings related to the metrics collection used by the Che installation.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Metrics"
@@ -564,6 +568,14 @@ type Resources struct {
 	// CPU, in cores. (500m = .5 cores)
 	// +optional
 	Cpu string `json:"cpu,omitempty"`
+}
+
+// +k8s:openapi-gen=true
+// Configuration settings related to the User Dashboard used by the Che installation.
+type CheClusterSpecDashboard struct {
+	// Warning message that will be displayed on the User Dashboard
+	// +optional
+	Warning string `json:"warning,omitempty"`
 }
 
 // +k8s:openapi-gen=true
