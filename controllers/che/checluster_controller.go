@@ -97,7 +97,6 @@ func NewReconciler(
 	reconcileManager.RegisterReconciler(rbac.NewCheServerPermissionsReconciler())
 	reconcileManager.RegisterReconciler(rbac.NewGatewayPermissionsReconciler())
 	reconcileManager.RegisterReconciler(rbac.NewWorkspacePermissionsReconciler())
-	reconcileManager.RegisterReconciler(server.NewDefaultValuesReconciler())
 
 	// we have to expose che endpoint independently of syncing other server
 	// resources since che host is used for dashboard deployment and che config map

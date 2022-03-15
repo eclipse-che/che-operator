@@ -43,7 +43,8 @@ func IsTrustedBundleConfigMap(cl client.Client, watchNamespace string, obj clien
 	}
 
 	// Check if config map is the config map from CR
-	if checluster.Spec.Server.ServerTrustStoreConfigMapName != obj.GetName() {
+	trustStoreConfigMap := util.GetValue(checluster.Spec.Server.ServerTrustStoreConfigMapName, deploy.DefaultServerTrustStoreConfigMapName)
+	if trustStoreConfigMap != obj.GetName() {
 		// No, it is not form CR
 
 		// Check for component

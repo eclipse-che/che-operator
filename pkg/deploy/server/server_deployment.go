@@ -237,31 +237,30 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *deploy.DeployContext) (*apps
 	}
 
 	container := &deployment.Spec.Template.Spec.Containers[0]
-	chePostgresSecret := ctx.CheCluster.Spec.Database.ChePostgresSecret
-	if len(chePostgresSecret) > 0 {
-		container.Env = append(container.Env,
-			corev1.EnvVar{
-				Name: "CHE_JDBC_USERNAME",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						Key: "user",
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: chePostgresSecret,
-						},
+
+	chePostgresCredentialsSecret := util.GetValue(ctx.CheCluster.Spec.Database.ChePostgresSecret, deploy.DefaultChePostgresCredentialsSecret)
+	container.Env = append(container.Env,
+		corev1.EnvVar{
+			Name: "CHE_JDBC_USERNAME",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					Key: "user",
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: chePostgresCredentialsSecret,
 					},
 				},
-			}, corev1.EnvVar{
-				Name: "CHE_JDBC_PASSWORD",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						Key: "password",
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: chePostgresSecret,
-						},
+			},
+		}, corev1.EnvVar{
+			Name: "CHE_JDBC_PASSWORD",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					Key: "password",
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: chePostgresCredentialsSecret,
 					},
 				},
-			})
-	}
+			},
+		})
 
 	// configure probes if debug isn't set
 	cheDebug := util.GetValue(ctx.CheCluster.Spec.Server.CheDebug, deploy.DefaultCheDebug)
