@@ -109,8 +109,6 @@ spec:
               value: Red Hat Applications
             - name: CONSOLE_LINK_IMAGE
               value: /dashboard/assets/branding/loader.svg
-            - name: CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME
-              value: ca-certs
             - name: MAX_CONCURRENT_RECONCILES
               value: "1"
             - name: ADD_COMPONENT_READINESS_INIT_CONTAINERS

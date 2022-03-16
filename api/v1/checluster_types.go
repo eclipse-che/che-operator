@@ -390,7 +390,7 @@ type CheClusterSpecDB struct {
 	// When the secret is defined, the `chePostgresUser` and `chePostgresPassword` are ignored.
 	// When the value is omitted or left blank, the one of following scenarios applies:
 	// 1. `chePostgresUser` and `chePostgresPassword` are defined, then they will be used to connect to the DB.
-	// 2. `chePostgresUser` or `chePostgresPassword` are not defined, then a new secret with the name `che-postgres-secret`
+	// 2. `chePostgresUser` or `chePostgresPassword` are not defined, then a new secret with the name `postgres-credentials`
 	// will be created with default value of `pgche` for `user` and with an auto-generated value for `password`.
 	// The secret must have `app.kubernetes.io/part-of=che.eclipse.org` label.
 	// +optional

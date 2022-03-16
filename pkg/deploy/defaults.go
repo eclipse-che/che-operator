@@ -60,7 +60,7 @@ const (
 	DefaultPvcStrategy                  = "common"
 	DefaultPvcClaimSize                 = "10Gi"
 	DefaultIngressClass                 = "nginx"
-	DefaultChePostgresCredentialsSecret = "che-postgres-secret"
+	DefaultChePostgresCredentialsSecret = "postgres-credentials"
 
 	DefaultCheLogLevel             = "INFO"
 	DefaultCheDebug                = "false"
