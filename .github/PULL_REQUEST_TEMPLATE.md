@@ -17,7 +17,7 @@ che-operator Development Guide: https://github.com/eclipse-che/che-operator/#dev
 
 ### How to test this PR?
 <!-- Please explain for example :
-  - The test platform (openshift, kubernetes, minikube, CodeReady Container, docker-desktop, etc)
+  - The test platform (openshift, kubernetes, minikube, docker-desktop, etc)
   - steps to reproduce
  -->
 
