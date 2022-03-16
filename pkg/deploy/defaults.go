@@ -264,6 +264,12 @@ func DefaultCheServerImage(cr *orgv1.CheCluster) string {
 	return patchDefaultImageName(cr, defaultCheServerImage)
 }
 
+// DefaultImageName returns the patched version of an imageName --
+// useful in Airgapped / isolated network environments
+func DefaultImageName(cr *orgv1.CheCluster, imageName string) string {
+	return patchDefaultImageName(cr, imageName)
+}
+
 func DefaultCheTLSSecretsCreationJobImage() string {
 	return defaultCheTLSSecretsCreationJobImage
 }

@@ -13,7 +13,7 @@ package devworkspace
 
 import (
 	"context"
-
+	"fmt"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -180,12 +180,41 @@ func syncDwDeployment(deployContext *deploy.DeployContext) (bool, error) {
 	}
 
 	devworkspaceControllerImage := util.GetValue(deployContext.CheCluster.Spec.DevWorkspace.ControllerImage, deploy.DefaultDevworkspaceControllerImage(deployContext.CheCluster))
-	devWorkspaceController := deployment.Spec.Template.Spec.Containers[0]
-	devWorkspaceController.Image = devworkspaceControllerImage
-	for _, env := range devWorkspaceController.Env {
+	deployment.Spec.Template.Spec.Containers[0].Image = devworkspaceControllerImage
+	deployment.Spec.Template.Spec.Containers[1].Image = deploy.DefaultImageName(deployContext.CheCluster, "gcr.io/kubebuilder/kube-rbac-proxy:v0.5.0")
+
+	for idx, env := range deployment.Spec.Template.Spec.Containers[0].Env {
 		if env.Name == "RELATED_IMAGE_devworkspace_webhook_server" {
-			env.Value = devworkspaceControllerImage
-			break
+			deployment.Spec.Template.Spec.Containers[0].Env[idx].Value = devworkspaceControllerImage
+			continue
+		}
+		if env.Name == "RELATED_IMAGE_kube_rbac_proxy" {
+			deployment.Spec.Template.Spec.Containers[0].Env[idx].Value = deploy.DefaultImageName(deployContext.CheCluster, env.Value)
+			continue
+		}
+		if env.Name == "RELATED_IMAGE_project_clone" {
+			deployment.Spec.Template.Spec.Containers[0].Env[idx].Value = deploy.DefaultImageName(deployContext.CheCluster, env.Value)
+			continue
+		}
+		if env.Name == "RELATED_IMAGE_plugin_redhat_developer_web_terminal_4_5_0" {
+			deployment.Spec.Template.Spec.Containers[0].Env[idx].Value = deploy.DefaultImageName(deployContext.CheCluster, env.Value)
+			continue
+		}
+		if env.Name == "RELATED_IMAGE_web_terminal_tooling" {
+			deployment.Spec.Template.Spec.Containers[0].Env[idx].Value = deploy.DefaultImageName(deployContext.CheCluster, env.Value)
+			continue
+		}
+		if env.Name == "RELATED_IMAGE_pvc_cleanup_job" {
+			deployment.Spec.Template.Spec.Containers[0].Env[idx].Value = deploy.DefaultImageName(deployContext.CheCluster, env.Value)
+			continue
+		}
+		if env.Name == "RELATED_IMAGE_async_storage_server" {
+			deployment.Spec.Template.Spec.Containers[0].Env[idx].Value = deploy.DefaultImageName(deployContext.CheCluster, env.Value)
+			continue
+		}
+		if env.Name == "RELATED_IMAGE_async_storage_sidecar" {
+			deployment.Spec.Template.Spec.Containers[0].Env[idx].Value = deploy.DefaultImageName(deployContext.CheCluster, env.Value)
+			continue
 		}
 	}
 
