@@ -52,10 +52,10 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *deploy.DeployConte
 		// CHE_HOST is here for backward compatibility. Replaced with CHE_URL
 		corev1.EnvVar{
 			Name:  "CHE_HOST",
-			Value: util.GetCheURL(ctx.CheCluster)},
+			Value: "https://" + ctx.CheHost},
 		corev1.EnvVar{
 			Name:  "CHE_URL",
-			Value: util.GetCheURL(ctx.CheCluster)},
+			Value: "https://" + ctx.CheHost},
 		corev1.EnvVar{
 			Name:  "CHECLUSTER_CR_NAMESPACE",
 			Value: ctx.CheCluster.Namespace},

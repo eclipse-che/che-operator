@@ -15,6 +15,7 @@ package usernamespace
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"sync"
 	"testing"
 
@@ -27,8 +28,10 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/util"
 	configv1 "github.com/openshift/api/config/v1"
 	projectv1 "github.com/openshift/api/project/v1"
+	routev1 "github.com/openshift/api/route/v1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -132,6 +135,39 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 		},
 	}
 	if err := cl.Create(ctx, gitTlsCredentials); err != nil {
+		t.Fatal(err)
+	}
+
+	// create che route and ingress
+	ingress := &networkingv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ingress",
+			Namespace: cheNamespaceName,
+			Labels:    deploy.GetLabels(&cheCluster, os.Getenv("CHE_FLAVOR")),
+		},
+		Spec: networkingv1.IngressSpec{
+			Rules: []networkingv1.IngressRule{
+				{
+					Host: "che-host",
+				},
+			},
+		},
+	}
+	if err := cl.Create(ctx, ingress); err != nil {
+		t.Fatal(err)
+	}
+
+	route := &routev1.Route{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "route",
+			Namespace: cheNamespaceName,
+			Labels:    deploy.GetLabels(&cheCluster, os.Getenv("CHE_FLAVOR")),
+		},
+		Spec: routev1.RouteSpec{
+			Host: "che-host",
+		},
+	}
+	if err := cl.Create(ctx, route); err != nil {
 		t.Fatal(err)
 	}
 

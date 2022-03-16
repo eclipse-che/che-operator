@@ -29,6 +29,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/api/node/v1alpha1"
 	rbac "k8s.io/api/rbac/v1"
 
@@ -52,6 +53,8 @@ func createTestScheme() *runtime.Scheme {
 	utilruntime.Must(dwo.AddToScheme(scheme))
 	utilruntime.Must(projectv1.AddToScheme(scheme))
 	utilruntime.Must(configv1.AddToScheme(scheme))
+	utilruntime.Must(routev1.AddToScheme(scheme))
+	utilruntime.Must(networkingv1.AddToScheme(scheme))
 
 	return scheme
 }

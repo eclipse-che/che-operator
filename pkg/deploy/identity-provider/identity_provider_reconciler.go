@@ -76,7 +76,7 @@ func syncNativeIdentityProviderItems(deployContext *deploy.DeployContext) (bool,
 	}
 
 	if util.IsOpenShift {
-		redirectURIs := []string{"https://" + cr.Spec.Server.CheHost + "/oauth/callback"}
+		redirectURIs := []string{"https://" + deployContext.CheHost + "/oauth/callback"}
 		oAuthClient := getOAuthClientSpec(cr.Spec.Auth.OAuthClientName, cr.Spec.Auth.OAuthSecret, redirectURIs)
 		done, err := deploy.Sync(deployContext, oAuthClient, oAuthClientDiffOpts)
 		if !done {

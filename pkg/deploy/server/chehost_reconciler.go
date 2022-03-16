@@ -22,6 +22,7 @@ import (
 
 type CheHostReconciler struct {
 	deploy.Reconcilable
+	// CheHost that is set by k8s itself
 	defaultCheHost string
 }
 
@@ -98,13 +99,13 @@ func (s *CheHostReconciler) syncCheService(ctx *deploy.DeployContext) (bool, err
 }
 
 func (s CheHostReconciler) exposeCheEndpoint(ctx *deploy.DeployContext) (bool, error) {
-	cheHost := ""
+	ctx.CheHost = ctx.CheCluster.Spec.Server.CheHost
 
 	if !util.IsOpenShift {
 		_, done, err := deploy.SyncIngressToCluster(
 			ctx,
 			getComponentName(ctx),
-			ctx.CheCluster.Spec.Server.CheHost,
+			ctx.CheHost,
 			"",
 			gateway.GatewayServiceName,
 			8080,
@@ -120,18 +121,19 @@ func (s CheHostReconciler) exposeCheEndpoint(ctx *deploy.DeployContext) (bool, e
 			return false, err
 		}
 
-		cheHost = ingress.Spec.Rules[0].Host
+		ctx.CheHost = ingress.Spec.Rules[0].Host
 	} else {
-		customHost := ctx.CheCluster.Spec.Server.CheHost
-		if s.defaultCheHost == customHost {
-			// let OpenShift set a hostname by itself since it requires a routes/custom-host permissions
-			customHost = ""
+		host2expose := ctx.CheHost
+		if host2expose == s.defaultCheHost {
+			// CheHost is not overridden.
+			// Let OpenShift set a hostname by itself since it requires a routes/custom-host permissions
+			host2expose = ""
 		}
 
 		done, err := deploy.SyncRouteToCluster(
 			ctx,
 			getComponentName(ctx),
-			customHost,
+			host2expose,
 			"/",
 			gateway.GatewayServiceName,
 			8080,
@@ -147,16 +149,7 @@ func (s CheHostReconciler) exposeCheEndpoint(ctx *deploy.DeployContext) (bool, e
 			return false, err
 		}
 
-		if customHost == "" {
-			s.defaultCheHost = route.Spec.Host
-		}
-		cheHost = route.Spec.Host
-	}
-
-	if ctx.CheCluster.Spec.Server.CheHost != cheHost {
-		ctx.CheCluster.Spec.Server.CheHost = cheHost
-		err := deploy.UpdateCheCRSpec(ctx, "CheHost URL", cheHost)
-		return err == nil, err
+		ctx.CheHost = route.Spec.Host
 	}
 
 	return true, nil
