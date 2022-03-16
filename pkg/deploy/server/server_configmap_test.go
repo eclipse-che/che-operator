@@ -46,7 +46,6 @@ func TestNewCheConfigMap(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						CheHost: "myhostname.com",
 						CustomCheProperties: map[string]string{
 							"CHE_WORKSPACE_NO_PROXY": "myproxy.myhostname.com",
 						},
@@ -55,7 +54,7 @@ func TestNewCheConfigMap(t *testing.T) {
 			},
 			expectedData: map[string]string{
 				"CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER": "openshift-v4",
-				"CHE_API":                "https://myhostname.com/api",
+				"CHE_API":                "https://che-host/api",
 				"CHE_WORKSPACE_NO_PROXY": "myproxy.myhostname.com",
 			},
 		},
@@ -147,11 +146,6 @@ func TestConfigMap(t *testing.T) {
 					Name:      "eclipse-che",
 					Namespace: "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						CheHost: "che-host",
-					},
-				},
 			},
 			expectedData: map[string]string{
 				"CHE_WEBSOCKET_ENDPOINT": "wss://che-host/api/websocket",
@@ -164,11 +158,6 @@ func TestConfigMap(t *testing.T) {
 					Name:      "eclipse-che",
 					Namespace: "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						CheHost: "che-host",
-					},
-				},
 			},
 			expectedData: map[string]string{
 				"CHE_WEBSOCKET_INTERNAL_ENDPOINT": "ws://che-host.eclipse-che.svc:8080/api/websocket",
@@ -180,11 +169,6 @@ func TestConfigMap(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
 					Namespace: "eclipse-che",
-				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						CheHost: "che-host",
-					},
 				},
 			},
 			expectedData: map[string]string{

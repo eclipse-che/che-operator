@@ -108,7 +108,7 @@ func syncAll(deployContext *deploy.DeployContext) error {
 		if _, err := deploy.Sync(deployContext, oauthSecret, secretDiffOpts); err != nil {
 			return err
 		}
-		oauthProxyConfig := getGatewayOauthProxyConfigSpec(instance, string(oauthSecret.Data["cookie_secret"]))
+		oauthProxyConfig := getGatewayOauthProxyConfigSpec(deployContext, string(oauthSecret.Data["cookie_secret"]))
 		if _, err := deploy.Sync(deployContext, &oauthProxyConfig, configMapDiffOpts); err != nil {
 			return err
 		}

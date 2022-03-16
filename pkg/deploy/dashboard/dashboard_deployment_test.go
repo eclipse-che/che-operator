@@ -129,11 +129,11 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 			envVars: []corev1.EnvVar{
 				{
 					Name:  "CHE_HOST",
-					Value: "https://che.com",
+					Value: "https://che-host",
 				},
 				{
 					Name:  "CHE_URL",
-					Value: "https://che.com",
+					Value: "https://che-host",
 				},
 				{
 					Name:  "CHECLUSTER_CR_NAMESPACE",
@@ -156,11 +156,6 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 					Namespace: "eclipse-che",
 					Name:      "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						CheHost: "che.com",
-					},
-				},
 			},
 		},
 		{
@@ -179,11 +174,11 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 			envVars: []corev1.EnvVar{
 				{
 					Name:  "CHE_HOST",
-					Value: "https://che.com",
+					Value: "https://che-host",
 				},
 				{
 					Name:  "CHE_URL",
-					Value: "https://che.com",
+					Value: "https://che-host",
 				},
 				{
 					Name:  "CHECLUSTER_CR_NAMESPACE",
@@ -206,11 +201,6 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 					Name:      "eclipse-che",
-				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						CheHost: "che.com",
-					},
 				},
 			},
 		},

@@ -72,6 +72,7 @@ func GetTestDeployContext(cheCluster *orgv1.CheCluster, initObjs []runtime.Objec
 			Scheme:           scheme,
 			DiscoveryClient:  fakeDiscovery,
 		},
-		Proxy: &Proxy{},
+		CheHost: "che-host",
+		Proxy:   &Proxy{},
 	}
 }

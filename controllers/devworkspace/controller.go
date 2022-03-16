@@ -382,7 +382,7 @@ func randomSuffix(length int) string {
 }
 
 func (r *CheClusterReconciler) detectCheHost(ctx context.Context, cluster *checlusterv1.CheCluster) (string, error) {
-	host := cluster.Spec.Server.CheHost
+	host := strings.TrimPrefix(cluster.Status.CheURL, "https://")
 
 	if host == "" {
 		expectedLabels := deploy.GetLabels(cluster, deploy.DefaultCheFlavor(cluster))
