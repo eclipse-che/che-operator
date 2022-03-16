@@ -121,7 +121,7 @@ func TestPostgresReconcile(t *testing.T) {
 	assert.True(t, done)
 	assert.Nil(t, err)
 
-	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "che-postgres-secret", Namespace: "eclipse-che"}, &corev1.Secret{}))
+	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "postgres-credentials", Namespace: "eclipse-che"}, &corev1.Secret{}))
 	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "postgres", Namespace: "eclipse-che"}, &corev1.Service{}))
 	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "postgres-data", Namespace: "eclipse-che"}, &corev1.PersistentVolumeClaim{}))
 	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "postgres", Namespace: "eclipse-che"}, &appsv1.Deployment{}))
@@ -149,7 +149,7 @@ func TestSyncPostgresCredentials(t *testing.T) {
 	assert.Nil(t, err)
 
 	postgresCredentialsSecret := &corev1.Secret{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "che-postgres-secret", Namespace: "eclipse-che"}, postgresCredentialsSecret)
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "postgres-credentials", Namespace: "eclipse-che"}, postgresCredentialsSecret)
 	assert.Nil(t, err)
 	assert.Equal(t, string(postgresCredentialsSecret.Data["user"]), "postgresUser")
 	assert.Equal(t, string(postgresCredentialsSecret.Data["password"]), "postgresPassword")
