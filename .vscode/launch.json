@@ -140,7 +140,7 @@
         "CONSOLE_LINK_SECTION": "Red Hat Applications",
         "CONSOLE_LINK_IMAGE": "/dashboard/assets/branding/loader.svg",
         "CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME": "ca-certs",
-        "MAX_CONCURRENT_RECONCILES": 10,
+        "MAX_CONCURRENT_RECONCILES": "10",
       },
       "envFile": "/tmp/che-operator-debug.env",
       "cwd": "${workspaceFolder}",
