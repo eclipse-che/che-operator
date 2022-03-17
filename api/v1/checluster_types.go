@@ -18,6 +18,8 @@ package v1
 // - update `config/crd/bases/org_v1_checluster_crd.yaml` file;
 
 import (
+	"strings"
+
 	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
 	v2alpha1 "github.com/eclipse-che/che-operator/api/v2alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -842,4 +844,8 @@ func (c *CheCluster) IsImagePullerSpecEmpty() bool {
 
 func (c *CheCluster) IsImagePullerImagesEmpty() bool {
 	return len(c.Spec.ImagePuller.Spec.Images) == 0
+}
+
+func (c *CheCluster) GetCheHost() string {
+	return strings.TrimPrefix(c.Status.CheURL, "https://")
 }

@@ -51,6 +51,9 @@ func TestNewCheConfigMap(t *testing.T) {
 						},
 					},
 				},
+				Status: orgv1.CheClusterStatus{
+					CheURL: "https://che-host",
+				},
 			},
 			expectedData: map[string]string{
 				"CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER": "openshift-v4",
@@ -146,6 +149,9 @@ func TestConfigMap(t *testing.T) {
 					Name:      "eclipse-che",
 					Namespace: "eclipse-che",
 				},
+				Status: orgv1.CheClusterStatus{
+					CheURL: "https://che-host",
+				},
 			},
 			expectedData: map[string]string{
 				"CHE_WEBSOCKET_ENDPOINT": "wss://che-host/api/websocket",
@@ -169,6 +175,9 @@ func TestConfigMap(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
 					Namespace: "eclipse-che",
+				},
+				Status: orgv1.CheClusterStatus{
+					CheURL: "https://che-host",
 				},
 			},
 			expectedData: map[string]string{

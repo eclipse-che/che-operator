@@ -88,5 +88,5 @@ func exposeWithGateway(deployContext *deploy.DeployContext,
 	if path == "" {
 		path = "/" + component
 	}
-	return deployContext.CheHost + path, true, err
+	return deployContext.CheCluster.GetCheHost() + path, true, err
 }
