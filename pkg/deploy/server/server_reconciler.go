@@ -153,8 +153,8 @@ func (s *CheServerReconciler) updateAvailabilityStatus(ctx *deploy.DeployContext
 			if ctx.CheCluster.Status.CheClusterRunning != AvailableStatus {
 				cheFlavor := deploy.DefaultCheFlavor(ctx.CheCluster)
 				name := "Eclipse Che"
-				if cheFlavor == "codeready" {
-					name = "CodeReady Workspaces"
+				if cheFlavor == "devspaces" {
+					name = "Red Hat OpenShift Dev Spaces"
 				}
 
 				logrus.Infof(name+" is now available at: %s", util.GetCheURL(ctx.CheCluster))

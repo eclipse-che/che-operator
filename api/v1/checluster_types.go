@@ -93,7 +93,7 @@ type CheClusterSpecServer struct {
 	// +optional
 	CheImagePullPolicy corev1.PullPolicy `json:"cheImagePullPolicy,omitempty"`
 	// Deprecated. The value of this flag is ignored.
-	// Specifies a variation of the installation. The options are `che` for upstream Che installations, or `codeready` for link:https://developers.redhat.com/products/codeready-workspaces/overview[CodeReady Workspaces] installation.
+	// Specifies a variation of the installation. The options are `che` for upstream Che installations, or `devspaces` for link:https://developers.redhat.com/products/codeready-workspaces/overview[Red Hat OpenShift Dev Spaces] installation.
 	// Override the default value only on necessary occasions.
 	// +optional
 	CheFlavor string `json:"cheFlavor,omitempty"`

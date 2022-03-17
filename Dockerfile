@@ -66,4 +66,4 @@ USER 65532:65532
 
 ENTRYPOINT ["/manager"]
 
-# append Brew metadata here - see https://github.com/redhat-developer/codeready-workspaces-images/blob/crw-2-rhel-8/crw-jenkins/jobs/CRW_CI/crw-operator_2.x.jenkinsfile
+# append Brew metadata here
