@@ -43,6 +43,9 @@ func GetTestDeployContext(cheCluster *orgv1.CheCluster, initObjs []runtime.Objec
 				APIVersion: "org.eclipse.che/v1",
 				Kind:       "CheCluster",
 			},
+			Status: orgv1.CheClusterStatus{
+				CheURL: "che-host",
+			},
 		}
 	}
 
@@ -72,7 +75,6 @@ func GetTestDeployContext(cheCluster *orgv1.CheCluster, initObjs []runtime.Objec
 			Scheme:           scheme,
 			DiscoveryClient:  fakeDiscovery,
 		},
-		CheHost: "che-host",
-		Proxy:   &Proxy{},
+		Proxy: &Proxy{},
 	}
 }

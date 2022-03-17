@@ -30,7 +30,6 @@ type DeployContext struct {
 	ClusterAPI              ClusterAPI
 	Proxy                   *Proxy
 	IsSelfSignedCertificate bool
-	CheHost                 string
 }
 
 type ClusterAPI struct {

@@ -161,7 +161,7 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (ch
 	singleHostGatewayConfigMapLabels := labels.FormatLabels(util.GetMapValue(ctx.CheCluster.Spec.Server.SingleHostGatewayConfigMapLabels, deploy.DefaultSingleHostGatewayConfigMapLabels))
 	workspaceNamespaceDefault := deploy.GetWorkspaceNamespaceDefault(ctx.CheCluster)
 
-	cheAPI := "https://" + ctx.CheHost + "/api"
+	cheAPI := ctx.CheCluster.Status.CheURL + "/api"
 	var pluginRegistryInternalURL, devfileRegistryInternalURL string
 
 	// If there is a devfile registry deployed by operator
@@ -175,13 +175,13 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (ch
 
 	cheInternalAPI := fmt.Sprintf("http://%s.%s.svc:8080/api", deploy.CheServiceName, ctx.CheCluster.Namespace)
 	webSocketInternalEndpoint := fmt.Sprintf("ws://%s.%s.svc:8080/api/websocket", deploy.CheServiceName, ctx.CheCluster.Namespace)
-	webSocketEndpoint := "wss://" + ctx.CheHost + "/api/websocket"
+	webSocketEndpoint := "wss://" + ctx.CheCluster.GetCheHost() + "/api/websocket"
 	cheWorkspaceServiceAccount := "NULL"
 	cheUserClusterRoleNames := fmt.Sprintf("%s-cheworkspaces-clusterrole, %s-cheworkspaces-devworkspace-clusterrole", ctx.CheCluster.Namespace, ctx.CheCluster.Namespace)
 
 	data := &CheConfigMap{
 		CheMultiUser:                           "true",
-		CheHost:                                ctx.CheHost,
+		CheHost:                                ctx.CheCluster.GetCheHost(),
 		ChePort:                                "8080",
 		CheApi:                                 cheAPI,
 		CheApiInternal:                         cheInternalAPI,

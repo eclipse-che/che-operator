@@ -156,6 +156,9 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 					Namespace: "eclipse-che",
 					Name:      "eclipse-che",
 				},
+				Status: orgv1.CheClusterStatus{
+					CheURL: "https://che-host",
+				},
 			},
 		},
 		{
@@ -201,6 +204,9 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 					Name:      "eclipse-che",
+				},
+				Status: orgv1.CheClusterStatus{
+					CheURL: "https://che-host",
 				},
 			},
 		},

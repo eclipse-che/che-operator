@@ -71,7 +71,7 @@ pass_access_token = true
 skip_provider_button = true
 %s
 `, GatewayServicePort,
-		ctx.CheHost,
+		ctx.CheCluster.GetCheHost(),
 		ctx.CheCluster.Spec.Auth.OAuthClientName,
 		ctx.CheCluster.Spec.Auth.OAuthSecret,
 		GatewayServiceName,
@@ -102,7 +102,7 @@ pass_authorization_header = true
 skip_provider_button = true
 %s
 `, GatewayServicePort,
-		ctx.CheHost,
+		ctx.CheCluster.GetCheHost(),
 		ctx.CheCluster.Spec.Auth.IdentityProviderURL,
 		ctx.CheCluster.Spec.Auth.OAuthClientName,
 		ctx.CheCluster.Spec.Auth.OAuthSecret,

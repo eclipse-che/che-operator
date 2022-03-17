@@ -42,7 +42,7 @@ func TestReconcile(t *testing.T) {
 	ctx := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
 
 	chehost := NewCheHostReconciler()
-	done, err := chehost.exposeCheEndpoint(ctx)
+	_, done, err := chehost.exposeCheEndpoint(ctx)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
@@ -54,7 +54,6 @@ func TestReconcile(t *testing.T) {
 	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: getComponentName(ctx), Namespace: "eclipse-che"}, &routev1.Route{}))
 	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: CheConfigMapName, Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
 	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: getComponentName(ctx), Namespace: "eclipse-che"}, &appsv1.Deployment{}))
-	assert.NotEmpty(t, cheCluster.Status.CheURL)
 	assert.NotEmpty(t, cheCluster.Status.CheClusterRunning)
 	assert.NotEmpty(t, cheCluster.Status.CheVersion)
 }
