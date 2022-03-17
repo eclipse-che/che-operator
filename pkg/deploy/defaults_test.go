@@ -111,10 +111,10 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 	}
 
 	var (
-		airGapRegistryHostname                                   = "myregistry.org"
-		airGapRegistryOrganization                               = "myorg"
-		expectedAirGapPostgresUpstreamImage                      = makeAirGapImagePath(airGapRegistryHostname, airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresImage))
-		expectedAirGapPostgresUpstreamImageOnlyOrgChanged        = makeAirGapImagePath(getHostnameFromImage(defaultPostgresImage), airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresImage))
+		airGapRegistryHostname                                         = "myregistry.org"
+		airGapRegistryOrganization                                     = "myorg"
+		expectedAirGapPostgresUpstreamImage                            = makeAirGapImagePath(airGapRegistryHostname, airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresImage))
+		expectedAirGapPostgresUpstreamImageOnlyOrgChanged              = makeAirGapImagePath(getHostnameFromImage(defaultPostgresImage), airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresImage))
 		expectedAirGapDevspacesPluginRegistryOnlyOrgChanged            = makeAirGapImagePath(getHostnameFromImage(defaultPluginRegistryImage), airGapRegistryOrganization, getImageNameFromFullImage(defaultPluginRegistryImage))
 		expectedAirGapDevspacesPostgresImage                           = makeAirGapImagePath(airGapRegistryHostname, airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresImage))
 		expectedAirGapDevspacesDevfileRegistryImageOnlyHostnameChanged = makeAirGapImagePath(airGapRegistryHostname, getOrganizationFromImage(defaultDevfileRegistryImage), getImageNameFromFullImage(defaultDevfileRegistryImage))
