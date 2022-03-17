@@ -111,13 +111,13 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 	}
 
 	var (
-		airGapRegistryHostname                                   = "myregistry.org"
-		airGapRegistryOrganization                               = "myorg"
-		expectedAirGapPostgresUpstreamImage                      = makeAirGapImagePath(airGapRegistryHostname, airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresImage))
-		expectedAirGapPostgresUpstreamImageOnlyOrgChanged        = makeAirGapImagePath(getHostnameFromImage(defaultPostgresImage), airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresImage))
-		expectedAirGapCRWPluginRegistryOnlyOrgChanged            = makeAirGapImagePath(getHostnameFromImage(defaultPluginRegistryImage), airGapRegistryOrganization, getImageNameFromFullImage(defaultPluginRegistryImage))
-		expectedAirGapCRWPostgresImage                           = makeAirGapImagePath(airGapRegistryHostname, airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresImage))
-		expectedAirGapCRWDevfileRegistryImageOnlyHostnameChanged = makeAirGapImagePath(airGapRegistryHostname, getOrganizationFromImage(defaultDevfileRegistryImage), getImageNameFromFullImage(defaultDevfileRegistryImage))
+		airGapRegistryHostname                                         = "myregistry.org"
+		airGapRegistryOrganization                                     = "myorg"
+		expectedAirGapPostgresUpstreamImage                            = makeAirGapImagePath(airGapRegistryHostname, airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresImage))
+		expectedAirGapPostgresUpstreamImageOnlyOrgChanged              = makeAirGapImagePath(getHostnameFromImage(defaultPostgresImage), airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresImage))
+		expectedAirGapDevspacesPluginRegistryOnlyOrgChanged            = makeAirGapImagePath(getHostnameFromImage(defaultPluginRegistryImage), airGapRegistryOrganization, getImageNameFromFullImage(defaultPluginRegistryImage))
+		expectedAirGapDevspacesPostgresImage                           = makeAirGapImagePath(airGapRegistryHostname, airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresImage))
+		expectedAirGapDevspacesDevfileRegistryImageOnlyHostnameChanged = makeAirGapImagePath(airGapRegistryHostname, getOrganizationFromImage(defaultDevfileRegistryImage), getImageNameFromFullImage(defaultDevfileRegistryImage))
 	)
 
 	upstream := &orgv1.CheCluster{
@@ -125,10 +125,10 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 			Server: orgv1.CheClusterSpecServer{},
 		},
 	}
-	crw := &orgv1.CheCluster{
+	devspaces := &orgv1.CheCluster{
 		Spec: orgv1.CheClusterSpec{
 			Server: orgv1.CheClusterSpecServer{
-				CheFlavor: "codeready",
+				CheFlavor: "devspaces",
 			},
 		},
 	}
@@ -140,12 +140,12 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 			},
 		},
 	}
-	airGapCRW := &orgv1.CheCluster{
+	airGapDevspaces := &orgv1.CheCluster{
 		Spec: orgv1.CheClusterSpec{
 			Server: orgv1.CheClusterSpecServer{
 				AirGapContainerRegistryHostname:     airGapRegistryHostname,
 				AirGapContainerRegistryOrganization: airGapRegistryOrganization,
-				CheFlavor:                           "codeready",
+				CheFlavor:                           "devspaces",
 			},
 		},
 	}
@@ -156,19 +156,19 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 			},
 		},
 	}
-	crwOnlyOrg := &orgv1.CheCluster{
+	devspacesOnlyOrg := &orgv1.CheCluster{
 		Spec: orgv1.CheClusterSpec{
 			Server: orgv1.CheClusterSpecServer{
 				AirGapContainerRegistryOrganization: airGapRegistryOrganization,
-				CheFlavor:                           "codeready",
+				CheFlavor:                           "devspaces",
 			},
 		},
 	}
-	crwOnlyHostname := &orgv1.CheCluster{
+	devspacesOnlyHostname := &orgv1.CheCluster{
 		Spec: orgv1.CheClusterSpec{
 			Server: orgv1.CheClusterSpecServer{
 				AirGapContainerRegistryHostname: airGapRegistryHostname,
-				CheFlavor:                       "codeready",
+				CheFlavor:                       "devspaces",
 			},
 		},
 	}
@@ -177,10 +177,10 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 		"default postgres":          {image: defaultPostgresImage, expected: defaultPostgresImage, cr: upstream},
 		"airgap postgres":           {image: defaultPostgresImage, expected: expectedAirGapPostgresUpstreamImage, cr: airGapUpstream},
 		"with only the org changed": {image: defaultPostgresImage, expected: expectedAirGapPostgresUpstreamImageOnlyOrgChanged, cr: upstreamOnlyOrg},
-		"codeready plugin registry with only the org changed": {image: defaultPluginRegistryImage, expected: expectedAirGapCRWPluginRegistryOnlyOrgChanged, cr: crwOnlyOrg},
-		"CRW postgres":                          {image: defaultPostgresImage, expected: defaultPostgresImage, cr: crw},
-		"CRW airgap postgres":                   {image: defaultPostgresImage, expected: expectedAirGapCRWPostgresImage, cr: airGapCRW},
-		"crw airgap with only hostname defined": {image: defaultDevfileRegistryImage, expected: expectedAirGapCRWDevfileRegistryImageOnlyHostnameChanged, cr: crwOnlyHostname},
+		"devspaces plugin registry with only the org changed": {image: defaultPluginRegistryImage, expected: expectedAirGapDevspacesPluginRegistryOnlyOrgChanged, cr: devspacesOnlyOrg},
+		"devspaces postgres":                          {image: defaultPostgresImage, expected: defaultPostgresImage, cr: devspaces},
+		"devspaces airgap postgres":                   {image: defaultPostgresImage, expected: expectedAirGapDevspacesPostgresImage, cr: airGapDevspaces},
+		"devspaces airgap with only hostname defined": {image: defaultDevfileRegistryImage, expected: expectedAirGapDevspacesDevfileRegistryImageOnlyHostnameChanged, cr: devspacesOnlyHostname},
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(*testing.T) {
