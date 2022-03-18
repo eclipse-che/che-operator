@@ -122,24 +122,6 @@ if ! grep -q "value: quay.io/eclipse/che-dashboard:$RELEASE" $filename; then
   if ! grep -q "value: $RELATED_IMAGE_pvc_jobs" $filename; then
     echo "[ERROR] Unable to find ubi8_minimal image in the $filename"; exit 1
   fi
-
-  # use ${RELEASE} instead of master
-  wget https://raw.githubusercontent.com/eclipse-che/che-server/${RELEASE}/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
-
-  plugin_broker_meta_image=$(cat /tmp/che.properties | grep  che.workspace.plugin_broker.metadata.image | cut -d '=' -f2)
-  if ! grep -q "value: $plugin_broker_meta_image" $filename; then
-    echo "[ERROR] Unable to find plugin broker meta image '$plugin_broker_meta_image' in the $filename"; exit 1
-  fi
-
-  plugin_broker_artifacts_image=$(cat /tmp/che.properties | grep  che.workspace.plugin_broker.artifacts.image | cut -d '=' -f2)
-  if ! grep -q "value: $plugin_broker_artifacts_image" $filename; then
-    echo "[ERROR] Unable to find plugin broker artifacts image '$plugin_broker_artifacts_image' in the $filename"; exit 1
-  fi
-
-  jwt_proxy_image=$(cat /tmp/che.properties | grep  che.server.secure_exposer.jwtproxy.image | cut -d '=' -f2)
-  if ! grep -q "value: $jwt_proxy_image" $filename; then
-    echo "[ERROR] Unable to find jwt proxy image $jwt_proxy_image in the $filename"; exit 1
-  fi
 }
 
 releaseOperatorCode() {
