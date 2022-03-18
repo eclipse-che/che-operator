@@ -32,9 +32,6 @@ func TestDefaultFromEnv(t *testing.T) {
 	pvcJobsImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
 	postgresImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
 	postgres13ImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres_13_3"))
-	brokerMetadataTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_metadata"))
-	brokerArtifactsTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts"))
-	jwtProxyTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image"))
 
 	if DefaultCheVersion() != cheVersionTest {
 		t.Errorf("Expected %s but was %s", cheVersionTest, DefaultCheVersion())
@@ -72,18 +69,6 @@ func TestDefaultFromEnv(t *testing.T) {
 
 	if DefaultPostgres13Image(cheCluster) != postgres13ImageTest {
 		t.Errorf("Expected %s but was %s", postgres13ImageTest, DefaultPostgres13Image(cheCluster))
-	}
-
-	if DefaultCheWorkspacePluginBrokerMetadataImage(cheCluster) != brokerMetadataTest {
-		t.Errorf("Expected '%s', but was %s", brokerMetadataTest, DefaultCheWorkspacePluginBrokerMetadataImage(cheCluster))
-	}
-
-	if DefaultCheWorkspacePluginBrokerArtifactsImage(cheCluster) != brokerArtifactsTest {
-		t.Errorf("Expected '%s', but was %s", brokerArtifactsTest, DefaultCheWorkspacePluginBrokerArtifactsImage(cheCluster))
-	}
-
-	if DefaultCheServerSecureExposerJwtProxyImage(cheCluster) != jwtProxyTest {
-		t.Errorf("Expected '%s', but was %s", jwtProxyTest, DefaultCheWorkspacePluginBrokerArtifactsImage(cheCluster))
 	}
 }
 
