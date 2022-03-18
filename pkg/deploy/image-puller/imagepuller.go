@@ -471,7 +471,6 @@ func StringToImageSlice(imagesString string) []ImageAndName {
 func GetDefaultImages() []ImageAndName {
 	images := []ImageAndName{}
 	imagePatterns := [...]string{
-		"^RELATED_IMAGE_.*_plugin_broker.*",
 		"^RELATED_IMAGE_.*_theia.*",
 		"^RELATED_IMAGE_.*_machine(_)?exec(_.*)?_plugin_registry_image.*",
 		"^RELATED_IMAGE_.*_kubernetes(_.*)?_plugin_registry_image.*",
