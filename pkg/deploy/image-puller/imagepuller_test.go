@@ -58,8 +58,6 @@ var (
 )
 
 func TestImagePullerConfiguration(t *testing.T) {
-	oldBrokerMetaDataImage := strings.Split(os.Getenv("RELATED_IMAGE_che_workspace_plugin_broker_metadata"), ":")[0] + ":old"
-	oldBrokerArtifactsImage := strings.Split(os.Getenv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts"), ":")[0] + ":old"
 	type testCase struct {
 		name                  string
 		initCR                *orgv1.CheCluster
@@ -150,39 +148,6 @@ func TestImagePullerConfiguration(t *testing.T) {
 				getSubscription(),
 			},
 			expectedImagePuller: InitImagePuller(ImagePullerOptions{SpecImages: "image=image_url", ObjectMetaResourceVersion: "1"}),
-		},
-		{
-			name:   "image puller enabled, one default image set, subscription exists, should update KubernetesImagePuller default image",
-			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("che-workspace-plugin-broker-metadata=" + oldBrokerMetaDataImage + ";"),
-			initObjects: []runtime.Object{
-				getPackageManifest(),
-				getOperatorGroup(),
-				getSubscription(),
-				InitImagePuller(ImagePullerOptions{SpecImages: "che-workspace-plugin-broker-metadata=" + oldBrokerMetaDataImage + ";", ObjectMetaResourceVersion: "1"}),
-			},
-			expectedImagePuller: InitImagePuller(ImagePullerOptions{SpecImages: "che-workspace-plugin-broker-metadata=" + os.Getenv("RELATED_IMAGE_che_workspace_plugin_broker_metadata") + ";", ObjectMetaResourceVersion: "2"}),
-		},
-		{
-			name:   "image puller enabled, one default image set, subscription exists, should update KubernetesImagePuller default images while keeping user image",
-			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("image=image_url;che-workspace-plugin-broker-metadata=" + oldBrokerMetaDataImage + ";"),
-			initObjects: []runtime.Object{
-				getPackageManifest(),
-				getOperatorGroup(),
-				getSubscription(),
-				InitImagePuller(ImagePullerOptions{SpecImages: "image=image_url;che-workspace-plugin-broker-metadata=" + oldBrokerMetaDataImage + ";", ObjectMetaResourceVersion: "1"}),
-			},
-			expectedImagePuller: InitImagePuller(ImagePullerOptions{SpecImages: "image=image_url;che-workspace-plugin-broker-metadata=" + os.Getenv("RELATED_IMAGE_che_workspace_plugin_broker_metadata") + ";", ObjectMetaResourceVersion: "2"}),
-		},
-		{
-			name:   "image puller enabled, default images set, subscription exists, should update KubernetesImagePuller default images",
-			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("che-workspace-plugin-broker-metadata=" + oldBrokerMetaDataImage + ";che-workspace-plugin-broker-artifacts=" + oldBrokerArtifactsImage + ";"),
-			initObjects: []runtime.Object{
-				getPackageManifest(),
-				getOperatorGroup(),
-				getSubscription(),
-				InitImagePuller(ImagePullerOptions{SpecImages: "che-workspace-plugin-broker-metadata=" + oldBrokerMetaDataImage + ";che-workspace-plugin-broker-artifacts=" + oldBrokerArtifactsImage + ";", ObjectMetaResourceVersion: "1"}),
-			},
-			expectedImagePuller: InitImagePuller(ImagePullerOptions{SpecImages: defaultImagePullerImages, ObjectMetaResourceVersion: "2"}),
 		},
 		{
 			name:   "image puller enabled, latest default images set, subscription exists, should not update KubernetesImagePuller default images",
@@ -437,17 +402,6 @@ func TestEnvVars(t *testing.T) {
 	}
 
 	cases := []testcase{
-		{
-			name: "detect plugin broker images",
-			env: map[string]string{
-				"RELATED_IMAGE_che_workspace_plugin_broker_artifacts": "quay.io/eclipse/che-plugin-metadata-broker",
-				"RELATED_IMAGE_che_workspace_plugin_broker_metadata":  "quay.io/eclipse/che-plugin-artifacts-broker",
-			},
-			expected: []ImageAndName{
-				{Name: "che_workspace_plugin_broker_artifacts", Image: "quay.io/eclipse/che-plugin-metadata-broker"},
-				{Name: "che_workspace_plugin_broker_metadata", Image: "quay.io/eclipse/che-plugin-artifacts-broker"},
-			},
-		},
 		{
 			name: "detect theia images",
 			env: map[string]string{
@@ -852,6 +806,5 @@ func init() {
 			os.Setenv(env.Name, env.Value)
 		}
 	}
-	defaultImagePullerImages = "che-workspace-plugin-broker-metadata=" + os.Getenv("RELATED_IMAGE_che_workspace_plugin_broker_metadata") +
-		";che-workspace-plugin-broker-artifacts=" + os.Getenv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts") + ";"
+	defaultImagePullerImages = ""
 }

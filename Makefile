@@ -665,14 +665,11 @@ check-requirements:
 	esac
 
 update-deployment-yaml-images: add-license-download
-	if [ -z $(UBI8_MINIMAL_IMAGE) ] || [ -z $(PLUGIN_BROKER_METADATA_IMAGE) ] || [ -z $(PLUGIN_BROKER_ARTIFACTS_IMAGE) ] || [ -z $(JWT_PROXY_IMAGE) ]; then
-		echo "[ERROR] Define required arguments: `UBI8_MINIMAL_IMAGE`, `PLUGIN_BROKER_METADATA_IMAGE`, `PLUGIN_BROKER_ARTIFACTS_IMAGE`, `JWT_PROXY_IMAGE`"
+	if [ -z $(UBI8_MINIMAL_IMAGE) ]; then
+		echo "[ERROR] Define required arguments: `UBI8_MINIMAL_IMAGE`"
 		exit 1
 	fi
 	yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_pvc_jobs\") | .value ) = \"$(UBI8_MINIMAL_IMAGE)\"" $(OPERATOR_YAML)
-	yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_workspace_plugin_broker_metadata\") | .value ) = \"$(PLUGIN_BROKER_METADATA_IMAGE)\"" $(OPERATOR_YAML)
-	yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_workspace_plugin_broker_artifacts\") | .value ) = \"$(PLUGIN_BROKER_ARTIFACTS_IMAGE)\"" $(OPERATOR_YAML)
-	yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image\") | .value ) = \"$(JWT_PROXY_IMAGE)\"" $(OPERATOR_YAML)
 
 	$(MAKE) add-license $(OPERATOR_YAML)
 
@@ -691,23 +688,11 @@ update-resource-images:
 	UBI8_MINIMAL_IMAGE="registry.access.redhat.com/ubi8-minimal:$${ubiMinimal8Version}-$${ubiMinimal8Release}"
 	skopeo --override-os linux inspect docker://$${UBI8_MINIMAL_IMAGE} > /dev/null
 
-	echo "[INFO] Check update broker and jwt proxy images..."
-	wget https://raw.githubusercontent.com/eclipse-che/che-server/main/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
-	PLUGIN_BROKER_METADATA_IMAGE=$$(cat /tmp/che.properties| grep "che.workspace.plugin_broker.metadata.image" | cut -d = -f2)
-	PLUGIN_BROKER_ARTIFACTS_IMAGE=$$(cat /tmp/che.properties | grep "che.workspace.plugin_broker.artifacts.image" | cut -d = -f2)
-	JWT_PROXY_IMAGE=$$(cat /tmp/che.properties | grep "che.server.secure_exposer.jwtproxy.image" | cut -d = -f2)
-
 	echo "[INFO] UBI base image               : $${UBI8_MINIMAL_IMAGE}"
-	echo "[INFO] Plugin broker metadata image : $${PLUGIN_BROKER_METADATA_IMAGE}"
-	echo "[INFO] Plugin broker artifacts image: $${PLUGIN_BROKER_ARTIFACTS_IMAGE}"
-	echo "[INFO] Plugin broker jwt proxy image: $${JWT_PROXY_IMAGE}"
 
 	# Update operator deployment images.
 	$(MAKE) update-deployment-yaml-images \
 	UBI8_MINIMAL_IMAGE="$${UBI8_MINIMAL_IMAGE}" \
-	PLUGIN_BROKER_METADATA_IMAGE=$${PLUGIN_BROKER_METADATA_IMAGE} \
-	PLUGIN_BROKER_ARTIFACTS_IMAGE=$${PLUGIN_BROKER_ARTIFACTS_IMAGE} \
-	JWT_PROXY_IMAGE=$${JWT_PROXY_IMAGE}
 
 	# Update che-operator Dockerfile
 	$(MAKE) update-dockerfile-image UBI8_MINIMAL_IMAGE="$${UBI8_MINIMAL_IMAGE}"
