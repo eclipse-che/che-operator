@@ -289,6 +289,15 @@ spec:
                         first login. Defaults to `false`.
                       type: boolean
                   type: object
+                dashboard:
+                  description: Configuration settings related to the User Dashboard
+                    used by the Che installation.
+                  properties:
+                    warning:
+                      description: Warning message that will be displayed on the User
+                        Dashboard
+                      type: string
+                  type: object
                 database:
                   description: Configuration settings related to the database used
                     by the Che installation.
