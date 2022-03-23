@@ -80,6 +80,10 @@ spec:
         path: auth.gatewayHeaderRewriteSidecarImage
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:hidden
+      - description: Configuration settings related to the User Dashboard used by
+          the Che installation.
+        displayName: User Dashboard
+        path: dashboard
       - description: Configuration settings related to the database used by the Che
           installation.
         displayName: Database
