@@ -45,9 +45,9 @@ func TestDashboardOpenShift(t *testing.T) {
 	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: DashboardSA, Namespace: "eclipse-che"}, &corev1.ServiceAccount{}))
 	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getComponentName(ctx), Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getComponentName(ctx), Namespace: "eclipse-che"}, &appsv1.Deployment{}))
-	assert.False(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getClusterRoleBindingName(ctx), Namespace: "eclipse-che"}, &rbacv1.ClusterRoleBinding{}))
-	assert.False(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getClusterRoleName(ctx), Namespace: "eclipse-che"}, &rbacv1.ClusterRole{}))
-	assert.False(t, util.ContainsString(ctx.CheCluster.Finalizers, ClusterPermissionsDashboardFinalizer))
+	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getClusterRoleBindingName(ctx)}, &rbacv1.ClusterRoleBinding{}))
+	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getClusterRoleName(ctx)}, &rbacv1.ClusterRole{}))
+	assert.True(t, util.ContainsString(ctx.CheCluster.Finalizers, ClusterPermissionsDashboardFinalizer))
 }
 
 func TestDashboardKubernetes(t *testing.T) {
