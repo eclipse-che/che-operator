@@ -782,6 +782,6 @@ chectl-templ:
 	cp -f "$${SRC}/config/rbac/cluster_role.yaml" "$(TARGET)/che-operator/"
 	cp -f "$${SRC}/config/rbac/cluster_rolebinding.yaml" "$(TARGET)/che-operator/"
 	cp -f "$${SRC}/config/rbac/service_account.yaml" "$(TARGET)/che-operator/"
-	cp -f "$${SRC}/$(ECLIPSE_CHE_CR)" "$(TARGET)/che-operator/crds/org_checluster_cr.yaml"
+	cp -f "$${SRC}/$(ECLIPSE_CHE_CR)" "$(TARGET)/che-operator/crds/org_v1_che_cr.yaml"
 
 	echo "[INFO] chectl template folder is ready: ${TARGET}"
