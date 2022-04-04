@@ -773,15 +773,15 @@ chectl-templ:
 		SRC=$(SRC)
 	fi
 
-	mkdir -p $(TARGET)
+	mkdir -p $(TARGET)/che-operator
 
-	cp -f "$${SRC}/config/manager/manager.yaml" "$(TARGET)/operator.yaml"
-	cp -rf "$${SRC}/config/crd/bases/" "$(TARGET)/crds/"
-	cp -f "$${SRC}/config/rbac/role.yaml" "$(TARGET)/"
-	cp -f "$${SRC}/config/rbac/role_binding.yaml" "$(TARGET)/"
-	cp -f "$${SRC}/config/rbac/cluster_role.yaml" "$(TARGET)/"
-	cp -f "$${SRC}/config/rbac/cluster_rolebinding.yaml" "$(TARGET)/"
-	cp -f "$${SRC}/config/rbac/service_account.yaml" "$(TARGET)/"
-	cp -f "$${SRC}/$(ECLIPSE_CHE_CR)" "$(TARGET)/crds/org_v1_che_cr.yaml"
+	cp -f "$${SRC}/config/manager/manager.yaml" "$(TARGET)/che-operator/operator.yaml"
+	cp -rf "$${SRC}/config/crd/bases/" "$(TARGET)/che-operator/crds/"
+	cp -f "$${SRC}/config/rbac/role.yaml" "$(TARGET)/che-operator/"
+	cp -f "$${SRC}/config/rbac/role_binding.yaml" "$(TARGET)/che-operator/"
+	cp -f "$${SRC}/config/rbac/cluster_role.yaml" "$(TARGET)/che-operator/"
+	cp -f "$${SRC}/config/rbac/cluster_rolebinding.yaml" "$(TARGET)/che-operator/"
+	cp -f "$${SRC}/config/rbac/service_account.yaml" "$(TARGET)/che-operator/"
+	cp -f "$${SRC}/$(ECLIPSE_CHE_CR)" "$(TARGET)/che-operator/crds/org_v1_che_cr.yaml"
 
 	echo "[INFO] chectl template folder is ready: ${TARGET}"
