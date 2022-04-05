@@ -213,7 +213,6 @@ deployEclipseCheOnWithOperator() {
     --batch \
     --platform ${platform} \
     --installer operator \
-    --workspace-engine dev-workspace \
     --templates ${templates} ${domainFlag}
 
   waitDevWorkspaceControllerStarted
