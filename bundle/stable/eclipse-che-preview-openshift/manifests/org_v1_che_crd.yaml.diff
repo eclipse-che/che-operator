@@ -1,37 +1,15 @@
---- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/generated/openshift/org_v1_che_crd.yaml	2022-03-16 22:48:52.794945961 +0000
-+++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml	2022-03-16 22:48:52.814945959 +0000
-@@ -289,6 +289,15 @@
-                         first login. Defaults to `false`.
-                       type: boolean
-                   type: object
-+                dashboard:
-+                  description: Configuration settings related to the User Dashboard
-+                    used by the Che installation.
-+                  properties:
-+                    warning:
-+                      description: Warning message that will be displayed on the User
-+                        Dashboard
-+                      type: string
-+                  type: object
-                 database:
-                   description: Configuration settings related to the database used
-                     by the Che installation.
-@@ -350,7 +359,7 @@
-                         one of following scenarios applies: 1. `chePostgresUser` and
-                         `chePostgresPassword` are defined, then they will be used
-                         to connect to the DB. 2. `chePostgresUser` or `chePostgresPassword`
--                        are not defined, then a new secret with the name `che-postgres-secret`
-+                        are not defined, then a new secret with the name `postgres-credentials`
-                         will be created with default value of `pgche` for `user` and
-                         with an auto-generated value for `password`. The secret must
-                         have `app.kubernetes.io/part-of=che.eclipse.org` label.'
-@@ -405,6 +414,9 @@
-                         installed. Fails when a non-matching version of the Operator
-                         is already installed.
-                       type: boolean
-+                    runningLimit:
-+                      description: Maximum number of the running workspaces per user.
-+                      type: string
-                   required:
-                     - enable
-                   type: object
+--- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/generated/openshift/org_v1_che_crd.yaml	2022-04-11 13:04:26.272199273 +0000
++++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml	2022-04-11 13:04:26.284199346 +0000
+@@ -568,9 +568,9 @@
+                     cheFlavor:
+                       description: Deprecated. The value of this flag is ignored.
+                         Specifies a variation of the installation. The options are
+-                        `che` for upstream Che installations, or `codeready` for link:https://developers.redhat.com/products/codeready-workspaces/overview[CodeReady
+-                        Workspaces] installation. Override the default value only
+-                        on necessary occasions.
++                        `che` for upstream Che installations, or `devspaces` for link:https://developers.redhat.com/products/codeready-workspaces/overview[Red
++                        Hat OpenShift Dev Spaces] installation. Override the default
++                        value only on necessary occasions.
+                       type: string
+                     cheHost:
+                       description: Public host name of the installed Che server. When

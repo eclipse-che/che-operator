@@ -568,9 +568,9 @@ spec:
                     cheFlavor:
                       description: Deprecated. The value of this flag is ignored.
                         Specifies a variation of the installation. The options are
-                        `che` for upstream Che installations, or `codeready` for link:https://developers.redhat.com/products/codeready-workspaces/overview[CodeReady
-                        Workspaces] installation. Override the default value only
-                        on necessary occasions.
+                        `che` for upstream Che installations, or `devspaces` for link:https://developers.redhat.com/products/codeready-workspaces/overview[Red
+                        Hat OpenShift Dev Spaces] installation. Override the default
+                        value only on necessary occasions.
                       type: string
                     cheHost:
                       description: Public host name of the installed Che server. When
