@@ -120,7 +120,7 @@ func (d *DashboardReconciler) Finalize(ctx *deploy.DeployContext) bool {
 func (d *DashboardReconciler) createGatewayConfig(ctx *deploy.DeployContext) *gateway.TraefikConfig {
 	cfg := gateway.CreateCommonTraefikConfig(
 		d.getComponentName(ctx),
-		fmt.Sprintf("PathPrefix(`%s`)", exposePath),
+		fmt.Sprintf("Path(`/`, `/f`) || PathPrefix(`%s`)", exposePath),
 		10,
 		"http://"+d.getComponentName(ctx)+":8080",
 		[]string{})
