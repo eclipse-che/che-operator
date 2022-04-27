@@ -59,9 +59,16 @@ func SyncDeploymentSpecToCluster(
 
 	done, err := Sync(deployContext, deploymentSpec, deploymentDiffOpts)
 	if err != nil || !done {
+		// Failed to sync (update), let's delete and create instead
+		if err != nil && strings.Contains(err.Error(), "field is immutable") {
+			if _, err := DeleteNamespacedObject(deployContext, deploymentSpec.Name, &appsv1.Deployment{}); err != nil {
+				return false, err
+			}
+
+			// Deleted successfully, return original error
+			return false, err
+		}
 		return false, err
-	} else if !done {
-		return util.IsTestMode(), nil
 	}
 
 	// always return true for tests

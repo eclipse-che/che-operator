@@ -16,6 +16,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 
@@ -138,6 +139,15 @@ func syncAll(deployContext *deploy.DeployContext) error {
 
 	depl := getGatewayDeploymentSpec(deployContext)
 	if _, err := deploy.Sync(deployContext, &depl, deploy.DefaultDeploymentDiffOpts); err != nil {
+		// Failed to sync (update), let's delete and create instead
+		if strings.Contains(err.Error(), "field is immutable") {
+			if _, err := deploy.DeleteNamespacedObject(deployContext, depl.Name, &appsv1.Deployment{}); err != nil {
+				return err
+			}
+
+			// Deleted successfully, return original error
+			return err
+		}
 		return err
 	}
 
