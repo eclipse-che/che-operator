@@ -30,6 +30,10 @@ const (
 	workspaceNamespaceOwnerUidLabel string = "che.eclipse.org/workspace-namespace-owner-uid"
 	cheNameLabel                    string = "che.eclipse.org/che-name"
 	cheNamespaceLabel               string = "che.eclipse.org/che-namespace"
+	chePartOfLabel                  string = "app.kubernetes.io/part-of"
+	chePartOfLabelValue             string = "che.eclipse.org"
+	cheComponentLabel               string = "app.kubernetes.io/component"
+	cheComponentLabelValue          string = "workspaces-namespace"
 )
 
 type namespaceCache struct {
@@ -39,8 +43,8 @@ type namespaceCache struct {
 }
 
 type namespaceInfo struct {
-	OwnerUid   string
-	CheCluster *types.NamespacedName
+	IsWorkspaceNamespace bool
+	CheCluster           *types.NamespacedName
 }
 
 func NewNamespaceCache() *namespaceCache {
@@ -117,12 +121,16 @@ func (c *namespaceCache) examineNamespaceUnsafe(ctx context.Context, ns string) 
 		labels = map[string]string{}
 	}
 
+	// ownerUid is the legacy label that we used to use. Let's not break the existing workspace namespaces and still
+	// recognize it
 	ownerUid := labels[workspaceNamespaceOwnerUidLabel]
 	cheName := labels[cheNameLabel]
 	cheNamespace := labels[cheNamespaceLabel]
+	partOfLabel := labels[chePartOfLabel]
+	componentLabel := labels[cheComponentLabel]
 
 	ret := namespaceInfo{
-		OwnerUid: ownerUid,
+		IsWorkspaceNamespace: ownerUid != "" || (partOfLabel == chePartOfLabelValue && componentLabel == cheComponentLabelValue),
 		CheCluster: &types.NamespacedName{
 			Name:      cheName,
 			Namespace: cheNamespace,
