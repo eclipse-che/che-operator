@@ -162,7 +162,7 @@ func TestReconcileWhenWebTerminalSubscriptionExists(t *testing.T) {
 	subscription := &operatorsv1alpha1.Subscription{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      WebTerminalOperatorSubscriptionName,
-			Namespace: WebTerminalOperatorNamespace,
+			Namespace: OperatorNamespace,
 		},
 		Spec: &operatorsv1alpha1.SubscriptionSpec{},
 	}

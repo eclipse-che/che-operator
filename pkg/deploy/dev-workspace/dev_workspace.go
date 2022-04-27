@@ -37,7 +37,8 @@ const (
 	DevWorkspaceCSVNamePrefix         = "devworkspace-operator"
 
 	WebTerminalOperatorSubscriptionName = "web-terminal"
-	WebTerminalOperatorNamespace        = "openshift-operators"
+
+	OperatorNamespace = "openshift-operators"
 )
 
 var (

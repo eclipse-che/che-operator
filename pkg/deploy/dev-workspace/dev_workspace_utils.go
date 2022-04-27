@@ -21,20 +21,12 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/util"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/sirupsen/logrus"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-func isDevWorkspaceDeploymentExists(deployContext *deploy.DeployContext) (bool, error) {
-	return deploy.Get(deployContext, types.NamespacedName{
-		Namespace: DevWorkspaceNamespace,
-		Name:      DevWorkspaceDeploymentName,
-	}, &appsv1.Deployment{})
-}
 
 func isDevWorkspaceOperatorCSVExists(deployContext *deploy.DeployContext) bool {
 	// If clusterserviceversions resource doesn't exist in cluster DWO as well will not be present
@@ -43,7 +35,7 @@ func isDevWorkspaceOperatorCSVExists(deployContext *deploy.DeployContext) bool {
 	}
 
 	csvList := &operatorsv1alpha1.ClusterServiceVersionList{}
-	err := deployContext.ClusterAPI.Client.List(context.TODO(), csvList, &client.ListOptions{})
+	err := deployContext.ClusterAPI.NonCachingClient.List(context.TODO(), csvList, &client.ListOptions{Namespace: OperatorNamespace})
 	if err != nil {
 		logrus.Errorf("Failed to list csv: %v", err)
 		return false
@@ -69,7 +61,7 @@ func isWebTerminalSubscriptionExist(deployContext *deploy.DeployContext) (bool, 
 		context.TODO(),
 		types.NamespacedName{
 			Name:      WebTerminalOperatorSubscriptionName,
-			Namespace: WebTerminalOperatorNamespace,
+			Namespace: OperatorNamespace,
 		},
 		subscription); err != nil {
 
