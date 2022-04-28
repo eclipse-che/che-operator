@@ -47,6 +47,24 @@ func TestDashboardOpenShift(t *testing.T) {
 	assert.True(t, util.ContainsString(ctx.CheCluster.Finalizers, ClusterPermissionsDashboardFinalizer))
 }
 
+func TestTokenValidityCheckOnOpenShift(t *testing.T) {
+	util.IsOpenShift = true
+
+	ctx := deploy.GetTestDeployContext(nil, []runtime.Object{})
+	dashboard := NewDashboardReconciler()
+	_, done, err := dashboard.Reconcile(ctx)
+	assert.True(t, done)
+	assert.Nil(t, err)
+	cfg := dashboard.createGatewayConfig(ctx)
+
+	if assert.Contains(t, cfg.HTTP.Routers, "che-dashboard") {
+		assert.Contains(t, cfg.HTTP.Routers["che-dashboard"].Middlewares, "che-dashboard-token-check")
+	}
+	if assert.Contains(t, cfg.HTTP.Middlewares, "che-dashboard-token-check") && assert.NotNil(t, cfg.HTTP.Middlewares["che-dashboard-token-check"].ForwardAuth) {
+		assert.Equal(t, "https://kubernetes.default.svc/apis/user.openshift.io/v1/users/~", cfg.HTTP.Middlewares["che-dashboard-token-check"].ForwardAuth.Address)
+	}
+}
+
 func TestDashboardKubernetes(t *testing.T) {
 	util.IsOpenShift = false
 
