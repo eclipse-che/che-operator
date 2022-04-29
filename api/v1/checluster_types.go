@@ -99,8 +99,8 @@ type CheClusterSpecServer struct {
 	// +optional
 	CheImagePullPolicy corev1.PullPolicy `json:"cheImagePullPolicy,omitempty"`
 	// Deprecated. The value of this flag is ignored.
-	// Specifies a variation of the installation. The options are `che` for upstream Che installations, or `devspaces` for link:https://developers.redhat.com/products/openshift-dev-spaces/overview[Red Hat OpenShift Dev Spaces] installation.
-	// Override the default value only on necessary occasions.
+	// Specifies a variation of the installation. The options are `che` for upstream Che installations or
+	// `devspaces` for Red Hat OpenShift Dev Spaces (formerly Red Hat CodeReady Workspaces) installation
 	// +optional
 	CheFlavor string `json:"cheFlavor,omitempty"`
 	// Public host name of the installed Che server. When value is omitted, the value it will be automatically set by the Operator.
