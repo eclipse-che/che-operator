@@ -110,7 +110,7 @@ func TestExamineUpdatesCache(t *testing.T) {
 		nsi, err := nsc.GetNamespaceInfo(ctx, nsName)
 		assert.NoError(t, err)
 
-		assert.Empty(t, nsi.OwnerUid, "Detected owner UID should be empty")
+		assert.False(t, nsi.IsWorkspaceNamespace, "The namespace should not be found as managed")
 
 		assert.Contains(t, nsc.knownNamespaces, nsName, "The namespace info should have been cached")
 
@@ -126,7 +126,19 @@ func TestExamineUpdatesCache(t *testing.T) {
 		nsi, err = nsc.ExamineNamespace(ctx, nsName)
 		assert.NoError(t, err)
 
-		assert.Equal(t, "uid", nsi.OwnerUid, "unexpected detected owner UID")
+		assert.True(t, nsi.IsWorkspaceNamespace, "namespace should be found as managed using the legacy user UID label")
+
+		ns.(metav1.Object).SetLabels(map[string]string{
+			chePartOfLabel:    chePartOfLabelValue,
+			cheComponentLabel: cheComponentLabelValue,
+		})
+
+		assert.NoError(t, cl.Update(ctx, ns))
+
+		nsi, err = nsc.ExamineNamespace(ctx, nsName)
+		assert.NoError(t, err)
+
+		assert.True(t, nsi.IsWorkspaceNamespace, "namespace should be found as managed using the part-of and component labels")
 	}
 
 	test(infrastructure.Kubernetes, &corev1.Namespace{

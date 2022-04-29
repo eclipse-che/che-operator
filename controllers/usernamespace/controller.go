@@ -159,7 +159,7 @@ func isLabeledAsUserSettings(obj metav1.Object) bool {
 
 func (r *CheUserNamespaceReconciler) isInManagedNamespace(ctx context.Context, obj metav1.Object) bool {
 	info, err := r.namespaceCache.GetNamespaceInfo(ctx, obj.GetNamespace())
-	return err == nil && info != nil && info.OwnerUid != ""
+	return err == nil && info != nil && info.IsWorkspaceNamespace
 }
 
 func (r *CheUserNamespaceReconciler) triggerAllNamespaces() handler.EventHandler {
@@ -195,7 +195,7 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
-	if info == nil || info.OwnerUid == "" {
+	if info == nil || !info.IsWorkspaceNamespace {
 		// we're not handling this namespace
 		return ctrl.Result{}, nil
 	}
