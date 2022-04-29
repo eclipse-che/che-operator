@@ -129,7 +129,7 @@ func TestExamineUpdatesCache(t *testing.T) {
 		assert.True(t, nsi.IsWorkspaceNamespace, "namespace should be found as managed using the legacy user UID label")
 
 		ns.(metav1.Object).SetLabels(map[string]string{
-			chePartOfLabel: chePartOfLabelValue,
+			chePartOfLabel:    chePartOfLabelValue,
 			cheComponentLabel: cheComponentLabelValue,
 		})
 
