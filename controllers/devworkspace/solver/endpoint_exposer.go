@@ -18,6 +18,7 @@ import (
 
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/pkg/constants"
+	checluster "github.com/eclipse-che/che-operator/api"
 	"github.com/eclipse-che/che-operator/api/v2alpha1"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -26,6 +27,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -40,6 +42,7 @@ type IngressExposer struct {
 type RouteExposer struct {
 	devWorkspaceID       string
 	baseDomain           string
+	labels               map[string]string
 	tlsSecretKey         string
 	tlsSecretCertificate string
 }
@@ -65,6 +68,10 @@ func getEndpointExposingObjectName(componentName string, workspaceID string, por
 func (e *RouteExposer) initFrom(ctx context.Context, cl client.Client, cluster *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting) error {
 	e.baseDomain = cluster.Status.WorkspaceBaseDomain
 	e.devWorkspaceID = routing.Spec.DevWorkspaceId
+
+	e.labels = map[string]string{}
+	checlusterV1 := checluster.AsV1(cluster)
+	deploy.MergeLabels(e.labels, checlusterV1.Spec.Server.CustomCheProperties["CHE_INFRA_OPENSHIFT_ROUTE_LABELS"])
 
 	if cluster.Spec.Workspaces.DomainEndpoints.TlsSecretName != "" {
 		secret := &corev1.Secret{}
@@ -133,14 +140,17 @@ func (e *IngressExposer) initFrom(ctx context.Context, cl client.Client, cluster
 
 func (e *RouteExposer) getRouteForService(endpoint *EndpointInfo) routev1.Route {
 	targetEndpoint := intstr.FromInt(int(endpoint.port))
+	labels := labels.Merge(
+		e.labels,
+		map[string]string{
+			constants.DevWorkspaceIDLabel:   e.devWorkspaceID,
+			deploy.KubernetesPartOfLabelKey: deploy.CheEclipseOrg,
+		})
 	route := routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      getEndpointExposingObjectName(endpoint.componentName, e.devWorkspaceID, endpoint.port, endpoint.endpointName),
-			Namespace: endpoint.service.Namespace,
-			Labels: map[string]string{
-				constants.DevWorkspaceIDLabel:   e.devWorkspaceID,
-				deploy.KubernetesPartOfLabelKey: deploy.CheEclipseOrg,
-			},
+			Name:            getEndpointExposingObjectName(endpoint.componentName, e.devWorkspaceID, endpoint.port, endpoint.endpointName),
+			Namespace:       endpoint.service.Namespace,
+			Labels:          labels,
 			Annotations:     routeAnnotations(endpoint.componentName, endpoint.endpointName),
 			OwnerReferences: endpoint.service.OwnerReferences,
 		},
