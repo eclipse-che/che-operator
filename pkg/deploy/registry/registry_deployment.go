@@ -28,6 +28,12 @@ func GetSpecRegistryDeployment(
 	resources corev1.ResourceRequirements,
 	probePath string) *appsv1.Deployment {
 
+	// append env var with ConfigMap revision to restore pod automatically when config has been changed
+	cm := &corev1.ConfigMap{}
+	exists, _ := deploy.GetNamespacedObject(deployContext, registryType+"-registry", cm)
+	configMapRevision := map[bool]string{true: cm.GetResourceVersion(), false: ""}[exists]
+	env = append(env, corev1.EnvVar{Name: "CM_REVISION", Value: configMapRevision})
+
 	terminationGracePeriodSeconds := int64(30)
 	name := registryType + "-registry"
 	labels, labelSelector := deploy.GetLabelsAndSelector(deployContext.CheCluster, name)

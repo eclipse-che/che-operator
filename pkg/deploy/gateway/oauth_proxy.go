@@ -132,6 +132,11 @@ func skipAuthConfig(instance *orgv1.CheCluster) string {
 }
 
 func getOauthProxyContainerSpec(ctx *deploy.DeployContext) corev1.Container {
+	// append env var with ConfigMap revision to restore pod automatically when config has been changed
+	cm := &corev1.ConfigMap{}
+	exists, _ := deploy.GetNamespacedObject(ctx, "che-gateway-config-oauth-proxy", cm)
+	configMapRevision := map[bool]string{true: cm.GetResourceVersion(), false: ""}[exists]
+
 	authnImage := util.GetValue(ctx.CheCluster.Spec.Auth.GatewayAuthenticationSidecarImage, deploy.DefaultGatewayAuthenticationSidecarImage(ctx.CheCluster))
 	return corev1.Container{
 		Name:            "oauth-proxy",
@@ -171,6 +176,10 @@ func getOauthProxyContainerSpec(ctx *deploy.DeployContext) corev1.Container {
 			{
 				Name:  "no_proxy",
 				Value: ctx.Proxy.NoProxy,
+			},
+			{
+				Name:  "CM_REVISION",
+				Value: configMapRevision,
 			},
 		},
 	}
