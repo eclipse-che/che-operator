@@ -349,7 +349,7 @@ func TestCreatesDataInNamespace(t *testing.T) {
 		assert.False(t, res.Requeue, "The reconciliation request should have succeeded but it is requesting a requeue")
 
 		proxySettings := corev1.ConfigMap{}
-		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-eclipse-che-proxy-settings", Namespace: namespace.GetName()}, &proxySettings))
+		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-proxy-settings", Namespace: namespace.GetName()}, &proxySettings))
 
 		assert.Equal(t, "env", proxySettings.GetAnnotations()[constants.DevWorkspaceMountAsAnnotation],
 			"proxy settings should be annotated as mount as 'env'")
@@ -362,7 +362,7 @@ func TestCreatesDataInNamespace(t *testing.T) {
 		assert.Equal(t, ".svc", proxySettings.Data["NO_PROXY"], "Unexpected proxy settings")
 
 		cert := corev1.Secret{}
-		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-eclipse-che-server-cert", Namespace: namespace.GetName()}, &cert))
+		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-server-cert", Namespace: namespace.GetName()}, &cert))
 
 		assert.Equal(t, "file", cert.GetAnnotations()[constants.DevWorkspaceMountAsAnnotation], "server cert should be annotated as mount as 'file'")
 		assert.Equal(t, "/tmp/che/secret/", cert.GetAnnotations()[constants.DevWorkspaceMountPathAnnotation], "server cert annotated as mounted to an unexpected path")
@@ -373,7 +373,7 @@ func TestCreatesDataInNamespace(t *testing.T) {
 		assert.Equal(t, true, *cert.Immutable, "Unexpected mutability of the secret")
 
 		caCerts := corev1.ConfigMap{}
-		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-eclipse-che-trusted-ca-certs", Namespace: namespace.GetName()}, &caCerts))
+		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-trusted-ca-certs", Namespace: namespace.GetName()}, &caCerts))
 		assert.Equal(t, "file", caCerts.GetAnnotations()[constants.DevWorkspaceMountAsAnnotation], "trusted certs should be annotated as mount as 'file'")
 		assert.Equal(t, "/public-certs", caCerts.GetAnnotations()[constants.DevWorkspaceMountPathAnnotation], "trusted certs annotated as mounted to an unexpected path")
 		assert.Equal(t, "true", caCerts.GetLabels()[constants.DevWorkspaceMountLabel], "trusted certs should be labeled as mounted")
@@ -382,7 +382,7 @@ func TestCreatesDataInNamespace(t *testing.T) {
 		assert.Equal(t, "trusted cert 2", string(caCerts.Data["trusted2"]), "Unexpected trusted cert 2 value")
 
 		gitTlsConfig := corev1.ConfigMap{}
-		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-eclipse-che-git-tls-creds", Namespace: namespace.GetName()}, &gitTlsConfig))
+		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-git-tls-creds", Namespace: namespace.GetName()}, &gitTlsConfig))
 		assert.Equal(t, "true", gitTlsConfig.Labels[constants.DevWorkspaceGitTLSLabel])
 		assert.Equal(t, "true", gitTlsConfig.Labels[constants.DevWorkspaceWatchConfigMapLabel])
 		assert.Equal(t, "the.host.of.git", gitTlsConfig.Data["host"])

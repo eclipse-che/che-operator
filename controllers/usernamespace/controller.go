@@ -273,7 +273,7 @@ func findManagingCheCluster(key types.NamespacedName) *v2alpha1.CheCluster {
 }
 
 func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context, deployContext *deploy.DeployContext, targetNs string, checluster *v2alpha1.CheCluster) error {
-	targetCertName := prefixedName(checluster, "server-cert")
+	targetCertName := prefixedName("server-cert")
 
 	delSecret := func() error {
 		_, err := deploy.Delete(deployContext, client.ObjectKey{Name: targetCertName, Namespace: targetNs}, &corev1.Secret{})
@@ -323,7 +323,7 @@ func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context
 }
 
 func (r *CheUserNamespaceReconciler) reconcileTrustedCerts(ctx context.Context, deployContext *deploy.DeployContext, targetNs string, checluster *v2alpha1.CheCluster) error {
-	targetConfigMapName := prefixedName(checluster, "trusted-ca-certs")
+	targetConfigMapName := prefixedName("trusted-ca-certs")
 
 	delConfigMap := func() error {
 		_, err := deploy.Delete(deployContext, client.ObjectKey{Name: targetConfigMapName, Namespace: targetNs}, &corev1.Secret{})
@@ -395,7 +395,7 @@ func (r *CheUserNamespaceReconciler) reconcileProxySettings(ctx context.Context,
 		proxySettings["NO_PROXY"] = proxyConfig.NoProxy
 	}
 
-	key := client.ObjectKey{Name: prefixedName(checluster, "proxy-settings"), Namespace: targetNs}
+	key := client.ObjectKey{Name: prefixedName("proxy-settings"), Namespace: targetNs}
 	cfg := &corev1.ConfigMap{}
 	exists := true
 	if err := r.client.Get(ctx, key, cfg); err != nil {
@@ -429,7 +429,7 @@ func (r *CheUserNamespaceReconciler) reconcileProxySettings(ctx context.Context,
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        prefixedName(checluster, "proxy-settings"),
+			Name:        prefixedName("proxy-settings"),
 			Namespace:   targetNs,
 			Labels:      requiredLabels,
 			Annotations: requiredAnnos,
@@ -442,7 +442,7 @@ func (r *CheUserNamespaceReconciler) reconcileProxySettings(ctx context.Context,
 }
 
 func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Context, targetNs string, checluster *v2alpha1.CheCluster, deployContext *deploy.DeployContext) error {
-	targetName := prefixedName(checluster, "git-tls-creds")
+	targetName := prefixedName("git-tls-creds")
 	delConfigMap := func() error {
 		_, err := deploy.Delete(deployContext, client.ObjectKey{Name: targetName, Namespace: targetNs}, &corev1.Secret{})
 		return err
@@ -541,6 +541,6 @@ func (r *CheUserNamespaceReconciler) reconcileNodeSelectorAndTolerations(ctx con
 	return r.client.Update(ctx, ns)
 }
 
-func prefixedName(checluster *v2alpha1.CheCluster, name string) string {
-	return checluster.Name + "-" + checluster.Namespace + "-" + name
+func prefixedName(name string) string {
+	return "che-" + name
 }
