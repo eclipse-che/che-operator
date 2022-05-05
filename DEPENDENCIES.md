@@ -458,6 +458,6 @@
 | [golang.org/x/xerrors@5ec99f83aff198f5fbd629d6c8d8eb38a04218ca](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
 | [golang.org/x/oauth2@bf48bf16ab8d622ce64ec6ce98d2c98f916b6303](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
 | [golang.org/x/mobile@d3739f865fa66d07c1f506505c18aac71a8ead6e](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
-| [github.com/devfile/api/v2@03e023e7078b64884216d8e6dce8f0cf8b7e74d2](https://github.com/devfile/api.git) | Apache-2.0 | [CQ](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23680) |
+| [github.com/devfile/api/v2@32cae1f8e42c22035138ef6ee93080bc47d751c6](https://github.com/devfile/api.git) | Apache-2.0 | [clearlydefined](https://clearlydefined.io/definitions/git/github/devfile/api/32cae1f8e42c22035138ef6ee93080bc47d751c6) |
 | [github.com/che-incubator/kubernetes-image-puller-operator@0128446f5af78587c0427a35d693bbb8d24036bc](https://github.com/che-incubator/kubernetes-image-puller-operator.git) | EPL-2.0 | todo |
-| [github.com/devfile/devworkspace-operator@aaa430987417c980001c7ae19932f78991fe9707](https://github.com/devfile/devworkspace-operator.git) | Apache-2.0 | [clearlydefined](https://clearlydefined.io/definitions/git/github/devfile/devworkspace-operator/aaa430987417c980001c7ae19932f78991fe9707) |
+| [github.com/devfile/devworkspace-operator@98a40388f09122ed6c9c1b7b92aaf83b2f9e2d48](https://github.com/devfile/devworkspace-operator.git) | Apache-2.0 | [clearlydefined](https://clearlydefined.io/definitions/git/github/devfile/devworkspace-operator/98a40388f09122ed6c9c1b7b92aaf83b2f9e2d48) |

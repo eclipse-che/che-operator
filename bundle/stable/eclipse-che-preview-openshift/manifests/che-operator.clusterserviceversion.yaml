@@ -1418,9 +1418,9 @@ spec:
     - name: header-rewrite-proxy-latest
       image: quay.io/che-incubator/header-rewrite-proxy@sha256:bd7873b8feef35f218f54c6251ea224bea2c8bf202a328230019a0ba2941245d
       # tag: quay.io/che-incubator/header-rewrite-proxy:latest
-    - name: devworkspace-controller-v0.13.0
-      image: quay.io/devfile/devworkspace-controller@sha256:a5dd723a4f73ec98b4353fe71ffa53b8bf7d2c92d4d1900b30756b42ec8034b9
-      # tag: quay.io/devfile/devworkspace-controller:v0.13.0
+    - name: devworkspace-controller-v0.14.1
+      image: quay.io/devfile/devworkspace-controller@sha256:0337d4b0f43d128430861360f0fbad4ccc145ad5f5bdda59f7a678b44f42b8b3
+      # tag: quay.io/devfile/devworkspace-controller:v0.14.1
     - name: che--centos--postgresql-13-centos7-1-71b24684d64da46f960682cc4216222a7e4ed8b1a31dd5a865b3e71afdea20d2
       image: quay.io/eclipse/che--centos--postgresql-13-centos7@sha256:71b24684d64da46f960682cc4216222a7e4ed8b1a31dd5a865b3e71afdea20d2
       # tag: quay.io/eclipse/che--centos--postgresql-13-centos7:1-71b24684d64da46f960682cc4216222a7e4ed8b1a31dd5a865b3e71afdea20d2

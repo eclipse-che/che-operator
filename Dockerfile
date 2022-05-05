@@ -12,7 +12,7 @@
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8/go-toolset
 FROM registry.access.redhat.com/ubi8/go-toolset:1.16.12-10 as builder
 ENV GOPATH=/go/
-ARG DEV_WORKSPACE_CONTROLLER_VERSION="v0.13.0"
+ARG DEV_WORKSPACE_CONTROLLER_VERSION="v0.14.1"
 ARG DEV_HEADER_REWRITE_TRAEFIK_PLUGIN="main"
 ARG TESTS="true"
 USER root
