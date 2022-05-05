@@ -30,12 +30,12 @@ github.com/cespare/xxhash/v2
 github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1
 # github.com/davecgh/go-spew v1.1.1 => github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/devfile/api/v2 v2.0.0-20210917193329-089a48011460
+# github.com/devfile/api/v2 v2.0.0-20220414122024-32cae1f8e42c
 ## explicit
 github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2
 github.com/devfile/api/v2/pkg/attributes
 github.com/devfile/api/v2/pkg/devfile
-# github.com/devfile/devworkspace-operator v0.13.0
+# github.com/devfile/devworkspace-operator v0.14.1
 ## explicit
 github.com/devfile/devworkspace-operator/apis/controller/v1alpha1
 github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting
