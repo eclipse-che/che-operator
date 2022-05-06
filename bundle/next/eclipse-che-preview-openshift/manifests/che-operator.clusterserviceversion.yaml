@@ -75,7 +75,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.48.0-443.next
+  name: eclipse-che-preview-openshift.v7.48.0-444.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -982,7 +982,7 @@ spec:
                       - name: RELATED_IMAGE_single_host_gateway_config_sidecar
                         value: quay.io/che-incubator/configbump:0.1.4
                       - name: RELATED_IMAGE_devworkspace_controller
-                        value: quay.io/devfile/devworkspace-controller:v0.13.0
+                        value: quay.io/devfile/devworkspace-controller:v0.14.1
                       - name: RELATED_IMAGE_gateway_authentication_sidecar
                         value: quay.io/openshift/origin-oauth-proxy:4.7
                       - name: RELATED_IMAGE_gateway_authorization_sidecar
@@ -1278,4 +1278,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.48.0-443.next
+  version: 7.48.0-444.next

@@ -112,10 +112,10 @@ github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/daviddengcn/go-colortext v0.0.0-20160507010035-511bcaf42ccd/go.mod h1:dv4zxwHi5C/8AeI+4gX4dCWOIvNi7I6JCSX0HvlKPgE=
 github.com/deislabs/oras v0.8.1/go.mod h1:Mx0rMSbBNaNfY9hjpccEnxkOqJL6KGjtxNHPLC4G4As=
 github.com/denisenkom/go-mssqldb v0.0.0-20190204142019-df6d76eb9289/go.mod h1:xN/JuLBIz4bjkxNmByTiV1IbhfnYb6oo99phBn4Eqhc=
-github.com/devfile/api/v2 v2.0.0-20210917193329-089a48011460 h1:cmd+3poyUwevcWchYdvE02YT1nQU4SJpA5/wrdLrpWE=
-github.com/devfile/api/v2 v2.0.0-20210917193329-089a48011460/go.mod h1:kLX/nW93gigOHXK3NLeJL2fSS/sgEe+OHu8bo3aoOi4=
-github.com/devfile/devworkspace-operator v0.13.0 h1:s/jFTfqKmVM8UizgCcS5icZ+w3LV+iRtDDkeYqVk+os=
-github.com/devfile/devworkspace-operator v0.13.0/go.mod h1:33uEtRwYsox/Jsuh5oqNc4iPNKtprazz15Jc0iX9aTU=
+github.com/devfile/api/v2 v2.0.0-20220414122024-32cae1f8e42c h1:yyidoxal8ngJWDxRuVZMNh4PBwqDIzOkTeOagtmRiy0=
+github.com/devfile/api/v2 v2.0.0-20220414122024-32cae1f8e42c/go.mod h1:kLX/nW93gigOHXK3NLeJL2fSS/sgEe+OHu8bo3aoOi4=
+github.com/devfile/devworkspace-operator v0.14.1 h1:y7Z9Bh15Y4RFf4tf68W7ComOLH0nlUTqDtIWmcuSIQQ=
+github.com/devfile/devworkspace-operator v0.14.1/go.mod h1:fM3/GhPWEL8JZOEImCnpyxTYEf9dN6PsjzJq+ffcD1k=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:7qlOGliEKZXTDg6OTjfoBKDXWrumCAMpl/TFQ4/5kLM=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/dhui/dktest v0.3.2/go.mod h1:l1/ib23a/CmxAe7yixtrYPc8Iy90Zy2udyaHINM5p58=
