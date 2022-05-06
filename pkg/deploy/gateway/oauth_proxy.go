@@ -68,7 +68,7 @@ cookie_expire = "24h0m0s"
 email_domains = "*"
 cookie_httponly = false
 pass_access_token = true
-skip_provider_button = true
+skip_provider_button = false
 %s
 `, GatewayServicePort,
 		ctx.CheCluster.GetCheHost(),
