@@ -94,7 +94,7 @@ spec:
       - description: Deploys the DevWorkspace Operator in the cluster. Does nothing
           when a matching version of the Operator is already installed. Fails when
           a non-matching version of the Operator is already installed.
-        displayName: Enable DevWorkspace operator (Technology Preview)
+        displayName: Enable DevWorkspace operator
         path: devWorkspace.enable
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch

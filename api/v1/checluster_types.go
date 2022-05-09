@@ -699,7 +699,7 @@ type CheClusterSpecDevWorkspace struct {
 	// Deploys the DevWorkspace Operator in the cluster.
 	// Does nothing when a matching version of the Operator is already installed.
 	// Fails when a non-matching version of the Operator is already installed.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable DevWorkspace operator (Technology Preview)"
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable DevWorkspace operator"
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
 	Enable bool `json:"enable"`
 	// Overrides the container image used in the DevWorkspace controller deployment.
