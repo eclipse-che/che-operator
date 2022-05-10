@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strings"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -28,20 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-const (
-	// host name template: `<route-name>-<route-namespace>.<domain>`
-	HostNameTemplate = "%s-%s.%s"
-)
-
 var routeDiffOpts = cmp.Options{
-	cmpopts.IgnoreFields(routev1.Route{}, "TypeMeta", "Status"),
-	cmpopts.IgnoreFields(routev1.RouteSpec{}, "Host", "WildcardPolicy"),
-	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
-		return reflect.DeepEqual(x.Labels, y.Labels) &&
-			x.Annotations[CheEclipseOrgManagedAnnotationsDigest] == y.Annotations[CheEclipseOrgManagedAnnotationsDigest]
-	}),
-}
-var routeWithHostDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(routev1.Route{}, "TypeMeta", "Status"),
 	cmpopts.IgnoreFields(routev1.RouteSpec{}, "WildcardPolicy"),
 	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
@@ -65,9 +53,6 @@ func SyncRouteToCluster(
 		return false, err
 	}
 
-	if host != "" {
-		return Sync(deployContext, routeSpec, routeWithHostDiffOpts)
-	}
 	return Sync(deployContext, routeSpec, routeDiffOpts)
 }
 
@@ -148,8 +133,33 @@ func GetRouteSpec(
 
 	if host != "" {
 		route.Spec.Host = host
-	} else if routeCustomSettings.Domain != "" {
-		route.Spec.Host = fmt.Sprintf(HostNameTemplate, route.ObjectMeta.Name, route.ObjectMeta.Namespace, routeCustomSettings.Domain)
+	} else {
+		hostSuffix := routeCustomSettings.Domain
+
+		if hostSuffix == "" {
+			existedRoute := &routev1.Route{}
+			exists, _ := GetNamespacedObject(deployContext, name, existedRoute)
+			if exists {
+				// Get route domain from host
+				domainEntries := strings.SplitN(existedRoute.Spec.Host, ".", 2)
+				if len(domainEntries) == 2 {
+					hostSuffix = domainEntries[1]
+				}
+			}
+		}
+
+		// Usually host has the following format: <name>-<namespace>.<domain>
+		// If we know domain then we can create a route with a shorter host: <namespace>.<domain>
+		if hostSuffix != "" {
+			hostPrefix := deployContext.CheCluster.Namespace
+
+			cheFlavor := DefaultCheFlavor(deployContext.CheCluster)
+			if cheFlavor == "devspaces" {
+				hostPrefix = cheFlavor
+			}
+
+			route.Spec.Host = fmt.Sprintf("%s.%s", hostPrefix, hostSuffix)
+		}
 	}
 
 	route.Spec.TLS = &routev1.TLSConfig{

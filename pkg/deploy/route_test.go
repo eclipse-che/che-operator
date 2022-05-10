@@ -13,6 +13,7 @@ package deploy
 
 import (
 	"context"
+	"os"
 	"reflect"
 
 	"github.com/google/go-cmp/cmp"
@@ -78,7 +79,7 @@ func TestRouteSpec(t *testing.T) {
 					APIVersion: routev1.SchemeGroupVersion.String(),
 				},
 				Spec: routev1.RouteSpec{
-					Host: "test-eclipse-che.route-domain",
+					Host: map[bool]string{false: "eclipse-che.route-domain", true: "devspaces.route-domain"}[os.Getenv("CHE_FLAVOR") == "devspaces"],
 					To: routev1.RouteTargetReference{
 						Kind:   "Service",
 						Name:   "che",
@@ -167,7 +168,6 @@ func TestRouteSpec(t *testing.T) {
 func TestSyncRouteToCluster(t *testing.T) {
 	// init context
 	deployContext := GetTestDeployContext(nil, []runtime.Object{})
-	routev1.AddToScheme(deployContext.ClusterAPI.Scheme)
 
 	done, err := SyncRouteToCluster(deployContext, "test", "", "", "service", 80, orgv1.RouteCustomSettings{}, "test")
 	if !done || err != nil {
@@ -203,7 +203,9 @@ func TestSyncRouteToCluster(t *testing.T) {
 	if actual.ObjectMeta.Labels["a"] != "b" {
 		t.Fatalf("Failed to sync route")
 	}
-	if actual.Spec.Host != "test-eclipse-che.domain" {
+
+	expectedHost := map[bool]string{false: "eclipse-che.domain", true: "devspaces.domain"}[DefaultCheFlavor(deployContext.CheCluster) == "devspaces"]
+	if actual.Spec.Host != expectedHost {
 		t.Fatalf("Failed to sync route")
 	}
 
