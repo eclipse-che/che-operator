@@ -13,6 +13,7 @@ package devfileregistry
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 )
@@ -21,6 +22,7 @@ type DevFileRegistryConfigMap struct {
 	CheDevfileImagesRegistryURL          string `json:"CHE_DEVFILE_IMAGES_REGISTRY_URL"`
 	CheDevfileImagesRegistryOrganization string `json:"CHE_DEVFILE_IMAGES_REGISTRY_ORGANIZATION"`
 	CheDevfileRegistryURL                string `json:"CHE_DEVFILE_REGISTRY_URL"`
+	CheDevfileRegistryInternalURL        string `json:"CHE_DEVFILE_REGISTRY_INTERNAL_URL"`
 }
 
 func (d *DevfileRegistryReconciler) getConfigMapData(ctx *deploy.DeployContext) (map[string]string, error) {
@@ -29,6 +31,7 @@ func (d *DevfileRegistryReconciler) getConfigMapData(ctx *deploy.DeployContext) 
 		CheDevfileImagesRegistryURL:          ctx.CheCluster.Spec.Server.AirGapContainerRegistryHostname,
 		CheDevfileImagesRegistryOrganization: ctx.CheCluster.Spec.Server.AirGapContainerRegistryOrganization,
 		CheDevfileRegistryURL:                ctx.CheCluster.Status.DevfileRegistryURL,
+		CheDevfileRegistryInternalURL:        fmt.Sprintf("http://%s.%s.svc:8080", deploy.DevfileRegistryName, ctx.CheCluster.Namespace),
 	}
 
 	out, err := json.Marshal(data)

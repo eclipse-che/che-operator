@@ -12,13 +12,10 @@
 package devfileregistry
 
 import (
-	"fmt"
-
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/registry"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -28,15 +25,6 @@ func (d *DevfileRegistryReconciler) getDevfileRegistryDeploymentSpec(ctx *deploy
 	registryImagePullPolicy := v1.PullPolicy(util.GetValue(string(ctx.CheCluster.Spec.Server.DevfileRegistryPullPolicy), deploy.DefaultPullPolicyFromDockerImage(registryImage)))
 	probePath := "/devfiles/"
 	devfileImagesEnv := util.GetEnvByRegExp("^.*devfile_registry_image.*$")
-
-	// If there is a devfile registry deployed by operator
-	if !ctx.CheCluster.Spec.Server.ExternalDevfileRegistry {
-		devfileImagesEnv = append(devfileImagesEnv,
-			corev1.EnvVar{
-				Name:  "CHE_DEVFILE_REGISTRY_INTERNAL_URL",
-				Value: fmt.Sprintf("http://%s.%s.svc:8080", deploy.DevfileRegistryName, ctx.CheCluster.Namespace)},
-		)
-	}
 
 	resources := v1.ResourceRequirements{
 		Requests: v1.ResourceList{
