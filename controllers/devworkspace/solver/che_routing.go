@@ -439,24 +439,30 @@ func provisionMainWorkspaceRoute(cheCluster *v2alpha1.CheCluster, routing *dwo.D
 	dwId := routing.Spec.DevWorkspaceId
 	dwNamespace := routing.Namespace
 
-	cfg := gateway.CreateCommonTraefikConfig(
-		dwId,
-		fmt.Sprintf("PathPrefix(`/%s`)", dwId),
-		100,
-		getServiceURL(wsGatewayPort, dwId, dwNamespace),
-		[]string{"/" + dwId})
+	cfg := gateway.CreateEmptyTraefikConfig()
 
-	if util.IsOpenShift4 {
-		// on OpenShift, we need to set authorization header.
-		// This MUST come before Auth, because Auth needs Authorization header to be properly set.
-		cfg.AddAuthHeaderRewrite(dwId)
+	if (routing.IsWorkspaceStopped()) {
+		routeMainUrlsToDashboardService(cfg, dwId, routing.Spec.Endpoints)
+	} else {
+		cfg = gateway.CreateCommonTraefikConfig(
+			dwId,
+			fmt.Sprintf("PathPrefix(`/%s`)", dwId),
+			100,
+			getServiceURL(wsGatewayPort, dwId, dwNamespace),
+			[]string{"/" + dwId})
+
+		if util.IsOpenShift4 {
+			// on OpenShift, we need to set authorization header.
+			// This MUST come before Auth, because Auth needs Authorization header to be properly set.
+			cfg.AddAuthHeaderRewrite(dwId)
+		}
+	
+		// authorize against kube-rbac-proxy in che-gateway. This will be needed for k8s native auth as well.
+		cfg.AddAuth(dwId, "http://127.0.0.1:8089?namespace="+dwNamespace)
+
+		// make '/healthz' path of main endpoints reachable from outside
+		routeForHealthzEndpoint(cfg, dwId, routing.Spec.Endpoints)
 	}
-
-	// authorize against kube-rbac-proxy in che-gateway. This will be needed for k8s native auth as well.
-	cfg.AddAuth(dwId, "http://127.0.0.1:8089?namespace="+dwNamespace)
-
-	// make '/healthz' path of main endpoints reachable from outside
-	routeForHealthzEndpoint(cfg, dwId, routing.Spec.Endpoints)
 
 	if contents, err := yaml.Marshal(cfg); err != nil {
 		return nil, err
@@ -474,6 +480,35 @@ func provisionMainWorkspaceRoute(cheCluster *v2alpha1.CheCluster, routing *dwo.D
 			Data: map[string]string{dwId + ".yml": string(contents)},
 		}, nil
 	}
+}
+
+func routeMainUrlsToDashboardService(cfg *gateway.TraefikConfig, dwId string, endpoints map[string]dwo.EndpointList) {
+	for componentName, endpoints := range endpoints {
+		for _, e := range endpoints {
+			if e.Attributes.GetString(string(dwo.TypeEndpointAttribute), nil) == string(dwo.MainEndpointType) {
+				middlewares := []string{}
+				routeName, endpointPath := createEndpointPath(&e, componentName)
+				routerName := fmt.Sprintf("%s-%s", dwId, routeName)
+
+				dashboardService := dwId+"-dashboard"
+				cfg.AddService(dashboardService, "http://che-dashboard:8080") // TODO: need to get che flavor instead of hardcoding `che`
+
+				cfg.HTTP.Routers[routerName] = &gateway.TraefikConfigRouter{
+					Rule:        fmt.Sprintf("PathPrefix(`/%s%s`)", dwId, endpointPath),
+					Service:     dashboardService,
+					Middlewares: middlewares,
+					Priority:    100,
+				}
+
+				cfg.AddReplacePathRegex(routerName, fmt.Sprintf("^/%s%s/(.*)", dwId, endpointPath), "/dashboard/$1")
+
+				if util.IsOpenShift4 {
+					cfg.AddAuthHeaderRewrite(routerName)
+				}
+			}
+		}
+	}
+
 }
 
 // makes '/healthz' path of main endpoints reachable from the outside

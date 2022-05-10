@@ -720,6 +720,49 @@ func TestFinalize(t *testing.T) {
 	}
 }
 
+func TestWorkspaceStopped(t *testing.T) {
+	util.IsOpenShift = false
+	util.IsOpenShift4 = false
+	routing := relocatableDevWorkspaceRouting()
+	routing.Annotations = map[string]string{constants.DevWorkspaceStartedStatusAnnotation: "false"}
+
+	cl, slv, _ := getSpecObjects(t, routing)
+
+	meta := solvers.DevWorkspaceMetadata{
+		DevWorkspaceId: routing.Spec.DevWorkspaceId,
+		Namespace:      routing.GetNamespace(),
+		PodSelector:    routing.Spec.PodSelector,
+	}
+
+	if err := slv.WorkspaceStopped(routing, meta); err != nil {
+		t.Fatal(err)
+	}
+
+	cms := &corev1.ConfigMapList{}
+	cl.List(context.TODO(), cms)
+
+	var workspaceMainCfg *corev1.ConfigMap
+	for _, cfg := range cms.Items {
+		if cfg.Name == "wsid-route" && cfg.Namespace == "ns" {
+			workspaceMainCfg = cfg.DeepCopy()
+		}
+	}
+	assert.NotNil(t, workspaceMainCfg)
+	traefikMainConfig := workspaceMainCfg.Data["wsid.yml"]
+	assert.NotEmpty(t, traefikMainConfig)
+
+	workspaceMainConfig := gateway.TraefikConfig{}
+	assert.NoError(t, yaml.Unmarshal([]byte(traefikMainConfig), &workspaceMainConfig))
+	assert.Len(t, workspaceMainConfig.HTTP.Routers, 1)
+
+	wsid := "wsid-9999"
+	assert.Contains(t, workspaceMainConfig.HTTP.Routers, wsid)
+	assert.Len(t, workspaceMainConfig.HTTP.Routers[wsid].Middlewares, 1)
+	assert.Len(t, workspaceMainConfig.HTTP.Middlewares, 1)
+	assert.Len(t, workspaceMainConfig.HTTP.Services, 1)
+	assert.Equal(t, "http://che-dashboard:8080", workspaceMainConfig.HTTP.Services["wsid-dashboard"].LoadBalancer.Servers[0].URL)
+}
+
 func TestEndpointsAlwaysOnSecureProtocolsWhenExposedThroughGateway(t *testing.T) {
 	util.IsOpenShift = false
 	util.IsOpenShift4 = false

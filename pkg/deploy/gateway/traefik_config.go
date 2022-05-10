@@ -36,6 +36,7 @@ type TraefikConfigService struct {
 type TraefikConfigMiddleware struct {
 	StripPrefix *TraefikConfigStripPrefix `json:"stripPrefix,omitempty"`
 	ForwardAuth *TraefikConfigForwardAuth `json:"forwardAuth,omitempty"`
+	ReplacePathRegex *TraefikConfigReplacePathRegex `json:"replacePathRegex,omitempty"`
 	Plugin      *TraefikPlugin            `json:"plugin,omitempty"`
 }
 
@@ -55,6 +56,11 @@ type TraefikConfigForwardAuth struct {
 	Address            string            `json:"address"`
 	TrustForwardHeader bool              `json:"trustForwardHeader"`
 	TLS                *TraefikConfigTLS `json:"tls,omitempty"`
+}
+
+type TraefikConfigReplacePathRegex struct {
+	Regex       string `json:"regex"`
+	Replacement string `json:"replacement"`
 }
 
 type TraefikPlugin struct {

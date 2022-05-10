@@ -39,6 +39,13 @@ func TestTraefikConfig_AddComponent(t *testing.T) {
 	assert.Empty(t, cfg.HTTP.Middlewares)
 }
 
+func TestAddService(t *testing.T) {
+	cfg := CreateEmptyTraefikConfig()
+	cfg.AddService(testComponentName, "http://svc")
+	assert.Contains(t, cfg.HTTP.Services, testComponentName)
+	assert.Empty(t, cfg.HTTP.Middlewares)
+}
+
 func TestStripPrefixesWhenCreating(t *testing.T) {
 	check := func(cfg *TraefikConfig) {
 		assert.Contains(t, cfg.HTTP.Routers[testComponentName].Middlewares, testComponentName+StripPrefixMiddlewareSuffix)

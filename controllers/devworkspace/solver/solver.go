@@ -196,3 +196,11 @@ func findCheManager(cheManagerKey client.ObjectKey) (*v2alpha1.CheCluster, error
 
 	return &v2alpha1.CheCluster{}, &solvers.RoutingNotReady{Retry: 10 * time.Second}
 }
+
+func (c *CheRoutingSolver) WorkspaceStopped(routing *controllerv1alpha1.DevWorkspaceRouting, workspaceMeta solvers.DevWorkspaceMetadata) error {
+	cheManager, err := cheManagerOfRouting(routing)
+	if err != nil {
+		return err
+	}
+	return c.provisionRouting(&solvers.RoutingObjects{}, cheManager, routing, workspaceMeta)
+}

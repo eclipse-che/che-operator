@@ -18,6 +18,7 @@ package v1alpha1
 import (
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/devfile/devworkspace-operator/pkg/constants"
 )
 
 // DevWorkspaceRoutingSpec defines the desired state of DevWorkspaceRouting
@@ -204,4 +205,8 @@ type DevWorkspaceRoutingList struct {
 
 func init() {
 	SchemeBuilder.Register(&DevWorkspaceRouting{}, &DevWorkspaceRoutingList{})
+}
+
+func (d *DevWorkspaceRouting) IsWorkspaceStopped() bool {
+	return d.Annotations != nil && d.Annotations[constants.DevWorkspaceStartedStatusAnnotation] == "false"
 }
