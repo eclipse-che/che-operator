@@ -584,6 +584,6 @@ func deleteLegacyObject(name string, objectMeta client.Object, targetNs string, 
 		return err
 	}
 
-	logrus.Infof("Deleted legacy workspace object: %s, name: %s", deploy.GetObjectType(objectMeta), legacyPrefixedName)
+	logrus.Infof("Deleted legacy workspace object: %s name: %s, namespace: %s", deploy.GetObjectType(objectMeta), legacyPrefixedName, targetNs)
 	return nil
 }
