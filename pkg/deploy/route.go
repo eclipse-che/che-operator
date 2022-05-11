@@ -151,11 +151,9 @@ func GetRouteSpec(
 		// Usually host has the following format: <name>-<namespace>.<domain>
 		// If we know domain then we can create a route with a shorter host: <namespace>.<domain>
 		if hostSuffix != "" {
-			hostPrefix := deployContext.CheCluster.Namespace
-
-			cheFlavor := DefaultCheFlavor(deployContext.CheCluster)
-			if cheFlavor == "devspaces" {
-				hostPrefix = cheFlavor
+			hostPrefix := "eclipse-che"
+			if DefaultCheFlavor(deployContext.CheCluster) == "devspaces" {
+				hostPrefix = "devspaces"
 			}
 
 			route.Spec.Host = fmt.Sprintf("%s.%s", hostPrefix, hostSuffix)
