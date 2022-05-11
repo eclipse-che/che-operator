@@ -226,7 +226,7 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	if err = r.reconcileTrustedCerts(ctx, deployContext, req.Name, checluster); err != nil {
-		logrus.Errorf("Failed to reconcile self-signed certificate into namespace '%s': %v", req.Name, err)
+		logrus.Errorf("Failed to reconcile trusted certificates into namespace '%s': %v", req.Name, err)
 		return ctrl.Result{}, err
 	}
 
@@ -273,6 +273,10 @@ func findManagingCheCluster(key types.NamespacedName) *v2alpha1.CheCluster {
 }
 
 func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context, deployContext *deploy.DeployContext, targetNs string, checluster *v2alpha1.CheCluster) error {
+	if err := deleteLegacyObject("server-cert", &corev1.Secret{}, targetNs, checluster, deployContext); err != nil {
+		return err
+	}
+
 	targetCertName := prefixedName("server-cert")
 
 	delSecret := func() error {
@@ -323,10 +327,14 @@ func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context
 }
 
 func (r *CheUserNamespaceReconciler) reconcileTrustedCerts(ctx context.Context, deployContext *deploy.DeployContext, targetNs string, checluster *v2alpha1.CheCluster) error {
+	if err := deleteLegacyObject("trusted-ca-certs", &corev1.ConfigMap{}, targetNs, checluster, deployContext); err != nil {
+		return err
+	}
+
 	targetConfigMapName := prefixedName("trusted-ca-certs")
 
 	delConfigMap := func() error {
-		_, err := deploy.Delete(deployContext, client.ObjectKey{Name: targetConfigMapName, Namespace: targetNs}, &corev1.Secret{})
+		_, err := deploy.Delete(deployContext, client.ObjectKey{Name: targetConfigMapName, Namespace: targetNs}, &corev1.ConfigMap{})
 		return err
 	}
 
@@ -375,6 +383,10 @@ func addToFirst(first map[string]string, second map[string]string) map[string]st
 }
 
 func (r *CheUserNamespaceReconciler) reconcileProxySettings(ctx context.Context, targetNs string, checluster *v2alpha1.CheCluster, deployContext *deploy.DeployContext) error {
+	if err := deleteLegacyObject("proxy-settings", &corev1.ConfigMap{}, targetNs, checluster, deployContext); err != nil {
+		return err
+	}
+
 	proxyConfig, err := che.GetProxyConfiguration(deployContext)
 	if err != nil {
 		return err
@@ -442,9 +454,13 @@ func (r *CheUserNamespaceReconciler) reconcileProxySettings(ctx context.Context,
 }
 
 func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Context, targetNs string, checluster *v2alpha1.CheCluster, deployContext *deploy.DeployContext) error {
+	if err := deleteLegacyObject("git-tls-creds", &corev1.ConfigMap{}, targetNs, checluster, deployContext); err != nil {
+		return err
+	}
+
 	targetName := prefixedName("git-tls-creds")
 	delConfigMap := func() error {
-		_, err := deploy.Delete(deployContext, client.ObjectKey{Name: targetName, Namespace: targetNs}, &corev1.Secret{})
+		_, err := deploy.Delete(deployContext, client.ObjectKey{Name: targetName, Namespace: targetNs}, &corev1.ConfigMap{})
 		return err
 	}
 
@@ -544,4 +560,30 @@ func (r *CheUserNamespaceReconciler) reconcileNodeSelectorAndTolerations(ctx con
 
 func prefixedName(name string) string {
 	return "che-" + name
+}
+
+// Deletes object with a legacy name to avoid mounting several ones under the same path
+// See https://github.com/eclipse/che/issues/21385
+func deleteLegacyObject(name string, objectMeta client.Object, targetNs string, checluster *v2alpha1.CheCluster, deployContext *deploy.DeployContext) error {
+	legacyPrefixedName := checluster.Name + "-" + checluster.Namespace + "-" + name
+	key := client.ObjectKey{Name: legacyPrefixedName, Namespace: targetNs}
+
+	err := deployContext.ClusterAPI.Client.Get(context.TODO(), key, objectMeta)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	err = deployContext.ClusterAPI.Client.Delete(context.TODO(), objectMeta)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	logrus.Infof("Deleted legacy workspace object: %s name: %s, namespace: %s", deploy.GetObjectType(objectMeta), legacyPrefixedName, targetNs)
+	return nil
 }
