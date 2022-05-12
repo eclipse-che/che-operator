@@ -215,7 +215,7 @@ func (c *CheRoutingSolver) cheExposedEndpoints(cheCluster *v2alpha1.CheCluster, 
 
 	for component, endpoints := range componentEndpoints {
 		for _, endpoint := range endpoints {
-			if dw.EndpointExposure(endpoint.Exposure) != dw.PublicEndpointExposure {
+			if dw.EndpointExposure(endpoint.Exposure) == dw.NoneEndpointExposure {
 				continue
 			}
 
@@ -360,7 +360,7 @@ func exposeAllEndpoints(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspa
 	order := 1
 	for componentName, endpoints := range routing.Spec.Endpoints {
 		for _, e := range endpoints {
-			if dw.EndpointExposure(e.Exposure) != dw.PublicEndpointExposure {
+			if dw.EndpointExposure(e.Exposure) == dw.NoneEndpointExposure {
 				continue
 			}
 
