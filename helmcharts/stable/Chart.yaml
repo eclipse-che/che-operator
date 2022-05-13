@@ -49,22 +49,7 @@ annotations:
     \   devWorkspace:\n      enable: true\n"
   artifacthub.io/crds: |-
     - kind: CheCluster
-      version: v1
+      version: v2
       name: checlusters.org.eclipse.che
       displayName: CheCluster
       description: The `CheCluster` custom resource allows defining and managing a Che server installation"
-    - kind: CheBackupServerConfiguration
-      version: v1
-      name: chebackupserverconfigurations.org.eclipse.che
-      displayName: CheBackupServerConfiguration
-      description: The `CheBackupServerConfiguration` custom resource allows defining and managing Eclipse Che Backup Server Configurations
-    - kind: CheClusterRestore
-      version: v1
-      name: checlusterrestores.org.eclipse.che
-      displayName: CheClusterRestore
-      description: The `CheClusterRestore` custom resource allows defining and managing Eclipse Che restore
-    - kind: CheClusterBackup
-      version: v1
-      name: checlusterbackups.org.eclipse.che
-      displayName: CheClusterBackup
-      description: The `CheClusterBackup` custom resource allows defining and managing Eclipse Che backup

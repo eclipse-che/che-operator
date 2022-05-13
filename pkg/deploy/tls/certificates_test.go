@@ -16,8 +16,8 @@ import (
 
 	"testing"
 
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,39 +25,14 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func TestSyncGivenTrustStoreConfigMapToCluster(t *testing.T) {
-	checluster := &orgv1.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "eclipse-che",
-			Name:      "eclipse-che",
-		},
-		Spec: orgv1.CheClusterSpec{
-			Server: orgv1.CheClusterSpecServer{
-				ServerTrustStoreConfigMapName: "trust",
-			},
-		},
-	}
-	ctx := deploy.GetTestDeployContext(checluster, []runtime.Object{})
-
-	certificates := NewCertificatesReconciler()
-	done, err := certificates.syncTrustStoreConfigMapToCluster(ctx)
-	assert.Nil(t, err)
-	assert.True(t, done)
-
-	trustStoreConfigMap := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "trust", Namespace: "eclipse-che"}, trustStoreConfigMap)
-	assert.Nil(t, err)
-	assert.Equal(t, trustStoreConfigMap.ObjectMeta.Labels[injector], "true")
-}
-
 func TestSyncDefaultTrustStoreConfigMapToCluster(t *testing.T) {
-	checluster := &orgv1.CheCluster{
+	checluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
 		},
 	}
-	ctx := deploy.GetTestDeployContext(checluster, []runtime.Object{})
+	ctx := test.GetDeployContext(checluster, []runtime.Object{})
 
 	certificates := NewCertificatesReconciler()
 	done, err := certificates.syncTrustStoreConfigMapToCluster(ctx)
@@ -79,13 +54,13 @@ func TestSyncExistedTrustStoreConfigMapToCluster(t *testing.T) {
 		},
 		Data: map[string]string{"d": "c"},
 	}
-	checluster := &orgv1.CheCluster{
+	checluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
 		},
 	}
-	ctx := deploy.GetTestDeployContext(checluster, []runtime.Object{trustStoreConfigMap})
+	ctx := test.GetDeployContext(checluster, []runtime.Object{trustStoreConfigMap})
 
 	certificates := NewCertificatesReconciler()
 	done, err := certificates.syncTrustStoreConfigMapToCluster(ctx)
@@ -124,7 +99,7 @@ func TestSyncAdditionalCACertsConfigMapToCluster(t *testing.T) {
 		Data: map[string]string{"a2": "b2"},
 	}
 
-	ctx := deploy.GetTestDeployContext(nil, []runtime.Object{cert1})
+	ctx := test.GetDeployContext(nil, []runtime.Object{cert1})
 
 	certificates := NewCertificatesReconciler()
 	done, err := certificates.syncAdditionalCACertsConfigMapToCluster(ctx)

@@ -19,8 +19,11 @@ spec:
   conversion:
     strategy: Webhook
     webhook:
+      conversionReviewVersions: ["v1", "v2"]
       clientConfig:
         service:
-          namespace: system
-          name: webhook-service
+          namespace: eclipse-che
+          name: che-operator-service
           path: /convert
+        # caBundle will be filled on creation
+        # caBundle: Cg==

@@ -18,10 +18,16 @@ import (
 	"time"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	devworkspaceinfra "github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/common/signal"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/sirupsen/logrus"
 
 	dwoApi "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	dwr "github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting"
+
 	"github.com/eclipse-che/che-operator/controllers/devworkspace"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/solver"
 
@@ -51,11 +57,8 @@ import (
 	consolev1 "github.com/openshift/api/console/v1"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	checontroller "github.com/eclipse-che/che-operator/controllers/che"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/signal"
-	"github.com/eclipse-che/che-operator/pkg/util"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -76,7 +79,8 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 
-	orgv2alpha1 "github.com/eclipse-che/che-operator/api/v2alpha1"
+	chev1 "github.com/eclipse-che/che-operator/api/v1"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -114,19 +118,17 @@ func init() {
 	logger := zap.New(zap.UseFlagOptions(&opts))
 	ctrl.SetLogger(logger)
 
-	deploy.InitDefaults(defaultsPath)
-
-	if _, _, err := util.DetectOpenShift(); err != nil {
+	if err := infrastructure.Initialize(); err != nil {
 		logger.Error(err, "Unable determine installation platform")
 		os.Exit(1)
 	}
 
+	defaults.Initialize(defaultsPath)
+
 	printVersion(logger)
 
-	// Uncomment when orgv2alpha1 will be ready
-	// utilruntime.Must(orgv2alpha1.AddToScheme(scheme))
-
-	utilruntime.Must(orgv2alpha1.AddToScheme(scheme))
+	utilruntime.Must(chev1.AddToScheme(scheme))
+	utilruntime.Must(chev2.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(admissionregistrationv1.AddToScheme(scheme))
@@ -134,13 +136,12 @@ func init() {
 	utilruntime.Must(rbacv1.AddToScheme(scheme))
 
 	// Setup Scheme for all resources
-	utilruntime.Must(orgv1.AddToScheme(scheme))
 	utilruntime.Must(image_puller_api.AddToScheme(scheme))
 	utilruntime.Must(packagesv1.AddToScheme(scheme))
 	utilruntime.Must(operatorsv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(operatorsv1.AddToScheme(scheme))
 
-	if util.IsOpenShift {
+	if infrastructure.IsOpenShift() {
 		utilruntime.Must(routev1.AddToScheme(scheme))
 		utilruntime.Must(oauthv1.AddToScheme(scheme))
 		utilruntime.Must(userv1.AddToScheme(scheme))
@@ -175,13 +176,8 @@ func printVersion(logger logr.Logger) {
 	logger.Info("Address ", "Probe", probeAddr)
 
 	infra := "Kubernetes"
-	if util.IsOpenShift {
-		infra = "OpenShift"
-		if util.IsOpenShift4 {
-			infra += " v4.x"
-		} else {
-			infra += " v3.x"
-		}
+	if infrastructure.IsOpenShift() {
+		infra = "OpenShift v4.x"
 	}
 	logger.Info("Operator is running on ", "Infrastructure", infra)
 }
@@ -216,7 +212,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if !util.HasK8SResourceObject(discoveryClient, leasesApiResourceName) {
+	if !utils.IsK8SResourceServed(discoveryClient, leasesApiResourceName) {
 		setupLog.Info("Leader election was disabled", "Cause:", leasesApiResourceName+"k8s api resource is an absent.")
 		enableLeaderElection = false
 	}
@@ -263,8 +259,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	period := signal.GetTerminationGracePeriodSeconds(mgr.GetAPIReader(), util.GetCheOperatorNamespace())
-	sigHandler := signal.SetupSignalHandler(period)
+	terminationPeriod := int64(20)
+	if !test.IsTestMode() {
+		namespace, err := infrastructure.GetOperatorNamespace()
+		if err == nil {
+			terminationPeriod = signal.GetTerminationGracePeriodSeconds(mgr.GetAPIReader(), namespace)
+		}
+	}
+	sigHandler := signal.SetupSignalHandler(terminationPeriod)
 
 	// we install the devworkspace CheCluster reconciler even if dw is not supported so that it
 	// can write meaningful status messages into the CheCluster CRs.
@@ -287,7 +289,7 @@ func main() {
 
 		// DWO use the infrastructure package for openshift detection. It needs to be initialized
 		// but only supports OpenShift v4 or Kubernetes.
-		if err := infrastructure.Initialize(); err != nil {
+		if err := devworkspaceinfra.Initialize(); err != nil {
 			setupLog.Error(err, "failed to evaluate infrastructure which is needed for DevWorkspace support")
 			os.Exit(1)
 		}
@@ -316,6 +318,11 @@ func main() {
 		})
 	}
 
+	if err = (&chev2.CheCluster{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "CheCluster")
+		os.Exit(1)
+	}
+
 	// +kubebuilder:scaffold:builder
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
@@ -335,7 +342,7 @@ func main() {
 }
 
 func getCacheFunc() (cache.NewCacheFunc, error) {
-	partOfCheRequirement, err := labels.NewRequirement(deploy.KubernetesPartOfLabelKey, selection.Equals, []string{deploy.CheEclipseOrg})
+	partOfCheRequirement, err := labels.NewRequirement(constants.KubernetesPartOfLabelKey, selection.Equals, []string{constants.CheEclipseOrg})
 	if err != nil {
 		return nil, err
 	}
@@ -393,7 +400,7 @@ func getCacheFunc() (cache.NewCacheFunc, error) {
 		},
 	}
 
-	if !util.IsOpenShift {
+	if !infrastructure.IsOpenShift() {
 		delete(selectors, routeKey)
 		delete(selectors, oauthKey)
 	}

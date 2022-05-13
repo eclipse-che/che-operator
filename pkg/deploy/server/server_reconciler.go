@@ -12,19 +12,14 @@
 package server
 
 import (
-	"context"
-
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-)
-
-const (
-	AvailableStatus               = "Available"
-	UnavailableStatus             = "Unavailable"
-	RollingUpdateInProgressStatus = "Available: Rolling update in progress"
 )
 
 type CheServerReconciler struct {
@@ -35,13 +30,8 @@ func NewCheServerReconciler() *CheServerReconciler {
 	return &CheServerReconciler{}
 }
 
-func (s *CheServerReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
-	done, err := s.syncLegacyConfigMap(ctx)
-	if !done {
-		return reconcile.Result{}, false, err
-	}
-
-	done, err = s.syncCheConfigMap(ctx)
+func (s *CheServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
+	done, err := s.syncCheConfigMap(ctx)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
@@ -58,12 +48,17 @@ func (s *CheServerReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Re
 		return reconcile.Result{}, false, err
 	}
 
-	done, err = s.updateAvailabilityStatus(ctx)
+	done, err = s.syncActiveChePhase(ctx)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
 
-	done, err = s.updateCheVersion(ctx)
+	done, err = s.syncCheVersion(ctx)
+	if !done {
+		return reconcile.Result{}, false, err
+	}
+
+	done, err = s.syncCheURL(ctx)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
@@ -71,11 +66,11 @@ func (s *CheServerReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Re
 	return reconcile.Result{}, true, nil
 }
 
-func (s *CheServerReconciler) Finalize(ctx *deploy.DeployContext) bool {
+func (s *CheServerReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	return true
 }
 
-func (s *CheServerReconciler) syncCheConfigMap(ctx *deploy.DeployContext) (bool, error) {
+func (s *CheServerReconciler) syncCheConfigMap(ctx *chetypes.DeployContext) (bool, error) {
 	data, err := s.getCheConfigMapData(ctx)
 	if err != nil {
 		return false, err
@@ -84,35 +79,7 @@ func (s *CheServerReconciler) syncCheConfigMap(ctx *deploy.DeployContext) (bool,
 	return deploy.SyncConfigMapDataToCluster(ctx, CheConfigMapName, data, getComponentName(ctx))
 }
 
-func (s CheServerReconciler) syncLegacyConfigMap(ctx *deploy.DeployContext) (bool, error) {
-	// Get custom ConfigMap
-	// if it exists, add the data into CustomCheProperties
-	customConfigMap := &corev1.ConfigMap{}
-	exists, err := deploy.GetNamespacedObject(ctx, "custom", customConfigMap)
-	if err != nil {
-		return false, err
-	} else if exists {
-		logrus.Info("Found legacy custom ConfigMap. Adding those values to CheCluster.Spec.Server.CustomCheProperties")
-
-		if ctx.CheCluster.Spec.Server.CustomCheProperties == nil {
-			ctx.CheCluster.Spec.Server.CustomCheProperties = make(map[string]string)
-		}
-		for k, v := range customConfigMap.Data {
-			ctx.CheCluster.Spec.Server.CustomCheProperties[k] = v
-		}
-
-		err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
-		if err != nil {
-			return false, err
-		}
-
-		return deploy.DeleteNamespacedObject(ctx, "custom", &corev1.ConfigMap{})
-	}
-
-	return true, nil
-}
-
-func (s *CheServerReconciler) updateAvailabilityStatus(ctx *deploy.DeployContext) (bool, error) {
+func (s *CheServerReconciler) syncActiveChePhase(ctx *chetypes.DeployContext) (bool, error) {
 	cheDeployment := &appsv1.Deployment{}
 	exists, err := deploy.GetNamespacedObject(ctx, getComponentName(ctx), cheDeployment)
 	if err != nil {
@@ -121,41 +88,34 @@ func (s *CheServerReconciler) updateAvailabilityStatus(ctx *deploy.DeployContext
 
 	if exists {
 		if cheDeployment.Status.AvailableReplicas < 1 {
-			if ctx.CheCluster.Status.CheClusterRunning != UnavailableStatus {
-				ctx.CheCluster.Status.CheClusterRunning = UnavailableStatus
-				err := deploy.UpdateCheCRStatus(ctx, "status: Che API", UnavailableStatus)
-				return err == nil, err
+			if ctx.CheCluster.Status.ChePhase != chev2.ClusterPhaseInactive {
+				ctx.CheCluster.Status.ChePhase = chev2.ClusterPhaseInactive
+				err := deploy.UpdateCheCRStatus(ctx, "Phase", chev2.ClusterPhaseInactive)
+				return false, err
 			}
-		} else if cheDeployment.Status.Replicas != 1 {
-			if ctx.CheCluster.Status.CheClusterRunning != RollingUpdateInProgressStatus {
-				ctx.CheCluster.Status.CheClusterRunning = RollingUpdateInProgressStatus
-				err := deploy.UpdateCheCRStatus(ctx, "status: Che API", RollingUpdateInProgressStatus)
-				return err == nil, err
+		} else if cheDeployment.Status.Replicas > 1 {
+			if ctx.CheCluster.Status.ChePhase != chev2.RollingUpdate {
+				ctx.CheCluster.Status.ChePhase = chev2.RollingUpdate
+				err := deploy.UpdateCheCRStatus(ctx, "Phase", chev2.RollingUpdate)
+				return false, err
 			}
 		} else {
-			if ctx.CheCluster.Status.CheClusterRunning != AvailableStatus {
-				cheFlavor := deploy.DefaultCheFlavor(ctx.CheCluster)
-				name := "Eclipse Che"
-				if cheFlavor == "devspaces" {
-					name = "Red Hat OpenShift Dev Spaces"
-				}
-
-				logrus.Infof(name+" is now available at: %s", ctx.CheCluster.Status.CheURL)
-				ctx.CheCluster.Status.CheClusterRunning = AvailableStatus
-				err := deploy.UpdateCheCRStatus(ctx, "status: Che API", AvailableStatus)
+			if ctx.CheCluster.Status.ChePhase != chev2.ClusterPhaseActive {
+				ctx.CheCluster.Status.ChePhase = chev2.ClusterPhaseActive
+				err := deploy.UpdateCheCRStatus(ctx, "Phase", chev2.ClusterPhaseActive)
 				return err == nil, err
 			}
 		}
 	} else {
-		ctx.CheCluster.Status.CheClusterRunning = UnavailableStatus
-		err := deploy.UpdateCheCRStatus(ctx, "status: Che API", UnavailableStatus)
-		return err == nil, err
+		ctx.CheCluster.Status.ChePhase = chev2.ClusterPhaseInactive
+		err := deploy.UpdateCheCRStatus(ctx, "Phase", chev2.ClusterPhaseInactive)
+		return false, err
 	}
 
 	return true, nil
 }
 
-func (s *CheServerReconciler) syncDeployment(ctx *deploy.DeployContext) (bool, error) {
+func (s *CheServerReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
 	spec, err := s.getDeploymentSpec(ctx)
 	if err != nil {
 		return false, err
@@ -164,12 +124,25 @@ func (s *CheServerReconciler) syncDeployment(ctx *deploy.DeployContext) (bool, e
 	return deploy.SyncDeploymentSpecToCluster(ctx, spec, deploy.DefaultDeploymentDiffOpts)
 }
 
-func (s CheServerReconciler) updateCheVersion(ctx *deploy.DeployContext) (bool, error) {
-	cheVersion := deploy.DefaultCheVersion()
+func (s CheServerReconciler) syncCheVersion(ctx *chetypes.DeployContext) (bool, error) {
+	cheVersion := defaults.GetCheVersion()
 	if ctx.CheCluster.Status.CheVersion != cheVersion {
 		ctx.CheCluster.Status.CheVersion = cheVersion
 		err := deploy.UpdateCheCRStatus(ctx, "version", cheVersion)
 		return err == nil, err
 	}
+	return true, nil
+}
+func (s CheServerReconciler) syncCheURL(ctx *chetypes.DeployContext) (bool, error) {
+	var cheUrl = "https://" + ctx.CheHost
+	if ctx.CheCluster.Status.CheURL != cheUrl {
+		product := map[bool]string{true: "Red Hat OpenShift Dev Spaces", false: "Eclipse Che"}[defaults.GetCheFlavor() == "devspaces"]
+		logrus.Infof("%s is now available at: %s", product, cheUrl)
+
+		ctx.CheCluster.Status.CheURL = cheUrl
+		err := deploy.UpdateCheCRStatus(ctx, getComponentName(ctx)+" server URL", cheUrl)
+		return err == nil, err
+	}
+
 	return true, nil
 }

@@ -1,0 +1,30 @@
+#
+# Copyright (c) 2019-2021 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Red Hat, Inc. - initial API and implementation
+#
+
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.beta.openshift.io/serving-cert-secret-name: che-operator-webhook-server-cert
+  labels:
+    app.kubernetes.io/component: che-operator
+    app.kubernetes.io/instance: che
+    app.kubernetes.io/name: che
+    app.kubernetes.io/part-of: che.eclipse.org
+  name: che-operator-service
+  namespace: eclipse-che
+spec:
+  ports:
+  - port: 443
+    targetPort: 9443
+  selector:
+    app: che-operator

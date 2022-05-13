@@ -19,7 +19,7 @@ set -o pipefail
 set -u
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
-source "${OPERATOR_REPO}"/.github/bin/common.sh
+source "${OPERATOR_REPO}/.github/bin/common.sh"
 
 # Define Disconnected tests environment
 export INTERNAL_REGISTRY_URL=${INTERNAL_REGISTRY_URL-"UNDEFINED"}

@@ -12,21 +12,21 @@
 package che
 
 import (
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/util"
 	configv1 "github.com/openshift/api/config/v1"
 )
 
-func GetProxyConfiguration(deployContext *deploy.DeployContext) (*deploy.Proxy, error) {
-	// OpenShift 4.x
-	if util.IsOpenShift4 {
+func GetProxyConfiguration(deployContext *chetypes.DeployContext) (*chetypes.Proxy, error) {
+	if infrastructure.IsOpenShift() {
 		clusterProxy := &configv1.Proxy{}
 		exists, err := deploy.GetClusterObject(deployContext, "cluster", clusterProxy)
 		if err != nil {
 			return nil, err
 		}
 
-		clusterWideProxyConf := &deploy.Proxy{}
+		clusterWideProxyConf := &chetypes.Proxy{}
 		if exists {
 			clusterWideProxyConf, err = deploy.ReadClusterWideProxyConfiguration(clusterProxy)
 			if err != nil {
@@ -34,7 +34,7 @@ func GetProxyConfiguration(deployContext *deploy.DeployContext) (*deploy.Proxy, 
 			}
 		}
 
-		cheClusterProxyConf, err := deploy.ReadCheClusterProxyConfiguration(deployContext.CheCluster)
+		cheClusterProxyConf, err := deploy.ReadCheClusterProxyConfiguration(deployContext)
 		if err != nil {
 			return nil, err
 		}
@@ -57,7 +57,7 @@ func GetProxyConfiguration(deployContext *deploy.DeployContext) (*deploy.Proxy, 
 	}
 
 	// OpenShift 3.x and k8s
-	cheClusterProxyConf, err := deploy.ReadCheClusterProxyConfiguration(deployContext.CheCluster)
+	cheClusterProxyConf, err := deploy.ReadCheClusterProxyConfiguration(deployContext)
 	if err != nil {
 		return nil, err
 	}

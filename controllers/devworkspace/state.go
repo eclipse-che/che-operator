@@ -13,11 +13,9 @@
 package devworkspace
 
 import (
-	"context"
 	"time"
 
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
-	chev2alpha1 "github.com/eclipse-che/che-operator/api/v2alpha1"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -36,15 +34,6 @@ const (
 // which we only do, if there is the controller.devfile.io resource group in the cluster
 // and DevWorkspaces are enabled at least on one CheCluster
 func ShouldDevWorkspacesBeEnabled(mgr manager.Manager) (bool, error) {
-	dwEnabled, err := doesCheClusterWithDevWorkspaceEnabledExist(mgr)
-	if err != nil {
-		return false, err
-	}
-
-	if !dwEnabled {
-		return false, nil
-	}
-
 	// we assume that if the group is there, then we have all the expected CRs there, too.
 	dwApiExists, err := findApiGroup(mgr, "controller.devfile.io")
 	if err != nil {
@@ -78,42 +67,15 @@ func NotifyWhenDevWorkspaceEnabled(mgr manager.Manager, stop <-chan struct{}, ca
 	}
 }
 
-func GetDevWorkspaceState(scheme *runtime.Scheme, cr *chev2alpha1.CheCluster) DevWorkspaceState {
+func GetDevWorkspaceState(scheme *runtime.Scheme, cr *chev2.CheCluster) DevWorkspaceState {
 	if !scheme.IsGroupRegistered("controller.devfile.io") {
 		return APINotPresentState
-	}
-
-	if !cr.Spec.IsEnabled() {
-		return DisabledState
 	}
 
 	return EnabledState
 }
 
 var nonCachedClient *client.Client
-
-func doesCheClusterWithDevWorkspaceEnabledExist(mgr manager.Manager) (bool, error) {
-	if nonCachedClient == nil {
-		c, err := client.New(mgr.GetConfig(), client.Options{
-			Scheme: mgr.GetScheme(),
-		})
-		if err != nil {
-			return false, err
-		}
-		nonCachedClient = &c
-	}
-
-	cheClusters := &orgv1.CheClusterList{}
-	err := (*nonCachedClient).List(context.TODO(), cheClusters, &client.ListOptions{})
-	if err != nil {
-		return false, err
-	}
-
-	// Previous logic was depended on cheCluster.Spec.DevWorkspace.Enable field.
-	// Since DevWorkspace.Enable is enabled by default, then it is enough to check
-	// CheCluster existence.
-	return len(cheClusters.Items) != 0, nil
-}
 
 func findApiGroup(mgr manager.Manager, apiGroup string) (bool, error) {
 	cl, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())

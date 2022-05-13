@@ -12,15 +12,17 @@
 package registry
 
 import (
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/pointer"
 )
 
 func GetSpecRegistryDeployment(
-	deployContext *deploy.DeployContext,
+	deployContext *chetypes.DeployContext,
 	registryType string,
 	registryImage string,
 	env []corev1.EnvVar,
@@ -36,10 +38,8 @@ func GetSpecRegistryDeployment(
 
 	terminationGracePeriodSeconds := int64(30)
 	name := registryType + "-registry"
-	labels, labelSelector := deploy.GetLabelsAndSelector(deployContext.CheCluster, name)
+	labels, labelSelector := deploy.GetLabelsAndSelector(name)
 	_25Percent := intstr.FromString("25%")
-	_1 := int32(1)
-	_2 := int32(2)
 	isOptional := true
 	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -52,8 +52,8 @@ func GetSpecRegistryDeployment(
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas:             &_1,
-			RevisionHistoryLimit: &_2,
+			Replicas:             pointer.Int32Ptr(1),
+			RevisionHistoryLimit: pointer.Int32Ptr(2),
 			Selector:             &metav1.LabelSelector{MatchLabels: labelSelector},
 			Strategy: appsv1.DeploymentStrategy{
 				Type: appsv1.RollingUpdateDeploymentStrategyType,
@@ -69,7 +69,7 @@ func GetSpecRegistryDeployment(
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name:            "che-" + name,
+							Name:            name,
 							Image:           registryImage,
 							ImagePullPolicy: registryImagePullPolicy,
 							Ports: []corev1.ContainerPort{

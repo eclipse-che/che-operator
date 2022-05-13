@@ -10,5 +10,9 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-k8s:
-  ingressDomain: "192.168.99.101.nip.io"
+ingress:
+  domain: ""
+  auth:
+    identityProviderURL: ""
+    oAuthClientName: ""
+    oAuthSecret: ""

@@ -12,15 +12,19 @@
 package deploy
 
 import (
+	"fmt"
+
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 type Reconcilable interface {
 	// Reconcile object.
-	Reconcile(ctx *DeployContext) (result reconcile.Result, done bool, err error)
+	Reconcile(ctx *chetypes.DeployContext) (result reconcile.Result, done bool, err error)
 	// Does finalization (removes cluster scope objects, etc)
-	Finalize(ctx *DeployContext) (done bool)
+	Finalize(ctx *chetypes.DeployContext) (done bool)
 }
 
 type ReconcileManager struct {
@@ -41,17 +45,19 @@ func (manager *ReconcileManager) RegisterReconciler(reconciler Reconcilable) {
 
 // Reconcile all objects in a order they have been added
 // If reconciliation failed then CheCluster status will be updated accordingly.
-func (manager *ReconcileManager) ReconcileAll(ctx *DeployContext) (reconcile.Result, bool, error) {
+func (manager *ReconcileManager) ReconcileAll(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	for _, reconciler := range manager.reconcilers {
 		result, done, err := reconciler.Reconcile(ctx)
 		if err != nil {
 			manager.failedReconciler = reconciler
-			if err := SetStatusDetails(ctx, InstallOrUpdateFailed, err.Error(), ""); err != nil {
+			reconcilerName := GetObjectType(reconciler)
+			errMsg := fmt.Sprintf("Reconciler failed %s, cause: %v", reconcilerName, err)
+			if err := SetStatusDetails(ctx, constants.InstallOrUpdateFailed, errMsg); err != nil {
 				logrus.Errorf("Failed to update checluster status, cause: %v", err)
 			}
 		} else if manager.failedReconciler == reconciler {
 			manager.failedReconciler = nil
-			if err := SetStatusDetails(ctx, "", "", ""); err != nil {
+			if err := SetStatusDetails(ctx, "", ""); err != nil {
 				logrus.Errorf("Failed to update checluster status, cause: %v", err)
 			}
 		}
@@ -64,12 +70,16 @@ func (manager *ReconcileManager) ReconcileAll(ctx *DeployContext) (reconcile.Res
 	return reconcile.Result{}, true, nil
 }
 
-func (manager *ReconcileManager) FinalizeAll(ctx *DeployContext) (done bool) {
+func (manager *ReconcileManager) FinalizeAll(ctx *chetypes.DeployContext) (done bool) {
 	done = true
 	for _, reconciler := range manager.reconcilers {
 		if completed := reconciler.Finalize(ctx); !completed {
 			reconcilerName := GetObjectType(reconciler)
-			logrus.Errorf("Finalization failed for reconciler: `%s`", reconcilerName)
+			errMsg := fmt.Sprintf("Finalization failed for reconciler: %s", reconcilerName)
+
+			ctx.CheCluster.Status.Message = errMsg
+			_ = UpdateCheCRStatus(ctx, "Message", errMsg)
+
 			done = false
 		}
 	}

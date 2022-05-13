@@ -12,6 +12,8 @@
 package deploy
 
 import (
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	rbac "k8s.io/api/rbac/v1"
@@ -23,7 +25,7 @@ var rolebindingDiffOpts = cmp.Options{
 }
 
 func SyncRoleBindingToCluster(
-	deployContext *DeployContext,
+	deployContext *chetypes.DeployContext,
 	name string,
 	serviceAccountName string,
 	roleName string,
@@ -34,13 +36,13 @@ func SyncRoleBindingToCluster(
 }
 
 func getRoleBindingSpec(
-	deployContext *DeployContext,
+	deployContext *chetypes.DeployContext,
 	name string,
 	serviceAccountName string,
 	roleName string,
 	roleKind string) *rbac.RoleBinding {
 
-	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
+	labels := GetLabels(defaults.GetCheFlavor())
 	roleBinding := &rbac.RoleBinding{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "RoleBinding",

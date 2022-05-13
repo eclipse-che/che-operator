@@ -188,7 +188,7 @@ updateVersionFile() {
 releaseHelmPackage() {
   echo "[INFO] releaseHelmPackage :: release Helm package"
   yq -rYi ".version=\"${RELEASE}\"" "$RELEASE_DIR/helmcharts/stable/Chart.yaml"
-  make update-helmcharts HELM_FOLDER="stable"
+  make update-helmcharts CHANNEL=stable
   git add -A helmcharts/stable
   git commit -m "ci: Update Helm Charts to $RELEASE" --signoff
 }
@@ -205,7 +205,7 @@ releaseOlmFiles() {
 
     echo "[INFO] releaseOlmFiles :: Validate changes"
     grep -q "version: "$RELEASE $openshift/che-operator.clusterserviceversion.yaml
-    test -f $openshift/org_v1_che_crd.yaml
+    test -f $openshift/org.eclipse.che_checlusters.yaml
   done
   echo "[INFO] releaseOlmFiles :: Commit changes"
   if git status --porcelain; then

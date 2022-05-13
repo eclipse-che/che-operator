@@ -22,9 +22,9 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 OPERATOR_DIR=$(dirname $(dirname $(readlink -f "${BASH_SOURCE[0]}")))
-BASE_DIR="${OPERATOR_DIR}/olm"
+source "${OPERATOR_REPO}/.github/bin/common.sh"
 
-source ${BASE_DIR}/check-yq.sh
+BASE_DIR="${OPERATOR_DIR}/olm"
 
 export LAST_RELEASE_VERSION
 
@@ -55,8 +55,6 @@ if [[ -z "$RELEASE" ]] || [[ -z "$CHANNEL" ]]; then
   exit 1
 fi
 
-
-source ${BASE_DIR}/olm.sh
 echo "[INFO] Creating release '${RELEASE}'"
 
 NEXT_BUNDLE_PATH=$(getBundlePath "next")
@@ -67,13 +65,12 @@ echo "[INFO] Last package next version: ${lastPackageNextVersion}"
 
 STABLE_BUNDLE_PATH=$(getBundlePath $CHANNEL)
 RELEASE_CSV="${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
-RELEASE_CHE_CRD="${STABLE_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
+RELEASE_CHE_CRD="${STABLE_BUNDLE_PATH}/manifests/org.eclipse.che_checlusters.yaml"
 
 MANAGER_YAML="${OPERATOR_DIR}/config/manager/manager.yaml"
 
 setLatestReleasedVersion
 downloadLatestReleasedBundleCRCRD
-packageName=$(getPackageName)
 
 echo "[INFO] Will create release '${RELEASE}' from next version ${lastPackageNextVersion}'"
 
@@ -83,14 +80,14 @@ sed \
 -e 's|quay.io/eclipse/che-dashboard:next|quay.io/eclipse/che-dashboard:'${RELEASE}'|' \
 -e 's|"devfileRegistryImage": *"quay.io/eclipse/che-devfile-registry:next"|"devfileRegistryImage": ""|' \
 -e 's|"pluginRegistryImage": *"quay.io/eclipse/che-plugin-registry:next"|"pluginRegistryImage": ""|' \
--e "/^  replaces: ${packageName}.v.*/d" \
+-e "/^  replaces: ${ECLIPSE_CHE_PACKAGE_NAME}.v.*/d" \
 -e "s/^  version: ${lastPackageNextVersion}/  version: ${RELEASE}/" \
 -e "s/: next/: ${RELEASE}/" \
 -e "s/:next/:${RELEASE}/" \
 -e "s/${lastPackageNextVersion}/${RELEASE}/" \
 -e "s/createdAt:.*$/createdAt: \"$(date -u +%FT%TZ)\"/" "${LAST_NEXT_CSV}" > "${RELEASE_CSV}"
 
-cp "${NEXT_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml" "${RELEASE_CHE_CRD}"
+cp "${NEXT_BUNDLE_PATH}/manifests/org.eclipse.che_checlusters.yaml" "${RELEASE_CHE_CRD}"
 cp -rf "${NEXT_BUNDLE_PATH}/bundle.Dockerfile" "${STABLE_BUNDLE_PATH}"
 cp -rf "${NEXT_BUNDLE_PATH}/metadata" "${STABLE_BUNDLE_PATH}"
 cp -rf "${NEXT_BUNDLE_PATH}/tests" "${STABLE_BUNDLE_PATH}"

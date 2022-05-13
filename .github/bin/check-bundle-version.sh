@@ -55,7 +55,7 @@ compareVersions() {
 
   if (( $VERSION_NEW_NUMBER <= $VERSION_CURRENT_NUMBER )); then
     echo "[ERROR] New next bundle version is less than the current one."
-    echo "[ERROR] Please update next bundle with script 'make update-resources -s'"
+    echo "[ERROR] Please update next bundle with script 'make update-dev-resources'"
     exit 1
   fi
 }

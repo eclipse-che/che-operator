@@ -16,8 +16,8 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/eclipse-che/che-operator/api/v2alpha1"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -60,7 +60,7 @@ func GetGatewayWorkspaceConfigMapName(workspaceID string) string {
 	return workspaceID + "-route"
 }
 
-func GetLabelsForComponent(cluster *v2alpha1.CheCluster, component string) map[string]string {
+func GetLabelsForComponent(cluster *chev2.CheCluster, component string) map[string]string {
 	return GetLabelsFromNames(cluster.Name, component)
 }
 
@@ -68,13 +68,13 @@ func GetLabelsFromNames(appName string, component string) map[string]string {
 	return AddStandardLabelsFromNames(appName, component, map[string]string{})
 }
 
-func AddStandardLabelsForComponent(cluster *v2alpha1.CheCluster, component string, labels map[string]string) map[string]string {
+func AddStandardLabelsForComponent(cluster *chev2.CheCluster, component string, labels map[string]string) map[string]string {
 	return AddStandardLabelsFromNames(cluster.Name, component, labels)
 }
 
 func AddStandardLabelsFromNames(appName string, component string, labels map[string]string) map[string]string {
 	labels["app.kubernetes.io/name"] = appName
-	labels["app.kubernetes.io/part-of"] = deploy.CheEclipseOrg
+	labels["app.kubernetes.io/part-of"] = constants.CheEclipseOrg
 	labels["app.kubernetes.io/component"] = component
 	return labels
 }
@@ -87,16 +87,16 @@ func GetGatewayConfigurerImage() string {
 	return read(gatewayConfigurerImageEnvVarName, defaultGatewayConfigurerImage)
 }
 
-func GetIngressAnnotations(cluster *v2alpha1.CheCluster) map[string]string {
-	if len(cluster.Spec.K8s.IngressAnnotations) > 0 {
-		return cluster.Spec.K8s.IngressAnnotations
+func GetIngressAnnotations(cluster *chev2.CheCluster) map[string]string {
+	if len(cluster.Spec.Ingress.Annotations) > 0 {
+		return cluster.Spec.Ingress.Annotations
 	}
 	return DefaultIngressAnnotations
 }
 
-func GetGatewayWorkspaceConfigMapLabels(cluster *v2alpha1.CheCluster) map[string]string {
-	if len(cluster.Spec.Gateway.ConfigLabels) > 0 {
-		return cluster.Spec.Gateway.ConfigLabels
+func GetGatewayWorkspaceConfigMapLabels(cluster *chev2.CheCluster) map[string]string {
+	if len(cluster.Spec.Ingress.Auth.Gateway.ConfigLabels) > 0 {
+		return cluster.Spec.Ingress.Auth.Gateway.ConfigLabels
 	}
 	return defaultGatewayConfigLabels
 }

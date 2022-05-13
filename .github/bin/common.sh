@@ -11,6 +11,11 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
+export ECLIPSE_CHE_PACKAGE_NAME="eclipse-che-preview-openshift"
+export ECLIPSE_CHE_CATALOG_SOURCE_NAME="eclipse-che-custom-catalog-source"
+export ECLIPSE_CHE_SUBSCRIPTION_NAME="eclipse-che-subscription"
+export DEV_WORKSPACE_CATALOG_SOURCE_NAME="custom-devworkspace-operator-catalog"
+
 catchFinish() {
   result=$?
 
@@ -20,6 +25,8 @@ catchFinish() {
   else
     echo "[INFO] Job completed successfully."
   fi
+
+  rm -rf ${OPERATOR_REPO}/tmp
 
   echo "[INFO] Please check github actions artifacts."
   exit $result
@@ -54,9 +61,11 @@ initTemplates() {
   export PREVIOUS_OPERATOR_VERSION_TEMPLATE_PATH=${CHECTL_TEMPLATES_BASE_DIR}/${PREVIOUS_PACKAGE_VERSION}
   export LAST_OPERATOR_VERSION_TEMPLATE_PATH=${CHECTL_TEMPLATES_BASE_DIR}/${LAST_PACKAGE_VERSION}
 
-  copyChectlTemplates "${PREVIOUS_OPERATOR_VERSION_CLONE_PATH}" "${PREVIOUS_OPERATOR_VERSION_TEMPLATE_PATH}/che-operator"
-  copyChectlTemplates "${LAST_OPERATOR_VERSION_CLONE_PATH}" "${LAST_OPERATOR_VERSION_TEMPLATE_PATH}/che-operator"
-  copyChectlTemplates "${OPERATOR_REPO}" "${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH}/che-operator"
+  pushd "${OPERATOR_REPO}" || exit 1
+  make gen-chectl-tmpl SOURCE="${PREVIOUS_OPERATOR_VERSION_CLONE_PATH}" TARGET="${PREVIOUS_OPERATOR_VERSION_TEMPLATE_PATH}"
+  make gen-chectl-tmpl SOURCE="${LAST_OPERATOR_VERSION_CLONE_PATH}" TARGET="${LAST_OPERATOR_VERSION_TEMPLATE_PATH}"
+  make gen-chectl-tmpl SOURCE="${OPERATOR_REPO}" TARGET="${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH}"
+  popd || exit 1
 }
 
 getLatestStableVersions() {
@@ -66,12 +75,6 @@ getLatestStableVersions() {
   export PREVIOUS_PACKAGE_VERSION=$(echo "${tags}" | sed -n 2p | cut -d ' ' -f2)
   export LAST_PACKAGE_VERSION=$(echo "${tags}" | sed -n 1p | cut -d ' ' -f2)
   git remote remove operator
-}
-
-copyChectlTemplates() {
-  pushd "${OPERATOR_REPO}" || exit
-  make chectl-templ "SRC=${1}" "TARGET=${2}"
-  popd || exit
 }
 
 collectLogs() {
@@ -85,7 +88,7 @@ collectLogs() {
 
   # additionally grab server logs for fast access
   chectl server:logs -n $NAMESPACE -d $ARTIFACTS_DIR
-  set -ex
+  set -e
 }
 
 RESOURCES_DIR_NAME='resources'
@@ -181,23 +184,65 @@ collectClusterScopeResources() {
 }
 
 buildCheOperatorImage() {
-  docker build -t "${OPERATOR_IMAGE}" -f Dockerfile --build-arg TESTS=false . && docker save "${OPERATOR_IMAGE}" > /tmp/operator.tar
+  docker build -t "${OPERATOR_IMAGE}" -f Dockerfile --build-arg SKIP_TESTS=true . && docker save "${OPERATOR_IMAGE}" > /tmp/operator.tar
 }
 
 copyCheOperatorImageToMinikube() {
   eval $(minikube docker-env) && docker load -i  /tmp/operator.tar && rm  /tmp/operator.tar
 }
 
-deployEclipseCheOnWithOperator() {
+deployEclipseCheWithHelm() {
   local chectlbin=$1
   local platform=$2
   local templates=$3
   local customimage=$4
+  local channel="next"
 
-  local domainFlag=""
-  if [[ ${platform} == "minikube" ]]; then
-    domainFlag="--domain $(minikube ip).nip.io"
+  # Deploy Eclipse Che to have Cert Manager and Dex installed
+  deployEclipseCheWithOperator "${chectlbin}" "${platform}" "${templates}" "${customimage}"
+
+  # Get configuration
+  local identityProvider=$(kubectl get checluster/eclipse-che -n ${NAMESPACE} -o jsonpath='{.spec.ingress.auth.identityProviderURL}')
+  local oAuthSecret=$(kubectl get checluster/eclipse-che -n ${NAMESPACE} -o jsonpath='{.spec.ingress.auth.oAuthSecret}')
+  local oAuthClientName=$(kubectl get checluster/eclipse-che -n ${NAMESPACE} -o jsonpath='{.spec.ingress.auth.oAuthClientName}')
+  local domain=$(kubectl get checluster/eclipse-che -n ${NAMESPACE} -o jsonpath='{.spec.ingress.domain}')
+
+  # Delete Eclipse Che (Cert Manager and Dex are still there)
+  ${chectlbin} server:delete -y -n ${NAMESPACE}
+
+  # Prepare HelmCharts
+  HELMCHART_DIR=/tmp/chectl-helmcharts
+  OPERATOR_DEPLOYMENT="${HELMCHART_DIR}"/templates/che-operator.Deployment.yaml
+
+  rm -rf "${HELMCHART_DIR}" && cp -r "${OPERATOR_REPO}/helmcharts/${channel}" "${HELMCHART_DIR}"
+
+  if [[ ${customimage} == "true"  ]]; then
+    yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' "${OPERATOR_DEPLOYMENT}"
+    yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' "${OPERATOR_DEPLOYMENT}"
   fi
+
+  # Deploy Eclipse Che with Helm
+  pushd "${HELMCHART_DIR}" || exit 1
+  helm install che \
+    --create-namespace \
+    --namespace eclipse-che \
+    --set ingress.domain="${domain}" \
+    --set ingress.auth.oAuthSecret="${oAuthSecret}" \
+    --set ingress.auth.oAuthClientName="${oAuthClientName}" \
+    --set ingress.auth.identityProviderURL="${identityProvider}" .
+  popd
+
+  local cheVersion=$(yq -r '.spec.template.spec.containers[0].env[] | select(.name == "CHE_VERSION") | .value' < "${OPERATOR_DEPLOYMENT}")
+  waitEclipseCheDeployed "${cheVersion}"
+
+  waitDevWorkspaceControllerStarted
+}
+
+deployEclipseCheWithOperator() {
+  local chectlbin=$1
+  local platform=$2
+  local templates=$3
+  local customimage=$4
 
   if [[ ${customimage} == "true"  ]]; then
     if [[ ${platform} == "minikube" ]]; then
@@ -205,15 +250,26 @@ deployEclipseCheOnWithOperator() {
       copyCheOperatorImageToMinikube
     fi
 
-    yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' ${templates}/che-operator/operator.yaml
-    yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' ${templates}/che-operator/operator.yaml
+    yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' "${templates}"/che-operator/kubernetes/operator.yaml
+    yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' "${templates}"/che-operator/kubernetes/operator.yaml
+  fi
+
+  if [[ ${platform} == "minikube" ]]; then
+    checluster=$(grep -rlx "kind: CheCluster" /tmp/chectl-templates/che-operator/)
+    apiVersion=$(yq -r '.apiVersion' ${checluster})
+    if [[ ${apiVersion} == "org.eclipse.che/v2" ]]; then
+      yq -riY '.spec.ingress.domain = "'$(minikube ip).nip.io'"' ${checluster}
+      yq -riY '.spec.ingress.tlsSecretName = "che-tls"' ${checluster}
+    else
+      yq -riY '.spec.k8s.ingressDomain = "'$(minikube ip).nip.io'"' ${checluster}
+    fi
   fi
 
   ${chectlbin} server:deploy \
     --batch \
     --platform ${platform} \
     --installer operator \
-    --templates ${templates} ${domainFlag}
+    --templates ${templates}
 
   waitDevWorkspaceControllerStarted
 }
@@ -230,22 +286,30 @@ updateEclipseChe() {
       copyCheOperatorImageToMinikube
     fi
 
-    yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' ${templates}/che-operator/operator.yaml
-    yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' ${templates}/che-operator/operator.yaml
+    yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' ${templates}/che-operator/kubernetes/operator.yaml
+    yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' ${templates}/che-operator/kubernetes/operator.yaml
   fi
 
   ${chectlbin} server:update \
     --batch \
     --templates ${templates}
 
-  local cheVersion=$(cat ${templates}/che-operator/operator.yaml | yq -r '.spec.template.spec.containers[0].env[] | select(.name == "CHE_VERSION") | .value')
+  local configManagerPath=""
+  if [[ -f ${templates}/che-operator/operator.yaml ]]; then
+    configManagerPath="${templates}/che-operator/operator.yaml"
+  elif [[ ${platform} == "minikube" ]]; then
+    configManagerPath="${templates}/che-operator/kubernetes/operator.yaml"
+  else
+    configManagerPath="${templates}/che-operator/openshift/operator.yaml"
+  fi
+
+  local cheVersion=$(cat "${configManagerPath}" | yq -r '.spec.template.spec.containers[0].env[] | select(.name == "CHE_VERSION") | .value')
   waitEclipseCheDeployed ${cheVersion}
 
   waitDevWorkspaceControllerStarted
 }
 
 waitEclipseCheDeployed() {
-  set -x
   local version=$1
   echo "[INFO] Wait for Eclipse Che '${version}' version"
 
@@ -253,11 +317,11 @@ waitEclipseCheDeployed() {
   while [ $n -le 500 ]
   do
     cheVersion=$(oc get checluster/eclipse-che -n "${NAMESPACE}" -o "jsonpath={.status.cheVersion}")
-    cheIsRunning=$(oc get checluster/eclipse-che -n "${NAMESPACE}" -o "jsonpath={.status.cheClusterRunning}" )
+    chePhase=$(oc get checluster/eclipse-che -n "${NAMESPACE}" -o "jsonpath={.status.chePhase}" )
     oc get pods -n ${NAMESPACE}
-    if [ "${cheVersion}" == "${version}" ] && [ "${cheIsRunning}" == "Available" ]
+    if [[ "${cheVersion}" == "${version}" ]]
     then
-      echo "[INFO] Eclipse Che '${version}' version has been succesfully deployed"
+      echo "[INFO] Eclipse Che '${version}' version has been successfully deployed"
       break
     fi
     sleep 6
@@ -277,7 +341,16 @@ useCustomOperatorImageInCSV() {
 }
 
 getCheClusterCRFromExistedCSV() {
-  oc get csv $(getCSVName) -n openshift-operators -o yaml | yq -r ".metadata.annotations[\"alm-examples\"] | fromjson | .[] | select(.kind == \"CheCluster\")"
+  CHE_CLUSTER=""
+  CHE_CLUSTER_V2=$(oc get csv $(getCSVName) -n openshift-operators -o yaml | yq -r '.metadata.annotations["alm-examples"] | fromjson | .[] | select(.apiVersion == "org.eclipse.che/v2")')
+  if [[ -n "${CHE_CLUSTER_V2}" ]]; then
+    CHE_CLUSTER="${CHE_CLUSTER_V2}"
+  else
+    CHE_CLUSTER_V1=$(oc get csv $(getCSVName) -n openshift-operators -o yaml | yq -r '.metadata.annotations["alm-examples"] | fromjson | .[] | select(.apiVersion == "org.eclipse.che/v1")')
+    CHE_CLUSTER="${CHE_CLUSTER_V1}"
+  fi
+
+  echo "${CHE_CLUSTER}"
 }
 
 getCheVersionFromExistedCSV() {
@@ -290,7 +363,7 @@ getCSVName() {
 
   while [ $n -le 24 ]
   do
-    csvNumber=$(oc get csv -n openshift-operators --no-headers=true | grep eclipse-che-preview-openshift | wc -l)
+    csvNumber=$(oc get csv -n openshift-operators --no-headers=true | grep ${ECLIPSE_CHE_PACKAGE_NAME} | wc -l)
     if [[ $csvNumber == 1 ]]; then
       break
       return
@@ -404,7 +477,7 @@ EOF
 
   sleep 10s
   if [[ ${installPlan} == "Manual" ]]; then
-    kubectl wait subscription/${name} -n openshift-operators --for=condition=InstallPlanPending --timeout=120s
+    kubectl wait subscription/"${name}" -n openshift-operators --for=condition=InstallPlanPending --timeout=120s
   fi
 }
 
@@ -420,9 +493,8 @@ deployDevWorkspaceOperator() {
     devWorkspaceChannel="fast"
   fi
 
-  customDevWorkspaceCatalog=$(getDevWorkspaceCustomCatalogSourceName)
-  createCatalogSource "${customDevWorkspaceCatalog}" ${devWorkspaceCatalogImage} "Red Hat" "DevWorkspace Operator Catalog"
-  createSubscription "devworkspace-operator" "devworkspace-operator" "${devWorkspaceChannel}" "${customDevWorkspaceCatalog}" "Auto"
+  createCatalogSource "${DEV_WORKSPACE_CATALOG_SOURCE_NAME}" ${devWorkspaceCatalogImage} "Red Hat" "DevWorkspace Operator Catalog"
+  createSubscription "devworkspace-operator" "devworkspace-operator" "${devWorkspaceChannel}" "${DEV_WORKSPACE_CATALOG_SOURCE_NAME}" "Auto"
 
   waitDevWorkspaceControllerStarted
 }
@@ -497,7 +569,7 @@ forcePullingOlmImages() {
 
   echo "[INFO] Pulling image '${image}'"
 
-  yq -r "(.spec.template.spec.containers[0].image) = \"${image}\"" "${BASE_DIR}/force-pulling-olm-images-job.yaml" | kubectl apply -f - -n openshift-operators
+  yq -r "(.spec.template.spec.containers[0].image) = \"${image}\"" "${OPERATOR_REPO}/olm/force-pulling-olm-images-job.yaml" | kubectl apply -f - -n openshift-operators
 
   kubectl wait --for=condition=complete --timeout=30s job/force-pulling-olm-images-job -n openshift-operators
   kubectl delete job/force-pulling-olm-images-job -n openshift-operators
@@ -509,4 +581,14 @@ installchectl() {
   rm -rf /tmp/chectl-${version}
   mkdir /tmp/chectl-${version}
   tar -xvzf /tmp/chectl-${version}.tar.gz -C /tmp/chectl-${version}
+}
+
+getBundlePath() {
+  channel="${1}"
+  if [ -z "${channel}" ]; then
+    echo "[ERROR] 'channel' is not specified"
+    exit 1
+  fi
+
+  echo "${OPERATOR_REPO}/bundle/${channel}/${ECLIPSE_CHE_PACKAGE_NAME}"
 }

@@ -22,7 +22,8 @@ CURRENT_DIR=$(pwd)
 SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
 BASE_DIR=$(dirname "$(dirname "$SCRIPT")")
 STABLE_CHANNELS=("stable")
-source "${BASE_DIR}/olm/check-yq.sh"
+OPERATOR_REPO=$(dirname "$BASE_DIR")
+source "${OPERATOR_REPO}/.github/bin/common.sh"
 
 base_branch="main"
 GITHUB_USER="che-bot"
@@ -54,12 +55,6 @@ Options:
 "
 }
 
-. ${BASE_DIR}/olm/olm.sh
-installOPM
-
-# $BASE_DIR is set to {OPERATOR_DIR}/olm
-OPERATOR_REPO=$(dirname "$BASE_DIR")
-source ${OPERATOR_REPO}/.github/bin/common.sh
 getLatestStableVersions
 
 INDEX_IMAGE="quay.io/eclipse/eclipse-che-openshift-opm-catalog:test"
@@ -118,7 +113,7 @@ do
   > "${folderToUpdate}/${LAST_PACKAGE_VERSION}/manifests/eclipse-che.v${LAST_PACKAGE_VERSION}.clusterserviceversion.yaml"
 
   echo "   - Update the CRD files"
-  cp "${OPERATOR_REPO}/bundle/$channel/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml" "${folderToUpdate}/${LAST_PACKAGE_VERSION}/manifests/checlusters.org.eclipse.che.crd.yaml"
+  cp "${OPERATOR_REPO}/bundle/$channel/eclipse-che-preview-openshift/manifests/org.eclipse.che_checlusters.yaml" "${folderToUpdate}/${LAST_PACKAGE_VERSION}/manifests/org.eclipse.che_checlusters.yaml"
   echo
 
   cp ${OPERATOR_REPO}/bundle/$channel/eclipse-che-preview-openshift/metadata/* "${folderToUpdate}/${LAST_PACKAGE_VERSION}/metadata"
@@ -164,6 +159,6 @@ done
 cd "${CURRENT_DIR}"
 
 echo
-echo "Generated pull request: 
+echo "Generated pull request:
 https://github.com/redhat-openshift-ecosystem/community-operators-prod/pulls/che-incubator-bot
 "

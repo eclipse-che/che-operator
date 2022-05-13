@@ -13,11 +13,14 @@
 package deploy
 
 import (
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 )
 
 var pvcDiffOpts = cmp.Options{
@@ -30,19 +33,19 @@ var pvcDiffOpts = cmp.Options{
 }
 
 func SyncPVCToCluster(
-	deployContext *DeployContext,
+	deployContext *chetypes.DeployContext,
 	name string,
-	claimSize string,
+	pvc *chev2.PVC,
 	component string) (bool, error) {
 
-	pvcSpec := getPVCSpec(deployContext, name, claimSize, component)
+	pvcSpec := getPVCSpec(deployContext, name, pvc, component)
 
 	actual := &corev1.PersistentVolumeClaim{}
 	exists, err := GetNamespacedObject(deployContext, name, actual)
 	if err != nil {
 		return false, err
-	} else if err == nil && exists {
-		actual.Spec.Resources.Requests[corev1.ResourceName(corev1.ResourceStorage)] = resource.MustParse(claimSize)
+	} else if exists {
+		actual.Spec.Resources.Requests[corev1.ResourceName(corev1.ResourceStorage)] = resource.MustParse(pvc.ClaimSize)
 		return Sync(deployContext, actual, pvcDiffOpts)
 	}
 
@@ -50,28 +53,28 @@ func SyncPVCToCluster(
 }
 
 func getPVCSpec(
-	deployContext *DeployContext,
+	deployContext *chetypes.DeployContext,
 	name string,
-	claimSize string,
+	pvc *chev2.PVC,
 	component string) *corev1.PersistentVolumeClaim {
 
-	labels := GetLabels(deployContext.CheCluster, component)
+	labels := GetLabels(component)
 	accessModes := []corev1.PersistentVolumeAccessMode{
 		corev1.ReadWriteOnce,
 	}
 	resources := corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{
-			corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(claimSize),
+			corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(pvc.ClaimSize),
 		}}
 	pvcSpec := corev1.PersistentVolumeClaimSpec{
 		AccessModes: accessModes,
 		Resources:   resources,
 	}
-	if len(deployContext.CheCluster.Spec.Storage.PostgresPVCStorageClassName) > 1 {
-		pvcSpec.StorageClassName = &deployContext.CheCluster.Spec.Storage.PostgresPVCStorageClassName
+	if pvc.StorageClass != "" {
+		pvcSpec.StorageClassName = pointer.StringPtr(pvc.StorageClass)
 	}
 
-	pvc := &corev1.PersistentVolumeClaim{
+	return &corev1.PersistentVolumeClaim{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "PersistentVolumeClaim",
 			APIVersion: "v1",
@@ -83,6 +86,4 @@ func getPVCSpec(
 		},
 		Spec: pvcSpec,
 	}
-
-	return pvc
 }

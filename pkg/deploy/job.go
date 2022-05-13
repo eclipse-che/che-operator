@@ -14,7 +14,8 @@ package deploy
 import (
 	"reflect"
 
-	"github.com/eclipse-che/che-operator/pkg/util"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	batchv1 "k8s.io/api/batch/v1"
@@ -44,7 +45,7 @@ var (
 )
 
 func SyncJobToCluster(
-	deployContext *DeployContext,
+	deployContext *chetypes.DeployContext,
 	name string,
 	component string,
 	image string,
@@ -57,19 +58,19 @@ func SyncJobToCluster(
 
 // GetSpecJob creates new job configuration by given parameters.
 func getJobSpec(
-	deployContext *DeployContext,
+	deployContext *chetypes.DeployContext,
 	name string,
 	component string,
 	image string,
 	serviceAccountName string,
 	env map[string]string) *batchv1.Job {
-	labels := GetLabels(deployContext.CheCluster, component)
+	labels := GetLabels(component)
 	backoffLimit := int32(3)
 	parallelism := int32(1)
 	comletions := int32(1)
 	terminationGracePeriodSeconds := int64(30)
 	ttlSecondsAfterFinished := int32(30)
-	pullPolicy := corev1.PullPolicy(util.GetValue(string(deployContext.CheCluster.Spec.Server.CheImagePullPolicy), "IfNotPresent"))
+	pullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(image))
 
 	var jobEnvVars []corev1.EnvVar
 	for envVarName, envVarValue := range env {

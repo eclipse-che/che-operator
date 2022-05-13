@@ -18,18 +18,14 @@ import (
 	stdErrors "errors"
 	"fmt"
 	"math/rand"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
 
-	checluster "github.com/eclipse-che/che-operator/api"
-	checlusterv1 "github.com/eclipse-che/che-operator/api/v1"
-	"github.com/eclipse-che/che-operator/api/v2alpha1"
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
 	datasync "github.com/eclipse-che/che-operator/controllers/devworkspace/sync"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/util"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -45,7 +41,7 @@ import (
 
 var (
 	log                 = ctrl.Log.WithName("devworkspace-che")
-	currentCheInstances = map[client.ObjectKey]v2alpha1.CheCluster{}
+	currentCheInstances = map[client.ObjectKey]chev2.CheCluster{}
 	cheInstancesAccess  = sync.Mutex{}
 )
 
@@ -73,11 +69,11 @@ type CheClusterReconciler struct {
 //
 // If need be, this method can be replaced by a simply calling client.List to get all the che
 // managers in the cluster.
-func GetCurrentCheClusterInstances() map[client.ObjectKey]v2alpha1.CheCluster {
+func GetCurrentCheClusterInstances() map[client.ObjectKey]chev2.CheCluster {
 	cheInstancesAccess.Lock()
 	defer cheInstancesAccess.Unlock()
 
-	ret := map[client.ObjectKey]v2alpha1.CheCluster{}
+	ret := map[client.ObjectKey]chev2.CheCluster{}
 
 	for k, v := range currentCheInstances {
 		ret[k] = v
@@ -92,7 +88,7 @@ func CleanCheClusterInstancesForTest() {
 	cheInstancesAccess.Lock()
 	defer cheInstancesAccess.Unlock()
 
-	currentCheInstances = map[client.ObjectKey]v2alpha1.CheCluster{}
+	currentCheInstances = map[client.ObjectKey]chev2.CheCluster{}
 }
 
 // New returns a new instance of the Che manager reconciler. This is mainly useful for
@@ -111,7 +107,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.syncer = datasync.New(r.client, r.scheme)
 
 	bld := ctrl.NewControllerManagedBy(mgr).
-		For(&checlusterv1.CheCluster{}).
+		For(&chev2.CheCluster{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&appsv1.Deployment{}).
@@ -119,7 +115,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbac.Role{}).
 		Owns(&rbac.RoleBinding{})
-	if util.IsOpenShift {
+	if infrastructure.IsOpenShift() {
 		bld.Owns(&routev1.Route{})
 	} else {
 		bld.Owns(&networkingv1.Ingress{})
@@ -138,8 +134,8 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	delete(currentCheInstances, req.NamespacedName)
 
 	// make sure we've checked we're in a valid state
-	currentV1 := &checlusterv1.CheCluster{}
-	err := r.client.Get(ctx, req.NamespacedName, currentV1)
+	cluster := &chev2.CheCluster{}
+	err := r.client.Get(ctx, req.NamespacedName, cluster)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Ok, our current router disappeared...
@@ -149,14 +145,12 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
-	current := checluster.AsV2alpha1(currentV1)
-
-	if current.GetDeletionTimestamp() != nil {
-		return ctrl.Result{}, r.finalize(ctx, current, currentV1)
+	if cluster.GetDeletionTimestamp() != nil {
+		return ctrl.Result{}, r.finalize(ctx, cluster)
 	}
 
 	disabledMessage := ""
-	switch GetDevWorkspaceState(r.scheme, current) {
+	switch GetDevWorkspaceState(r.scheme, cluster) {
 	case APINotPresentState:
 		disabledMessage = "DevWorkspace CRDs are not installed"
 	case DisabledState:
@@ -164,14 +158,14 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	if disabledMessage != "" {
-		res, err := r.updateStatus(ctx, current, currentV1, nil, current.Status.GatewayHost, current.Status.WorkspaceBaseDomain, v2alpha1.ClusterPhaseInactive, disabledMessage)
+		res, err := r.updateStatus(ctx, cluster, nil, cluster.Status.WorkspaceBaseDomain, chev2.ClusterPhaseInactive, disabledMessage)
 		if err != nil {
 			return res, err
 		}
 		return res, nil
 	}
 
-	finalizerUpdated, err := r.ensureFinalizer(ctx, current)
+	finalizerUpdated, err := r.ensureFinalizer(ctx, cluster)
 	if err != nil {
 		log.Info("Failed to set a finalizer", "object", req.String())
 		return ctrl.Result{}, err
@@ -182,10 +176,10 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// validate the CR
-	err = r.validate(current)
+	err = r.validate(cluster)
 	if err != nil {
 		log.Info("validation errors", "errors", err.Error())
-		res, err := r.updateStatus(ctx, current, currentV1, nil, current.Status.GatewayHost, current.Status.WorkspaceBaseDomain, v2alpha1.ClusterPhaseInactive, err.Error())
+		res, err := r.updateStatus(ctx, cluster, nil, cluster.Status.WorkspaceBaseDomain, chev2.ClusterPhaseInactive, err.Error())
 		if err != nil {
 			return res, err
 		}
@@ -195,12 +189,10 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// now, finally, the actual reconciliation
 	var changed bool
-	var host string
 
 	// We are no longer in charge of the gateway, leaving the responsibility for managing it on the che-operator.
 	// But we need to detect the hostname on which the gateway is exposed so that the rest of our subsystems work.
-	host, err = r.detectCheHost(ctx, currentV1)
-	if err != nil {
+	if cluster.GetCheHost() == "" {
 		// Wait some time in case the route is not ready yet
 		return ctrl.Result{RequeueAfter: 2 * time.Second}, err
 	}
@@ -209,16 +201,22 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// control of gateway creation
 	changed = false
 
-	workspaceBaseDomain := current.Spec.Workspaces.DomainEndpoints.BaseDomain
+	workspaceBaseDomain := cluster.Spec.Ingress.Domain
+
+	// to be compatible with CheCluster API v1
+	routeDomain := cluster.Spec.Operands.CheServer.ExtraProperties["CHE_INFRA_OPENSHIFT_ROUTE_HOST_DOMAIN__SUFFIX"]
+	if routeDomain != "" {
+		workspaceBaseDomain = routeDomain
+	}
 
 	if workspaceBaseDomain == "" {
-		workspaceBaseDomain, err = r.detectOpenShiftRouteBaseDomain(current)
+		workspaceBaseDomain, err = r.detectOpenShiftRouteBaseDomain(cluster)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 
 		if workspaceBaseDomain == "" {
-			res, err := r.updateStatus(ctx, current, currentV1, nil, current.Status.GatewayHost, current.Status.WorkspaceBaseDomain, v2alpha1.ClusterPhaseInactive, "Could not auto-detect the workspaceBaseDomain. Please set it explicitly in the spec.")
+			res, err := r.updateStatus(ctx, cluster, nil, cluster.Status.WorkspaceBaseDomain, chev2.ClusterPhaseInactive, "Could not auto-detect the workspaceBaseDomain. Please set it explicitly in the spec.")
 			if err != nil {
 				return res, err
 			}
@@ -227,58 +225,42 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	}
 
-	res, err := r.updateStatus(ctx, current, currentV1, &changed, host, workspaceBaseDomain, v2alpha1.ClusterPhaseActive, "")
+	res, err := r.updateStatus(ctx, cluster, &changed, workspaceBaseDomain, chev2.ClusterPhaseActive, "")
 
 	if err != nil {
 		return res, err
 	}
 
 	// everything went fine and the manager exists, put it back in the shared map
-	currentCheInstances[req.NamespacedName] = *current
+	currentCheInstances[req.NamespacedName] = *cluster
 
 	return res, nil
 }
 
-func (r *CheClusterReconciler) updateStatus(ctx context.Context, cluster *v2alpha1.CheCluster, v1Cluster *checlusterv1.CheCluster, changed *bool, host string, workspaceDomain string, phase v2alpha1.ClusterPhase, phaseMessage string) (ctrl.Result, error) {
+func (r *CheClusterReconciler) updateStatus(ctx context.Context, cluster *chev2.CheCluster, changed *bool, workspaceDomain string, phase chev2.CheClusterPhase, phaseMessage string) (ctrl.Result, error) {
 	currentPhase := cluster.Status.GatewayPhase
 
 	if changed != nil {
-		if !cluster.Spec.Gateway.IsEnabled() {
-			cluster.Status.GatewayPhase = v2alpha1.GatewayPhaseInactive
-		} else if *changed {
-			cluster.Status.GatewayPhase = v2alpha1.GatewayPhaseInitializing
+		if *changed {
+			cluster.Status.GatewayPhase = chev2.GatewayPhaseInitializing
 		} else {
-			cluster.Status.GatewayPhase = v2alpha1.GatewayPhaseEstablished
+			cluster.Status.GatewayPhase = chev2.GatewayPhaseEstablished
 		}
 	}
 
-	cluster.Status.GatewayHost = host
 	cluster.Status.WorkspaceBaseDomain = workspaceDomain
+	err := r.client.Status().Update(ctx, cluster)
 
-	// set this unconditionally, because the only other value is set using the finalizer
-	cluster.Status.Phase = phase
-	cluster.Status.Message = phaseMessage
-
-	var err error
-	if !reflect.DeepEqual(v1Cluster.Status.DevworkspaceStatus, cluster.Status) {
-		v1Cluster.Status.DevworkspaceStatus = cluster.Status
-		err = r.client.Status().Update(ctx, v1Cluster)
-	}
-
-	requeue := cluster.Spec.IsEnabled() && (currentPhase == v2alpha1.GatewayPhaseInitializing ||
-		cluster.Status.Phase != v2alpha1.ClusterPhaseActive)
-
+	requeue := currentPhase == chev2.GatewayPhaseInitializing
 	return ctrl.Result{Requeue: requeue}, err
 }
 
-func (r *CheClusterReconciler) validate(cluster *v2alpha1.CheCluster) error {
+func (r *CheClusterReconciler) validate(cluster *chev2.CheCluster) error {
 	validationErrors := []string{}
 
-	if !util.IsOpenShift {
-		// The validation error messages must correspond to the storage version of the resource, which is currently
-		// v1...
-		if cluster.Spec.Workspaces.DomainEndpoints.BaseDomain == "" {
-			validationErrors = append(validationErrors, "spec.k8s.ingressDomain must be specified")
+	if !infrastructure.IsOpenShift() {
+		if cluster.Spec.Ingress.Domain == "" {
+			validationErrors = append(validationErrors, "spec.ingress.domain must be specified")
 		}
 	}
 
@@ -294,7 +276,7 @@ func (r *CheClusterReconciler) validate(cluster *v2alpha1.CheCluster) error {
 	return nil
 }
 
-func (r *CheClusterReconciler) finalize(ctx context.Context, cluster *v2alpha1.CheCluster, v1Cluster *checlusterv1.CheCluster) (err error) {
+func (r *CheClusterReconciler) finalize(ctx context.Context, cluster *chev2.CheCluster) (err error) {
 	err = r.gatewayConfigFinalize(ctx, cluster)
 
 	if err == nil {
@@ -307,19 +289,17 @@ func (r *CheClusterReconciler) finalize(ctx context.Context, cluster *v2alpha1.C
 
 		cluster.Finalizers = finalizers
 
-		err = r.client.Update(ctx, checluster.AsV1(cluster))
+		err = r.client.Update(ctx, cluster)
 	} else {
-		cluster.Status.Phase = v2alpha1.ClusterPhasePendingDeletion
+		cluster.Status.ChePhase = chev2.ClusterPhasePendingDeletion
 		cluster.Status.Message = fmt.Sprintf("Finalization has failed: %s", err.Error())
-
-		v1Cluster.Status.DevworkspaceStatus = cluster.Status
-		err = r.client.Status().Update(ctx, v1Cluster)
+		err = r.client.Status().Update(ctx, cluster)
 	}
 
 	return err
 }
 
-func (r *CheClusterReconciler) ensureFinalizer(ctx context.Context, cluster *v2alpha1.CheCluster) (updated bool, err error) {
+func (r *CheClusterReconciler) ensureFinalizer(ctx context.Context, cluster *chev2.CheCluster) (updated bool, err error) {
 
 	needsUpdate := true
 	if cluster.Finalizers != nil {
@@ -335,15 +315,15 @@ func (r *CheClusterReconciler) ensureFinalizer(ctx context.Context, cluster *v2a
 
 	if needsUpdate {
 		cluster.Finalizers = append(cluster.Finalizers, FinalizerName)
-		err = r.client.Update(ctx, checluster.AsV1(cluster))
+		err = r.client.Update(ctx, cluster)
 	}
 
 	return needsUpdate, err
 }
 
 // Tries to autodetect the route base domain.
-func (r *CheClusterReconciler) detectOpenShiftRouteBaseDomain(cluster *v2alpha1.CheCluster) (string, error) {
-	if !util.IsOpenShift {
+func (r *CheClusterReconciler) detectOpenShiftRouteBaseDomain(cluster *chev2.CheCluster) (string, error) {
+	if !infrastructure.IsOpenShift() {
 		return "", nil
 	}
 
@@ -381,58 +361,9 @@ func randomSuffix(length int) string {
 	return hex.EncodeToString(arr)
 }
 
-func (r *CheClusterReconciler) detectCheHost(ctx context.Context, cluster *checlusterv1.CheCluster) (string, error) {
-	host := strings.TrimPrefix(cluster.Status.CheURL, "https://")
-
-	if host == "" {
-		expectedLabels := deploy.GetLabels(cluster, deploy.DefaultCheFlavor(cluster))
-		lbls := labels.SelectorFromSet(expectedLabels)
-
-		if util.IsOpenShift {
-			list := routev1.RouteList{}
-			err := r.client.List(ctx, &list, &client.ListOptions{
-				Namespace:     cluster.Namespace,
-				LabelSelector: lbls,
-			})
-
-			if err != nil {
-				return "", err
-			}
-
-			if len(list.Items) == 0 {
-				return "", fmt.Errorf("expecting exactly 1 route to match Che gateway labels but found %d", len(list.Items))
-			}
-
-			host = list.Items[0].Spec.Host
-		} else {
-			list := networkingv1.IngressList{}
-			err := r.client.List(ctx, &list, &client.ListOptions{
-				Namespace:     cluster.Namespace,
-				LabelSelector: lbls,
-			})
-
-			if err != nil {
-				return "", err
-			}
-
-			if len(list.Items) == 0 {
-				return "", fmt.Errorf("expecting exactly 1 ingress to match Che gateway labels but found %d", len(list.Items))
-			}
-
-			if len(list.Items[0].Spec.Rules) != 1 {
-				return "", fmt.Errorf("expecting exactly 1 rule on the Che gateway ingress but found %d. This is a bug", len(list.Items[0].Spec.Rules))
-			}
-
-			host = list.Items[0].Spec.Rules[0].Host
-		}
-	}
-
-	return host, nil
-}
-
 // Checks that there are no devworkspace configurations for the gateway (which would mean running devworkspaces).
 // If there are some, an error is returned.
-func (r *CheClusterReconciler) gatewayConfigFinalize(ctx context.Context, cluster *v2alpha1.CheCluster) error {
+func (r *CheClusterReconciler) gatewayConfigFinalize(ctx context.Context, cluster *chev2.CheCluster) error {
 	// we need to stop the reconcile if there are devworkspaces handled by it.
 	// we detect that by the presence of the gateway configmaps in the namespace of the manager
 	list := corev1.ConfigMapList{}

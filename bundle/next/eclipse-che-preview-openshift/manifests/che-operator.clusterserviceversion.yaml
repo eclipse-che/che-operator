@@ -20,7 +20,8 @@ metadata:
           "apiVersion": "org.eclipse.che/v1",
           "kind": "CheCluster",
           "metadata": {
-            "name": "eclipse-che"
+            "name": "eclipse-che",
+            "namespace": "eclipse-che"
           },
           "spec": {
             "auth": {
@@ -29,34 +30,61 @@ metadata:
               "oAuthSecret": ""
             },
             "database": {
-              "chePostgresDb": "",
-              "chePostgresHostName": "",
-              "chePostgresPort": "",
-              "chePostgresSecret": "",
               "externalDb": false
             },
-            "devWorkspace": {
-              "enable": true
+            "k8s": {
+              "ingressDomain": null,
+              "tlsSecretName": null
             },
             "metrics": {
               "enable": true
             },
             "server": {
-              "cheClusterRoles": "",
-              "cheWorkspaceClusterRole": "",
-              "gitSelfSignedCert": false,
-              "nonProxyHosts": "",
-              "proxyPort": "",
-              "proxySecret": "",
-              "proxyURL": "",
               "workspaceNamespaceDefault": "<username>-che"
             },
             "storage": {
-              "postgresPVCStorageClassName": "",
               "preCreateSubPaths": true,
               "pvcClaimSize": "10Gi",
-              "pvcStrategy": "common",
-              "workspacePVCStorageClassName": ""
+              "pvcStrategy": "common"
+            }
+          }
+        },
+        {
+          "apiVersion": "org.eclipse.che/v2",
+          "kind": "CheCluster",
+          "metadata": {
+            "name": "eclipse-che",
+            "namespace": "eclipse-che"
+          },
+          "spec": {
+            "ingress": {
+              "auth": {
+                "identityProviderURL": "",
+                "oAuthClientName": "",
+                "oAuthSecret": ""
+              },
+              "domain": "",
+              "tlsSecretName": ""
+            },
+            "operands": {
+              "database": {
+                "externalDb": false
+              },
+              "metrics": {
+                "enable": true
+              }
+            },
+            "workspaces": {
+              "defaultNamespace": {
+                "template": "<username>-che"
+              },
+              "storage": {
+                "preCreateSubPaths": true,
+                "pvc": {
+                  "claimSize": "10Gi"
+                },
+                "pvcStrategy": "common"
+              }
             }
           }
         }
@@ -64,7 +92,7 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Developer Tools
     certified: "false"
-    containerImage: quay.io/eclipse/che-operator:next
+    containerImage: quay.io/abazko/operator:20758
     createdAt: "2021-05-11T18:38:31Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
@@ -75,12 +103,125 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.48.0-445.next
+  name: eclipse-che-preview-openshift.v7.48.0-549.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
+      - description: 'The `CheCluster` custom resource allows defining and managing
+          Eclipse Che server installation. Based on these settings, the  Operator
+          automatically creates and maintains several ConfigMaps: `che`, `plugin-registry`,
+          `devfile-registry` that will contain the appropriate environment variables
+          of the various components of the installation. These generated ConfigMaps
+          must NOT be updated manually.'
+        displayName: Eclipse Che instance Specification
+        kind: CheCluster
+        name: checlusters.org.eclipse.che
+        resources:
+          - kind: ClusterRole
+            name: ''
+            version: v1
+          - kind: ClusterRoleBinding
+            name: ''
+            version: v1
+          - kind: ConfigMap
+            name: ''
+            version: v1
+          - kind: Deployment
+            name: ''
+            version: apps/v1
+          - kind: Ingress
+            name: ''
+            version: v1
+          - kind: Role
+            name: ''
+            version: v1
+          - kind: RoleBinding
+            name: ''
+            version: v1
+          - kind: Route
+            name: ''
+            version: v1
+          - kind: Secret
+            name: ''
+            version: v1
+          - kind: Service
+            name: ''
+            version: v1
+        specDescriptors:
+          - description: Development environment default configuration options
+            displayName: Workspaces
+            path: workspaces
+          - description: Che operands configuration
+            displayName: Operands
+            path: operands
+          - description: Che ingress hostname, authentication and TLS configuration
+            displayName: Ingress
+            path: ingress
+          - description: Configuration of an alternative registry that stores Che
+              images
+            displayName: Container registry
+            path: containerRegistry
+        statusDescriptors:
+          - description: Specifies the phase in which the Che deployment currently
+              is.
+            displayName: ChePhase
+            path: chePhase
+            x-descriptors:
+              - urn:alm:descriptor:text
+          - description: Public URL to the Che server.
+            displayName: Eclipse Che URL
+            path: cheURL
+            x-descriptors:
+              - urn:alm:descriptor:org.w3:link
+          - description: Current installed Che version.
+            displayName: 'displayName: Eclipse Che version'
+            path: cheVersion
+            x-descriptors:
+              - urn:alm:descriptor:text
+          - description: Public URL to the internal devfile registry.
+            displayName: Devfile registry URL
+            path: devfileRegistryURL
+            x-descriptors:
+              - urn:alm:descriptor:org.w3:link
+          - description: Specifies the phase in which the gateway deployment currently
+              is.
+            displayName: Gateway phase
+            path: gatewayPhase
+            x-descriptors:
+              - urn:alm:descriptor:text
+          - description: A human readable message indicating details about why the
+              Che deployment is in this phase.
+            displayName: Message
+            path: message
+            x-descriptors:
+              - urn:alm:descriptor:text
+          - description: Public URL to the internal plugin registry.
+            displayName: Plugin registry URL
+            path: pluginRegistryURL
+            x-descriptors:
+              - urn:alm:descriptor:org.w3:link
+          - description: PostgreSQL version image is in use.
+            displayName: PostgreSQL version
+            path: postgresVersion
+            x-descriptors:
+              - urn:alm:descriptor:text
+          - description: A brief CamelCase message indicating details about why the
+              Che deployment is in this phase.
+            displayName: Reason
+            path: reason
+            x-descriptors:
+              - urn:alm:descriptor:text
+          - description: The resolved workspace base domain. This is either the copy
+              of the explicitly defined property of the same name in the spec or,
+              if it is undefined in the spec and we're running on OpenShift, the automatically
+              resolved basedomain for routes.
+            displayName: Workspace base domain
+            path: workspaceBaseDomain
+            x-descriptors:
+              - urn:alm:descriptor:text
+        version: v2
       - description: The `CheCluster` custom resource allows defining and managing
           a Che server installation
         displayName: Eclipse Che instance Specification
@@ -220,6 +361,12 @@ spec:
             path: devfileRegistryURL
             x-descriptors:
               - urn:alm:descriptor:org.w3:link
+          - description: The ConfigMap containing certificates to propagate to the
+              Che components and to provide particular configuration for Git.
+            displayName: Git certificates
+            path: gitServerTLSCertificateConfigMapName
+            x-descriptors:
+              - urn:alm:descriptor:text
           - description: A URL that points to some URL where to find help related
               to the current Operator status.
             displayName: Help link
@@ -540,6 +687,16 @@ spec:
                 - get
                 - list
                 - watch
+            - apiGroups:
+                - cert-manager.io
+              resources:
+                - issuers
+                - certificates
+              verbs:
+                - create
+                - get
+                - list
+                - update
             - apiGroups:
                 - ""
               resources:
@@ -971,6 +1128,8 @@ spec:
                         value: quay.io/eclipse/che-plugin-registry:next
                       - name: RELATED_IMAGE_devfile_registry
                         value: quay.io/eclipse/che-devfile-registry:next
+                      - name: RELATED_IMAGE_che_tls_secrets_creation_job
+                        value: quay.io/eclipse/che-tls-secret-creator:alpine-01a4c34
                       - name: RELATED_IMAGE_pvc_jobs
                         value: registry.access.redhat.com/ubi8-minimal:8.6-751
                       - name: RELATED_IMAGE_postgres
@@ -1007,7 +1166,7 @@ spec:
                         value: "1"
                       - name: ADD_COMPONENT_READINESS_INIT_CONTAINERS
                         value: "false"
-                    image: quay.io/eclipse/che-operator:next
+                    image: quay.io/abazko/operator:20758
                     imagePullPolicy: Always
                     livenessProbe:
                       failureThreshold: 10
@@ -1020,6 +1179,9 @@ spec:
                       timeoutSeconds: 5
                     name: che-operator
                     ports:
+                      - containerPort: 9443
+                        name: webhook-server
+                        protocol: TCP
                       - containerPort: 60000
                         name: metrics
                     readinessProbe:
@@ -1046,12 +1208,21 @@ spec:
                       privileged: false
                       readOnlyRootFilesystem: false
                       runAsNonRoot: true
+                    volumeMounts:
+                      - mountPath: /tmp/k8s-webhook-server/serving-certs
+                        name: webhook-tls-certs
+                        readOnly: true
                 hostIPC: false
                 hostNetwork: false
                 hostPID: false
                 restartPolicy: Always
                 serviceAccountName: che-operator
                 terminationGracePeriodSeconds: 20
+                volumes:
+                  - name: webhook-tls-certs
+                    secret:
+                      defaultMode: 420
+                      secretName: che-operator-webhook-server-cert
       permissions:
         - rules:
             - apiGroups:
@@ -1216,37 +1387,6 @@ spec:
                 - patch
                 - update
                 - watch
-            - apiGroups:
-                - ""
-              resources:
-                - configmaps
-              verbs:
-                - get
-                - list
-                - watch
-                - create
-                - update
-                - patch
-                - delete
-            - apiGroups:
-                - coordination.k8s.io
-              resources:
-                - leases
-              verbs:
-                - get
-                - list
-                - watch
-                - create
-                - update
-                - patch
-                - delete
-            - apiGroups:
-                - ""
-              resources:
-                - events
-              verbs:
-                - create
-                - patch
           serviceAccountName: che-operator
     strategy: deployment
   installModes:
@@ -1273,9 +1413,22 @@ spec:
     - name: Operator GitHub Repo
       url: https://github.com/eclipse-che/che-operator
   maintainers:
-    - email: dfestal@redhat.com
-      name: David Festal
+    - email: abazko@redhat.com
+      name: Anatolii Bazko
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.48.0-445.next
+  version: 7.48.0-549.next
+  webhookdefinitions:
+    - admissionReviewVersions:
+        - v1
+        - v2
+      containerPort: 443
+      conversionCRDs:
+        - checlusters.org.eclipse.che
+      deploymentName: che-operator
+      generateName: ccheclusters.kb.io
+      sideEffects: None
+      targetPort: 9443
+      type: ConversionWebhook
+      webhookPath: /convert
