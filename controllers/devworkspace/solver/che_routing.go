@@ -226,6 +226,19 @@ func (c *CheRoutingSolver) cheExposedEndpoints(cheCluster *v2alpha1.CheCluster, 
 				continue
 			}
 
+			// The gateway server must not be set up
+			// Endpoint url is set to the service hostname
+			if dw.EndpointExposure(endpoint.Exposure) == dw.InternalEndpointExposure {
+				internalUrl := getServiceURL(int32(endpoint.TargetPort), workspaceID, routingObj.Services[0].Namespace)
+				exposedEndpoints[component] = append(exposedEndpoints[component], dwo.ExposedEndpoint{
+					Name:       endpoint.Name,
+					Url:        internalUrl,
+					Attributes: endpoint.Attributes,
+				})
+
+				continue
+			}
+
 			// try to find the endpoint in the ingresses/routes first. If it is there, it is exposed on a subdomain
 			// otherwise it is exposed through the gateway
 			var endpointURL string
