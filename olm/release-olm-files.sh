@@ -115,6 +115,7 @@ source ${BASE_DIR}/addDigests.sh -w ${BASE_DIR} \
 popd || exit 1
 
 pushd "${OPERATOR_DIR}" || exit 1
+make add-license-download
 make add-license "${RELEASE_CSV}"
 make add-license "${MANAGER_YAML}"
 popd || exit 1
