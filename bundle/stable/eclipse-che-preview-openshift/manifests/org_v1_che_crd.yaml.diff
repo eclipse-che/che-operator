@@ -1,11 +1,17 @@
---- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/generated/openshift/org_v1_che_crd.yaml	2022-04-27 16:25:17.670468070 +0000
-+++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml	2022-04-27 16:25:17.678468146 +0000
-@@ -568,7 +568,7 @@
+--- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/generated/openshift/org_v1_che_crd.yaml	2022-05-19 13:19:56.413082678 +0000
++++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml	2022-05-19 13:19:56.425083357 +0000
+@@ -567,10 +567,10 @@
+                       type: string
                      cheFlavor:
                        description: Deprecated. The value of this flag is ignored.
-                         Specifies a variation of the installation. The options are
--                        `che` for upstream Che installations, or `devspaces` for link:https://developers.redhat.com/products/codeready-workspaces/overview[Red
-+                        `che` for upstream Che installations, or `devspaces` for link:https://developers.redhat.com/products/openshift-dev-spaces/overview[Red
-                         Hat OpenShift Dev Spaces] installation. Override the default
-                         value only on necessary occasions.
+-                        Specifies a variation of the installation. The options are
+-                        `che` for upstream Che installations, or `devspaces` for link:https://developers.redhat.com/products/openshift-dev-spaces/overview[Red
+-                        Hat OpenShift Dev Spaces] installation. Override the default
+-                        value only on necessary occasions.
++                        Specifies a variation of the installation. The options are  `che`
++                        for upstream Che installations or `devspaces` for Red Hat
++                        OpenShift Dev Spaces (formerly Red Hat CodeReady Workspaces)
++                        installation
                        type: string
+                     cheHost:
+                       description: Public host name of the installed Che server. When
