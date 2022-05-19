@@ -39,6 +39,7 @@ func TestReadProxyConfiguration(t *testing.T) {
 		clusterProxy      *configv1.Proxy
 		initObjects       []runtime.Object
 		expectedProxyConf *deploy.Proxy
+		env               map[string]string
 	}
 
 	testCases := []testCase{
@@ -303,6 +304,49 @@ func TestReadProxyConfiguration(t *testing.T) {
 				TrustedCAMapName: "",
 			},
 		},
+		{
+			name:             "Test cluster wide proxy configured, OpenShift 4.x, KUBERNETES_SERVICE_HOST",
+			openShiftVersion: "4",
+			clusterProxy: &configv1.Proxy{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Spec: configv1.ProxySpec{
+					TrustedCA: configv1.ConfigMapNameReference{
+						Name: "additional-cluster-ca-bundle",
+					},
+				},
+				Status: configv1.ProxyStatus{
+					HTTPProxy:  "http://proxy:3128",
+					HTTPSProxy: "http://proxy:3128",
+					NoProxy:    "host1",
+				},
+			},
+			cheCluster: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{},
+				},
+			},
+			initObjects: []runtime.Object{},
+			env:         map[string]string{"KUBERNETES_SERVICE_HOST": "k8s-host"},
+			expectedProxyConf: &deploy.Proxy{
+				HttpProxy:        "http://proxy:3128",
+				HttpUser:         "",
+				HttpPassword:     "",
+				HttpHost:         "proxy",
+				HttpPort:         "3128",
+				HttpsProxy:       "http://proxy:3128",
+				HttpsUser:        "",
+				HttpsPassword:    "",
+				HttpsHost:        "proxy",
+				HttpsPort:        "3128",
+				NoProxy:          "host1,k8s-host",
+				TrustedCAMapName: "additional-cluster-ca-bundle",
+			},
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -321,6 +365,9 @@ func TestReadProxyConfiguration(t *testing.T) {
 			fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{}
 
 			os.Setenv("OPENSHIFT_VERSION", testCase.openShiftVersion)
+			for k, v := range testCase.env {
+				os.Setenv(k, v)
+			}
 			util.IsOpenShift, util.IsOpenShift4, _ = util.DetectOpenShift()
 
 			deployContext := &deploy.DeployContext{

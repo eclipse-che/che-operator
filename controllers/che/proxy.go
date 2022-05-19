@@ -15,6 +15,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	configv1 "github.com/openshift/api/config/v1"
+	"os"
 )
 
 func GetProxyConfiguration(deployContext *deploy.DeployContext) (*deploy.Proxy, error) {
@@ -49,9 +50,11 @@ func GetProxyConfiguration(deployContext *deploy.DeployContext) (*deploy.Proxy, 
 			}
 			// Add cluster-wide trusted CA certs, if any
 			cheClusterProxyConf.TrustedCAMapName = clusterWideProxyConf.TrustedCAMapName
+			cheClusterProxyConf.NoProxy = deploy.MergeNonProxy(cheClusterProxyConf.NoProxy, os.Getenv("KUBERNETES_SERVICE_HOST"))
 			return cheClusterProxyConf, nil
 		} else {
 			clusterWideProxyConf.NoProxy = deploy.MergeNonProxy(clusterWideProxyConf.NoProxy, cheClusterProxyConf.NoProxy)
+			clusterWideProxyConf.NoProxy = deploy.MergeNonProxy(clusterWideProxyConf.NoProxy, os.Getenv("KUBERNETES_SERVICE_HOST"))
 			return clusterWideProxyConf, nil
 		}
 	}
@@ -62,5 +65,6 @@ func GetProxyConfiguration(deployContext *deploy.DeployContext) (*deploy.Proxy, 
 		return nil, err
 	}
 	cheClusterProxyConf.NoProxy = deploy.MergeNonProxy(cheClusterProxyConf.NoProxy, ".svc")
+	cheClusterProxyConf.NoProxy = deploy.MergeNonProxy(cheClusterProxyConf.NoProxy, os.Getenv("KUBERNETES_SERVICE_HOST"))
 	return cheClusterProxyConf, nil
 }
