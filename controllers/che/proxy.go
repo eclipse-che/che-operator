@@ -12,10 +12,11 @@
 package che
 
 import (
+	"os"
+
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	configv1 "github.com/openshift/api/config/v1"
-	"os"
 )
 
 func GetProxyConfiguration(deployContext *deploy.DeployContext) (*deploy.Proxy, error) {
