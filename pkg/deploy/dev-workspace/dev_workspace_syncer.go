@@ -13,6 +13,7 @@ package devworkspace
 
 import (
 	"context"
+	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -180,12 +181,22 @@ func syncDwDeployment(deployContext *deploy.DeployContext) (bool, error) {
 	}
 
 	devworkspaceControllerImage := util.GetValue(deployContext.CheCluster.Spec.DevWorkspace.ControllerImage, deploy.DefaultDevworkspaceControllerImage(deployContext.CheCluster))
-	devWorkspaceController := deployment.Spec.Template.Spec.Containers[0]
-	devWorkspaceController.Image = devworkspaceControllerImage
-	for _, env := range devWorkspaceController.Env {
-		if env.Name == "RELATED_IMAGE_devworkspace_webhook_server" {
-			env.Value = devworkspaceControllerImage
-			break
+	for contIdx, container := range deployment.Spec.Template.Spec.Containers {
+		if container.Name == "devworkspace-controller" {
+			deployment.Spec.Template.Spec.Containers[contIdx].Image = devworkspaceControllerImage
+		} else {
+			deployment.Spec.Template.Spec.Containers[contIdx].Image = deploy.PatchDefaultImageName(
+				deployContext.CheCluster,
+				deployment.Spec.Template.Spec.Containers[contIdx].Image,
+			)
+		}
+
+		for envIdx, env := range container.Env {
+			if env.Name == "RELATED_IMAGE_devworkspace_webhook_server" {
+				deployment.Spec.Template.Spec.Containers[contIdx].Env[envIdx].Value = devworkspaceControllerImage
+			} else if strings.HasPrefix(env.Name, "RELATED_IMAGE_") {
+				deployment.Spec.Template.Spec.Containers[contIdx].Env[envIdx].Value = deploy.PatchDefaultImageName(deployContext.CheCluster, env.Value)
+			}
 		}
 	}
 

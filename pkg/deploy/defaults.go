@@ -256,7 +256,7 @@ func DefaultCheVersion() string {
 }
 
 func DefaultCheServerImage(cr *orgv1.CheCluster) string {
-	return patchDefaultImageName(cr, defaultCheServerImage)
+	return PatchDefaultImageName(cr, defaultCheServerImage)
 }
 
 func DefaultCheTLSSecretsCreationJobImage() string {
@@ -264,11 +264,11 @@ func DefaultCheTLSSecretsCreationJobImage() string {
 }
 
 func DefaultPvcJobsImage(cr *orgv1.CheCluster) string {
-	return patchDefaultImageName(cr, defaultPvcJobsImage)
+	return PatchDefaultImageName(cr, defaultPvcJobsImage)
 }
 
 func DefaultPostgresImage(cr *orgv1.CheCluster) string {
-	return patchDefaultImageName(cr, defaultPostgresImage)
+	return PatchDefaultImageName(cr, defaultPostgresImage)
 }
 
 func DefaultPostgres13Image(cr *orgv1.CheCluster) string {
@@ -276,55 +276,55 @@ func DefaultPostgres13Image(cr *orgv1.CheCluster) string {
 	if defaultPostgres13Image == "" {
 		return defaultPostgres13Image
 	}
-	return patchDefaultImageName(cr, defaultPostgres13Image)
+	return PatchDefaultImageName(cr, defaultPostgres13Image)
 }
 
 func DefaultDashboardImage(cr *orgv1.CheCluster) string {
-	return patchDefaultImageName(cr, defaultDashboardImage)
+	return PatchDefaultImageName(cr, defaultDashboardImage)
 }
 
 func DefaultDevworkspaceControllerImage(cr *orgv1.CheCluster) string {
-	return patchDefaultImageName(cr, defaultDevworkspaceControllerImage)
+	return PatchDefaultImageName(cr, defaultDevworkspaceControllerImage)
 }
 
 func DefaultPluginRegistryImage(cr *orgv1.CheCluster) string {
-	return patchDefaultImageName(cr, defaultPluginRegistryImage)
+	return PatchDefaultImageName(cr, defaultPluginRegistryImage)
 }
 
 func DefaultDevfileRegistryImage(cr *orgv1.CheCluster) string {
-	return patchDefaultImageName(cr, defaultDevfileRegistryImage)
+	return PatchDefaultImageName(cr, defaultDevfileRegistryImage)
 }
 
 func DefaultCheWorkspacePluginBrokerMetadataImage(cr *orgv1.CheCluster) string {
-	return patchDefaultImageName(cr, defaultCheWorkspacePluginBrokerMetadataImage)
+	return PatchDefaultImageName(cr, defaultCheWorkspacePluginBrokerMetadataImage)
 }
 
 func DefaultCheWorkspacePluginBrokerArtifactsImage(cr *orgv1.CheCluster) string {
-	return patchDefaultImageName(cr, defaultCheWorkspacePluginBrokerArtifactsImage)
+	return PatchDefaultImageName(cr, defaultCheWorkspacePluginBrokerArtifactsImage)
 }
 
 func DefaultCheServerSecureExposerJwtProxyImage(cr *orgv1.CheCluster) string {
-	return patchDefaultImageName(cr, defaultCheServerSecureExposerJwtProxyImage)
+	return PatchDefaultImageName(cr, defaultCheServerSecureExposerJwtProxyImage)
 }
 
 func DefaultSingleHostGatewayImage(cr *orgv1.CheCluster) string {
-	return patchDefaultImageName(cr, defaultSingleHostGatewayImage)
+	return PatchDefaultImageName(cr, defaultSingleHostGatewayImage)
 }
 
 func DefaultSingleHostGatewayConfigSidecarImage(cr *orgv1.CheCluster) string {
-	return patchDefaultImageName(cr, defaultSingleHostGatewayConfigSidecarImage)
+	return PatchDefaultImageName(cr, defaultSingleHostGatewayConfigSidecarImage)
 }
 
 func DefaultGatewayAuthenticationSidecarImage(cr *orgv1.CheCluster) string {
-	return patchDefaultImageName(cr, defaultGatewayAuthenticationSidecarImage)
+	return PatchDefaultImageName(cr, defaultGatewayAuthenticationSidecarImage)
 }
 
 func DefaultGatewayAuthorizationSidecarImage(cr *orgv1.CheCluster) string {
-	return patchDefaultImageName(cr, defaultGatewayAuthorizationSidecarImage)
+	return PatchDefaultImageName(cr, defaultGatewayAuthorizationSidecarImage)
 }
 
 func DefaultGatewayHeaderProxySidecarImage(cr *orgv1.CheCluster) string {
-	return patchDefaultImageName(cr, defaultGatewayHeaderProxySidecarImage)
+	return PatchDefaultImageName(cr, defaultGatewayHeaderProxySidecarImage)
 }
 
 func DefaultKubernetesImagePullerOperatorCSV() string {
@@ -359,7 +359,7 @@ func GetWorkspaceNamespaceDefault(cr *orgv1.CheCluster) string {
 	return util.GetValue(cr.Spec.Server.WorkspaceNamespaceDefault, workspaceNamespaceDefault)
 }
 
-func patchDefaultImageName(cr *orgv1.CheCluster, imageName string) string {
+func PatchDefaultImageName(cr *orgv1.CheCluster, imageName string) string {
 	if !cr.IsAirGapMode() {
 		return imageName
 	}
