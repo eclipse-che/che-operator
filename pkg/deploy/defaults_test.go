@@ -169,7 +169,7 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(*testing.T) {
-			actual := patchDefaultImageName(tc.cr, tc.image)
+			actual := PatchDefaultImageName(tc.cr, tc.image)
 			if actual != tc.expected {
 				t.Errorf("Expected %s but was %s", tc.expected, actual)
 			}
