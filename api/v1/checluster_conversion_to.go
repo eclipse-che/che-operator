@@ -273,7 +273,7 @@ func (src *CheCluster) convertTo_Operands(dst *chev2.CheCluster) error {
 }
 
 func (src *CheCluster) convertTo_Operands_DevWorkspace(dst *chev2.CheCluster) error {
-	dst.Spec.Operands.DevWorkspace.Deployment = chev2.Deployment{
+	dst.Spec.Components.DevWorkspace.Deployment = chev2.Deployment{
 		Containers: []chev2.Container{
 			{
 				Name:  constants.DevWorkspaceController,
@@ -281,37 +281,37 @@ func (src *CheCluster) convertTo_Operands_DevWorkspace(dst *chev2.CheCluster) er
 			},
 		},
 	}
-	dst.Spec.Operands.DevWorkspace.RunningLimit = src.Spec.DevWorkspace.RunningLimit
+	dst.Spec.Components.DevWorkspace.RunningLimit = src.Spec.DevWorkspace.RunningLimit
 
 	return nil
 }
 
 func (src *CheCluster) convertTo_Operands_ImagePuller(dst *chev2.CheCluster) error {
-	dst.Spec.Operands.ImagePuller.Enable = src.Spec.ImagePuller.Enable
-	dst.Spec.Operands.ImagePuller.Spec = src.Spec.ImagePuller.Spec
+	dst.Spec.Components.ImagePuller.Enable = src.Spec.ImagePuller.Enable
+	dst.Spec.Components.ImagePuller.Spec = src.Spec.ImagePuller.Spec
 	return nil
 }
 
 func (src *CheCluster) convertTo_Operands_Metrics(dst *chev2.CheCluster) error {
-	dst.Spec.Operands.Metrics.Enable = src.Spec.Metrics.Enable
+	dst.Spec.Components.Metrics.Enable = src.Spec.Metrics.Enable
 	return nil
 }
 
 func (src *CheCluster) convertTo_Operands_CheServer(dst *chev2.CheCluster) error {
-	dst.Spec.Operands.CheServer.ExtraProperties = utils.CloneMap(src.Spec.Server.CustomCheProperties)
-	dst.Spec.Operands.CheServer.LogLevel = src.Spec.Server.CheLogLevel
-	dst.Spec.Operands.CheServer.ClusterRoles = strings.Split(src.Spec.Server.CheClusterRoles, ",")
+	dst.Spec.Components.CheServer.ExtraProperties = utils.CloneMap(src.Spec.Server.CustomCheProperties)
+	dst.Spec.Components.CheServer.LogLevel = src.Spec.Server.CheLogLevel
+	dst.Spec.Components.CheServer.ClusterRoles = strings.Split(src.Spec.Server.CheClusterRoles, ",")
 
 	if src.Spec.Server.CheDebug != "" {
 		debug, err := strconv.ParseBool(src.Spec.Server.CheDebug)
 		if err != nil {
 			return err
 		} else {
-			dst.Spec.Operands.CheServer.Debug = debug
+			dst.Spec.Components.CheServer.Debug = debug
 		}
 	}
 
-	dst.Spec.Operands.CheServer.Proxy = chev2.Proxy{
+	dst.Spec.Components.CheServer.Proxy = chev2.Proxy{
 		Url:                   src.Spec.Server.ProxyURL,
 		Port:                  src.Spec.Server.ProxyPort,
 		NonProxyHosts:         strings.Split(src.Spec.Server.NonProxyHosts, "|"),
@@ -327,7 +327,7 @@ func (src *CheCluster) convertTo_Operands_CheServer(dst *chev2.CheCluster) error
 			return err
 		}
 
-		dst.Spec.Operands.CheServer.Proxy.CredentialsSecretName = constants.DefaultProxyCredentialsSecret
+		dst.Spec.Components.CheServer.Proxy.CredentialsSecretName = constants.DefaultProxyCredentialsSecret
 	}
 
 	runAsUser, fsGroup, err := parseSecurityContext(src)
@@ -335,7 +335,7 @@ func (src *CheCluster) convertTo_Operands_CheServer(dst *chev2.CheCluster) error
 		return err
 	}
 
-	dst.Spec.Operands.CheServer.Deployment = chev2.Deployment{
+	dst.Spec.Components.CheServer.Deployment = chev2.Deployment{
 		Containers: []chev2.Container{
 			{
 				Name:            defaults.GetCheFlavor(),
@@ -369,17 +369,17 @@ func (src *CheCluster) convertTo_Operands_CheServer(dst *chev2.CheCluster) error
 }
 
 func (src *CheCluster) convertTo_Operands_PluginRegistry(dst *chev2.CheCluster) error {
-	dst.Spec.Operands.PluginRegistry.DisableInternalRegistry = src.Spec.Server.ExternalPluginRegistry
+	dst.Spec.Components.PluginRegistry.DisableInternalRegistry = src.Spec.Server.ExternalPluginRegistry
 
-	if dst.Spec.Operands.PluginRegistry.DisableInternalRegistry {
-		dst.Spec.Operands.PluginRegistry.ExternalPluginRegistries = []chev2.ExternalPluginRegistry{
+	if dst.Spec.Components.PluginRegistry.DisableInternalRegistry {
+		dst.Spec.Components.PluginRegistry.ExternalPluginRegistries = []chev2.ExternalPluginRegistry{
 			{
 				Url: src.Spec.Server.PluginRegistryUrl,
 			},
 		}
 	}
 
-	dst.Spec.Operands.PluginRegistry.Deployment = chev2.Deployment{
+	dst.Spec.Components.PluginRegistry.Deployment = chev2.Deployment{
 		Containers: []chev2.Container{
 			{
 				Name:            constants.PluginRegistryName,
@@ -403,17 +403,17 @@ func (src *CheCluster) convertTo_Operands_PluginRegistry(dst *chev2.CheCluster) 
 }
 
 func (src *CheCluster) convertTo_Operands_DevfileRegistry(dst *chev2.CheCluster) error {
-	dst.Spec.Operands.DevfileRegistry.DisableInternalRegistry = src.Spec.Server.ExternalDevfileRegistry
+	dst.Spec.Components.DevfileRegistry.DisableInternalRegistry = src.Spec.Server.ExternalDevfileRegistry
 
-	dst.Spec.Operands.DevfileRegistry.ExternalDevfileRegistries = []chev2.ExternalDevfileRegistry{}
+	dst.Spec.Components.DevfileRegistry.ExternalDevfileRegistries = []chev2.ExternalDevfileRegistry{}
 	for _, r := range src.Spec.Server.ExternalDevfileRegistries {
-		dst.Spec.Operands.DevfileRegistry.ExternalDevfileRegistries = append(dst.Spec.Operands.DevfileRegistry.ExternalDevfileRegistries,
+		dst.Spec.Components.DevfileRegistry.ExternalDevfileRegistries = append(dst.Spec.Components.DevfileRegistry.ExternalDevfileRegistries,
 			chev2.ExternalDevfileRegistry{
 				Url: r.Url,
 			})
 	}
 
-	dst.Spec.Operands.DevfileRegistry.Deployment = chev2.Deployment{
+	dst.Spec.Components.DevfileRegistry.Deployment = chev2.Deployment{
 		Containers: []chev2.Container{
 			{
 				Name:            constants.DevfileRegistryName,
@@ -437,7 +437,7 @@ func (src *CheCluster) convertTo_Operands_DevfileRegistry(dst *chev2.CheCluster)
 }
 
 func (src *CheCluster) convertTo_Operands_Database(dst *chev2.CheCluster) error {
-	dst.Spec.Operands.Database.CredentialsSecretName = src.Spec.Database.ChePostgresSecret
+	dst.Spec.Components.Database.CredentialsSecretName = src.Spec.Database.ChePostgresSecret
 
 	if src.Spec.Database.ChePostgresSecret == "" && src.Spec.Database.ChePostgresUser != "" && src.Spec.Database.ChePostgresPassword != "" {
 		if err := createCredentialsSecret(
@@ -447,10 +447,10 @@ func (src *CheCluster) convertTo_Operands_Database(dst *chev2.CheCluster) error 
 			src.ObjectMeta.Namespace); err != nil {
 			return err
 		}
-		dst.Spec.Operands.Database.CredentialsSecretName = constants.DefaultPostgresCredentialsSecret
+		dst.Spec.Components.Database.CredentialsSecretName = constants.DefaultPostgresCredentialsSecret
 	}
 
-	dst.Spec.Operands.Database.Deployment = chev2.Deployment{
+	dst.Spec.Components.Database.Deployment = chev2.Deployment{
 		Containers: []chev2.Container{
 			{
 				Name:            constants.PostgresName,
@@ -470,11 +470,11 @@ func (src *CheCluster) convertTo_Operands_Database(dst *chev2.CheCluster) error 
 		},
 	}
 
-	dst.Spec.Operands.Database.ExternalDb = src.Spec.Database.ExternalDb
-	dst.Spec.Operands.Database.PostgresDb = src.Spec.Database.ChePostgresDb
-	dst.Spec.Operands.Database.PostgresHostName = src.Spec.Database.ChePostgresHostName
-	dst.Spec.Operands.Database.PostgresPort = src.Spec.Database.ChePostgresPort
-	dst.Spec.Operands.Database.Pvc = chev2.PVC{
+	dst.Spec.Components.Database.ExternalDb = src.Spec.Database.ExternalDb
+	dst.Spec.Components.Database.PostgresDb = src.Spec.Database.ChePostgresDb
+	dst.Spec.Components.Database.PostgresHostName = src.Spec.Database.ChePostgresHostName
+	dst.Spec.Components.Database.PostgresPort = src.Spec.Database.ChePostgresPort
+	dst.Spec.Components.Database.Pvc = chev2.PVC{
 		ClaimSize:    src.Spec.Database.PvcClaimSize,
 		StorageClass: src.Spec.Storage.PostgresPVCStorageClassName,
 	}
@@ -488,7 +488,7 @@ func (src *CheCluster) convertTo_Operands_Dashboard(dst *chev2.CheCluster) error
 		return err
 	}
 
-	dst.Spec.Operands.Dashboard.Deployment = chev2.Deployment{
+	dst.Spec.Components.Dashboard.Deployment = chev2.Deployment{
 		Containers: []chev2.Container{
 			{
 				Name:            defaults.GetCheFlavor() + "-dashboard",
@@ -512,8 +512,8 @@ func (src *CheCluster) convertTo_Operands_Dashboard(dst *chev2.CheCluster) error
 		},
 	}
 
-	dst.Spec.Operands.Dashboard.HeaderMessage.Text = src.Spec.Dashboard.Warning
-	dst.Spec.Operands.Dashboard.HeaderMessage.Show = src.Spec.Dashboard.Warning != ""
+	dst.Spec.Components.Dashboard.HeaderMessage.Text = src.Spec.Dashboard.Warning
+	dst.Spec.Components.Dashboard.HeaderMessage.Show = src.Spec.Dashboard.Warning != ""
 
 	return nil
 }

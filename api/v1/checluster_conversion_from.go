@@ -79,14 +79,14 @@ func (dst *CheCluster) ConvertFrom(srcRaw conversion.Hub) error {
 func (dst *CheCluster) convertFrom_Server(src *chev2.CheCluster) error {
 	dst.Spec.Server.AirGapContainerRegistryHostname = src.Spec.ContainerRegistry.Hostname
 	dst.Spec.Server.AirGapContainerRegistryOrganization = src.Spec.ContainerRegistry.Organization
-	dst.Spec.Server.CheClusterRoles = strings.Join(src.Spec.Operands.CheServer.ClusterRoles, ",")
-	dst.Spec.Server.CustomCheProperties = utils.CloneMap(src.Spec.Operands.CheServer.ExtraProperties)
-	dst.Spec.Server.CheDebug = strconv.FormatBool(src.Spec.Operands.CheServer.Debug)
-	dst.Spec.Server.CheLogLevel = src.Spec.Operands.CheServer.LogLevel
-	dst.Spec.Server.ProxyURL = src.Spec.Operands.CheServer.Proxy.Url
-	dst.Spec.Server.ProxyPort = src.Spec.Operands.CheServer.Proxy.Port
-	dst.Spec.Server.NonProxyHosts = strings.Join(src.Spec.Operands.CheServer.Proxy.NonProxyHosts, "|")
-	dst.Spec.Server.ProxySecret = src.Spec.Operands.CheServer.Proxy.CredentialsSecretName
+	dst.Spec.Server.CheClusterRoles = strings.Join(src.Spec.Components.CheServer.ClusterRoles, ",")
+	dst.Spec.Server.CustomCheProperties = utils.CloneMap(src.Spec.Components.CheServer.ExtraProperties)
+	dst.Spec.Server.CheDebug = strconv.FormatBool(src.Spec.Components.CheServer.Debug)
+	dst.Spec.Server.CheLogLevel = src.Spec.Components.CheServer.LogLevel
+	dst.Spec.Server.ProxyURL = src.Spec.Components.CheServer.Proxy.Url
+	dst.Spec.Server.ProxyPort = src.Spec.Components.CheServer.Proxy.Port
+	dst.Spec.Server.NonProxyHosts = strings.Join(src.Spec.Components.CheServer.Proxy.NonProxyHosts, "|")
+	dst.Spec.Server.ProxySecret = src.Spec.Components.CheServer.Proxy.CredentialsSecretName
 	dst.Spec.Server.WorkspaceNamespaceDefault = src.Spec.Workspaces.DefaultNamespace.Template
 	dst.Spec.Server.WorkspacePodNodeSelector = utils.CloneMap(src.Spec.Workspaces.NodeSelector)
 
@@ -104,15 +104,15 @@ func (dst *CheCluster) convertFrom_Server(src *chev2.CheCluster) error {
 			})
 	}
 
-	if len(src.Spec.Operands.CheServer.Deployment.Containers) != 0 {
-		cheServerImageAndTag := strings.Split(src.Spec.Operands.CheServer.Deployment.Containers[0].Image, ":")
+	if len(src.Spec.Components.CheServer.Deployment.Containers) != 0 {
+		cheServerImageAndTag := strings.Split(src.Spec.Components.CheServer.Deployment.Containers[0].Image, ":")
 		dst.Spec.Server.CheImage = strings.Join(cheServerImageAndTag[0:len(cheServerImageAndTag)-1], ":")
 		dst.Spec.Server.CheImageTag = cheServerImageAndTag[len(cheServerImageAndTag)-1]
-		dst.Spec.Server.CheImagePullPolicy = src.Spec.Operands.CheServer.Deployment.Containers[0].ImagePullPolicy
-		dst.Spec.Server.ServerMemoryRequest = src.Spec.Operands.CheServer.Deployment.Containers[0].Resources.Requests.Memory
-		dst.Spec.Server.ServerCpuRequest = src.Spec.Operands.CheServer.Deployment.Containers[0].Resources.Requests.Cpu
-		dst.Spec.Server.ServerMemoryLimit = src.Spec.Operands.CheServer.Deployment.Containers[0].Resources.Limits.Memory
-		dst.Spec.Server.ServerCpuLimit = src.Spec.Operands.CheServer.Deployment.Containers[0].Resources.Limits.Cpu
+		dst.Spec.Server.CheImagePullPolicy = src.Spec.Components.CheServer.Deployment.Containers[0].ImagePullPolicy
+		dst.Spec.Server.ServerMemoryRequest = src.Spec.Components.CheServer.Deployment.Containers[0].Resources.Requests.Memory
+		dst.Spec.Server.ServerCpuRequest = src.Spec.Components.CheServer.Deployment.Containers[0].Resources.Requests.Cpu
+		dst.Spec.Server.ServerMemoryLimit = src.Spec.Components.CheServer.Deployment.Containers[0].Resources.Limits.Memory
+		dst.Spec.Server.ServerCpuLimit = src.Spec.Components.CheServer.Deployment.Containers[0].Resources.Limits.Cpu
 	}
 
 	if infrastructure.IsOpenShift() {
@@ -165,69 +165,69 @@ func (dst *CheCluster) convertFrom_Server(src *chev2.CheCluster) error {
 }
 
 func (dst *CheCluster) convertFrom_Server_PluginRegistry(src *chev2.CheCluster) error {
-	dst.Spec.Server.ExternalPluginRegistry = src.Spec.Operands.PluginRegistry.DisableInternalRegistry
+	dst.Spec.Server.ExternalPluginRegistry = src.Spec.Components.PluginRegistry.DisableInternalRegistry
 
-	if src.Spec.Operands.PluginRegistry.DisableInternalRegistry {
-		if len(src.Spec.Operands.PluginRegistry.ExternalPluginRegistries) != 0 {
-			dst.Spec.Server.PluginRegistryUrl = src.Spec.Operands.PluginRegistry.ExternalPluginRegistries[0].Url
+	if src.Spec.Components.PluginRegistry.DisableInternalRegistry {
+		if len(src.Spec.Components.PluginRegistry.ExternalPluginRegistries) != 0 {
+			dst.Spec.Server.PluginRegistryUrl = src.Spec.Components.PluginRegistry.ExternalPluginRegistries[0].Url
 		}
 	}
 
-	if len(src.Spec.Operands.PluginRegistry.Deployment.Containers) != 0 {
-		dst.Spec.Server.PluginRegistryImage = src.Spec.Operands.PluginRegistry.Deployment.Containers[0].Image
-		dst.Spec.Server.PluginRegistryPullPolicy = src.Spec.Operands.PluginRegistry.Deployment.Containers[0].ImagePullPolicy
-		dst.Spec.Server.PluginRegistryMemoryRequest = src.Spec.Operands.PluginRegistry.Deployment.Containers[0].Resources.Requests.Memory
-		dst.Spec.Server.PluginRegistryCpuRequest = src.Spec.Operands.PluginRegistry.Deployment.Containers[0].Resources.Requests.Cpu
-		dst.Spec.Server.PluginRegistryMemoryLimit = src.Spec.Operands.PluginRegistry.Deployment.Containers[0].Resources.Limits.Memory
-		dst.Spec.Server.PluginRegistryCpuLimit = src.Spec.Operands.PluginRegistry.Deployment.Containers[0].Resources.Limits.Cpu
+	if len(src.Spec.Components.PluginRegistry.Deployment.Containers) != 0 {
+		dst.Spec.Server.PluginRegistryImage = src.Spec.Components.PluginRegistry.Deployment.Containers[0].Image
+		dst.Spec.Server.PluginRegistryPullPolicy = src.Spec.Components.PluginRegistry.Deployment.Containers[0].ImagePullPolicy
+		dst.Spec.Server.PluginRegistryMemoryRequest = src.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Requests.Memory
+		dst.Spec.Server.PluginRegistryCpuRequest = src.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Requests.Cpu
+		dst.Spec.Server.PluginRegistryMemoryLimit = src.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Limits.Memory
+		dst.Spec.Server.PluginRegistryCpuLimit = src.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Limits.Cpu
 	}
 
 	return nil
 }
 
 func (dst *CheCluster) convertFrom_Server_DevfileRegistry(src *chev2.CheCluster) error {
-	dst.Spec.Server.ExternalDevfileRegistry = src.Spec.Operands.DevfileRegistry.DisableInternalRegistry
+	dst.Spec.Server.ExternalDevfileRegistry = src.Spec.Components.DevfileRegistry.DisableInternalRegistry
 
 	dst.Spec.Server.ExternalDevfileRegistries = make([]ExternalDevfileRegistries, 0)
-	for _, r := range src.Spec.Operands.DevfileRegistry.ExternalDevfileRegistries {
+	for _, r := range src.Spec.Components.DevfileRegistry.ExternalDevfileRegistries {
 		dst.Spec.Server.ExternalDevfileRegistries = append(dst.Spec.Server.ExternalDevfileRegistries,
 			ExternalDevfileRegistries{
 				Url: r.Url,
 			})
 	}
 
-	if len(src.Spec.Operands.DevfileRegistry.Deployment.Containers) != 0 {
-		dst.Spec.Server.DevfileRegistryImage = src.Spec.Operands.DevfileRegistry.Deployment.Containers[0].Image
-		dst.Spec.Server.DevfileRegistryPullPolicy = src.Spec.Operands.DevfileRegistry.Deployment.Containers[0].ImagePullPolicy
-		dst.Spec.Server.DevfileRegistryMemoryRequest = src.Spec.Operands.DevfileRegistry.Deployment.Containers[0].Resources.Requests.Memory
-		dst.Spec.Server.DevfileRegistryCpuRequest = src.Spec.Operands.DevfileRegistry.Deployment.Containers[0].Resources.Requests.Cpu
-		dst.Spec.Server.DevfileRegistryMemoryLimit = src.Spec.Operands.DevfileRegistry.Deployment.Containers[0].Resources.Limits.Memory
-		dst.Spec.Server.DevfileRegistryCpuLimit = src.Spec.Operands.DevfileRegistry.Deployment.Containers[0].Resources.Limits.Cpu
+	if len(src.Spec.Components.DevfileRegistry.Deployment.Containers) != 0 {
+		dst.Spec.Server.DevfileRegistryImage = src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Image
+		dst.Spec.Server.DevfileRegistryPullPolicy = src.Spec.Components.DevfileRegistry.Deployment.Containers[0].ImagePullPolicy
+		dst.Spec.Server.DevfileRegistryMemoryRequest = src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Requests.Memory
+		dst.Spec.Server.DevfileRegistryCpuRequest = src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Requests.Cpu
+		dst.Spec.Server.DevfileRegistryMemoryLimit = src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Limits.Memory
+		dst.Spec.Server.DevfileRegistryCpuLimit = src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Limits.Cpu
 	}
 
 	return nil
 }
 
 func (dst *CheCluster) convertFrom_Server_Dashboard(src *chev2.CheCluster) error {
-	if len(src.Spec.Operands.Dashboard.Deployment.Containers) != 0 {
-		dst.Spec.Server.DashboardImage = src.Spec.Operands.Dashboard.Deployment.Containers[0].Image
-		dst.Spec.Server.DashboardImagePullPolicy = string(src.Spec.Operands.Dashboard.Deployment.Containers[0].ImagePullPolicy)
-		dst.Spec.Server.DashboardMemoryRequest = src.Spec.Operands.Dashboard.Deployment.Containers[0].Resources.Requests.Memory
-		dst.Spec.Server.DashboardCpuRequest = src.Spec.Operands.Dashboard.Deployment.Containers[0].Resources.Requests.Cpu
-		dst.Spec.Server.DashboardMemoryLimit = src.Spec.Operands.Dashboard.Deployment.Containers[0].Resources.Limits.Memory
-		dst.Spec.Server.DashboardCpuLimit = src.Spec.Operands.Dashboard.Deployment.Containers[0].Resources.Limits.Cpu
+	if len(src.Spec.Components.Dashboard.Deployment.Containers) != 0 {
+		dst.Spec.Server.DashboardImage = src.Spec.Components.Dashboard.Deployment.Containers[0].Image
+		dst.Spec.Server.DashboardImagePullPolicy = string(src.Spec.Components.Dashboard.Deployment.Containers[0].ImagePullPolicy)
+		dst.Spec.Server.DashboardMemoryRequest = src.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Requests.Memory
+		dst.Spec.Server.DashboardCpuRequest = src.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Requests.Cpu
+		dst.Spec.Server.DashboardMemoryLimit = src.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Limits.Memory
+		dst.Spec.Server.DashboardCpuLimit = src.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Limits.Cpu
 	}
 
 	return nil
 }
 
 func (dst *CheCluster) convertFrom_K8s(src *chev2.CheCluster) error {
-	if src.Spec.Operands.CheServer.Deployment.SecurityContext.RunAsUser != nil {
-		dst.Spec.K8s.SecurityContextRunAsUser = strconv.FormatInt(*src.Spec.Operands.CheServer.Deployment.SecurityContext.RunAsUser, 10)
+	if src.Spec.Components.CheServer.Deployment.SecurityContext.RunAsUser != nil {
+		dst.Spec.K8s.SecurityContextRunAsUser = strconv.FormatInt(*src.Spec.Components.CheServer.Deployment.SecurityContext.RunAsUser, 10)
 	}
 
-	if src.Spec.Operands.CheServer.Deployment.SecurityContext.FsGroup != nil {
-		dst.Spec.K8s.SecurityContextFsGroup = strconv.FormatInt(*src.Spec.Operands.CheServer.Deployment.SecurityContext.FsGroup, 10)
+	if src.Spec.Components.CheServer.Deployment.SecurityContext.FsGroup != nil {
+		dst.Spec.K8s.SecurityContextFsGroup = strconv.FormatInt(*src.Spec.Components.CheServer.Deployment.SecurityContext.FsGroup, 10)
 	}
 
 	if !infrastructure.IsOpenShift() {
@@ -261,51 +261,51 @@ func (dst *CheCluster) convertFrom_Auth(src *chev2.CheCluster) error {
 }
 
 func (dst *CheCluster) convertFrom_Database(src *chev2.CheCluster) error {
-	dst.Spec.Database.ExternalDb = src.Spec.Operands.Database.ExternalDb
-	dst.Spec.Database.ChePostgresDb = src.Spec.Operands.Database.PostgresDb
-	dst.Spec.Database.ChePostgresHostName = src.Spec.Operands.Database.PostgresHostName
-	dst.Spec.Database.ChePostgresPort = src.Spec.Operands.Database.PostgresPort
+	dst.Spec.Database.ExternalDb = src.Spec.Components.Database.ExternalDb
+	dst.Spec.Database.ChePostgresDb = src.Spec.Components.Database.PostgresDb
+	dst.Spec.Database.ChePostgresHostName = src.Spec.Components.Database.PostgresHostName
+	dst.Spec.Database.ChePostgresPort = src.Spec.Components.Database.PostgresPort
 	dst.Spec.Database.PostgresVersion = src.Status.PostgresVersion
-	dst.Spec.Database.PvcClaimSize = src.Spec.Operands.Database.Pvc.ClaimSize
-	dst.Spec.Database.ChePostgresSecret = src.Spec.Operands.Database.CredentialsSecretName
+	dst.Spec.Database.PvcClaimSize = src.Spec.Components.Database.Pvc.ClaimSize
+	dst.Spec.Database.ChePostgresSecret = src.Spec.Components.Database.CredentialsSecretName
 
-	if len(src.Spec.Operands.Database.Deployment.Containers) != 0 {
-		dst.Spec.Database.PostgresImage = src.Spec.Operands.Database.Deployment.Containers[0].Image
-		dst.Spec.Database.PostgresImagePullPolicy = src.Spec.Operands.Database.Deployment.Containers[0].ImagePullPolicy
-		dst.Spec.Database.ChePostgresContainerResources.Requests.Memory = src.Spec.Operands.Database.Deployment.Containers[0].Resources.Requests.Memory
-		dst.Spec.Database.ChePostgresContainerResources.Requests.Cpu = src.Spec.Operands.Database.Deployment.Containers[0].Resources.Requests.Cpu
-		dst.Spec.Database.ChePostgresContainerResources.Limits.Memory = src.Spec.Operands.Database.Deployment.Containers[0].Resources.Limits.Memory
-		dst.Spec.Database.ChePostgresContainerResources.Limits.Cpu = src.Spec.Operands.Database.Deployment.Containers[0].Resources.Limits.Cpu
+	if len(src.Spec.Components.Database.Deployment.Containers) != 0 {
+		dst.Spec.Database.PostgresImage = src.Spec.Components.Database.Deployment.Containers[0].Image
+		dst.Spec.Database.PostgresImagePullPolicy = src.Spec.Components.Database.Deployment.Containers[0].ImagePullPolicy
+		dst.Spec.Database.ChePostgresContainerResources.Requests.Memory = src.Spec.Components.Database.Deployment.Containers[0].Resources.Requests.Memory
+		dst.Spec.Database.ChePostgresContainerResources.Requests.Cpu = src.Spec.Components.Database.Deployment.Containers[0].Resources.Requests.Cpu
+		dst.Spec.Database.ChePostgresContainerResources.Limits.Memory = src.Spec.Components.Database.Deployment.Containers[0].Resources.Limits.Memory
+		dst.Spec.Database.ChePostgresContainerResources.Limits.Cpu = src.Spec.Components.Database.Deployment.Containers[0].Resources.Limits.Cpu
 	}
 
 	return nil
 }
 
 func (dst *CheCluster) convertFrom_DevWorkspace(src *chev2.CheCluster) error {
-	if len(src.Spec.Operands.DevWorkspace.Deployment.Containers) != 0 {
-		dst.Spec.DevWorkspace.ControllerImage = src.Spec.Operands.DevWorkspace.Deployment.Containers[0].Image
+	if len(src.Spec.Components.DevWorkspace.Deployment.Containers) != 0 {
+		dst.Spec.DevWorkspace.ControllerImage = src.Spec.Components.DevWorkspace.Deployment.Containers[0].Image
 	}
-	dst.Spec.DevWorkspace.RunningLimit = src.Spec.Operands.DevWorkspace.RunningLimit
+	dst.Spec.DevWorkspace.RunningLimit = src.Spec.Components.DevWorkspace.RunningLimit
 	dst.Spec.DevWorkspace.Enable = true
 
 	return nil
 }
 
 func (dst *CheCluster) convertFrom_ImagePuller(src *chev2.CheCluster) error {
-	dst.Spec.ImagePuller.Enable = src.Spec.Operands.ImagePuller.Enable
-	dst.Spec.ImagePuller.Spec = src.Spec.Operands.ImagePuller.Spec
+	dst.Spec.ImagePuller.Enable = src.Spec.Components.ImagePuller.Enable
+	dst.Spec.ImagePuller.Spec = src.Spec.Components.ImagePuller.Spec
 
 	return nil
 }
 
 func (dst *CheCluster) convertFrom_Metrics(src *chev2.CheCluster) error {
-	dst.Spec.Metrics.Enable = src.Spec.Operands.Metrics.Enable
+	dst.Spec.Metrics.Enable = src.Spec.Components.Metrics.Enable
 
 	return nil
 }
 
 func (dst *CheCluster) convertFrom_Dashboard(src *chev2.CheCluster) error {
-	dst.Spec.Dashboard.Warning = src.Spec.Operands.Dashboard.HeaderMessage.Text
+	dst.Spec.Dashboard.Warning = src.Spec.Components.Dashboard.HeaderMessage.Text
 
 	return nil
 }
@@ -341,7 +341,7 @@ func (dst *CheCluster) convertFrom_Status(src *chev2.CheCluster) error {
 }
 
 func (dst *CheCluster) convertFrom_Storage(src *chev2.CheCluster) error {
-	dst.Spec.Storage.PostgresPVCStorageClassName = src.Spec.Operands.Database.Pvc.StorageClass
+	dst.Spec.Storage.PostgresPVCStorageClassName = src.Spec.Components.Database.Pvc.StorageClass
 	dst.Spec.Storage.PreCreateSubPaths = src.Spec.Workspaces.Storage.PreCreateSubPaths
 	dst.Spec.Storage.PvcClaimSize = src.Spec.Workspaces.Storage.Pvc.ClaimSize
 	dst.Spec.Storage.WorkspacePVCStorageClassName = src.Spec.Workspaces.Storage.Pvc.StorageClass

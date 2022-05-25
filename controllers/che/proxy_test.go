@@ -71,7 +71,7 @@ func TestReadProxyConfiguration(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					Operands: chev2.CheClusterOperands{
+					Components: chev2.CheClusterComponents{
 						CheServer: chev2.CheServer{
 							Proxy: chev2.Proxy{
 								Url:           "http://proxy",
@@ -116,7 +116,7 @@ func TestReadProxyConfiguration(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					Operands: chev2.CheClusterOperands{
+					Components: chev2.CheClusterComponents{
 						CheServer: chev2.CheServer{
 							Proxy: chev2.Proxy{
 								Url:           "http://proxy",
@@ -223,7 +223,7 @@ func TestReadProxyConfiguration(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					Operands: chev2.CheClusterOperands{
+					Components: chev2.CheClusterComponents{
 						CheServer: chev2.CheServer{
 							Proxy: chev2.Proxy{
 								NonProxyHosts: []string{"host2"},
@@ -257,7 +257,7 @@ func TestReadProxyConfiguration(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					Operands: chev2.CheClusterOperands{
+					Components: chev2.CheClusterComponents{
 						CheServer: chev2.CheServer{
 							Proxy: chev2.Proxy{
 								Url:           "http://proxy",
@@ -293,7 +293,7 @@ func TestReadProxyConfiguration(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					Operands: chev2.CheClusterOperands{
+					Components: chev2.CheClusterComponents{
 						CheServer: chev2.CheServer{
 							Proxy: chev2.Proxy{
 								Url:           "http://proxy",

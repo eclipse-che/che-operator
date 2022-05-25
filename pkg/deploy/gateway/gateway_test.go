@@ -150,7 +150,7 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 		ctx := &chetypes.DeployContext{
 			CheCluster: &chev2.CheCluster{
 				Spec: chev2.CheClusterSpec{
-					Operands: chev2.CheClusterOperands{
+					Components: chev2.CheClusterComponents{
 						PluginRegistry: chev2.PluginRegistry{
 							DisableInternalRegistry: true,
 						},
@@ -171,7 +171,7 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 		ctx := &chetypes.DeployContext{
 			CheCluster: &chev2.CheCluster{
 				Spec: chev2.CheClusterSpec{
-					Operands: chev2.CheClusterOperands{
+					Components: chev2.CheClusterComponents{
 						PluginRegistry: chev2.PluginRegistry{
 							DisableInternalRegistry: true,
 						},
@@ -192,7 +192,7 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 		ctx := &chetypes.DeployContext{
 			CheCluster: &chev2.CheCluster{
 				Spec: chev2.CheClusterSpec{
-					Operands: chev2.CheClusterOperands{
+					Components: chev2.CheClusterComponents{
 						PluginRegistry: chev2.PluginRegistry{
 							DisableInternalRegistry: false,
 						},
@@ -213,7 +213,7 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 		ctx := &chetypes.DeployContext{
 			CheCluster: &chev2.CheCluster{
 				Spec: chev2.CheClusterSpec{
-					Operands: chev2.CheClusterOperands{
+					Components: chev2.CheClusterComponents{
 						PluginRegistry: chev2.PluginRegistry{
 							DisableInternalRegistry: false,
 						},

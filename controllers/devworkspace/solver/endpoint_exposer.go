@@ -72,7 +72,7 @@ func (e *RouteExposer) initFrom(ctx context.Context, cl client.Client, cluster *
 	e.labels = cluster.Spec.Ingress.Labels
 
 	// to be compatible from CheCluster API v1 configuration
-	routeLabels := cluster.Spec.Operands.CheServer.ExtraProperties["CHE_INFRA_OPENSHIFT_ROUTE_LABELS"]
+	routeLabels := cluster.Spec.Components.CheServer.ExtraProperties["CHE_INFRA_OPENSHIFT_ROUTE_LABELS"]
 	if routeLabels != "" {
 		e.labels = utils.ParseMap(routeLabels)
 	}

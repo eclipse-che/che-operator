@@ -35,7 +35,7 @@ func NewPostgresReconciler() *PostgresReconciler {
 }
 
 func (p *PostgresReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if ctx.CheCluster.Spec.Operands.Database.ExternalDb {
+	if ctx.CheCluster.Spec.Components.Database.ExternalDb {
 		return reconcile.Result{}, true, nil
 	}
 
@@ -80,8 +80,8 @@ func (p *PostgresReconciler) syncService(ctx *chetypes.DeployContext) (bool, err
 }
 
 func (p *PostgresReconciler) syncPVC(ctx *chetypes.DeployContext) (bool, error) {
-	pvc := ctx.CheCluster.Spec.Operands.Database.Pvc.DeepCopy()
-	pvc.ClaimSize = utils.GetValue(ctx.CheCluster.Spec.Operands.Database.Pvc.ClaimSize, constants.DefaultPostgresPvcClaimSize)
+	pvc := ctx.CheCluster.Spec.Components.Database.Pvc.DeepCopy()
+	pvc.ClaimSize = utils.GetValue(ctx.CheCluster.Spec.Components.Database.Pvc.ClaimSize, constants.DefaultPostgresPvcClaimSize)
 
 	done, err := deploy.SyncPVCToCluster(ctx, constants.DefaultPostgresVolumeClaimName, pvc, constants.PostgresName)
 	if !done {
@@ -134,7 +134,7 @@ func (p *PostgresReconciler) setDbVersion(ctx *chetypes.DeployContext) (bool, er
 
 // Create secret with PostgreSQL credentials.
 func (p *PostgresReconciler) syncCredentials(ctx *chetypes.DeployContext) (bool, error) {
-	postgresCredentialsSecretName := utils.GetValue(ctx.CheCluster.Spec.Operands.Database.CredentialsSecretName, constants.DefaultPostgresCredentialsSecret)
+	postgresCredentialsSecretName := utils.GetValue(ctx.CheCluster.Spec.Components.Database.CredentialsSecretName, constants.DefaultPostgresCredentialsSecret)
 	exists, err := deploy.GetNamespacedObject(ctx, postgresCredentialsSecretName, &corev1.Secret{})
 	if err != nil {
 		return false, err

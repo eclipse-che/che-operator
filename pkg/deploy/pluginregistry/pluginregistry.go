@@ -33,7 +33,7 @@ func NewPluginRegistryReconciler() *PluginRegistryReconciler {
 }
 
 func (p *PluginRegistryReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if ctx.CheCluster.Spec.Operands.PluginRegistry.DisableInternalRegistry {
+	if ctx.CheCluster.Spec.Components.PluginRegistry.DisableInternalRegistry {
 		ctx.CheCluster.Status.PluginRegistryURL = ""
 		err := deploy.UpdateCheCRStatus(ctx, "PluginRegistryURL", "")
 		return reconcile.Result{}, err == nil, err

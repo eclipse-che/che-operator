@@ -41,7 +41,7 @@ func TestNewCheConfigMap(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					Operands: chev2.CheClusterOperands{
+					Components: chev2.CheClusterComponents{
 						CheServer: chev2.CheServer{
 							ExtraProperties: map[string]string{
 								"CHE_WORKSPACE_NO_PROXY": "myproxy.myhostname.com",
@@ -263,7 +263,7 @@ func TestUpdateIntegrationServerEndpoints(t *testing.T) {
 					Name:      "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					Operands: chev2.CheClusterOperands{
+					Components: chev2.CheClusterComponents{
 						CheServer: chev2.CheServer{
 							ExtraProperties: map[string]string{
 								"CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS": "bitbucket_endpoint_1",
@@ -284,7 +284,7 @@ func TestUpdateIntegrationServerEndpoints(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					Operands: chev2.CheClusterOperands{
+					Components: chev2.CheClusterComponents{
 						CheServer: chev2.CheServer{
 							ExtraProperties: map[string]string{
 								"CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS": "bitbucket_endpoint_1",
@@ -327,7 +327,7 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					Operands: chev2.CheClusterOperands{
+					Components: chev2.CheClusterComponents{
 						DevfileRegistry: chev2.DevfileRegistry{
 							DisableInternalRegistry: true,
 							ExternalDevfileRegistries: []chev2.ExternalDevfileRegistry{
@@ -349,7 +349,7 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					Operands: chev2.CheClusterOperands{
+					Components: chev2.CheClusterComponents{
 						DevfileRegistry: chev2.DevfileRegistry{
 							ExternalDevfileRegistries: []chev2.ExternalDevfileRegistry{
 								{Url: "http://devfile-registry.external.2"},
@@ -411,7 +411,7 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					Operands: chev2.CheClusterOperands{
+					Components: chev2.CheClusterComponents{
 						PluginRegistry: chev2.PluginRegistry{
 							DisableInternalRegistry: true,
 						},

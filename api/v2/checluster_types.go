@@ -34,11 +34,11 @@ type CheClusterSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Workspaces"
 	Workspaces CheClusterSpecWorkspaces `json:"workspaces"`
-	// Che operands configuration
+	// Che components configuration
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=2
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Operands"
-	Operands CheClusterOperands `json:"operands"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Components"
+	Components CheClusterComponents `json:"components"`
 	// Che ingress hostname, authentication and TLS configuration
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=3
@@ -74,9 +74,9 @@ type CheClusterSpecWorkspaces struct {
 	TrustedCerts TrustedCerts `json:"trustedCerts,omitempty"`
 }
 
-// Che operands configuration
+// Che components configuration
 // +k8s:openapi-gen=true
-type CheClusterOperands struct {
+type CheClusterComponents struct {
 	// DevWorkspace operator configuration
 	// +optional
 	DevWorkspace DevWorkspace `json:"devWorkspace"`
@@ -613,11 +613,11 @@ func (c *CheCluster) IsAirGapMode() bool {
 }
 
 func (c *CheCluster) IsImagePullerSpecEmpty() bool {
-	return c.Spec.Operands.ImagePuller.Spec == (imagepullerv1alpha1.KubernetesImagePullerSpec{})
+	return c.Spec.Components.ImagePuller.Spec == (imagepullerv1alpha1.KubernetesImagePullerSpec{})
 }
 
 func (c *CheCluster) IsImagePullerImagesEmpty() bool {
-	return len(c.Spec.Operands.ImagePuller.Spec.Images) == 0
+	return len(c.Spec.Components.ImagePuller.Spec.Images) == 0
 }
 
 func (c *CheCluster) GetCheHost() string {
@@ -629,8 +629,8 @@ func (c *CheCluster) GetCheHost() string {
 }
 
 func (c *CheCluster) GetDefaultNamespace() string {
-	if c.Spec.Operands.CheServer.ExtraProperties != nil {
-		k8sDefaultNamespace := c.Spec.Operands.CheServer.ExtraProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"]
+	if c.Spec.Components.CheServer.ExtraProperties != nil {
+		k8sDefaultNamespace := c.Spec.Components.CheServer.ExtraProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"]
 		if k8sDefaultNamespace != "" {
 			return k8sDefaultNamespace
 		}

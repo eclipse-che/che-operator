@@ -76,9 +76,9 @@ spec:
       - description: Development environment default configuration options
         displayName: Workspaces
         path: workspaces
-      - description: Che operands configuration
-        displayName: Operands
-        path: operands
+      - description: Che components configuration
+        displayName: Components
+        path: components
       - description: Che ingress hostname, authentication and TLS configuration
         displayName: Ingress
         path: ingress

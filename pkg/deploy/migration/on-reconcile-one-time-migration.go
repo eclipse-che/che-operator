@@ -112,13 +112,13 @@ func addPartOfCheLabeltoUserDefinedObjects(ctx *chetypes.DeployContext) error {
 	}
 
 	// Proxy credentials
-	proxyCredentialsSecret := utils.GetValue(ctx.CheCluster.Spec.Operands.CheServer.Proxy.CredentialsSecretName, constants.DefaultProxyCredentialsSecret)
+	proxyCredentialsSecret := utils.GetValue(ctx.CheCluster.Spec.Components.CheServer.Proxy.CredentialsSecretName, constants.DefaultProxyCredentialsSecret)
 	if err := addPartOfCheLabelToSecret(ctx, proxyCredentialsSecret); err != nil {
 		return err
 	}
 
 	// Database credentials
-	chePostgresCredentialsSecret := utils.GetValue(ctx.CheCluster.Spec.Operands.Database.CredentialsSecretName, constants.DefaultPostgresCredentialsSecret)
+	chePostgresCredentialsSecret := utils.GetValue(ctx.CheCluster.Spec.Components.Database.CredentialsSecretName, constants.DefaultPostgresCredentialsSecret)
 	if err := addPartOfCheLabelToSecret(ctx, chePostgresCredentialsSecret); err != nil {
 		return err
 	}

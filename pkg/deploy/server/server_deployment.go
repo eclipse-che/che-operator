@@ -231,7 +231,7 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 
 	container := &deployment.Spec.Template.Spec.Containers[0]
 
-	chePostgresCredentialsSecret := utils.GetValue(ctx.CheCluster.Spec.Operands.Database.CredentialsSecretName, constants.DefaultPostgresCredentialsSecret)
+	chePostgresCredentialsSecret := utils.GetValue(ctx.CheCluster.Spec.Components.Database.CredentialsSecretName, constants.DefaultPostgresCredentialsSecret)
 	container.Env = append(container.Env,
 		corev1.EnvVar{
 			Name: "CHE_JDBC_USERNAME",
@@ -256,7 +256,7 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 		})
 
 	// configure probes if debug isn't set
-	if !ctx.CheCluster.Spec.Operands.CheServer.Debug {
+	if !ctx.CheCluster.Spec.Components.CheServer.Debug {
 		container.ReadinessProbe = &corev1.Probe{
 			Handler: corev1.Handler{
 				HTTPGet: &corev1.HTTPGetAction{
@@ -304,7 +304,7 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 	}
 
 	if defaults.IsComponentReadinessInitContainersConfigured() {
-		if !ctx.CheCluster.Spec.Operands.Database.ExternalDb {
+		if !ctx.CheCluster.Spec.Components.Database.ExternalDb {
 			waitForPostgresInitContainer, err := postgres.GetWaitForPostgresInitContainer(ctx)
 			if err != nil {
 				return nil, err
@@ -313,7 +313,7 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 		}
 	}
 
-	deploy.CustomizeDeployment(deployment, &ctx.CheCluster.Spec.Operands.CheServer.Deployment, true)
+	deploy.CustomizeDeployment(deployment, &ctx.CheCluster.Spec.Components.CheServer.Deployment, true)
 
 	return deployment, nil
 }

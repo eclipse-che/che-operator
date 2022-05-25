@@ -1272,165 +1272,8 @@ spec:
             spec:
               description: Desired configuration of Eclipse Che installation.
               properties:
-                containerRegistry:
-                  description: Configuration of an alternative registry that stores
-                    Che images
-                  properties:
-                    hostname:
-                      description: Optional hostname, or URL, to an alternate container
-                        registry to pull images from. This value overrides the container
-                        registry hostname defined in all the default container images
-                        involved in a Che deployment. This is particularly useful
-                        to install Che in a restricted environment.
-                      type: string
-                    organization:
-                      description: Optional repository name of an alternate container
-                        registry to pull images from. This value overrides the container
-                        registry organization defined in all the default container
-                        images involved in a Che deployment. This is particularly
-                        useful to install Eclipse Che in a restricted environment.
-                      type: string
-                  type: object
-                ingress:
-                  description: Che ingress hostname, authentication and TLS configuration
-                  properties:
-                    annotations:
-                      additionalProperties:
-                        type: string
-                      description: 'Unstructured key value map stored with a resource
-                        that may be set by external tools to store and retrieve arbitrary
-                        metadata. When not specified, this defaults to:     kubernetes.io/ingress.class:                       "nginx"     nginx.ingress.kubernetes.io/proxy-read-timeout:    "3600",     nginx.ingress.kubernetes.io/proxy-connect-timeout:
-                        "3600",     nginx.ingress.kubernetes.io/ssl-redirect:          "true"'
-                      type: object
-                    auth:
-                      description: Authentication settings.
-                      properties:
-                        gateway:
-                          description: Gateway settings.
-                          properties:
-                            configLabels:
-                              additionalProperties:
-                                type: string
-                              description: Gate configuration labels.
-                              type: object
-                            deployment:
-                              description: 'Deployment override options. Since gateway
-                                deployment consist of several containers, they must
-                                be distungish in the configuration by their names:
-                                - `gateway` - `configbump` - `oauth-proxy` - `kube-rbac-proxy`'
-                              properties:
-                                container:
-                                  description: A single application container.
-                                  items:
-                                    description: Container custom settings.
-                                    properties:
-                                      image:
-                                        description: Container image. Omit it or leave
-                                          it empty to use the default container image
-                                          provided by the Operator.
-                                        type: string
-                                      imagePullPolicy:
-                                        description: Image pull policy. Default value
-                                          is `Always` for `nightly`, `next` or `latest`
-                                          images, and `IfNotPresent` in other cases.
-                                        type: string
-                                      name:
-                                        description: Container name.
-                                        type: string
-                                      resources:
-                                        description: Compute Resources required by
-                                          this container.
-                                        properties:
-                                          limits:
-                                            description: Limits describes the maximum
-                                              amount of compute resources allowed.
-                                            properties:
-                                              cpu:
-                                                description: CPU, in cores. (500m
-                                                  = .5 cores)
-                                                type: string
-                                              memory:
-                                                description: Memory, in bytes. (500Gi
-                                                  = 500GiB = 500 * 1024 * 1024 * 1024)
-                                                type: string
-                                            type: object
-                                          request:
-                                            description: Requests describes the minimum
-                                              amount of compute resources required.
-                                            properties:
-                                              cpu:
-                                                description: CPU, in cores. (500m
-                                                  = .5 cores)
-                                                type: string
-                                              memory:
-                                                description: Memory, in bytes. (500Gi
-                                                  = 500GiB = 500 * 1024 * 1024 * 1024)
-                                                type: string
-                                            type: object
-                                        type: object
-                                    type: object
-                                  type: array
-                                securityContext:
-                                  description: Security options the pod should run
-                                    with.
-                                  properties:
-                                    fsGroup:
-                                      description: A special supplemental group that
-                                        applies to all containers in a pod. Default
-                                        value is `1724`.
-                                      format: int64
-                                      type: integer
-                                    runAsUser:
-                                      description: The UID to run the entrypoint of
-                                        the container process. Default value is `1724`.
-                                      format: int64
-                                      type: integer
-                                  type: object
-                              type: object
-                          type: object
-                        identityProviderURL:
-                          description: Public URL of the Identity Provider server.
-                          type: string
-                        oAuthClientName:
-                          description: Name of the OpenShift `OAuthClient` resource
-                            used to setup identity federation on the OpenShift side.
-                          type: string
-                        oAuthSecret:
-                          description: Name of the secret set in the OpenShift `OAuthClient`
-                            resource used to setup identity federation on the OpenShift
-                            side.
-                          type: string
-                      type: object
-                    domain:
-                      description: 'For OpenShift cluster Operator uses the domain
-                        to generate a hostname for a route. The generated hostname
-                        will follow this pattern: che-<che-namespace>.<domain>, where
-                        <che-namespace> is the namespace where the CheCluster CRD
-                        is created. In a conjunction with labels it creates a route,
-                        which is served by a non-default Ingress controller. For Kubernetes
-                        cluster it contains a global ingress domain. This MUST be
-                        explicitly specified: there are no defaults.'
-                      type: string
-                    hostname:
-                      description: Public hostname of the installed Che server. When
-                        value is omitted, the value it will be automatically set by
-                        the Operator.
-                      type: string
-                    labels:
-                      additionalProperties:
-                        type: string
-                      description: Comma separated list of labels that can be used
-                        to organize and categorize objects by scoping and selecting.
-                      type: object
-                    tlsSecretName:
-                      description: Name of a secret that will be used to setup ingress
-                        TLS termination when. When the field is empty string, the
-                        default cluster certificate will be used. The secret must
-                        have `app.kubernetes.io/part-of=che.eclipse.org` label.
-                      type: string
-                  type: object
-                operands:
-                  description: Che operands configuration
+                components:
+                  description: Che components configuration
                   properties:
                     cheServer:
                       description: General configuration settings related to the Che
@@ -2101,6 +1944,163 @@ spec:
                             type: object
                           type: array
                       type: object
+                  type: object
+                containerRegistry:
+                  description: Configuration of an alternative registry that stores
+                    Che images
+                  properties:
+                    hostname:
+                      description: Optional hostname, or URL, to an alternate container
+                        registry to pull images from. This value overrides the container
+                        registry hostname defined in all the default container images
+                        involved in a Che deployment. This is particularly useful
+                        to install Che in a restricted environment.
+                      type: string
+                    organization:
+                      description: Optional repository name of an alternate container
+                        registry to pull images from. This value overrides the container
+                        registry organization defined in all the default container
+                        images involved in a Che deployment. This is particularly
+                        useful to install Eclipse Che in a restricted environment.
+                      type: string
+                  type: object
+                ingress:
+                  description: Che ingress hostname, authentication and TLS configuration
+                  properties:
+                    annotations:
+                      additionalProperties:
+                        type: string
+                      description: 'Unstructured key value map stored with a resource
+                        that may be set by external tools to store and retrieve arbitrary
+                        metadata. When not specified, this defaults to:     kubernetes.io/ingress.class:                       "nginx"     nginx.ingress.kubernetes.io/proxy-read-timeout:    "3600",     nginx.ingress.kubernetes.io/proxy-connect-timeout:
+                        "3600",     nginx.ingress.kubernetes.io/ssl-redirect:          "true"'
+                      type: object
+                    auth:
+                      description: Authentication settings.
+                      properties:
+                        gateway:
+                          description: Gateway settings.
+                          properties:
+                            configLabels:
+                              additionalProperties:
+                                type: string
+                              description: Gate configuration labels.
+                              type: object
+                            deployment:
+                              description: 'Deployment override options. Since gateway
+                                deployment consist of several containers, they must
+                                be distungish in the configuration by their names:
+                                - `gateway` - `configbump` - `oauth-proxy` - `kube-rbac-proxy`'
+                              properties:
+                                container:
+                                  description: A single application container.
+                                  items:
+                                    description: Container custom settings.
+                                    properties:
+                                      image:
+                                        description: Container image. Omit it or leave
+                                          it empty to use the default container image
+                                          provided by the Operator.
+                                        type: string
+                                      imagePullPolicy:
+                                        description: Image pull policy. Default value
+                                          is `Always` for `nightly`, `next` or `latest`
+                                          images, and `IfNotPresent` in other cases.
+                                        type: string
+                                      name:
+                                        description: Container name.
+                                        type: string
+                                      resources:
+                                        description: Compute Resources required by
+                                          this container.
+                                        properties:
+                                          limits:
+                                            description: Limits describes the maximum
+                                              amount of compute resources allowed.
+                                            properties:
+                                              cpu:
+                                                description: CPU, in cores. (500m
+                                                  = .5 cores)
+                                                type: string
+                                              memory:
+                                                description: Memory, in bytes. (500Gi
+                                                  = 500GiB = 500 * 1024 * 1024 * 1024)
+                                                type: string
+                                            type: object
+                                          request:
+                                            description: Requests describes the minimum
+                                              amount of compute resources required.
+                                            properties:
+                                              cpu:
+                                                description: CPU, in cores. (500m
+                                                  = .5 cores)
+                                                type: string
+                                              memory:
+                                                description: Memory, in bytes. (500Gi
+                                                  = 500GiB = 500 * 1024 * 1024 * 1024)
+                                                type: string
+                                            type: object
+                                        type: object
+                                    type: object
+                                  type: array
+                                securityContext:
+                                  description: Security options the pod should run
+                                    with.
+                                  properties:
+                                    fsGroup:
+                                      description: A special supplemental group that
+                                        applies to all containers in a pod. Default
+                                        value is `1724`.
+                                      format: int64
+                                      type: integer
+                                    runAsUser:
+                                      description: The UID to run the entrypoint of
+                                        the container process. Default value is `1724`.
+                                      format: int64
+                                      type: integer
+                                  type: object
+                              type: object
+                          type: object
+                        identityProviderURL:
+                          description: Public URL of the Identity Provider server.
+                          type: string
+                        oAuthClientName:
+                          description: Name of the OpenShift `OAuthClient` resource
+                            used to setup identity federation on the OpenShift side.
+                          type: string
+                        oAuthSecret:
+                          description: Name of the secret set in the OpenShift `OAuthClient`
+                            resource used to setup identity federation on the OpenShift
+                            side.
+                          type: string
+                      type: object
+                    domain:
+                      description: 'For OpenShift cluster Operator uses the domain
+                        to generate a hostname for a route. The generated hostname
+                        will follow this pattern: che-<che-namespace>.<domain>, where
+                        <che-namespace> is the namespace where the CheCluster CRD
+                        is created. In a conjunction with labels it creates a route,
+                        which is served by a non-default Ingress controller. For Kubernetes
+                        cluster it contains a global ingress domain. This MUST be
+                        explicitly specified: there are no defaults.'
+                      type: string
+                    hostname:
+                      description: Public hostname of the installed Che server. When
+                        value is omitted, the value it will be automatically set by
+                        the Operator.
+                      type: string
+                    labels:
+                      additionalProperties:
+                        type: string
+                      description: Comma separated list of labels that can be used
+                        to organize and categorize objects by scoping and selecting.
+                      type: object
+                    tlsSecretName:
+                      description: Name of a secret that will be used to setup ingress
+                        TLS termination when. When the field is empty string, the
+                        default cluster certificate will be used. The secret must
+                        have `app.kubernetes.io/part-of=che.eclipse.org` label.
+                      type: string
                   type: object
                 workspaces:
                   description: Development environment default configuration options

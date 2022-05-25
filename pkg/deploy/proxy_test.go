@@ -114,7 +114,7 @@ func TestReadCheClusterProxyConfiguration(t *testing.T) {
 			Namespace: "eclipse-che",
 		},
 		Spec: chev2.CheClusterSpec{
-			Operands: chev2.CheClusterOperands{
+			Components: chev2.CheClusterComponents{
 				CheServer: chev2.CheServer{
 					Proxy: chev2.Proxy{
 						Port:                  "1234",
@@ -164,7 +164,7 @@ func TestReadCheClusterProxyConfiguration(t *testing.T) {
 func TestReadCheClusterProxyConfigurationNoUser(t *testing.T) {
 	checluster := &chev2.CheCluster{
 		Spec: chev2.CheClusterSpec{
-			Operands: chev2.CheClusterOperands{
+			Components: chev2.CheClusterComponents{
 				CheServer: chev2.CheServer{
 					Proxy: chev2.Proxy{
 						Port:          "1234",
@@ -203,7 +203,7 @@ func TestReadCheClusterProxyConfigurationNoPort(t *testing.T) {
 			Namespace: "eclipse-che",
 		},
 		Spec: chev2.CheClusterSpec{
-			Operands: chev2.CheClusterOperands{
+			Components: chev2.CheClusterComponents{
 				CheServer: chev2.CheServer{
 					Proxy: chev2.Proxy{
 						Url:           "https://myproxy.com",

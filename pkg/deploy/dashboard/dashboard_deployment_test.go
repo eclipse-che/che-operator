@@ -85,7 +85,7 @@ func TestDashboardDeploymentResources(t *testing.T) {
 					Name:      "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					Operands: chev2.CheClusterOperands{
+					Components: chev2.CheClusterComponents{
 						Dashboard: chev2.Dashboard{
 							Deployment: chev2.Deployment{
 								Containers: []chev2.Container{

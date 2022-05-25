@@ -45,7 +45,7 @@ func TestSyncService(t *testing.T) {
 				Name:      defaults.GetCheFlavor(),
 			},
 			Spec: chev2.CheClusterSpec{
-				Operands: chev2.CheClusterOperands{
+				Components: chev2.CheClusterComponents{
 					CheServer: chev2.CheServer{
 						Debug: true,
 					},

@@ -41,7 +41,7 @@ var (
 func (p *PostgresReconciler) getDeploymentSpec(clusterDeployment *appsv1.Deployment, ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
 	terminationGracePeriodSeconds := int64(30)
 	labels, labelSelector := deploy.GetLabelsAndSelector(constants.PostgresName)
-	chePostgresDb := utils.GetValue(ctx.CheCluster.Spec.Operands.Database.PostgresDb, constants.DefaultPostgresDb)
+	chePostgresDb := utils.GetValue(ctx.CheCluster.Spec.Components.Database.PostgresDb, constants.DefaultPostgresDb)
 	postgresImage, err := getPostgresImage(clusterDeployment, ctx.CheCluster)
 	if err != nil {
 		return nil, err
@@ -168,7 +168,7 @@ func (p *PostgresReconciler) getDeploymentSpec(clusterDeployment *appsv1.Deploym
 
 	container := &deployment.Spec.Template.Spec.Containers[0]
 
-	chePostgresCredentialsSecret := utils.GetValue(ctx.CheCluster.Spec.Operands.Database.CredentialsSecretName, constants.DefaultPostgresCredentialsSecret)
+	chePostgresCredentialsSecret := utils.GetValue(ctx.CheCluster.Spec.Components.Database.CredentialsSecretName, constants.DefaultPostgresCredentialsSecret)
 	container.Env = append(container.Env,
 		corev1.EnvVar{
 			Name: "POSTGRESQL_USER",
@@ -200,12 +200,12 @@ func (p *PostgresReconciler) getDeploymentSpec(clusterDeployment *appsv1.Deploym
 		}
 	}
 
-	deploy.CustomizeDeployment(deployment, &ctx.CheCluster.Spec.Operands.Database.Deployment, false)
+	deploy.CustomizeDeployment(deployment, &ctx.CheCluster.Spec.Components.Database.Deployment, false)
 	return deployment, nil
 }
 
 func getPostgresImage(clusterDeployment *appsv1.Deployment, cheCluster *chev2.CheCluster) (string, error) {
-	containers := cheCluster.Spec.Operands.Database.Deployment.Containers
+	containers := cheCluster.Spec.Components.Database.Deployment.Containers
 	if len(containers) > 0 && containers[0].Image != "" {
 		// use image explicitly set in a CR
 		return containers[0].Image, nil

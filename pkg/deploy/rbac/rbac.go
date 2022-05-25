@@ -39,7 +39,7 @@ func (c *CheServerPermissionsReconciler) Reconcile(ctx *chetypes.DeployContext) 
 		return reconcile.Result{Requeue: true}, false, err
 	}
 
-	for _, cheClusterRole := range ctx.CheCluster.Spec.Operands.CheServer.ClusterRoles {
+	for _, cheClusterRole := range ctx.CheCluster.Spec.Components.CheServer.ClusterRoles {
 		cheClusterRole := strings.TrimSpace(cheClusterRole)
 		if cheClusterRole != "" {
 			cheClusterRoleBindingName := cheClusterRole
@@ -56,7 +56,7 @@ func (c *CheServerPermissionsReconciler) Reconcile(ctx *chetypes.DeployContext) 
 func (c *CheServerPermissionsReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	done := true
 
-	for _, cheClusterRole := range ctx.CheCluster.Spec.Operands.CheServer.ClusterRoles {
+	for _, cheClusterRole := range ctx.CheCluster.Spec.Components.CheServer.ClusterRoles {
 		cheClusterRole := strings.TrimSpace(cheClusterRole)
 		if cheClusterRole != "" {
 			cheClusterRoleBindingName := cheClusterRole

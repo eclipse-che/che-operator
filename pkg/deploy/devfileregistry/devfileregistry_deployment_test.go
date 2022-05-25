@@ -65,7 +65,7 @@ func TestGetDevfileRegistryDeploymentSpec(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					Operands: chev2.CheClusterOperands{
+					Components: chev2.CheClusterComponents{
 						DevfileRegistry: chev2.DevfileRegistry{
 							Deployment: chev2.Deployment{
 								Containers: []chev2.Container{

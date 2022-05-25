@@ -109,7 +109,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 					},
 				},
 				Spec: chev2.CheClusterSpec{
-					Operands: chev2.CheClusterOperands{
+					Components: chev2.CheClusterComponents{
 						ImagePuller: chev2.ImagePuller{
 							Enable: true,
 							Spec: chev1alpha1.KubernetesImagePullerSpec{
@@ -498,7 +498,7 @@ func InitCheCRWithImagePullerEnabled() *chev2.CheCluster {
 			ResourceVersion: "0",
 		},
 		Spec: chev2.CheClusterSpec{
-			Operands: chev2.CheClusterOperands{
+			Components: chev2.CheClusterComponents{
 				ImagePuller: chev2.ImagePuller{
 					Enable: true,
 				},
@@ -518,7 +518,7 @@ func InitCheCRWithImagePullerFinalizer() *chev2.CheCluster {
 			ResourceVersion: "0",
 		},
 		Spec: chev2.CheClusterSpec{
-			Operands: chev2.CheClusterOperands{
+			Components: chev2.CheClusterComponents{
 				ImagePuller: chev2.ImagePuller{
 					Enable: true,
 				},
@@ -538,7 +538,7 @@ func InitCheCRWithImagePullerFinalizerAndDeletionTimestamp() *chev2.CheCluster {
 			DeletionTimestamp: &metav1.Time{Time: time.Unix(1, 0)},
 		},
 		Spec: chev2.CheClusterSpec{
-			Operands: chev2.CheClusterOperands{
+			Components: chev2.CheClusterComponents{
 				ImagePuller: chev2.ImagePuller{
 					Enable: true,
 				},
@@ -562,7 +562,7 @@ func ExpectedCheCRWithImagePullerFinalizer() *chev2.CheCluster {
 			ResourceVersion: "1",
 		},
 		Spec: chev2.CheClusterSpec{
-			Operands: chev2.CheClusterOperands{
+			Components: chev2.CheClusterComponents{
 				ImagePuller: chev2.ImagePuller{
 					Enable: true,
 				},
@@ -579,7 +579,7 @@ func InitCheCRWithImagePullerDisabled() *chev2.CheCluster {
 			ResourceVersion: "0",
 		},
 		Spec: chev2.CheClusterSpec{
-			Operands: chev2.CheClusterOperands{
+			Components: chev2.CheClusterComponents{
 				ImagePuller: chev2.ImagePuller{
 					Enable: false,
 				},
@@ -603,7 +603,7 @@ func InitCheCRWithImagePullerEnabledAndDefaultValuesSet() *chev2.CheCluster {
 		},
 
 		Spec: chev2.CheClusterSpec{
-			Operands: chev2.CheClusterOperands{
+			Components: chev2.CheClusterComponents{
 				ImagePuller: chev2.ImagePuller{
 					Enable: true,
 					Spec: chev1alpha1.KubernetesImagePullerSpec{
@@ -630,7 +630,7 @@ func InitCheCRWithImagePullerEnabledAndImagesSet(images string) *chev2.CheCluste
 			Kind:       "CheCluster",
 		},
 		Spec: chev2.CheClusterSpec{
-			Operands: chev2.CheClusterOperands{
+			Components: chev2.CheClusterComponents{
 				ImagePuller: chev2.ImagePuller{
 					Enable: true,
 					Spec: chev1alpha1.KubernetesImagePullerSpec{
@@ -654,7 +654,7 @@ func InitCheCRWithImagePullerEnabledAndNewValuesSet() *chev2.CheCluster {
 			},
 		},
 		Spec: chev2.CheClusterSpec{
-			Operands: chev2.CheClusterOperands{
+			Components: chev2.CheClusterComponents{
 				ImagePuller: chev2.ImagePuller{
 					Enable: true,
 					Spec: chev1alpha1.KubernetesImagePullerSpec{

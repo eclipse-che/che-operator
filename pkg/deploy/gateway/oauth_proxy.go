@@ -128,10 +128,10 @@ skip_provider_button = true
 
 func skipAuthConfig(instance *chev2.CheCluster) string {
 	var skipAuthPaths []string
-	if !instance.Spec.Operands.PluginRegistry.DisableInternalRegistry {
+	if !instance.Spec.Components.PluginRegistry.DisableInternalRegistry {
 		skipAuthPaths = append(skipAuthPaths, "^/"+constants.PluginRegistryName)
 	}
-	if !instance.Spec.Operands.DevfileRegistry.DisableInternalRegistry {
+	if !instance.Spec.Components.DevfileRegistry.DisableInternalRegistry {
 		skipAuthPaths = append(skipAuthPaths, "^/"+constants.DevfileRegistryName)
 	}
 	skipAuthPaths = append(skipAuthPaths, "^/$")

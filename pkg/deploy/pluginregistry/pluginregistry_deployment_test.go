@@ -61,7 +61,7 @@ func TestGetPluginRegistryDeploymentSpec(t *testing.T) {
 					Name:      "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					Operands: chev2.CheClusterOperands{
+					Components: chev2.CheClusterComponents{
 						PluginRegistry: chev2.PluginRegistry{
 							Deployment: chev2.Deployment{
 								Containers: []chev2.Container{

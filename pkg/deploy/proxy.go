@@ -63,7 +63,7 @@ func ReadClusterWideProxyConfiguration(clusterProxy *configv1.Proxy) (*chetypes.
 }
 
 func ReadCheClusterProxyConfiguration(ctx *chetypes.DeployContext) (*chetypes.Proxy, error) {
-	proxyParts := strings.Split(ctx.CheCluster.Spec.Operands.CheServer.Proxy.Url, "://")
+	proxyParts := strings.Split(ctx.CheCluster.Spec.Components.CheServer.Proxy.Url, "://")
 	proxyProtocol := ""
 	proxyHost := ""
 	if len(proxyParts) == 1 {
@@ -75,14 +75,14 @@ func ReadCheClusterProxyConfiguration(ctx *chetypes.DeployContext) (*chetypes.Pr
 	}
 
 	proxyURL := proxyHost
-	if ctx.CheCluster.Spec.Operands.CheServer.Proxy.Port != "" {
-		proxyURL = proxyURL + ":" + ctx.CheCluster.Spec.Operands.CheServer.Proxy.Port
+	if ctx.CheCluster.Spec.Components.CheServer.Proxy.Port != "" {
+		proxyURL = proxyURL + ":" + ctx.CheCluster.Spec.Components.CheServer.Proxy.Port
 	}
 
 	proxyUser := ""
 	proxyPassword := ""
 
-	proxyCredentialsSecretName := utils.GetValue(ctx.CheCluster.Spec.Operands.CheServer.Proxy.CredentialsSecretName, constants.DefaultProxyCredentialsSecret)
+	proxyCredentialsSecretName := utils.GetValue(ctx.CheCluster.Spec.Components.CheServer.Proxy.CredentialsSecretName, constants.DefaultProxyCredentialsSecret)
 	proxyCredentialsSecret := &corev1.Secret{}
 	exists, err := GetNamespacedObject(ctx, proxyCredentialsSecretName, proxyCredentialsSecret)
 	if err != nil {
@@ -104,16 +104,16 @@ func ReadCheClusterProxyConfiguration(ctx *chetypes.DeployContext) (*chetypes.Pr
 		HttpProxy:    proxyURL,
 		HttpUser:     proxyUser,
 		HttpHost:     proxyHost,
-		HttpPort:     ctx.CheCluster.Spec.Operands.CheServer.Proxy.Port,
+		HttpPort:     ctx.CheCluster.Spec.Components.CheServer.Proxy.Port,
 		HttpPassword: proxyPassword,
 
 		HttpsProxy:    proxyURL,
 		HttpsUser:     proxyUser,
 		HttpsHost:     proxyHost,
-		HttpsPort:     ctx.CheCluster.Spec.Operands.CheServer.Proxy.Port,
+		HttpsPort:     ctx.CheCluster.Spec.Components.CheServer.Proxy.Port,
 		HttpsPassword: proxyPassword,
 
-		NoProxy: strings.Join(ctx.CheCluster.Spec.Operands.CheServer.Proxy.NonProxyHosts, ","),
+		NoProxy: strings.Join(ctx.CheCluster.Spec.Components.CheServer.Proxy.NonProxyHosts, ","),
 	}, nil
 }
 

@@ -50,8 +50,8 @@ func GetWaitForPostgresInitContainer(deployContext *chetypes.DeployContext) (*co
 }
 
 func getCheckPostgresReadinessScript(deployContext *chetypes.DeployContext) string {
-	chePostgresHostName := utils.GetValue(deployContext.CheCluster.Spec.Operands.Database.PostgresHostName, constants.DefaultPostgresHostName)
-	chePostgresPort := utils.GetValue(deployContext.CheCluster.Spec.Operands.Database.PostgresPort, constants.DefaultPostgresPort)
+	chePostgresHostName := utils.GetValue(deployContext.CheCluster.Spec.Components.Database.PostgresHostName, constants.DefaultPostgresHostName)
+	chePostgresPort := utils.GetValue(deployContext.CheCluster.Spec.Components.Database.PostgresPort, constants.DefaultPostgresPort)
 
 	return fmt.Sprintf(
 		"until pg_isready -h %s -p %s; do echo 'waiting for Postgres'; sleep 2; done;",

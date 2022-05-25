@@ -24,7 +24,7 @@ spec:
       preCreateSubPaths: true
       pvc:
         claimSize: '10Gi'
-  operands:
+  components:
     database:
       externalDb: false
     metrics:

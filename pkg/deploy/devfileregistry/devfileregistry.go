@@ -31,7 +31,7 @@ func NewDevfileRegistryReconciler() *DevfileRegistryReconciler {
 }
 
 func (d *DevfileRegistryReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if ctx.CheCluster.Spec.Operands.DevfileRegistry.DisableInternalRegistry {
+	if ctx.CheCluster.Spec.Components.DevfileRegistry.DisableInternalRegistry {
 		ctx.CheCluster.Status.DevfileRegistryURL = ""
 		err := deploy.UpdateCheCRStatus(ctx, "DevfileRegistryURL", "")
 		return reconcile.Result{}, err == nil, err

@@ -103,7 +103,7 @@ func TestConvertFrom(t *testing.T) {
 			Namespace: "eclipse-che",
 		},
 		Spec: chev2.CheClusterSpec{
-			Operands: chev2.CheClusterOperands{
+			Components: chev2.CheClusterComponents{
 				Metrics: chev2.ServerMetrics{
 					Enable: true,
 				},

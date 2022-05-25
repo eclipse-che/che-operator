@@ -71,7 +71,7 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 					Name:      "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					Operands: chev2.CheClusterOperands{
+					Components: chev2.CheClusterComponents{
 						DevfileRegistry: chev2.DevfileRegistry{
 							ExternalDevfileRegistries: []chev2.ExternalDevfileRegistry{
 								{Url: "https://devfile-registry.external.2"},
@@ -93,7 +93,7 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 					Name:      "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					Operands: chev2.CheClusterOperands{
+					Components: chev2.CheClusterComponents{
 						DevfileRegistry: chev2.DevfileRegistry{
 							DisableInternalRegistry: true,
 							ExternalDevfileRegistries: []chev2.ExternalDevfileRegistry{

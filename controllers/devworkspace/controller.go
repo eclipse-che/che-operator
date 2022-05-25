@@ -204,7 +204,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	workspaceBaseDomain := cluster.Spec.Ingress.Domain
 
 	// to be compatible with CheCluster API v1
-	routeDomain := cluster.Spec.Operands.CheServer.ExtraProperties["CHE_INFRA_OPENSHIFT_ROUTE_HOST_DOMAIN__SUFFIX"]
+	routeDomain := cluster.Spec.Components.CheServer.ExtraProperties["CHE_INFRA_OPENSHIFT_ROUTE_HOST_DOMAIN__SUFFIX"]
 	if routeDomain != "" {
 		workspaceBaseDomain = routeDomain
 	}

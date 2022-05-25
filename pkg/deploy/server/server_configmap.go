@@ -122,13 +122,13 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 	tlsSecretName := ctx.CheCluster.Spec.Ingress.TlsSecretName
 
 	securityContextFsGroup := strconv.FormatInt(constants.DefaultSecurityContextFsGroup, 10)
-	if ctx.CheCluster.Spec.Operands.CheServer.Deployment.SecurityContext.FsGroup != nil {
-		securityContextFsGroup = strconv.FormatInt(*ctx.CheCluster.Spec.Operands.CheServer.Deployment.SecurityContext.FsGroup, 10)
+	if ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext.FsGroup != nil {
+		securityContextFsGroup = strconv.FormatInt(*ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext.FsGroup, 10)
 	}
 
 	securityContextRunAsUser := strconv.FormatInt(constants.DefaultSecurityContextRunAsUser, 10)
-	if ctx.CheCluster.Spec.Operands.CheServer.Deployment.SecurityContext.RunAsUser != nil {
-		securityContextRunAsUser = strconv.FormatInt(*ctx.CheCluster.Spec.Operands.CheServer.Deployment.SecurityContext.RunAsUser, 10)
+	if ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext.RunAsUser != nil {
+		securityContextRunAsUser = strconv.FormatInt(*ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext.RunAsUser, 10)
 	}
 
 	pvcStrategy := utils.GetValue(ctx.CheCluster.Spec.Workspaces.Storage.PvcStrategy, constants.DefaultPvcStrategy)
@@ -141,15 +141,15 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 	if !ctx.CheCluster.Spec.Workspaces.Storage.PreCreateSubPaths {
 		preCreateSubPaths = "false"
 	}
-	chePostgresHostName := utils.GetValue(ctx.CheCluster.Spec.Operands.Database.PostgresHostName, constants.DefaultPostgresHostName)
-	chePostgresPort := utils.GetValue(ctx.CheCluster.Spec.Operands.Database.PostgresPort, constants.DefaultPostgresPort)
-	chePostgresDb := utils.GetValue(ctx.CheCluster.Spec.Operands.Database.PostgresDb, constants.DefaultPostgresDb)
+	chePostgresHostName := utils.GetValue(ctx.CheCluster.Spec.Components.Database.PostgresHostName, constants.DefaultPostgresHostName)
+	chePostgresPort := utils.GetValue(ctx.CheCluster.Spec.Components.Database.PostgresPort, constants.DefaultPostgresPort)
+	chePostgresDb := utils.GetValue(ctx.CheCluster.Spec.Components.Database.PostgresDb, constants.DefaultPostgresDb)
 	ingressClass := utils.GetValue(ctx.CheCluster.Spec.Ingress.Annotations["kubernetes.io/ingress.class"], constants.DefaultIngressClass)
 
 	// grab first the devfile registry url which is deployed by operator
 	devfileRegistryURL := ctx.CheCluster.Status.DevfileRegistryURL
 
-	for _, r := range ctx.CheCluster.Spec.Operands.DevfileRegistry.ExternalDevfileRegistries {
+	for _, r := range ctx.CheCluster.Spec.Components.DevfileRegistry.ExternalDevfileRegistries {
 		if strings.Index(devfileRegistryURL, r.Url) == -1 {
 			devfileRegistryURL += " " + r.Url
 		}
@@ -157,9 +157,9 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 	devfileRegistryURL = strings.TrimSpace(devfileRegistryURL)
 
 	pluginRegistryURL := ctx.CheCluster.Status.PluginRegistryURL
-	cheLogLevel := utils.GetValue(ctx.CheCluster.Spec.Operands.CheServer.LogLevel, constants.DefaultServerLogLevel)
-	cheDebug := strconv.FormatBool(ctx.CheCluster.Spec.Operands.CheServer.Debug)
-	cheMetrics := strconv.FormatBool(ctx.CheCluster.Spec.Operands.Metrics.Enable)
+	cheLogLevel := utils.GetValue(ctx.CheCluster.Spec.Components.CheServer.LogLevel, constants.DefaultServerLogLevel)
+	cheDebug := strconv.FormatBool(ctx.CheCluster.Spec.Components.CheServer.Debug)
+	cheMetrics := strconv.FormatBool(ctx.CheCluster.Spec.Components.Metrics.Enable)
 	cheLabels := labels.FormatLabels(deploy.GetLabels(defaults.GetCheFlavor()))
 
 	singleHostGatewayConfigMapLabels := ""
@@ -175,11 +175,11 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 	var pluginRegistryInternalURL, devfileRegistryInternalURL string
 
 	// If there is a devfile registry deployed by operator
-	if !ctx.CheCluster.Spec.Operands.DevfileRegistry.DisableInternalRegistry {
+	if !ctx.CheCluster.Spec.Components.DevfileRegistry.DisableInternalRegistry {
 		devfileRegistryInternalURL = fmt.Sprintf("http://%s.%s.svc:8080", constants.DevfileRegistryName, ctx.CheCluster.Namespace)
 	}
 
-	if !ctx.CheCluster.Spec.Operands.PluginRegistry.DisableInternalRegistry {
+	if !ctx.CheCluster.Spec.Components.PluginRegistry.DisableInternalRegistry {
 		pluginRegistryInternalURL = fmt.Sprintf("http://%s.%s.svc:8080/v3", constants.PluginRegistryName, ctx.CheCluster.Namespace)
 	}
 
@@ -285,7 +285,7 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 		}
 	}
 
-	addMap(cheEnv, ctx.CheCluster.Spec.Operands.CheServer.ExtraProperties)
+	addMap(cheEnv, ctx.CheCluster.Spec.Components.CheServer.ExtraProperties)
 
 	for _, oauthProvider := range []string{"bitbucket", "gitlab", "github"} {
 		err := updateIntegrationServerEndpoints(ctx, cheEnv, oauthProvider)

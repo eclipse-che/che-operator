@@ -52,12 +52,12 @@ func (s *CheHostReconciler) syncCheService(ctx *chetypes.DeployContext) (bool, e
 	portName := []string{"http"}
 	portNumber := []int32{8080}
 
-	if ctx.CheCluster.Spec.Operands.Metrics.Enable {
+	if ctx.CheCluster.Spec.Components.Metrics.Enable {
 		portName = append(portName, "metrics")
 		portNumber = append(portNumber, constants.DefaultServerMetricsPort)
 	}
 
-	if ctx.CheCluster.Spec.Operands.CheServer.Debug {
+	if ctx.CheCluster.Spec.Components.CheServer.Debug {
 		portName = append(portName, "debug")
 		portNumber = append(portNumber, constants.DefaultServerDebugPort)
 	}

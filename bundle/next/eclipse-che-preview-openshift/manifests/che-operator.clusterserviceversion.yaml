@@ -57,6 +57,14 @@ metadata:
             "namespace": "eclipse-che"
           },
           "spec": {
+            "components": {
+              "database": {
+                "externalDb": false
+              },
+              "metrics": {
+                "enable": true
+              }
+            },
             "ingress": {
               "auth": {
                 "identityProviderURL": "",
@@ -65,14 +73,6 @@ metadata:
               },
               "domain": "",
               "tlsSecretName": ""
-            },
-            "operands": {
-              "database": {
-                "externalDb": false
-              },
-              "metrics": {
-                "enable": true
-              }
             },
             "workspaces": {
               "defaultNamespace": {
@@ -103,7 +103,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.48.0-549.next
+  name: eclipse-che-preview-openshift.v7.48.0-551.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -153,9 +153,9 @@ spec:
           - description: Development environment default configuration options
             displayName: Workspaces
             path: workspaces
-          - description: Che operands configuration
-            displayName: Operands
-            path: operands
+          - description: Che components configuration
+            displayName: Components
+            path: components
           - description: Che ingress hostname, authentication and TLS configuration
             displayName: Ingress
             path: ingress
@@ -1418,7 +1418,7 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.48.0-549.next
+  version: 7.48.0-551.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1
