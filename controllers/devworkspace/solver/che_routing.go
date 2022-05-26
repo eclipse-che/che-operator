@@ -377,9 +377,7 @@ func exposeAllEndpoints(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspa
 				continue
 			}
 
-			if e.Attributes.GetString(urlRewriteSupportedEndpointAttributeName, nil) == "true" {
-				addEndpointToTraefikConfig(componentName, e, wsRouteConfig, cheCluster, routing)
-			} else {
+			if e.Attributes.GetString(urlRewriteSupportedEndpointAttributeName, nil) != "true" {
 				if !containPort(commonService, int32(e.TargetPort)) {
 					commonService.Spec.Ports = append(commonService.Spec.Ports, corev1.ServicePort{
 						Name:       common.EndpointName(e.Name),
@@ -388,7 +386,15 @@ func exposeAllEndpoints(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspa
 						TargetPort: intstr.FromInt(e.TargetPort),
 					})
 				}
+			}
 
+			if dw.EndpointExposure(e.Exposure) != dw.PublicEndpointExposure {
+				continue
+			}
+
+			if e.Attributes.GetString(urlRewriteSupportedEndpointAttributeName, nil) == "true" {
+				addEndpointToTraefikConfig(componentName, e, wsRouteConfig, cheCluster, routing)
+			} else {
 				ingressExpose(&EndpointInfo{
 					order:         order,
 					componentName: componentName,
