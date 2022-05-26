@@ -59,7 +59,6 @@ type CheConfigMap struct {
 	PvcClaimSize                           string `json:"CHE_INFRA_KUBERNETES_PVC_QUANTITY"`
 	PvcJobsImage                           string `json:"CHE_INFRA_KUBERNETES_PVC_JOBS_IMAGE"`
 	WorkspacePvcStorageClassName           string `json:"CHE_INFRA_KUBERNETES_PVC_STORAGE__CLASS__NAME"`
-	PreCreateSubPaths                      string `json:"CHE_INFRA_KUBERNETES_PVC_PRECREATE__SUBPATHS"`
 	TlsSupport                             string `json:"CHE_INFRA_OPENSHIFT_TLS__ENABLED"`
 	K8STrustCerts                          string `json:"CHE_INFRA_KUBERNETES_TRUST__CERTS"`
 	DatabaseURL                            string `json:"CHE_JDBC_URL,omitempty"`
@@ -137,10 +136,6 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 
 	defaultPVCJobsImage := defaults.GetPvcJobsImage(ctx.CheCluster)
 	pvcJobsImage := utils.GetValue(ctx.CheCluster.Spec.Workspaces.Storage.PvcJobsImage, defaultPVCJobsImage)
-	preCreateSubPaths := "true"
-	if !ctx.CheCluster.Spec.Workspaces.Storage.PreCreateSubPaths {
-		preCreateSubPaths = "false"
-	}
 	chePostgresHostName := utils.GetValue(ctx.CheCluster.Spec.Components.Database.PostgresHostName, constants.DefaultPostgresHostName)
 	chePostgresPort := utils.GetValue(ctx.CheCluster.Spec.Components.Database.PostgresPort, constants.DefaultPostgresPort)
 	chePostgresDb := utils.GetValue(ctx.CheCluster.Spec.Components.Database.PostgresDb, constants.DefaultPostgresDb)
@@ -206,7 +201,6 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 		PvcClaimSize:                           pvcClaimSize,
 		WorkspacePvcStorageClassName:           workspacePvcStorageClassName,
 		PvcJobsImage:                           pvcJobsImage,
-		PreCreateSubPaths:                      preCreateSubPaths,
 		TlsSupport:                             "true",
 		K8STrustCerts:                          "true",
 		CheLogLevel:                            cheLogLevel,

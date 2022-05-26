@@ -249,7 +249,6 @@ func TestConvertTo(t *testing.T) {
 			Storage: chev1.CheClusterSpecStorage{
 				PvcStrategy:                  "PvcStrategy",
 				PvcClaimSize:                 "WorkspacePvcClaimSize",
-				PreCreateSubPaths:            true,
 				PvcJobsImage:                 "PvcJobsImage",
 				PostgresPVCStorageClassName:  "PostgresPVCStorageClassName",
 				WorkspacePVCStorageClassName: "WorkspacePVCStorageClassName",
@@ -397,7 +396,6 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.DisableInternalRegistry, true)
 	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.ExternalPluginRegistries, []chev2.ExternalPluginRegistry{{Url: "PluginRegistryUrl"}})
 
-	assert.Equal(t, checlusterv2.Spec.Workspaces.Storage.PreCreateSubPaths, true)
 	assert.Equal(t, checlusterv2.Spec.Workspaces.Storage.Pvc.ClaimSize, "WorkspacePvcClaimSize")
 	assert.Equal(t, checlusterv2.Spec.Workspaces.Storage.Pvc.StorageClass, "WorkspacePVCStorageClassName")
 	assert.Equal(t, checlusterv2.Spec.Workspaces.Storage.PvcJobsImage, "PvcJobsImage")

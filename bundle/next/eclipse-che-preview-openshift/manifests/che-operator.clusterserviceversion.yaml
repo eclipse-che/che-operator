@@ -79,7 +79,6 @@ metadata:
                 "template": "<username>-che"
               },
               "storage": {
-                "preCreateSubPaths": true,
                 "pvc": {
                   "claimSize": "10Gi"
                 },
@@ -103,7 +102,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.48.0-551.next
+  name: eclipse-che-preview-openshift.v7.49.0-553.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1418,7 +1417,7 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.48.0-551.next
+  version: 7.49.0-553.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1

@@ -335,13 +335,8 @@ type WorkspaceStorage struct {
 	// +optional
 	// +kubebuilder:default:="common"
 	PvcStrategy string `json:"pvcStrategy,omitempty"`
-	// Instructs the Che server to start a special Pod to pre-create a sub-path in the Persistent Volumes.
-	// Defaults to `false`, however it will need to enable it according to the configuration of your Kubernetes cluster.
-	// +optional
-	// +kubebuilder:default:=true
-	PreCreateSubPaths bool `json:"preCreateSubPaths"`
 	// Overrides the container image used to create sub-paths in the Persistent Volumes.
-	// This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator. See also the `preCreateSubPaths` field.
+	// This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
 	// +optional
 	PvcJobsImage string `json:"pvcJobsImage,omitempty"`
 }

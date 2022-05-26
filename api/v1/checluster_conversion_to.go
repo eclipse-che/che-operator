@@ -130,7 +130,6 @@ func (src *CheCluster) convertTo_Workspaces(dst *chev2.CheCluster) error {
 }
 
 func (src *CheCluster) convertTo_Workspaces_Storage(dst *chev2.CheCluster) error {
-	dst.Spec.Workspaces.Storage.PreCreateSubPaths = src.Spec.Storage.PreCreateSubPaths
 	dst.Spec.Workspaces.Storage.Pvc = chev2.PVC{
 		ClaimSize:    src.Spec.Storage.PvcClaimSize,
 		StorageClass: src.Spec.Storage.WorkspacePVCStorageClassName,

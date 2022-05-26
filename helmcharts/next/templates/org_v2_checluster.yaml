@@ -21,7 +21,6 @@ spec:
       template: '<username>-che'
     storage:
       pvcStrategy: 'common'
-      preCreateSubPaths: true
       pvc:
         claimSize: '10Gi'
   components:

@@ -1440,10 +1440,6 @@ spec:
                   storage:
                     description: Workspaces persistent storage.
                     properties:
-                      preCreateSubPaths:
-                        default: true
-                        description: Instructs the Che server to start a special Pod to pre-create a sub-path in the Persistent Volumes. Defaults to `false`, however it will need to enable it according to the configuration of your Kubernetes cluster.
-                        type: boolean
                       pvc:
                         description: PVC settings.
                         properties:
@@ -1455,7 +1451,7 @@ spec:
                             type: string
                         type: object
                       pvcJobsImage:
-                        description: Overrides the container image used to create sub-paths in the Persistent Volumes. This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator. See also the `preCreateSubPaths` field.
+                        description: Overrides the container image used to create sub-paths in the Persistent Volumes. This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
                         type: string
                       pvcStrategy:
                         default: common

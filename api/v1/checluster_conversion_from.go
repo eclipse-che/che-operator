@@ -342,7 +342,6 @@ func (dst *CheCluster) convertFrom_Status(src *chev2.CheCluster) error {
 
 func (dst *CheCluster) convertFrom_Storage(src *chev2.CheCluster) error {
 	dst.Spec.Storage.PostgresPVCStorageClassName = src.Spec.Components.Database.Pvc.StorageClass
-	dst.Spec.Storage.PreCreateSubPaths = src.Spec.Workspaces.Storage.PreCreateSubPaths
 	dst.Spec.Storage.PvcClaimSize = src.Spec.Workspaces.Storage.Pvc.ClaimSize
 	dst.Spec.Storage.WorkspacePVCStorageClassName = src.Spec.Workspaces.Storage.Pvc.StorageClass
 	dst.Spec.Storage.PvcJobsImage = src.Spec.Workspaces.Storage.PvcJobsImage

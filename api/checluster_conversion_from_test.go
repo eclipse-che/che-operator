@@ -321,9 +321,8 @@ func TestConvertFrom(t *testing.T) {
 						ClaimSize:    "StorageClaimSize",
 						StorageClass: "StorageClass",
 					},
-					PvcStrategy:       "PvcStrategy",
-					PreCreateSubPaths: true,
-					PvcJobsImage:      "PvcJobsImage",
+					PvcStrategy:  "PvcStrategy",
+					PvcJobsImage: "PvcJobsImage",
 				},
 				DefaultPlugins: []chev2.WorkspaceDefaultPlugins{
 					{
@@ -457,7 +456,6 @@ func TestConvertFrom(t *testing.T) {
 	assert.Equal(t, checlusterv1.Spec.Server.WorkspacesDefaultPlugins, []chev1.WorkspacesDefaultPlugins{{Editor: "Editor", Plugins: []string{"Plugins_1", "Plugins_2"}}})
 
 	assert.Equal(t, checlusterv1.Spec.Storage.PostgresPVCStorageClassName, "DatabaseStorageClass")
-	assert.Equal(t, checlusterv1.Spec.Storage.PreCreateSubPaths, true)
 	assert.Equal(t, checlusterv1.Spec.Storage.PvcClaimSize, "StorageClaimSize")
 	assert.Equal(t, checlusterv1.Spec.Storage.PvcJobsImage, "PvcJobsImage")
 	assert.Equal(t, checlusterv1.Spec.Storage.PvcStrategy, "PvcStrategy")
