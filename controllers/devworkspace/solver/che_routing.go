@@ -215,7 +215,7 @@ func (c *CheRoutingSolver) cheExposedEndpoints(cheCluster *v2alpha1.CheCluster, 
 
 	for component, endpoints := range componentEndpoints {
 		for _, endpoint := range endpoints {
-			if dw.EndpointExposure(endpoint.Exposure) != dw.PublicEndpointExposure {
+			if dw.EndpointExposure(endpoint.Exposure) == dw.NoneEndpointExposure {
 				continue
 			}
 
@@ -223,6 +223,19 @@ func (c *CheRoutingSolver) cheExposedEndpoints(cheCluster *v2alpha1.CheCluster, 
 
 			if !isExposableScheme(scheme) {
 				// we cannot expose non-http endpoints publicly, because ingresses/routes only support http(s)
+				continue
+			}
+
+			// The gateway server must not be set up
+			// Endpoint url is set to the service hostname
+			if dw.EndpointExposure(endpoint.Exposure) == dw.InternalEndpointExposure {
+				internalUrl := getServiceURL(int32(endpoint.TargetPort), workspaceID, routingObj.Services[0].Namespace)
+				exposedEndpoints[component] = append(exposedEndpoints[component], dwo.ExposedEndpoint{
+					Name:       endpoint.Name,
+					Url:        internalUrl,
+					Attributes: endpoint.Attributes,
+				})
+
 				continue
 			}
 
@@ -360,13 +373,11 @@ func exposeAllEndpoints(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspa
 	order := 1
 	for componentName, endpoints := range routing.Spec.Endpoints {
 		for _, e := range endpoints {
-			if dw.EndpointExposure(e.Exposure) != dw.PublicEndpointExposure {
+			if dw.EndpointExposure(e.Exposure) == dw.NoneEndpointExposure {
 				continue
 			}
 
-			if e.Attributes.GetString(urlRewriteSupportedEndpointAttributeName, nil) == "true" {
-				addEndpointToTraefikConfig(componentName, e, wsRouteConfig, cheCluster, routing)
-			} else {
+			if e.Attributes.GetString(urlRewriteSupportedEndpointAttributeName, nil) != "true" {
 				if !containPort(commonService, int32(e.TargetPort)) {
 					commonService.Spec.Ports = append(commonService.Spec.Ports, corev1.ServicePort{
 						Name:       common.EndpointName(e.Name),
@@ -375,7 +386,15 @@ func exposeAllEndpoints(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspa
 						TargetPort: intstr.FromInt(e.TargetPort),
 					})
 				}
+			}
 
+			if dw.EndpointExposure(e.Exposure) != dw.PublicEndpointExposure {
+				continue
+			}
+
+			if e.Attributes.GetString(urlRewriteSupportedEndpointAttributeName, nil) == "true" {
+				addEndpointToTraefikConfig(componentName, e, wsRouteConfig, cheCluster, routing)
+			} else {
 				ingressExpose(&EndpointInfo{
 					order:         order,
 					componentName: componentName,
