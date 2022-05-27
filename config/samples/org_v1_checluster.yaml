@@ -22,8 +22,6 @@ spec:
     externalDb: false
   storage:
     pvcStrategy: 'common'
-    pvcClaimSize: '10Gi'
-    preCreateSubPaths: true
   auth:
     identityProviderURL: ''
     oAuthClientName: ''

@@ -21,6 +21,8 @@ import (
 	"os"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+
 	imagepullerv1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -335,10 +337,6 @@ type WorkspaceStorage struct {
 	// +optional
 	// +kubebuilder:default:="common"
 	PvcStrategy string `json:"pvcStrategy,omitempty"`
-	// Overrides the container image used to create sub-paths in the Persistent Volumes.
-	// This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
-	// +optional
-	PvcJobsImage string `json:"pvcJobsImage,omitempty"`
 }
 
 type WorkspaceDefaultPlugins struct {
@@ -467,10 +465,10 @@ type ResourceRequirements struct {
 type ResourceList struct {
 	// Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
 	// +optional
-	Memory string `json:"memory,omitempty"`
+	Memory resource.Quantity `json:"memory,omitempty"`
 	// CPU, in cores. (500m = .5 cores)
 	// +optional
-	Cpu string `json:"cpu,omitempty"`
+	Cpu resource.Quantity `json:"cpu,omitempty"`
 }
 
 // PodSecurityContext holds pod-level security attributes and common container settings.

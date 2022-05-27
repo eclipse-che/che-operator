@@ -109,10 +109,10 @@ func (dst *CheCluster) convertFrom_Server(src *chev2.CheCluster) error {
 		dst.Spec.Server.CheImage = strings.Join(cheServerImageAndTag[0:len(cheServerImageAndTag)-1], ":")
 		dst.Spec.Server.CheImageTag = cheServerImageAndTag[len(cheServerImageAndTag)-1]
 		dst.Spec.Server.CheImagePullPolicy = src.Spec.Components.CheServer.Deployment.Containers[0].ImagePullPolicy
-		dst.Spec.Server.ServerMemoryRequest = src.Spec.Components.CheServer.Deployment.Containers[0].Resources.Requests.Memory
-		dst.Spec.Server.ServerCpuRequest = src.Spec.Components.CheServer.Deployment.Containers[0].Resources.Requests.Cpu
-		dst.Spec.Server.ServerMemoryLimit = src.Spec.Components.CheServer.Deployment.Containers[0].Resources.Limits.Memory
-		dst.Spec.Server.ServerCpuLimit = src.Spec.Components.CheServer.Deployment.Containers[0].Resources.Limits.Cpu
+		dst.Spec.Server.ServerMemoryRequest = src.Spec.Components.CheServer.Deployment.Containers[0].Resources.Requests.Memory.String()
+		dst.Spec.Server.ServerCpuRequest = src.Spec.Components.CheServer.Deployment.Containers[0].Resources.Requests.Cpu.String()
+		dst.Spec.Server.ServerMemoryLimit = src.Spec.Components.CheServer.Deployment.Containers[0].Resources.Limits.Memory.String()
+		dst.Spec.Server.ServerCpuLimit = src.Spec.Components.CheServer.Deployment.Containers[0].Resources.Limits.Cpu.String()
 	}
 
 	if infrastructure.IsOpenShift() {
@@ -176,10 +176,10 @@ func (dst *CheCluster) convertFrom_Server_PluginRegistry(src *chev2.CheCluster) 
 	if len(src.Spec.Components.PluginRegistry.Deployment.Containers) != 0 {
 		dst.Spec.Server.PluginRegistryImage = src.Spec.Components.PluginRegistry.Deployment.Containers[0].Image
 		dst.Spec.Server.PluginRegistryPullPolicy = src.Spec.Components.PluginRegistry.Deployment.Containers[0].ImagePullPolicy
-		dst.Spec.Server.PluginRegistryMemoryRequest = src.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Requests.Memory
-		dst.Spec.Server.PluginRegistryCpuRequest = src.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Requests.Cpu
-		dst.Spec.Server.PluginRegistryMemoryLimit = src.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Limits.Memory
-		dst.Spec.Server.PluginRegistryCpuLimit = src.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Limits.Cpu
+		dst.Spec.Server.PluginRegistryMemoryRequest = src.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Requests.Memory.String()
+		dst.Spec.Server.PluginRegistryCpuRequest = src.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Requests.Cpu.String()
+		dst.Spec.Server.PluginRegistryMemoryLimit = src.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Limits.Memory.String()
+		dst.Spec.Server.PluginRegistryCpuLimit = src.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Limits.Cpu.String()
 	}
 
 	return nil
@@ -199,10 +199,10 @@ func (dst *CheCluster) convertFrom_Server_DevfileRegistry(src *chev2.CheCluster)
 	if len(src.Spec.Components.DevfileRegistry.Deployment.Containers) != 0 {
 		dst.Spec.Server.DevfileRegistryImage = src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Image
 		dst.Spec.Server.DevfileRegistryPullPolicy = src.Spec.Components.DevfileRegistry.Deployment.Containers[0].ImagePullPolicy
-		dst.Spec.Server.DevfileRegistryMemoryRequest = src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Requests.Memory
-		dst.Spec.Server.DevfileRegistryCpuRequest = src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Requests.Cpu
-		dst.Spec.Server.DevfileRegistryMemoryLimit = src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Limits.Memory
-		dst.Spec.Server.DevfileRegistryCpuLimit = src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Limits.Cpu
+		dst.Spec.Server.DevfileRegistryMemoryRequest = src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Requests.Memory.String()
+		dst.Spec.Server.DevfileRegistryCpuRequest = src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Requests.Cpu.String()
+		dst.Spec.Server.DevfileRegistryMemoryLimit = src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Limits.Memory.String()
+		dst.Spec.Server.DevfileRegistryCpuLimit = src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Limits.Cpu.String()
 	}
 
 	return nil
@@ -212,10 +212,10 @@ func (dst *CheCluster) convertFrom_Server_Dashboard(src *chev2.CheCluster) error
 	if len(src.Spec.Components.Dashboard.Deployment.Containers) != 0 {
 		dst.Spec.Server.DashboardImage = src.Spec.Components.Dashboard.Deployment.Containers[0].Image
 		dst.Spec.Server.DashboardImagePullPolicy = string(src.Spec.Components.Dashboard.Deployment.Containers[0].ImagePullPolicy)
-		dst.Spec.Server.DashboardMemoryRequest = src.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Requests.Memory
-		dst.Spec.Server.DashboardCpuRequest = src.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Requests.Cpu
-		dst.Spec.Server.DashboardMemoryLimit = src.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Limits.Memory
-		dst.Spec.Server.DashboardCpuLimit = src.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Limits.Cpu
+		dst.Spec.Server.DashboardMemoryRequest = src.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Requests.Memory.String()
+		dst.Spec.Server.DashboardCpuRequest = src.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Requests.Cpu.String()
+		dst.Spec.Server.DashboardMemoryLimit = src.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Limits.Memory.String()
+		dst.Spec.Server.DashboardCpuLimit = src.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Limits.Cpu.String()
 	}
 
 	return nil
@@ -272,10 +272,10 @@ func (dst *CheCluster) convertFrom_Database(src *chev2.CheCluster) error {
 	if len(src.Spec.Components.Database.Deployment.Containers) != 0 {
 		dst.Spec.Database.PostgresImage = src.Spec.Components.Database.Deployment.Containers[0].Image
 		dst.Spec.Database.PostgresImagePullPolicy = src.Spec.Components.Database.Deployment.Containers[0].ImagePullPolicy
-		dst.Spec.Database.ChePostgresContainerResources.Requests.Memory = src.Spec.Components.Database.Deployment.Containers[0].Resources.Requests.Memory
-		dst.Spec.Database.ChePostgresContainerResources.Requests.Cpu = src.Spec.Components.Database.Deployment.Containers[0].Resources.Requests.Cpu
-		dst.Spec.Database.ChePostgresContainerResources.Limits.Memory = src.Spec.Components.Database.Deployment.Containers[0].Resources.Limits.Memory
-		dst.Spec.Database.ChePostgresContainerResources.Limits.Cpu = src.Spec.Components.Database.Deployment.Containers[0].Resources.Limits.Cpu
+		dst.Spec.Database.ChePostgresContainerResources.Requests.Memory = src.Spec.Components.Database.Deployment.Containers[0].Resources.Requests.Memory.String()
+		dst.Spec.Database.ChePostgresContainerResources.Requests.Cpu = src.Spec.Components.Database.Deployment.Containers[0].Resources.Requests.Cpu.String()
+		dst.Spec.Database.ChePostgresContainerResources.Limits.Memory = src.Spec.Components.Database.Deployment.Containers[0].Resources.Limits.Memory.String()
+		dst.Spec.Database.ChePostgresContainerResources.Limits.Cpu = src.Spec.Components.Database.Deployment.Containers[0].Resources.Limits.Cpu.String()
 	}
 
 	return nil
@@ -344,7 +344,6 @@ func (dst *CheCluster) convertFrom_Storage(src *chev2.CheCluster) error {
 	dst.Spec.Storage.PostgresPVCStorageClassName = src.Spec.Components.Database.Pvc.StorageClass
 	dst.Spec.Storage.PvcClaimSize = src.Spec.Workspaces.Storage.Pvc.ClaimSize
 	dst.Spec.Storage.WorkspacePVCStorageClassName = src.Spec.Workspaces.Storage.Pvc.StorageClass
-	dst.Spec.Storage.PvcJobsImage = src.Spec.Workspaces.Storage.PvcJobsImage
 	dst.Spec.Storage.PvcStrategy = src.Spec.Workspaces.Storage.PvcStrategy
 
 	return nil

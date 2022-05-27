@@ -15,6 +15,8 @@ package org
 import (
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev1 "github.com/eclipse-che/che-operator/api/v1"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -163,16 +165,16 @@ func TestConvertTo(t *testing.T) {
 				GitSelfSignedCert:                   true,
 				DashboardImage:                      "DashboardImage",
 				DashboardImagePullPolicy:            "Always",
-				DashboardMemoryLimit:                "DashboardMemoryLimit",
-				DashboardMemoryRequest:              "DashboardMemoryRequest",
-				DashboardCpuLimit:                   "DashboardCpuLimit",
-				DashboardCpuRequest:                 "DashboardCpuRequest",
+				DashboardMemoryLimit:                "200Mi",
+				DashboardMemoryRequest:              "100Mi",
+				DashboardCpuLimit:                   "2",
+				DashboardCpuRequest:                 "1",
 				DevfileRegistryImage:                "DevfileRegistryImage",
 				DevfileRegistryPullPolicy:           "Always",
-				DevfileRegistryMemoryLimit:          "DevfileRegistryMemoryLimit",
-				DevfileRegistryMemoryRequest:        "DevfileRegistryMemoryRequest",
-				DevfileRegistryCpuLimit:             "DevfileRegistryCpuLimit",
-				DevfileRegistryCpuRequest:           "DevfileRegistryCpuRequest",
+				DevfileRegistryMemoryLimit:          "200Mi",
+				DevfileRegistryMemoryRequest:        "100Mi",
+				DevfileRegistryCpuLimit:             "2",
+				DevfileRegistryCpuRequest:           "1",
 				ExternalDevfileRegistry:             true,
 				ExternalDevfileRegistries: []chev1.ExternalDevfileRegistries{
 					{
@@ -185,20 +187,20 @@ func TestConvertTo(t *testing.T) {
 				PluginRegistryUrl:                   "PluginRegistryUrl",
 				PluginRegistryImage:                 "PluginRegistryImage",
 				PluginRegistryPullPolicy:            "Always",
-				PluginRegistryMemoryLimit:           "PluginRegistryMemoryLimit",
-				PluginRegistryMemoryRequest:         "PluginRegistryMemoryRequest",
-				PluginRegistryCpuLimit:              "PluginRegistryCpuLimit",
-				PluginRegistryCpuRequest:            "PluginRegistryCpuRequest",
+				PluginRegistryMemoryLimit:           "200Mi",
+				PluginRegistryMemoryRequest:         "100Mi",
+				PluginRegistryCpuLimit:              "2",
+				PluginRegistryCpuRequest:            "1",
 				ExternalPluginRegistry:              true,
 				CustomCheProperties:                 map[string]string{"a": "b", "c": "d"},
 				ProxyURL:                            "ProxyURL",
 				ProxyPort:                           "ProxyPort",
 				ProxySecret:                         "ProxySecret",
 				NonProxyHosts:                       "NonProxyHosts_1|NonProxyHosts_2",
-				ServerMemoryRequest:                 "ServerMemoryRequest",
-				ServerMemoryLimit:                   "ServerMemoryLimit",
-				ServerCpuLimit:                      "ServerCpuLimit",
-				ServerCpuRequest:                    "ServerCpuRequest",
+				ServerMemoryRequest:                 "100Mi",
+				ServerMemoryLimit:                   "200Mi",
+				ServerCpuLimit:                      "2",
+				ServerCpuRequest:                    "1",
 				SingleHostGatewayImage:              "SingleHostGatewayImage",
 				SingleHostGatewayConfigSidecarImage: "SingleHostGatewayConfigSidecarImage",
 				SingleHostGatewayConfigMapLabels:    map[string]string{"a": "b", "c": "d"},
@@ -230,12 +232,12 @@ func TestConvertTo(t *testing.T) {
 				PvcClaimSize:            "DatabasePvcClaimSize",
 				ChePostgresContainerResources: chev1.ResourcesCustomSettings{
 					Requests: chev1.Resources{
-						Memory: "DatabaseMemoryRequest",
-						Cpu:    "DatabaseCpuRequest",
+						Memory: "100Mi",
+						Cpu:    "1",
 					},
 					Limits: chev1.Resources{
-						Memory: "DatabaseMemoryLimit",
-						Cpu:    "DatabaseCpuLimit",
+						Memory: "200Mi",
+						Cpu:    "2",
 					},
 				},
 			},
@@ -249,7 +251,6 @@ func TestConvertTo(t *testing.T) {
 			Storage: chev1.CheClusterSpecStorage{
 				PvcStrategy:                  "PvcStrategy",
 				PvcClaimSize:                 "WorkspacePvcClaimSize",
-				PvcJobsImage:                 "PvcJobsImage",
 				PostgresPVCStorageClassName:  "PostgresPVCStorageClassName",
 				WorkspacePVCStorageClassName: "WorkspacePVCStorageClassName",
 			},
@@ -312,10 +313,10 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].Image, "CheImage:CheImageTag")
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].Name, defaults.GetCheFlavor())
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].ImagePullPolicy, corev1.PullPolicy("Always"))
-	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].Resources.Limits.Cpu, "ServerCpuLimit")
-	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].Resources.Limits.Memory, "ServerMemoryLimit")
-	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].Resources.Requests.Cpu, "ServerCpuRequest")
-	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].Resources.Requests.Memory, "ServerMemoryRequest")
+	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].Resources.Limits.Cpu, resource.MustParse("2"))
+	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].Resources.Limits.Memory, resource.MustParse("200Mi"))
+	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].Resources.Requests.Cpu, resource.MustParse("1"))
+	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].Resources.Requests.Memory, resource.MustParse("100Mi"))
 	assert.Equal(t, *checlusterv2.Spec.Components.CheServer.Deployment.SecurityContext.FsGroup, int64(64))
 	assert.Equal(t, *checlusterv2.Spec.Components.CheServer.Deployment.SecurityContext.RunAsUser, int64(65))
 	assert.Equal(t, checlusterv2.Spec.Workspaces.TrustedCerts.GitTrustedCertsConfigMapName, "che-git-self-signed-cert")
@@ -340,10 +341,10 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.Components.Dashboard.Deployment.Containers[0].Name, defaults.GetCheFlavor()+"-dashboard")
 	assert.Equal(t, checlusterv2.Spec.Components.Dashboard.Deployment.Containers[0].Image, "DashboardImage")
 	assert.Equal(t, checlusterv2.Spec.Components.Dashboard.Deployment.Containers[0].ImagePullPolicy, corev1.PullPolicy("Always"))
-	assert.Equal(t, checlusterv2.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Limits.Cpu, "DashboardCpuLimit")
-	assert.Equal(t, checlusterv2.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Limits.Memory, "DashboardMemoryLimit")
-	assert.Equal(t, checlusterv2.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Requests.Cpu, "DashboardCpuRequest")
-	assert.Equal(t, checlusterv2.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Requests.Memory, "DashboardMemoryRequest")
+	assert.Equal(t, checlusterv2.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Limits.Cpu, resource.MustParse("2"))
+	assert.Equal(t, checlusterv2.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Limits.Memory, resource.MustParse("200Mi"))
+	assert.Equal(t, checlusterv2.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Requests.Cpu, resource.MustParse("1"))
+	assert.Equal(t, checlusterv2.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Requests.Memory, resource.MustParse("100Mi"))
 	assert.Equal(t, *checlusterv2.Spec.Components.Dashboard.Deployment.SecurityContext.FsGroup, int64(64))
 	assert.Equal(t, *checlusterv2.Spec.Components.Dashboard.Deployment.SecurityContext.RunAsUser, int64(65))
 	assert.Equal(t, checlusterv2.Spec.Components.Dashboard.HeaderMessage.Text, "DashboardWarning")
@@ -353,10 +354,10 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].Name, constants.PostgresName)
 	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].Image, "PostgresImage")
 	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].ImagePullPolicy, corev1.PullPolicy("Always"))
-	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].Resources.Limits.Cpu, "DatabaseCpuLimit")
-	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].Resources.Limits.Memory, "DatabaseMemoryLimit")
-	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].Resources.Requests.Cpu, "DatabaseCpuRequest")
-	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].Resources.Requests.Memory, "DatabaseMemoryRequest")
+	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].Resources.Limits.Cpu, resource.MustParse("2"))
+	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].Resources.Limits.Memory, resource.MustParse("200Mi"))
+	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].Resources.Requests.Cpu, resource.MustParse("1"))
+	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].Resources.Requests.Memory, resource.MustParse("100Mi"))
 	assert.Equal(t, checlusterv2.Spec.Components.Database.ExternalDb, true)
 	assert.Equal(t, checlusterv2.Spec.Components.Database.PostgresDb, "ChePostgresDb")
 	assert.Equal(t, checlusterv2.Spec.Components.Database.PostgresHostName, "ChePostgresHostName")
@@ -373,10 +374,10 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.Components.DevfileRegistry.Deployment.Containers[0].Name, constants.DevfileRegistryName)
 	assert.Equal(t, checlusterv2.Spec.Components.DevfileRegistry.Deployment.Containers[0].Image, "DevfileRegistryImage")
 	assert.Equal(t, checlusterv2.Spec.Components.DevfileRegistry.Deployment.Containers[0].ImagePullPolicy, corev1.PullPolicy("Always"))
-	assert.Equal(t, checlusterv2.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Limits.Cpu, "DevfileRegistryCpuLimit")
-	assert.Equal(t, checlusterv2.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Limits.Memory, "DevfileRegistryMemoryLimit")
-	assert.Equal(t, checlusterv2.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Requests.Cpu, "DevfileRegistryCpuRequest")
-	assert.Equal(t, checlusterv2.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Requests.Memory, "DevfileRegistryMemoryRequest")
+	assert.Equal(t, checlusterv2.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Limits.Cpu, resource.MustParse("2"))
+	assert.Equal(t, checlusterv2.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Limits.Memory, resource.MustParse("200Mi"))
+	assert.Equal(t, checlusterv2.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Requests.Cpu, resource.MustParse("1"))
+	assert.Equal(t, checlusterv2.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Requests.Memory, resource.MustParse("100Mi"))
 	assert.Equal(t, checlusterv2.Spec.Components.DevfileRegistry.DisableInternalRegistry, true)
 	assert.Equal(t, checlusterv2.Spec.Components.DevfileRegistry.ExternalDevfileRegistries, []chev2.ExternalDevfileRegistry{
 		{
@@ -389,16 +390,15 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.Deployment.Containers[0].Name, constants.PluginRegistryName)
 	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.Deployment.Containers[0].Image, "PluginRegistryImage")
 	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.Deployment.Containers[0].ImagePullPolicy, corev1.PullPolicy("Always"))
-	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Limits.Cpu, "PluginRegistryCpuLimit")
-	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Limits.Memory, "PluginRegistryMemoryLimit")
-	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Requests.Cpu, "PluginRegistryCpuRequest")
-	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Requests.Memory, "PluginRegistryMemoryRequest")
+	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Limits.Cpu, resource.MustParse("2"))
+	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Limits.Memory, resource.MustParse("200Mi"))
+	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Requests.Cpu, resource.MustParse("1"))
+	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Requests.Memory, resource.MustParse("100Mi"))
 	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.DisableInternalRegistry, true)
 	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.ExternalPluginRegistries, []chev2.ExternalPluginRegistry{{Url: "PluginRegistryUrl"}})
 
 	assert.Equal(t, checlusterv2.Spec.Workspaces.Storage.Pvc.ClaimSize, "WorkspacePvcClaimSize")
 	assert.Equal(t, checlusterv2.Spec.Workspaces.Storage.Pvc.StorageClass, "WorkspacePVCStorageClassName")
-	assert.Equal(t, checlusterv2.Spec.Workspaces.Storage.PvcJobsImage, "PvcJobsImage")
 	assert.Equal(t, checlusterv2.Spec.Workspaces.Storage.PvcStrategy, "PvcStrategy")
 
 	assert.Equal(t, checlusterv2.Status.CheURL, "CheURL")

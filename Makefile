@@ -124,9 +124,6 @@ update-dev-resources: validate-requirements ## Update all resources
 	skopeo --override-os linux inspect docker://$${UBI8_MINIMAL_IMAGE} > /dev/null
 	echo "[INFO] UBI8 image $${UBI8_MINIMAL_IMAGE}"
 
-	# config/manager/manager.yaml
-	yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_pvc_jobs\") | .value ) = \"$${UBI8_MINIMAL_IMAGE}\"" $(CONFIG_MANAGER)
-
 	# Dockerfile
 	sed -i 's|registry.access.redhat.com/ubi8-minimal:[^\s]* |'$${UBI8_MINIMAL_IMAGE}' |g' $(PROJECT_DIR)/Dockerfile
 

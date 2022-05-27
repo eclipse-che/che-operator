@@ -18,6 +18,8 @@ import (
 	"strconv"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -134,7 +136,6 @@ func (src *CheCluster) convertTo_Workspaces_Storage(dst *chev2.CheCluster) error
 		ClaimSize:    src.Spec.Storage.PvcClaimSize,
 		StorageClass: src.Spec.Storage.WorkspacePVCStorageClassName,
 	}
-	dst.Spec.Workspaces.Storage.PvcJobsImage = src.Spec.Storage.PvcJobsImage
 	dst.Spec.Workspaces.Storage.PvcStrategy = src.Spec.Storage.PvcStrategy
 
 	return nil
@@ -340,16 +341,6 @@ func (src *CheCluster) convertTo_Operands_CheServer(dst *chev2.CheCluster) error
 				Name:            defaults.GetCheFlavor(),
 				Image:           map[bool]string{true: src.Spec.Server.CheImage + ":" + src.Spec.Server.CheImageTag, false: ""}[src.Spec.Server.CheImage != ""],
 				ImagePullPolicy: src.Spec.Server.CheImagePullPolicy,
-				Resources: chev2.ResourceRequirements{
-					Requests: chev2.ResourceList{
-						Memory: src.Spec.Server.ServerMemoryRequest,
-						Cpu:    src.Spec.Server.ServerCpuRequest,
-					},
-					Limits: chev2.ResourceList{
-						Memory: src.Spec.Server.ServerMemoryLimit,
-						Cpu:    src.Spec.Server.ServerCpuLimit,
-					},
-				},
 			},
 		},
 		SecurityContext: chev2.PodSecurityContext{
@@ -357,6 +348,13 @@ func (src *CheCluster) convertTo_Operands_CheServer(dst *chev2.CheCluster) error
 			FsGroup:   fsGroup,
 		},
 	}
+
+	setContainerResources(
+		&dst.Spec.Components.CheServer.Deployment.Containers[0],
+		src.Spec.Server.ServerMemoryRequest,
+		src.Spec.Server.ServerMemoryLimit,
+		src.Spec.Server.ServerCpuRequest,
+		src.Spec.Server.ServerCpuLimit)
 
 	if src.Spec.Server.ServerTrustStoreConfigMapName != "" {
 		if err := renameTrustStoreConfigMapToDefault(src.Spec.Server.ServerTrustStoreConfigMapName, src.Namespace); err != nil {
@@ -384,19 +382,16 @@ func (src *CheCluster) convertTo_Operands_PluginRegistry(dst *chev2.CheCluster) 
 				Name:            constants.PluginRegistryName,
 				Image:           src.Spec.Server.PluginRegistryImage,
 				ImagePullPolicy: corev1.PullPolicy(src.Spec.Server.PluginRegistryPullPolicy),
-				Resources: chev2.ResourceRequirements{
-					Requests: chev2.ResourceList{
-						Memory: src.Spec.Server.PluginRegistryMemoryRequest,
-						Cpu:    src.Spec.Server.PluginRegistryCpuRequest,
-					},
-					Limits: chev2.ResourceList{
-						Memory: src.Spec.Server.PluginRegistryMemoryLimit,
-						Cpu:    src.Spec.Server.PluginRegistryCpuLimit,
-					},
-				},
 			},
 		},
 	}
+
+	setContainerResources(
+		&dst.Spec.Components.PluginRegistry.Deployment.Containers[0],
+		src.Spec.Server.PluginRegistryMemoryRequest,
+		src.Spec.Server.PluginRegistryMemoryLimit,
+		src.Spec.Server.PluginRegistryCpuRequest,
+		src.Spec.Server.PluginRegistryCpuLimit)
 
 	return nil
 }
@@ -418,19 +413,16 @@ func (src *CheCluster) convertTo_Operands_DevfileRegistry(dst *chev2.CheCluster)
 				Name:            constants.DevfileRegistryName,
 				Image:           src.Spec.Server.DevfileRegistryImage,
 				ImagePullPolicy: corev1.PullPolicy(src.Spec.Server.DevfileRegistryPullPolicy),
-				Resources: chev2.ResourceRequirements{
-					Requests: chev2.ResourceList{
-						Memory: src.Spec.Server.DevfileRegistryMemoryRequest,
-						Cpu:    src.Spec.Server.DevfileRegistryCpuRequest,
-					},
-					Limits: chev2.ResourceList{
-						Memory: src.Spec.Server.DevfileRegistryMemoryLimit,
-						Cpu:    src.Spec.Server.DevfileRegistryCpuLimit,
-					},
-				},
 			},
 		},
 	}
+
+	setContainerResources(
+		&dst.Spec.Components.DevfileRegistry.Deployment.Containers[0],
+		src.Spec.Server.DevfileRegistryMemoryRequest,
+		src.Spec.Server.DevfileRegistryMemoryLimit,
+		src.Spec.Server.DevfileRegistryCpuRequest,
+		src.Spec.Server.DevfileRegistryCpuLimit)
 
 	return nil
 }
@@ -455,19 +447,16 @@ func (src *CheCluster) convertTo_Operands_Database(dst *chev2.CheCluster) error 
 				Name:            constants.PostgresName,
 				Image:           src.Spec.Database.PostgresImage,
 				ImagePullPolicy: corev1.PullPolicy(src.Spec.Database.PostgresImagePullPolicy),
-				Resources: chev2.ResourceRequirements{
-					Requests: chev2.ResourceList{
-						Memory: src.Spec.Database.ChePostgresContainerResources.Requests.Memory,
-						Cpu:    src.Spec.Database.ChePostgresContainerResources.Requests.Cpu,
-					},
-					Limits: chev2.ResourceList{
-						Memory: src.Spec.Database.ChePostgresContainerResources.Limits.Memory,
-						Cpu:    src.Spec.Database.ChePostgresContainerResources.Limits.Cpu,
-					},
-				},
 			},
 		},
 	}
+
+	setContainerResources(
+		&dst.Spec.Components.Database.Deployment.Containers[0],
+		src.Spec.Database.ChePostgresContainerResources.Requests.Memory,
+		src.Spec.Database.ChePostgresContainerResources.Limits.Memory,
+		src.Spec.Database.ChePostgresContainerResources.Requests.Cpu,
+		src.Spec.Database.ChePostgresContainerResources.Limits.Cpu)
 
 	dst.Spec.Components.Database.ExternalDb = src.Spec.Database.ExternalDb
 	dst.Spec.Components.Database.PostgresDb = src.Spec.Database.ChePostgresDb
@@ -493,16 +482,6 @@ func (src *CheCluster) convertTo_Operands_Dashboard(dst *chev2.CheCluster) error
 				Name:            defaults.GetCheFlavor() + "-dashboard",
 				Image:           src.Spec.Server.DashboardImage,
 				ImagePullPolicy: corev1.PullPolicy(src.Spec.Server.DashboardImagePullPolicy),
-				Resources: chev2.ResourceRequirements{
-					Requests: chev2.ResourceList{
-						Memory: src.Spec.Server.DashboardMemoryRequest,
-						Cpu:    src.Spec.Server.DashboardCpuRequest,
-					},
-					Limits: chev2.ResourceList{
-						Memory: src.Spec.Server.DashboardMemoryLimit,
-						Cpu:    src.Spec.Server.DashboardCpuLimit,
-					},
-				},
 			},
 		},
 		SecurityContext: chev2.PodSecurityContext{
@@ -510,6 +489,13 @@ func (src *CheCluster) convertTo_Operands_Dashboard(dst *chev2.CheCluster) error
 			FsGroup:   fsGroup,
 		},
 	}
+
+	setContainerResources(
+		&dst.Spec.Components.Dashboard.Deployment.Containers[0],
+		src.Spec.Server.DashboardMemoryRequest,
+		src.Spec.Server.DashboardMemoryLimit,
+		src.Spec.Server.DashboardCpuRequest,
+		src.Spec.Server.DashboardCpuLimit)
 
 	dst.Spec.Components.Dashboard.HeaderMessage.Text = src.Spec.Dashboard.Warning
 	dst.Spec.Components.Dashboard.HeaderMessage.Show = src.Spec.Dashboard.Warning != ""
@@ -630,4 +616,19 @@ func renameTrustStoreConfigMapToDefault(trustStoreConfigMapName string, namespac
 
 	logger.Info("TrustStore ConfigMap '" + constants.DefaultServerTrustStoreConfigMapName + "' created.")
 	return nil
+}
+
+func setContainerResources(container *chev2.Container, memoryRequest string, memoryLimit string, cpuRequest string, cpuLimit string) {
+	if memoryRequest != "" {
+		container.Resources.Requests.Memory = resource.MustParse(memoryRequest)
+	}
+	if memoryLimit != "" {
+		container.Resources.Limits.Memory = resource.MustParse(memoryLimit)
+	}
+	if cpuRequest != "" {
+		container.Resources.Requests.Cpu = resource.MustParse(cpuRequest)
+	}
+	if cpuLimit != "" {
+		container.Resources.Limits.Cpu = resource.MustParse(cpuLimit)
+	}
 }

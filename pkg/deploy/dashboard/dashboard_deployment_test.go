@@ -15,6 +15,8 @@ package dashboard
 import (
 	"os"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/stretchr/testify/assert"
@@ -93,12 +95,12 @@ func TestDashboardDeploymentResources(t *testing.T) {
 										Name: defaults.GetCheFlavor() + "-dashboard",
 										Resources: chev2.ResourceRequirements{
 											Requests: chev2.ResourceList{
-												Memory: "150Mi",
-												Cpu:    "150m",
+												Memory: resource.MustParse("150Mi"),
+												Cpu:    resource.MustParse("150m"),
 											},
 											Limits: chev2.ResourceList{
-												Memory: "250Mi",
-												Cpu:    "250m",
+												Memory: resource.MustParse("250Mi"),
+												Cpu:    resource.MustParse("250m"),
 											},
 										},
 									},

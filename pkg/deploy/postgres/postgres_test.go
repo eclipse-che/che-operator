@@ -15,6 +15,8 @@ import (
 	"fmt"
 	"os"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -80,13 +82,13 @@ func TestDeploymentSpec(t *testing.T) {
 									{
 										Name: constants.PostgresName,
 										Resources: chev2.ResourceRequirements{
-											Limits: chev2.ResourceList{
-												Cpu:    "250m",
-												Memory: "250Mi",
-											},
 											Requests: chev2.ResourceList{
-												Memory: "150Mi",
-												Cpu:    "150m",
+												Memory: resource.MustParse("150Mi"),
+												Cpu:    resource.MustParse("150m"),
+											},
+											Limits: chev2.ResourceList{
+												Memory: resource.MustParse("250Mi"),
+												Cpu:    resource.MustParse("250m"),
 											},
 										},
 									},

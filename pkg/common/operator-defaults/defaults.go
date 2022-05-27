@@ -32,7 +32,6 @@ var (
 	defaultPluginRegistryImage                    string
 	defaultDevfileRegistryImage                   string
 	defaultCheTLSSecretsCreationJobImage          string
-	defaultPvcJobsImage                           string
 	defaultPostgresImage                          string
 	defaultPostgres13Image                        string
 	defaultSingleHostGatewayImage                 string
@@ -83,7 +82,6 @@ func InitializeFromFile(operatorDeploymentFilePath string) {
 	defaultDevworkspaceControllerImage = util.GetEnv(containers[0].Env, util.GetArchitectureDependentEnv("RELATED_IMAGE_devworkspace_controller"))
 	defaultPluginRegistryImage = util.GetEnv(containers[0].Env, util.GetArchitectureDependentEnv("RELATED_IMAGE_plugin_registry"))
 	defaultDevfileRegistryImage = util.GetEnv(containers[0].Env, util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
-	defaultPvcJobsImage = util.GetEnv(containers[0].Env, util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
 	defaultPostgresImage = util.GetEnv(containers[0].Env, util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
 	defaultPostgres13Image = util.GetEnv(containers[0].Env, util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres_13_3"))
 	defaultSingleHostGatewayImage = util.GetEnv(containers[0].Env, util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
@@ -114,7 +112,6 @@ func InitializeFromEnv() {
 	defaultDevworkspaceControllerImage = ensureEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devworkspace_controller"))
 	defaultPluginRegistryImage = ensureEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_plugin_registry"))
 	defaultDevfileRegistryImage = ensureEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
-	defaultPvcJobsImage = ensureEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
 	defaultPostgresImage = ensureEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
 
 	// allow not to set env variable into a container
@@ -160,14 +157,6 @@ func GetCheTLSSecretsCreationJobImage() string {
 	}
 
 	return defaultCheTLSSecretsCreationJobImage
-}
-
-func GetPvcJobsImage(checluster *chev2.CheCluster) string {
-	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
-	}
-
-	return PatchDefaultImageName(checluster, defaultPvcJobsImage)
 }
 
 func GetCheVersion() string {

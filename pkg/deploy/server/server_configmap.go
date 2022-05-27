@@ -57,7 +57,6 @@ type CheConfigMap struct {
 	DefaultTargetNamespace                 string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"`
 	PvcStrategy                            string `json:"CHE_INFRA_KUBERNETES_PVC_STRATEGY"`
 	PvcClaimSize                           string `json:"CHE_INFRA_KUBERNETES_PVC_QUANTITY"`
-	PvcJobsImage                           string `json:"CHE_INFRA_KUBERNETES_PVC_JOBS_IMAGE"`
 	WorkspacePvcStorageClassName           string `json:"CHE_INFRA_KUBERNETES_PVC_STORAGE__CLASS__NAME"`
 	TlsSupport                             string `json:"CHE_INFRA_OPENSHIFT_TLS__ENABLED"`
 	K8STrustCerts                          string `json:"CHE_INFRA_KUBERNETES_TRUST__CERTS"`
@@ -134,8 +133,6 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 	pvcClaimSize := utils.GetValue(ctx.CheCluster.Spec.Workspaces.Storage.Pvc.ClaimSize, constants.DefaultPvcClaimSize)
 	workspacePvcStorageClassName := ctx.CheCluster.Spec.Workspaces.Storage.Pvc.StorageClass
 
-	defaultPVCJobsImage := defaults.GetPvcJobsImage(ctx.CheCluster)
-	pvcJobsImage := utils.GetValue(ctx.CheCluster.Spec.Workspaces.Storage.PvcJobsImage, defaultPVCJobsImage)
 	chePostgresHostName := utils.GetValue(ctx.CheCluster.Spec.Components.Database.PostgresHostName, constants.DefaultPostgresHostName)
 	chePostgresPort := utils.GetValue(ctx.CheCluster.Spec.Components.Database.PostgresPort, constants.DefaultPostgresPort)
 	chePostgresDb := utils.GetValue(ctx.CheCluster.Spec.Components.Database.PostgresDb, constants.DefaultPostgresDb)
@@ -200,7 +197,6 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 		PvcStrategy:                            pvcStrategy,
 		PvcClaimSize:                           pvcClaimSize,
 		WorkspacePvcStorageClassName:           workspacePvcStorageClassName,
-		PvcJobsImage:                           pvcJobsImage,
 		TlsSupport:                             "true",
 		K8STrustCerts:                          "true",
 		CheLogLevel:                            cheLogLevel,

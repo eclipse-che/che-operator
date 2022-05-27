@@ -21,8 +21,6 @@ spec:
       template: '<username>-che'
     storage:
       pvcStrategy: 'common'
-      pvc:
-        claimSize: '10Gi'
   components:
     database:
       externalDb: false

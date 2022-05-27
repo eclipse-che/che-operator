@@ -14,6 +14,8 @@ package server
 import (
 	"os"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -78,12 +80,12 @@ func TestDeployment(t *testing.T) {
 										Name: defaults.GetCheFlavor(),
 										Resources: chev2.ResourceRequirements{
 											Requests: chev2.ResourceList{
-												Memory: "150Mi",
-												Cpu:    "150m",
+												Memory: resource.MustParse("150Mi"),
+												Cpu:    resource.MustParse("150m"),
 											},
 											Limits: chev2.ResourceList{
-												Memory: "250Mi",
-												Cpu:    "250m",
+												Memory: resource.MustParse("250Mi"),
+												Cpu:    resource.MustParse("250m"),
 											},
 										},
 									},

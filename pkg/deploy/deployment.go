@@ -140,9 +140,9 @@ func CustomizeDeployment(deployment *appsv1.Deployment, customization *chev2.Dep
 	return nil
 }
 
-func getQuantity(value string, defaultValue resource.Quantity) resource.Quantity {
-	if value != "" {
-		return resource.MustParse(value)
+func getQuantity(value resource.Quantity, defaultValue resource.Quantity) resource.Quantity {
+	if !value.IsZero() {
+		return value
 	}
 	return defaultValue
 }

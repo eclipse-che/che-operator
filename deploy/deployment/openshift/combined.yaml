@@ -826,21 +826,37 @@ spec:
                                       description: Limits describes the maximum amount of compute resources allowed.
                                       properties:
                                         cpu:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
                                           description: CPU, in cores. (500m = .5 cores)
-                                          type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
                                         memory:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
                                           description: Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
-                                          type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
                                       type: object
                                     request:
                                       description: Requests describes the minimum amount of compute resources required.
                                       properties:
                                         cpu:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
                                           description: CPU, in cores. (500m = .5 cores)
-                                          type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
                                         memory:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
                                           description: Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
-                                          type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
                                       type: object
                                   type: object
                               type: object
@@ -923,21 +939,37 @@ spec:
                                       description: Limits describes the maximum amount of compute resources allowed.
                                       properties:
                                         cpu:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
                                           description: CPU, in cores. (500m = .5 cores)
-                                          type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
                                         memory:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
                                           description: Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
-                                          type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
                                       type: object
                                     request:
                                       description: Requests describes the minimum amount of compute resources required.
                                       properties:
                                         cpu:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
                                           description: CPU, in cores. (500m = .5 cores)
-                                          type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
                                         memory:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
                                           description: Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
-                                          type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
                                       type: object
                                   type: object
                               type: object
@@ -987,21 +1019,37 @@ spec:
                                       description: Limits describes the maximum amount of compute resources allowed.
                                       properties:
                                         cpu:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
                                           description: CPU, in cores. (500m = .5 cores)
-                                          type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
                                         memory:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
                                           description: Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
-                                          type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
                                       type: object
                                     request:
                                       description: Requests describes the minimum amount of compute resources required.
                                       properties:
                                         cpu:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
                                           description: CPU, in cores. (500m = .5 cores)
-                                          type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
                                         memory:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
                                           description: Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
-                                          type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
                                       type: object
                                   type: object
                               type: object
@@ -1072,21 +1120,37 @@ spec:
                                       description: Limits describes the maximum amount of compute resources allowed.
                                       properties:
                                         cpu:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
                                           description: CPU, in cores. (500m = .5 cores)
-                                          type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
                                         memory:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
                                           description: Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
-                                          type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
                                       type: object
                                     request:
                                       description: Requests describes the minimum amount of compute resources required.
                                       properties:
                                         cpu:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
                                           description: CPU, in cores. (500m = .5 cores)
-                                          type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
                                         memory:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
                                           description: Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
-                                          type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
                                       type: object
                                   type: object
                               type: object
@@ -1135,21 +1199,37 @@ spec:
                                       description: Limits describes the maximum amount of compute resources allowed.
                                       properties:
                                         cpu:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
                                           description: CPU, in cores. (500m = .5 cores)
-                                          type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
                                         memory:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
                                           description: Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
-                                          type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
                                       type: object
                                     request:
                                       description: Requests describes the minimum amount of compute resources required.
                                       properties:
                                         cpu:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
                                           description: CPU, in cores. (500m = .5 cores)
-                                          type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
                                         memory:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
                                           description: Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
-                                          type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
                                       type: object
                                   type: object
                               type: object
@@ -1255,21 +1335,37 @@ spec:
                                       description: Limits describes the maximum amount of compute resources allowed.
                                       properties:
                                         cpu:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
                                           description: CPU, in cores. (500m = .5 cores)
-                                          type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
                                         memory:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
                                           description: Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
-                                          type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
                                       type: object
                                     request:
                                       description: Requests describes the minimum amount of compute resources required.
                                       properties:
                                         cpu:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
                                           description: CPU, in cores. (500m = .5 cores)
-                                          type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
                                         memory:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
                                           description: Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
-                                          type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
                                       type: object
                                   type: object
                               type: object
@@ -1355,21 +1451,37 @@ spec:
                                           description: Limits describes the maximum amount of compute resources allowed.
                                           properties:
                                             cpu:
+                                              anyOf:
+                                              - type: integer
+                                              - type: string
                                               description: CPU, in cores. (500m = .5 cores)
-                                              type: string
+                                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                              x-kubernetes-int-or-string: true
                                             memory:
+                                              anyOf:
+                                              - type: integer
+                                              - type: string
                                               description: Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
-                                              type: string
+                                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                              x-kubernetes-int-or-string: true
                                           type: object
                                         request:
                                           description: Requests describes the minimum amount of compute resources required.
                                           properties:
                                             cpu:
+                                              anyOf:
+                                              - type: integer
+                                              - type: string
                                               description: CPU, in cores. (500m = .5 cores)
-                                              type: string
+                                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                              x-kubernetes-int-or-string: true
                                             memory:
+                                              anyOf:
+                                              - type: integer
+                                              - type: string
                                               description: Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
-                                              type: string
+                                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                              x-kubernetes-int-or-string: true
                                           type: object
                                       type: object
                                   type: object
@@ -1455,9 +1567,6 @@ spec:
                             description: Storage class for the Persistent Volume Claim. When omitted or left blank, a default storage class is used.
                             type: string
                         type: object
-                      pvcJobsImage:
-                        description: Overrides the container image used to create sub-paths in the Persistent Volumes. This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
-                        type: string
                       pvcStrategy:
                         default: common
                         description: Persistent volume claim strategy for the Che server. The only `common` strategy is supported (all workspaces PVCs in one volume). See for details https://github.com/eclipse/che/issues/21185.
@@ -2492,8 +2601,6 @@ spec:
           value: quay.io/eclipse/che-devfile-registry:next
         - name: RELATED_IMAGE_che_tls_secrets_creation_job
           value: quay.io/eclipse/che-tls-secret-creator:alpine-01a4c34
-        - name: RELATED_IMAGE_pvc_jobs
-          value: registry.access.redhat.com/ubi8-minimal:8.6-751
         - name: RELATED_IMAGE_postgres
           value: quay.io/eclipse/che--centos--postgresql-96-centos7:9.6-b681d78125361519180a6ac05242c296f8906c11eab7e207b5ca9a89b6344392
         - name: RELATED_IMAGE_postgres_13_3

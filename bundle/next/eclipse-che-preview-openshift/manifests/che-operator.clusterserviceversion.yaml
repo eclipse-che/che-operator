@@ -43,8 +43,6 @@ metadata:
               "workspaceNamespaceDefault": "<username>-che"
             },
             "storage": {
-              "preCreateSubPaths": true,
-              "pvcClaimSize": "10Gi",
               "pvcStrategy": "common"
             }
           }
@@ -79,9 +77,6 @@ metadata:
                 "template": "<username>-che"
               },
               "storage": {
-                "pvc": {
-                  "claimSize": "10Gi"
-                },
                 "pvcStrategy": "common"
               }
             }
@@ -102,7 +97,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.49.0-553.next
+  name: eclipse-che-preview-openshift.v7.49.0-555.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1129,8 +1124,6 @@ spec:
                         value: quay.io/eclipse/che-devfile-registry:next
                       - name: RELATED_IMAGE_che_tls_secrets_creation_job
                         value: quay.io/eclipse/che-tls-secret-creator:alpine-01a4c34
-                      - name: RELATED_IMAGE_pvc_jobs
-                        value: registry.access.redhat.com/ubi8-minimal:8.6-751
                       - name: RELATED_IMAGE_postgres
                         value: quay.io/eclipse/che--centos--postgresql-96-centos7:9.6-b681d78125361519180a6ac05242c296f8906c11eab7e207b5ca9a89b6344392
                       - name: RELATED_IMAGE_postgres_13_3
@@ -1417,7 +1410,7 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.49.0-553.next
+  version: 7.49.0-555.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1
