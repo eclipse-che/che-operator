@@ -645,6 +645,117 @@ func TestReportRelocatableExposedEndpoints(t *testing.T) {
 	}
 }
 
+func TestExposeEndpoints(t *testing.T) {
+	util.IsOpenShift = false
+	util.IsOpenShift4 = false
+
+	routing := &dwo.DevWorkspaceRouting{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "routing",
+			Namespace: "ws",
+		},
+		Spec: dwo.DevWorkspaceRoutingSpec{
+			DevWorkspaceId: "wsid",
+			RoutingClass:   "che",
+			Endpoints: map[string]dwo.EndpointList{
+				"server-internal": {
+					{
+						Name:       "server-int",
+						TargetPort: 8081,
+						Exposure:   dwo.InternalEndpointExposure,
+						Protocol:   "http",
+						Attributes: map[string]apiext.JSON{
+							"urlRewriteSupported": apiext.JSON{Raw: []byte("\"true\"")},
+							"cookiesAuthEnabled":  apiext.JSON{Raw: []byte("\"true\"")},
+						},
+					},
+				},
+				"server-internal-no-rewrite": {
+					{
+						Name:       "server-int-nr",
+						TargetPort: 8084,
+						Exposure:   dwo.InternalEndpointExposure,
+						Protocol:   "http",
+					},
+				},
+				"server-none": {
+					{
+						Name:       "server-int",
+						TargetPort: 8080,
+						Exposure:   dwo.NoneEndpointExposure,
+						Protocol:   "http",
+						Attributes: map[string]apiext.JSON{
+							"urlRewriteSupported": apiext.JSON{Raw: []byte("\"true\"")},
+							"cookiesAuthEnabled":  apiext.JSON{Raw: []byte("\"true\"")},
+						},
+					},
+				},
+				"server-none-no-rewrite": {
+					{
+						Name:       "server-none-nr",
+						TargetPort: 8083,
+						Exposure:   dwo.NoneEndpointExposure,
+						Protocol:   "http",
+					},
+				},
+				"server-public": {
+					{
+						Name:       "server-pub",
+						TargetPort: 8082,
+						Exposure:   dwo.PublicEndpointExposure,
+						Protocol:   "http",
+						Attributes: map[string]apiext.JSON{
+							"urlRewriteSupported": apiext.JSON{Raw: []byte("\"true\"")},
+							"cookiesAuthEnabled":  apiext.JSON{Raw: []byte("\"true\"")},
+						},
+					},
+				},
+				"server-public-no-rewrite": {
+					{
+						Name:       "server-pub-nr",
+						TargetPort: 8085,
+						Exposure:   dwo.PublicEndpointExposure,
+						Protocol:   "http",
+					},
+				},
+			},
+		},
+	}
+
+	_, solver, objs := getSpecObjects(t, routing)
+
+	assert.Equal(t, 1, len(objs.Ingresses))
+
+	exposed, ready, err := solver.GetExposedEndpoints(routing.Spec.Endpoints, objs)
+	assert.Nil(t, err)
+	assert.True(t, ready)
+	assert.Equal(t, 4, len(exposed))
+
+	si, ok := exposed["server-internal"]
+	assert.True(t, ok)
+	assert.Equal(t, 1, len(si))
+	assert.Equal(t, "server-int", si[0].Name)
+	assert.Equal(t, "http://wsid-service.ws.svc:8081", si[0].Url)
+
+	sinr, ok := exposed["server-internal-no-rewrite"]
+	assert.True(t, ok)
+	assert.Equal(t, 1, len(sinr))
+	assert.Equal(t, "server-int-nr", sinr[0].Name)
+	assert.Equal(t, "http://wsid-service.ws.svc:8084", sinr[0].Url)
+
+	sp, ok := exposed["server-public"]
+	assert.True(t, ok)
+	assert.Equal(t, 1, len(sp))
+	assert.Equal(t, "server-pub", sp[0].Name)
+	assert.Equal(t, "https://over.the.rainbow/wsid/server-public/8082/", sp[0].Url)
+
+	spnr, ok := exposed["server-public-no-rewrite"]
+	assert.True(t, ok)
+	assert.Equal(t, 1, len(spnr))
+	assert.Equal(t, "server-pub-nr", spnr[0].Name)
+	assert.Equal(t, "http://wsid-1.down.on.earth/", spnr[0].Url)
+}
+
 func TestReportSubdomainExposedEndpoints(t *testing.T) {
 	util.IsOpenShift = false
 	util.IsOpenShift4 = false
