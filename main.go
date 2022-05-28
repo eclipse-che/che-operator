@@ -387,6 +387,9 @@ func getCacheFunc() (cache.NewCacheFunc, error) {
 		&corev1.PersistentVolumeClaim{}: {
 			Label: partOfCheObjectSelector,
 		},
+		&oauth.OAuthClient{}: {
+			Label: partOfCheObjectSelector,
+		},
 	}
 
 	if !util.IsOpenShift {

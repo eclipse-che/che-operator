@@ -42,18 +42,18 @@ func NewIdentityProviderReconciler() *IdentityProviderReconciler {
 
 func (ip *IdentityProviderReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
 	done, err := syncNativeIdentityProviderItems(ctx)
-	if !done {
-		return reconcile.Result{Requeue: true}, false, err
-	}
-	return reconcile.Result{}, true, nil
+	return reconcile.Result{Requeue: !done}, done, err
 }
 
 func (ip *IdentityProviderReconciler) Finalize(ctx *deploy.DeployContext) bool {
-	var err error
+	oauthClient, err := FindOAuthClient(ctx)
+	if err != nil {
+		logrus.Errorf("Error deleting finalizer: %v", err)
+		return false
+	}
 
-	oAuthClientName := ctx.CheCluster.Spec.Auth.OAuthClientName
-	if oAuthClientName != "" {
-		err = deploy.DeleteObjectWithFinalizer(ctx, types.NamespacedName{Name: oAuthClientName}, &oauth.OAuthClient{}, OAuthFinalizerName)
+	if oauthClient != nil {
+		err = deploy.DeleteObjectWithFinalizer(ctx, types.NamespacedName{Name: oauthClient.Name}, &oauth.OAuthClient{}, OAuthFinalizerName)
 	} else {
 		err = deploy.DeleteFinalizer(ctx, OAuthFinalizerName)
 	}
@@ -65,55 +65,31 @@ func (ip *IdentityProviderReconciler) Finalize(ctx *deploy.DeployContext) bool {
 	return true
 }
 
-func syncNativeIdentityProviderItems(deployContext *deploy.DeployContext) (bool, error) {
-	cr := deployContext.CheCluster
+func syncNativeIdentityProviderItems(ctx *deploy.DeployContext) (bool, error) {
+	oauthSecret := util.GeneratePasswd(12)
+	oauthClientName := ctx.CheCluster.Name + "-openshift-identity-provider-" + strings.ToLower(util.GeneratePasswd(6))
 
-	if err := resolveOpenshiftOAuthClientName(deployContext); err != nil {
+	oauthClient, err := FindOAuthClient(ctx)
+	if err != nil {
 		return false, err
 	}
-	if err := resolveOpenshiftOAuthClientSecret(deployContext); err != nil {
+
+	if oauthClient != nil {
+		oauthSecret = oauthClient.Secret
+		oauthClientName = oauthClient.Name
+	}
+
+	redirectURIs := []string{"https://" + ctx.CheCluster.GetCheHost() + "/oauth/callback"}
+	oauthClientSpec := getOAuthClientSpec(oauthClientName, oauthSecret, redirectURIs)
+	done, err := deploy.Sync(ctx, oauthClientSpec, oAuthClientDiffOpts)
+	if !done {
 		return false, err
 	}
 
-	if util.IsOpenShift {
-		redirectURIs := []string{"https://" + deployContext.CheCluster.GetCheHost() + "/oauth/callback"}
-		oAuthClient := getOAuthClientSpec(cr.Spec.Auth.OAuthClientName, cr.Spec.Auth.OAuthSecret, redirectURIs)
-		done, err := deploy.Sync(deployContext, oAuthClient, oAuthClientDiffOpts)
-		if !done {
-			return false, err
-		}
-
-		err = deploy.AppendFinalizer(deployContext, OAuthFinalizerName)
-		if err != nil {
-			return false, err
-		}
+	err = deploy.AppendFinalizer(ctx, OAuthFinalizerName)
+	if err != nil {
+		return false, err
 	}
 
 	return true, nil
-}
-
-func resolveOpenshiftOAuthClientName(deployContext *deploy.DeployContext) error {
-	cr := deployContext.CheCluster
-	oAuthClientName := cr.Spec.Auth.OAuthClientName
-	if len(oAuthClientName) < 1 {
-		oAuthClientName = cr.Name + "-openshift-identity-provider-" + strings.ToLower(util.GeneratePasswd(6))
-		cr.Spec.Auth.OAuthClientName = oAuthClientName
-		if err := deploy.UpdateCheCRSpec(deployContext, "oAuthClient name", oAuthClientName); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func resolveOpenshiftOAuthClientSecret(deployContext *deploy.DeployContext) error {
-	cr := deployContext.CheCluster
-	oauthSecret := cr.Spec.Auth.OAuthSecret
-	if len(oauthSecret) < 1 {
-		oauthSecret = util.GeneratePasswd(12)
-		cr.Spec.Auth.OAuthSecret = oauthSecret
-		if err := deploy.UpdateCheCRSpec(deployContext, "oAuth secret name", oauthSecret); err != nil {
-			return err
-		}
-	}
-	return nil
 }
