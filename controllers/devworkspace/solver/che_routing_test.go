@@ -633,8 +633,7 @@ func TestReportRelocatableExposedEndpoints(t *testing.T) {
 }
 
 func TestExposeEndpoints(t *testing.T) {
-	util.IsOpenShift = false
-	util.IsOpenShift4 = false
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
 	routing := &dwo.DevWorkspaceRouting{
 		ObjectMeta: metav1.ObjectMeta{
