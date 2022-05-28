@@ -15,8 +15,9 @@ package migration
 import (
 	"context"
 	"fmt"
-	oauthv1 "github.com/openshift/api/oauth/v1"
 	"time"
+
+	oauthv1 "github.com/openshift/api/oauth/v1"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"

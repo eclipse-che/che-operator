@@ -14,9 +14,10 @@ package gateway
 
 import (
 	"fmt"
+	"strings"
+
 	identityprovider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
 	"github.com/sirupsen/logrus"
-	"strings"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 

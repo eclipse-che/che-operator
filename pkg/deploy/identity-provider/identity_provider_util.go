@@ -14,6 +14,7 @@ package identityprovider
 import (
 	"context"
 	"fmt"
+
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	oauth "github.com/openshift/api/oauth/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
