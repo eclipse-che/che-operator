@@ -16,6 +16,9 @@ import (
 	"fmt"
 	"strings"
 
+	identityprovider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
+	"github.com/sirupsen/logrus"
+
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
@@ -32,7 +35,7 @@ func getGatewayOauthProxyConfigSpec(ctx *deploy.DeployContext, cookieSecret stri
 	if util.IsOpenShift {
 		config = openshiftOauthProxyConfig(ctx, cookieSecret)
 	} else {
-		config = kubernetesOauthProxyconfig(ctx, cookieSecret)
+		config = kubernetesOauthProxyConfig(ctx, cookieSecret)
 	}
 	return corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
@@ -51,6 +54,17 @@ func getGatewayOauthProxyConfigSpec(ctx *deploy.DeployContext, cookieSecret stri
 }
 
 func openshiftOauthProxyConfig(ctx *deploy.DeployContext, cookieSecret string) string {
+	oauthSecret := ""
+	oauthClientName := ""
+
+	oauthClient, _ := identityprovider.FindOAuthClient(ctx)
+	if oauthClient == nil {
+		logrus.Error("oauth client not found")
+	} else {
+		oauthSecret = oauthClient.Secret
+		oauthClientName = oauthClient.Name
+	}
+
 	return fmt.Sprintf(`
 http_address = ":%d"
 https_address = ""
@@ -72,14 +86,14 @@ skip_provider_button = false
 %s
 `, GatewayServicePort,
 		ctx.CheCluster.GetCheHost(),
-		ctx.CheCluster.Spec.Auth.OAuthClientName,
-		ctx.CheCluster.Spec.Auth.OAuthSecret,
+		oauthClientName,
+		oauthSecret,
 		GatewayServiceName,
 		cookieSecret,
 		skipAuthConfig(ctx.CheCluster))
 }
 
-func kubernetesOauthProxyconfig(ctx *deploy.DeployContext, cookieSecret string) string {
+func kubernetesOauthProxyConfig(ctx *deploy.DeployContext, cookieSecret string) string {
 	return fmt.Sprintf(`
 proxy_prefix = "/oauth"
 http_address = ":%d"

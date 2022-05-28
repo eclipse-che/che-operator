@@ -102,7 +102,9 @@ func NewReconciler(
 	// resources since che host is used for dashboard deployment and che config map
 	reconcileManager.RegisterReconciler(server.NewCheHostReconciler())
 	reconcileManager.RegisterReconciler(postgres.NewPostgresReconciler())
-	reconcileManager.RegisterReconciler(identityprovider.NewIdentityProviderReconciler())
+	if util.IsOpenShift {
+		reconcileManager.RegisterReconciler(identityprovider.NewIdentityProviderReconciler())
+	}
 	reconcileManager.RegisterReconciler(devfileregistry.NewDevfileRegistryReconciler())
 	reconcileManager.RegisterReconciler(pluginregistry.NewPluginRegistryReconciler())
 	reconcileManager.RegisterReconciler(dashboard.NewDashboardReconciler())

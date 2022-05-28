@@ -17,6 +17,8 @@ import (
 	"fmt"
 	"time"
 
+	oauthv1 "github.com/openshift/api/oauth/v1"
+
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	routev1 "github.com/openshift/api/route/v1"
@@ -231,6 +233,7 @@ func addPartOfCheLabelForObjectsWithLabel(ctx *deploy.DeployContext, labelKey st
 	}
 	if util.IsOpenShift {
 		kindsToMigrate = append(kindsToMigrate, &routev1.RouteList{})
+		kindsToMigrate = append(kindsToMigrate, &oauthv1.OAuthClientList{})
 	} else {
 		kindsToMigrate = append(kindsToMigrate, &networkingv1.IngressList{})
 	}

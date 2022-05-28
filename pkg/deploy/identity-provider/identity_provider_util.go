@@ -12,23 +12,50 @@
 package identityprovider
 
 import (
+	"context"
+	"fmt"
+
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 	oauth "github.com/openshift/api/oauth/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func getOAuthClientSpec(name string, oauthSecret string, redirectURIs []string) *oauth.OAuthClient {
 	return &oauth.OAuthClient{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "OAuthClient",
-			APIVersion: oauth.SchemeGroupVersion.String(),
+			APIVersion: oauth.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
-			Labels: map[string]string{"app": "che"},
+			Labels: map[string]string{deploy.KubernetesPartOfLabelKey: deploy.CheEclipseOrg},
 		},
 
 		Secret:       oauthSecret,
 		RedirectURIs: redirectURIs,
 		GrantMethod:  oauth.GrantHandlerPrompt,
+	}
+}
+
+func FindOAuthClient(ctx *deploy.DeployContext) (*oauth.OAuthClient, error) {
+	oauthClients := &oauth.OAuthClientList{}
+	listOptions := &client.ListOptions{LabelSelector: labels.SelectorFromSet(map[string]string{deploy.KubernetesPartOfLabelKey: deploy.CheEclipseOrg})}
+
+	if err := ctx.ClusterAPI.Client.List(
+		context.TODO(),
+		oauthClients,
+		listOptions); err != nil {
+		return nil, err
+	}
+
+	switch len(oauthClients.Items) {
+	case 0:
+		return nil, nil
+	case 1:
+		return &oauthClients.Items[0], nil
+	default:
+		return nil, fmt.Errorf("more than one OAuthClient found with '%s:%s' labels", deploy.KubernetesPartOfLabelKey, deploy.CheEclipseOrg)
 	}
 }

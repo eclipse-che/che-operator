@@ -49,7 +49,7 @@ import (
 	"github.com/go-logr/logr"
 	configv1 "github.com/openshift/api/config/v1"
 	consolev1 "github.com/openshift/api/console/v1"
-	oauth "github.com/openshift/api/oauth/v1"
+	oauthv1 "github.com/openshift/api/oauth/v1"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	checontroller "github.com/eclipse-che/che-operator/controllers/che"
@@ -142,7 +142,7 @@ func init() {
 
 	if util.IsOpenShift {
 		utilruntime.Must(routev1.AddToScheme(scheme))
-		utilruntime.Must(oauth.AddToScheme(scheme))
+		utilruntime.Must(oauthv1.AddToScheme(scheme))
 		utilruntime.Must(userv1.AddToScheme(scheme))
 		utilruntime.Must(configv1.AddToScheme(scheme))
 		utilruntime.Must(corev1.AddToScheme(scheme))
@@ -344,6 +344,7 @@ func getCacheFunc() (cache.NewCacheFunc, error) {
 	logrus.Infof("Limit cache by selector: %s", partOfCheObjectSelector.String())
 
 	routeKey := &routev1.Route{}
+	oauthKey := &oauthv1.OAuthClient{}
 	selectors := cache.SelectorsByObject{
 		&appsv1.Deployment{}: {
 			Label: partOfCheObjectSelector,
@@ -387,10 +388,14 @@ func getCacheFunc() (cache.NewCacheFunc, error) {
 		&corev1.PersistentVolumeClaim{}: {
 			Label: partOfCheObjectSelector,
 		},
+		oauthKey: {
+			Label: partOfCheObjectSelector,
+		},
 	}
 
 	if !util.IsOpenShift {
 		delete(selectors, routeKey)
+		delete(selectors, oauthKey)
 	}
 
 	return cache.BuilderWithOptions(cache.Options{

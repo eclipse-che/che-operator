@@ -142,14 +142,12 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 	util.IsOpenShift4 = true
 
 	t.Run("no skip auth", func(t *testing.T) {
-		ctx := &deploy.DeployContext{
-			CheCluster: &orgv1.CheCluster{
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						ExternalDevfileRegistry: true,
-						ExternalPluginRegistry:  true,
-					}}},
-		}
+		ctx := deploy.GetTestDeployContext(&orgv1.CheCluster{
+			Spec: orgv1.CheClusterSpec{
+				Server: orgv1.CheClusterSpecServer{
+					ExternalDevfileRegistry: true,
+					ExternalPluginRegistry:  true,
+				}}}, nil)
 
 		configmap := getGatewayOauthProxyConfigSpec(ctx, "blabol")
 		config := configmap.Data["oauth-proxy.cfg"]
@@ -159,14 +157,12 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 	})
 
 	t.Run("no devfile-registry auth", func(t *testing.T) {
-		ctx := &deploy.DeployContext{
-			CheCluster: &orgv1.CheCluster{
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						ExternalDevfileRegistry: false,
-						ExternalPluginRegistry:  true,
-					}}},
-		}
+		ctx := deploy.GetTestDeployContext(&orgv1.CheCluster{
+			Spec: orgv1.CheClusterSpec{
+				Server: orgv1.CheClusterSpecServer{
+					ExternalDevfileRegistry: false,
+					ExternalPluginRegistry:  true,
+				}}}, nil)
 
 		configmap := getGatewayOauthProxyConfigSpec(ctx, "blabol")
 		config := configmap.Data["oauth-proxy.cfg"]
@@ -176,14 +172,12 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 	})
 
 	t.Run("skip plugin-registry auth", func(t *testing.T) {
-		ctx := &deploy.DeployContext{
-			CheCluster: &orgv1.CheCluster{
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						ExternalDevfileRegistry: true,
-						ExternalPluginRegistry:  false,
-					}}},
-		}
+		ctx := deploy.GetTestDeployContext(&orgv1.CheCluster{
+			Spec: orgv1.CheClusterSpec{
+				Server: orgv1.CheClusterSpecServer{
+					ExternalDevfileRegistry: true,
+					ExternalPluginRegistry:  false,
+				}}}, nil)
 
 		configmap := getGatewayOauthProxyConfigSpec(ctx, "blabol")
 		config := configmap.Data["oauth-proxy.cfg"]
@@ -193,14 +187,12 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 	})
 
 	t.Run("skip both registries auth", func(t *testing.T) {
-		ctx := &deploy.DeployContext{
-			CheCluster: &orgv1.CheCluster{
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						ExternalDevfileRegistry: false,
-						ExternalPluginRegistry:  false,
-					}}},
-		}
+		ctx := deploy.GetTestDeployContext(&orgv1.CheCluster{
+			Spec: orgv1.CheClusterSpec{
+				Server: orgv1.CheClusterSpecServer{
+					ExternalDevfileRegistry: false,
+					ExternalPluginRegistry:  false,
+				}}}, nil)
 
 		configmap := getGatewayOauthProxyConfigSpec(ctx, "blabol")
 		config := configmap.Data["oauth-proxy.cfg"]
@@ -210,10 +202,9 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 	})
 
 	t.Run("skip '/healthz' path", func(t *testing.T) {
-		ctx := &deploy.DeployContext{
-			CheCluster: &orgv1.CheCluster{
-				Spec: orgv1.CheClusterSpec{}},
-		}
+		ctx := deploy.GetTestDeployContext(&orgv1.CheCluster{
+			Spec: orgv1.CheClusterSpec{
+				Server: orgv1.CheClusterSpecServer{}}}, nil)
 
 		configmap := getGatewayOauthProxyConfigSpec(ctx, "blabol")
 		config := configmap.Data["oauth-proxy.cfg"]
