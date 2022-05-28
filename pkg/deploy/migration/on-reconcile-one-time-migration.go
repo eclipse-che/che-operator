@@ -15,6 +15,7 @@ package migration
 import (
 	"context"
 	"fmt"
+	oauthv1 "github.com/openshift/api/oauth/v1"
 	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -231,6 +232,7 @@ func addPartOfCheLabelForObjectsWithLabel(ctx *deploy.DeployContext, labelKey st
 	}
 	if util.IsOpenShift {
 		kindsToMigrate = append(kindsToMigrate, &routev1.RouteList{})
+		kindsToMigrate = append(kindsToMigrate, &oauthv1.OAuthClientList{})
 	} else {
 		kindsToMigrate = append(kindsToMigrate, &networkingv1.IngressList{})
 	}
