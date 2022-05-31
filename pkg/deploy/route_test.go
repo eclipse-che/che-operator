@@ -57,7 +57,7 @@ func TestRouteSpec(t *testing.T) {
 					Name:      "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					Ingress: chev2.CheClusterSpecIngress{
+					Networking: chev2.CheClusterSpecNetworking{
 						Labels: map[string]string{"type": "default"},
 						Domain: "route-domain",
 					},
@@ -109,7 +109,7 @@ func TestRouteSpec(t *testing.T) {
 					Name:      "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					Ingress: chev2.CheClusterSpecIngress{
+					Networking: chev2.CheClusterSpecNetworking{
 						Labels:   map[string]string{"type": "default"},
 						Hostname: "test-host",
 					},
@@ -187,8 +187,8 @@ func TestSyncRouteToCluster(t *testing.T) {
 	assert.Equal(t, int32(90), actual.Spec.Port.TargetPort.IntVal)
 
 	// sync route with labels & domain
-	deployContext.CheCluster.Spec.Ingress.Domain = "domain"
-	deployContext.CheCluster.Spec.Ingress.Labels = map[string]string{"a": "b"}
+	deployContext.CheCluster.Spec.Networking.Domain = "domain"
+	deployContext.CheCluster.Spec.Networking.Labels = map[string]string{"a": "b"}
 	done, err = SyncRouteToCluster(deployContext, "test", "", "service", 90, "test")
 	assert.Nil(t, err)
 	assert.True(t, done)
@@ -202,7 +202,7 @@ func TestSyncRouteToCluster(t *testing.T) {
 	assert.Equal(t, expectedHost, actual.Spec.Host)
 
 	// sync route with annotations
-	deployContext.CheCluster.Spec.Ingress.Annotations = map[string]string{"a": "b"}
+	deployContext.CheCluster.Spec.Networking.Annotations = map[string]string{"a": "b"}
 	done, err = SyncRouteToCluster(deployContext, "test", "", "service", 90, "test")
 
 	actual = &routev1.Route{}

@@ -44,7 +44,7 @@ func TestReconcileWorkspacePermissions(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					Workspaces: chev2.CheClusterSpecWorkspaces{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
 						DefaultNamespace: chev2.DefaultNamespace{
 							Template: "some-test-namespace",
 						},

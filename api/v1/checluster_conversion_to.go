@@ -45,15 +45,15 @@ func (src *CheCluster) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*chev2.CheCluster)
 	dst.ObjectMeta = src.ObjectMeta
 
-	if err := src.convertTo_Operands(dst); err != nil {
+	if err := src.convertTo_Components(dst); err != nil {
 		return err
 	}
 
-	if err := src.convertTo_Ingress(dst); err != nil {
+	if err := src.convertTo_Networking(dst); err != nil {
 		return err
 	}
 
-	if err := src.convertTo_Workspaces(dst); err != nil {
+	if err := src.convertTo_DevEnvironments(dst); err != nil {
 		return err
 	}
 
@@ -98,26 +98,26 @@ func (src *CheCluster) convertTo_ContainerRegistry(dst *chev2.CheCluster) error 
 	return nil
 }
 
-func (src *CheCluster) convertTo_Workspaces(dst *chev2.CheCluster) error {
+func (src *CheCluster) convertTo_DevEnvironments(dst *chev2.CheCluster) error {
 	if src.Spec.Server.GitSelfSignedCert {
 		if src.Status.GitServerTLSCertificateConfigMapName != "" {
-			dst.Spec.Workspaces.TrustedCerts.GitTrustedCertsConfigMapName = src.Status.GitServerTLSCertificateConfigMapName
+			dst.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName = src.Status.GitServerTLSCertificateConfigMapName
 		} else {
-			dst.Spec.Workspaces.TrustedCerts.GitTrustedCertsConfigMapName = constants.DefaultGitSelfSignedCertsConfigMapName
+			dst.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName = constants.DefaultGitSelfSignedCertsConfigMapName
 		}
 	}
 
-	dst.Spec.Workspaces.DefaultNamespace.Template = src.Spec.Server.WorkspaceNamespaceDefault
-	dst.Spec.Workspaces.NodeSelector = utils.CloneMap(src.Spec.Server.WorkspacePodNodeSelector)
+	dst.Spec.DevEnvironments.DefaultNamespace.Template = src.Spec.Server.WorkspaceNamespaceDefault
+	dst.Spec.DevEnvironments.NodeSelector = utils.CloneMap(src.Spec.Server.WorkspacePodNodeSelector)
 
-	dst.Spec.Workspaces.Tolerations = []corev1.Toleration{}
+	dst.Spec.DevEnvironments.Tolerations = []corev1.Toleration{}
 	for _, v := range src.Spec.Server.WorkspacePodTolerations {
-		dst.Spec.Workspaces.Tolerations = append(dst.Spec.Workspaces.Tolerations, v)
+		dst.Spec.DevEnvironments.Tolerations = append(dst.Spec.DevEnvironments.Tolerations, v)
 	}
 
-	dst.Spec.Workspaces.DefaultPlugins = make([]chev2.WorkspaceDefaultPlugins, 0)
+	dst.Spec.DevEnvironments.DefaultPlugins = make([]chev2.WorkspaceDefaultPlugins, 0)
 	for _, p := range src.Spec.Server.WorkspacesDefaultPlugins {
-		dst.Spec.Workspaces.DefaultPlugins = append(dst.Spec.Workspaces.DefaultPlugins,
+		dst.Spec.DevEnvironments.DefaultPlugins = append(dst.Spec.DevEnvironments.DefaultPlugins,
 			chev2.WorkspaceDefaultPlugins{
 				Editor:  p.Editor,
 				Plugins: p.Plugins,
@@ -132,18 +132,18 @@ func (src *CheCluster) convertTo_Workspaces(dst *chev2.CheCluster) error {
 }
 
 func (src *CheCluster) convertTo_Workspaces_Storage(dst *chev2.CheCluster) error {
-	dst.Spec.Workspaces.Storage.Pvc = chev2.PVC{
+	dst.Spec.DevEnvironments.Storage.Pvc = chev2.PVC{
 		ClaimSize:    src.Spec.Storage.PvcClaimSize,
 		StorageClass: src.Spec.Storage.WorkspacePVCStorageClassName,
 	}
-	dst.Spec.Workspaces.Storage.PvcStrategy = src.Spec.Storage.PvcStrategy
+	dst.Spec.DevEnvironments.Storage.PvcStrategy = src.Spec.Storage.PvcStrategy
 
 	return nil
 }
 
-func (src *CheCluster) convertTo_Ingress(dst *chev2.CheCluster) error {
+func (src *CheCluster) convertTo_Networking(dst *chev2.CheCluster) error {
 	if infrastructure.IsOpenShift() {
-		dst.Spec.Ingress = chev2.CheClusterSpecIngress{
+		dst.Spec.Networking = chev2.CheClusterSpecNetworking{
 			Labels:        utils.ParseMap(src.Spec.Server.CheServerRoute.Labels),
 			Annotations:   utils.CloneMap(src.Spec.Server.CheServerRoute.Annotations),
 			Hostname:      src.Spec.Server.CheHost,
@@ -151,51 +151,51 @@ func (src *CheCluster) convertTo_Ingress(dst *chev2.CheCluster) error {
 			TlsSecretName: src.Spec.Server.CheHostTLSSecret,
 		}
 	} else {
-		dst.Spec.Ingress = chev2.CheClusterSpecIngress{
+		dst.Spec.Networking = chev2.CheClusterSpecNetworking{
 			Labels:   utils.ParseMap(src.Spec.Server.CheServerIngress.Labels),
 			Domain:   src.Spec.K8s.IngressDomain,
 			Hostname: src.Spec.Server.CheHost,
 		}
 
 		if src.Spec.Server.CheHostTLSSecret != "" {
-			dst.Spec.Ingress.TlsSecretName = src.Spec.Server.CheHostTLSSecret
+			dst.Spec.Networking.TlsSecretName = src.Spec.Server.CheHostTLSSecret
 		} else {
-			dst.Spec.Ingress.TlsSecretName = src.Spec.K8s.TlsSecretName
+			dst.Spec.Networking.TlsSecretName = src.Spec.K8s.TlsSecretName
 		}
 
-		dst.Spec.Ingress.Annotations = make(map[string]string)
+		dst.Spec.Networking.Annotations = make(map[string]string)
 		if src.Spec.K8s.IngressClass != "" {
-			dst.Spec.Ingress.Annotations["kubernetes.io/ingress.class"] = src.Spec.K8s.IngressClass
+			dst.Spec.Networking.Annotations["kubernetes.io/ingress.class"] = src.Spec.K8s.IngressClass
 		}
-		dst.Spec.Ingress.Annotations = labels.Merge(dst.Spec.Ingress.Annotations, src.Spec.Server.CheServerIngress.Annotations)
+		dst.Spec.Networking.Annotations = labels.Merge(dst.Spec.Networking.Annotations, src.Spec.Server.CheServerIngress.Annotations)
 	}
 
-	if err := src.convertTo_Ingress_Auth(dst); err != nil {
+	if err := src.convertTo_Networking_Auth(dst); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (src *CheCluster) convertTo_Ingress_Auth(dst *chev2.CheCluster) error {
-	dst.Spec.Ingress.Auth.IdentityProviderURL = src.Spec.Auth.IdentityProviderURL
-	dst.Spec.Ingress.Auth.OAuthClientName = src.Spec.Auth.OAuthClientName
-	dst.Spec.Ingress.Auth.OAuthSecret = src.Spec.Auth.OAuthSecret
+func (src *CheCluster) convertTo_Networking_Auth(dst *chev2.CheCluster) error {
+	dst.Spec.Networking.Auth.IdentityProviderURL = src.Spec.Auth.IdentityProviderURL
+	dst.Spec.Networking.Auth.OAuthClientName = src.Spec.Auth.OAuthClientName
+	dst.Spec.Networking.Auth.OAuthSecret = src.Spec.Auth.OAuthSecret
 
-	if err := src.convertTo_Ingress_Auth_Gateway(dst); err != nil {
+	if err := src.convertTo_Networking_Auth_Gateway(dst); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (src *CheCluster) convertTo_Ingress_Auth_Gateway(dst *chev2.CheCluster) error {
-	dst.Spec.Ingress.Auth.Gateway.ConfigLabels = utils.CloneMap(src.Spec.Server.SingleHostGatewayConfigMapLabels)
+func (src *CheCluster) convertTo_Networking_Auth_Gateway(dst *chev2.CheCluster) error {
+	dst.Spec.Networking.Auth.Gateway.ConfigLabels = utils.CloneMap(src.Spec.Server.SingleHostGatewayConfigMapLabels)
 
-	dst.Spec.Ingress.Auth.Gateway.Deployment.Containers = []chev2.Container{}
+	dst.Spec.Networking.Auth.Gateway.Deployment.Containers = []chev2.Container{}
 	if src.Spec.Server.SingleHostGatewayImage != "" {
-		dst.Spec.Ingress.Auth.Gateway.Deployment.Containers = append(
-			dst.Spec.Ingress.Auth.Gateway.Deployment.Containers,
+		dst.Spec.Networking.Auth.Gateway.Deployment.Containers = append(
+			dst.Spec.Networking.Auth.Gateway.Deployment.Containers,
 			chev2.Container{
 				Name:  constants.GatewayContainerName,
 				Image: src.Spec.Server.SingleHostGatewayImage,
@@ -204,8 +204,8 @@ func (src *CheCluster) convertTo_Ingress_Auth_Gateway(dst *chev2.CheCluster) err
 	}
 
 	if src.Spec.Server.SingleHostGatewayConfigSidecarImage != "" {
-		dst.Spec.Ingress.Auth.Gateway.Deployment.Containers = append(
-			dst.Spec.Ingress.Auth.Gateway.Deployment.Containers,
+		dst.Spec.Networking.Auth.Gateway.Deployment.Containers = append(
+			dst.Spec.Networking.Auth.Gateway.Deployment.Containers,
 			chev2.Container{
 				Name:  constants.GatewayConfigSideCarContainerName,
 				Image: src.Spec.Server.SingleHostGatewayConfigSidecarImage,
@@ -214,8 +214,8 @@ func (src *CheCluster) convertTo_Ingress_Auth_Gateway(dst *chev2.CheCluster) err
 	}
 
 	if src.Spec.Auth.GatewayAuthenticationSidecarImage != "" {
-		dst.Spec.Ingress.Auth.Gateway.Deployment.Containers = append(
-			dst.Spec.Ingress.Auth.Gateway.Deployment.Containers,
+		dst.Spec.Networking.Auth.Gateway.Deployment.Containers = append(
+			dst.Spec.Networking.Auth.Gateway.Deployment.Containers,
 			chev2.Container{
 				Name:  constants.GatewayAuthenticationContainerName,
 				Image: src.Spec.Auth.GatewayAuthenticationSidecarImage,
@@ -224,8 +224,8 @@ func (src *CheCluster) convertTo_Ingress_Auth_Gateway(dst *chev2.CheCluster) err
 	}
 
 	if src.Spec.Auth.GatewayAuthorizationSidecarImage != "" {
-		dst.Spec.Ingress.Auth.Gateway.Deployment.Containers = append(
-			dst.Spec.Ingress.Auth.Gateway.Deployment.Containers,
+		dst.Spec.Networking.Auth.Gateway.Deployment.Containers = append(
+			dst.Spec.Networking.Auth.Gateway.Deployment.Containers,
 			chev2.Container{
 				Name:  constants.GatewayAuthorizationContainerName,
 				Image: src.Spec.Auth.GatewayAuthorizationSidecarImage,
@@ -236,43 +236,43 @@ func (src *CheCluster) convertTo_Ingress_Auth_Gateway(dst *chev2.CheCluster) err
 	return nil
 }
 
-func (src *CheCluster) convertTo_Operands(dst *chev2.CheCluster) error {
-	if err := src.convertTo_Operands_Dashboard(dst); err != nil {
+func (src *CheCluster) convertTo_Components(dst *chev2.CheCluster) error {
+	if err := src.convertTo_Components_Dashboard(dst); err != nil {
 		return err
 	}
 
-	if err := src.convertTo_Operands_DevfileRegistry(dst); err != nil {
+	if err := src.convertTo_Components_DevfileRegistry(dst); err != nil {
 		return err
 	}
 
-	if err := src.convertTo_Operands_PluginRegistry(dst); err != nil {
+	if err := src.convertTo_Components_PluginRegistry(dst); err != nil {
 		return err
 	}
 
-	if err := src.convertTo_Operands_CheServer(dst); err != nil {
+	if err := src.convertTo_Components_CheServer(dst); err != nil {
 		return err
 	}
 
-	if err := src.convertTo_Operands_Database(dst); err != nil {
+	if err := src.convertTo_Components_Database(dst); err != nil {
 		return err
 	}
 
-	if err := src.convertTo_Operands_Metrics(dst); err != nil {
+	if err := src.convertTo_Components_Metrics(dst); err != nil {
 		return err
 	}
 
-	if err := src.convertTo_Operands_ImagePuller(dst); err != nil {
+	if err := src.convertTo_Components_ImagePuller(dst); err != nil {
 		return err
 	}
 
-	if err := src.convertTo_Operands_DevWorkspace(dst); err != nil {
+	if err := src.convertTo_Components_DevWorkspace(dst); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (src *CheCluster) convertTo_Operands_DevWorkspace(dst *chev2.CheCluster) error {
+func (src *CheCluster) convertTo_Components_DevWorkspace(dst *chev2.CheCluster) error {
 	dst.Spec.Components.DevWorkspace.Deployment = chev2.Deployment{
 		Containers: []chev2.Container{
 			{
@@ -286,18 +286,18 @@ func (src *CheCluster) convertTo_Operands_DevWorkspace(dst *chev2.CheCluster) er
 	return nil
 }
 
-func (src *CheCluster) convertTo_Operands_ImagePuller(dst *chev2.CheCluster) error {
+func (src *CheCluster) convertTo_Components_ImagePuller(dst *chev2.CheCluster) error {
 	dst.Spec.Components.ImagePuller.Enable = src.Spec.ImagePuller.Enable
 	dst.Spec.Components.ImagePuller.Spec = src.Spec.ImagePuller.Spec
 	return nil
 }
 
-func (src *CheCluster) convertTo_Operands_Metrics(dst *chev2.CheCluster) error {
+func (src *CheCluster) convertTo_Components_Metrics(dst *chev2.CheCluster) error {
 	dst.Spec.Components.Metrics.Enable = src.Spec.Metrics.Enable
 	return nil
 }
 
-func (src *CheCluster) convertTo_Operands_CheServer(dst *chev2.CheCluster) error {
+func (src *CheCluster) convertTo_Components_CheServer(dst *chev2.CheCluster) error {
 	dst.Spec.Components.CheServer.ExtraProperties = utils.CloneMap(src.Spec.Server.CustomCheProperties)
 	dst.Spec.Components.CheServer.LogLevel = src.Spec.Server.CheLogLevel
 	dst.Spec.Components.CheServer.ClusterRoles = strings.Split(src.Spec.Server.CheClusterRoles, ",")
@@ -365,7 +365,7 @@ func (src *CheCluster) convertTo_Operands_CheServer(dst *chev2.CheCluster) error
 	return nil
 }
 
-func (src *CheCluster) convertTo_Operands_PluginRegistry(dst *chev2.CheCluster) error {
+func (src *CheCluster) convertTo_Components_PluginRegistry(dst *chev2.CheCluster) error {
 	dst.Spec.Components.PluginRegistry.DisableInternalRegistry = src.Spec.Server.ExternalPluginRegistry
 
 	if dst.Spec.Components.PluginRegistry.DisableInternalRegistry {
@@ -396,7 +396,7 @@ func (src *CheCluster) convertTo_Operands_PluginRegistry(dst *chev2.CheCluster) 
 	return nil
 }
 
-func (src *CheCluster) convertTo_Operands_DevfileRegistry(dst *chev2.CheCluster) error {
+func (src *CheCluster) convertTo_Components_DevfileRegistry(dst *chev2.CheCluster) error {
 	dst.Spec.Components.DevfileRegistry.DisableInternalRegistry = src.Spec.Server.ExternalDevfileRegistry
 
 	dst.Spec.Components.DevfileRegistry.ExternalDevfileRegistries = []chev2.ExternalDevfileRegistry{}
@@ -427,7 +427,7 @@ func (src *CheCluster) convertTo_Operands_DevfileRegistry(dst *chev2.CheCluster)
 	return nil
 }
 
-func (src *CheCluster) convertTo_Operands_Database(dst *chev2.CheCluster) error {
+func (src *CheCluster) convertTo_Components_Database(dst *chev2.CheCluster) error {
 	dst.Spec.Components.Database.CredentialsSecretName = src.Spec.Database.ChePostgresSecret
 
 	if src.Spec.Database.ChePostgresSecret == "" && src.Spec.Database.ChePostgresUser != "" && src.Spec.Database.ChePostgresPassword != "" {
@@ -470,7 +470,7 @@ func (src *CheCluster) convertTo_Operands_Database(dst *chev2.CheCluster) error 
 	return nil
 }
 
-func (src *CheCluster) convertTo_Operands_Dashboard(dst *chev2.CheCluster) error {
+func (src *CheCluster) convertTo_Components_Dashboard(dst *chev2.CheCluster) error {
 	runAsUser, fsGroup, err := parseSecurityContext(src)
 	if err != nil {
 		return err

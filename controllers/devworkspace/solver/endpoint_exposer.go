@@ -69,7 +69,7 @@ func getEndpointExposingObjectName(componentName string, workspaceID string, por
 func (e *RouteExposer) initFrom(ctx context.Context, cl client.Client, cluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting) error {
 	e.baseDomain = cluster.Status.WorkspaceBaseDomain
 	e.devWorkspaceID = routing.Spec.DevWorkspaceId
-	e.labels = cluster.Spec.Ingress.Labels
+	e.labels = cluster.Spec.Networking.Labels
 
 	// to be compatible from CheCluster API v1 configuration
 	routeLabels := cluster.Spec.Components.CheServer.ExtraProperties["CHE_INFRA_OPENSHIFT_ROUTE_LABELS"]
@@ -77,9 +77,9 @@ func (e *RouteExposer) initFrom(ctx context.Context, cl client.Client, cluster *
 		e.labels = utils.ParseMap(routeLabels)
 	}
 
-	if cluster.Spec.Ingress.TlsSecretName != "" {
+	if cluster.Spec.Networking.TlsSecretName != "" {
 		secret := &corev1.Secret{}
-		err := cl.Get(ctx, client.ObjectKey{Name: cluster.Spec.Ingress.TlsSecretName, Namespace: cluster.Namespace}, secret)
+		err := cl.Get(ctx, client.ObjectKey{Name: cluster.Spec.Networking.TlsSecretName, Namespace: cluster.Namespace}, secret)
 		if err != nil {
 			return err
 		}
@@ -96,7 +96,7 @@ func (e *IngressExposer) initFrom(ctx context.Context, cl client.Client, cluster
 	e.devWorkspaceID = routing.Spec.DevWorkspaceId
 	e.ingressAnnotations = ingressAnnotations
 
-	if cluster.Spec.Ingress.TlsSecretName != "" {
+	if cluster.Spec.Networking.TlsSecretName != "" {
 		tlsSecretName := routing.Spec.DevWorkspaceId + "-endpoints"
 		e.tlsSecretName = tlsSecretName
 
@@ -106,7 +106,7 @@ func (e *IngressExposer) initFrom(ctx context.Context, cl client.Client, cluster
 		err := cl.Get(ctx, client.ObjectKey{Name: tlsSecretName, Namespace: routing.Namespace}, secret)
 		if errors.IsNotFound(err) {
 			secret = &corev1.Secret{}
-			err = cl.Get(ctx, client.ObjectKey{Name: cluster.Spec.Ingress.TlsSecretName, Namespace: cluster.Namespace}, secret)
+			err = cl.Get(ctx, client.ObjectKey{Name: cluster.Spec.Networking.TlsSecretName, Namespace: cluster.Namespace}, secret)
 			if err != nil {
 				return err
 			}

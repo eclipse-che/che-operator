@@ -44,7 +44,7 @@ func TestConvertFromIngressOnK8s(t *testing.T) {
 			Namespace: "eclipse-che",
 		},
 		Spec: chev2.CheClusterSpec{
-			Ingress: chev2.CheClusterSpecIngress{
+			Networking: chev2.CheClusterSpecNetworking{
 				Labels:        map[string]string{"a": "b", "c": "d"},
 				Annotations:   map[string]string{"a": "b", "c": "d"},
 				Domain:        "Domain",
@@ -75,7 +75,7 @@ func TestConvertFromIngressOnOpenShift(t *testing.T) {
 			Namespace: "eclipse-che",
 		},
 		Spec: chev2.CheClusterSpec{
-			Ingress: chev2.CheClusterSpecIngress{
+			Networking: chev2.CheClusterSpecNetworking{
 				Labels:        map[string]string{"a": "b", "c": "d"},
 				Annotations:   map[string]string{"a": "b", "c": "d"},
 				Domain:        "Domain",
@@ -281,7 +281,7 @@ func TestConvertFrom(t *testing.T) {
 					RunningLimit: "RunningLimit",
 				},
 			},
-			Ingress: chev2.CheClusterSpecIngress{
+			Networking: chev2.CheClusterSpecNetworking{
 				Auth: chev2.Auth{
 					IdentityProviderURL: "IdentityProviderURL",
 					OAuthClientName:     "OAuthClientName",
@@ -311,7 +311,7 @@ func TestConvertFrom(t *testing.T) {
 					},
 				},
 			},
-			Workspaces: chev2.CheClusterSpecWorkspaces{
+			DevEnvironments: chev2.CheClusterDevEnvironments{
 				DefaultNamespace: chev2.DefaultNamespace{
 					Template: "WorkspaceNamespaceName",
 				},

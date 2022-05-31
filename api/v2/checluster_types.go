@@ -31,35 +31,35 @@ import (
 // +k8s:openapi-gen=true
 // Desired configuration of Eclipse Che installation.
 type CheClusterSpec struct {
-	// Development environment default configuration options
+	// Development environment default configuration options.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Workspaces"
-	Workspaces CheClusterSpecWorkspaces `json:"workspaces"`
-	// Che components configuration
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Development environments"
+	DevEnvironments CheClusterDevEnvironments `json:"devEnvironments"`
+	// Che components configuration.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=2
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Components"
 	Components CheClusterComponents `json:"components"`
-	// Che ingress hostname, authentication and TLS configuration
+	// Che authentication and TLS configuration.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=3
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ingress"
-	Ingress CheClusterSpecIngress `json:"ingress,omitempty"`
-	// Configuration of an alternative registry that stores Che images
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Networking"
+	Networking CheClusterSpecNetworking `json:"networking,omitempty"`
+	// Configuration of an alternative registry that stores Che images.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=4
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Container registry"
 	ContainerRegistry CheClusterContainerRegistry `json:"containerRegistry"`
 }
 
-// Workspaces configuration
+// Development environments configuration.
 // +k8s:openapi-gen=true
-type CheClusterSpecWorkspaces struct {
+type CheClusterDevEnvironments struct {
 	// Workspaces persistent storage.
 	// +optional
 	Storage WorkspaceStorage `json:"storage"`
-	// Default plug-ins applied to Devworkspaces.
+	// Default plug-ins applied to Dev Workspaces.
 	// +optional
 	DefaultPlugins []WorkspaceDefaultPlugins `json:"defaultPlugins,omitempty"`
 	// The node selector that limits the nodes that can run the workspace pods.
@@ -76,13 +76,13 @@ type CheClusterSpecWorkspaces struct {
 	TrustedCerts TrustedCerts `json:"trustedCerts,omitempty"`
 }
 
-// Che components configuration
+// Che components configuration.
 // +k8s:openapi-gen=true
 type CheClusterComponents struct {
-	// DevWorkspace operator configuration
+	// DevWorkspace operator configuration.
 	// +optional
 	DevWorkspace DevWorkspace `json:"devWorkspace"`
-	// General configuration settings related to the Che server
+	// General configuration settings related to the Che server.
 	// +optional
 	CheServer CheServer `json:"cheServer"`
 	// Configuration settings related to the Plugin registry used by the Che installation.
@@ -97,7 +97,7 @@ type CheClusterComponents struct {
 	// Configuration settings related to the Dashboard sed by the Che installation.
 	// +optional
 	Dashboard Dashboard `json:"dashboard"`
-	// Kubernetes Image Puller configuration
+	// Kubernetes Image Puller configuration.
 	// +optional
 	ImagePuller ImagePuller `json:"imagePuller"`
 	// Che server metrics configuration.
@@ -105,9 +105,9 @@ type CheClusterComponents struct {
 	Metrics ServerMetrics `json:"metrics"`
 }
 
-// Configuration settings related to the Ingress used by the Che installation.
+// Configuration settings related to the Networking used by the Che installation.
 // +k8s:openapi-gen=true
-type CheClusterSpecIngress struct {
+type CheClusterSpecNetworking struct {
 	// Comma separated list of labels that can be used to organize and categorize objects by scoping and selecting.
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
@@ -138,7 +138,7 @@ type CheClusterSpecIngress struct {
 	Auth Auth `json:"auth"`
 }
 
-// Container registry configuration
+// Container registry configuration.
 // +k8s:openapi-gen=true
 type CheClusterContainerRegistry struct {
 	// Optional hostname, or URL, to an alternate container registry to pull images from.
@@ -618,7 +618,7 @@ func (c *CheCluster) GetCheHost() string {
 		return strings.TrimPrefix(c.Status.CheURL, "https://")
 	}
 
-	return c.Spec.Ingress.Hostname
+	return c.Spec.Networking.Hostname
 }
 
 func (c *CheCluster) GetDefaultNamespace() string {
@@ -629,8 +629,8 @@ func (c *CheCluster) GetDefaultNamespace() string {
 		}
 	}
 
-	if c.Spec.Workspaces.DefaultNamespace.Template != "" {
-		return c.Spec.Workspaces.DefaultNamespace.Template
+	if c.Spec.DevEnvironments.DefaultNamespace.Template != "" {
+		return c.Spec.DevEnvironments.DefaultNamespace.Template
 	}
 
 	return "<username>-" + os.Getenv("CHE_FLAVOR")

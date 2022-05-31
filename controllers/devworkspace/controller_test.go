@@ -93,7 +93,7 @@ func TestNoCustomResourceSharedWhenReconcilingNonExistent(t *testing.T) {
 			Finalizers: []string{FinalizerName},
 		},
 		Spec: chev2.CheClusterSpec{
-			Ingress: chev2.CheClusterSpecIngress{
+			Networking: chev2.CheClusterSpecNetworking{
 				Hostname: "over.the.rainbow",
 			},
 		},
@@ -131,7 +131,7 @@ func TestAddsCustomResourceToSharedMapOnCreate(t *testing.T) {
 			Finalizers: []string{FinalizerName},
 		},
 		Spec: chev2.CheClusterSpec{
-			Ingress: chev2.CheClusterSpecIngress{
+			Networking: chev2.CheClusterSpecNetworking{
 				Hostname: "over.the.rainbow",
 				Domain:   "down.on.earth",
 			},
@@ -179,7 +179,7 @@ func TestUpdatesCustomResourceInSharedMapOnUpdate(t *testing.T) {
 			Finalizers: []string{FinalizerName},
 		},
 		Spec: chev2.CheClusterSpec{
-			Ingress: chev2.CheClusterSpecIngress{
+			Networking: chev2.CheClusterSpecNetworking{
 				Hostname: "over.the.rainbow",
 				Domain:   "down.on.earth",
 			},
@@ -218,7 +218,7 @@ func TestUpdatesCustomResourceInSharedMapOnUpdate(t *testing.T) {
 	// to be able to update, we need to set the resource version
 	mgr.SetResourceVersion(mgrInCluster.GetResourceVersion())
 
-	mgr.Spec.Ingress.Hostname = "over.the.shoulder"
+	mgr.Spec.Networking.Hostname = "over.the.shoulder"
 	err = cl.Update(context.TODO(), &mgr)
 	if err != nil {
 		t.Fatalf("Failed to update. Wat? %s", err)
@@ -235,8 +235,8 @@ func TestUpdatesCustomResourceInSharedMapOnUpdate(t *testing.T) {
 		t.Fatalf("Found a manager that we didn't reconcile. Curious (and buggy). We found %s but should have found %s", mgr.Name, managerName)
 	}
 
-	if mgr.Spec.Ingress.Hostname != "over.the.rainbow" {
-		t.Fatalf("Unexpected host value: expected: over.the.rainbow, actual: %s", mgr.Spec.Ingress.Hostname)
+	if mgr.Spec.Networking.Hostname != "over.the.rainbow" {
+		t.Fatalf("Unexpected host value: expected: over.the.rainbow, actual: %s", mgr.Spec.Networking.Hostname)
 	}
 
 	// now reconcile and see that the value in the map is now updated
@@ -256,8 +256,8 @@ func TestUpdatesCustomResourceInSharedMapOnUpdate(t *testing.T) {
 		t.Fatalf("Found a manager that we didn't reconcile. Curious (and buggy). We found %s but should have found %s", mgr.Name, managerName)
 	}
 
-	if mgr.Spec.Ingress.Hostname != "over.the.shoulder" {
-		t.Fatalf("Unexpected host value: expected: over.the.shoulder, actual: %s", mgr.Spec.Ingress.Hostname)
+	if mgr.Spec.Networking.Hostname != "over.the.shoulder" {
+		t.Fatalf("Unexpected host value: expected: over.the.shoulder, actual: %s", mgr.Spec.Networking.Hostname)
 	}
 }
 
@@ -280,7 +280,7 @@ func TestRemovesCustomResourceFromSharedMapOnDelete(t *testing.T) {
 			Finalizers: []string{FinalizerName},
 		},
 		Spec: chev2.CheClusterSpec{
-			Ingress: chev2.CheClusterSpecIngress{
+			Networking: chev2.CheClusterSpecNetworking{
 				Hostname: "over.the.rainbow",
 				Domain:   "down.on.earth",
 			},
@@ -339,7 +339,7 @@ func TestCustomResourceFinalization(t *testing.T) {
 				Finalizers: []string{FinalizerName},
 			},
 			Spec: chev2.CheClusterSpec{
-				Ingress: chev2.CheClusterSpecIngress{
+				Networking: chev2.CheClusterSpecNetworking{
 					Hostname: "over.the.rainbow",
 					Domain:   "down.on.earth",
 				},

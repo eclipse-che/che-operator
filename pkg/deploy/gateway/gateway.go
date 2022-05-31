@@ -269,7 +269,7 @@ func GetConfigmapForGatewayConfig(
 			Namespace: deployContext.CheCluster.Namespace,
 			Labels: labels.Merge(
 				deploy.GetLabels(gatewayConfigComponentName),
-				utils.GetMap(deployContext.CheCluster.Spec.Ingress.Auth.Gateway.ConfigLabels, constants.DefaultSingleHostGatewayConfigMapLabels)),
+				utils.GetMap(deployContext.CheCluster.Spec.Networking.Auth.Gateway.ConfigLabels, constants.DefaultSingleHostGatewayConfigMapLabels)),
 		},
 		Data: map[string]string{
 			componentName + ".yml": string(gatewayConfigContent),
@@ -459,12 +459,12 @@ func getGatewayDeploymentSpec(ctx *chetypes.DeployContext) appsv1.Deployment {
 		},
 	}
 
-	deploy.CustomizeDeployment(&deployment, &ctx.CheCluster.Spec.Ingress.Auth.Gateway.Deployment, false)
+	deploy.CustomizeDeployment(&deployment, &ctx.CheCluster.Spec.Networking.Auth.Gateway.Deployment, false)
 	return deployment
 }
 
 func getContainersSpec(ctx *chetypes.DeployContext) []corev1.Container {
-	configLabelsMap := utils.GetMap(ctx.CheCluster.Spec.Ingress.Auth.Gateway.ConfigLabels, constants.DefaultSingleHostGatewayConfigMapLabels)
+	configLabelsMap := utils.GetMap(ctx.CheCluster.Spec.Networking.Auth.Gateway.ConfigLabels, constants.DefaultSingleHostGatewayConfigMapLabels)
 	gatewayImage := defaults.GetGatewayImage(ctx.CheCluster)
 	configSidecarImage := defaults.GetGatewayConfigSidecarImage(ctx.CheCluster)
 	configLabels := labels.FormatLabels(configLabelsMap)

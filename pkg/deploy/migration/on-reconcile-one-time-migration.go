@@ -100,7 +100,7 @@ func (m *Migrator) migrate(ctx *chetypes.DeployContext) (bool, error) {
 func addPartOfCheLabeltoUserDefinedObjects(ctx *chetypes.DeployContext) error {
 	if !infrastructure.IsOpenShift() {
 		// Kubernetes only
-		tlsSecretName := utils.GetValue(ctx.CheCluster.Spec.Ingress.TlsSecretName, constants.DefaultCheTLSSecretName)
+		tlsSecretName := utils.GetValue(ctx.CheCluster.Spec.Networking.TlsSecretName, constants.DefaultCheTLSSecretName)
 		if err := addPartOfCheLabelToSecret(ctx, tlsSecretName); err != nil {
 			return err
 		}
@@ -129,7 +129,7 @@ func addPartOfCheLabeltoUserDefinedObjects(ctx *chetypes.DeployContext) error {
 	}
 
 	// Config map with CA certificates for git
-	gitTrustedCertsConfigMapName := utils.GetValue(ctx.CheCluster.Spec.Workspaces.TrustedCerts.GitTrustedCertsConfigMapName, constants.DefaultGitSelfSignedCertsConfigMapName)
+	gitTrustedCertsConfigMapName := utils.GetValue(ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName, constants.DefaultGitSelfSignedCertsConfigMapName)
 	if err := addPartOfCheLabelToConfigMap(ctx, gitTrustedCertsConfigMapName); err != nil {
 		return err
 	}

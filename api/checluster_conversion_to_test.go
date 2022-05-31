@@ -63,11 +63,11 @@ func TestConvertToIngressOnOpenShift(t *testing.T) {
 	err := checlusterv1.ConvertTo(checlusterv2)
 	assert.Nil(t, err)
 
-	assert.Equal(t, map[string]string{"a": "b", "c": "d"}, checlusterv2.Spec.Ingress.Annotations)
-	assert.Equal(t, "CheServerRoute.Domain", checlusterv2.Spec.Ingress.Domain)
-	assert.Equal(t, "CheHost", checlusterv2.Spec.Ingress.Hostname)
-	assert.Equal(t, map[string]string{"a": "b", "c": "d"}, checlusterv2.Spec.Ingress.Labels)
-	assert.Equal(t, "CheHostTLSSecret", checlusterv2.Spec.Ingress.TlsSecretName)
+	assert.Equal(t, map[string]string{"a": "b", "c": "d"}, checlusterv2.Spec.Networking.Annotations)
+	assert.Equal(t, "CheServerRoute.Domain", checlusterv2.Spec.Networking.Domain)
+	assert.Equal(t, "CheHost", checlusterv2.Spec.Networking.Hostname)
+	assert.Equal(t, map[string]string{"a": "b", "c": "d"}, checlusterv2.Spec.Networking.Labels)
+	assert.Equal(t, "CheHostTLSSecret", checlusterv2.Spec.Networking.TlsSecretName)
 }
 
 func TestConvertToIngressOnK8s(t *testing.T) {
@@ -98,11 +98,11 @@ func TestConvertToIngressOnK8s(t *testing.T) {
 	err := checlusterv1.ConvertTo(checlusterv2)
 	assert.Nil(t, err)
 
-	assert.Equal(t, map[string]string{"a": "b", "c": "d", "kubernetes.io/ingress.class": "k8s.IngressClass"}, checlusterv2.Spec.Ingress.Annotations)
-	assert.Equal(t, "k8s.IngressDomain", checlusterv2.Spec.Ingress.Domain)
-	assert.Equal(t, "CheHost", checlusterv2.Spec.Ingress.Hostname)
-	assert.Equal(t, map[string]string{"a": "b", "c": "d"}, checlusterv2.Spec.Ingress.Labels)
-	assert.Equal(t, "k8s.TlsSecretName", checlusterv2.Spec.Ingress.TlsSecretName)
+	assert.Equal(t, map[string]string{"a": "b", "c": "d", "kubernetes.io/ingress.class": "k8s.IngressClass"}, checlusterv2.Spec.Networking.Annotations)
+	assert.Equal(t, "k8s.IngressDomain", checlusterv2.Spec.Networking.Domain)
+	assert.Equal(t, "CheHost", checlusterv2.Spec.Networking.Hostname)
+	assert.Equal(t, map[string]string{"a": "b", "c": "d"}, checlusterv2.Spec.Networking.Labels)
+	assert.Equal(t, "k8s.TlsSecretName", checlusterv2.Spec.Networking.TlsSecretName)
 }
 
 func TestConvertToIngressOnK8sWithCheHostTLSSecret(t *testing.T) {
@@ -134,11 +134,11 @@ func TestConvertToIngressOnK8sWithCheHostTLSSecret(t *testing.T) {
 	err := checlusterv1.ConvertTo(checlusterv2)
 	assert.Nil(t, err)
 
-	assert.Equal(t, map[string]string{"a": "b", "c": "d", "kubernetes.io/ingress.class": "k8s.IngressClass"}, checlusterv2.Spec.Ingress.Annotations)
-	assert.Equal(t, "k8s.IngressDomain", checlusterv2.Spec.Ingress.Domain)
-	assert.Equal(t, "CheHost", checlusterv2.Spec.Ingress.Hostname)
-	assert.Equal(t, map[string]string{"a": "b", "c": "d"}, checlusterv2.Spec.Ingress.Labels)
-	assert.Equal(t, "CheHostTLSSecret", checlusterv2.Spec.Ingress.TlsSecretName)
+	assert.Equal(t, map[string]string{"a": "b", "c": "d", "kubernetes.io/ingress.class": "k8s.IngressClass"}, checlusterv2.Spec.Networking.Annotations)
+	assert.Equal(t, "k8s.IngressDomain", checlusterv2.Spec.Networking.Domain)
+	assert.Equal(t, "CheHost", checlusterv2.Spec.Networking.Hostname)
+	assert.Equal(t, map[string]string{"a": "b", "c": "d"}, checlusterv2.Spec.Networking.Labels)
+	assert.Equal(t, "CheHostTLSSecret", checlusterv2.Spec.Networking.TlsSecretName)
 }
 
 func TestConvertTo(t *testing.T) {
@@ -292,18 +292,18 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.ObjectMeta.Name, "eclipse-che")
 	assert.Equal(t, checlusterv2.ObjectMeta.Namespace, "eclipse-che")
 
-	assert.Equal(t, checlusterv2.Spec.Ingress.Auth.Gateway.Deployment.Containers[0].Name, constants.GatewayContainerName)
-	assert.Equal(t, checlusterv2.Spec.Ingress.Auth.Gateway.Deployment.Containers[0].Image, "SingleHostGatewayImage")
-	assert.Equal(t, checlusterv2.Spec.Ingress.Auth.Gateway.Deployment.Containers[1].Name, constants.GatewayConfigSideCarContainerName)
-	assert.Equal(t, checlusterv2.Spec.Ingress.Auth.Gateway.Deployment.Containers[1].Image, "SingleHostGatewayConfigSidecarImage")
-	assert.Equal(t, checlusterv2.Spec.Ingress.Auth.Gateway.Deployment.Containers[2].Name, constants.GatewayAuthenticationContainerName)
-	assert.Equal(t, checlusterv2.Spec.Ingress.Auth.Gateway.Deployment.Containers[2].Image, "GatewayAuthenticationSidecarImage")
-	assert.Equal(t, checlusterv2.Spec.Ingress.Auth.Gateway.Deployment.Containers[3].Name, constants.GatewayAuthorizationContainerName)
-	assert.Equal(t, checlusterv2.Spec.Ingress.Auth.Gateway.Deployment.Containers[3].Image, "GatewayAuthorizationSidecarImage")
-	assert.Equal(t, checlusterv2.Spec.Ingress.Auth.Gateway.ConfigLabels, map[string]string{"a": "b", "c": "d"})
-	assert.Equal(t, checlusterv2.Spec.Ingress.Auth.IdentityProviderURL, "IdentityProviderURL")
-	assert.Equal(t, checlusterv2.Spec.Ingress.Auth.OAuthClientName, "OAuthClientName")
-	assert.Equal(t, checlusterv2.Spec.Ingress.Auth.OAuthSecret, "OAuthSecret")
+	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[0].Name, constants.GatewayContainerName)
+	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[0].Image, "SingleHostGatewayImage")
+	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[1].Name, constants.GatewayConfigSideCarContainerName)
+	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[1].Image, "SingleHostGatewayConfigSidecarImage")
+	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[2].Name, constants.GatewayAuthenticationContainerName)
+	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[2].Image, "GatewayAuthenticationSidecarImage")
+	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[3].Name, constants.GatewayAuthorizationContainerName)
+	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[3].Image, "GatewayAuthorizationSidecarImage")
+	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.ConfigLabels, map[string]string{"a": "b", "c": "d"})
+	assert.Equal(t, checlusterv2.Spec.Networking.Auth.IdentityProviderURL, "IdentityProviderURL")
+	assert.Equal(t, checlusterv2.Spec.Networking.Auth.OAuthClientName, "OAuthClientName")
+	assert.Equal(t, checlusterv2.Spec.Networking.Auth.OAuthSecret, "OAuthSecret")
 
 	assert.Equal(t, checlusterv2.Spec.ContainerRegistry.Hostname, "AirGapContainerRegistryHostname")
 	assert.Equal(t, checlusterv2.Spec.ContainerRegistry.Organization, "AirGapContainerRegistryOrganization")
@@ -319,21 +319,21 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].Resources.Requests.Memory, resource.MustParse("100Mi"))
 	assert.Equal(t, *checlusterv2.Spec.Components.CheServer.Deployment.SecurityContext.FsGroup, int64(64))
 	assert.Equal(t, *checlusterv2.Spec.Components.CheServer.Deployment.SecurityContext.RunAsUser, int64(65))
-	assert.Equal(t, checlusterv2.Spec.Workspaces.TrustedCerts.GitTrustedCertsConfigMapName, "che-git-self-signed-cert")
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName, "che-git-self-signed-cert")
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.LogLevel, "CheLogLevel")
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Proxy.CredentialsSecretName, "ProxySecret")
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Proxy.NonProxyHosts, []string{"NonProxyHosts_1", "NonProxyHosts_2"})
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Proxy.Port, "ProxyPort")
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Proxy.Url, "ProxyURL")
-	assert.Equal(t, checlusterv2.Spec.Workspaces.DefaultNamespace.Template, "WorkspaceNamespaceDefault")
-	assert.Equal(t, checlusterv2.Spec.Workspaces.NodeSelector, map[string]string{"a": "b", "c": "d"})
-	assert.Equal(t, checlusterv2.Spec.Workspaces.Tolerations, []corev1.Toleration{{
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.DefaultNamespace.Template, "WorkspaceNamespaceDefault")
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.NodeSelector, map[string]string{"a": "b", "c": "d"})
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Tolerations, []corev1.Toleration{{
 		Key:      "Key",
 		Operator: "Operator",
 		Value:    "Value",
 		Effect:   "Effect",
 	}})
-	assert.Equal(t, checlusterv2.Spec.Workspaces.DefaultPlugins, []chev2.WorkspaceDefaultPlugins{{
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.DefaultPlugins, []chev2.WorkspaceDefaultPlugins{{
 		Editor:  "Editor",
 		Plugins: []string{"Plugin_1,Plugin_2"},
 	}})
@@ -397,9 +397,9 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.DisableInternalRegistry, true)
 	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.ExternalPluginRegistries, []chev2.ExternalPluginRegistry{{Url: "PluginRegistryUrl"}})
 
-	assert.Equal(t, checlusterv2.Spec.Workspaces.Storage.Pvc.ClaimSize, "WorkspacePvcClaimSize")
-	assert.Equal(t, checlusterv2.Spec.Workspaces.Storage.Pvc.StorageClass, "WorkspacePVCStorageClassName")
-	assert.Equal(t, checlusterv2.Spec.Workspaces.Storage.PvcStrategy, "PvcStrategy")
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Storage.Pvc.ClaimSize, "WorkspacePvcClaimSize")
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Storage.Pvc.StorageClass, "WorkspacePVCStorageClassName")
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Storage.PvcStrategy, "PvcStrategy")
 
 	assert.Equal(t, checlusterv2.Status.CheURL, "CheURL")
 	assert.Equal(t, checlusterv2.Status.CheVersion, "CheVersion")

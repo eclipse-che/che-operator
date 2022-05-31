@@ -73,16 +73,16 @@ spec:
         name: ""
         version: v1
       specDescriptors:
-      - description: Development environment default configuration options
-        displayName: Workspaces
-        path: workspaces
-      - description: Che components configuration
+      - description: Development environment default configuration options.
+        displayName: Development environments
+        path: devEnvironments
+      - description: Che components configuration.
         displayName: Components
         path: components
-      - description: Che ingress hostname, authentication and TLS configuration
-        displayName: Ingress
-        path: ingress
-      - description: Configuration of an alternative registry that stores Che images
+      - description: Che authentication and TLS configuration.
+        displayName: Networking
+        path: networking
+      - description: Configuration of an alternative registry that stores Che images.
         displayName: Container registry
         path: containerRegistry
       statusDescriptors:

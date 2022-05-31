@@ -51,7 +51,7 @@ func TestIngressSpec(t *testing.T) {
 					Name:      "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					Ingress: chev2.CheClusterSpecIngress{
+					Networking: chev2.CheClusterSpecNetworking{
 						Hostname:    "test-host",
 						Labels:      map[string]string{"type": "default"},
 						Annotations: map[string]string{"annotation-key": "annotation-value"},
@@ -143,7 +143,7 @@ func TestSyncIngressToCluster(t *testing.T) {
 			Name:      "eclipse-che",
 		},
 		Spec: chev2.CheClusterSpec{
-			Ingress: chev2.CheClusterSpecIngress{
+			Networking: chev2.CheClusterSpecNetworking{
 				Hostname: "host-1",
 			},
 		},
@@ -154,7 +154,7 @@ func TestSyncIngressToCluster(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, done)
 
-	cheCluster.Spec.Ingress.Hostname = "host-2"
+	cheCluster.Spec.Networking.Hostname = "host-2"
 	_, done, err = SyncIngressToCluster(deployContext, "test", "", "service-2", 8080, "component")
 	assert.Nil(t, err)
 	assert.True(t, done)

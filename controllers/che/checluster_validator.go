@@ -41,7 +41,7 @@ func NewCheClusterValidator() *CheClusterValidator {
 
 func (v *CheClusterValidator) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	if !infrastructure.IsOpenShift() {
-		if ctx.CheCluster.Spec.Ingress.Domain == "" {
+		if ctx.CheCluster.Spec.Networking.Domain == "" {
 			return reconcile.Result{}, false, fmt.Errorf("Required field \"spec.auth.gateway.ingress.domain\" is not set")
 		}
 	}

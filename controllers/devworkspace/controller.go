@@ -201,7 +201,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// control of gateway creation
 	changed = false
 
-	workspaceBaseDomain := cluster.Spec.Ingress.Domain
+	workspaceBaseDomain := cluster.Spec.Networking.Domain
 
 	// to be compatible with CheCluster API v1
 	routeDomain := cluster.Spec.Components.CheServer.ExtraProperties["CHE_INFRA_OPENSHIFT_ROUTE_HOST_DOMAIN__SUFFIX"]
@@ -259,7 +259,7 @@ func (r *CheClusterReconciler) validate(cluster *chev2.CheCluster) error {
 	validationErrors := []string{}
 
 	if !infrastructure.IsOpenShift() {
-		if cluster.Spec.Ingress.Domain == "" {
+		if cluster.Spec.Networking.Domain == "" {
 			validationErrors = append(validationErrors, "spec.ingress.domain must be specified")
 		}
 	}

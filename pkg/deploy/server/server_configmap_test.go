@@ -92,7 +92,7 @@ func TestConfigMap(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					Workspaces: chev2.CheClusterSpecWorkspaces{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
 						DefaultNamespace: chev2.DefaultNamespace{
 							Template: "<username>-che",
 						},
@@ -123,12 +123,12 @@ func TestConfigMap(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					Workspaces: chev2.CheClusterSpecWorkspaces{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
 						DefaultNamespace: chev2.DefaultNamespace{
 							Template: "<username>-che",
 						},
 					},
-					Ingress: chev2.CheClusterSpecIngress{
+					Networking: chev2.CheClusterSpecNetworking{
 						TlsSecretName: "che-tls",
 					},
 				},
@@ -469,7 +469,7 @@ func TestShouldSetUpCorrectlyInternalCheServerURL(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					Ingress: chev2.CheClusterSpecIngress{
+					Networking: chev2.CheClusterSpecNetworking{
 						Hostname: "che-host",
 					},
 				},

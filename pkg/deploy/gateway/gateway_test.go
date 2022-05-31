@@ -274,7 +274,7 @@ func TestCustomizeGatewayDeploymentAllImages(t *testing.T) {
 			Namespace: "eclipse-che",
 		},
 		Spec: chev2.CheClusterSpec{
-			Ingress: chev2.CheClusterSpecIngress{
+			Networking: chev2.CheClusterSpecNetworking{
 				Auth: chev2.Auth{
 					Gateway: chev2.Gateway{
 						Deployment: chev2.Deployment{
@@ -326,7 +326,7 @@ func TestCustomizeGatewayDeploymentSingleImage(t *testing.T) {
 			Namespace: "eclipse-che",
 		},
 		Spec: chev2.CheClusterSpec{
-			Ingress: chev2.CheClusterSpecIngress{
+			Networking: chev2.CheClusterSpecNetworking{
 				Auth: chev2.Auth{
 					Gateway: chev2.Gateway{
 						Deployment: chev2.Deployment{

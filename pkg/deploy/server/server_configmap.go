@@ -93,7 +93,7 @@ type CheConfigMap struct {
 // GetCheConfigMapData gets env values from CR spec and returns a map with key:value
 // which is used in CheCluster ConfigMap to configure CheCluster master behavior
 func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (cheEnv map[string]string, err error) {
-	identityProviderURL := ctx.CheCluster.Spec.Ingress.Auth.IdentityProviderURL
+	identityProviderURL := ctx.CheCluster.Spec.Networking.Auth.IdentityProviderURL
 
 	infra := "kubernetes"
 	openShiftIdentityProviderId := "NULL"
@@ -116,8 +116,8 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 		}
 	}
 
-	ingressDomain := ctx.CheCluster.Spec.Ingress.Domain
-	tlsSecretName := ctx.CheCluster.Spec.Ingress.TlsSecretName
+	ingressDomain := ctx.CheCluster.Spec.Networking.Domain
+	tlsSecretName := ctx.CheCluster.Spec.Networking.TlsSecretName
 
 	securityContextFsGroup := strconv.FormatInt(constants.DefaultSecurityContextFsGroup, 10)
 	if ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext.FsGroup != nil {
@@ -129,14 +129,14 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 		securityContextRunAsUser = strconv.FormatInt(*ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext.RunAsUser, 10)
 	}
 
-	pvcStrategy := utils.GetValue(ctx.CheCluster.Spec.Workspaces.Storage.PvcStrategy, constants.DefaultPvcStrategy)
-	pvcClaimSize := utils.GetValue(ctx.CheCluster.Spec.Workspaces.Storage.Pvc.ClaimSize, constants.DefaultPvcClaimSize)
-	workspacePvcStorageClassName := ctx.CheCluster.Spec.Workspaces.Storage.Pvc.StorageClass
+	pvcStrategy := utils.GetValue(ctx.CheCluster.Spec.DevEnvironments.Storage.PvcStrategy, constants.DefaultPvcStrategy)
+	pvcClaimSize := utils.GetValue(ctx.CheCluster.Spec.DevEnvironments.Storage.Pvc.ClaimSize, constants.DefaultPvcClaimSize)
+	workspacePvcStorageClassName := ctx.CheCluster.Spec.DevEnvironments.Storage.Pvc.StorageClass
 
 	chePostgresHostName := utils.GetValue(ctx.CheCluster.Spec.Components.Database.PostgresHostName, constants.DefaultPostgresHostName)
 	chePostgresPort := utils.GetValue(ctx.CheCluster.Spec.Components.Database.PostgresPort, constants.DefaultPostgresPort)
 	chePostgresDb := utils.GetValue(ctx.CheCluster.Spec.Components.Database.PostgresDb, constants.DefaultPostgresDb)
-	ingressClass := utils.GetValue(ctx.CheCluster.Spec.Ingress.Annotations["kubernetes.io/ingress.class"], constants.DefaultIngressClass)
+	ingressClass := utils.GetValue(ctx.CheCluster.Spec.Networking.Annotations["kubernetes.io/ingress.class"], constants.DefaultIngressClass)
 
 	// grab first the devfile registry url which is deployed by operator
 	devfileRegistryURL := ctx.CheCluster.Status.DevfileRegistryURL
@@ -155,8 +155,8 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 	cheLabels := labels.FormatLabels(deploy.GetLabels(defaults.GetCheFlavor()))
 
 	singleHostGatewayConfigMapLabels := ""
-	if len(ctx.CheCluster.Spec.Ingress.Auth.Gateway.ConfigLabels) != 0 {
-		singleHostGatewayConfigMapLabels = labels.FormatLabels(ctx.CheCluster.Spec.Ingress.Auth.Gateway.ConfigLabels)
+	if len(ctx.CheCluster.Spec.Networking.Auth.Gateway.ConfigLabels) != 0 {
+		singleHostGatewayConfigMapLabels = labels.FormatLabels(ctx.CheCluster.Spec.Networking.Auth.Gateway.ConfigLabels)
 	} else {
 		singleHostGatewayConfigMapLabels = labels.FormatLabels(constants.DefaultSingleHostGatewayConfigMapLabels)
 

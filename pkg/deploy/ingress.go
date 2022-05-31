@@ -68,15 +68,15 @@ func GetIngressSpec(
 	servicePort int,
 	component string) (ingressUrl string, i *networking.Ingress) {
 
-	ingressDomain := deployContext.CheCluster.Spec.Ingress.Domain
-	tlsSecretName := deployContext.CheCluster.Spec.Ingress.TlsSecretName
+	ingressDomain := deployContext.CheCluster.Spec.Networking.Domain
+	tlsSecretName := deployContext.CheCluster.Spec.Networking.TlsSecretName
 	labels := GetLabels(component)
-	for k, v := range deployContext.CheCluster.Spec.Ingress.Labels {
+	for k, v := range deployContext.CheCluster.Spec.Networking.Labels {
 		labels[k] = v
 	}
 	pathType := networking.PathTypeImplementationSpecific
 
-	host := deployContext.CheCluster.Spec.Ingress.Hostname
+	host := deployContext.CheCluster.Spec.Networking.Hostname
 	if host == "" {
 		host = ingressDomain
 	}
@@ -98,7 +98,7 @@ func GetIngressSpec(
 	annotations["nginx.ingress.kubernetes.io/proxy-buffer-size"] = "16k"
 	annotations["nginx.org/websocket-services"] = serviceName
 
-	for k, v := range deployContext.CheCluster.Spec.Ingress.Annotations {
+	for k, v := range deployContext.CheCluster.Spec.Networking.Annotations {
 		annotations[k] = v
 	}
 

@@ -105,7 +105,7 @@ func getSpecObjects(t *testing.T, routing *dwo.DevWorkspaceRouting) (client.Clie
 			Finalizers: []string{controller.FinalizerName},
 		},
 		Spec: chev2.CheClusterSpec{
-			Ingress: chev2.CheClusterSpecIngress{
+			Networking: chev2.CheClusterSpecNetworking{
 				Domain:   "down.on.earth",
 				Hostname: "over.the.rainbow",
 			},
@@ -848,7 +848,7 @@ func TestUsesIngressAnnotationsForWorkspaceEndpointIngresses(t *testing.T) {
 			Finalizers: []string{controller.FinalizerName},
 		},
 		Spec: chev2.CheClusterSpec{
-			Ingress: chev2.CheClusterSpecIngress{
+			Networking: chev2.CheClusterSpecNetworking{
 				Hostname: "over.the.rainbow",
 				Domain:   "down.on.earth",
 				Annotations: map[string]string{
@@ -885,7 +885,7 @@ func TestUsesCustomCertificateForWorkspaceEndpointIngresses(t *testing.T) {
 			Finalizers: []string{controller.FinalizerName},
 		},
 		Spec: chev2.CheClusterSpec{
-			Ingress: chev2.CheClusterSpecIngress{
+			Networking: chev2.CheClusterSpecNetworking{
 				TlsSecretName: "tlsSecret",
 				Hostname:      "beyond.comprehension",
 				Domain:        "almost.trivial",
@@ -961,7 +961,7 @@ func TestUsesCustomCertificateForWorkspaceEndpointRoutes(t *testing.T) {
 			Finalizers: []string{controller.FinalizerName},
 		},
 		Spec: chev2.CheClusterSpec{
-			Ingress: chev2.CheClusterSpecIngress{
+			Networking: chev2.CheClusterSpecNetworking{
 				Hostname:      "beyond.comprehension",
 				TlsSecretName: "tlsSecret",
 				Domain:        "almost.trivial",

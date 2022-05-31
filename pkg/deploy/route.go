@@ -68,15 +68,15 @@ func GetRouteSpec(
 	component string) (*routev1.Route, error) {
 
 	labels := GetLabels(component)
-	for k, v := range deployContext.CheCluster.Spec.Ingress.Labels {
+	for k, v := range deployContext.CheCluster.Spec.Networking.Labels {
 		labels[k] = v
 	}
 
 	// add custom annotations
 	var annotations map[string]string
-	if len(deployContext.CheCluster.Spec.Ingress.Annotations) > 0 {
+	if len(deployContext.CheCluster.Spec.Networking.Annotations) > 0 {
 		annotations = make(map[string]string)
-		for k, v := range deployContext.CheCluster.Spec.Ingress.Annotations {
+		for k, v := range deployContext.CheCluster.Spec.Networking.Annotations {
 			annotations[k] = v
 		}
 	}
@@ -132,9 +132,9 @@ func GetRouteSpec(
 		},
 	}
 
-	route.Spec.Host = deployContext.CheCluster.Spec.Ingress.Hostname
+	route.Spec.Host = deployContext.CheCluster.Spec.Networking.Hostname
 	if route.Spec.Host == "" {
-		hostSuffix := deployContext.CheCluster.Spec.Ingress.Domain
+		hostSuffix := deployContext.CheCluster.Spec.Networking.Domain
 
 		if hostSuffix == "" {
 			existedRoute := &routev1.Route{}
@@ -166,11 +166,11 @@ func GetRouteSpec(
 	}
 
 	// for server and dashboard ingresses
-	if deployContext.CheCluster.Spec.Ingress.TlsSecretName != "" {
+	if deployContext.CheCluster.Spec.Networking.TlsSecretName != "" {
 		secret := &corev1.Secret{}
 		namespacedName := types.NamespacedName{
 			Namespace: deployContext.CheCluster.Namespace,
-			Name:      deployContext.CheCluster.Spec.Ingress.TlsSecretName,
+			Name:      deployContext.CheCluster.Spec.Networking.TlsSecretName,
 		}
 		if err := deployContext.ClusterAPI.Client.Get(context.TODO(), namespacedName, secret); err != nil {
 			return nil, err

@@ -88,15 +88,15 @@ func GetGatewayConfigurerImage() string {
 }
 
 func GetIngressAnnotations(cluster *chev2.CheCluster) map[string]string {
-	if len(cluster.Spec.Ingress.Annotations) > 0 {
-		return cluster.Spec.Ingress.Annotations
+	if len(cluster.Spec.Networking.Annotations) > 0 {
+		return cluster.Spec.Networking.Annotations
 	}
 	return DefaultIngressAnnotations
 }
 
 func GetGatewayWorkspaceConfigMapLabels(cluster *chev2.CheCluster) map[string]string {
-	if len(cluster.Spec.Ingress.Auth.Gateway.ConfigLabels) > 0 {
-		return cluster.Spec.Ingress.Auth.Gateway.ConfigLabels
+	if len(cluster.Spec.Networking.Auth.Gateway.ConfigLabels) > 0 {
+		return cluster.Spec.Networking.Auth.Gateway.ConfigLabels
 	}
 	return defaultGatewayConfigLabels
 }

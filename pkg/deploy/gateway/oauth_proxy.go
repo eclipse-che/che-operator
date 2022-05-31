@@ -119,9 +119,9 @@ skip_provider_button = true
 %s
 `, GatewayServicePort,
 		ctx.CheHost,
-		ctx.CheCluster.Spec.Ingress.Auth.IdentityProviderURL,
-		ctx.CheCluster.Spec.Ingress.Auth.OAuthClientName,
-		ctx.CheCluster.Spec.Ingress.Auth.OAuthSecret,
+		ctx.CheCluster.Spec.Networking.Auth.IdentityProviderURL,
+		ctx.CheCluster.Spec.Networking.Auth.OAuthClientName,
+		ctx.CheCluster.Spec.Networking.Auth.OAuthSecret,
 		cookieSecret,
 		skipAuthConfig(ctx.CheCluster))
 }

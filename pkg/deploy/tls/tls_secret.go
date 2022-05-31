@@ -38,7 +38,7 @@ func (t *TlsSecretReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 		}
 	} else {
 		// Handle Che TLS certificates on Kubernetes infrastructure
-		if ctx.CheCluster.Spec.Ingress.TlsSecretName != "" {
+		if ctx.CheCluster.Spec.Networking.TlsSecretName != "" {
 			// Self-signed certificate should be created to secure Che ingresses
 			result, err := K8sHandleCheTLSSecrets(ctx)
 			if result.Requeue || result.RequeueAfter > 0 {

@@ -84,7 +84,7 @@ func IsSelfSignedCertificateUsed(ctx *chetypes.DeployContext) (bool, error) {
 	}
 
 	// Handle custom tls secret
-	cheTLSSecretName := ctx.CheCluster.Spec.Ingress.TlsSecretName
+	cheTLSSecretName := ctx.CheCluster.Spec.Networking.TlsSecretName
 	if cheTLSSecretName != "" {
 		// The secret is specified in CR
 		cheTLSSecret := &corev1.Secret{}
@@ -287,7 +287,7 @@ func GetEndpointTLSCrtBytes(ctx *chetypes.DeployContext, endpointURL string) (ce
 
 // K8sHandleCheTLSSecrets handles TLS secrets required for Che deployment on Kubernetes infrastructure.
 func K8sHandleCheTLSSecrets(ctx *chetypes.DeployContext) (reconcile.Result, error) {
-	cheTLSSecretName := ctx.CheCluster.Spec.Ingress.TlsSecretName
+	cheTLSSecretName := ctx.CheCluster.Spec.Networking.TlsSecretName
 
 	cheTLSSecretNamespacedName := types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: cheTLSSecretName}
 	CheTLSSelfSignedCertificateSecretNamespacedName := types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: constants.DefaultSelfSignedCertificateSecretName}
@@ -362,8 +362,8 @@ func K8sHandleCheTLSSecrets(ctx *chetypes.DeployContext) (reconcile.Result, erro
 			return reconcile.Result{}, err
 		}
 
-		domains := ctx.CheCluster.Spec.Ingress.Domain + ",*." + ctx.CheCluster.Spec.Ingress.Domain
-		if ctx.CheHost != "" && !strings.Contains(ctx.CheHost, ctx.CheCluster.Spec.Ingress.Domain) {
+		domains := ctx.CheCluster.Spec.Networking.Domain + ",*." + ctx.CheCluster.Spec.Networking.Domain
+		if ctx.CheHost != "" && !strings.Contains(ctx.CheHost, ctx.CheCluster.Spec.Networking.Domain) {
 			domains += "," + ctx.CheHost
 		}
 

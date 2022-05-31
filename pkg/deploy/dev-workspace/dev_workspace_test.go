@@ -71,7 +71,7 @@ func TestReconcileDevWorkspace(t *testing.T) {
 							ExtraProperties: map[string]string{"CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S": "true"},
 						},
 					},
-					Ingress: chev2.CheClusterSpecIngress{
+					Networking: chev2.CheClusterSpecNetworking{
 						Domain: "che.domain",
 					},
 				},

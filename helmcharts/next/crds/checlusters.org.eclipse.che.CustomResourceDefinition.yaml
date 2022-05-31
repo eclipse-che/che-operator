@@ -784,10 +784,10 @@ spec:
             description: Desired configuration of Eclipse Che installation.
             properties:
               components:
-                description: Che components configuration
+                description: Che components configuration.
                 properties:
                   cheServer:
-                    description: General configuration settings related to the Che server
+                    description: General configuration settings related to the Che server.
                     properties:
                       clusterRoles:
                         description: 'ClusterRoles that will be assigned to Che ServiceAccount. Defaults roles are: - `<che-namespace>-cheworkspaces-namespaces-clusterrole` - `<che-namespace>-cheworkspaces-clusterrole` - `<che-namespace>-cheworkspaces-devworkspace-clusterrole` where <che-namespace> is the namespace where the CheCluster CRD is created. Each role must have `app.kubernetes.io/part-of=che.eclipse.org` label. Be aware that the Che Operator has to already have all permissions in these ClusterRoles to grant them.'
@@ -1089,7 +1089,7 @@ spec:
                         type: object
                     type: object
                   devWorkspace:
-                    description: DevWorkspace operator configuration
+                    description: DevWorkspace operator configuration.
                     properties:
                       deployment:
                         description: Deployment override options.
@@ -1257,7 +1257,7 @@ spec:
                         type: array
                     type: object
                   imagePuller:
-                    description: Kubernetes Image Puller configuration
+                    description: Kubernetes Image Puller configuration.
                     properties:
                       enable:
                         description: Install and configure the Community Supported Kubernetes Image Puller Operator. When set to `true` and no spec is provided, it will create a default KubernetesImagePuller object to be managed by the Operator. When set to `false`, the KubernetesImagePuller object will be deleted, and the Operator will be uninstalled, regardless of whether a spec is provided. If the `spec.images` field is empty, a set of recommended workspace-related images will be automatically detected and pre-pulled after installation. Note that while this Operator and its behavior is community-supported, its payload may be commercially-supported for pulling commercially-supported images.
@@ -1394,7 +1394,7 @@ spec:
                     type: object
                 type: object
               containerRegistry:
-                description: Configuration of an alternative registry that stores Che images
+                description: Configuration of an alternative registry that stores Che images.
                 properties:
                   hostname:
                     description: Optional hostname, or URL, to an alternate container registry to pull images from. This value overrides the container registry hostname defined in all the default container images involved in a Che deployment. This is particularly useful to install Che in a restricted environment.
@@ -1403,8 +1403,86 @@ spec:
                     description: Optional repository name of an alternate container registry to pull images from. This value overrides the container registry organization defined in all the default container images involved in a Che deployment. This is particularly useful to install Eclipse Che in a restricted environment.
                     type: string
                 type: object
-              ingress:
-                description: Che ingress hostname, authentication and TLS configuration
+              devEnvironments:
+                description: Development environment default configuration options.
+                properties:
+                  defaultNamespace:
+                    description: User's default namespace.
+                    properties:
+                      template:
+                        description: if users namespaces are not pre-created this field defines the Kubernetes namespace created when a user starts his first workspace. It's possible to use `<username>`, `<userid>` and `<workspaceid>` placeholders, such as che-workspace-<username>.
+                        type: string
+                    type: object
+                  defaultPlugins:
+                    description: Default plug-ins applied to Dev Workspaces.
+                    items:
+                      properties:
+                        editor:
+                          description: The editor id to specify default plug-ins for.
+                          type: string
+                        plugins:
+                          description: Default plug-in uris for the specified editor.
+                          items:
+                            type: string
+                          type: array
+                      type: object
+                    type: array
+                  nodeSelector:
+                    additionalProperties:
+                      type: string
+                    description: The node selector that limits the nodes that can run the workspace pods.
+                    type: object
+                  storage:
+                    description: Workspaces persistent storage.
+                    properties:
+                      pvc:
+                        description: PVC settings.
+                        properties:
+                          claimSize:
+                            description: Persistent Volume Claim size. To update the claim size, Storage class that provisions it must support resize.
+                            type: string
+                          storageClass:
+                            description: Storage class for the Persistent Volume Claim. When omitted or left blank, a default storage class is used.
+                            type: string
+                        type: object
+                      pvcStrategy:
+                        default: common
+                        description: Persistent volume claim strategy for the Che server. The only `common` strategy is supported (all workspaces PVCs in one volume). See for details https://github.com/eclipse/che/issues/21185.
+                        type: string
+                    type: object
+                  tolerations:
+                    description: The pod tolerations put on the workspace pods to limit where the workspace pods can run.
+                    items:
+                      description: The pod this Toleration is attached to tolerates any taint that matches the triple <key,value,effect> using the matching operator <operator>.
+                      properties:
+                        effect:
+                          description: Effect indicates the taint effect to match. Empty means match all taint effects. When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+                          type: string
+                        key:
+                          description: Key is the taint key that the toleration applies to. Empty means match all taint keys. If the key is empty, operator must be Exists; this combination means to match all values and all keys.
+                          type: string
+                        operator:
+                          description: Operator represents a key's relationship to the value. Valid operators are Exists and Equal. Defaults to Equal. Exists is equivalent to wildcard for value, so that a pod can tolerate all taints of a particular category.
+                          type: string
+                        tolerationSeconds:
+                          description: TolerationSeconds represents the period of time the toleration (which must be of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately) by the system.
+                          format: int64
+                          type: integer
+                        value:
+                          description: Value is the taint value the toleration matches to. If the operator is Exists, the value should be empty, otherwise just a regular string.
+                          type: string
+                      type: object
+                    type: array
+                  trustedCerts:
+                    description: Trusted certificate settings.
+                    properties:
+                      gitTrustedCertsConfigMapName:
+                        description: The ConfigMap containing certificates to propagate to the Che components and to provide particular configuration for Git. Note, this ConfigMap must have `app.kubernetes.io/part-of=che.eclipse.org` label.
+                        type: string
+                    type: object
+                type: object
+              networking:
+                description: Che authentication and TLS configuration.
                 properties:
                   annotations:
                     additionalProperties:
@@ -1519,84 +1597,6 @@ spec:
                   tlsSecretName:
                     description: Name of a secret that will be used to setup ingress TLS termination when. When the field is empty string, the default cluster certificate will be used. The secret must have `app.kubernetes.io/part-of=che.eclipse.org` label.
                     type: string
-                type: object
-              workspaces:
-                description: Development environment default configuration options
-                properties:
-                  defaultNamespace:
-                    description: User's default namespace.
-                    properties:
-                      template:
-                        description: if users namespaces are not pre-created this field defines the Kubernetes namespace created when a user starts his first workspace. It's possible to use `<username>`, `<userid>` and `<workspaceid>` placeholders, such as che-workspace-<username>.
-                        type: string
-                    type: object
-                  defaultPlugins:
-                    description: Default plug-ins applied to Devworkspaces.
-                    items:
-                      properties:
-                        editor:
-                          description: The editor id to specify default plug-ins for.
-                          type: string
-                        plugins:
-                          description: Default plug-in uris for the specified editor.
-                          items:
-                            type: string
-                          type: array
-                      type: object
-                    type: array
-                  nodeSelector:
-                    additionalProperties:
-                      type: string
-                    description: The node selector that limits the nodes that can run the workspace pods.
-                    type: object
-                  storage:
-                    description: Workspaces persistent storage.
-                    properties:
-                      pvc:
-                        description: PVC settings.
-                        properties:
-                          claimSize:
-                            description: Persistent Volume Claim size. To update the claim size, Storage class that provisions it must support resize.
-                            type: string
-                          storageClass:
-                            description: Storage class for the Persistent Volume Claim. When omitted or left blank, a default storage class is used.
-                            type: string
-                        type: object
-                      pvcStrategy:
-                        default: common
-                        description: Persistent volume claim strategy for the Che server. The only `common` strategy is supported (all workspaces PVCs in one volume). See for details https://github.com/eclipse/che/issues/21185.
-                        type: string
-                    type: object
-                  tolerations:
-                    description: The pod tolerations put on the workspace pods to limit where the workspace pods can run.
-                    items:
-                      description: The pod this Toleration is attached to tolerates any taint that matches the triple <key,value,effect> using the matching operator <operator>.
-                      properties:
-                        effect:
-                          description: Effect indicates the taint effect to match. Empty means match all taint effects. When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
-                          type: string
-                        key:
-                          description: Key is the taint key that the toleration applies to. Empty means match all taint keys. If the key is empty, operator must be Exists; this combination means to match all values and all keys.
-                          type: string
-                        operator:
-                          description: Operator represents a key's relationship to the value. Valid operators are Exists and Equal. Defaults to Equal. Exists is equivalent to wildcard for value, so that a pod can tolerate all taints of a particular category.
-                          type: string
-                        tolerationSeconds:
-                          description: TolerationSeconds represents the period of time the toleration (which must be of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately) by the system.
-                          format: int64
-                          type: integer
-                        value:
-                          description: Value is the taint value the toleration matches to. If the operator is Exists, the value should be empty, otherwise just a regular string.
-                          type: string
-                      type: object
-                    type: array
-                  trustedCerts:
-                    description: Trusted certificate settings.
-                    properties:
-                      gitTrustedCertsConfigMapName:
-                        description: The ConfigMap containing certificates to propagate to the Che components and to provide particular configuration for Git. Note, this ConfigMap must have `app.kubernetes.io/part-of=che.eclipse.org` label.
-                        type: string
-                    type: object
                 type: object
             type: object
           status:

@@ -89,7 +89,7 @@ func TestConfiguringLabelsForRoutes(t *testing.T) {
 			Name:      "eclipse-che",
 		},
 		Spec: chev2.CheClusterSpec{
-			Ingress: chev2.CheClusterSpecIngress{
+			Networking: chev2.CheClusterSpecNetworking{
 				Labels: map[string]string{"route": "one"},
 			},
 		},

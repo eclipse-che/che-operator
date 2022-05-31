@@ -458,13 +458,13 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 		return err
 	}
 
-	if checluster.Spec.Workspaces.TrustedCerts.GitTrustedCertsConfigMapName == "" {
+	if checluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName == "" {
 		return delConfigMap()
 	}
 
 	gitCert := &corev1.ConfigMap{}
 
-	if err := deployContext.ClusterAPI.Client.Get(ctx, client.ObjectKey{Name: checluster.Spec.Workspaces.TrustedCerts.GitTrustedCertsConfigMapName, Namespace: checluster.Namespace}, gitCert); err != nil {
+	if err := deployContext.ClusterAPI.Client.Get(ctx, client.ObjectKey{Name: checluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName, Namespace: checluster.Namespace}, gitCert); err != nil {
 		if !errors.IsNotFound(err) {
 			return err
 		}
@@ -511,8 +511,8 @@ func (r *CheUserNamespaceReconciler) reconcileNodeSelectorAndTolerations(ctx con
 	nodeSelector := ""
 	tolerations := ""
 
-	if len(checluster.Spec.Workspaces.NodeSelector) != 0 {
-		serialized, err := json.Marshal(checluster.Spec.Workspaces.NodeSelector)
+	if len(checluster.Spec.DevEnvironments.NodeSelector) != 0 {
+		serialized, err := json.Marshal(checluster.Spec.DevEnvironments.NodeSelector)
 		if err != nil {
 			return err
 		}
@@ -520,8 +520,8 @@ func (r *CheUserNamespaceReconciler) reconcileNodeSelectorAndTolerations(ctx con
 		nodeSelector = string(serialized)
 	}
 
-	if len(checluster.Spec.Workspaces.Tolerations) != 0 {
-		serialized, err := json.Marshal(checluster.Spec.Workspaces.Tolerations)
+	if len(checluster.Spec.DevEnvironments.Tolerations) != 0 {
+		serialized, err := json.Marshal(checluster.Spec.DevEnvironments.Tolerations)
 		if err != nil {
 			return err
 		}

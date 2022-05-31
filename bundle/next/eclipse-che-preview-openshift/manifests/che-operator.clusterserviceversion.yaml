@@ -97,7 +97,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.49.0-555.next
+  name: eclipse-che-preview-openshift.v7.49.0-558.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -144,17 +144,17 @@ spec:
             name: ''
             version: v1
         specDescriptors:
-          - description: Development environment default configuration options
-            displayName: Workspaces
-            path: workspaces
-          - description: Che components configuration
+          - description: Development environment default configuration options.
+            displayName: Development environments
+            path: devEnvironments
+          - description: Che components configuration.
             displayName: Components
             path: components
-          - description: Che ingress hostname, authentication and TLS configuration
-            displayName: Ingress
-            path: ingress
+          - description: Che authentication and TLS configuration.
+            displayName: Networking
+            path: networking
           - description: Configuration of an alternative registry that stores Che
-              images
+              images.
             displayName: Container registry
             path: containerRegistry
         statusDescriptors:
@@ -1410,7 +1410,7 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.49.0-555.next
+  version: 7.49.0-558.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1

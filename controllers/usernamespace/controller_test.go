@@ -59,7 +59,7 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 			Namespace: cheNamespaceName,
 		},
 		Spec: chev2.CheClusterSpec{
-			Workspaces: chev2.CheClusterSpecWorkspaces{
+			DevEnvironments: chev2.CheClusterDevEnvironments{
 				NodeSelector: map[string]string{"a": "b", "c": "d"},
 				Tolerations: []corev1.Toleration{
 					{
@@ -77,7 +77,7 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 					GitTrustedCertsConfigMapName: "che-git-self-signed-cert",
 				},
 			},
-			Ingress: chev2.CheClusterSpecIngress{
+			Networking: chev2.CheClusterSpecNetworking{
 				Domain: "root-domain",
 			},
 		},
