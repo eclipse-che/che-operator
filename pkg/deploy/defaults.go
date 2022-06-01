@@ -156,6 +156,10 @@ const (
 	GitHubOAuthConfigClientIdFileName     = "id"
 	GitHubOAuthConfigClientSecretFileName = "secret"
 
+	GitLabSaasOAuthConfigMountPath            = "/che-conf/oauth/gitlab-saas"
+	GitLabSaasOAuthConfigClientIdFileName     = "id"
+	GitLabSaasOAuthConfigClientSecretFileName = "secret"
+
 	GitLabOAuthConfigMountPath            = "/che-conf/oauth/gitlab"
 	GitLabOAuthConfigClientIdFileName     = "id"
 	GitLabOAuthConfigClientSecretFileName = "secret"

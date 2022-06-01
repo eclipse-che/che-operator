@@ -231,6 +231,11 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *deploy.DeployContext) (*apps
 		return nil, err
 	}
 
+	err = MountGitLabSaasOAuthConfig(ctx, deployment)
+	if err != nil {
+		return nil, err
+	}
+
 	err = MountGitLabOAuthConfig(ctx, deployment)
 	if err != nil {
 		return nil, err
@@ -384,6 +389,23 @@ func MountGitHubOAuthConfig(ctx *deploy.DeployContext, deployment *appsv1.Deploy
 	oauthEndpoint := secret.Annotations[deploy.CheEclipseOrgScmServerEndpoint]
 	if oauthEndpoint != "" {
 		mountEnv(deployment, "CHE_INTEGRATION_GITHUB_OAUTH__ENDPOINT", oauthEndpoint)
+	}
+	return nil
+}
+
+func MountGitLabSaasOAuthConfig(ctx *deploy.DeployContext, deployment *appsv1.Deployment) error {
+	secret, err := getOAuthConfig(ctx, "gitlab-saas")
+	if secret == nil {
+		return err
+	}
+
+	mountVolumes(deployment, secret, deploy.GitLabSaasOAuthConfigMountPath)
+	mountEnv(deployment, "CHE_OAUTH2_GITLAB__SAAS_CLIENTID__FILEPATH", deploy.GitLabSaasOAuthConfigMountPath+"/"+deploy.GitLabSaasOAuthConfigClientIdFileName)
+	mountEnv(deployment, "CHE_OAUTH2_GITLAB__SAAS_CLIENTSECRET__FILEPATH", deploy.GitLabSaasOAuthConfigMountPath+"/"+deploy.GitLabSaasOAuthConfigClientSecretFileName)
+
+	oauthEndpoint := secret.Annotations[deploy.CheEclipseOrgScmServerEndpoint]
+	if oauthEndpoint != "" {
+		mountEnv(deployment, "CHE_INTEGRATION_GITLAB__SAAS_OAUTH__ENDPOINT", oauthEndpoint)
 	}
 	return nil
 }
