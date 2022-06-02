@@ -75,14 +75,8 @@ func TestIngressSpec(t *testing.T) {
 						"app.kubernetes.io/name":       defaults.GetCheFlavor(),
 					},
 					Annotations: map[string]string{
-						"che.eclipse.org/managed-annotations-digest":        "0000",
-						"kubernetes.io/ingress.class":                       "nginx",
-						"nginx.ingress.kubernetes.io/proxy-connect-timeout": "3600",
-						"nginx.ingress.kubernetes.io/proxy-read-timeout":    "3600",
-						"nginx.ingress.kubernetes.io/ssl-redirect":          "true",
-						"nginx.ingress.kubernetes.io/proxy-buffer-size":     "16k",
-						"nginx.org/websocket-services":                      "che-host",
-						"annotation-key":                                    "annotation-value",
+						"che.eclipse.org/managed-annotations-digest": "0000",
+						"annotation-key": "annotation-value",
 					},
 				},
 				TypeMeta: metav1.TypeMeta{

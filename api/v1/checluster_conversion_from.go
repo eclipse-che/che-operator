@@ -23,9 +23,7 @@ import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
@@ -81,7 +79,9 @@ func (dst *CheCluster) convertFrom_Server(src *chev2.CheCluster) error {
 	dst.Spec.Server.AirGapContainerRegistryOrganization = src.Spec.ContainerRegistry.Organization
 	dst.Spec.Server.CheClusterRoles = strings.Join(src.Spec.Components.CheServer.ClusterRoles, ",")
 	dst.Spec.Server.CustomCheProperties = utils.CloneMap(src.Spec.Components.CheServer.ExtraProperties)
-	dst.Spec.Server.CheDebug = strconv.FormatBool(src.Spec.Components.CheServer.Debug)
+	if src.Spec.Components.CheServer.Debug != nil {
+		dst.Spec.Server.CheDebug = strconv.FormatBool(*src.Spec.Components.CheServer.Debug)
+	}
 	dst.Spec.Server.CheLogLevel = src.Spec.Components.CheServer.LogLevel
 	dst.Spec.Server.ProxyURL = src.Spec.Components.CheServer.Proxy.Url
 	dst.Spec.Server.ProxyPort = src.Spec.Components.CheServer.Proxy.Port
@@ -90,12 +90,10 @@ func (dst *CheCluster) convertFrom_Server(src *chev2.CheCluster) error {
 	dst.Spec.Server.WorkspaceNamespaceDefault = src.Spec.DevEnvironments.DefaultNamespace.Template
 	dst.Spec.Server.WorkspacePodNodeSelector = utils.CloneMap(src.Spec.DevEnvironments.NodeSelector)
 
-	dst.Spec.Server.WorkspacePodTolerations = []corev1.Toleration{}
 	for _, v := range src.Spec.DevEnvironments.Tolerations {
 		dst.Spec.Server.WorkspacePodTolerations = append(dst.Spec.Server.WorkspacePodTolerations, v)
 	}
 
-	dst.Spec.Server.WorkspacesDefaultPlugins = make([]WorkspacesDefaultPlugins, 0)
 	for _, p := range src.Spec.DevEnvironments.DefaultPlugins {
 		dst.Spec.Server.WorkspacesDefaultPlugins = append(dst.Spec.Server.WorkspacesDefaultPlugins,
 			WorkspacesDefaultPlugins{
@@ -117,14 +115,15 @@ func (dst *CheCluster) convertFrom_Server(src *chev2.CheCluster) error {
 
 	if infrastructure.IsOpenShift() {
 		dst.Spec.Server.CheHost = src.Spec.Networking.Hostname
-		dst.Spec.Server.CheServerRoute.Labels = labels.FormatLabels(src.Spec.Networking.Labels)
+		dst.Spec.Server.CheServerRoute.Labels = utils.FormatLabels(src.Spec.Networking.Labels)
 		dst.Spec.Server.CheServerRoute.Annotations = utils.CloneMap(src.Spec.Networking.Annotations)
 		dst.Spec.Server.CheServerRoute.Domain = src.Spec.Networking.Domain
 		dst.Spec.Server.CheHostTLSSecret = src.Spec.Networking.TlsSecretName
 	} else {
 		dst.Spec.Server.CheHost = src.Spec.Networking.Hostname
-		dst.Spec.Server.CheServerIngress.Labels = labels.FormatLabels(src.Spec.Networking.Labels)
+		dst.Spec.Server.CheServerIngress.Labels = utils.FormatLabels(src.Spec.Networking.Labels)
 		dst.Spec.Server.CheServerIngress.Annotations = utils.CloneMap(src.Spec.Networking.Annotations)
+		delete(dst.Spec.Server.CheServerIngress.Annotations, "kubernetes.io/ingress.class")
 	}
 
 	for _, c := range src.Spec.Networking.Auth.Gateway.Deployment.Containers {
@@ -188,7 +187,6 @@ func (dst *CheCluster) convertFrom_Server_PluginRegistry(src *chev2.CheCluster) 
 func (dst *CheCluster) convertFrom_Server_DevfileRegistry(src *chev2.CheCluster) error {
 	dst.Spec.Server.ExternalDevfileRegistry = src.Spec.Components.DevfileRegistry.DisableInternalRegistry
 
-	dst.Spec.Server.ExternalDevfileRegistries = make([]ExternalDevfileRegistries, 0)
 	for _, r := range src.Spec.Components.DevfileRegistry.ExternalDevfileRegistries {
 		dst.Spec.Server.ExternalDevfileRegistries = append(dst.Spec.Server.ExternalDevfileRegistries,
 			ExternalDevfileRegistries{
@@ -233,11 +231,7 @@ func (dst *CheCluster) convertFrom_K8s(src *chev2.CheCluster) error {
 	if !infrastructure.IsOpenShift() {
 		dst.Spec.K8s.IngressDomain = src.Spec.Networking.Domain
 		dst.Spec.K8s.TlsSecretName = src.Spec.Networking.TlsSecretName
-		delete(dst.Spec.Server.CheServerIngress.Annotations, "kubernetes.io/ingress.class")
 		dst.Spec.K8s.IngressClass = src.Spec.Networking.Annotations["kubernetes.io/ingress.class"]
-		if dst.Spec.K8s.IngressClass == "" {
-			dst.Spec.K8s.IngressClass = constants.DefaultIngressClass
-		}
 	}
 
 	return nil
@@ -287,7 +281,6 @@ func (dst *CheCluster) convertFrom_DevWorkspace(src *chev2.CheCluster) error {
 	}
 	dst.Spec.DevWorkspace.RunningLimit = src.Spec.Components.DevWorkspace.RunningLimit
 	dst.Spec.DevWorkspace.Enable = true
-
 	return nil
 }
 

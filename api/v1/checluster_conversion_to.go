@@ -15,6 +15,7 @@ package v1
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -110,12 +111,10 @@ func (src *CheCluster) convertTo_DevEnvironments(dst *chev2.CheCluster) error {
 	dst.Spec.DevEnvironments.DefaultNamespace.Template = src.Spec.Server.WorkspaceNamespaceDefault
 	dst.Spec.DevEnvironments.NodeSelector = utils.CloneMap(src.Spec.Server.WorkspacePodNodeSelector)
 
-	dst.Spec.DevEnvironments.Tolerations = []corev1.Toleration{}
 	for _, v := range src.Spec.Server.WorkspacePodTolerations {
 		dst.Spec.DevEnvironments.Tolerations = append(dst.Spec.DevEnvironments.Tolerations, v)
 	}
 
-	dst.Spec.DevEnvironments.DefaultPlugins = make([]chev2.WorkspaceDefaultPlugins, 0)
 	for _, p := range src.Spec.Server.WorkspacesDefaultPlugins {
 		dst.Spec.DevEnvironments.DefaultPlugins = append(dst.Spec.DevEnvironments.DefaultPlugins,
 			chev2.WorkspaceDefaultPlugins{
@@ -163,11 +162,13 @@ func (src *CheCluster) convertTo_Networking(dst *chev2.CheCluster) error {
 			dst.Spec.Networking.TlsSecretName = src.Spec.K8s.TlsSecretName
 		}
 
-		dst.Spec.Networking.Annotations = make(map[string]string)
 		if src.Spec.K8s.IngressClass != "" {
-			dst.Spec.Networking.Annotations["kubernetes.io/ingress.class"] = src.Spec.K8s.IngressClass
+			dst.Spec.Networking.Annotations = map[string]string{"kubernetes.io/ingress.class": src.Spec.K8s.IngressClass}
 		}
-		dst.Spec.Networking.Annotations = labels.Merge(dst.Spec.Networking.Annotations, src.Spec.Server.CheServerIngress.Annotations)
+
+		if len(dst.Spec.Networking.Annotations) > 0 || len(src.Spec.Server.CheServerIngress.Annotations) > 0 {
+			dst.Spec.Networking.Annotations = labels.Merge(dst.Spec.Networking.Annotations, src.Spec.Server.CheServerIngress.Annotations)
+		}
 	}
 
 	if err := src.convertTo_Networking_Auth(dst); err != nil {
@@ -192,7 +193,6 @@ func (src *CheCluster) convertTo_Networking_Auth(dst *chev2.CheCluster) error {
 func (src *CheCluster) convertTo_Networking_Auth_Gateway(dst *chev2.CheCluster) error {
 	dst.Spec.Networking.Auth.Gateway.ConfigLabels = utils.CloneMap(src.Spec.Server.SingleHostGatewayConfigMapLabels)
 
-	dst.Spec.Networking.Auth.Gateway.Deployment.Containers = []chev2.Container{}
 	if src.Spec.Server.SingleHostGatewayImage != "" {
 		dst.Spec.Networking.Auth.Gateway.Deployment.Containers = append(
 			dst.Spec.Networking.Auth.Gateway.Deployment.Containers,
@@ -273,13 +273,15 @@ func (src *CheCluster) convertTo_Components(dst *chev2.CheCluster) error {
 }
 
 func (src *CheCluster) convertTo_Components_DevWorkspace(dst *chev2.CheCluster) error {
-	dst.Spec.Components.DevWorkspace.Deployment = chev2.Deployment{
-		Containers: []chev2.Container{
-			{
-				Name:  constants.DevWorkspaceController,
-				Image: src.Spec.DevWorkspace.ControllerImage,
+	if src.Spec.DevWorkspace.ControllerImage != "" {
+		dst.Spec.Components.DevWorkspace.Deployment = chev2.Deployment{
+			Containers: []chev2.Container{
+				{
+					Name:  constants.DevWorkspaceController,
+					Image: src.Spec.DevWorkspace.ControllerImage,
+				},
 			},
-		},
+		}
 	}
 	dst.Spec.Components.DevWorkspace.RunningLimit = src.Spec.DevWorkspace.RunningLimit
 
@@ -300,22 +302,26 @@ func (src *CheCluster) convertTo_Components_Metrics(dst *chev2.CheCluster) error
 func (src *CheCluster) convertTo_Components_CheServer(dst *chev2.CheCluster) error {
 	dst.Spec.Components.CheServer.ExtraProperties = utils.CloneMap(src.Spec.Server.CustomCheProperties)
 	dst.Spec.Components.CheServer.LogLevel = src.Spec.Server.CheLogLevel
-	dst.Spec.Components.CheServer.ClusterRoles = strings.Split(src.Spec.Server.CheClusterRoles, ",")
+	if src.Spec.Server.CheClusterRoles != "" {
+		dst.Spec.Components.CheServer.ClusterRoles = strings.Split(src.Spec.Server.CheClusterRoles, ",")
+	}
 
 	if src.Spec.Server.CheDebug != "" {
 		debug, err := strconv.ParseBool(src.Spec.Server.CheDebug)
 		if err != nil {
 			return err
 		} else {
-			dst.Spec.Components.CheServer.Debug = debug
+			dst.Spec.Components.CheServer.Debug = pointer.BoolPtr(debug)
 		}
 	}
 
 	dst.Spec.Components.CheServer.Proxy = chev2.Proxy{
 		Url:                   src.Spec.Server.ProxyURL,
 		Port:                  src.Spec.Server.ProxyPort,
-		NonProxyHosts:         strings.Split(src.Spec.Server.NonProxyHosts, "|"),
 		CredentialsSecretName: src.Spec.Server.ProxySecret,
+	}
+	if src.Spec.Server.NonProxyHosts != "" {
+		dst.Spec.Components.CheServer.Proxy.NonProxyHosts = strings.Split(src.Spec.Server.NonProxyHosts, "|")
 	}
 
 	if src.Spec.Server.ProxySecret == "" && src.Spec.Server.ProxyUser != "" && src.Spec.Server.ProxyPassword != "" {
@@ -335,26 +341,17 @@ func (src *CheCluster) convertTo_Components_CheServer(dst *chev2.CheCluster) err
 		return err
 	}
 
-	dst.Spec.Components.CheServer.Deployment = chev2.Deployment{
-		Containers: []chev2.Container{
-			{
-				Name:            defaults.GetCheFlavor(),
-				Image:           map[bool]string{true: src.Spec.Server.CheImage + ":" + src.Spec.Server.CheImageTag, false: ""}[src.Spec.Server.CheImage != ""],
-				ImagePullPolicy: src.Spec.Server.CheImagePullPolicy,
-			},
-		},
-		SecurityContext: chev2.PodSecurityContext{
-			RunAsUser: runAsUser,
-			FsGroup:   fsGroup,
-		},
-	}
-
-	setContainerResources(
-		&dst.Spec.Components.CheServer.Deployment.Containers[0],
+	dst.Spec.Components.CheServer.Deployment = toCheV2Deployment(
+		defaults.GetCheFlavor(),
+		map[bool]string{true: src.Spec.Server.CheImage + ":" + src.Spec.Server.CheImageTag, false: ""}[src.Spec.Server.CheImage != ""],
+		src.Spec.Server.CheImagePullPolicy,
 		src.Spec.Server.ServerMemoryRequest,
 		src.Spec.Server.ServerMemoryLimit,
 		src.Spec.Server.ServerCpuRequest,
-		src.Spec.Server.ServerCpuLimit)
+		src.Spec.Server.ServerCpuLimit,
+		fsGroup,
+		runAsUser,
+	)
 
 	if src.Spec.Server.ServerTrustStoreConfigMapName != "" {
 		if err := renameTrustStoreConfigMapToDefault(src.Spec.Server.ServerTrustStoreConfigMapName, src.Namespace); err != nil {
@@ -376,22 +373,17 @@ func (src *CheCluster) convertTo_Components_PluginRegistry(dst *chev2.CheCluster
 		}
 	}
 
-	dst.Spec.Components.PluginRegistry.Deployment = chev2.Deployment{
-		Containers: []chev2.Container{
-			{
-				Name:            constants.PluginRegistryName,
-				Image:           src.Spec.Server.PluginRegistryImage,
-				ImagePullPolicy: corev1.PullPolicy(src.Spec.Server.PluginRegistryPullPolicy),
-			},
-		},
-	}
-
-	setContainerResources(
-		&dst.Spec.Components.PluginRegistry.Deployment.Containers[0],
+	dst.Spec.Components.PluginRegistry.Deployment = toCheV2Deployment(
+		constants.PluginRegistryName,
+		src.Spec.Server.PluginRegistryImage,
+		src.Spec.Server.PluginRegistryPullPolicy,
 		src.Spec.Server.PluginRegistryMemoryRequest,
 		src.Spec.Server.PluginRegistryMemoryLimit,
 		src.Spec.Server.PluginRegistryCpuRequest,
-		src.Spec.Server.PluginRegistryCpuLimit)
+		src.Spec.Server.PluginRegistryCpuLimit,
+		nil,
+		nil,
+	)
 
 	return nil
 }
@@ -399,7 +391,6 @@ func (src *CheCluster) convertTo_Components_PluginRegistry(dst *chev2.CheCluster
 func (src *CheCluster) convertTo_Components_DevfileRegistry(dst *chev2.CheCluster) error {
 	dst.Spec.Components.DevfileRegistry.DisableInternalRegistry = src.Spec.Server.ExternalDevfileRegistry
 
-	dst.Spec.Components.DevfileRegistry.ExternalDevfileRegistries = []chev2.ExternalDevfileRegistry{}
 	for _, r := range src.Spec.Server.ExternalDevfileRegistries {
 		dst.Spec.Components.DevfileRegistry.ExternalDevfileRegistries = append(dst.Spec.Components.DevfileRegistry.ExternalDevfileRegistries,
 			chev2.ExternalDevfileRegistry{
@@ -407,22 +398,17 @@ func (src *CheCluster) convertTo_Components_DevfileRegistry(dst *chev2.CheCluste
 			})
 	}
 
-	dst.Spec.Components.DevfileRegistry.Deployment = chev2.Deployment{
-		Containers: []chev2.Container{
-			{
-				Name:            constants.DevfileRegistryName,
-				Image:           src.Spec.Server.DevfileRegistryImage,
-				ImagePullPolicy: corev1.PullPolicy(src.Spec.Server.DevfileRegistryPullPolicy),
-			},
-		},
-	}
-
-	setContainerResources(
-		&dst.Spec.Components.DevfileRegistry.Deployment.Containers[0],
+	dst.Spec.Components.DevfileRegistry.Deployment = toCheV2Deployment(
+		constants.DevfileRegistryName,
+		src.Spec.Server.DevfileRegistryImage,
+		src.Spec.Server.DevfileRegistryPullPolicy,
 		src.Spec.Server.DevfileRegistryMemoryRequest,
 		src.Spec.Server.DevfileRegistryMemoryLimit,
 		src.Spec.Server.DevfileRegistryCpuRequest,
-		src.Spec.Server.DevfileRegistryCpuLimit)
+		src.Spec.Server.DevfileRegistryCpuLimit,
+		nil,
+		nil,
+	)
 
 	return nil
 }
@@ -441,22 +427,17 @@ func (src *CheCluster) convertTo_Components_Database(dst *chev2.CheCluster) erro
 		dst.Spec.Components.Database.CredentialsSecretName = constants.DefaultPostgresCredentialsSecret
 	}
 
-	dst.Spec.Components.Database.Deployment = chev2.Deployment{
-		Containers: []chev2.Container{
-			{
-				Name:            constants.PostgresName,
-				Image:           src.Spec.Database.PostgresImage,
-				ImagePullPolicy: corev1.PullPolicy(src.Spec.Database.PostgresImagePullPolicy),
-			},
-		},
-	}
-
-	setContainerResources(
-		&dst.Spec.Components.Database.Deployment.Containers[0],
+	dst.Spec.Components.Database.Deployment = toCheV2Deployment(
+		constants.PostgresName,
+		src.Spec.Database.PostgresImage,
+		src.Spec.Database.PostgresImagePullPolicy,
 		src.Spec.Database.ChePostgresContainerResources.Requests.Memory,
 		src.Spec.Database.ChePostgresContainerResources.Limits.Memory,
 		src.Spec.Database.ChePostgresContainerResources.Requests.Cpu,
-		src.Spec.Database.ChePostgresContainerResources.Limits.Cpu)
+		src.Spec.Database.ChePostgresContainerResources.Limits.Cpu,
+		nil,
+		nil,
+	)
 
 	dst.Spec.Components.Database.ExternalDb = src.Spec.Database.ExternalDb
 	dst.Spec.Components.Database.PostgresDb = src.Spec.Database.ChePostgresDb
@@ -476,26 +457,17 @@ func (src *CheCluster) convertTo_Components_Dashboard(dst *chev2.CheCluster) err
 		return err
 	}
 
-	dst.Spec.Components.Dashboard.Deployment = chev2.Deployment{
-		Containers: []chev2.Container{
-			{
-				Name:            defaults.GetCheFlavor() + "-dashboard",
-				Image:           src.Spec.Server.DashboardImage,
-				ImagePullPolicy: corev1.PullPolicy(src.Spec.Server.DashboardImagePullPolicy),
-			},
-		},
-		SecurityContext: chev2.PodSecurityContext{
-			RunAsUser: runAsUser,
-			FsGroup:   fsGroup,
-		},
-	}
-
-	setContainerResources(
-		&dst.Spec.Components.Dashboard.Deployment.Containers[0],
+	dst.Spec.Components.Dashboard.Deployment = toCheV2Deployment(
+		defaults.GetCheFlavor()+"-dashboard",
+		src.Spec.Server.DashboardImage,
+		corev1.PullPolicy(src.Spec.Server.DashboardImagePullPolicy),
 		src.Spec.Server.DashboardMemoryRequest,
 		src.Spec.Server.DashboardMemoryLimit,
 		src.Spec.Server.DashboardCpuRequest,
-		src.Spec.Server.DashboardCpuLimit)
+		src.Spec.Server.DashboardCpuLimit,
+		fsGroup,
+		runAsUser,
+	)
 
 	dst.Spec.Components.Dashboard.HeaderMessage.Text = src.Spec.Dashboard.Warning
 	dst.Spec.Components.Dashboard.HeaderMessage.Show = src.Spec.Dashboard.Warning != ""
@@ -503,10 +475,10 @@ func (src *CheCluster) convertTo_Components_Dashboard(dst *chev2.CheCluster) err
 	return nil
 }
 
-func parseSecurityContext(checluster *CheCluster) (*int64, *int64, error) {
+func parseSecurityContext(cheClusterV1 *CheCluster) (*int64, *int64, error) {
 	var runAsUser *int64 = nil
-	if checluster.Spec.K8s.SecurityContextRunAsUser != "" {
-		intValue, err := strconv.ParseInt(checluster.Spec.K8s.SecurityContextRunAsUser, 10, 64)
+	if cheClusterV1.Spec.K8s.SecurityContextRunAsUser != "" {
+		intValue, err := strconv.ParseInt(cheClusterV1.Spec.K8s.SecurityContextRunAsUser, 10, 64)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -515,8 +487,8 @@ func parseSecurityContext(checluster *CheCluster) (*int64, *int64, error) {
 	}
 
 	var fsGroup *int64 = nil
-	if checluster.Spec.K8s.SecurityContextFsGroup != "" {
-		intValue, err := strconv.ParseInt(checluster.Spec.K8s.SecurityContextFsGroup, 10, 64)
+	if cheClusterV1.Spec.K8s.SecurityContextFsGroup != "" {
+		intValue, err := strconv.ParseInt(cheClusterV1.Spec.K8s.SecurityContextFsGroup, 10, 64)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -618,7 +590,26 @@ func renameTrustStoreConfigMapToDefault(trustStoreConfigMapName string, namespac
 	return nil
 }
 
-func setContainerResources(container *chev2.Container, memoryRequest string, memoryLimit string, cpuRequest string, cpuLimit string) {
+func toCheV2Deployment(
+	name string,
+	image string,
+	imagePullPolicy corev1.PullPolicy,
+	memoryRequest string,
+	memoryLimit string,
+	cpuRequest string,
+	cpuLimit string,
+	fsGroup *int64,
+	runAsUser *int64) chev2.Deployment {
+
+	deployment := chev2.Deployment{}
+
+	container := chev2.Container{}
+	if image != "" {
+		container.Image = image
+	}
+	if imagePullPolicy != "" {
+		container.ImagePullPolicy = imagePullPolicy
+	}
 	if memoryRequest != "" {
 		container.Resources.Requests.Memory = resource.MustParse(memoryRequest)
 	}
@@ -631,4 +622,13 @@ func setContainerResources(container *chev2.Container, memoryRequest string, mem
 	if cpuLimit != "" {
 		container.Resources.Limits.Cpu = resource.MustParse(cpuLimit)
 	}
+	if !reflect.DeepEqual(container, chev2.Container{}) {
+		container.Name = name
+		deployment.Containers = []chev2.Container{container}
+	}
+
+	deployment.SecurityContext.RunAsUser = runAsUser
+	deployment.SecurityContext.FsGroup = fsGroup
+
+	return deployment
 }

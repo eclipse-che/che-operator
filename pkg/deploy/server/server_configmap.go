@@ -150,7 +150,10 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 
 	pluginRegistryURL := ctx.CheCluster.Status.PluginRegistryURL
 	cheLogLevel := utils.GetValue(ctx.CheCluster.Spec.Components.CheServer.LogLevel, constants.DefaultServerLogLevel)
-	cheDebug := strconv.FormatBool(ctx.CheCluster.Spec.Components.CheServer.Debug)
+	cheDebug := "false"
+	if ctx.CheCluster.Spec.Components.CheServer.Debug != nil {
+		cheDebug = strconv.FormatBool(*ctx.CheCluster.Spec.Components.CheServer.Debug)
+	}
 	cheMetrics := strconv.FormatBool(ctx.CheCluster.Spec.Components.Metrics.Enable)
 	cheLabels := labels.FormatLabels(deploy.GetLabels(defaults.GetCheFlavor()))
 

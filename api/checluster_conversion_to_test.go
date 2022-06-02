@@ -309,7 +309,7 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.ContainerRegistry.Organization, "AirGapContainerRegistryOrganization")
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.ClusterRoles, []string{"CheClusterRoles_1", "CheClusterRoles_2"})
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.ExtraProperties, map[string]string{"a": "b", "c": "d"})
-	assert.True(t, checlusterv2.Spec.Components.CheServer.Debug)
+	assert.True(t, *checlusterv2.Spec.Components.CheServer.Debug)
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].Image, "CheImage:CheImageTag")
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].Name, defaults.GetCheFlavor())
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].ImagePullPolicy, corev1.PullPolicy("Always"))

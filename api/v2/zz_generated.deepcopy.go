@@ -241,6 +241,11 @@ func (in *CheClusterStatus) DeepCopy() *CheClusterStatus {
 func (in *CheServer) DeepCopyInto(out *CheServer) {
 	*out = *in
 	in.Deployment.DeepCopyInto(&out.Deployment)
+	if in.Debug != nil {
+		in, out := &in.Debug, &out.Debug
+		*out = new(bool)
+		**out = **in
+	}
 	if in.ClusterRoles != nil {
 		in, out := &in.ClusterRoles, &out.ClusterRoles
 		*out = make([]string, len(*in))

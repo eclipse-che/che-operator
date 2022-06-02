@@ -108,7 +108,7 @@ type CheClusterComponents struct {
 // Configuration settings related to the Networking used by the Che installation.
 // +k8s:openapi-gen=true
 type CheClusterSpecNetworking struct {
-	// Comma separated list of labels that can be used to organize and categorize objects by scoping and selecting.
+	// List of labels that can be used to organize and categorize objects by scoping and selecting.
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
 	// Unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata.
@@ -165,7 +165,7 @@ type CheServer struct {
 	LogLevel string `json:"logLevel,omitempty"`
 	// Enables the debug mode for Che server.
 	// +optional
-	Debug bool `json:"debug,omitempty"`
+	Debug *bool `json:"debug,omitempty"`
 	// ClusterRoles that will be assigned to Che ServiceAccount.
 	// Defaults roles are:
 	// - `<che-namespace>-cheworkspaces-namespaces-clusterrole`
@@ -176,7 +176,8 @@ type CheServer struct {
 	// Be aware that the Che Operator has to already have all permissions in these ClusterRoles to grant them.
 	// +optional
 	ClusterRoles []string `json:"clusterRoles,omitempty"`
-	// Proxy server settings.
+	// Proxy server settings for Kubernetes cluster. No additional configuration is required for OpenShift cluster.
+	// Specifying these settings for OpenShift cluster leads to overriding OpenShift proxy configuration.
 	// +optional
 	Proxy Proxy `json:"proxy"`
 	// Map of additional environment variables that will be applied in the generated `che` ConfigMap to be used by the Che server,
@@ -235,7 +236,7 @@ type DevfileRegistry struct {
 type Database struct {
 	// Instructs the Operator on whether to deploy a dedicated database.
 	// By default, a dedicated PostgreSQL database is deployed as part of the Che installation. When `externalDb` is `true`, no dedicated database will be deployed by the
-	// Operator and you will need to provide connection details to the external DB you are about to use. See also all the fields starting with: `chePostgres`.
+	// Operator and you will need to provide connection details to the external DB you are about to use.
 	// +optional
 	ExternalDb bool `json:"externalDb"`
 	// Deployment override options.
@@ -304,7 +305,7 @@ type DevWorkspace struct {
 }
 
 type DefaultNamespace struct {
-	// if users namespaces are not pre-created this field defines the Kubernetes namespace created when a user starts his first workspace.
+	// if users namespaces are not pre-created this field defines the Kubernetes namespace created when a user starts their first workspace.
 	// It's possible to use `<username>`, `<userid>` and `<workspaceid>` placeholders, such as che-workspace-<username>.
 	// +optional
 	Template string `json:"template,omitempty"`

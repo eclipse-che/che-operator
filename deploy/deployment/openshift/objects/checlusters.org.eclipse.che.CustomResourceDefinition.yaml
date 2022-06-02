@@ -879,7 +879,7 @@ spec:
                         description: 'Log level for the Che server: `INFO` or `DEBUG`.'
                         type: string
                       proxy:
-                        description: Proxy server settings.
+                        description: Proxy server settings for Kubernetes cluster. No additional configuration is required for OpenShift cluster. Specifying these settings for OpenShift cluster leads to overriding OpenShift proxy configuration.
                         properties:
                           credentialsSecretName:
                             description: The secret name that contains `user` and `password` for a proxy server. The secret must have `app.kubernetes.io/part-of=che.eclipse.org` label.
@@ -1063,7 +1063,7 @@ spec:
                             type: object
                         type: object
                       externalDb:
-                        description: 'Instructs the Operator on whether to deploy a dedicated database. By default, a dedicated PostgreSQL database is deployed as part of the Che installation. When `externalDb` is `true`, no dedicated database will be deployed by the Operator and you will need to provide connection details to the external DB you are about to use. See also all the fields starting with: `chePostgres`.'
+                        description: Instructs the Operator on whether to deploy a dedicated database. By default, a dedicated PostgreSQL database is deployed as part of the Che installation. When `externalDb` is `true`, no dedicated database will be deployed by the Operator and you will need to provide connection details to the external DB you are about to use.
                         type: boolean
                       postgresDb:
                         default: dbche
@@ -1410,7 +1410,7 @@ spec:
                     description: User's default namespace.
                     properties:
                       template:
-                        description: if users namespaces are not pre-created this field defines the Kubernetes namespace created when a user starts his first workspace. It's possible to use `<username>`, `<userid>` and `<workspaceid>` placeholders, such as che-workspace-<username>.
+                        description: if users namespaces are not pre-created this field defines the Kubernetes namespace created when a user starts their first workspace. It's possible to use `<username>`, `<userid>` and `<workspaceid>` placeholders, such as che-workspace-<username>.
                         type: string
                     type: object
                   defaultPlugins:
@@ -1592,7 +1592,7 @@ spec:
                   labels:
                     additionalProperties:
                       type: string
-                    description: Comma separated list of labels that can be used to organize and categorize objects by scoping and selecting.
+                    description: List of labels that can be used to organize and categorize objects by scoping and selecting.
                     type: object
                   tlsSecretName:
                     description: Name of a secret that will be used to setup ingress TLS termination when. When the field is empty string, the default cluster certificate will be used. The secret must have `app.kubernetes.io/part-of=che.eclipse.org` label.

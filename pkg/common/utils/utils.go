@@ -22,6 +22,8 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/labels"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
@@ -216,8 +218,11 @@ func InNamespaceEventFilter(namespace string) predicate.Predicate {
 }
 
 func ParseMap(src string) map[string]string {
-	m := map[string]string{}
+	if src == "" {
+		return nil
+	}
 
+	m := map[string]string{}
 	for _, item := range strings.Split(src, ",") {
 		keyValuePair := strings.Split(item, "=")
 		if len(keyValuePair) == 1 {
@@ -235,9 +240,22 @@ func ParseMap(src string) map[string]string {
 }
 
 func CloneMap(m map[string]string) map[string]string {
+	if m == nil {
+		return nil
+	}
+
 	result := make(map[string]string)
 	for k, v := range m {
 		result[k] = v
 	}
 	return result
+}
+
+// Converts label map into plain string
+func FormatLabels(m map[string]string) string {
+	if len(m) == 0 {
+		return ""
+	}
+
+	return labels.FormatLabels(m)
 }

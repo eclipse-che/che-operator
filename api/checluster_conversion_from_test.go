@@ -46,7 +46,7 @@ func TestConvertFromIngressOnK8s(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
 				Labels:        map[string]string{"a": "b", "c": "d"},
-				Annotations:   map[string]string{"a": "b", "c": "d"},
+				Annotations:   map[string]string{"a": "b", "c": "d", "kubernetes.io/ingress.class": "nginx"},
 				Domain:        "Domain",
 				Hostname:      "Hostname",
 				TlsSecretName: "tlsSecret",
@@ -261,7 +261,7 @@ func TestConvertFrom(t *testing.T) {
 						},
 					},
 					LogLevel:     "LogLevel",
-					Debug:        true,
+					Debug:        pointer.BoolPtr(true),
 					ClusterRoles: []string{"ClusterRoles_1", "ClusterRoles_2"},
 					Proxy: chev2.Proxy{
 						Url:                   "ProxyUrl",

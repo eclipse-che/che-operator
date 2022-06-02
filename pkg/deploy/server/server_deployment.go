@@ -256,7 +256,7 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 		})
 
 	// configure probes if debug isn't set
-	if !ctx.CheCluster.Spec.Components.CheServer.Debug {
+	if ctx.CheCluster.Spec.Components.CheServer.Debug == nil || !*ctx.CheCluster.Spec.Components.CheServer.Debug {
 		container.ReadinessProbe = &corev1.Probe{
 			Handler: corev1.Handler{
 				HTTPGet: &corev1.HTTPGetAction{

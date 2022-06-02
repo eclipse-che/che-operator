@@ -90,16 +90,18 @@ func GetIngressSpec(
 	}
 
 	annotations := map[string]string{}
-	for k, v := range DefaultIngressAnnotations {
-		annotations[k] = v
-	}
+	if len(deployContext.CheCluster.Spec.Networking.Annotations) > 0 {
+		for k, v := range deployContext.CheCluster.Spec.Networking.Annotations {
+			annotations[k] = v
+		}
+	} else {
+		for k, v := range DefaultIngressAnnotations {
+			annotations[k] = v
+		}
 
-	// Set bigger proxy buffer size to prevent 502 auth error.
-	annotations["nginx.ingress.kubernetes.io/proxy-buffer-size"] = "16k"
-	annotations["nginx.org/websocket-services"] = serviceName
-
-	for k, v := range deployContext.CheCluster.Spec.Networking.Annotations {
-		annotations[k] = v
+		// Set bigger proxy buffer size to prevent 502 auth error.
+		annotations["nginx.ingress.kubernetes.io/proxy-buffer-size"] = "16k"
+		annotations["nginx.org/websocket-services"] = serviceName
 	}
 
 	// add 'che.eclipse.org/managed-annotations-digest' annotation

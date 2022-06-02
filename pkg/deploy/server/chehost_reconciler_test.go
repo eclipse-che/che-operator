@@ -14,6 +14,8 @@ package server
 import (
 	"context"
 
+	"k8s.io/utils/pointer"
+
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -47,7 +49,7 @@ func TestSyncService(t *testing.T) {
 			Spec: chev2.CheClusterSpec{
 				Components: chev2.CheClusterComponents{
 					CheServer: chev2.CheServer{
-						Debug: true,
+						Debug: pointer.BoolPtr(true),
 					},
 					Metrics: chev2.ServerMetrics{
 						Enable: true,
