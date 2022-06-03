@@ -23,8 +23,8 @@ Install the Helm Charts for Eclipse Che Operator
 helm install che \
   --create-namespace \ 
   --namespace eclipse-che \
-  --set ingress.domain=<KUBERNETES_INGRESS_DOMAIN> \
-  --set ingress.auth.oAuthSecret=<OAUTH_SECRET> \
-  --set ingress.auth.oAuthClientName=<OAUTH_CLIENT_NAME> \
-  --set ingress.auth.identityProviderURL=<IDENTITY_PROVIDER_URL> .
+  --set networking.domain=<KUBERNETES_INGRESS_DOMAIN> \
+  --set networking.auth.oAuthSecret=<OAUTH_SECRET> \
+  --set networking.auth.oAuthClientName=<OAUTH_CLIENT_NAME> \
+  --set networking.auth.identityProviderURL=<IDENTITY_PROVIDER_URL> .
 ```

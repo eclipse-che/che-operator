@@ -260,7 +260,7 @@ func (r *CheClusterReconciler) validate(cluster *chev2.CheCluster) error {
 
 	if !infrastructure.IsOpenShift() {
 		if cluster.Spec.Networking.Domain == "" {
-			validationErrors = append(validationErrors, "spec.ingress.domain must be specified")
+			validationErrors = append(validationErrors, "spec.networking.domain must be specified")
 		}
 	}
 

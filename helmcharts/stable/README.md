@@ -35,10 +35,10 @@ eclipse-che   che-operator-554c564476-fl98z                           1/1     Ru
 
 Click `CRDS` button, select `CheCluster` template and copy custom resource Eclipse Che to file `org_v2_checluster.yaml`.
 Set the following fields:
-- `spec.ingress.domain`
-- `spec.ingress.auth.identityProviderURL`
-- `spec.ingress.auth.oAuthClientName`
-- `spec.ingress.auth.oAuthSecret`
+- `spec.networking.domain`
+- `spec.networking.auth.identityProviderURL`
+- `spec.networking.auth.oAuthClientName`
+- `spec.networking.auth.oAuthSecret`
 
 4. Apply CR:
 ```bash

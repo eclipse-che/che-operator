@@ -202,10 +202,10 @@ deployEclipseCheWithHelm() {
   deployEclipseCheWithOperator "${chectlbin}" "${platform}" "${templates}" "${customimage}"
 
   # Get configuration
-  local identityProvider=$(kubectl get checluster/eclipse-che -n ${NAMESPACE} -o jsonpath='{.spec.ingress.auth.identityProviderURL}')
-  local oAuthSecret=$(kubectl get checluster/eclipse-che -n ${NAMESPACE} -o jsonpath='{.spec.ingress.auth.oAuthSecret}')
-  local oAuthClientName=$(kubectl get checluster/eclipse-che -n ${NAMESPACE} -o jsonpath='{.spec.ingress.auth.oAuthClientName}')
-  local domain=$(kubectl get checluster/eclipse-che -n ${NAMESPACE} -o jsonpath='{.spec.ingress.domain}')
+  local identityProvider=$(kubectl get checluster/eclipse-che -n ${NAMESPACE} -o jsonpath='{.spec.networking.auth.identityProviderURL}')
+  local oAuthSecret=$(kubectl get checluster/eclipse-che -n ${NAMESPACE} -o jsonpath='{.spec.networking.auth.oAuthSecret}')
+  local oAuthClientName=$(kubectl get checluster/eclipse-che -n ${NAMESPACE} -o jsonpath='{.spec.networking.auth.oAuthClientName}')
+  local domain=$(kubectl get checluster/eclipse-che -n ${NAMESPACE} -o jsonpath='{.spec.networking.domain}')
 
   # Delete Eclipse Che (Cert Manager and Dex are still there)
   ${chectlbin} server:delete -y -n ${NAMESPACE}
@@ -226,10 +226,10 @@ deployEclipseCheWithHelm() {
   helm install che \
     --create-namespace \
     --namespace eclipse-che \
-    --set ingress.domain="${domain}" \
-    --set ingress.auth.oAuthSecret="${oAuthSecret}" \
-    --set ingress.auth.oAuthClientName="${oAuthClientName}" \
-    --set ingress.auth.identityProviderURL="${identityProvider}" .
+    --set networking.domain="${domain}" \
+    --set networking.auth.oAuthSecret="${oAuthSecret}" \
+    --set networking.auth.oAuthClientName="${oAuthClientName}" \
+    --set networking.auth.identityProviderURL="${identityProvider}" .
   popd
 
   local cheVersion=$(yq -r '.spec.template.spec.containers[0].env[] | select(.name == "CHE_VERSION") | .value' < "${OPERATOR_DEPLOYMENT}")
@@ -258,8 +258,8 @@ deployEclipseCheWithOperator() {
     checluster=$(grep -rlx "kind: CheCluster" /tmp/chectl-templates/che-operator/)
     apiVersion=$(yq -r '.apiVersion' ${checluster})
     if [[ ${apiVersion} == "org.eclipse.che/v2" ]]; then
-      yq -riY '.spec.ingress.domain = "'$(minikube ip).nip.io'"' ${checluster}
-      yq -riY '.spec.ingress.tlsSecretName = "che-tls"' ${checluster}
+      yq -riY '.spec.networking.domain = "'$(minikube ip).nip.io'"' ${checluster}
+      yq -riY '.spec.networking.tlsSecretName = "che-tls"' ${checluster}
     else
       yq -riY '.spec.k8s.ingressDomain = "'$(minikube ip).nip.io'"' ${checluster}
     fi

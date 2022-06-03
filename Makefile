@@ -215,11 +215,11 @@ update-helmcharts: ## Update Helm Charts
 		yq -rYi --arg examples "$${CRDS_SAMPLES}" ".annotations.\"artifacthub.io/crdsExamples\" = \$$examples" $${chartYaml}
 		rm -rf $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
 	else
-		yq -riY '.spec.ingress.tlsSecretName = "che-tls"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
-		yq -riY '.spec.ingress.domain = "{{ .Values.ingress.domain }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
-		yq -riY '.spec.ingress.auth.oAuthSecret = "{{ .Values.ingress.auth.oAuthSecret }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
-		yq -riY '.spec.ingress.auth.oAuthClientName = "{{ .Values.ingress.auth.oAuthClientName }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
-		yq -riY '.spec.ingress.auth.identityProviderURL = "{{ .Values.ingress.auth.identityProviderURL }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+		yq -riY '.spec.networking.tlsSecretName = "che-tls"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+		yq -riY '.spec.networking.domain = "{{ .Values.networking.domain }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+		yq -riY '.spec.networking.auth.oAuthSecret = "{{ .Values.networking.auth.oAuthSecret }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+		yq -riY '.spec.networking.auth.oAuthClientName = "{{ .Values.networking.auth.oAuthClientName }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+		yq -riY '.spec.networking.auth.identityProviderURL = "{{ .Values.networking.auth.identityProviderURL }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
 	fi
 
 	echo "[INFO] HelmCharts updated $${HELM_DIR}"
@@ -463,12 +463,12 @@ create-checluster-cr: ## Creates CheCluster Custom Resource V2
 		CHECLUSTER_CR_2_APPLY=/tmp/checluster_cr.yaml
 		cp  $(CHECLUSTER_CR_PATH) $${CHECLUSTER_CR_2_APPLY}
 
-		# Update ingress.domain field with an actual value
+		# Update networking.domain field with an actual value
 		if [[ $(PLATFORM) == "kubernetes" ]]; then
   			# kubectl does not have `whoami` command
 			CLUSTER_API_URL=$$(oc whoami --show-server=true) || true;
 			CLUSTER_DOMAIN=$$(echo $${CLUSTER_API_URL} | sed -E 's/https:\/\/(.*):.*/\1/g')
-			yq -riY  '.spec.ingress.domain = "'$${CLUSTER_DOMAIN}'.nip.io"' $${CHECLUSTER_CR_2_APPLY}
+			yq -riY  '.spec.networking.domain = "'$${CLUSTER_DOMAIN}'.nip.io"' $${CHECLUSTER_CR_2_APPLY}
 		fi
 		$(K8S_CLI) apply -f $${CHECLUSTER_CR_2_APPLY} -n $(ECLIPSE_CHE_NAMESPACE)
 	fi
