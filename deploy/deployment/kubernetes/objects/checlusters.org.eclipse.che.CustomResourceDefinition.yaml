@@ -898,7 +898,7 @@ spec:
                         type: object
                     type: object
                   dashboard:
-                    description: Configuration settings related to the Dashboard sed by the Che installation.
+                    description: Configuration settings related to the Dashboard used by the Che installation.
                     properties:
                       HeaderMessage:
                         description: Dashboard header message.
@@ -1482,7 +1482,7 @@ spec:
                     type: object
                 type: object
               networking:
-                description: Che authentication and TLS configuration.
+                description: Networking, Che authentication and TLS configuration.
                 properties:
                   annotations:
                     additionalProperties:
@@ -1584,10 +1584,10 @@ spec:
                         type: string
                     type: object
                   domain:
-                    description: 'For OpenShift cluster Operator uses the domain to generate a hostname for a route. The generated hostname will follow this pattern: che-<che-namespace>.<domain>, where <che-namespace> is the namespace where the CheCluster CRD is created. In a conjunction with labels it creates a route, which is served by a non-default Ingress controller. For Kubernetes cluster it contains a global ingress domain. This MUST be explicitly specified: there are no defaults.'
+                    description: 'For OpenShift cluster Operator uses the domain to generate a hostname for a route. The generated hostname will follow this pattern: eclipse-che.<domain>, where <che-namespace> is the namespace where the CheCluster CRD is created. In a conjunction with labels it creates a route, which is served by a non-default Ingress controller. For Kubernetes cluster it contains a global ingress domain. This MUST be explicitly specified: there are no defaults.'
                     type: string
                   hostname:
-                    description: Public hostname of the installed Che server. When value is omitted, the value it will be automatically set by the Operator.
+                    description: Public hostname of the installed Che server.
                     type: string
                   labels:
                     additionalProperties:
@@ -1595,7 +1595,7 @@ spec:
                     description: List of labels that can be used to organize and categorize objects by scoping and selecting.
                     type: object
                   tlsSecretName:
-                    description: Name of a secret that will be used to setup ingress TLS termination when. When the field is empty string, the default cluster certificate will be used. The secret must have `app.kubernetes.io/part-of=che.eclipse.org` label.
+                    description: Name of a secret that will be used to set up ingress TLS termination. When the field is empty string, the default cluster certificate will be used. The secret must have `app.kubernetes.io/part-of=che.eclipse.org` label.
                     type: string
                 type: object
             type: object

@@ -41,7 +41,7 @@ type CheClusterSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=2
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Components"
 	Components CheClusterComponents `json:"components"`
-	// Che authentication and TLS configuration.
+	// Networking, Che authentication and TLS configuration.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=3
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Networking"
@@ -94,7 +94,7 @@ type CheClusterComponents struct {
 	// Configuration settings related to the database used by the Che installation.
 	// +optional
 	Database Database `json:"database"`
-	// Configuration settings related to the Dashboard sed by the Che installation.
+	// Configuration settings related to the Dashboard used by the Che installation.
 	// +optional
 	Dashboard Dashboard `json:"dashboard"`
 	// Kubernetes Image Puller configuration.
@@ -120,15 +120,15 @@ type CheClusterSpecNetworking struct {
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// For OpenShift cluster Operator uses the domain to generate a hostname for a route.
-	// The generated hostname will follow this pattern: che-<che-namespace>.<domain>, where <che-namespace> is the namespace where the CheCluster CRD is created.
+	// The generated hostname will follow this pattern: eclipse-che.<domain>, where <che-namespace> is the namespace where the CheCluster CRD is created.
 	// In a conjunction with labels it creates a route, which is served by a non-default Ingress controller.
 	// For Kubernetes cluster it contains a global ingress domain. This MUST be explicitly specified: there are no defaults.
 	// +optional
 	Domain string `json:"domain,omitempty"`
-	// Public hostname of the installed Che server. When value is omitted, the value it will be automatically set by the Operator.
+	// Public hostname of the installed Che server.
 	// +optional
 	Hostname string `json:"hostname,omitempty"`
-	// Name of a secret that will be used to setup ingress TLS termination when.
+	// Name of a secret that will be used to set up ingress TLS termination.
 	// When the field is empty string, the default cluster certificate will be used.
 	// The secret must have `app.kubernetes.io/part-of=che.eclipse.org` label.
 	// +optional

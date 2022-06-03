@@ -79,7 +79,7 @@ spec:
       - description: Che components configuration.
         displayName: Components
         path: components
-      - description: Che authentication and TLS configuration.
+      - description: Networking, Che authentication and TLS configuration.
         displayName: Networking
         path: networking
       - description: Configuration of an alternative registry that stores Che images.
