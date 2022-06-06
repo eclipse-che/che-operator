@@ -12,10 +12,7 @@
 
 package v1
 
-// Important: You must regenerate some generated code after modifying this file. At the root of the project:
-// Run `make generate`. It will perform required changes:
-// - update `api/v1/zz_generatedxxx` files;
-// - update `config/crd/bases/org_v1_checluster_crd.yaml` file;
+// Important: Don't modify this file.
 
 import (
 	"strings"

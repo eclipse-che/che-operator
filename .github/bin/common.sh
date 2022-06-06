@@ -248,10 +248,12 @@ deployEclipseCheWithOperator() {
     if [[ ${platform} == "minikube" ]]; then
       buildCheOperatorImage
       copyCheOperatorImageToMinikube
+      yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' "${templates}"/che-operator/kubernetes/operator.yaml
+      yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' "${templates}"/che-operator/kubernetes/operator.yaml
+    else
+      yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' "${templates}"/che-operator/openshift/operator.yaml
+      yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' "${templates}"/che-operator/openshift/operator.yaml
     fi
-
-    yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' "${templates}"/che-operator/kubernetes/operator.yaml
-    yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' "${templates}"/che-operator/kubernetes/operator.yaml
   fi
 
   if [[ ${platform} == "minikube" ]]; then
@@ -284,10 +286,12 @@ updateEclipseChe() {
     if [[ ${platform} == "minikube" ]]; then
       buildCheOperatorImage
       copyCheOperatorImageToMinikube
+      yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' ${templates}/che-operator/kubernetes/operator.yaml
+      yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' ${templates}/che-operator/kubernetes/operator.yaml
+    else
+      yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' ${templates}/che-operator/openshift/operator.yaml
+      yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' ${templates}/che-operator/openshift/operator.yaml
     fi
-
-    yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' ${templates}/che-operator/kubernetes/operator.yaml
-    yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' ${templates}/che-operator/kubernetes/operator.yaml
   fi
 
   ${chectlbin} server:update \

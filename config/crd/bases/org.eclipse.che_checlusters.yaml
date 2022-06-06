@@ -1241,13 +1241,13 @@ spec:
                       server.
                     properties:
                       clusterRoles:
-                        description: 'ClusterRoles that will be assigned to Che ServiceAccount.
-                          Defaults roles are: - `<che-namespace>-cheworkspaces-namespaces-clusterrole`
+                        description: 'ClusterRoles assigned to Che ServiceAccount.
+                          The defaults roles are: - `<che-namespace>-cheworkspaces-namespaces-clusterrole`
                           - `<che-namespace>-cheworkspaces-clusterrole` - `<che-namespace>-cheworkspaces-devworkspace-clusterrole`
-                          where <che-namespace> is the namespace where the CheCluster
-                          CRD is created. Each role must have `app.kubernetes.io/part-of=che.eclipse.org`
-                          label. Be aware that the Che Operator has to already have
-                          all permissions in these ClusterRoles to grant them.'
+                          where the <che-namespace> is the namespace where the CheCluster
+                          CRD is created. Each role must have a `app.kubernetes.io/part-of=che.eclipse.org`
+                          label. The Che Operator must already have all permissions
+                          in these ClusterRoles to grant them.'
                         items:
                           type: string
                         type: array
@@ -1276,11 +1276,11 @@ spec:
                                   description: Container name.
                                   type: string
                                 resources:
-                                  description: Compute Resources required by this
+                                  description: Compute resources required by this
                                     container.
                                   properties:
                                     limits:
-                                      description: Limits describes the maximum amount
+                                      description: Limits describe the maximum amount
                                         of compute resources allowed.
                                       properties:
                                         cpu:
@@ -1300,8 +1300,8 @@ spec:
                                           x-kubernetes-int-or-string: true
                                       type: object
                                     request:
-                                      description: Requests describes the minimum
-                                        amount of compute resources required.
+                                      description: Request describes the minimum amount
+                                        of compute resources required.
                                       properties:
                                         cpu:
                                           anyOf:
@@ -1327,12 +1327,13 @@ spec:
                             properties:
                               fsGroup:
                                 description: A special supplemental group that applies
-                                  to all containers in a pod. Default value is `1724`.
+                                  to all containers in a pod. The default value is
+                                  `1724`.
                                 format: int64
                                 type: integer
                               runAsUser:
                                 description: The UID to run the entrypoint of the
-                                  container process. Default value is `1724`.
+                                  container process. The default value is `1724`.
                                 format: int64
                                 type: integer
                             type: object
@@ -1340,56 +1341,56 @@ spec:
                       extraProperties:
                         additionalProperties:
                           type: string
-                        description: Map of additional environment variables that
-                          will be applied in the generated `che` ConfigMap to be used
-                          by the Che server, in addition to the values already generated
-                          from other fields of the `CheCluster` custom resource (CR).
-                          When `extraProperties` contains a property that would be
-                          normally generated in `che` ConfigMap from other CR fields,
-                          the value defined in the `extraProperties` is used instead.
+                        description: A map of additional environment variables applied
+                          in the generated `che` ConfigMap to be used by the Che server,
+                          in addition to the values already generated from other fields
+                          of the `CheCluster` custom resource (CR). If the `extraProperties`
+                          fields contains a property normally generated in `che` ConfigMap
+                          from other CR fields, the value defined in the `extraProperties`
+                          is used instead.
                         type: object
                       logLevel:
                         default: INFO
-                        description: 'Log level for the Che server: `INFO` or `DEBUG`.'
+                        description: 'The log level for the Che server: `INFO` or
+                          `DEBUG`.'
                         type: string
                       proxy:
                         description: Proxy server settings for Kubernetes cluster.
                           No additional configuration is required for OpenShift cluster.
-                          Specifying these settings for OpenShift cluster leads to
-                          overriding OpenShift proxy configuration.
+                          By specifying these settings for the OpenShift cluster,
+                          you override the OpenShift proxy configuration.
                         properties:
                           credentialsSecretName:
                             description: The secret name that contains `user` and
                               `password` for a proxy server. The secret must have
-                              `app.kubernetes.io/part-of=che.eclipse.org` label.
+                              a `app.kubernetes.io/part-of=che.eclipse.org` label.
                             type: string
                           nonProxyHosts:
-                            description: 'List of hosts that will be reached directly,
+                            description: 'A list of hosts that can be reached directly,
                               bypassing the proxy. Specify wild card domain use the
                               following form `.<DOMAIN>`, for example:    - localhost    -
-                              my.host.com    - 123.42.12.32 Only use when configuring
-                              a proxy is required. Operator respects OpenShift cluster
-                              wide proxy configuration and no additional configuration
-                              is required, but defining `nonProxyHosts` in a custom
-                              resource leads to merging non proxy hosts lists from
-                              the cluster proxy configuration and ones defined in
-                              the custom resources. See the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html.
+                              my.host.com    - 123.42.12.32 Use only when a proxy
+                              configuration is required. Operator respects OpenShift
+                              cluster-wide proxy configuration, defining `nonProxyHosts`
+                              in a custom resource leads to merging non-proxy hosts
+                              lists from the cluster proxy configuration, and the
+                              ones defined in the custom resources. See the following
+                              page: https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html.
                               See also the `proxyURL` fields.'
                             items:
                               type: string
                             type: array
                           port:
-                            description: Port of the proxy server.
+                            description: Proxy server port.
                             type: string
                           url:
-                            description: URL (protocol+hostname) of the proxy server.
-                              Only use when configuring a proxy is required. Operator
-                              respects OpenShift cluster wide proxy configuration
-                              and no additional configuration is required, but defining
-                              `url` in a custom resource leads to overrides the cluster
-                              proxy configuration with fields `url`, `port` and `credentialsSecretName`
-                              from the custom resource. See the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html.
-                              See also the `proxyPort` and `nonProxyHosts` fields.
+                            description: 'URL (protocol+hostname) of the proxy server.
+                              Use only when a proxy configuration is required. Operator
+                              respects OpenShift cluster-wide proxy configuration,
+                              defining `url` in a custom resource leads to overriding
+                              the cluster proxy configuration. See the following page:
+                              https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html.
+                              See also the `proxyPort` and `nonProxyHosts` fields.'
                             type: string
                         type: object
                     type: object
@@ -1404,8 +1405,7 @@ spec:
                             description: Instructs dashboard to show the message.
                             type: boolean
                           warning:
-                            description: Warning message that will be displayed on
-                              the User Dashboard
+                            description: Warning message displayed on the user dashboard.
                             type: string
                         type: object
                       deployment:
@@ -1430,11 +1430,11 @@ spec:
                                   description: Container name.
                                   type: string
                                 resources:
-                                  description: Compute Resources required by this
+                                  description: Compute resources required by this
                                     container.
                                   properties:
                                     limits:
-                                      description: Limits describes the maximum amount
+                                      description: Limits describe the maximum amount
                                         of compute resources allowed.
                                       properties:
                                         cpu:
@@ -1454,8 +1454,8 @@ spec:
                                           x-kubernetes-int-or-string: true
                                       type: object
                                     request:
-                                      description: Requests describes the minimum
-                                        amount of compute resources required.
+                                      description: Request describes the minimum amount
+                                        of compute resources required.
                                       properties:
                                         cpu:
                                           anyOf:
@@ -1481,12 +1481,13 @@ spec:
                             properties:
                               fsGroup:
                                 description: A special supplemental group that applies
-                                  to all containers in a pod. Default value is `1724`.
+                                  to all containers in a pod. The default value is
+                                  `1724`.
                                 format: int64
                                 type: integer
                               runAsUser:
                                 description: The UID to run the entrypoint of the
-                                  container process. Default value is `1724`.
+                                  container process. The default value is `1724`.
                                 format: int64
                                 type: integer
                             type: object
@@ -1500,7 +1501,7 @@ spec:
                         default: postgres-credentials
                         description: The secret that contains PostgreSQL `user` and
                           `password` that the Che server uses to connect to the DB.
-                          The secret must have `app.kubernetes.io/part-of=che.eclipse.org`
+                          The secret must have a `app.kubernetes.io/part-of=che.eclipse.org`
                           label.
                         type: string
                       deployment:
@@ -1525,11 +1526,11 @@ spec:
                                   description: Container name.
                                   type: string
                                 resources:
-                                  description: Compute Resources required by this
+                                  description: Compute resources required by this
                                     container.
                                   properties:
                                     limits:
-                                      description: Limits describes the maximum amount
+                                      description: Limits describe the maximum amount
                                         of compute resources allowed.
                                       properties:
                                         cpu:
@@ -1549,8 +1550,8 @@ spec:
                                           x-kubernetes-int-or-string: true
                                       type: object
                                     request:
-                                      description: Requests describes the minimum
-                                        amount of compute resources required.
+                                      description: Request describes the minimum amount
+                                        of compute resources required.
                                       properties:
                                         cpu:
                                           anyOf:
@@ -1576,23 +1577,24 @@ spec:
                             properties:
                               fsGroup:
                                 description: A special supplemental group that applies
-                                  to all containers in a pod. Default value is `1724`.
+                                  to all containers in a pod. The default value is
+                                  `1724`.
                                 format: int64
                                 type: integer
                               runAsUser:
                                 description: The UID to run the entrypoint of the
-                                  container process. Default value is `1724`.
+                                  container process. The default value is `1724`.
                                 format: int64
                                 type: integer
                             type: object
                         type: object
                       externalDb:
-                        description: Instructs the Operator on whether to deploy a
-                          dedicated database. By default, a dedicated PostgreSQL database
-                          is deployed as part of the Che installation. When `externalDb`
-                          is `true`, no dedicated database will be deployed by the
-                          Operator and you will need to provide connection details
-                          to the external DB you are about to use.
+                        description: Instructs the Operator to deploy a dedicated
+                          database. By default, a dedicated PostgreSQL database is
+                          deployed as part of the Che installation. When `externalDb`
+                          is set as `true`, no dedicated database is deployed by the
+                          Operator and you need to provide connection details to the
+                          external DB you want to use.
                         type: boolean
                       postgresDb:
                         default: dbche
@@ -1601,17 +1603,15 @@ spec:
                         type: string
                       postgresHostName:
                         default: postgres
-                        description: PostgreSQL Database hostname that the Che server
-                          uses to connect to. Override this value ONLY when using
-                          an external database. See field `externalDb`.
+                        description: PostgreSQL database hostname that the Che server
+                          connects to. Override this value only when using an external
+                          database. See field `externalDb`.
                         type: string
                       postgresPort:
                         default: "5432"
-                        description: PostgreSQL Database port that the Che server
-                          uses to connect to. Defaults to 5432. Override this value
-                          ONLY when using an external database. See field `externalDb`.
-                          In the default case it will be automatically set by the
-                          Operator.
+                        description: PostgreSQL Database port the Che server connects
+                          to. Override this value only when using an external database.
+                          See field `externalDb`.
                         type: string
                       pvc:
                         description: PVC settings for PostgreSQL database.
@@ -1653,11 +1653,11 @@ spec:
                                   description: Container name.
                                   type: string
                                 resources:
-                                  description: Compute Resources required by this
+                                  description: Compute resources required by this
                                     container.
                                   properties:
                                     limits:
-                                      description: Limits describes the maximum amount
+                                      description: Limits describe the maximum amount
                                         of compute resources allowed.
                                       properties:
                                         cpu:
@@ -1677,8 +1677,8 @@ spec:
                                           x-kubernetes-int-or-string: true
                                       type: object
                                     request:
-                                      description: Requests describes the minimum
-                                        amount of compute resources required.
+                                      description: Request describes the minimum amount
+                                        of compute resources required.
                                       properties:
                                         cpu:
                                           anyOf:
@@ -1704,18 +1704,19 @@ spec:
                             properties:
                               fsGroup:
                                 description: A special supplemental group that applies
-                                  to all containers in a pod. Default value is `1724`.
+                                  to all containers in a pod. The default value is
+                                  `1724`.
                                 format: int64
                                 type: integer
                               runAsUser:
                                 description: The UID to run the entrypoint of the
-                                  container process. Default value is `1724`.
+                                  container process. The default value is `1724`.
                                 format: int64
                                 type: integer
                             type: object
                         type: object
                       runningLimit:
-                        description: Maximum number of the running workspaces per
+                        description: The maximum number of running workspaces per
                           user.
                         type: string
                     type: object
@@ -1745,11 +1746,11 @@ spec:
                                   description: Container name.
                                   type: string
                                 resources:
-                                  description: Compute Resources required by this
+                                  description: Compute resources required by this
                                     container.
                                   properties:
                                     limits:
-                                      description: Limits describes the maximum amount
+                                      description: Limits describe the maximum amount
                                         of compute resources allowed.
                                       properties:
                                         cpu:
@@ -1769,8 +1770,8 @@ spec:
                                           x-kubernetes-int-or-string: true
                                       type: object
                                     request:
-                                      description: Requests describes the minimum
-                                        amount of compute resources required.
+                                      description: Request describes the minimum amount
+                                        of compute resources required.
                                       properties:
                                         cpu:
                                           anyOf:
@@ -1796,29 +1797,28 @@ spec:
                             properties:
                               fsGroup:
                                 description: A special supplemental group that applies
-                                  to all containers in a pod. Default value is `1724`.
+                                  to all containers in a pod. The default value is
+                                  `1724`.
                                 format: int64
                                 type: integer
                               runAsUser:
                                 description: The UID to run the entrypoint of the
-                                  container process. Default value is `1724`.
+                                  container process. The default value is `1724`.
                                 format: int64
                                 type: integer
                             type: object
                         type: object
                       disableInternalRegistry:
-                        description: Disables internal Devfile registry.
+                        description: Disables internal devfile registry.
                         type: boolean
                       externalDevfileRegistries:
-                        description: External devfile registries, that serves sample,
-                          ready-to-use devfiles. Configure this in addition to a dedicated
-                          devfile registry (when `disableInternalRegistry` is `false`)
-                          or instead of it (when `disableInternalRegistry` is `true`)
+                        description: External devfile registries serving sample ready-to-use
+                          devfiles.
                         items:
                           description: External devfile registries configuration.
                           properties:
                             url:
-                              description: Public URL of the devfile registry that
+                              description: The public UR of the devfile registry that
                                 serves sample ready-to-use devfiles.
                               type: string
                           type: object
@@ -1828,22 +1828,22 @@ spec:
                     description: Kubernetes Image Puller configuration.
                     properties:
                       enable:
-                        description: Install and configure the Community Supported
-                          Kubernetes Image Puller Operator. When set to `true` and
-                          no spec is provided, it will create a default KubernetesImagePuller
-                          object to be managed by the Operator. When set to `false`,
-                          the KubernetesImagePuller object will be deleted, and the
-                          Operator will be uninstalled, regardless of whether a spec
-                          is provided. If the `spec.images` field is empty, a set
-                          of recommended workspace-related images will be automatically
-                          detected and pre-pulled after installation. Note that while
-                          this Operator and its behavior is community-supported, its
-                          payload may be commercially-supported for pulling commercially-supported
+                        description: Install and configure the community supported
+                          Kubernetes Image Puller Operator. When you set the value
+                          to `true` without providing any specs, it creates a default
+                          Kubernetes Image Puller object managed by the Operator.
+                          When you set the value to `false`, the Kubernetes Image
+                          Puller object is deleted, and the Operator uninstalled,
+                          regardless of whether a spec is provided. If you leave the
+                          `spec.images` field empty, a set of recommended workspace-related
+                          images is automatically detected and pre-pulled after installation.
+                          Note that while this Operator and its behavior is community-supported,
+                          its payload may be commercially-supported for pulling commercially-supported
                           images.
                         type: boolean
                       spec:
-                        description: A KubernetesImagePullerSpec to configure the
-                          image puller in the CheCluster
+                        description: A Kubernetes Image Puller spec  to configure
+                          the image puller in the CheCluster
                         properties:
                           affinity:
                             type: string
@@ -1880,11 +1880,11 @@ spec:
                     properties:
                       enable:
                         default: true
-                        description: Enables `metrics` the Che server endpoint.
+                        description: Enables `metrics` for the Che server endpoint.
                         type: boolean
                     type: object
                   pluginRegistry:
-                    description: Configuration settings related to the Plugin registry
+                    description: Configuration settings related to the plug-in registry
                       used by the Che installation.
                     properties:
                       deployment:
@@ -1909,11 +1909,11 @@ spec:
                                   description: Container name.
                                   type: string
                                 resources:
-                                  description: Compute Resources required by this
+                                  description: Compute resources required by this
                                     container.
                                   properties:
                                     limits:
-                                      description: Limits describes the maximum amount
+                                      description: Limits describe the maximum amount
                                         of compute resources allowed.
                                       properties:
                                         cpu:
@@ -1933,8 +1933,8 @@ spec:
                                           x-kubernetes-int-or-string: true
                                       type: object
                                     request:
-                                      description: Requests describes the minimum
-                                        amount of compute resources required.
+                                      description: Request describes the minimum amount
+                                        of compute resources required.
                                       properties:
                                         cpu:
                                           anyOf:
@@ -1960,29 +1960,27 @@ spec:
                             properties:
                               fsGroup:
                                 description: A special supplemental group that applies
-                                  to all containers in a pod. Default value is `1724`.
+                                  to all containers in a pod. The default value is
+                                  `1724`.
                                 format: int64
                                 type: integer
                               runAsUser:
                                 description: The UID to run the entrypoint of the
-                                  container process. Default value is `1724`.
+                                  container process. The default value is `1724`.
                                 format: int64
                                 type: integer
                             type: object
                         type: object
                       disableInternalRegistry:
-                        description: Disables internal Plugin registry.
+                        description: Disables internal plug-in registry.
                         type: boolean
                       externalPluginRegistries:
-                        description: External plugin registries. Configure this in
-                          addition to a dedicated plugin registry (when `disableInternalRegistry`
-                          is `false`) or instead of it (when `disableInternalRegistry`
-                          is `true`)
+                        description: External plugin registries.
                         items:
-                          description: External plugin registries configuration.
+                          description: External plug-in registries configuration.
                           properties:
                             url:
-                              description: Public URL of the plugin registry.
+                              description: Public URL of the plug-in registry.
                               type: string
                           type: object
                         type: array
@@ -1993,18 +1991,18 @@ spec:
                   Che images.
                 properties:
                   hostname:
-                    description: Optional hostname, or URL, to an alternate container
+                    description: An optional hostname or URL of an alternative container
                       registry to pull images from. This value overrides the container
                       registry hostname defined in all the default container images
-                      involved in a Che deployment. This is particularly useful to
-                      install Che in a restricted environment.
+                      involved in a Che deployment. This is particularly useful for
+                      installing Che in a restricted environment.
                     type: string
                   organization:
-                    description: Optional repository name of an alternate container
-                      registry to pull images from. This value overrides the container
-                      registry organization defined in all the default container images
-                      involved in a Che deployment. This is particularly useful to
-                      install Eclipse Che in a restricted environment.
+                    description: An optional repository name of an alternative registry
+                      to pull images from. This value overrides the container registry
+                      organization defined in all the default container images involved
+                      in a Che deployment. This is particularly useful for installing
+                      Eclipse Che in a restricted environment.
                     type: string
                 type: object
               devEnvironments:
@@ -2014,9 +2012,9 @@ spec:
                     description: User's default namespace.
                     properties:
                       template:
-                        description: if users namespaces are not pre-created this
-                          field defines the Kubernetes namespace created when a user
-                          starts their first workspace. It's possible to use `<username>`,
+                        description: If you don't create user namespaces in advance,
+                          this field defines the Kubernetes namespace created when
+                          you start your first workspace. You can use `<username>`,
                           `<userid>` and `<workspaceid>` placeholders, such as che-workspace-<username>.
                         type: string
                     type: object
@@ -2028,7 +2026,7 @@ spec:
                           description: The editor id to specify default plug-ins for.
                           type: string
                         plugins:
-                          description: Default plug-in uris for the specified editor.
+                          description: Default plug-in URIs for the specified editor.
                           items:
                             type: string
                           type: array
@@ -2037,8 +2035,8 @@ spec:
                   nodeSelector:
                     additionalProperties:
                       type: string
-                    description: The node selector that limits the nodes that can
-                      run the workspace pods.
+                    description: The node selector limits the nodes that can run the
+                      workspace pods.
                     type: object
                   storage:
                     description: Workspaces persistent storage.
@@ -2060,13 +2058,13 @@ spec:
                       pvcStrategy:
                         default: common
                         description: Persistent volume claim strategy for the Che
-                          server. The only `common` strategy is supported (all workspaces
-                          PVCs in one volume). See for details https://github.com/eclipse/che/issues/21185.
+                          server. Only the `common` strategy is supported (all workspaces
+                          PVCs in one volume). For details, see https://github.com/eclipse/che/issues/21185.
                         type: string
                     type: object
                   tolerations:
-                    description: The pod tolerations put on the workspace pods to
-                      limit where the workspace pods can run.
+                    description: The pod tolerations of the workspace pods limit where
+                      the workspace pods can run.
                     items:
                       description: The pod this Toleration is attached to tolerates
                         any taint that matches the triple <key,value,effect> using
@@ -2110,10 +2108,11 @@ spec:
                     description: Trusted certificate settings.
                     properties:
                       gitTrustedCertsConfigMapName:
-                        description: The ConfigMap containing certificates to propagate
-                          to the Che components and to provide particular configuration
-                          for Git. Note, this ConfigMap must have `app.kubernetes.io/part-of=che.eclipse.org`
-                          label.
+                        description: 'The ConfigMap contains certificates to propagate
+                          to the Che components and to provide a particular configuration
+                          for Git. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/deploying-che-with-support-for-git-repositories-with-self-signed-certificates/
+                          The ConfigMap must have a `app.kubernetes.io/part-of=che.eclipse.org`
+                          label.'
                         type: string
                     type: object
                 type: object
@@ -2123,9 +2122,9 @@ spec:
                   annotations:
                     additionalProperties:
                       type: string
-                    description: 'Unstructured key value map stored with a resource
-                      that may be set by external tools to store and retrieve arbitrary
-                      metadata. When not specified, this defaults to:     kubernetes.io/ingress.class:                       "nginx"     nginx.ingress.kubernetes.io/proxy-read-timeout:    "3600",     nginx.ingress.kubernetes.io/proxy-connect-timeout:
+                    description: 'Defines annotations which will be set to an ingress
+                      (a route for OpenShift platform). The defaults for kubernetes
+                      platforms are:     kubernetes.io/ingress.class:                       "nginx"     nginx.ingress.kubernetes.io/proxy-read-timeout:    "3600",     nginx.ingress.kubernetes.io/proxy-connect-timeout:
                       "3600",     nginx.ingress.kubernetes.io/ssl-redirect:          "true"'
                     type: object
                   auth:
@@ -2141,9 +2140,9 @@ spec:
                             type: object
                           deployment:
                             description: 'Deployment override options. Since gateway
-                              deployment consist of several containers, they must
-                              be distungish in the configuration by their names: -
-                              `gateway` - `configbump` - `oauth-proxy` - `kube-rbac-proxy`'
+                              deployment consists of several containers, they must
+                              be distinguished in the configuration by their names:
+                              - `gateway` - `configbump` - `oauth-proxy` - `kube-rbac-proxy`'
                             properties:
                               container:
                                 description: A single application container.
@@ -2164,11 +2163,11 @@ spec:
                                       description: Container name.
                                       type: string
                                     resources:
-                                      description: Compute Resources required by this
+                                      description: Compute resources required by this
                                         container.
                                       properties:
                                         limits:
-                                          description: Limits describes the maximum
+                                          description: Limits describe the maximum
                                             amount of compute resources allowed.
                                           properties:
                                             cpu:
@@ -2189,7 +2188,7 @@ spec:
                                               x-kubernetes-int-or-string: true
                                           type: object
                                         request:
-                                          description: Requests describes the minimum
+                                          description: Request describes the minimum
                                             amount of compute resources required.
                                           properties:
                                             cpu:
@@ -2217,13 +2216,14 @@ spec:
                                 properties:
                                   fsGroup:
                                     description: A special supplemental group that
-                                      applies to all containers in a pod. Default
+                                      applies to all containers in a pod. The default
                                       value is `1724`.
                                     format: int64
                                     type: integer
                                   runAsUser:
                                     description: The UID to run the entrypoint of
-                                      the container process. Default value is `1724`.
+                                      the container process. The default value is
+                                      `1724`.
                                     format: int64
                                     type: integer
                                 type: object
@@ -2234,18 +2234,18 @@ spec:
                         type: string
                       oAuthClientName:
                         description: Name of the OpenShift `OAuthClient` resource
-                          used to setup identity federation on the OpenShift side.
+                          used to set up identity federation on the OpenShift side.
                         type: string
                       oAuthSecret:
                         description: Name of the secret set in the OpenShift `OAuthClient`
-                          resource used to setup identity federation on the OpenShift
+                          resource used to set up identity federation on the OpenShift
                           side.
                         type: string
                     type: object
                   domain:
-                    description: 'For OpenShift cluster Operator uses the domain to
-                      generate a hostname for a route. The generated hostname will
-                      follow this pattern: eclipse-che.<domain>, where <che-namespace>
+                    description: 'For an OpenShift cluster, the Operator uses the
+                      domain to generate a hostname for a route. The generated hostname
+                      follows this pattern: che-<che-namespace>.<domain>. The <che-namespace>
                       is the namespace where the CheCluster CRD is created. In a conjunction
                       with labels it creates a route, which is served by a non-default
                       Ingress controller. For Kubernetes cluster it contains a global
@@ -2253,28 +2253,27 @@ spec:
                       no defaults.'
                     type: string
                   hostname:
-                    description: Public hostname of the installed Che server.
+                    description: The public hostname of the installed Che server.
                     type: string
                   labels:
                     additionalProperties:
                       type: string
-                    description: List of labels that can be used to organize and categorize
-                      objects by scoping and selecting.
+                    description: Defines labels which will be set to an ingress (a
+                      route for OpenShift platform).
                     type: object
                   tlsSecretName:
-                    description: Name of a secret that will be used to set up ingress
-                      TLS termination. When the field is empty string, the default
-                      cluster certificate will be used. The secret must have `app.kubernetes.io/part-of=che.eclipse.org`
+                    description: The name of the secret used to set up Ingress TLS
+                      termination. If the field is an empty string, the default cluster
+                      certificate is used. The secret must have a `app.kubernetes.io/part-of=che.eclipse.org`
                       label.
                     type: string
                 type: object
             type: object
           status:
-            description: CheClusterStatus defines the observed state of Che installation
+            description: CheClusterStatus defines the observed state of Che installation.
             properties:
               chePhase:
-                description: Specifies the phase in which the Che deployment currently
-                  is.
+                description: Specifies the current phase of the Che deployment.
                 type: string
               cheURL:
                 description: Public URL to the Che server.
@@ -2283,25 +2282,24 @@ spec:
                 description: Current installed Che version.
                 type: string
               devfileRegistryURL:
-                description: Public URL to the internal devfile registry.
+                description: The public URL to the internal devfile registry.
                 type: string
               gatewayPhase:
-                description: Specifies the phase in which the gateway deployment currently
-                  is.
+                description: Specifies the current phase of the gateway deployment.
                 type: string
               message:
                 description: A human readable message indicating details about why
-                  the Che deployment is in this phase.
+                  the Che deployment is in current phase.
                 type: string
               pluginRegistryURL:
-                description: Public URL to the internal plugin registry.
+                description: The public URL to the internal plug-in registry.
                 type: string
               postgresVersion:
-                description: PostgreSQL version image is in use.
+                description: The PostgreSQL version of the image in use.
                 type: string
               reason:
                 description: A brief CamelCase message indicating details about why
-                  the Che deployment is in this phase.
+                  the Che deployment is in current phase.
                 type: string
               workspaceBaseDomain:
                 description: The resolved workspace base domain. This is either the

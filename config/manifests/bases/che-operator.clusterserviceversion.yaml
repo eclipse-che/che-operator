@@ -86,7 +86,7 @@ spec:
         displayName: Container registry
         path: containerRegistry
       statusDescriptors:
-      - description: Specifies the phase in which the Che deployment currently is.
+      - description: Specifies the current phase of the Che deployment.
         displayName: ChePhase
         path: chePhase
         x-descriptors:
@@ -101,35 +101,34 @@ spec:
         path: cheVersion
         x-descriptors:
         - urn:alm:descriptor:text
-      - description: Public URL to the internal devfile registry.
+      - description: The public URL to the internal devfile registry.
         displayName: Devfile registry URL
         path: devfileRegistryURL
         x-descriptors:
         - urn:alm:descriptor:org.w3:link
-      - description: Specifies the phase in which the gateway deployment currently
-          is.
+      - description: Specifies the current phase of the gateway deployment.
         displayName: Gateway phase
         path: gatewayPhase
         x-descriptors:
         - urn:alm:descriptor:text
       - description: A human readable message indicating details about why the Che
-          deployment is in this phase.
+          deployment is in current phase.
         displayName: Message
         path: message
         x-descriptors:
         - urn:alm:descriptor:text
-      - description: Public URL to the internal plugin registry.
+      - description: The public URL to the internal plug-in registry.
         displayName: Plugin registry URL
         path: pluginRegistryURL
         x-descriptors:
         - urn:alm:descriptor:org.w3:link
-      - description: PostgreSQL version image is in use.
+      - description: The PostgreSQL version of the image in use.
         displayName: PostgreSQL version
         path: postgresVersion
         x-descriptors:
         - urn:alm:descriptor:text
       - description: A brief CamelCase message indicating details about why the Che
-          deployment is in this phase.
+          deployment is in current phase.
         displayName: Reason
         path: reason
         x-descriptors:
