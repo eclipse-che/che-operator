@@ -28,7 +28,10 @@ jobs:
       with:
         go-version: 1.16
     - name: Validate operator resources
-      run: ${GITHUB_WORKSPACE}/.github/bin/check-resources.sh
+      run: |
+        go get -u golang.org/x/tools/cmd/goimports
+        go get -u github.com/che-incubator/check-license-header@379ba18fdb906d341ae451ea155cc34f1c4b4f1a
+        ${GITHUB_WORKSPACE}/.github/bin/check-resources.sh
   bundle-version-validation:
     runs-on: ubuntu-20.04
     steps:
