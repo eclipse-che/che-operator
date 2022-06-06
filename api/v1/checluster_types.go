@@ -545,6 +545,9 @@ type CheClusterSpecAuth struct {
 	// Deprecated. The value of this flag is ignored.
 	// Debug internal identity provider.
 	Debug bool `json:"debug,omitempty"`
+	// OAuth Scope.
+	// +optional
+	OAuthScope string `json:"oAuthScope,omitempty"`
 }
 
 // Ingress custom settings, can be extended in the future

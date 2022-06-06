@@ -115,13 +115,21 @@ cookie_httponly = false
 pass_authorization_header = true
 skip_provider_button = true
 %s
+pass_access_token = true
+cookie_refresh = "1h0m0s"
+whitelist_domains = "%s"
+cookie_domains = "%s"
+%s
 `, GatewayServicePort,
 		ctx.CheCluster.GetCheHost(),
 		ctx.CheCluster.Spec.Auth.IdentityProviderURL,
 		ctx.CheCluster.Spec.Auth.OAuthClientName,
 		ctx.CheCluster.Spec.Auth.OAuthSecret,
 		cookieSecret,
-		skipAuthConfig(ctx.CheCluster))
+		skipAuthConfig(ctx.CheCluster),
+		util.Whitelist(ctx.CheCluster.GetCheHost()),
+		util.Whitelist(ctx.CheCluster.GetCheHost()),
+		oauthScopeConfig(ctx.CheCluster))
 }
 
 func skipAuthConfig(instance *orgv1.CheCluster) string {
@@ -141,6 +149,14 @@ func skipAuthConfig(instance *orgv1.CheCluster) string {
 			propName = "skip_auth_regex"
 		}
 		return fmt.Sprintf("%s = \"%s\"", propName, strings.Join(skipAuthPaths, "|"))
+	}
+	return ""
+}
+
+func oauthScopeConfig(instance *orgv1.CheCluster) string {
+	scope := instance.Spec.Auth.OAuthScope
+	if len(scope) > 1 {
+		return fmt.Sprintf(`scope="%s"`, scope)
 	}
 	return ""
 }

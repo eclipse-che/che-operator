@@ -410,3 +410,13 @@ func ClearMetadata(objectMeta *metav1.ObjectMeta) {
 	objectMeta.Finalizers = []string{}
 	objectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
 }
+
+// Whitelists the host.
+// Sample: Whitelist("che.mydomain.com") -> ".mydomain.com"
+func Whitelist(hostname string) (value string) {
+	i := strings.Index(hostname, ".")
+	if i > -1 {
+		return hostname[i:]
+	}
+	return hostname
+}

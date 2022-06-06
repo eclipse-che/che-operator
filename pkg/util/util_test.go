@@ -110,3 +110,12 @@ func TestIsCheMultiUser(t *testing.T) {
 		}
 	}
 }
+
+func TestWhitelist(t *testing.T) {
+	host := "che.qwruwqlrj.com"
+	expected := ".qwruwqlrj.com"
+	actual := Whitelist(host)
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("Test Failed. Expected '%s', but got '%s'", expected, actual)
+	}
+}
