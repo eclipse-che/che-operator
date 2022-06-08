@@ -500,6 +500,9 @@ type CheClusterSpecAuth struct {
 	// Name of the OpenShift `OAuthClient` resource used to setup identity federation on the OpenShift side. Auto-generated when left blank. See also the `OpenShiftoAuth` field.
 	// +optional
 	OAuthClientName string `json:"oAuthClientName,omitempty"`
+	// Access Token Scope. Ignored for OpenShift due to hardcoded value 'user:full'.
+	// +optional
+	OAuthScope string `json:"oAuthScope,omitempty"`
 	// Name of the secret set in the OpenShift `OAuthClient` resource used to setup identity federation on the OpenShift side. Auto-generated when left blank. See also the `OAuthClientName` field.
 	// +optional
 	OAuthSecret string `json:"oAuthSecret,omitempty"`
@@ -545,9 +548,6 @@ type CheClusterSpecAuth struct {
 	// Deprecated. The value of this flag is ignored.
 	// Debug internal identity provider.
 	Debug bool `json:"debug,omitempty"`
-	// OAuth Scope.
-	// +optional
-	OAuthScope string `json:"oAuthScope,omitempty"`
 }
 
 // Ingress custom settings, can be extended in the future
