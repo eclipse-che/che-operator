@@ -92,6 +92,38 @@ func TestAddOpenShiftTokenCheck(t *testing.T) {
 	}
 }
 
+func TestAddErrors(t *testing.T) {
+	status := "500-599"
+	service := "service"
+	query := "/"
+
+	cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080", []string{})
+	cfg.AddErrors(testComponentName, status, service, query)
+
+	assert.Len(t, cfg.HTTP.Routers[testComponentName].Middlewares, 1, *cfg)
+	assert.Len(t, cfg.HTTP.Middlewares, 1, *cfg)
+	middlewareName := cfg.HTTP.Routers[testComponentName].Middlewares[0]
+	if assert.Contains(t, cfg.HTTP.Middlewares, middlewareName, *cfg) && assert.NotNil(t, cfg.HTTP.Middlewares[middlewareName].Errors) {
+		assert.Equal(t, status, cfg.HTTP.Middlewares[middlewareName].Errors.Status)
+		assert.Equal(t, service, cfg.HTTP.Middlewares[middlewareName].Errors.Service)
+		assert.Equal(t, query, cfg.HTTP.Middlewares[middlewareName].Errors.Query)
+	}
+}
+
+func TestAddResponseHeaders(t *testing.T) {
+	reponseHeaders := map[string]string{"cache-control": "no-store, max-age=0"}
+
+	cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080", []string{})
+	cfg.AddResponseHeaders(testComponentName, reponseHeaders)
+
+	assert.Len(t, cfg.HTTP.Routers[testComponentName].Middlewares, 1, *cfg)
+	assert.Len(t, cfg.HTTP.Middlewares, 1, *cfg)
+	middlewareName := cfg.HTTP.Routers[testComponentName].Middlewares[0]
+	if assert.Contains(t, cfg.HTTP.Middlewares, middlewareName, *cfg) && assert.NotNil(t, cfg.HTTP.Middlewares[middlewareName].Headers) {
+		assert.Equal(t, reponseHeaders, cfg.HTTP.Middlewares[middlewareName].Headers.CustomResponseHeaders)
+	}
+}
+
 func TestMiddlewaresPreserveOrder(t *testing.T) {
 	t.Run("strip-header", func(t *testing.T) {
 		cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080", []string{})

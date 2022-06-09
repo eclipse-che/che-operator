@@ -17,9 +17,10 @@ type TraefikConfig struct {
 }
 
 type TraefikConfigHTTP struct {
-	Routers     map[string]*TraefikConfigRouter     `json:"routers"`
-	Services    map[string]*TraefikConfigService    `json:"services"`
-	Middlewares map[string]*TraefikConfigMiddleware `json:"middlewares,omitempty"`
+	Routers           map[string]*TraefikConfigRouter           `json:"routers"`
+	Services          map[string]*TraefikConfigService          `json:"services"`
+	Middlewares       map[string]*TraefikConfigMiddleware       `json:"middlewares,omitempty"`
+	ServersTransports map[string]*TraefikConfigServersTransport `json:"serversTransports,omitempty"`
 }
 
 type TraefikConfigRouter struct {
@@ -36,11 +37,18 @@ type TraefikConfigService struct {
 type TraefikConfigMiddleware struct {
 	StripPrefix *TraefikConfigStripPrefix `json:"stripPrefix,omitempty"`
 	ForwardAuth *TraefikConfigForwardAuth `json:"forwardAuth,omitempty"`
+	Errors      *TraefikConfigErrors      `json:"errors,omitempty"`
+	Headers     *TraefikConfigHeaders     `json:"headers,omitempty"`
 	Plugin      *TraefikPlugin            `json:"plugin,omitempty"`
 }
 
+type TraefikConfigServersTransport struct {
+	ForwardingTimeouts *TraefikConfigForwardingTimeouts `json:"forwardingTimeouts"`
+}
+
 type TraefikConfigLoadbalancer struct {
-	Servers []TraefikConfigLoadbalancerServer `json:"servers"`
+	Servers          []TraefikConfigLoadbalancerServer `json:"servers"`
+	ServersTransport string                            `json:"serversTransport,omitempty"`
 }
 
 type TraefikConfigLoadbalancerServer struct {
@@ -57,6 +65,16 @@ type TraefikConfigForwardAuth struct {
 	TLS                *TraefikConfigTLS `json:"tls,omitempty"`
 }
 
+type TraefikConfigErrors struct {
+	Status  string `json:"status"`
+	Service string `json:"service"`
+	Query   string `json:"query"`
+}
+
+type TraefikConfigHeaders struct {
+	CustomResponseHeaders map[string]string `json:"customResponseHeaders,omitempty"`
+}
+
 type TraefikPlugin struct {
 	HeaderRewrite *TraefikPluginHeaderRewrite `json:"header-rewrite,omitempty"`
 }
@@ -69,4 +87,8 @@ type TraefikPluginHeaderRewrite struct {
 
 type TraefikConfigTLS struct {
 	InsecureSkipVerify bool `json:"insecureSkipVerify"`
+}
+
+type TraefikConfigForwardingTimeouts struct {
+	DialTimeout string `json:"dialTimeout"`
 }
