@@ -13,15 +13,20 @@ package server
 
 import (
 	"context"
-	"os"
 
+	"k8s.io/utils/pointer"
+
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/util"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -32,25 +37,27 @@ import (
 )
 
 func TestSyncService(t *testing.T) {
-	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
 	corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
-	ctx := &deploy.DeployContext{
-		CheCluster: &orgv1.CheCluster{
+	ctx := &chetypes.DeployContext{
+		CheCluster: &chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "eclipse-che",
-				Name:      os.Getenv("CHE_FLAVOR"),
+				Name:      defaults.GetCheFlavor(),
 			},
-			Spec: orgv1.CheClusterSpec{
-				Server: orgv1.CheClusterSpecServer{
-					CheDebug: "true",
-				},
-				Metrics: orgv1.CheClusterSpecMetrics{
-					Enable: true,
+			Spec: chev2.CheClusterSpec{
+				Components: chev2.CheClusterComponents{
+					CheServer: chev2.CheServer{
+						Debug: pointer.BoolPtr(true),
+					},
+					Metrics: chev2.ServerMetrics{
+						Enable: true,
+					},
 				},
 			},
 		},
-		ClusterAPI: deploy.ClusterAPI{
+		ClusterAPI: chetypes.ClusterAPI{
 			Client:           cli,
 			NonCachingClient: cli,
 			Scheme:           scheme.Scheme,
@@ -70,30 +77,28 @@ func TestSyncService(t *testing.T) {
 	assert.Equal(t, service.Spec.Ports[0].Name, "http")
 	assert.Equal(t, service.Spec.Ports[0].Port, int32(8080))
 	assert.Equal(t, service.Spec.Ports[1].Name, "metrics")
-	assert.Equal(t, service.Spec.Ports[1].Port, deploy.DefaultCheMetricsPort)
+	assert.Equal(t, service.Spec.Ports[1].Port, constants.DefaultServerMetricsPort)
 	assert.Equal(t, service.Spec.Ports[2].Name, "debug")
-	assert.Equal(t, service.Spec.Ports[2].Port, deploy.DefaultCheDebugPort)
+	assert.Equal(t, service.Spec.Ports[2].Port, constants.DefaultServerDebugPort)
 }
 
 func TestConfiguringLabelsForRoutes(t *testing.T) {
-	util.IsOpenShift = true
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 
-	cheCluster := &orgv1.CheCluster{
+	cheCluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
-			Name:      os.Getenv("CHE_FLAVOR"),
+			Name:      "eclipse-che",
 		},
-		Spec: orgv1.CheClusterSpec{
-			Server: orgv1.CheClusterSpecServer{
-				CheServerRoute: orgv1.RouteCustomSettings{
-					Labels: "route=one",
-				},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Labels: map[string]string{"route": "one"},
 			},
 		},
-		Status: orgv1.CheClusterStatus{},
+		Status: chev2.CheClusterStatus{},
 	}
 
-	ctx := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
+	ctx := test.GetDeployContext(cheCluster, []runtime.Object{})
 
 	server := NewCheHostReconciler()
 	_, done, err := server.exposeCheEndpoint(ctx)
@@ -107,21 +112,20 @@ func TestConfiguringLabelsForRoutes(t *testing.T) {
 }
 
 func TestCheHostReconciler(t *testing.T) {
-	util.IsOpenShift = true
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 
-	cheCluster := &orgv1.CheCluster{
+	cheCluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
 		},
 	}
-	ctx := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
+	ctx := test.GetDeployContext(cheCluster, []runtime.Object{})
 
 	cheHostReconciler := NewCheHostReconciler()
 	_, done, err := cheHostReconciler.Reconcile(ctx)
 	assert.True(t, done)
 	assert.Nil(t, err)
-	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: getComponentName(ctx), Namespace: "eclipse-che"}, &routev1.Route{}))
-	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: deploy.CheServiceName, Namespace: "eclipse-che"}, &corev1.Service{}))
-	assert.NotEmpty(t, cheCluster.Status.CheURL)
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: getComponentName(ctx), Namespace: "eclipse-che"}, &routev1.Route{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: deploy.CheServiceName, Namespace: "eclipse-che"}, &corev1.Service{}))
 }

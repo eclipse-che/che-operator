@@ -16,6 +16,8 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	corev1 "k8s.io/api/core/v1"
@@ -30,7 +32,7 @@ var SecretDiffOpts = cmp.Options{
 
 // SyncSecret applies secret into cluster or external namespace
 func SyncSecretToCluster(
-	deployContext *DeployContext,
+	deployContext *chetypes.DeployContext,
 	name string,
 	namespace string,
 	data map[string][]byte) (bool, error) {
@@ -40,7 +42,7 @@ func SyncSecretToCluster(
 }
 
 // Get all secrets by labels and annotations
-func GetSecrets(deployContext *DeployContext, labels map[string]string, annotations map[string]string) ([]corev1.Secret, error) {
+func GetSecrets(deployContext *chetypes.DeployContext, labels map[string]string, annotations map[string]string) ([]corev1.Secret, error) {
 	secrets := []corev1.Secret{}
 
 	labelSelector := k8slabels.NewSelector()
@@ -80,8 +82,8 @@ func GetSecrets(deployContext *DeployContext, labels map[string]string, annotati
 }
 
 // GetSecretSpec return default secret config for given data
-func GetSecretSpec(deployContext *DeployContext, name string, namespace string, data map[string][]byte) *corev1.Secret {
-	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
+func GetSecretSpec(deployContext *chetypes.DeployContext, name string, namespace string, data map[string][]byte) *corev1.Secret {
+	labels := GetLabels(defaults.GetCheFlavor())
 	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",

@@ -16,9 +16,15 @@ import (
 	"reflect"
 	"testing"
 
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -28,7 +34,7 @@ const (
 )
 
 func TestGenerateProxyJavaOptsWithUsernameAndPassword(t *testing.T) {
-	proxy := &Proxy{
+	proxy := &chetypes.Proxy{
 		HttpProxy:    "https://user:password@myproxy.com:1234",
 		HttpUser:     "user",
 		HttpPassword: "password",
@@ -60,7 +66,7 @@ func TestGenerateProxyJavaOptsWithUsernameAndPassword(t *testing.T) {
 }
 
 func TestGenerateProxyJavaOptsWithoutAuthentication(t *testing.T) {
-	proxy := &Proxy{
+	proxy := &chetypes.Proxy{
 		HttpProxy: "http://myproxy.com:1234",
 		HttpHost:  "myproxy.com",
 		HttpPort:  "1234",
@@ -81,7 +87,7 @@ func TestGenerateProxyJavaOptsWithoutAuthentication(t *testing.T) {
 }
 
 func TestGenerateProxyJavaOptsWildcardInNonProxyHosts(t *testing.T) {
-	proxy := &Proxy{
+	proxy := &chetypes.Proxy{
 		HttpProxy: "http://myproxy.com:1234",
 		HttpHost:  "myproxy.com",
 		HttpPort:  "1234",
@@ -102,18 +108,36 @@ func TestGenerateProxyJavaOptsWildcardInNonProxyHosts(t *testing.T) {
 }
 
 func TestReadCheClusterProxyConfiguration(t *testing.T) {
-	checluster := &orgv1.CheCluster{
-		Spec: orgv1.CheClusterSpec{
-			Server: orgv1.CheClusterSpecServer{
-				ProxyPassword: "password",
-				ProxyUser:     "user",
-				ProxyPort:     "1234",
-				ProxyURL:      "https://myproxy.com",
-				NonProxyHosts: "host1|host2",
+	checluster := &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+		Spec: chev2.CheClusterSpec{
+			Components: chev2.CheClusterComponents{
+				CheServer: chev2.CheServer{
+					Proxy: chev2.Proxy{
+						Port:                  "1234",
+						Url:                   "https://myproxy.com",
+						NonProxyHosts:         []string{"host1", "host2"},
+						CredentialsSecretName: "proxy",
+					},
+				},
 			},
 		},
 	}
-	expectedProxy := &Proxy{
+	proxySecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "proxy",
+			Namespace: "eclipse-che",
+		},
+		Data: map[string][]byte{
+			"user":     []byte("user"),
+			"password": []byte("password"),
+		},
+	}
+
+	expectedProxy := &chetypes.Proxy{
 		HttpProxy:    "https://user:password@myproxy.com:1234",
 		HttpUser:     "user",
 		HttpPassword: "password",
@@ -129,7 +153,8 @@ func TestReadCheClusterProxyConfiguration(t *testing.T) {
 		NoProxy: "host1,host2",
 	}
 
-	actualProxy, _ := ReadCheClusterProxyConfiguration(checluster)
+	ctx := test.GetDeployContext(checluster, []runtime.Object{proxySecret})
+	actualProxy, _ := ReadCheClusterProxyConfiguration(ctx)
 
 	if !reflect.DeepEqual(actualProxy, expectedProxy) {
 		t.Errorf("Test failed. Expected '%v', but got '%v'", expectedProxy, actualProxy)
@@ -137,16 +162,21 @@ func TestReadCheClusterProxyConfiguration(t *testing.T) {
 }
 
 func TestReadCheClusterProxyConfigurationNoUser(t *testing.T) {
-	checluster := &orgv1.CheCluster{
-		Spec: orgv1.CheClusterSpec{
-			Server: orgv1.CheClusterSpecServer{
-				ProxyPort:     "1234",
-				ProxyURL:      "https://myproxy.com",
-				NonProxyHosts: "host1|host2",
+	checluster := &chev2.CheCluster{
+		Spec: chev2.CheClusterSpec{
+			Components: chev2.CheClusterComponents{
+				CheServer: chev2.CheServer{
+					Proxy: chev2.Proxy{
+						Port:          "1234",
+						Url:           "https://myproxy.com",
+						NonProxyHosts: []string{"host1", "host2"},
+					},
+				},
 			},
 		},
 	}
-	expectedProxy := &Proxy{
+
+	expectedProxy := &chetypes.Proxy{
 		HttpProxy: "https://myproxy.com:1234",
 		HttpHost:  "myproxy.com",
 		HttpPort:  "1234",
@@ -158,7 +188,8 @@ func TestReadCheClusterProxyConfigurationNoUser(t *testing.T) {
 		NoProxy: "host1,host2",
 	}
 
-	actualProxy, _ := ReadCheClusterProxyConfiguration(checluster)
+	ctx := test.GetDeployContext(checluster, []runtime.Object{})
+	actualProxy, _ := ReadCheClusterProxyConfiguration(ctx)
 
 	if !reflect.DeepEqual(actualProxy, expectedProxy) {
 		t.Errorf("Test failed. Expected '%v', but got '%v'", expectedProxy, actualProxy)
@@ -166,17 +197,34 @@ func TestReadCheClusterProxyConfigurationNoUser(t *testing.T) {
 }
 
 func TestReadCheClusterProxyConfigurationNoPort(t *testing.T) {
-	checluster := &orgv1.CheCluster{
-		Spec: orgv1.CheClusterSpec{
-			Server: orgv1.CheClusterSpecServer{
-				ProxyPassword: "password",
-				ProxyUser:     "user",
-				ProxyURL:      "https://myproxy.com",
-				NonProxyHosts: "host1|host2",
+	checluster := &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+		Spec: chev2.CheClusterSpec{
+			Components: chev2.CheClusterComponents{
+				CheServer: chev2.CheServer{
+					Proxy: chev2.Proxy{
+						Url:           "https://myproxy.com",
+						NonProxyHosts: []string{"host1", "host2"},
+					},
+				},
 			},
 		},
 	}
-	expectedProxy := &Proxy{
+	proxySecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "proxy-credentials",
+			Namespace: "eclipse-che",
+		},
+		Data: map[string][]byte{
+			"user":     []byte("user"),
+			"password": []byte("password"),
+		},
+	}
+
+	expectedProxy := &chetypes.Proxy{
 		HttpProxy:    "https://user:password@myproxy.com",
 		HttpUser:     "user",
 		HttpPassword: "password",
@@ -190,11 +238,9 @@ func TestReadCheClusterProxyConfigurationNoPort(t *testing.T) {
 		NoProxy: "host1,host2",
 	}
 
-	actualProxy, _ := ReadCheClusterProxyConfiguration(checluster)
-
-	if !reflect.DeepEqual(actualProxy, expectedProxy) {
-		t.Errorf("Test failed. Expected '%v', but got '%v'", expectedProxy, actualProxy)
-	}
+	ctx := test.GetDeployContext(checluster, []runtime.Object{proxySecret})
+	actualProxy, _ := ReadCheClusterProxyConfiguration(ctx)
+	assert.Equal(t, actualProxy, expectedProxy)
 }
 
 func TestReadClusterWideProxyConfiguration(t *testing.T) {
@@ -206,7 +252,7 @@ func TestReadClusterWideProxyConfiguration(t *testing.T) {
 		},
 	}
 
-	expectedProxy := &Proxy{
+	expectedProxy := &chetypes.Proxy{
 		HttpProxy:    "http://user1:password1@myproxy1.com:1234",
 		HttpUser:     "user1",
 		HttpPassword: "password1",
@@ -237,7 +283,7 @@ func TestReadClusterWideProxyConfigurationNoUser(t *testing.T) {
 		},
 	}
 
-	expectedProxy := &Proxy{
+	expectedProxy := &chetypes.Proxy{
 		HttpProxy: "http://myproxy.com:1234",
 		HttpHost:  "myproxy.com",
 		HttpPort:  "1234",
@@ -263,7 +309,7 @@ func TestReadClusterWideProxyConfigurationNoPort(t *testing.T) {
 		},
 	}
 
-	expectedProxy := &Proxy{
+	expectedProxy := &chetypes.Proxy{
 		HttpProxy:    "http://user:password@myproxy.com",
 		HttpUser:     "user",
 		HttpPassword: "password",

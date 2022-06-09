@@ -16,7 +16,8 @@ import (
 
 	"testing"
 
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -25,17 +26,17 @@ import (
 )
 
 func TestSyncConfigMapDataToCluster(t *testing.T) {
-	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
 	corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
-	deployContext := &DeployContext{
-		CheCluster: &orgv1.CheCluster{
+	deployContext := &chetypes.DeployContext{
+		CheCluster: &chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "eclipse-che",
 				Name:      "eclipse-che",
 			},
 		},
-		ClusterAPI: ClusterAPI{
+		ClusterAPI: chetypes.ClusterAPI{
 			Client:           cli,
 			NonCachingClient: cli,
 			Scheme:           scheme.Scheme,
@@ -75,17 +76,17 @@ func TestSyncConfigMapDataToCluster(t *testing.T) {
 }
 
 func TestSyncConfigMapSpecDataToCluster(t *testing.T) {
-	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
 	corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
-	deployContext := &DeployContext{
-		CheCluster: &orgv1.CheCluster{
+	deployContext := &chetypes.DeployContext{
+		CheCluster: &chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "eclipse-che",
 				Name:      "eclipse-che",
 			},
 		},
-		ClusterAPI: ClusterAPI{
+		ClusterAPI: chetypes.ClusterAPI{
 			Client:           cli,
 			NonCachingClient: cli,
 			Scheme:           scheme.Scheme,

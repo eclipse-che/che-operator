@@ -20,13 +20,13 @@ if [ -z "${OPERATOR_REPO}" ]; then
   OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
 fi
 
-source "${OPERATOR_REPO}"/.github/bin/common.sh
+source "${OPERATOR_REPO}/.github/bin/common.sh"
 
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
 runTest() {
-  deployEclipseCheOnWithOperator "/tmp/chectl-${PREVIOUS_PACKAGE_VERSION}/chectl/bin/run" "minikube" ${PREVIOUS_OPERATOR_VERSION_TEMPLATE_PATH} "false"
+  deployEclipseCheWithOperator "/tmp/chectl-${PREVIOUS_PACKAGE_VERSION}/chectl/bin/run" "minikube" ${PREVIOUS_OPERATOR_VERSION_TEMPLATE_PATH} "false"
   updateEclipseChe "chectl" "minikube" ${LAST_OPERATOR_VERSION_TEMPLATE_PATH} "false"
 }
 

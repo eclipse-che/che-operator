@@ -15,8 +15,9 @@ import (
 	"context"
 	"time"
 
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
-	"github.com/eclipse-che/che-operator/pkg/util"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -27,16 +28,16 @@ import (
 )
 
 func TestSyncClusterRoleBindingToCluster(t *testing.T) {
-	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
 	rbacv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
-	deployContext := &DeployContext{
-		CheCluster: &orgv1.CheCluster{
+	deployContext := &chetypes.DeployContext{
+		CheCluster: &chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "eclipse-che",
 			},
 		},
-		ClusterAPI: ClusterAPI{
+		ClusterAPI: chetypes.ClusterAPI{
 			Client:           cli,
 			NonCachingClient: cli,
 			Scheme:           scheme.Scheme,
@@ -72,17 +73,17 @@ func TestSyncClusterRoleBindingToCluster(t *testing.T) {
 }
 
 func TestSyncClusterRoleBindingAndAddFinalizerToCluster(t *testing.T) {
-	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
 	rbacv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
-	deployContext := &DeployContext{
-		CheCluster: &orgv1.CheCluster{
+	deployContext := &chetypes.DeployContext{
+		CheCluster: &chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "eclipse-che",
 				Name:      "eclipse-che",
 			},
 		},
-		ClusterAPI: ClusterAPI{
+		ClusterAPI: chetypes.ClusterAPI{
 			Client:           cli,
 			NonCachingClient: cli,
 			Scheme:           scheme.Scheme,
@@ -95,7 +96,7 @@ func TestSyncClusterRoleBindingAndAddFinalizerToCluster(t *testing.T) {
 		t.Fatalf("Failed to sync crb: %v", err)
 	}
 
-	if !util.ContainsString(deployContext.CheCluster.Finalizers, "test.crb.finalizers.che.eclipse.org") {
+	if !utils.Contains(deployContext.CheCluster.Finalizers, "test.crb.finalizers.che.eclipse.org") {
 		t.Fatalf("Failed to add finalizer")
 	}
 
@@ -110,7 +111,7 @@ func TestSyncClusterRoleBindingAndAddFinalizerToCluster(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CRD shouldn't be deleted: %v", err)
 	}
-	if !util.ContainsString(deployContext.CheCluster.Finalizers, "test.crb.finalizers.che.eclipse.org") {
+	if !utils.Contains(deployContext.CheCluster.Finalizers, "test.crb.finalizers.che.eclipse.org") {
 		t.Fatalf("Finalizer shouldn't be deleted")
 	}
 
@@ -126,7 +127,7 @@ func TestSyncClusterRoleBindingAndAddFinalizerToCluster(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Failed to remove crb: %v", err)
 	}
-	if util.ContainsString(deployContext.CheCluster.Finalizers, "test.crb.finalizers.che.eclipse.org") {
+	if utils.Contains(deployContext.CheCluster.Finalizers, "test.crb.finalizers.che.eclipse.org") {
 		t.Fatalf("Failed to remove finalizer")
 	}
 }

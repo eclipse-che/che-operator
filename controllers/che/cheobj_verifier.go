@@ -13,9 +13,9 @@
 package che
 
 import (
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
-	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -29,7 +29,7 @@ func IsTrustedBundleConfigMap(cl client.Client, watchNamespace string, obj clien
 		return false, ctrl.Request{}
 	}
 
-	checluster, num, _ := util.FindCheClusterCRInNamespace(cl, watchNamespace)
+	checluster, num, _ := deploy.FindCheClusterCRInNamespace(cl, watchNamespace)
 	if num != 1 {
 		if num > 1 {
 			logrus.Warn("More than one checluster Custom Resource found.")
@@ -42,22 +42,16 @@ func IsTrustedBundleConfigMap(cl client.Client, watchNamespace string, obj clien
 		return false, ctrl.Request{}
 	}
 
-	// Check if config map is the config map from CR
-	trustStoreConfigMap := util.GetValue(checluster.Spec.Server.ServerTrustStoreConfigMapName, deploy.DefaultServerTrustStoreConfigMapName)
-	if trustStoreConfigMap != obj.GetName() {
-		// No, it is not form CR
+	// Check for component
+	if value, exists := obj.GetLabels()[constants.KubernetesComponentLabelKey]; !exists || value != tls.CheCACertsConfigMapLabelValue {
+		// Labels do not match
+		return false, ctrl.Request{}
+	}
 
-		// Check for component
-		if value, exists := obj.GetLabels()[deploy.KubernetesComponentLabelKey]; !exists || value != tls.CheCACertsConfigMapLabelValue {
-			// Labels do not match
-			return false, ctrl.Request{}
-		}
-
-		// Check for part-of
-		if value, exists := obj.GetLabels()[deploy.KubernetesPartOfLabelKey]; !exists || value != deploy.CheEclipseOrg {
-			// ignore not matched labels
-			return false, ctrl.Request{}
-		}
+	// Check for part-of
+	if value, exists := obj.GetLabels()[constants.KubernetesPartOfLabelKey]; !exists || value != constants.CheEclipseOrg {
+		// ignore not matched labels
+		return false, ctrl.Request{}
 	}
 
 	return true, ctrl.Request{
@@ -77,7 +71,7 @@ func IsEclipseCheRelatedObj(cl client.Client, watchNamespace string, obj client.
 		return false, ctrl.Request{}
 	}
 
-	checluster, num, _ := util.FindCheClusterCRInNamespace(cl, watchNamespace)
+	checluster, num, _ := deploy.FindCheClusterCRInNamespace(cl, watchNamespace)
 	if num != 1 {
 		if num > 1 {
 			logrus.Warn("More than one checluster Custom Resource found.")
@@ -91,7 +85,7 @@ func IsEclipseCheRelatedObj(cl client.Client, watchNamespace string, obj client.
 	}
 
 	// Check for part-of label
-	if value, exists := obj.GetLabels()[deploy.KubernetesPartOfLabelKey]; !exists || value != deploy.CheEclipseOrg {
+	if value, exists := obj.GetLabels()[constants.KubernetesPartOfLabelKey]; !exists || value != constants.CheEclipseOrg {
 		return false, ctrl.Request{}
 	}
 

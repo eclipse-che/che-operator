@@ -1,0 +1,35 @@
+#
+# Copyright (c) 2019-2021 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Red Hat, Inc. - initial API and implementation
+#
+
+apiVersion: org.eclipse.che/v2
+kind: CheCluster
+metadata:
+  name: eclipse-che
+  namespace: eclipse-che
+spec:
+  devEnvironments:
+    defaultNamespace:
+      template: '<username>-che'
+    storage:
+      pvcStrategy: 'common'
+  components:
+    database:
+      externalDb: false
+    metrics:
+      enable: true
+  networking:
+    domain: ''
+    tlsSecretName: ''
+    auth:
+      identityProviderURL: ''
+      oAuthClientName: ''
+      oAuthSecret: ''

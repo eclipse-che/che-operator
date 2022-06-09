@@ -14,11 +14,12 @@ package devfileregistry
 import (
 	"os"
 
-	"github.com/eclipse-che/che-operator/pkg/util"
+	"k8s.io/apimachinery/pkg/api/resource"
 
-	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -35,18 +36,18 @@ func TestGetDevfileRegistryDeploymentSpec(t *testing.T) {
 		memoryRequest string
 		cpuRequest    string
 		cpuLimit      string
-		cheCluster    *orgv1.CheCluster
+		cheCluster    *chev2.CheCluster
 	}
 
 	testCases := []testCase{
 		{
 			name:          "Test default limits",
 			initObjects:   []runtime.Object{},
-			memoryLimit:   deploy.DefaultDevfileRegistryMemoryLimit,
-			memoryRequest: deploy.DefaultDevfileRegistryMemoryRequest,
-			cpuLimit:      deploy.DefaultDevfileRegistryCpuLimit,
-			cpuRequest:    deploy.DefaultDevfileRegistryCpuRequest,
-			cheCluster: &orgv1.CheCluster{
+			memoryLimit:   constants.DefaultDevfileRegistryMemoryLimit,
+			memoryRequest: constants.DefaultDevfileRegistryMemoryRequest,
+			cpuLimit:      constants.DefaultDevfileRegistryCpuLimit,
+			cpuRequest:    constants.DefaultDevfileRegistryCpuRequest,
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 					Name:      "eclipse-che",
@@ -60,17 +61,32 @@ func TestGetDevfileRegistryDeploymentSpec(t *testing.T) {
 			cpuRequest:    "150m",
 			memoryLimit:   "250Mi",
 			memoryRequest: "150Mi",
-			cheCluster: &orgv1.CheCluster{
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
 					Namespace: "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						DevfileRegistryCpuLimit:      "250m",
-						DevfileRegistryCpuRequest:    "150m",
-						DevfileRegistryMemoryLimit:   "250Mi",
-						DevfileRegistryMemoryRequest: "150Mi",
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						DevfileRegistry: chev2.DevfileRegistry{
+							Deployment: chev2.Deployment{
+								Containers: []chev2.Container{
+									{
+										Name: constants.DevfileRegistryName,
+										Resources: chev2.ResourceRequirements{
+											Requests: chev2.ResourceList{
+												Memory: resource.MustParse("150Mi"),
+												Cpu:    resource.MustParse("150m"),
+											},
+											Limits: chev2.ResourceList{
+												Memory: resource.MustParse("250Mi"),
+												Cpu:    resource.MustParse("250m"),
+											},
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -80,13 +96,13 @@ func TestGetDevfileRegistryDeploymentSpec(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			ctx := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
+			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
 
 			devfileregistry := NewDevfileRegistryReconciler()
 			deployment := devfileregistry.getDevfileRegistryDeploymentSpec(ctx)
 
-			util.CompareResources(deployment,
-				util.TestExpectedResources{
+			test.CompareResources(deployment,
+				test.TestExpectedResources{
 					MemoryLimit:   testCase.memoryLimit,
 					MemoryRequest: testCase.memoryRequest,
 					CpuRequest:    testCase.cpuRequest,
@@ -94,7 +110,7 @@ func TestGetDevfileRegistryDeploymentSpec(t *testing.T) {
 				},
 				t)
 
-			util.ValidateSecurityContext(deployment, t)
+			test.ValidateSecurityContext(deployment, t)
 		})
 	}
 }

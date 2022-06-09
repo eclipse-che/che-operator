@@ -17,7 +17,7 @@ set -x
 export CHE_REPO_BRANCH="main"
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
-source "${OPERATOR_REPO}"/.github/bin/common.sh
+source "${OPERATOR_REPO}/.github/bin/common.sh"
 source <(curl -s https://raw.githubusercontent.com/eclipse/che/${CHE_REPO_BRANCH}/tests/devworkspace-happy-path/common.sh)
 
 #Stop execution on any error
@@ -29,7 +29,7 @@ overrideDefaults() {
 }
 
 deployChe() {
-  deployEclipseCheOnWithOperator "chectl" "openshift" ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH} "true"
+  deployEclipseCheWithOperator "chectl" "openshift" ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH} "true"
 }
 
 initDefaults

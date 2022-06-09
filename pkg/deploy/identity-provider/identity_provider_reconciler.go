@@ -16,8 +16,9 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	oauth "github.com/openshift/api/oauth/v1"
 	"github.com/sirupsen/logrus"
@@ -40,12 +41,12 @@ func NewIdentityProviderReconciler() *IdentityProviderReconciler {
 	return &IdentityProviderReconciler{}
 }
 
-func (ip *IdentityProviderReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
+func (ip *IdentityProviderReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	done, err := syncNativeIdentityProviderItems(ctx)
 	return reconcile.Result{Requeue: !done}, done, err
 }
 
-func (ip *IdentityProviderReconciler) Finalize(ctx *deploy.DeployContext) bool {
+func (ip *IdentityProviderReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	oauthClient, err := FindOAuthClient(ctx)
 	if err != nil {
 		logrus.Errorf("Error deleting finalizer: %v", err)
@@ -65,9 +66,9 @@ func (ip *IdentityProviderReconciler) Finalize(ctx *deploy.DeployContext) bool {
 	return true
 }
 
-func syncNativeIdentityProviderItems(ctx *deploy.DeployContext) (bool, error) {
-	oauthSecret := util.GeneratePasswd(12)
-	oauthClientName := ctx.CheCluster.Name + "-openshift-identity-provider-" + strings.ToLower(util.GeneratePasswd(6))
+func syncNativeIdentityProviderItems(ctx *chetypes.DeployContext) (bool, error) {
+	oauthSecret := utils.GeneratePassword(12)
+	oauthClientName := ctx.CheCluster.Name + "-openshift-identity-provider-" + strings.ToLower(utils.GeneratePassword(6))
 
 	oauthClient, err := FindOAuthClient(ctx)
 	if err != nil {

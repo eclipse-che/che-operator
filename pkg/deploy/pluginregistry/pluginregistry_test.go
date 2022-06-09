@@ -12,8 +12,8 @@
 package pluginregistry
 
 import (
-	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/util"
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -25,16 +25,17 @@ import (
 )
 
 func TestPluginRegistryReconcile(t *testing.T) {
-	util.IsOpenShift = true
-	ctx := deploy.GetTestDeployContext(nil, []runtime.Object{})
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+	ctx := test.GetDeployContext(nil, []runtime.Object{})
 
 	pluginregistry := NewPluginRegistryReconciler()
 	_, done, err := pluginregistry.Reconcile(ctx)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
-	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.Service{}))
-	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
-	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &appsv1.Deployment{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.Service{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 	assert.NotEmpty(t, ctx.CheCluster.Status.PluginRegistryURL)
 }

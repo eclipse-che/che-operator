@@ -17,8 +17,10 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -50,7 +52,7 @@ func NewCertificatesReconciler() *CertificatesReconciler {
 	return &CertificatesReconciler{}
 }
 
-func (c *CertificatesReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
+func (c *CertificatesReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	if ctx.Proxy.TrustedCAMapName != "" {
 		done, err := c.syncTrustStoreConfigMapToCluster(ctx)
 		if !done {
@@ -62,21 +64,20 @@ func (c *CertificatesReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile
 	return reconcile.Result{}, done, err
 }
 
-func (c *CertificatesReconciler) Finalize(ctx *deploy.DeployContext) bool {
+func (c *CertificatesReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	return true
 }
 
-func (c *CertificatesReconciler) syncTrustStoreConfigMapToCluster(ctx *deploy.DeployContext) (bool, error) {
-	trustStoreConfigMapName := util.GetValue(ctx.CheCluster.Spec.Server.ServerTrustStoreConfigMapName, deploy.DefaultServerTrustStoreConfigMapName)
-	configMapSpec := deploy.GetConfigMapSpec(ctx, trustStoreConfigMapName, map[string]string{}, deploy.DefaultCheFlavor(ctx.CheCluster))
+func (c *CertificatesReconciler) syncTrustStoreConfigMapToCluster(ctx *chetypes.DeployContext) (bool, error) {
+	configMapSpec := deploy.GetConfigMapSpec(ctx, constants.DefaultServerTrustStoreConfigMapName, map[string]string{}, defaults.GetCheFlavor())
 
 	// OpenShift will automatically injects all certs into the configmap
 	configMapSpec.ObjectMeta.Labels[injector] = "true"
-	configMapSpec.ObjectMeta.Labels[deploy.KubernetesPartOfLabelKey] = deploy.CheEclipseOrg
-	configMapSpec.ObjectMeta.Labels[deploy.KubernetesComponentLabelKey] = CheCACertsConfigMapLabelValue
+	configMapSpec.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
+	configMapSpec.ObjectMeta.Labels[constants.KubernetesComponentLabelKey] = CheCACertsConfigMapLabelValue
 
 	actual := &corev1.ConfigMap{}
-	exists, err := deploy.GetNamespacedObject(ctx, trustStoreConfigMapName, actual)
+	exists, err := deploy.GetNamespacedObject(ctx, constants.DefaultServerTrustStoreConfigMapName, actual)
 	if err != nil {
 		return false, err
 	}
@@ -88,12 +89,12 @@ func (c *CertificatesReconciler) syncTrustStoreConfigMapToCluster(ctx *deploy.De
 	}
 
 	if actual.ObjectMeta.Labels[injector] != "true" ||
-		actual.ObjectMeta.Labels[deploy.KubernetesPartOfLabelKey] != deploy.CheEclipseOrg ||
-		actual.ObjectMeta.Labels[deploy.KubernetesComponentLabelKey] != CheCACertsConfigMapLabelValue {
+		actual.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey] != constants.CheEclipseOrg ||
+		actual.ObjectMeta.Labels[constants.KubernetesComponentLabelKey] != CheCACertsConfigMapLabelValue {
 
 		actual.ObjectMeta.Labels[injector] = "true"
-		actual.ObjectMeta.Labels[deploy.KubernetesPartOfLabelKey] = deploy.CheEclipseOrg
-		actual.ObjectMeta.Labels[deploy.KubernetesComponentLabelKey] = CheCACertsConfigMapLabelValue
+		actual.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
+		actual.ObjectMeta.Labels[constants.KubernetesComponentLabelKey] = CheCACertsConfigMapLabelValue
 
 		logrus.Infof("Updating existed object: %s, name: %s", configMapSpec.Kind, configMapSpec.Name)
 		if err := ctx.ClusterAPI.Client.Update(context.TODO(), actual); err != nil {
@@ -104,7 +105,7 @@ func (c *CertificatesReconciler) syncTrustStoreConfigMapToCluster(ctx *deploy.De
 	return true, nil
 }
 
-func (c *CertificatesReconciler) syncAdditionalCACertsConfigMapToCluster(ctx *deploy.DeployContext) (bool, error) {
+func (c *CertificatesReconciler) syncAdditionalCACertsConfigMapToCluster(ctx *chetypes.DeployContext) (bool, error) {
 	// Get all source config maps, if any
 	caConfigMaps, err := GetCACertsConfigMaps(ctx.ClusterAPI.Client, ctx.CheCluster.GetNamespace())
 	if err != nil {
@@ -162,8 +163,8 @@ func (c *CertificatesReconciler) syncAdditionalCACertsConfigMapToCluster(ctx *de
 		revisions += cm.ObjectMeta.Name + labelEqualSign + cm.ObjectMeta.ResourceVersion
 	}
 
-	mergedCAConfigMapSpec := deploy.GetConfigMapSpec(ctx, CheAllCACertsConfigMapName, data, deploy.DefaultCheFlavor(ctx.CheCluster))
-	mergedCAConfigMapSpec.ObjectMeta.Labels[deploy.KubernetesPartOfLabelKey] = deploy.CheEclipseOrg
+	mergedCAConfigMapSpec := deploy.GetConfigMapSpec(ctx, CheAllCACertsConfigMapName, data, defaults.GetCheFlavor())
+	mergedCAConfigMapSpec.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
 	mergedCAConfigMapSpec.ObjectMeta.Annotations[CheMergedCAConfigMapRevisionsAnnotationKey] = revisions
 	done, err := deploy.SyncConfigMapSpecToCluster(ctx, mergedCAConfigMapSpec)
 	return done, err

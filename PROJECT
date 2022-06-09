@@ -22,6 +22,9 @@ resources:
   domain: eclipse.che
   group: org
   kind: CheCluster
-  path: github.com/eclipse-che/che-operator/api/v2alpha1
-  version: v2alpha1
+  path: github.com/eclipse-che/che-operator/api/v2
+  version: v2
+  webhooks:
+    conversion: true
+    webhookVersion: v1
 version: "3"

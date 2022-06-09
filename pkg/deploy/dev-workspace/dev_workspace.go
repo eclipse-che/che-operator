@@ -18,8 +18,11 @@ import (
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -58,18 +61,13 @@ func NewDevWorkspaceReconciler() *DevWorkspaceReconciler {
 	return &DevWorkspaceReconciler{}
 }
 
-func (d *DevWorkspaceReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
-	if util.IsOpenShift && !util.IsOpenShift4 {
-		// OpenShift 3.x is not supported
-		return reconcile.Result{}, true, nil
-	}
-
+func (d *DevWorkspaceReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	if isDevWorkspaceOperatorCSVExists(ctx) {
 		// Do nothing if DevWorkspace has been already deployed via OLM
 		return reconcile.Result{}, true, nil
 	}
 
-	if util.IsOpenShift {
+	if infrastructure.IsOpenShift() {
 		wtoInstalled, err := isWebTerminalSubscriptionExist(ctx)
 		if err != nil {
 			return reconcile.Result{Requeue: true}, false, err
@@ -91,7 +89,7 @@ func (d *DevWorkspaceReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile
 			return reconcile.Result{Requeue: true}, false, err
 		}
 
-		namespaceOwnershipAnnotation := namespace.GetAnnotations()[deploy.CheEclipseOrgNamespace]
+		namespaceOwnershipAnnotation := namespace.GetAnnotations()[constants.CheEclipseOrgNamespace]
 		if namespaceOwnershipAnnotation == "" {
 			// don't manage DWO if namespace is create by someone else not but not Che Operator
 			return reconcile.Result{}, true, nil
@@ -107,7 +105,7 @@ func (d *DevWorkspaceReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile
 				// Don't take a control over DWO if CheCluster in another CR is handling it
 				return reconcile.Result{}, true, nil
 			}
-			namespace.GetAnnotations()[deploy.CheEclipseOrgNamespace] = ctx.CheCluster.Namespace
+			namespace.GetAnnotations()[constants.CheEclipseOrgNamespace] = ctx.CheCluster.Namespace
 			_, err = deploy.Sync(ctx, namespace)
 			if err != nil {
 				return reconcile.Result{Requeue: true}, false, err
@@ -129,7 +127,7 @@ func (d *DevWorkspaceReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile
 		}
 	}
 
-	if !util.IsTestMode() {
+	if !test.IsTestMode() {
 		if !devWorkspaceWebHookExistedBeforeSync {
 			// we need to restart Che Operator to switch devworkspace controller mode
 			restartCheOperator()
@@ -139,6 +137,6 @@ func (d *DevWorkspaceReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile
 	return reconcile.Result{}, true, nil
 }
 
-func (d *DevWorkspaceReconciler) Finalize(ctx *deploy.DeployContext) bool {
+func (d *DevWorkspaceReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	return true
 }

@@ -14,14 +14,19 @@ package deploy
 import (
 	"context"
 
-	"github.com/eclipse-che/che-operator/pkg/util"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func AppendFinalizer(deployContext *DeployContext, finalizer string) error {
-	if !util.ContainsString(deployContext.CheCluster.ObjectMeta.Finalizers, finalizer) {
+func AppendFinalizer(deployContext *chetypes.DeployContext, finalizer string) error {
+	if err := ReloadCheClusterCR(deployContext); err != nil {
+		return err
+	}
+
+	if !utils.Contains(deployContext.CheCluster.ObjectMeta.Finalizers, finalizer) {
 		for {
 			deployContext.CheCluster.ObjectMeta.Finalizers = append(deployContext.CheCluster.ObjectMeta.Finalizers, finalizer)
 			err := deployContext.ClusterAPI.Client.Update(context.TODO(), deployContext.CheCluster)
@@ -42,10 +47,10 @@ func AppendFinalizer(deployContext *DeployContext, finalizer string) error {
 	return nil
 }
 
-func DeleteFinalizer(deployContext *DeployContext, finalizer string) error {
-	if util.ContainsString(deployContext.CheCluster.ObjectMeta.Finalizers, finalizer) {
+func DeleteFinalizer(deployContext *chetypes.DeployContext, finalizer string) error {
+	if utils.Contains(deployContext.CheCluster.ObjectMeta.Finalizers, finalizer) {
 		for {
-			deployContext.CheCluster.ObjectMeta.Finalizers = util.DoRemoveString(deployContext.CheCluster.ObjectMeta.Finalizers, finalizer)
+			deployContext.CheCluster.ObjectMeta.Finalizers = utils.Remove(deployContext.CheCluster.ObjectMeta.Finalizers, finalizer)
 			err := deployContext.ClusterAPI.Client.Update(context.TODO(), deployContext.CheCluster)
 			if err == nil {
 				logrus.Infof("Deleted finalizer: %s", finalizer)
@@ -64,7 +69,7 @@ func DeleteFinalizer(deployContext *DeployContext, finalizer string) error {
 	return nil
 }
 
-func DeleteObjectWithFinalizer(deployContext *DeployContext, key client.ObjectKey, objectMeta client.Object, finalizer string) error {
+func DeleteObjectWithFinalizer(deployContext *chetypes.DeployContext, key client.ObjectKey, objectMeta client.Object, finalizer string) error {
 	_, err := Delete(deployContext, key, objectMeta)
 	if err != nil {
 		// failed to delete, shouldn't us prevent from removing finalizer

@@ -14,12 +14,16 @@ package server
 import (
 	"os"
 
-	"github.com/eclipse-che/che-operator/pkg/util"
+	"k8s.io/apimachinery/pkg/api/resource"
+
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/eclipse-che/che-operator/pkg/deploy"
-
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -39,18 +43,18 @@ func TestDeployment(t *testing.T) {
 		memoryRequest string
 		cpuLimit      string
 		cpuRequest    string
-		cheCluster    *orgv1.CheCluster
+		cheCluster    *chev2.CheCluster
 	}
 
 	testCases := []testCase{
 		{
 			name:          "Test default limits",
 			initObjects:   []runtime.Object{},
-			memoryLimit:   deploy.DefaultServerMemoryLimit,
-			memoryRequest: deploy.DefaultServerMemoryRequest,
-			cpuLimit:      deploy.DefaultServerCpuLimit,
-			cpuRequest:    deploy.DefaultServerCpuRequest,
-			cheCluster: &orgv1.CheCluster{
+			memoryLimit:   constants.DefaultServerMemoryLimit,
+			memoryRequest: constants.DefaultServerMemoryRequest,
+			cpuLimit:      constants.DefaultServerCpuLimit,
+			cpuRequest:    constants.DefaultServerCpuRequest,
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 				},
@@ -63,16 +67,31 @@ func TestDeployment(t *testing.T) {
 			cpuRequest:    "150m",
 			memoryLimit:   "250Mi",
 			memoryRequest: "150Mi",
-			cheCluster: &orgv1.CheCluster{
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						ServerCpuLimit:      "250m",
-						ServerCpuRequest:    "150m",
-						ServerMemoryLimit:   "250Mi",
-						ServerMemoryRequest: "150Mi",
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						CheServer: chev2.CheServer{
+							Deployment: chev2.Deployment{
+								Containers: []chev2.Container{
+									{
+										Name: defaults.GetCheFlavor(),
+										Resources: chev2.ResourceRequirements{
+											Requests: chev2.ResourceList{
+												Memory: resource.MustParse("150Mi"),
+												Cpu:    resource.MustParse("150m"),
+											},
+											Limits: chev2.ResourceList{
+												Memory: resource.MustParse("250Mi"),
+												Cpu:    resource.MustParse("250m"),
+											},
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -82,13 +101,13 @@ func TestDeployment(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+			chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
 			testCase.initObjects = append(testCase.initObjects)
 			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
 
-			ctx := &deploy.DeployContext{
+			ctx := &chetypes.DeployContext{
 				CheCluster: testCase.cheCluster,
-				ClusterAPI: deploy.ClusterAPI{
+				ClusterAPI: chetypes.ClusterAPI{
 					Client: cli,
 					Scheme: scheme.Scheme,
 				},
@@ -98,8 +117,8 @@ func TestDeployment(t *testing.T) {
 			deployment, err := server.getDeploymentSpec(ctx)
 
 			assert.Nil(t, err)
-			util.CompareResources(deployment,
-				util.TestExpectedResources{
+			test.CompareResources(deployment,
+				test.TestExpectedResources{
 					MemoryLimit:   testCase.memoryLimit,
 					MemoryRequest: testCase.memoryRequest,
 					CpuRequest:    testCase.cpuRequest,
@@ -107,20 +126,20 @@ func TestDeployment(t *testing.T) {
 				},
 				t)
 
-			util.ValidateSecurityContext(deployment, t)
+			test.ValidateSecurityContext(deployment, t)
 		})
 	}
 }
 
 func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 	type testCase struct {
-		name                       string
-		initObjects                []runtime.Object
-		expectedConsumerKeyPathEnv corev1.EnvVar
-		expectedPrivateKeyPathEnv  corev1.EnvVar
-		expectedOAuthEndpointEnv   corev1.EnvVar
-		expectedVolume             corev1.Volume
-		expectedVolumeMount        corev1.VolumeMount
+		name                    string
+		initObjects             []runtime.Object
+		expectedConsumerKeyPath string
+		expectedPrivateKeyPath  string
+		expectedOAuthEndpoint   string
+		expectedVolume          corev1.Volume
+		expectedVolumeMount     corev1.VolumeMount
 	}
 
 	testCases := []testCase{
@@ -150,18 +169,9 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 					},
 				},
 			},
-			expectedConsumerKeyPathEnv: corev1.EnvVar{
-				Name:  "CHE_OAUTH1_BITBUCKET_CONSUMERKEYPATH",
-				Value: "/che-conf/oauth/bitbucket/consumer.key",
-			},
-			expectedPrivateKeyPathEnv: corev1.EnvVar{
-				Name:  "CHE_OAUTH1_BITBUCKET_PRIVATEKEYPATH",
-				Value: "/che-conf/oauth/bitbucket/private.key",
-			},
-			expectedOAuthEndpointEnv: corev1.EnvVar{
-				Name:  "CHE_OAUTH1_BITBUCKET_ENDPOINT",
-				Value: "endpoint_1",
-			},
+			expectedConsumerKeyPath: "/che-conf/oauth/bitbucket/consumer.key",
+			expectedPrivateKeyPath:  "/che-conf/oauth/bitbucket/private.key",
+			expectedOAuthEndpoint:   "endpoint_1",
 			expectedVolume: corev1.Volume{
 				Name: "github-oauth-config",
 				VolumeSource: corev1.VolumeSource{
@@ -179,7 +189,7 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := deploy.GetTestDeployContext(nil, testCase.initObjects)
+			ctx := test.GetDeployContext(nil, testCase.initObjects)
 
 			server := NewCheServerReconciler()
 			deployment, err := server.getDeploymentSpec(ctx)
@@ -187,23 +197,20 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 
 			container := &deployment.Spec.Template.Spec.Containers[0]
 
-			env := util.FindEnv(container.Env, "CHE_OAUTH1_BITBUCKET_CONSUMERKEYPATH")
-			assert.NotNil(t, env)
-			assert.Equal(t, testCase.expectedConsumerKeyPathEnv, *env)
+			value := utils.GetEnv(container.Env, "CHE_OAUTH1_BITBUCKET_CONSUMERKEYPATH")
+			assert.Equal(t, testCase.expectedConsumerKeyPath, value)
 
-			env = util.FindEnv(container.Env, "CHE_OAUTH1_BITBUCKET_PRIVATEKEYPATH")
-			assert.NotNil(t, env)
-			assert.Equal(t, testCase.expectedPrivateKeyPathEnv, *env)
+			value = utils.GetEnv(container.Env, "CHE_OAUTH1_BITBUCKET_PRIVATEKEYPATH")
+			assert.Equal(t, testCase.expectedPrivateKeyPath, value)
 
-			env = util.FindEnv(container.Env, "CHE_OAUTH1_BITBUCKET_ENDPOINT")
-			assert.NotNil(t, env)
-			assert.Equal(t, testCase.expectedOAuthEndpointEnv, *env)
+			value = utils.GetEnv(container.Env, "CHE_OAUTH1_BITBUCKET_ENDPOINT")
+			assert.Equal(t, testCase.expectedOAuthEndpoint, value)
 
-			volume := util.FindVolume(deployment.Spec.Template.Spec.Volumes, "github-oauth-config")
+			volume := test.FindVolume(deployment.Spec.Template.Spec.Volumes, "github-oauth-config")
 			assert.NotNil(t, volume)
 			assert.Equal(t, testCase.expectedVolume, volume)
 
-			volumeMount := util.FindVolumeMount(container.VolumeMounts, "github-oauth-config")
+			volumeMount := test.FindVolumeMount(container.VolumeMounts, "github-oauth-config")
 			assert.NotNil(t, volumeMount)
 			assert.Equal(t, testCase.expectedVolumeMount, volumeMount)
 		})
@@ -212,13 +219,13 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 
 func TestMountGitHubOAuthEnvVar(t *testing.T) {
 	type testCase struct {
-		name                     string
-		initObjects              []runtime.Object
-		expectedIdKeyPathEnv     corev1.EnvVar
-		expectedSecretKeyPathEnv corev1.EnvVar
-		expectedOAuthEndpointEnv corev1.EnvVar
-		expectedVolume           corev1.Volume
-		expectedVolumeMount      corev1.VolumeMount
+		name                  string
+		initObjects           []runtime.Object
+		expectedIdKeyPath     string
+		expectedSecretKeyPath string
+		expectedOAuthEndpoint string
+		expectedVolume        corev1.Volume
+		expectedVolumeMount   corev1.VolumeMount
 	}
 
 	testCases := []testCase{
@@ -248,18 +255,9 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 					},
 				},
 			},
-			expectedIdKeyPathEnv: corev1.EnvVar{
-				Name:  "CHE_OAUTH2_GITHUB_CLIENTID__FILEPATH",
-				Value: "/che-conf/oauth/github/id",
-			},
-			expectedSecretKeyPathEnv: corev1.EnvVar{
-				Name:  "CHE_OAUTH2_GITHUB_CLIENTSECRET__FILEPATH",
-				Value: "/che-conf/oauth/github/secret",
-			},
-			expectedOAuthEndpointEnv: corev1.EnvVar{
-				Name:  "CHE_INTEGRATION_GITHUB_OAUTH__ENDPOINT",
-				Value: "endpoint_1",
-			},
+			expectedIdKeyPath:     "/che-conf/oauth/github/id",
+			expectedSecretKeyPath: "/che-conf/oauth/github/secret",
+			expectedOAuthEndpoint: "endpoint_1",
 			expectedVolume: corev1.Volume{
 				Name: "github-oauth-config",
 				VolumeSource: corev1.VolumeSource{
@@ -277,7 +275,7 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := deploy.GetTestDeployContext(nil, testCase.initObjects)
+			ctx := test.GetDeployContext(nil, testCase.initObjects)
 
 			server := NewCheServerReconciler()
 			deployment, err := server.getDeploymentSpec(ctx)
@@ -285,23 +283,20 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 
 			container := &deployment.Spec.Template.Spec.Containers[0]
 
-			env := util.FindEnv(container.Env, "CHE_OAUTH2_GITHUB_CLIENTID__FILEPATH")
-			assert.NotNil(t, env)
-			assert.Equal(t, testCase.expectedIdKeyPathEnv, *env)
+			value := utils.GetEnv(container.Env, "CHE_OAUTH2_GITHUB_CLIENTID__FILEPATH")
+			assert.Equal(t, testCase.expectedIdKeyPath, value)
 
-			env = util.FindEnv(container.Env, "CHE_OAUTH2_GITHUB_CLIENTSECRET__FILEPATH")
-			assert.NotNil(t, env)
-			assert.Equal(t, testCase.expectedSecretKeyPathEnv, *env)
+			value = utils.GetEnv(container.Env, "CHE_OAUTH2_GITHUB_CLIENTSECRET__FILEPATH")
+			assert.Equal(t, testCase.expectedSecretKeyPath, value)
 
-			env = util.FindEnv(container.Env, "CHE_INTEGRATION_GITHUB_OAUTH__ENDPOINT")
-			assert.NotNil(t, env)
-			assert.Equal(t, testCase.expectedOAuthEndpointEnv, *env)
+			value = utils.GetEnv(container.Env, "CHE_INTEGRATION_GITHUB_OAUTH__ENDPOINT")
+			assert.Equal(t, testCase.expectedOAuthEndpoint, value)
 
-			volume := util.FindVolume(deployment.Spec.Template.Spec.Volumes, "github-oauth-config")
+			volume := test.FindVolume(deployment.Spec.Template.Spec.Volumes, "github-oauth-config")
 			assert.NotNil(t, volume)
 			assert.Equal(t, testCase.expectedVolume, volume)
 
-			volumeMount := util.FindVolumeMount(container.VolumeMounts, "github-oauth-config")
+			volumeMount := test.FindVolumeMount(container.VolumeMounts, "github-oauth-config")
 			assert.NotNil(t, volumeMount)
 			assert.Equal(t, testCase.expectedVolumeMount, volumeMount)
 		})
@@ -310,13 +305,13 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 
 func TestMountGitLabOAuthEnvVar(t *testing.T) {
 	type testCase struct {
-		name                     string
-		initObjects              []runtime.Object
-		expectedIdKeyPathEnv     corev1.EnvVar
-		expectedSecretKeyPathEnv corev1.EnvVar
-		expectedOAuthEndpointEnv corev1.EnvVar
-		expectedVolume           corev1.Volume
-		expectedVolumeMount      corev1.VolumeMount
+		name                  string
+		initObjects           []runtime.Object
+		expectedIdKeyPath     string
+		expectedSecretKeyPath string
+		expectedOAuthEndpoint string
+		expectedVolume        corev1.Volume
+		expectedVolumeMount   corev1.VolumeMount
 	}
 
 	testCases := []testCase{
@@ -346,18 +341,9 @@ func TestMountGitLabOAuthEnvVar(t *testing.T) {
 					},
 				},
 			},
-			expectedIdKeyPathEnv: corev1.EnvVar{
-				Name:  "CHE_OAUTH2_GITLAB_CLIENTID__FILEPATH",
-				Value: "/che-conf/oauth/gitlab/id",
-			},
-			expectedSecretKeyPathEnv: corev1.EnvVar{
-				Name:  "CHE_OAUTH2_GITLAB_CLIENTSECRET__FILEPATH",
-				Value: "/che-conf/oauth/gitlab/secret",
-			},
-			expectedOAuthEndpointEnv: corev1.EnvVar{
-				Name:  "CHE_INTEGRATION_GITLAB_OAUTH__ENDPOINT",
-				Value: "endpoint_1",
-			},
+			expectedIdKeyPath:     "/che-conf/oauth/gitlab/id",
+			expectedSecretKeyPath: "/che-conf/oauth/gitlab/secret",
+			expectedOAuthEndpoint: "endpoint_1",
 			expectedVolume: corev1.Volume{
 				Name: "gitlab-oauth-config",
 				VolumeSource: corev1.VolumeSource{
@@ -375,7 +361,7 @@ func TestMountGitLabOAuthEnvVar(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := deploy.GetTestDeployContext(nil, testCase.initObjects)
+			ctx := test.GetDeployContext(nil, testCase.initObjects)
 
 			server := NewCheServerReconciler()
 			deployment, err := server.getDeploymentSpec(ctx)
@@ -383,23 +369,20 @@ func TestMountGitLabOAuthEnvVar(t *testing.T) {
 
 			container := &deployment.Spec.Template.Spec.Containers[0]
 
-			env := util.FindEnv(container.Env, "CHE_OAUTH2_GITLAB_CLIENTID__FILEPATH")
-			assert.NotNil(t, env)
-			assert.Equal(t, testCase.expectedIdKeyPathEnv, *env)
+			value := utils.GetEnv(container.Env, "CHE_OAUTH2_GITLAB_CLIENTID__FILEPATH")
+			assert.Equal(t, testCase.expectedIdKeyPath, value)
 
-			env = util.FindEnv(container.Env, "CHE_OAUTH2_GITLAB_CLIENTSECRET__FILEPATH")
-			assert.NotNil(t, env)
-			assert.Equal(t, testCase.expectedSecretKeyPathEnv, *env)
+			value = utils.GetEnv(container.Env, "CHE_OAUTH2_GITLAB_CLIENTSECRET__FILEPATH")
+			assert.Equal(t, testCase.expectedSecretKeyPath, value)
 
-			env = util.FindEnv(container.Env, "CHE_INTEGRATION_GITLAB_OAUTH__ENDPOINT")
-			assert.NotNil(t, env)
-			assert.Equal(t, testCase.expectedOAuthEndpointEnv, *env)
+			value = utils.GetEnv(container.Env, "CHE_INTEGRATION_GITLAB_OAUTH__ENDPOINT")
+			assert.Equal(t, testCase.expectedOAuthEndpoint, value)
 
-			volume := util.FindVolume(deployment.Spec.Template.Spec.Volumes, "gitlab-oauth-config")
+			volume := test.FindVolume(deployment.Spec.Template.Spec.Volumes, "gitlab-oauth-config")
 			assert.NotNil(t, volume)
 			assert.Equal(t, testCase.expectedVolume, volume)
 
-			volumeMount := util.FindVolumeMount(container.VolumeMounts, "gitlab-oauth-config")
+			volumeMount := test.FindVolumeMount(container.VolumeMounts, "gitlab-oauth-config")
 			assert.NotNil(t, volumeMount)
 			assert.Equal(t, testCase.expectedVolumeMount, volumeMount)
 		})

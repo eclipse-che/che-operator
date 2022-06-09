@@ -12,11 +12,9 @@
 package devfileregistry
 
 import (
-	"os"
-
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/util"
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -28,48 +26,38 @@ import (
 )
 
 func TestDevfileRegistryReconcile(t *testing.T) {
-	util.IsOpenShift = true
-	ctx := deploy.GetTestDeployContext(nil, []runtime.Object{})
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+	ctx := test.GetDeployContext(nil, []runtime.Object{})
 
 	devfileregistry := NewDevfileRegistryReconciler()
 	_, done, err := devfileregistry.Reconcile(ctx)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
-	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "devfile-registry", Namespace: "eclipse-che"}, &corev1.Service{}))
-	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "devfile-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
-	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "devfile-registry", Namespace: "eclipse-che"}, &appsv1.Deployment{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "devfile-registry", Namespace: "eclipse-che"}, &corev1.Service{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "devfile-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "devfile-registry", Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 	assert.NotEmpty(t, ctx.CheCluster.Status.DevfileRegistryURL)
 }
 
 func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 	type testCase struct {
 		name                       string
-		isOpenShift                bool
-		isOpenShift4               bool
 		initObjects                []runtime.Object
-		cheCluster                 *orgv1.CheCluster
+		cheCluster                 *chev2.CheCluster
 		expectedDevfileRegistryURL string
 	}
 
 	testCases := []testCase{
 		{
 			name: "Test Status.DevfileRegistryURL #1",
-			cheCluster: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
-					Name:      os.Getenv("CHE_FLAVOR"),
+					Name:      "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						ExternalDevfileRegistry: false,
-					},
-				},
-				Status: orgv1.CheClusterStatus{
+				Status: chev2.CheClusterStatus{
 					CheURL: "https://che-host",
 				},
 			},
@@ -77,51 +65,44 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 		},
 		{
 			name: "Test Status.DevfileRegistryURL #2",
-			cheCluster: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
-					Name:      os.Getenv("CHE_FLAVOR"),
+					Name:      "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						ExternalDevfileRegistry: false,
-						DevfileRegistryUrl:      "https://devfile-registry.external.1",
-						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
-							{Url: "https://devfile-registry.external.2"},
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						DevfileRegistry: chev2.DevfileRegistry{
+							ExternalDevfileRegistries: []chev2.ExternalDevfileRegistry{
+								{Url: "https://devfile-registry.external.2"},
+							},
 						},
 					},
 				},
-				Status: orgv1.CheClusterStatus{
+				Status: chev2.CheClusterStatus{
 					CheURL: "https://che-host",
 				},
 			},
 			expectedDevfileRegistryURL: "https://che-host/devfile-registry",
 		},
 		{
-			name: "Test Status.DevfileRegistryURL #2",
-			cheCluster: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
+			name: "Test Status.DevfileRegistryURL #3",
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
-					Name:      os.Getenv("CHE_FLAVOR"),
+					Name:      "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						ExternalDevfileRegistry: true,
-						DevfileRegistryUrl:      "https://devfile-registry.external.1",
-						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
-							{Url: "https://devfile-registry.external.2"},
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						DevfileRegistry: chev2.DevfileRegistry{
+							DisableInternalRegistry: true,
+							ExternalDevfileRegistries: []chev2.ExternalDevfileRegistry{
+								{Url: "https://devfile-registry.external.2"},
+							},
 						},
 					},
 				},
-				Status: orgv1.CheClusterStatus{
+				Status: chev2.CheClusterStatus{
 					CheURL: "https://che-host",
 				},
 			},
@@ -131,10 +112,7 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
-
-			util.IsOpenShift = testCase.isOpenShift
-			util.IsOpenShift4 = testCase.isOpenShift4
+			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
 
 			devfileregistry := NewDevfileRegistryReconciler()
 			devfileregistry.Reconcile(ctx)

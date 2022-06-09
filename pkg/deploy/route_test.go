@@ -14,12 +14,14 @@ package deploy
 import (
 	"context"
 	"os"
-	"reflect"
 
-	"github.com/google/go-cmp/cmp"
 	routev1 "github.com/openshift/api/route/v1"
+	"github.com/stretchr/testify/assert"
 
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -32,22 +34,14 @@ func TestRouteSpec(t *testing.T) {
 	weight := int32(100)
 
 	type testCase struct {
-		name                string
-		routeName           string
-		routeHost           string
-		routePath           string
-		routeComponent      string
-		serviceName         string
-		servicePort         int32
-		routeCustomSettings orgv1.RouteCustomSettings
-		expectedRoute       *routev1.Route
-	}
-
-	cheCluster := &orgv1.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "eclipse-che",
-			Name:      "eclipse-che",
-		},
+		name           string
+		routeName      string
+		routePath      string
+		routeComponent string
+		serviceName    string
+		servicePort    int32
+		cheCluster     *chev2.CheCluster
+		expectedRoute  *routev1.Route
 	}
 
 	testCases := []testCase{
@@ -57,9 +51,17 @@ func TestRouteSpec(t *testing.T) {
 			routeComponent: "test-component",
 			serviceName:    "che",
 			servicePort:    8080,
-			routeCustomSettings: orgv1.RouteCustomSettings{
-				Labels: "type=default",
-				Domain: "route-domain",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Networking: chev2.CheClusterSpecNetworking{
+						Labels: map[string]string{"type": "default"},
+						Domain: "route-domain",
+					},
+				},
 			},
 			expectedRoute: &routev1.Route{
 				ObjectMeta: metav1.ObjectMeta{
@@ -68,10 +70,10 @@ func TestRouteSpec(t *testing.T) {
 					Labels: map[string]string{
 						"type":                         "default",
 						"app.kubernetes.io/component":  "test-component",
-						"app.kubernetes.io/instance":   DefaultCheFlavor(cheCluster),
+						"app.kubernetes.io/instance":   defaults.GetCheFlavor(),
 						"app.kubernetes.io/part-of":    "che.eclipse.org",
-						"app.kubernetes.io/managed-by": DefaultCheFlavor(cheCluster) + "-operator",
-						"app.kubernetes.io/name":       DefaultCheFlavor(cheCluster),
+						"app.kubernetes.io/managed-by": defaults.GetCheFlavor() + "-operator",
+						"app.kubernetes.io/name":       defaults.GetCheFlavor(),
 					},
 				},
 				TypeMeta: metav1.TypeMeta{
@@ -99,11 +101,19 @@ func TestRouteSpec(t *testing.T) {
 			name:           "Test custom host",
 			routeName:      "test",
 			routeComponent: "test-component",
-			routeHost:      "test-host",
 			serviceName:    "che",
 			servicePort:    8080,
-			routeCustomSettings: orgv1.RouteCustomSettings{
-				Labels: "type=default",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Networking: chev2.CheClusterSpecNetworking{
+						Labels:   map[string]string{"type": "default"},
+						Hostname: "test-host",
+					},
+				},
 			},
 			expectedRoute: &routev1.Route{
 				ObjectMeta: metav1.ObjectMeta{
@@ -112,10 +122,10 @@ func TestRouteSpec(t *testing.T) {
 					Labels: map[string]string{
 						"type":                         "default",
 						"app.kubernetes.io/component":  "test-component",
-						"app.kubernetes.io/instance":   DefaultCheFlavor(cheCluster),
+						"app.kubernetes.io/instance":   defaults.GetCheFlavor(),
 						"app.kubernetes.io/part-of":    "che.eclipse.org",
-						"app.kubernetes.io/managed-by": DefaultCheFlavor(cheCluster) + "-operator",
-						"app.kubernetes.io/name":       DefaultCheFlavor(cheCluster),
+						"app.kubernetes.io/managed-by": defaults.GetCheFlavor() + "-operator",
+						"app.kubernetes.io/name":       defaults.GetCheFlavor(),
 					},
 				},
 				TypeMeta: metav1.TypeMeta{
@@ -143,81 +153,62 @@ func TestRouteSpec(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := GetTestDeployContext(cheCluster, []runtime.Object{})
+			deployContext := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
 
 			actualRoute, err := GetRouteSpec(deployContext,
 				testCase.routeName,
-				testCase.routeHost,
 				testCase.routePath,
 				testCase.serviceName,
 				testCase.servicePort,
-				testCase.routeCustomSettings,
 				testCase.routeComponent,
 			)
-			if err != nil {
-				t.Fatalf("Error creating route: %v", err)
-			}
 
-			if !reflect.DeepEqual(testCase.expectedRoute, actualRoute) {
-				t.Errorf("Expected route and route returned from API server differ (-want, +got): %v", cmp.Diff(testCase.expectedRoute, actualRoute))
-			}
+			assert.Nil(t, err)
+			assert.Equal(t, testCase.expectedRoute, actualRoute)
 		})
 	}
 }
 
 func TestSyncRouteToCluster(t *testing.T) {
-	// init context
-	deployContext := GetTestDeployContext(nil, []runtime.Object{})
+	deployContext := test.GetDeployContext(nil, []runtime.Object{})
 
-	done, err := SyncRouteToCluster(deployContext, "test", "", "", "service", 80, orgv1.RouteCustomSettings{}, "test")
-	if !done || err != nil {
-		t.Fatalf("Failed to sync route: %v", err)
-	}
+	done, err := SyncRouteToCluster(deployContext, "test", "", "service", 80, "test")
+	assert.Nil(t, err)
+	assert.True(t, done)
 
 	// sync another route
-	done, err = SyncRouteToCluster(deployContext, "test", "", "", "service", 90, orgv1.RouteCustomSettings{}, "test")
-	if !done || err != nil {
-		t.Fatalf("Failed to sync route: %v", err)
-	}
+	done, err = SyncRouteToCluster(deployContext, "test", "", "service", 90, "test")
+	assert.Nil(t, err)
+	assert.True(t, done)
 
 	actual := &routev1.Route{}
 	err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
-	if err != nil {
-		t.Fatalf("Failed to get route: %v", err)
-	}
-	if actual.Spec.Port.TargetPort.IntVal != 90 {
-		t.Fatalf("Failed to sync route: %v", err)
-	}
+	assert.Nil(t, err)
+	assert.Equal(t, int32(90), actual.Spec.Port.TargetPort.IntVal)
 
 	// sync route with labels & domain
-	done, err = SyncRouteToCluster(deployContext, "test", "", "", "service", 90, orgv1.RouteCustomSettings{Labels: "a=b", Domain: "domain"}, "test")
-	if !done || err != nil {
-		t.Fatalf("Failed to sync route: %v", err)
-	}
+	deployContext.CheCluster.Spec.Networking.Domain = "domain"
+	deployContext.CheCluster.Spec.Networking.Labels = map[string]string{"a": "b"}
+	done, err = SyncRouteToCluster(deployContext, "test", "", "service", 90, "test")
+	assert.Nil(t, err)
+	assert.True(t, done)
 
 	actual = &routev1.Route{}
 	err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
-	if err != nil {
-		t.Fatalf("Failed to get route: %v", err)
-	}
-	if actual.ObjectMeta.Labels["a"] != "b" {
-		t.Fatalf("Failed to sync route")
-	}
+	assert.Nil(t, err)
+	assert.Equal(t, "b", actual.ObjectMeta.Labels["a"])
 
-	expectedHost := map[bool]string{false: "eclipse-che.domain", true: "devspaces.domain"}[DefaultCheFlavor(deployContext.CheCluster) == "devspaces"]
-	if actual.Spec.Host != expectedHost {
-		t.Fatalf("Failed to sync route")
-	}
+	expectedHost := map[bool]string{false: "eclipse-che.domain", true: "devspaces.domain"}[defaults.GetCheFlavor() == "devspaces"]
+	assert.Equal(t, expectedHost, actual.Spec.Host)
 
 	// sync route with annotations
-	done, err = SyncRouteToCluster(deployContext, "test", "", "", "service", 90, orgv1.RouteCustomSettings{Annotations: map[string]string{"a": "b"}}, "test")
+	deployContext.CheCluster.Spec.Networking.Annotations = map[string]string{"a": "b"}
+	done, err = SyncRouteToCluster(deployContext, "test", "", "service", 90, "test")
 
 	actual = &routev1.Route{}
 	err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
-	if !done || err != nil {
-		t.Fatalf("Failed to sync route: %v", err)
-	}
-	if actual.ObjectMeta.Annotations["a"] != "b" || actual.ObjectMeta.Annotations[CheEclipseOrgManagedAnnotationsDigest] == "" {
-		t.Fatalf("Failed to sync route")
-	}
+	assert.Nil(t, err)
+	assert.True(t, done)
+	assert.Equal(t, "b", actual.ObjectMeta.Annotations["a"])
+	assert.NotEmpty(t, actual.ObjectMeta.Annotations[constants.CheEclipseOrgManagedAnnotationsDigest])
 }

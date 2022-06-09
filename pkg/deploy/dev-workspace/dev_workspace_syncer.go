@@ -15,8 +15,12 @@ import (
 	"context"
 	"strings"
 
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -28,8 +32,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	OpenshiftDevWorkspaceTemplatesPath  = "/tmp/devworkspace-operator/templates/deployment/openshift/objects"
+	KubernetesDevWorkspaceTemplatesPath = "/tmp/devworkspace-operator/templates/deployment/kubernetes/objects"
+)
+
 var (
-	syncItems = []func(*deploy.DeployContext) (bool, error){
+	syncItems = []func(*chetypes.DeployContext) (bool, error){
 		syncDwService,
 		syncDwMetricService,
 		syncDwServiceAccount,
@@ -50,142 +59,134 @@ var (
 		syncDwConfigCRD,
 		syncDwDeployment,
 	}
-
-	DevWorkspaceTemplates = DevWorkspaceTemplatesPath()
-
-	OpenshiftDevWorkspaceTemplatesPath  = "/tmp/devworkspace-operator/templates/deployment/openshift/objects"
-	KubernetesDevWorkspaceTemplatesPath = "/tmp/devworkspace-operator/templates/deployment/kubernetes/objects"
-
-	DevWorkspaceServiceAccountFile = DevWorkspaceTemplates + "/devworkspace-controller-serviceaccount.ServiceAccount.yaml"
-
-	DevWorkspaceRoleFile        = DevWorkspaceTemplates + "/devworkspace-controller-leader-election-role.Role.yaml"
-	DevWorkspaceRoleBindingFile = DevWorkspaceTemplates + "/devworkspace-controller-leader-election-rolebinding.RoleBinding.yaml"
-
-	DevWorkspaceClusterRoleFile               = DevWorkspaceTemplates + "/devworkspace-controller-role.ClusterRole.yaml"
-	DevWorkspaceProxyClusterRoleFile          = DevWorkspaceTemplates + "/devworkspace-controller-proxy-role.ClusterRole.yaml"
-	DevWorkspaceMetricsReaderClusterRoleFile  = DevWorkspaceTemplates + "/devworkspace-controller-metrics-reader.ClusterRole.yaml"
-	DevWorkspaceViewWorkspacesClusterRoleFile = DevWorkspaceTemplates + "/devworkspace-controller-view-workspaces.ClusterRole.yaml"
-	DevWorkspaceEditWorkspacesClusterRoleFile = DevWorkspaceTemplates + "/devworkspace-controller-edit-workspaces.ClusterRole.yaml"
-
-	DevWorkspaceClusterRoleBindingFile      = DevWorkspaceTemplates + "/devworkspace-controller-rolebinding.ClusterRoleBinding.yaml"
-	DevWorkspaceProxyClusterRoleBindingFile = DevWorkspaceTemplates + "/devworkspace-controller-proxy-rolebinding.ClusterRoleBinding.yaml"
-
-	DevWorkspaceWorkspaceRoutingCRDFile = DevWorkspaceTemplates + "/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml"
-	DevWorkspaceTemplatesCRDFile        = DevWorkspaceTemplates + "/devworkspacetemplates.workspace.devfile.io.CustomResourceDefinition.yaml"
-	DevWorkspaceCRDFile                 = DevWorkspaceTemplates + "/devworkspaces.workspace.devfile.io.CustomResourceDefinition.yaml"
-	DevWorkspaceOperatorConfigCRDFile   = DevWorkspaceTemplates + "/devworkspaceoperatorconfigs.controller.devfile.io.CustomResourceDefinition.yaml"
-
-	DevWorkspaceServiceFile        = DevWorkspaceTemplates + "/devworkspace-controller-manager-service.Service.yaml"
-	DevWorkspaceMetricsServiceFile = DevWorkspaceTemplates + "/devworkspace-controller-metrics.Service.yaml"
-	DevWorkspaceDeploymentFile     = DevWorkspaceTemplates + "/devworkspace-controller-manager.Deployment.yaml"
-
-	DevWorkspaceIssuerFile      = DevWorkspaceTemplates + "/devworkspace-controller-selfsigned-issuer.Issuer.yaml"
-	DevWorkspaceCertificateFile = DevWorkspaceTemplates + "/devworkspace-controller-serving-cert.Certificate.yaml"
 )
 
-func syncDwServiceAccount(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceServiceAccountFile, &corev1.ServiceAccount{}, DevWorkspaceNamespace)
+func syncDwServiceAccount(deployContext *chetypes.DeployContext) (bool, error) {
+	path := devWorkspaceTemplatesPath() + "/devworkspace-controller-serviceaccount.ServiceAccount.yaml"
+	return readAndSyncObject(deployContext, path, &corev1.ServiceAccount{}, DevWorkspaceNamespace)
 }
 
-func syncDwService(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceServiceFile, &corev1.Service{}, DevWorkspaceNamespace)
+func syncDwService(deployContext *chetypes.DeployContext) (bool, error) {
+	path := devWorkspaceTemplatesPath() + "/devworkspace-controller-manager-service.Service.yaml"
+	return readAndSyncObject(deployContext, path, &corev1.Service{}, DevWorkspaceNamespace)
 }
 
-func syncDwMetricService(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceMetricsServiceFile, &corev1.Service{}, DevWorkspaceNamespace)
+func syncDwMetricService(deployContext *chetypes.DeployContext) (bool, error) {
+	filePath := devWorkspaceTemplatesPath() + "/devworkspace-controller-metrics.Service.yaml"
+	return readAndSyncObject(deployContext, filePath, &corev1.Service{}, DevWorkspaceNamespace)
 }
 
-func syncDwRole(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceRoleFile, &rbacv1.Role{}, DevWorkspaceNamespace)
+func syncDwRole(deployContext *chetypes.DeployContext) (bool, error) {
+	path := devWorkspaceTemplatesPath() + "/devworkspace-controller-leader-election-role.Role.yaml"
+	return readAndSyncObject(deployContext, path, &rbacv1.Role{}, DevWorkspaceNamespace)
 }
 
-func syncDwRoleBinding(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceRoleBindingFile, &rbacv1.RoleBinding{}, DevWorkspaceNamespace)
+func syncDwRoleBinding(deployContext *chetypes.DeployContext) (bool, error) {
+	path := devWorkspaceTemplatesPath() + "/devworkspace-controller-leader-election-rolebinding.RoleBinding.yaml"
+	return readAndSyncObject(deployContext, path, &rbacv1.RoleBinding{}, DevWorkspaceNamespace)
 }
 
-func syncDwClusterRoleBinding(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceClusterRoleBindingFile, &rbacv1.ClusterRoleBinding{}, "")
+func syncDwClusterRoleBinding(deployContext *chetypes.DeployContext) (bool, error) {
+	path := devWorkspaceTemplatesPath() + "/devworkspace-controller-rolebinding.ClusterRoleBinding.yaml"
+	return readAndSyncObject(deployContext, path, &rbacv1.ClusterRoleBinding{}, "")
 }
 
-func syncDwProxyClusterRoleBinding(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceProxyClusterRoleBindingFile, &rbacv1.ClusterRoleBinding{}, "")
+func syncDwProxyClusterRoleBinding(deployContext *chetypes.DeployContext) (bool, error) {
+	path := devWorkspaceTemplatesPath() + "/devworkspace-controller-proxy-rolebinding.ClusterRoleBinding.yaml"
+	return readAndSyncObject(deployContext, path, &rbacv1.ClusterRoleBinding{}, "")
 }
 
-func syncDwClusterRole(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceClusterRoleFile, &rbacv1.ClusterRole{}, "")
+func syncDwClusterRole(deployContext *chetypes.DeployContext) (bool, error) {
+	path := devWorkspaceTemplatesPath() + "/devworkspace-controller-role.ClusterRole.yaml"
+	return readAndSyncObject(deployContext, path, &rbacv1.ClusterRole{}, "")
 }
 
-func syncDwMetricsClusterRole(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceMetricsReaderClusterRoleFile, &rbacv1.ClusterRole{}, "")
+func syncDwMetricsClusterRole(deployContext *chetypes.DeployContext) (bool, error) {
+	path := devWorkspaceTemplatesPath() + "/devworkspace-controller-metrics-reader.ClusterRole.yaml"
+	return readAndSyncObject(deployContext, path, &rbacv1.ClusterRole{}, "")
 }
 
-func syncDwProxyClusterRole(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceProxyClusterRoleFile, &rbacv1.ClusterRole{}, "")
+func syncDwProxyClusterRole(deployContext *chetypes.DeployContext) (bool, error) {
+	path := devWorkspaceTemplatesPath() + "/devworkspace-controller-proxy-role.ClusterRole.yaml"
+	return readAndSyncObject(deployContext, path, &rbacv1.ClusterRole{}, "")
 }
 
-func syncDwViewWorkspacesClusterRole(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceViewWorkspacesClusterRoleFile, &rbacv1.ClusterRole{}, "")
+func syncDwViewWorkspacesClusterRole(deployContext *chetypes.DeployContext) (bool, error) {
+	path := devWorkspaceTemplatesPath() + "/devworkspace-controller-view-workspaces.ClusterRole.yaml"
+	return readAndSyncObject(deployContext, path, &rbacv1.ClusterRole{}, "")
 }
 
-func syncDwEditWorkspacesClusterRole(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceEditWorkspacesClusterRoleFile, &rbacv1.ClusterRole{}, "")
+func syncDwEditWorkspacesClusterRole(deployContext *chetypes.DeployContext) (bool, error) {
+	path := devWorkspaceTemplatesPath() + "/devworkspace-controller-edit-workspaces.ClusterRole.yaml"
+	return readAndSyncObject(deployContext, path, &rbacv1.ClusterRole{}, "")
 }
 
-func syncDwWorkspaceRoutingCRD(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceWorkspaceRoutingCRDFile, &apiextensionsv1.CustomResourceDefinition{}, "")
+func syncDwWorkspaceRoutingCRD(deployContext *chetypes.DeployContext) (bool, error) {
+	path := devWorkspaceTemplatesPath() + "/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml"
+	return readAndSyncObject(deployContext, path, &apiextensionsv1.CustomResourceDefinition{}, "")
 }
 
-func syncDwTemplatesCRD(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceTemplatesCRDFile, &apiextensionsv1.CustomResourceDefinition{}, "")
+func syncDwTemplatesCRD(deployContext *chetypes.DeployContext) (bool, error) {
+	path := devWorkspaceTemplatesPath() + "/devworkspacetemplates.workspace.devfile.io.CustomResourceDefinition.yaml"
+	return readAndSyncObject(deployContext, path, &apiextensionsv1.CustomResourceDefinition{}, "")
 }
 
-func syncDwCRD(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceCRDFile, &apiextensionsv1.CustomResourceDefinition{}, "")
+func syncDwCRD(deployContext *chetypes.DeployContext) (bool, error) {
+	path := devWorkspaceTemplatesPath() + "/devworkspaces.workspace.devfile.io.CustomResourceDefinition.yaml"
+	return readAndSyncObject(deployContext, path, &apiextensionsv1.CustomResourceDefinition{}, "")
 }
 
-func syncDwConfigCRD(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceOperatorConfigCRDFile, &apiextensionsv1.CustomResourceDefinition{}, "")
+func syncDwConfigCRD(deployContext *chetypes.DeployContext) (bool, error) {
+	path := devWorkspaceTemplatesPath() + "/devworkspaceoperatorconfigs.controller.devfile.io.CustomResourceDefinition.yaml"
+	return readAndSyncObject(deployContext, path, &apiextensionsv1.CustomResourceDefinition{}, "")
 }
 
-func syncDwIssuer(deployContext *deploy.DeployContext) (bool, error) {
-	if !util.IsOpenShift {
+func syncDwIssuer(deployContext *chetypes.DeployContext) (bool, error) {
+	if !infrastructure.IsOpenShift() {
 		// We're using unstructured to not require a direct dependency on the cert-manager
 		// This will cause a failure if cert-manager is not installed, which we're ok with
 		// Also, our Sync functionality requires the scheme to have the type we want to persist registered.
 		// In case of cert-manager objects, we don't want that because we would have to depend
 		// on cert manager, which would require us to also update operator-sdk version because cert-manager
 		// uses extension/v1 objects. So, we have to go the unstructured way here...
-		return readAndSyncUnstructured(deployContext, DevWorkspaceIssuerFile)
+		path := devWorkspaceTemplatesPath() + "/devworkspace-controller-selfsigned-issuer.Issuer.yaml"
+		return readAndSyncUnstructured(deployContext, path)
 	}
 	return true, nil
 }
 
-func syncDwCertificate(deployContext *deploy.DeployContext) (bool, error) {
-	if !util.IsOpenShift {
+func syncDwCertificate(deployContext *chetypes.DeployContext) (bool, error) {
+	if !infrastructure.IsOpenShift() {
 		// We're using unstructured to not require a direct dependency on the cert-manager
 		// This will cause a failure if cert-manager is not installed, which we're ok with
 		// Also, our Sync functionality requires the scheme to have the type we want to persist registered.
 		// In case of cert-manager objects, we don't want that because we would have to depend
 		// on cert manager, which would require us to also update operator-sdk version because cert-manager
 		// uses extension/v1 objects. So, we have to go the unstructured way here...
-		return readAndSyncUnstructured(deployContext, DevWorkspaceCertificateFile)
+		path := devWorkspaceTemplatesPath() + "/devworkspace-controller-serving-cert.Certificate.yaml"
+		return readAndSyncUnstructured(deployContext, path)
 	}
 	return true, nil
 }
 
-func syncDwDeployment(deployContext *deploy.DeployContext) (bool, error) {
+func syncDwDeployment(deployContext *chetypes.DeployContext) (bool, error) {
+	path := devWorkspaceTemplatesPath() + "/devworkspace-controller-manager.Deployment.yaml"
 	deployment := &appsv1.Deployment{}
-	err := readK8SObject(DevWorkspaceDeploymentFile, deployment)
+	err := readK8SObject(path, deployment)
 	if err != nil {
 		return false, err
 	}
 
-	devworkspaceControllerImage := util.GetValue(deployContext.CheCluster.Spec.DevWorkspace.ControllerImage, deploy.DefaultDevworkspaceControllerImage(deployContext.CheCluster))
+	devworkspaceControllerImage := defaults.GetDevworkspaceControllerImage(deployContext.CheCluster)
+	if len(deployContext.CheCluster.Spec.Components.DevWorkspace.Deployment.Containers) != 0 {
+		devworkspaceControllerImage = utils.GetValue(deployContext.CheCluster.Spec.Components.DevWorkspace.Deployment.Containers[0].Image, devworkspaceControllerImage)
+	}
+
 	for contIdx, container := range deployment.Spec.Template.Spec.Containers {
 		if container.Name == "devworkspace-controller" {
 			deployment.Spec.Template.Spec.Containers[contIdx].Image = devworkspaceControllerImage
 		} else {
-			deployment.Spec.Template.Spec.Containers[contIdx].Image = deploy.PatchDefaultImageName(
+			deployment.Spec.Template.Spec.Containers[contIdx].Image = defaults.PatchDefaultImageName(
 				deployContext.CheCluster,
 				deployment.Spec.Template.Spec.Containers[contIdx].Image,
 			)
@@ -195,7 +196,7 @@ func syncDwDeployment(deployContext *deploy.DeployContext) (bool, error) {
 			if env.Name == "RELATED_IMAGE_devworkspace_webhook_server" {
 				deployment.Spec.Template.Spec.Containers[contIdx].Env[envIdx].Value = devworkspaceControllerImage
 			} else if strings.HasPrefix(env.Name, "RELATED_IMAGE_") {
-				deployment.Spec.Template.Spec.Containers[contIdx].Env[envIdx].Value = deploy.PatchDefaultImageName(deployContext.CheCluster, env.Value)
+				deployment.Spec.Template.Spec.Containers[contIdx].Env[envIdx].Value = defaults.PatchDefaultImageName(deployContext.CheCluster, env.Value)
 			}
 		}
 	}
@@ -203,7 +204,7 @@ func syncDwDeployment(deployContext *deploy.DeployContext) (bool, error) {
 	return syncObject(deployContext, deployment, DevWorkspaceNamespace)
 }
 
-func readAndSyncObject(deployContext *deploy.DeployContext, yamlFile string, obj client.Object, namespace string) (bool, error) {
+func readAndSyncObject(deployContext *chetypes.DeployContext, yamlFile string, obj client.Object, namespace string) (bool, error) {
 	err := readK8SObject(yamlFile, obj)
 	if err != nil {
 		return false, err
@@ -212,7 +213,7 @@ func readAndSyncObject(deployContext *deploy.DeployContext, yamlFile string, obj
 	return syncObject(deployContext, obj, namespace)
 }
 
-func readAndSyncUnstructured(deployContext *deploy.DeployContext, yamlFile string) (bool, error) {
+func readAndSyncUnstructured(deployContext *chetypes.DeployContext, yamlFile string) (bool, error) {
 	obj := &unstructured.Unstructured{}
 	err := readK8SUnstructured(yamlFile, obj)
 	if err != nil {
@@ -222,7 +223,7 @@ func readAndSyncUnstructured(deployContext *deploy.DeployContext, yamlFile strin
 	return createUnstructured(deployContext, obj)
 }
 
-func createUnstructured(deployContext *deploy.DeployContext, obj *unstructured.Unstructured) (bool, error) {
+func createUnstructured(deployContext *chetypes.DeployContext, obj *unstructured.Unstructured) (bool, error) {
 	check := &unstructured.Unstructured{}
 	check.SetGroupVersionKind(obj.GroupVersionKind())
 
@@ -248,7 +249,7 @@ func createUnstructured(deployContext *deploy.DeployContext, obj *unstructured.U
 	return true, nil
 }
 
-func syncObject(deployContext *deploy.DeployContext, obj2sync client.Object, namespace string) (bool, error) {
+func syncObject(deployContext *chetypes.DeployContext, obj2sync client.Object, namespace string) (bool, error) {
 	obj2sync.SetNamespace(namespace)
 
 	actual, err := deployContext.ClusterAPI.Scheme.New(obj2sync.GetObjectKind().GroupVersionKind())
@@ -263,16 +264,16 @@ func syncObject(deployContext *deploy.DeployContext, obj2sync client.Object, nam
 	}
 
 	// sync objects if it does not exists or has outdated hash
-	if !exists || actual.(metav1.Object).GetAnnotations()[deploy.CheEclipseOrgHash256] != obj2sync.GetAnnotations()[deploy.CheEclipseOrgHash256] {
-		obj2sync.GetAnnotations()[deploy.CheEclipseOrgNamespace] = deployContext.CheCluster.Namespace
+	if !exists || actual.(metav1.Object).GetAnnotations()[constants.CheEclipseOrgHash256] != obj2sync.GetAnnotations()[constants.CheEclipseOrgHash256] {
+		obj2sync.GetAnnotations()[constants.CheEclipseOrgNamespace] = deployContext.CheCluster.Namespace
 		return deploy.Sync(deployContext, obj2sync)
 	}
 
 	return true, nil
 }
 
-func DevWorkspaceTemplatesPath() string {
-	if util.IsOpenShift {
+func devWorkspaceTemplatesPath() string {
+	if infrastructure.IsOpenShift() {
 		return OpenshiftDevWorkspaceTemplatesPath
 	}
 	return KubernetesDevWorkspaceTemplatesPath

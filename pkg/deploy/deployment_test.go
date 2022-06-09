@@ -16,10 +16,15 @@ import (
 	"os"
 	"reflect"
 
+	"github.com/stretchr/testify/assert"
+	"k8s.io/apimachinery/pkg/api/resource"
+
 	"github.com/google/go-cmp/cmp"
 
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
-	"github.com/eclipse-che/che-operator/pkg/util"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -121,12 +126,12 @@ func TestMountSecret(t *testing.T) {
 						Name:      "test-volume",
 						Namespace: "eclipse-che",
 						Labels: map[string]string{
-							KubernetesPartOfLabelKey:    CheEclipseOrg,
-							KubernetesComponentLabelKey: "che-secret", // corresponds to deployment name
+							constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+							constants.KubernetesComponentLabelKey: "che-secret", // corresponds to deployment name
 						},
 						Annotations: map[string]string{
-							CheEclipseOrgMountAs:   "file",
-							CheEclipseOrgMountPath: "/test-path",
+							constants.CheEclipseOrgMountAs:   "file",
+							constants.CheEclipseOrgMountPath: "/test-path",
 						},
 					},
 					Data: map[string][]byte{
@@ -189,12 +194,12 @@ func TestMountSecret(t *testing.T) {
 						Name:      "test-envs",
 						Namespace: "eclipse-che",
 						Labels: map[string]string{
-							KubernetesPartOfLabelKey:    CheEclipseOrg,
-							KubernetesComponentLabelKey: "che-secret", // corresponds to deployment name
+							constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+							constants.KubernetesComponentLabelKey: "che-secret", // corresponds to deployment name
 						},
 						Annotations: map[string]string{
-							CheEclipseOrgMountAs: "env",
-							CheEclipseOrgEnvName: "ENV_A",
+							constants.CheEclipseOrgMountAs: "env",
+							constants.CheEclipseOrgEnvName: "ENV_A",
 						},
 					},
 					Data: map[string][]byte{
@@ -279,14 +284,14 @@ func TestMountSecret(t *testing.T) {
 						Name:      "test-envs",
 						Namespace: "eclipse-che",
 						Labels: map[string]string{
-							KubernetesPartOfLabelKey:    CheEclipseOrg,
-							KubernetesComponentLabelKey: "che-secret", // corresponds to deployment name
+							constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+							constants.KubernetesComponentLabelKey: "che-secret", // corresponds to deployment name
 						},
 						Annotations: map[string]string{
-							CheEclipseOrgMountAs:          "env",
-							CheEclipseOrg + "/a_env-name": "ENV_A",
-							CheEclipseOrg + "/b_env-name": "ENV_B",
-							CheEclipseOrg + "/c_env-name": "ENV_C",
+							constants.CheEclipseOrgMountAs:          "env",
+							constants.CheEclipseOrg + "/a_env-name": "ENV_A",
+							constants.CheEclipseOrg + "/b_env-name": "ENV_B",
+							constants.CheEclipseOrg + "/c_env-name": "ENV_C",
 						},
 					},
 					Data: map[string][]byte{
@@ -302,17 +307,17 @@ func TestMountSecret(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+			chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
 			testCase.initObjects = append(testCase.initObjects, testCase.initDeployment)
 			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
 
-			deployContext := &DeployContext{
-				CheCluster: &orgv1.CheCluster{
+			deployContext := &chetypes.DeployContext{
+				CheCluster: &chev2.CheCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "eclipse-che",
 					},
 				},
-				ClusterAPI: ClusterAPI{
+				ClusterAPI: chetypes.ClusterAPI{
 					Client:           cli,
 					NonCachingClient: cli,
 					Scheme:           scheme.Scheme,
@@ -399,12 +404,12 @@ func TestMountConfigMaps(t *testing.T) {
 						Name:      "test-volume",
 						Namespace: "eclipse-che",
 						Labels: map[string]string{
-							KubernetesPartOfLabelKey:    CheEclipseOrg,
-							KubernetesComponentLabelKey: "che-configmap", // corresponds to deployment name
+							constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+							constants.KubernetesComponentLabelKey: "che-configmap", // corresponds to deployment name
 						},
 						Annotations: map[string]string{
-							CheEclipseOrgMountAs:   "file",
-							CheEclipseOrgMountPath: "/test-path",
+							constants.CheEclipseOrgMountAs:   "file",
+							constants.CheEclipseOrgMountPath: "/test-path",
 						},
 					},
 					Data: map[string]string{
@@ -467,12 +472,12 @@ func TestMountConfigMaps(t *testing.T) {
 						Name:      "test-envs",
 						Namespace: "eclipse-che",
 						Labels: map[string]string{
-							KubernetesPartOfLabelKey:    CheEclipseOrg,
-							KubernetesComponentLabelKey: "che-configmap", // corresponds to deployment name
+							constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+							constants.KubernetesComponentLabelKey: "che-configmap", // corresponds to deployment name
 						},
 						Annotations: map[string]string{
-							CheEclipseOrgMountAs: "env",
-							CheEclipseOrgEnvName: "ENV_A",
+							constants.CheEclipseOrgMountAs: "env",
+							constants.CheEclipseOrgEnvName: "ENV_A",
 						},
 					},
 					Data: map[string]string{
@@ -557,14 +562,14 @@ func TestMountConfigMaps(t *testing.T) {
 						Name:      "test-envs",
 						Namespace: "eclipse-che",
 						Labels: map[string]string{
-							KubernetesPartOfLabelKey:    CheEclipseOrg,
-							KubernetesComponentLabelKey: "che-configmap", // corresponds to deployment name
+							constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+							constants.KubernetesComponentLabelKey: "che-configmap", // corresponds to deployment name
 						},
 						Annotations: map[string]string{
-							CheEclipseOrgMountAs:          "env",
-							CheEclipseOrg + "/a_env-name": "ENV_A",
-							CheEclipseOrg + "/b_env-name": "ENV_B",
-							CheEclipseOrg + "/c_env-name": "ENV_C",
+							constants.CheEclipseOrgMountAs:          "env",
+							constants.CheEclipseOrg + "/a_env-name": "ENV_A",
+							constants.CheEclipseOrg + "/b_env-name": "ENV_B",
+							constants.CheEclipseOrg + "/c_env-name": "ENV_C",
 						},
 					},
 					Data: map[string]string{
@@ -580,17 +585,17 @@ func TestMountConfigMaps(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+			chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
 			testCase.initObjects = append(testCase.initObjects, testCase.initDeployment)
 			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
 
-			deployContext := &DeployContext{
-				CheCluster: &orgv1.CheCluster{
+			deployContext := &chetypes.DeployContext{
+				CheCluster: &chev2.CheCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "eclipse-che",
 					},
 				},
-				ClusterAPI: ClusterAPI{
+				ClusterAPI: chetypes.ClusterAPI{
 					Client:           cli,
 					NonCachingClient: cli,
 					Scheme:           scheme.Scheme,
@@ -610,21 +615,21 @@ func TestMountConfigMaps(t *testing.T) {
 }
 
 func TestSyncEnvVarDeploymentToCluster(t *testing.T) {
-	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
 	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
-	deployContext := &DeployContext{
-		CheCluster: &orgv1.CheCluster{
+	deployContext := &chetypes.DeployContext{
+		CheCluster: &chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "eclipse-che",
 				Name:      "eclipse-che",
 			},
 		},
-		ClusterAPI: ClusterAPI{
+		ClusterAPI: chetypes.ClusterAPI{
 			Client:           cli,
 			NonCachingClient: cli,
 			Scheme:           scheme.Scheme,
 		},
-		Proxy: &Proxy{},
+		Proxy: &chetypes.Proxy{},
 	}
 
 	// initial sync
@@ -659,8 +664,167 @@ func TestSyncEnvVarDeploymentToCluster(t *testing.T) {
 	}
 
 	// check env var
-	cmRevision := util.FindEnv(actual.Spec.Template.Spec.Containers[0].Env, "test-name")
-	if cmRevision == nil || cmRevision.Value != "test-value" {
+	value := utils.GetEnv(actual.Spec.Template.Spec.Containers[0].Env, "test-name")
+	if value != "test-value" {
 		t.Fatalf("Failed to sync deployment")
+	}
+}
+
+func TestCustomizeDeploymentShouldNotUpdateResources(t *testing.T) {
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "test",
+		},
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name: "test",
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse("100Mi"),
+									corev1.ResourceCPU:    resource.MustParse("1"),
+								},
+								Limits: corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse("200Mi"),
+									corev1.ResourceCPU:    resource.MustParse("2"),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	customizationDeployment := &chev2.Deployment{
+		Containers: []chev2.Container{
+			{
+				Name: "test",
+			},
+		},
+	}
+
+	err := CustomizeDeployment(deployment, customizationDeployment, false)
+	assert.Nil(t, err)
+	assert.Equal(t, "1", deployment.Spec.Template.Spec.Containers[0].Resources.Requests.Cpu().String())
+	assert.Equal(t, "100Mi", deployment.Spec.Template.Spec.Containers[0].Resources.Requests.Memory().String())
+	assert.Equal(t, "2", deployment.Spec.Template.Spec.Containers[0].Resources.Limits.Cpu().String())
+	assert.Equal(t, "200Mi", deployment.Spec.Template.Spec.Containers[0].Resources.Limits.Memory().String())
+}
+
+func TestCustomizeDeploymentImagePullPolicy(t *testing.T) {
+	type testCase struct {
+		name                    string
+		initDeployment          *appsv1.Deployment
+		customizationDeployment *chev2.Deployment
+		expectedImagePullPolicy corev1.PullPolicy
+	}
+
+	testCases := []testCase{
+		{
+			name: "Should use ImagePullPolicy set explicitly",
+			initDeployment: &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "test",
+				},
+				Spec: appsv1.DeploymentSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{
+								{
+									Name:            "test",
+									Image:           "test/test:test",
+									ImagePullPolicy: corev1.PullIfNotPresent,
+								},
+							},
+						},
+					},
+				},
+			},
+			customizationDeployment: &chev2.Deployment{
+				Containers: []chev2.Container{
+					{
+						Name:            "test",
+						ImagePullPolicy: corev1.PullNever,
+					},
+				},
+			},
+			expectedImagePullPolicy: corev1.PullNever,
+		},
+		{
+			name: "Should update ImagePullPolicy to Always for next tag",
+			initDeployment: &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "test",
+				},
+				Spec: appsv1.DeploymentSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{
+								{
+									Name:            "test",
+									Image:           "test/test:test",
+									ImagePullPolicy: corev1.PullIfNotPresent,
+								},
+							},
+						},
+					},
+				},
+			},
+			customizationDeployment: &chev2.Deployment{
+				Containers: []chev2.Container{
+					{
+						Name:  "test",
+						Image: "test/test:next",
+					},
+				},
+			},
+			expectedImagePullPolicy: corev1.PullAlways,
+		},
+		{
+			name: "Should not update ImagePullPolicy",
+			initDeployment: &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "test",
+				},
+				Spec: appsv1.DeploymentSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{
+								{
+									Name:            "test",
+									Image:           "test/test:v2.5.0",
+									ImagePullPolicy: corev1.PullIfNotPresent,
+								},
+							},
+						},
+					},
+				},
+			},
+			customizationDeployment: &chev2.Deployment{
+				Containers: []chev2.Container{
+					{
+						Name: "test",
+					},
+				},
+			},
+			expectedImagePullPolicy: corev1.PullIfNotPresent,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
+
+			err := CustomizeDeployment(testCase.initDeployment, testCase.customizationDeployment, false)
+			assert.Nil(t, err)
+			assert.Equal(t, testCase.expectedImagePullPolicy, testCase.initDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
+		})
 	}
 }

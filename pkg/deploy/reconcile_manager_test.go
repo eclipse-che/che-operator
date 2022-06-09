@@ -15,6 +15,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -29,7 +31,7 @@ func NewTestReconcilable(shouldFailReconcileOnce bool) *TestReconcilable {
 	return &TestReconcilable{shouldFailReconcileOnce, false}
 }
 
-func (tr *TestReconcilable) Reconcile(ctx *DeployContext) (reconcile.Result, bool, error) {
+func (tr *TestReconcilable) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	// Fails on first invocation passes on others
 	if !tr.alreadyFailed && tr.shouldFailReconcileOnce {
 		tr.alreadyFailed = true
@@ -39,12 +41,12 @@ func (tr *TestReconcilable) Reconcile(ctx *DeployContext) (reconcile.Result, boo
 	}
 }
 
-func (tr *TestReconcilable) Finalize(ctx *DeployContext) bool {
+func (tr *TestReconcilable) Finalize(ctx *chetypes.DeployContext) bool {
 	return true
 }
 
 func TestShouldUpdateAndCleanStatus(t *testing.T) {
-	deployContext := GetTestDeployContext(nil, []runtime.Object{})
+	deployContext := test.GetDeployContext(nil, []runtime.Object{})
 
 	tr := NewTestReconcilable(true)
 
@@ -56,7 +58,7 @@ func TestShouldUpdateAndCleanStatus(t *testing.T) {
 	assert.False(t, done)
 	assert.NotNil(t, err)
 	assert.NotEmpty(t, deployContext.CheCluster.Status.Reason)
-	assert.Equal(t, "Reconcile error", deployContext.CheCluster.Status.Message)
+	assert.Equal(t, "Reconciler failed deploy.TestReconcilable, cause: Reconcile error", deployContext.CheCluster.Status.Message)
 	assert.Equal(t, tr, rm.failedReconciler)
 
 	_, done, err = rm.ReconcileAll(deployContext)

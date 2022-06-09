@@ -14,6 +14,7 @@ package deploy
 import (
 	"reflect"
 
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	corev1 "k8s.io/api/core/v1"
@@ -28,7 +29,7 @@ var ConfigMapDiffOpts = cmp.Options{
 }
 
 func SyncConfigMapDataToCluster(
-	deployContext *DeployContext,
+	deployContext *chetypes.DeployContext,
 	name string,
 	data map[string]string,
 	component string) (bool, error) {
@@ -38,14 +39,14 @@ func SyncConfigMapDataToCluster(
 }
 
 func SyncConfigMapSpecToCluster(
-	deployContext *DeployContext,
+	deployContext *chetypes.DeployContext,
 	configMapSpec *corev1.ConfigMap) (bool, error) {
 
 	return Sync(deployContext, configMapSpec, ConfigMapDiffOpts)
 }
 
 func GetConfigMapSpec(
-	deployContext *DeployContext,
+	deployContext *chetypes.DeployContext,
 	name string,
 	data map[string]string,
 	component string) *corev1.ConfigMap {
@@ -58,7 +59,7 @@ func GetConfigMapSpec(
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
 			Namespace:   deployContext.CheCluster.Namespace,
-			Labels:      GetLabels(deployContext.CheCluster, component),
+			Labels:      GetLabels(component),
 			Annotations: map[string]string{},
 		},
 		Data: data,

@@ -14,8 +14,8 @@ package devworkspace
 import (
 	"io/ioutil"
 
-	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/util"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/yaml"
@@ -44,7 +44,7 @@ func readK8SUnstructured(yamlFile string, into *unstructured.Unstructured) error
 		into.SetAnnotations(annotations)
 	}
 
-	into.GetAnnotations()[deploy.CheEclipseOrgHash256] = hash
+	into.GetAnnotations()[constants.CheEclipseOrgHash256] = hash
 	return nil
 }
 
@@ -61,7 +61,7 @@ func readK8SObject(yamlFile string, into metav1.Object) error {
 		into.SetAnnotations(annotations)
 	}
 
-	into.GetAnnotations()[deploy.CheEclipseOrgHash256] = hash
+	into.GetAnnotations()[constants.CheEclipseOrgHash256] = hash
 	return nil
 }
 
@@ -75,7 +75,7 @@ func readObj(yamlFile string, into interface{}) (string, error) {
 
 		cachedFile = &DevWorkspaceCachedObj{
 			data,
-			util.ComputeHash256(data),
+			utils.ComputeHash256(data),
 		}
 		cachedObjFiles[yamlFile] = cachedFile
 	}

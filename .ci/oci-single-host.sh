@@ -20,7 +20,7 @@ set -e
 set -x
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
-source "${OPERATOR_REPO}"/.github/bin/common.sh
+source "${OPERATOR_REPO}/.github/bin/common.sh"
 
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
@@ -31,12 +31,12 @@ overrideDefaults() {
 }
 
 runTests() {
-  createNamespace ${NAMESPACE}
+  createNamespace "${NAMESPACE}"
 
-  useCustomOperatorImageInCSV ${OPERATOR_IMAGE}
+  useCustomOperatorImageInCSV "${OPERATOR_IMAGE}"
 
-  echo "$(getCheClusterCRFromExistedCSV)" | oc apply -n "${NAMESPACE}" -f -
-  waitEclipseCheDeployed $(getCheVersionFromExistedCSV)
+  getCheClusterCRFromExistedCSV | oc apply -n "${NAMESPACE}" -f -
+  waitEclipseCheDeployed "$(getCheVersionFromExistedCSV)"
 
   waitDevWorkspaceControllerStarted
 }

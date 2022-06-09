@@ -12,22 +12,24 @@
 package server
 
 import (
-	"strconv"
-	"strings"
-
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/postgres"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
-	"github.com/eclipse-che/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/pointer"
 )
 
-func (s CheServerReconciler) getDeploymentSpec(ctx *deploy.DeployContext) (*appsv1.Deployment, error) {
+func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
 	selfSignedCASecretExists, err := tls.IsSelfSignedCASecretExists(ctx)
 	if err != nil {
 		return nil, err
@@ -37,8 +39,7 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *deploy.DeployContext) (*apps
 	cmResourceVersions += "," + tls.GetAdditionalCACertsConfigMapVersion(ctx)
 
 	terminationGracePeriodSeconds := int64(30)
-	cheFlavor := deploy.DefaultCheFlavor(ctx.CheCluster)
-	labels, labelSelector := deploy.GetLabelsAndSelector(ctx.CheCluster, cheFlavor)
+	labels, labelSelector := deploy.GetLabelsAndSelector(defaults.GetCheFlavor())
 	optionalEnv := true
 	selfSignedCertEnv := corev1.EnvVar{
 		Name:  "CHE_SELF__SIGNED__CERT",
@@ -73,21 +74,21 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *deploy.DeployContext) (*apps
 				SecretKeyRef: &corev1.SecretKeySelector{
 					Key: "ca.crt",
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: deploy.CheTLSSelfSignedCertificateSecretName,
+						Name: constants.DefaultSelfSignedCertificateSecretName,
 					},
 					Optional: &optionalEnv,
 				},
 			},
 		}
 	}
-	if ctx.CheCluster.Spec.Server.GitSelfSignedCert {
+	if ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName != "" {
 		gitSelfSignedCertEnv = corev1.EnvVar{
 			Name: "CHE_GIT_SELF__SIGNED__CERT",
 			ValueFrom: &corev1.EnvVarSource{
 				ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
 					Key: "ca.crt",
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: deploy.GitSelfSignedCertsConfigMapName,
+						Name: ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName,
 					},
 					Optional: &optionalEnv,
 				},
@@ -99,7 +100,7 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *deploy.DeployContext) (*apps
 				ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
 					Key: "githost",
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: deploy.GitSelfSignedCertsConfigMapName,
+						Name: ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName,
 					},
 					Optional: &optionalEnv,
 				},
@@ -128,8 +129,8 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *deploy.DeployContext) (*apps
 		Value: "true",
 	})
 
-	cheImageAndTag := GetFullCheServerImageLink(ctx.CheCluster)
-	pullPolicy := corev1.PullPolicy(util.GetValue(string(ctx.CheCluster.Spec.Server.CheImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(cheImageAndTag)))
+	image := defaults.GetCheServerImage(ctx.CheCluster)
+	pullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(image))
 
 	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -137,7 +138,7 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *deploy.DeployContext) (*apps
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      cheFlavor,
+			Name:      defaults.GetCheFlavor(),
 			Namespace: ctx.CheCluster.Namespace,
 			Labels:    labels,
 		},
@@ -158,9 +159,9 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *deploy.DeployContext) (*apps
 					},
 					Containers: []corev1.Container{
 						{
-							Name:            cheFlavor,
+							Name:            defaults.GetCheFlavor(),
+							Image:           image,
 							ImagePullPolicy: pullPolicy,
-							Image:           cheImageAndTag,
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "http",
@@ -180,20 +181,12 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *deploy.DeployContext) (*apps
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
-									corev1.ResourceMemory: util.GetResourceQuantity(
-										ctx.CheCluster.Spec.Server.ServerMemoryRequest,
-										deploy.DefaultServerMemoryRequest),
-									corev1.ResourceCPU: util.GetResourceQuantity(
-										ctx.CheCluster.Spec.Server.ServerCpuRequest,
-										deploy.DefaultServerCpuRequest),
+									corev1.ResourceMemory: resource.MustParse(constants.DefaultServerMemoryRequest),
+									corev1.ResourceCPU:    resource.MustParse(constants.DefaultServerCpuRequest),
 								},
 								Limits: corev1.ResourceList{
-									corev1.ResourceMemory: util.GetResourceQuantity(
-										ctx.CheCluster.Spec.Server.ServerMemoryLimit,
-										deploy.DefaultServerMemoryLimit),
-									corev1.ResourceCPU: util.GetResourceQuantity(
-										ctx.CheCluster.Spec.Server.ServerCpuLimit,
-										deploy.DefaultServerCpuLimit),
+									corev1.ResourceMemory: resource.MustParse(constants.DefaultServerMemoryLimit),
+									corev1.ResourceCPU:    resource.MustParse(constants.DefaultServerCpuLimit),
 								},
 							},
 							SecurityContext: &corev1.SecurityContext{
@@ -238,7 +231,7 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *deploy.DeployContext) (*apps
 
 	container := &deployment.Spec.Template.Spec.Containers[0]
 
-	chePostgresCredentialsSecret := util.GetValue(ctx.CheCluster.Spec.Database.ChePostgresSecret, deploy.DefaultChePostgresCredentialsSecret)
+	chePostgresCredentialsSecret := utils.GetValue(ctx.CheCluster.Spec.Components.Database.CredentialsSecretName, constants.DefaultPostgresCredentialsSecret)
 	container.Env = append(container.Env,
 		corev1.EnvVar{
 			Name: "CHE_JDBC_USERNAME",
@@ -263,8 +256,7 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *deploy.DeployContext) (*apps
 		})
 
 	// configure probes if debug isn't set
-	cheDebug := util.GetValue(ctx.CheCluster.Spec.Server.CheDebug, deploy.DefaultCheDebug)
-	if cheDebug != "true" {
+	if ctx.CheCluster.Spec.Components.CheServer.Debug == nil || !*ctx.CheCluster.Spec.Components.CheServer.Debug {
 		container.ReadinessProbe = &corev1.Probe{
 			Handler: corev1.Handler{
 				HTTPGet: &corev1.HTTPGetAction{
@@ -304,23 +296,15 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *deploy.DeployContext) (*apps
 		}
 	}
 
-	if !util.IsOpenShift {
-		runAsUser, err := strconv.ParseInt(util.GetValue(ctx.CheCluster.Spec.K8s.SecurityContextRunAsUser, deploy.DefaultSecurityContextRunAsUser), 10, 64)
-		if err != nil {
-			return nil, err
-		}
-		fsGroup, err := strconv.ParseInt(util.GetValue(ctx.CheCluster.Spec.K8s.SecurityContextFsGroup, deploy.DefaultSecurityContextFsGroup), 10, 64)
-		if err != nil {
-			return nil, err
-		}
+	if !infrastructure.IsOpenShift() {
 		deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{
-			RunAsUser: &runAsUser,
-			FSGroup:   &fsGroup,
+			RunAsUser: pointer.Int64Ptr(constants.DefaultSecurityContextRunAsUser),
+			FSGroup:   pointer.Int64Ptr(constants.DefaultSecurityContextFsGroup),
 		}
 	}
 
-	if deploy.IsComponentReadinessInitContainersConfigured(ctx.CheCluster) {
-		if !ctx.CheCluster.Spec.Database.ExternalDb {
+	if defaults.IsComponentReadinessInitContainersConfigured() {
+		if !ctx.CheCluster.Spec.Components.Database.ExternalDb {
 			waitForPostgresInitContainer, err := postgres.GetWaitForPostgresInitContainer(ctx)
 			if err != nil {
 				return nil, err
@@ -329,76 +313,56 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *deploy.DeployContext) (*apps
 		}
 	}
 
+	deploy.CustomizeDeployment(deployment, &ctx.CheCluster.Spec.Components.CheServer.Deployment, true)
+
 	return deployment, nil
 }
 
-// GetFullCheServerImageLink evaluate full cheImage link(with repo and tag)
-// based on Checluster information and image defaults from env variables
-func GetFullCheServerImageLink(checluster *orgv1.CheCluster) string {
-	if len(checluster.Spec.Server.CheImage) > 0 {
-		cheServerImageTag := util.GetValue(checluster.Spec.Server.CheImageTag, deploy.DefaultCheVersion())
-		return checluster.Spec.Server.CheImage + ":" + cheServerImageTag
-	}
-
-	defaultCheServerImage := deploy.DefaultCheServerImage(checluster)
-	if len(checluster.Spec.Server.CheImageTag) == 0 {
-		return defaultCheServerImage
-	}
-
-	// For back compatibility with version < 7.9.0:
-	// if cr.Spec.Server.CheImage is empty, but cr.Spec.Server.CheImageTag is not empty,
-	// parse from default Che image(value comes from env variable) "Che image repository"
-	// and return "Che image", like concatenation: "cheImageRepo:cheImageTag"
-	separator := map[bool]string{true: "@", false: ":"}[strings.Contains(defaultCheServerImage, "@")]
-	imageParts := strings.Split(defaultCheServerImage, separator)
-	return imageParts[0] + ":" + checluster.Spec.Server.CheImageTag
-}
-
-func MountBitBucketOAuthConfig(ctx *deploy.DeployContext, deployment *appsv1.Deployment) error {
+func MountBitBucketOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1.Deployment) error {
 	secret, err := getOAuthConfig(ctx, "bitbucket")
 	if secret == nil {
 		return err
 	}
 
-	mountVolumes(deployment, secret, deploy.BitBucketOAuthConfigMountPath)
-	mountEnv(deployment, "CHE_OAUTH1_BITBUCKET_CONSUMERKEYPATH", deploy.BitBucketOAuthConfigMountPath+"/"+deploy.BitBucketOAuthConfigConsumerKeyFileName)
-	mountEnv(deployment, "CHE_OAUTH1_BITBUCKET_PRIVATEKEYPATH", deploy.BitBucketOAuthConfigMountPath+"/"+deploy.BitBucketOAuthConfigPrivateKeyFileName)
+	mountVolumes(deployment, secret, constants.BitBucketOAuthConfigMountPath)
+	mountEnv(deployment, "CHE_OAUTH1_BITBUCKET_CONSUMERKEYPATH", constants.BitBucketOAuthConfigMountPath+"/"+constants.BitBucketOAuthConfigConsumerKeyFileName)
+	mountEnv(deployment, "CHE_OAUTH1_BITBUCKET_PRIVATEKEYPATH", constants.BitBucketOAuthConfigMountPath+"/"+constants.BitBucketOAuthConfigPrivateKeyFileName)
 
-	oauthEndpoint := secret.Annotations[deploy.CheEclipseOrgScmServerEndpoint]
+	oauthEndpoint := secret.Annotations[constants.CheEclipseOrgScmServerEndpoint]
 	if oauthEndpoint != "" {
 		mountEnv(deployment, "CHE_OAUTH1_BITBUCKET_ENDPOINT", oauthEndpoint)
 	}
 	return nil
 }
 
-func MountGitHubOAuthConfig(ctx *deploy.DeployContext, deployment *appsv1.Deployment) error {
+func MountGitHubOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1.Deployment) error {
 	secret, err := getOAuthConfig(ctx, "github")
 	if secret == nil {
 		return err
 	}
 
-	mountVolumes(deployment, secret, deploy.GitHubOAuthConfigMountPath)
-	mountEnv(deployment, "CHE_OAUTH2_GITHUB_CLIENTID__FILEPATH", deploy.GitHubOAuthConfigMountPath+"/"+deploy.GitHubOAuthConfigClientIdFileName)
-	mountEnv(deployment, "CHE_OAUTH2_GITHUB_CLIENTSECRET__FILEPATH", deploy.GitHubOAuthConfigMountPath+"/"+deploy.GitHubOAuthConfigClientSecretFileName)
+	mountVolumes(deployment, secret, constants.GitHubOAuthConfigMountPath)
+	mountEnv(deployment, "CHE_OAUTH2_GITHUB_CLIENTID__FILEPATH", constants.GitHubOAuthConfigMountPath+"/"+constants.GitHubOAuthConfigClientIdFileName)
+	mountEnv(deployment, "CHE_OAUTH2_GITHUB_CLIENTSECRET__FILEPATH", constants.GitHubOAuthConfigMountPath+"/"+constants.GitHubOAuthConfigClientSecretFileName)
 
-	oauthEndpoint := secret.Annotations[deploy.CheEclipseOrgScmServerEndpoint]
+	oauthEndpoint := secret.Annotations[constants.CheEclipseOrgScmServerEndpoint]
 	if oauthEndpoint != "" {
 		mountEnv(deployment, "CHE_INTEGRATION_GITHUB_OAUTH__ENDPOINT", oauthEndpoint)
 	}
 	return nil
 }
 
-func MountGitLabOAuthConfig(ctx *deploy.DeployContext, deployment *appsv1.Deployment) error {
+func MountGitLabOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1.Deployment) error {
 	secret, err := getOAuthConfig(ctx, "gitlab")
 	if secret == nil {
 		return err
 	}
 
-	mountVolumes(deployment, secret, deploy.GitLabOAuthConfigMountPath)
-	mountEnv(deployment, "CHE_OAUTH2_GITLAB_CLIENTID__FILEPATH", deploy.GitLabOAuthConfigMountPath+"/"+deploy.GitLabOAuthConfigClientIdFileName)
-	mountEnv(deployment, "CHE_OAUTH2_GITLAB_CLIENTSECRET__FILEPATH", deploy.GitLabOAuthConfigMountPath+"/"+deploy.GitLabOAuthConfigClientSecretFileName)
+	mountVolumes(deployment, secret, constants.GitLabOAuthConfigMountPath)
+	mountEnv(deployment, "CHE_OAUTH2_GITLAB_CLIENTID__FILEPATH", constants.GitLabOAuthConfigMountPath+"/"+constants.GitLabOAuthConfigClientIdFileName)
+	mountEnv(deployment, "CHE_OAUTH2_GITLAB_CLIENTSECRET__FILEPATH", constants.GitLabOAuthConfigMountPath+"/"+constants.GitLabOAuthConfigClientSecretFileName)
 
-	oauthEndpoint := secret.Annotations[deploy.CheEclipseOrgScmServerEndpoint]
+	oauthEndpoint := secret.Annotations[constants.CheEclipseOrgScmServerEndpoint]
 	if oauthEndpoint != "" {
 		mountEnv(deployment, "CHE_INTEGRATION_GITLAB_OAUTH__ENDPOINT", oauthEndpoint)
 	}

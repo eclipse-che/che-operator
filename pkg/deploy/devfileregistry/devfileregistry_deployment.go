@@ -12,40 +12,36 @@
 package devfileregistry
 
 import (
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/registry"
-	"github.com/eclipse-che/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
-func (d *DevfileRegistryReconciler) getDevfileRegistryDeploymentSpec(ctx *deploy.DeployContext) *appsv1.Deployment {
+func (d *DevfileRegistryReconciler) getDevfileRegistryDeploymentSpec(ctx *chetypes.DeployContext) *appsv1.Deployment {
 	registryType := "devfile"
-	registryImage := util.GetValue(ctx.CheCluster.Spec.Server.DevfileRegistryImage, deploy.DefaultDevfileRegistryImage(ctx.CheCluster))
-	registryImagePullPolicy := v1.PullPolicy(util.GetValue(string(ctx.CheCluster.Spec.Server.DevfileRegistryPullPolicy), deploy.DefaultPullPolicyFromDockerImage(registryImage)))
+	registryImage := defaults.GetDevfileRegistryImage(ctx.CheCluster)
+	registryImagePullPolicy := v1.PullPolicy(utils.GetPullPolicyFromDockerImage(registryImage))
 	probePath := "/devfiles/"
-	devfileImagesEnv := util.GetEnvByRegExp("^.*devfile_registry_image.*$")
+	devfileImagesEnv := utils.GetEnvByRegExp("^.*devfile_registry_image.*$")
 
 	resources := v1.ResourceRequirements{
 		Requests: v1.ResourceList{
-			v1.ResourceMemory: util.GetResourceQuantity(
-				ctx.CheCluster.Spec.Server.DevfileRegistryMemoryRequest,
-				deploy.DefaultDevfileRegistryMemoryRequest),
-			v1.ResourceCPU: util.GetResourceQuantity(
-				ctx.CheCluster.Spec.Server.DevfileRegistryCpuRequest,
-				deploy.DefaultDevfileRegistryCpuRequest),
+			v1.ResourceMemory: resource.MustParse(constants.DefaultDevfileRegistryMemoryRequest),
+			v1.ResourceCPU:    resource.MustParse(constants.DefaultDevfileRegistryCpuRequest),
 		},
 		Limits: v1.ResourceList{
-			v1.ResourceMemory: util.GetResourceQuantity(
-				ctx.CheCluster.Spec.Server.DevfileRegistryMemoryLimit,
-				deploy.DefaultDevfileRegistryMemoryLimit),
-			v1.ResourceCPU: util.GetResourceQuantity(
-				ctx.CheCluster.Spec.Server.DevfileRegistryCpuLimit,
-				deploy.DefaultDevfileRegistryCpuLimit),
+			v1.ResourceMemory: resource.MustParse(constants.DefaultDevfileRegistryMemoryLimit),
+			v1.ResourceCPU:    resource.MustParse(constants.DefaultDevfileRegistryCpuLimit),
 		},
 	}
 
-	return registry.GetSpecRegistryDeployment(
+	deployment := registry.GetSpecRegistryDeployment(
 		ctx,
 		registryType,
 		registryImage,
@@ -53,4 +49,6 @@ func (d *DevfileRegistryReconciler) getDevfileRegistryDeploymentSpec(ctx *deploy
 		registryImagePullPolicy,
 		resources,
 		probePath)
+	deploy.CustomizeDeployment(deployment, &ctx.CheCluster.Spec.Components.DevfileRegistry.Deployment, false)
+	return deployment
 }

@@ -12,9 +12,11 @@
 package consolelink
 
 import (
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/util"
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	console "github.com/openshift/api/console/v1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,18 +28,19 @@ import (
 )
 
 func TestReconcileConsoleLink(t *testing.T) {
-	cheCluster := &orgv1.CheCluster{
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+	cheCluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
 		},
-		Status: orgv1.CheClusterStatus{
+		Status: chev2.CheClusterStatus{
 			CheURL: "https://che-host",
 		},
 	}
 
-	util.IsOpenShift4 = true
-	ctx := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
+	ctx := test.GetDeployContext(cheCluster, []runtime.Object{})
 	ctx.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
 		{
 			APIResources: []metav1.APIResource{
@@ -51,13 +54,13 @@ func TestReconcileConsoleLink(t *testing.T) {
 	assert.True(t, done)
 	assert.Nil(t, err)
 
-	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: deploy.DefaultConsoleLinkName()}, &console.ConsoleLink{}))
-	assert.True(t, util.ContainsString(ctx.CheCluster.Finalizers, ConsoleLinkFinalizerName))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: defaults.GetConsoleLinkName()}, &console.ConsoleLink{}))
+	assert.True(t, utils.Contains(ctx.CheCluster.Finalizers, ConsoleLinkFinalizerName))
 
 	// Initialize DeletionTimestamp => checluster is being deleted
 	done = consolelink.Finalize(ctx)
 	assert.True(t, done)
 
-	assert.False(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: deploy.DefaultConsoleLinkName()}, &console.ConsoleLink{}))
-	assert.False(t, util.ContainsString(ctx.CheCluster.Finalizers, ConsoleLinkFinalizerName))
+	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: defaults.GetConsoleLinkName()}, &console.ConsoleLink{}))
+	assert.False(t, utils.Contains(ctx.CheCluster.Finalizers, ConsoleLinkFinalizerName))
 }

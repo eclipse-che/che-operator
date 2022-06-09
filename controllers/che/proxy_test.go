@@ -16,9 +16,9 @@ import (
 	"reflect"
 	"testing"
 
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/util"
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/google/go-cmp/cmp"
 	configv1 "github.com/openshift/api/config/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,52 +34,56 @@ import (
 func TestReadProxyConfiguration(t *testing.T) {
 	type testCase struct {
 		name              string
-		openShiftVersion  string
-		cheCluster        *orgv1.CheCluster
+		isOpenShift       bool
+		cheCluster        *chev2.CheCluster
 		clusterProxy      *configv1.Proxy
 		initObjects       []runtime.Object
-		expectedProxyConf *deploy.Proxy
+		expectedProxyConf *chetypes.Proxy
 	}
 
 	testCases := []testCase{
 		{
-			name:             "Test no proxy configured",
-			openShiftVersion: "4",
+			name:        "Test no proxy configured",
+			isOpenShift: true,
 			clusterProxy: &configv1.Proxy{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster",
 				},
 			},
-			cheCluster: &orgv1.CheCluster{
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 				},
 			},
 			initObjects:       []runtime.Object{},
-			expectedProxyConf: &deploy.Proxy{},
+			expectedProxyConf: &chetypes.Proxy{},
 		},
 		{
-			name:             "Test checluster proxy configured, OpenShift 4.x",
-			openShiftVersion: "4",
+			name:        "Test checluster proxy configured, OpenShift 4.x",
+			isOpenShift: true,
 			clusterProxy: &configv1.Proxy{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster",
 				},
 			},
-			cheCluster: &orgv1.CheCluster{
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						ProxyURL:      "http://proxy",
-						ProxyPort:     "3128",
-						NonProxyHosts: "host1",
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						CheServer: chev2.CheServer{
+							Proxy: chev2.Proxy{
+								Url:           "http://proxy",
+								Port:          "3128",
+								NonProxyHosts: []string{"host1"},
+							},
+						},
 					},
 				},
 			},
 			initObjects: []runtime.Object{},
-			expectedProxyConf: &deploy.Proxy{
+			expectedProxyConf: &chetypes.Proxy{
 				HttpProxy:        "http://proxy:3128",
 				HttpUser:         "",
 				HttpPassword:     "",
@@ -95,8 +99,8 @@ func TestReadProxyConfiguration(t *testing.T) {
 			},
 		},
 		{
-			name:             "Test checluster proxy configured, nonProxy merged, OpenShift 4.x",
-			openShiftVersion: "4",
+			name:        "Test checluster proxy configured, nonProxy merged, OpenShift 4.x",
+			isOpenShift: true,
 			clusterProxy: &configv1.Proxy{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster",
@@ -107,20 +111,24 @@ func TestReadProxyConfiguration(t *testing.T) {
 					NoProxy:    "host2",
 				},
 			},
-			cheCluster: &orgv1.CheCluster{
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						ProxyURL:      "http://proxy",
-						ProxyPort:     "3128",
-						NonProxyHosts: "host1",
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						CheServer: chev2.CheServer{
+							Proxy: chev2.Proxy{
+								Url:           "http://proxy",
+								Port:          "3128",
+								NonProxyHosts: []string{"host1"},
+							},
+						},
 					},
 				},
 			},
 			initObjects: []runtime.Object{},
-			expectedProxyConf: &deploy.Proxy{
+			expectedProxyConf: &chetypes.Proxy{
 				HttpProxy:        "http://proxy:3128",
 				HttpUser:         "",
 				HttpPassword:     "",
@@ -136,8 +144,8 @@ func TestReadProxyConfiguration(t *testing.T) {
 			},
 		},
 		{
-			name:             "Test cluster wide proxy configured, OpenShift 4.x",
-			openShiftVersion: "4",
+			name:        "Test cluster wide proxy configured, OpenShift 4.x",
+			isOpenShift: true,
 			clusterProxy: &configv1.Proxy{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster",
@@ -153,16 +161,13 @@ func TestReadProxyConfiguration(t *testing.T) {
 					NoProxy:    "host1",
 				},
 			},
-			cheCluster: &orgv1.CheCluster{
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{},
-				},
 			},
 			initObjects: []runtime.Object{},
-			expectedProxyConf: &deploy.Proxy{
+			expectedProxyConf: &chetypes.Proxy{
 				HttpProxy:        "http://proxy:3128",
 				HttpUser:         "",
 				HttpPassword:     "",
@@ -178,8 +183,8 @@ func TestReadProxyConfiguration(t *testing.T) {
 			},
 		},
 		{
-			name:             "Test cluster wide proxy is not configured, but cluster wide CA certs added, OpenShift 4.x",
-			openShiftVersion: "4",
+			name:        "Test cluster wide proxy is not configured, but cluster wide CA certs added, OpenShift 4.x",
+			isOpenShift: true,
 			clusterProxy: &configv1.Proxy{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster",
@@ -190,19 +195,19 @@ func TestReadProxyConfiguration(t *testing.T) {
 					},
 				},
 			},
-			cheCluster: &orgv1.CheCluster{
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 				},
 			},
 			initObjects: []runtime.Object{},
-			expectedProxyConf: &deploy.Proxy{
+			expectedProxyConf: &chetypes.Proxy{
 				TrustedCAMapName: "additional-cluster-ca-bundle",
 			},
 		},
 		{
-			name:             "Test cluster wide proxy configured, nonProxy merged, OpenShift 4.x",
-			openShiftVersion: "4",
+			name:        "Test cluster wide proxy configured, nonProxy merged, OpenShift 4.x",
+			isOpenShift: true,
 			clusterProxy: &configv1.Proxy{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster",
@@ -213,18 +218,22 @@ func TestReadProxyConfiguration(t *testing.T) {
 					NoProxy:    "host1",
 				},
 			},
-			cheCluster: &orgv1.CheCluster{
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						NonProxyHosts: "host2",
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						CheServer: chev2.CheServer{
+							Proxy: chev2.Proxy{
+								NonProxyHosts: []string{"host2"},
+							},
+						},
 					},
 				},
 			},
 			initObjects: []runtime.Object{},
-			expectedProxyConf: &deploy.Proxy{
+			expectedProxyConf: &chetypes.Proxy{
 				HttpProxy:        "http://proxy:3128",
 				HttpUser:         "",
 				HttpPassword:     "",
@@ -240,23 +249,27 @@ func TestReadProxyConfiguration(t *testing.T) {
 			},
 		},
 		{
-			name:             "Test checluster proxy configured, OpenShift 3.x",
-			openShiftVersion: "3",
-			clusterProxy:     &configv1.Proxy{},
-			cheCluster: &orgv1.CheCluster{
+			name:         "Test checluster proxy configured, Kubernetes",
+			isOpenShift:  false,
+			clusterProxy: &configv1.Proxy{},
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						ProxyURL:      "http://proxy",
-						ProxyPort:     "3128",
-						NonProxyHosts: "host1",
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						CheServer: chev2.CheServer{
+							Proxy: chev2.Proxy{
+								Url:           "http://proxy",
+								Port:          "3128",
+								NonProxyHosts: []string{"host1"},
+							},
+						},
 					},
 				},
 			},
 			initObjects: []runtime.Object{},
-			expectedProxyConf: &deploy.Proxy{
+			expectedProxyConf: &chetypes.Proxy{
 				HttpProxy:        "http://proxy:3128",
 				HttpUser:         "",
 				HttpPassword:     "",
@@ -272,23 +285,27 @@ func TestReadProxyConfiguration(t *testing.T) {
 			},
 		},
 		{
-			name:             "Test checluster proxy configured, OpenShift 3.x and k8s, svc usage",
-			openShiftVersion: "3",
-			clusterProxy:     &configv1.Proxy{},
-			cheCluster: &orgv1.CheCluster{
+			name:         "Test checluster proxy configured, Kubernetes",
+			isOpenShift:  true,
+			clusterProxy: &configv1.Proxy{},
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						ProxyURL:      "http://proxy",
-						ProxyPort:     "3128",
-						NonProxyHosts: "host1",
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						CheServer: chev2.CheServer{
+							Proxy: chev2.Proxy{
+								Url:           "http://proxy",
+								Port:          "3128",
+								NonProxyHosts: []string{"host1"},
+							},
+						},
 					},
 				},
 			},
 			initObjects: []runtime.Object{},
-			expectedProxyConf: &deploy.Proxy{
+			expectedProxyConf: &chetypes.Proxy{
 				HttpProxy:        "http://proxy:3128",
 				HttpUser:         "",
 				HttpPassword:     "",
@@ -308,11 +325,11 @@ func TestReadProxyConfiguration(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+			chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
 			testCase.initObjects = append(testCase.initObjects, testCase.clusterProxy, testCase.cheCluster)
 
 			scheme := scheme.Scheme
-			orgv1.SchemeBuilder.AddToScheme(scheme)
+			chev2.SchemeBuilder.AddToScheme(scheme)
 			scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.Proxy{})
 
 			cli := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
@@ -320,12 +337,11 @@ func TestReadProxyConfiguration(t *testing.T) {
 			fakeDiscovery, _ := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
 			fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{}
 
-			os.Setenv("OPENSHIFT_VERSION", testCase.openShiftVersion)
-			util.IsOpenShift, util.IsOpenShift4, _ = util.DetectOpenShift()
+			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 
-			deployContext := &deploy.DeployContext{
+			deployContext := &chetypes.DeployContext{
 				CheCluster: testCase.cheCluster,
-				ClusterAPI: deploy.ClusterAPI{
+				ClusterAPI: chetypes.ClusterAPI{
 					Client:           cli,
 					NonCachingClient: cli,
 					Scheme:           scheme,

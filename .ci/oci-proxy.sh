@@ -19,7 +19,7 @@ set -o pipefail
 set -u
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
-source "${OPERATOR_REPO}"/.github/bin/common.sh
+source "${OPERATOR_REPO}/.github/bin/common.sh"
 
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
@@ -29,7 +29,7 @@ overrideDefaults() {
 }
 
 runTests() {
-  deployEclipseCheOnWithOperator "chectl" "openshift" ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH} "true"
+  deployEclipseCheWithOperator "chectl" "openshift" ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH} "true"
 }
 
 initDefaults
