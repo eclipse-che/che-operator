@@ -15,14 +15,19 @@ package dashboard
 import (
 	"context"
 	"fmt"
-	"strconv"
 
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	configv1 "github.com/openshift/api/config/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
 
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
-	"github.com/eclipse-che/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,7 +37,7 @@ import (
 const CHE_SELF_SIGNED_MOUNT_PATH = "/public-certs/che-self-signed"
 const CHE_CUSTOM_CERTS_MOUNT_PATH = "/public-certs/custom"
 
-func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *deploy.DeployContext) (*appsv1.Deployment, error) {
+func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
 	var volumes []corev1.Volume
 	var volumeMounts []corev1.VolumeMount
 	var envVars []corev1.EnvVar
@@ -52,10 +57,10 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *deploy.DeployConte
 		// CHE_HOST is here for backward compatibility. Replaced with CHE_URL
 		corev1.EnvVar{
 			Name:  "CHE_HOST",
-			Value: ctx.CheCluster.Status.CheURL},
+			Value: "https://" + ctx.CheHost},
 		corev1.EnvVar{
 			Name:  "CHE_URL",
-			Value: ctx.CheCluster.Status.CheURL},
+			Value: "https://" + ctx.CheHost},
 		corev1.EnvVar{
 			Name:  "CHECLUSTER_CR_NAMESPACE",
 			Value: ctx.CheCluster.Namespace},
@@ -70,7 +75,7 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *deploy.DeployConte
 			Value: fmt.Sprintf("http://%s.%s.svc:8080/api", deploy.CheServiceName, ctx.CheCluster.Namespace)},
 	)
 
-	if util.IsOpenShift {
+	if infrastructure.IsOpenShift() {
 		envVars = append(envVars,
 			corev1.EnvVar{
 				Name:  "OPENSHIFT_CONSOLE_URL",
@@ -78,10 +83,10 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *deploy.DeployConte
 	}
 
 	terminationGracePeriodSeconds := int64(30)
-	labels, labelsSelector := deploy.GetLabelsAndSelector(ctx.CheCluster, d.getComponentName(ctx))
+	labels, labelsSelector := deploy.GetLabelsAndSelector(d.getComponentName(ctx))
 
-	dashboardImageAndTag := util.GetValue(ctx.CheCluster.Spec.Server.DashboardImage, deploy.DefaultDashboardImage(ctx.CheCluster))
-	pullPolicy := corev1.PullPolicy(util.GetValue(ctx.CheCluster.Spec.Server.DashboardImagePullPolicy, deploy.DefaultPullPolicyFromDockerImage(dashboardImageAndTag)))
+	image := defaults.GetDashboardImage(ctx.CheCluster)
+	pullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(image))
 
 	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -108,7 +113,7 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *deploy.DeployConte
 						{
 							Name:            d.getComponentName(ctx),
 							ImagePullPolicy: pullPolicy,
-							Image:           dashboardImageAndTag,
+							Image:           image,
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "http",
@@ -118,20 +123,12 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *deploy.DeployConte
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
-									corev1.ResourceMemory: util.GetResourceQuantity(
-										ctx.CheCluster.Spec.Server.DashboardMemoryRequest,
-										deploy.DefaultDashboardMemoryRequest),
-									corev1.ResourceCPU: util.GetResourceQuantity(
-										ctx.CheCluster.Spec.Server.DashboardCpuRequest,
-										deploy.DefaultDashboardCpuRequest),
+									corev1.ResourceMemory: resource.MustParse(constants.DefaultDashboardMemoryRequest),
+									corev1.ResourceCPU:    resource.MustParse(constants.DefaultDashboardCpuRequest),
 								},
 								Limits: corev1.ResourceList{
-									corev1.ResourceMemory: util.GetResourceQuantity(
-										ctx.CheCluster.Spec.Server.DashboardMemoryLimit,
-										deploy.DefaultDashboardMemoryLimit),
-									corev1.ResourceCPU: util.GetResourceQuantity(
-										ctx.CheCluster.Spec.Server.DashboardCpuLimit,
-										deploy.DefaultDashboardCpuLimit),
+									corev1.ResourceMemory: resource.MustParse(constants.DefaultDashboardMemoryLimit),
+									corev1.ResourceCPU:    resource.MustParse(constants.DefaultDashboardCpuLimit),
 								},
 							},
 							SecurityContext: &corev1.SecurityContext{
@@ -185,25 +182,18 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *deploy.DeployConte
 		},
 	}
 
-	if !util.IsOpenShift {
-		runAsUser, err := strconv.ParseInt(util.GetValue(ctx.CheCluster.Spec.K8s.SecurityContextRunAsUser, deploy.DefaultSecurityContextRunAsUser), 10, 64)
-		if err != nil {
-			return nil, err
-		}
-		fsGroup, err := strconv.ParseInt(util.GetValue(ctx.CheCluster.Spec.K8s.SecurityContextFsGroup, deploy.DefaultSecurityContextFsGroup), 10, 64)
-		if err != nil {
-			return nil, err
-		}
+	if !infrastructure.IsOpenShift() {
 		deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{
-			RunAsUser: &runAsUser,
-			FSGroup:   &fsGroup,
+			RunAsUser: pointer.Int64Ptr(constants.DefaultSecurityContextRunAsUser),
+			FSGroup:   pointer.Int64Ptr(constants.DefaultSecurityContextFsGroup),
 		}
 	}
 
+	deploy.CustomizeDeployment(deployment, &ctx.CheCluster.Spec.Components.Dashboard.Deployment, true)
 	return deployment, nil
 }
 
-func (d *DashboardReconciler) evaluateOpenShiftConsoleURL(ctx *deploy.DeployContext) string {
+func (d *DashboardReconciler) evaluateOpenShiftConsoleURL(ctx *chetypes.DeployContext) string {
 	console := &configv1.Console{}
 
 	err := ctx.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{
@@ -224,7 +214,7 @@ func (d *DashboardReconciler) provisionCheSelfSignedCA(volumes []corev1.Volume, 
 		Name: "che-self-signed-ca",
 		VolumeSource: corev1.VolumeSource{
 			Secret: &corev1.SecretVolumeSource{
-				SecretName: deploy.CheTLSSelfSignedCertificateSecretName,
+				SecretName: constants.DefaultSelfSignedCertificateSecretName,
 				Items: []corev1.KeyToPath{
 					{
 						Key:  "ca.crt",

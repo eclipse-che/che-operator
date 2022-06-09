@@ -12,18 +12,21 @@
 package postgres
 
 import (
-	"context"
 	"fmt"
 	"os"
 
-	"github.com/eclipse-che/che-operator/pkg/util"
+	"k8s.io/apimachinery/pkg/api/resource"
+
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -41,18 +44,18 @@ func TestDeploymentSpec(t *testing.T) {
 		memoryRequest string
 		cpuLimit      string
 		cpuRequest    string
-		cheCluster    *orgv1.CheCluster
+		cheCluster    *chev2.CheCluster
 	}
 
 	testCases := []testCase{
 		{
 			name:          "Test default limits",
 			initObjects:   []runtime.Object{},
-			memoryLimit:   deploy.DefaultPostgresMemoryLimit,
-			memoryRequest: deploy.DefaultPostgresMemoryRequest,
-			cpuLimit:      deploy.DefaultPostgresCpuLimit,
-			cpuRequest:    deploy.DefaultPostgresCpuRequest,
-			cheCluster: &orgv1.CheCluster{
+			memoryLimit:   constants.DefaultPostgresMemoryLimit,
+			memoryRequest: constants.DefaultPostgresMemoryRequest,
+			cpuLimit:      constants.DefaultPostgresCpuLimit,
+			cpuRequest:    constants.DefaultPostgresCpuRequest,
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 					Name:      "eclipse-che",
@@ -66,21 +69,30 @@ func TestDeploymentSpec(t *testing.T) {
 			cpuRequest:    "150m",
 			memoryLimit:   "250Mi",
 			memoryRequest: "150Mi",
-			cheCluster: &orgv1.CheCluster{
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 					Name:      "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					Database: orgv1.CheClusterSpecDB{
-						ChePostgresContainerResources: orgv1.ResourcesCustomSettings{
-							Limits: orgv1.Resources{
-								Cpu:    "250m",
-								Memory: "250Mi",
-							},
-							Requests: orgv1.Resources{
-								Memory: "150Mi",
-								Cpu:    "150m",
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						Database: chev2.Database{
+							Deployment: chev2.Deployment{
+								Containers: []chev2.Container{
+									{
+										Name: constants.PostgresName,
+										Resources: chev2.ResourceRequirements{
+											Requests: chev2.ResourceList{
+												Memory: resource.MustParse("150Mi"),
+												Cpu:    resource.MustParse("150m"),
+											},
+											Limits: chev2.ResourceList{
+												Memory: resource.MustParse("250Mi"),
+												Cpu:    resource.MustParse("250m"),
+											},
+										},
+									},
+								},
 							},
 						},
 					},
@@ -93,13 +105,13 @@ func TestDeploymentSpec(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
-			ctx := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
+			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
 			postgres := NewPostgresReconciler()
 
 			deployment, err := postgres.getDeploymentSpec(nil, ctx)
 			assert.Nil(t, err)
-			util.CompareResources(deployment,
-				util.TestExpectedResources{
+			test.CompareResources(deployment,
+				test.TestExpectedResources{
 					MemoryLimit:   testCase.memoryLimit,
 					MemoryRequest: testCase.memoryRequest,
 					CpuRequest:    testCase.cpuRequest,
@@ -107,58 +119,30 @@ func TestDeploymentSpec(t *testing.T) {
 				},
 				t)
 
-			util.ValidateSecurityContext(deployment, t)
+			test.ValidateSecurityContext(deployment, t)
 		})
 	}
 }
 
 func TestPostgresReconcile(t *testing.T) {
-	util.IsOpenShift = true
-	ctx := deploy.GetTestDeployContext(nil, []runtime.Object{})
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	ctx := test.GetDeployContext(nil, []runtime.Object{})
 
 	postgres := NewPostgresReconciler()
 	_, done, err := postgres.Reconcile(ctx)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
-	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "postgres-credentials", Namespace: "eclipse-che"}, &corev1.Secret{}))
-	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "postgres", Namespace: "eclipse-che"}, &corev1.Service{}))
-	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "postgres-data", Namespace: "eclipse-che"}, &corev1.PersistentVolumeClaim{}))
-	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "postgres", Namespace: "eclipse-che"}, &appsv1.Deployment{}))
-}
-
-func TestSyncPostgresCredentials(t *testing.T) {
-	cheCluster := &orgv1.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "eclipse-che",
-			Namespace: "eclipse-che",
-		},
-		Spec: orgv1.CheClusterSpec{
-			Database: orgv1.CheClusterSpecDB{
-				ChePostgresUser:     "postgresUser",
-				ChePostgresPassword: "postgresPassword",
-			},
-		},
-	}
-
-	ctx := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
-
-	postgres := NewPostgresReconciler()
-	done, err := postgres.syncCredentials(ctx)
-	assert.True(t, done)
-	assert.Nil(t, err)
-
-	postgresCredentialsSecret := &corev1.Secret{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "postgres-credentials", Namespace: "eclipse-che"}, postgresCredentialsSecret)
-	assert.Nil(t, err)
-	assert.Equal(t, string(postgresCredentialsSecret.Data["user"]), "postgresUser")
-	assert.Equal(t, string(postgresCredentialsSecret.Data["password"]), "postgresPassword")
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "postgres", Namespace: "eclipse-che"}, &corev1.Service{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "postgres-data", Namespace: "eclipse-che"}, &corev1.PersistentVolumeClaim{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "postgres", Namespace: "eclipse-che"}, &appsv1.Deployment{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "postgres-credentials", Namespace: "eclipse-che"}, &corev1.Secret{}))
 }
 
 func TestGetPostgresImage(t *testing.T) {
 	type testCase struct {
 		name               string
-		cheCluster         *orgv1.CheCluster
+		cheCluster         *chev2.CheCluster
 		postgresDeployment *appsv1.Deployment
 
 		expectedPostgresImage string
@@ -167,87 +151,91 @@ func TestGetPostgresImage(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			cheCluster: &orgv1.CheCluster{
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 				},
 			},
-			expectedPostgresImage: deploy.DefaultPostgres13Image(&orgv1.CheCluster{}),
+			expectedPostgresImage: defaults.GetPostgres13Image(&chev2.CheCluster{}),
 		},
 		{
-			cheCluster: &orgv1.CheCluster{
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					Database: orgv1.CheClusterSpecDB{
-						PostgresVersion: "13.3",
-					},
+				Status: chev2.CheClusterStatus{
+					PostgresVersion: "13.3",
 				},
 			},
-			expectedPostgresImage: deploy.DefaultPostgres13Image(&orgv1.CheCluster{}),
+			expectedPostgresImage: defaults.GetPostgres13Image(&chev2.CheCluster{}),
 		},
 		{
-			cheCluster: &orgv1.CheCluster{
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					Database: orgv1.CheClusterSpecDB{
-						PostgresVersion: "13.5",
-					},
+				Status: chev2.CheClusterStatus{
+					PostgresVersion: "13.5",
 				},
 			},
-			expectedPostgresImage: deploy.DefaultPostgres13Image(&orgv1.CheCluster{}),
+			expectedPostgresImage: defaults.GetPostgres13Image(&chev2.CheCluster{}),
 		},
 		{
-			cheCluster: &orgv1.CheCluster{
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					Database: orgv1.CheClusterSpecDB{
-						PostgresVersion: "9.6",
-					},
+				Status: chev2.CheClusterStatus{
+					PostgresVersion: "9.6",
 				},
 			},
-			expectedPostgresImage: deploy.DefaultPostgresImage(&orgv1.CheCluster{}),
+			expectedPostgresImage: defaults.GetPostgresImage(&chev2.CheCluster{}),
 		},
 		{
-			cheCluster: &orgv1.CheCluster{
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					Database: orgv1.CheClusterSpecDB{
-						PostgresImage:   "custom_postgre_image",
-						PostgresVersion: "<some_version>",
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						Database: chev2.Database{
+							Deployment: chev2.Deployment{
+								Containers: []chev2.Container{
+									chev2.Container{
+										Image: "custom_postgre_image",
+									},
+								},
+							},
+						},
 					},
+				},
+				Status: chev2.CheClusterStatus{
+					PostgresVersion: "<some_version>",
 				},
 			},
 			expectedPostgresImage: "custom_postgre_image",
 		},
 		{
-			cheCluster: &orgv1.CheCluster{
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					Database: orgv1.CheClusterSpecDB{
-						PostgresVersion: "unrecognized_version",
-					},
+				Status: chev2.CheClusterStatus{
+					PostgresVersion: "<unrecognized_version>",
 				},
 			},
 			expectedError: true,
 		},
 
 		{
-			cheCluster: &orgv1.CheCluster{
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					Database: orgv1.CheClusterSpecDB{},
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						Database: chev2.Database{},
+					},
 				},
 			},
 			postgresDeployment: &appsv1.Deployment{
@@ -266,14 +254,12 @@ func TestGetPostgresImage(t *testing.T) {
 			expectedPostgresImage: "current_postgres_image",
 		},
 		{
-			cheCluster: &orgv1.CheCluster{
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					Database: orgv1.CheClusterSpecDB{
-						PostgresVersion: "13.3",
-					},
+				Status: chev2.CheClusterStatus{
+					PostgresVersion: "13.3",
 				},
 			},
 			postgresDeployment: &appsv1.Deployment{
@@ -289,7 +275,7 @@ func TestGetPostgresImage(t *testing.T) {
 					},
 				},
 			},
-			expectedPostgresImage: deploy.DefaultPostgres13Image(&orgv1.CheCluster{}),
+			expectedPostgresImage: defaults.GetPostgres13Image(&chev2.CheCluster{}),
 		},
 	}
 

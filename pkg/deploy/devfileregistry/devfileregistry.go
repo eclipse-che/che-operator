@@ -14,6 +14,8 @@ package devfileregistry
 import (
 	"fmt"
 
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
@@ -28,9 +30,11 @@ func NewDevfileRegistryReconciler() *DevfileRegistryReconciler {
 	return &DevfileRegistryReconciler{}
 }
 
-func (d *DevfileRegistryReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
-	if ctx.CheCluster.Spec.Server.ExternalDevfileRegistry {
-		return reconcile.Result{}, true, nil
+func (d *DevfileRegistryReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
+	if ctx.CheCluster.Spec.Components.DevfileRegistry.DisableInternalRegistry {
+		ctx.CheCluster.Status.DevfileRegistryURL = ""
+		err := deploy.UpdateCheCRStatus(ctx, "DevfileRegistryURL", "")
+		return reconcile.Result{}, err == nil, err
 	}
 
 	done, err := d.syncService(ctx)
@@ -61,35 +65,35 @@ func (d *DevfileRegistryReconciler) Reconcile(ctx *deploy.DeployContext) (reconc
 	return reconcile.Result{}, true, nil
 }
 
-func (d *DevfileRegistryReconciler) Finalize(ctx *deploy.DeployContext) bool {
+func (d *DevfileRegistryReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	return true
 }
 
-func (d *DevfileRegistryReconciler) syncService(ctx *deploy.DeployContext) (bool, error) {
+func (d *DevfileRegistryReconciler) syncService(ctx *chetypes.DeployContext) (bool, error) {
 	return deploy.SyncServiceToCluster(
 		ctx,
-		deploy.DevfileRegistryName,
+		constants.DevfileRegistryName,
 		[]string{"http"},
 		[]int32{8080},
-		deploy.DevfileRegistryName)
+		constants.DevfileRegistryName)
 }
 
-func (d *DevfileRegistryReconciler) syncConfigMap(ctx *deploy.DeployContext) (bool, error) {
+func (d *DevfileRegistryReconciler) syncConfigMap(ctx *chetypes.DeployContext) (bool, error) {
 	data, err := d.getConfigMapData(ctx)
 	if err != nil {
 		return false, err
 	}
-	return deploy.SyncConfigMapDataToCluster(ctx, deploy.DevfileRegistryName, data, deploy.DevfileRegistryName)
+	return deploy.SyncConfigMapDataToCluster(ctx, constants.DevfileRegistryName, data, constants.DevfileRegistryName)
 }
 
-func (d *DevfileRegistryReconciler) exposeEndpoint(ctx *deploy.DeployContext) (string, bool, error) {
+func (d *DevfileRegistryReconciler) exposeEndpoint(ctx *chetypes.DeployContext) (string, bool, error) {
 	return expose.Expose(
 		ctx,
-		deploy.DevfileRegistryName,
+		constants.DevfileRegistryName,
 		d.createGatewayConfig())
 }
 
-func (d *DevfileRegistryReconciler) updateStatus(endpoint string, ctx *deploy.DeployContext) (bool, error) {
+func (d *DevfileRegistryReconciler) updateStatus(endpoint string, ctx *chetypes.DeployContext) (bool, error) {
 	devfileRegistryURL := "https://" + endpoint
 	if devfileRegistryURL != ctx.CheCluster.Status.DevfileRegistryURL {
 		ctx.CheCluster.Status.DevfileRegistryURL = devfileRegistryURL
@@ -101,18 +105,18 @@ func (d *DevfileRegistryReconciler) updateStatus(endpoint string, ctx *deploy.De
 	return true, nil
 }
 
-func (d *DevfileRegistryReconciler) syncDeployment(ctx *deploy.DeployContext) (bool, error) {
+func (d *DevfileRegistryReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
 	spec := d.getDevfileRegistryDeploymentSpec(ctx)
 	return deploy.SyncDeploymentSpecToCluster(ctx, spec, deploy.DefaultDeploymentDiffOpts)
 }
 
 func (d *DevfileRegistryReconciler) createGatewayConfig() *gateway.TraefikConfig {
-	pathPrefix := "/" + deploy.DevfileRegistryName
+	pathPrefix := "/" + constants.DevfileRegistryName
 	cfg := gateway.CreateCommonTraefikConfig(
-		deploy.DevfileRegistryName,
+		constants.DevfileRegistryName,
 		fmt.Sprintf("PathPrefix(`%s`)", pathPrefix),
 		10,
-		"http://"+deploy.DevfileRegistryName+":8080",
+		"http://"+constants.DevfileRegistryName+":8080",
 		[]string{pathPrefix})
 
 	return cfg

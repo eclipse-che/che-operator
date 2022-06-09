@@ -19,7 +19,6 @@ if [ -z "${OPERATOR_REPO}" ]; then
   SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
   OPERATOR_REPO=$(dirname "$(dirname "$SCRIPT")")
 fi
-source "${OPERATOR_REPO}/olm/olm.sh"
 source "${OPERATOR_REPO}/.github/bin/common.sh"
 
 init() {
@@ -49,7 +48,7 @@ usage () {
   echo "OPTIONS:"
   echo -e "\t-i,--catalog-image       Catalog image"
   echo -e "\t-c,--channel=next|stable [default: next] Olm channel to deploy Eclipse Che from"
-  echo -e "\t-n,--namespace           [default: eclipse-che] Kubernetes namepsace to deploy Eclipse Che into"
+  echo -e "\t-n,--namespace           [default: eclipse-che] Kubernetes namespace to deploy Eclipse Che into"
   echo
 	echo "Example:"
 	echo -e "\t$0 -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:next"
@@ -58,28 +57,25 @@ usage () {
 }
 
 run() {
-  createNamespace ${NAMESPACE}
+  deployDevWorkspaceOperator "${CHANNEL}"
 
-  deployDevWorkspaceOperator ${CHANNEL}
+  createNamespace "${NAMESPACE}"
+  createCatalogSource "${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" "${CATALOG_IMAGE}"
 
-  local customCatalogSource=$(getCustomCatalogSourceName)
-  createCatalogSource "${customCatalogSource}" "${CATALOG_IMAGE}"
-
-  local bundles=$(getCatalogSourceBundles "${customCatalogSource}")
+  local bundles=$(getCatalogSourceBundles "${ECLIPSE_CHE_CATALOG_SOURCE_NAME}")
   fetchLatestCSVInfo "${CHANNEL}" "${bundles}"
   forcePullingOlmImages "${LATEST_CSV_BUNDLE_IMAGE}"
 
-  local subscription=$(getSubscriptionName)
-  createSubscription "${subscription}" $(getPackageName) ${CHANNEL} "${customCatalogSource}" "Manual"
-  approveInstallPlan "${subscription}"
+  createSubscription "${ECLIPSE_CHE_SUBSCRIPTION_NAME}" "${ECLIPSE_CHE_PACKAGE_NAME}" "${CHANNEL}" "${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" "Manual"
+  approveInstallPlan "${ECLIPSE_CHE_SUBSCRIPTION_NAME}"
 
   sleep 10s
 
-  echo "$(getCheClusterCRFromExistedCSV)" | oc apply -n "${NAMESPACE}" -f -
-  waitEclipseCheDeployed $(getCheVersionFromExistedCSV)
+  getCheClusterCRFromExistedCSV | oc apply -n "${NAMESPACE}" -f -
+  waitEclipseCheDeployed "$(getCheVersionFromExistedCSV)"
 }
 
-init $@
+init "$@"
 run
 
 echo "[INFO] Done"

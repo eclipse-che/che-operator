@@ -18,22 +18,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/eclipse-che/che-operator/pkg/util"
-
 	"github.com/stretchr/testify/assert"
-
-	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 
 	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers"
 	"github.com/devfile/devworkspace-operator/pkg/constants"
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
-	org "github.com/eclipse-che/che-operator/api"
-	v1 "github.com/eclipse-che/che-operator/api/v1"
-	"github.com/eclipse-che/che-operator/api/v2alpha1"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	controller "github.com/eclipse-che/che-operator/controllers/devworkspace"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
+	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -59,15 +54,15 @@ func createTestScheme() *runtime.Scheme {
 	utilruntime.Must(dw.AddToScheme(scheme))
 	utilruntime.Must(dwo.AddToScheme(scheme))
 	utilruntime.Must(routev1.AddToScheme(scheme))
-	utilruntime.Must(v1.AddToScheme(scheme))
+	utilruntime.Must(chev2.AddToScheme(scheme))
 
 	return scheme
 }
 
-func getSpecObjectsForManager(t *testing.T, mgr *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting, additionalInitialObjects ...runtime.Object) (client.Client, solvers.RoutingSolver, solvers.RoutingObjects) {
+func getSpecObjectsForManager(t *testing.T, mgr *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, additionalInitialObjects ...runtime.Object) (client.Client, solvers.RoutingSolver, solvers.RoutingObjects) {
 	scheme := createTestScheme()
 
-	allObjs := []runtime.Object{asV1(mgr)}
+	allObjs := []runtime.Object{mgr}
 	for i := range additionalInitialObjects {
 		allObjs = append(allObjs, additionalInitialObjects[i])
 	}
@@ -103,20 +98,16 @@ func getSpecObjectsForManager(t *testing.T, mgr *v2alpha1.CheCluster, routing *d
 }
 
 func getSpecObjects(t *testing.T, routing *dwo.DevWorkspaceRouting) (client.Client, solvers.RoutingSolver, solvers.RoutingObjects) {
-	return getSpecObjectsForManager(t, &v2alpha1.CheCluster{
+	return getSpecObjectsForManager(t, &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "che",
 			Namespace:  "ns",
 			Finalizers: []string{controller.FinalizerName},
 		},
-		Spec: v2alpha1.CheClusterSpec{
-			Gateway: v2alpha1.CheGatewaySpec{
-				Host: "over.the.rainbow",
-			},
-			Workspaces: v2alpha1.Workspaces{
-				DomainEndpoints: v2alpha1.DomainEndpoints{
-					BaseDomain: "down.on.earth",
-				},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Domain:   "down.on.earth",
+				Hostname: "over.the.rainbow",
 			},
 		},
 	}, routing)
@@ -207,8 +198,7 @@ func relocatableDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 }
 
 func TestCreateRelocatedObjectsK8S(t *testing.T) {
-	util.IsOpenShift = false
-	util.IsOpenShift4 = false
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 	cl, _, objs := getSpecObjects(t, relocatableDevWorkspaceRouting())
 
 	t.Run("noIngresses", func(t *testing.T) {
@@ -353,8 +343,7 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 }
 
 func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
-	util.IsOpenShift = true
-	util.IsOpenShift4 = true
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 
 	cl, _, objs := getSpecObjects(t, relocatableDevWorkspaceRouting())
 
@@ -520,8 +509,7 @@ func TestUniqueMainEndpoint(t *testing.T) {
 
 func TestCreateSubDomainObjects(t *testing.T) {
 	testCommon := func(infra infrastructure.Type) solvers.RoutingObjects {
-		util.IsOpenShift = infra == infrastructure.OpenShiftv4
-		util.IsOpenShift4 = infra == infrastructure.OpenShiftv4
+		infrastructure.InitializeForTesting(infra)
 
 		cl, _, objs := getSpecObjects(t, subdomainDevWorkspaceRouting())
 
@@ -592,8 +580,7 @@ func TestCreateSubDomainObjects(t *testing.T) {
 
 func TestReportRelocatableExposedEndpoints(t *testing.T) {
 	// kubernetes
-	util.IsOpenShift = false
-	util.IsOpenShift4 = false
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
 	routing := relocatableDevWorkspaceRouting()
 	_, solver, objs := getSpecObjects(t, routing)
@@ -646,8 +633,7 @@ func TestReportRelocatableExposedEndpoints(t *testing.T) {
 }
 
 func TestExposeEndpoints(t *testing.T) {
-	util.IsOpenShift = false
-	util.IsOpenShift4 = false
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
 	routing := &dwo.DevWorkspaceRouting{
 		ObjectMeta: metav1.ObjectMeta{
@@ -757,8 +743,7 @@ func TestExposeEndpoints(t *testing.T) {
 }
 
 func TestReportSubdomainExposedEndpoints(t *testing.T) {
-	util.IsOpenShift = false
-	util.IsOpenShift4 = false
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 	routing := subdomainDevWorkspaceRouting()
 	_, solver, objs := getSpecObjects(t, routing)
 
@@ -810,8 +795,7 @@ func TestReportSubdomainExposedEndpoints(t *testing.T) {
 }
 
 func TestFinalize(t *testing.T) {
-	util.IsOpenShift = false
-	util.IsOpenShift4 = false
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 	routing := relocatableDevWorkspaceRouting()
 	cl, slv, _ := getSpecObjects(t, routing)
 
@@ -832,8 +816,7 @@ func TestFinalize(t *testing.T) {
 }
 
 func TestEndpointsAlwaysOnSecureProtocolsWhenExposedThroughGateway(t *testing.T) {
-	util.IsOpenShift = false
-	util.IsOpenShift4 = false
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 	routing := relocatableDevWorkspaceRouting()
 	_, slv, objs := getSpecObjects(t, routing)
 
@@ -856,26 +839,19 @@ func TestEndpointsAlwaysOnSecureProtocolsWhenExposedThroughGateway(t *testing.T)
 }
 
 func TestUsesIngressAnnotationsForWorkspaceEndpointIngresses(t *testing.T) {
-	util.IsOpenShift = false
-	util.IsOpenShift4 = false
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
-	mgr := &v2alpha1.CheCluster{
+	mgr := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "che",
 			Namespace:  "ns",
 			Finalizers: []string{controller.FinalizerName},
 		},
-		Spec: v2alpha1.CheClusterSpec{
-			Gateway: v2alpha1.CheGatewaySpec{
-				Host: "over.the.rainbow",
-			},
-			Workspaces: v2alpha1.Workspaces{
-				DomainEndpoints: v2alpha1.DomainEndpoints{
-					BaseDomain: "down.on.earth",
-				},
-			},
-			K8s: v2alpha1.CheClusterSpecK8s{
-				IngressAnnotations: map[string]string{
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Hostname: "over.the.rainbow",
+				Domain:   "down.on.earth",
+				Annotations: map[string]string{
 					"a": "b",
 				},
 			},
@@ -900,24 +876,19 @@ func TestUsesIngressAnnotationsForWorkspaceEndpointIngresses(t *testing.T) {
 }
 
 func TestUsesCustomCertificateForWorkspaceEndpointIngresses(t *testing.T) {
-	util.IsOpenShift = false
-	util.IsOpenShift4 = false
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
-	mgr := &v2alpha1.CheCluster{
+	mgr := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "che",
 			Namespace:  "ns",
 			Finalizers: []string{controller.FinalizerName},
 		},
-		Spec: v2alpha1.CheClusterSpec{
-			Gateway: v2alpha1.CheGatewaySpec{
-				Host: "beyond.comprehension",
-			},
-			Workspaces: v2alpha1.Workspaces{
-				DomainEndpoints: v2alpha1.DomainEndpoints{
-					BaseDomain:    "almost.trivial",
-					TlsSecretName: "tlsSecret",
-				},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				TlsSecretName: "tlsSecret",
+				Hostname:      "beyond.comprehension",
+				Domain:        "almost.trivial",
 			},
 		},
 	}
@@ -981,24 +952,19 @@ func TestUsesCustomCertificateForWorkspaceEndpointIngresses(t *testing.T) {
 }
 
 func TestUsesCustomCertificateForWorkspaceEndpointRoutes(t *testing.T) {
-	util.IsOpenShift = true
-	util.IsOpenShift4 = true
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 
-	mgr := &v2alpha1.CheCluster{
+	mgr := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "che",
 			Namespace:  "ns",
 			Finalizers: []string{controller.FinalizerName},
 		},
-		Spec: v2alpha1.CheClusterSpec{
-			Gateway: v2alpha1.CheGatewaySpec{
-				Host: "beyond.comprehension",
-			},
-			Workspaces: v2alpha1.Workspaces{
-				DomainEndpoints: v2alpha1.DomainEndpoints{
-					BaseDomain:    "almost.trivial",
-					TlsSecretName: "tlsSecret",
-				},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Hostname:      "beyond.comprehension",
+				TlsSecretName: "tlsSecret",
+				Domain:        "almost.trivial",
 			},
 		},
 	}
@@ -1043,10 +1009,4 @@ func TestUsesCustomCertificateForWorkspaceEndpointRoutes(t *testing.T) {
 	if route.Spec.TLS != nil {
 		t.Errorf("Unexpected TLS on the route: %s", route.Spec.TLS)
 	}
-}
-
-func asV1(v2Obj *v2alpha1.CheCluster) *v1.CheCluster {
-	v1 := org.AsV1(v2Obj)
-	v1.Status.CheURL = "https://" + v1.Spec.Server.CheHost
-	return v1
 }

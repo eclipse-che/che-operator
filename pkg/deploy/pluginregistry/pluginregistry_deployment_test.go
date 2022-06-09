@@ -12,11 +12,11 @@
 package pluginregistry
 
 import (
-	"github.com/eclipse-che/che-operator/pkg/util"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"k8s.io/apimachinery/pkg/api/resource"
 
-	"github.com/eclipse-che/che-operator/pkg/deploy"
-
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -31,18 +31,18 @@ func TestGetPluginRegistryDeploymentSpec(t *testing.T) {
 		memoryRequest string
 		cpuRequest    string
 		cpuLimit      string
-		cheCluster    *orgv1.CheCluster
+		cheCluster    *chev2.CheCluster
 	}
 
 	testCases := []testCase{
 		{
 			name:          "Test default limits",
 			initObjects:   []runtime.Object{},
-			memoryLimit:   deploy.DefaultPluginRegistryMemoryLimit,
-			memoryRequest: deploy.DefaultPluginRegistryMemoryRequest,
-			cpuLimit:      deploy.DefaultPluginRegistryCpuLimit,
-			cpuRequest:    deploy.DefaultPluginRegistryCpuRequest,
-			cheCluster: &orgv1.CheCluster{
+			memoryLimit:   constants.DefaultPluginRegistryMemoryLimit,
+			memoryRequest: constants.DefaultPluginRegistryMemoryRequest,
+			cpuLimit:      constants.DefaultPluginRegistryCpuLimit,
+			cpuRequest:    constants.DefaultPluginRegistryCpuRequest,
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 					Name:      "eclipse-che",
@@ -56,17 +56,32 @@ func TestGetPluginRegistryDeploymentSpec(t *testing.T) {
 			cpuRequest:    "150m",
 			memoryLimit:   "250Mi",
 			memoryRequest: "150Mi",
-			cheCluster: &orgv1.CheCluster{
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 					Name:      "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						PluginRegistryCpuLimit:      "250m",
-						PluginRegistryCpuRequest:    "150m",
-						PluginRegistryMemoryLimit:   "250Mi",
-						PluginRegistryMemoryRequest: "150Mi",
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						PluginRegistry: chev2.PluginRegistry{
+							Deployment: chev2.Deployment{
+								Containers: []chev2.Container{
+									{
+										Name: constants.PluginRegistryName,
+										Resources: chev2.ResourceRequirements{
+											Requests: chev2.ResourceList{
+												Memory: resource.MustParse("150Mi"),
+												Cpu:    resource.MustParse("150m"),
+											},
+											Limits: chev2.ResourceList{
+												Memory: resource.MustParse("250Mi"),
+												Cpu:    resource.MustParse("250m"),
+											},
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -75,13 +90,13 @@ func TestGetPluginRegistryDeploymentSpec(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
+			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
 
 			pluginregistry := NewPluginRegistryReconciler()
 			deployment := pluginregistry.getPluginRegistryDeploymentSpec(ctx)
 
-			util.CompareResources(deployment,
-				util.TestExpectedResources{
+			test.CompareResources(deployment,
+				test.TestExpectedResources{
 					MemoryLimit:   testCase.memoryLimit,
 					MemoryRequest: testCase.memoryRequest,
 					CpuRequest:    testCase.cpuRequest,
@@ -89,7 +104,7 @@ func TestGetPluginRegistryDeploymentSpec(t *testing.T) {
 				},
 				t)
 
-			util.ValidateSecurityContext(deployment, t)
+			test.ValidateSecurityContext(deployment, t)
 		})
 	}
 }

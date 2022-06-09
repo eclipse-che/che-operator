@@ -2,124 +2,6 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "bashdb",
-      "request": "launch",
-      "name": "Make release",
-      "cwd": "${workspaceFolder}",
-      "program": "${workspaceFolder}/make-release.sh",
-      "args": [
-        "7.30.0",
-        "--release",
-        "--check-resources",
-        "--release-olm-files"
-      ]
-    },
-    {
-      "type": "bashdb",
-      "request": "launch",
-      "name": "Bash-Debug (release-olm-files.sh)",
-      "cwd": "${workspaceFolder}",
-      "program": "${workspaceFolder}/olm/release-olm-files.sh",
-      "args": [
-        "7.30.0"
-      ]
-    },
-    {
-      "type": "bashdb",
-      "request": "launch",
-      "name": "Bash-Debug (testCatalog.sh) openshift next",
-      "cwd": "${workspaceFolder}",
-      "program": "${workspaceFolder}/olm/testCatalog.sh",
-      "args": [
-        "-p",
-        "openshift",
-        "-c",
-        "next",
-        "-i",
-        "quay.io/eclipse/eclipse-che-openshift-opm-catalog:next",
-        "-n",
-        "eclipse-che",
-      ]
-    },
-    {
-      "type": "bashdb",
-      "request": "launch",
-      "name": "Bash-Debug (testCatalog.sh) openshift stable",
-      "cwd": "${workspaceFolder}",
-      "program": "${workspaceFolder}/olm/testCatalog.sh",
-      "args": [
-        "-p",
-        "openshift",
-        "-c",
-        "stable",
-        "-i",
-        "quay.io/eclipse/eclipse-che-openshift-opm-catalog:test",
-        "-n",
-        "eclipse-che",
-      ]
-    },
-    {
-      "type": "bashdb",
-      "request": "launch",
-      "name": "Bash-Debug (testUpdate.sh) openshift stable",
-      "cwd": "${workspaceFolder}/olm",
-      "program": "${workspaceFolder}/olm/testUpdate.sh",
-      "args": [
-        "-p",
-        "openshift",
-        "-c",
-        "stable",
-        "-i",
-        "quay.io/eclipse/eclipse-che-openshift-opm-catalog:test",
-        "-n",
-        "eclipse-che"
-      ]
-    },
-    {
-      "type": "bashdb",
-      "request": "launch",
-      "name": "Bash-Debug (testUpdate.sh) openshift next",
-      "cwd": "${workspaceFolder}/olm",
-      "program": "${workspaceFolder}/olm/testUpdate.sh",
-      "args": [
-        "-p",
-        "openshift",
-        "-c",
-        "next",
-        "-i",
-        "quay.io/eclipse/eclipse-che-openshift-opm-catalog:next",
-        "-n",
-        "eclipse-che"
-      ]
-    },
-    {
-      "type": "bashdb",
-      "request": "launch",
-      "name": "Bash-Debug (buildCatalog.sh) Openshift platform",
-      "cwd": "${workspaceFolder}/olm",
-      "program": "./buildCatalog.sh",
-      "args": [
-        "-p",
-        "openshift",
-        "-c",
-        "next",
-        "-i",
-        "quay.io/eclipse/eclipse-che-openshift-opm-catalog:next"
-      ]
-    },
-    {
-      "type": "bashdb",
-      "request": "launch",
-      "name": "Bash-Debug (simplest configuration)",
-      "program": "${file}",
-    },
-    {
-      "name": "Launch Main *.go File",
-      "type": "go",
-      "request": "launch",
-      "program": "${file}",
-    },
-    {
       "useApiV1": false,
       "dlvLoadConfig": {
         "followPointers": true,
@@ -133,20 +15,26 @@
       "request": "launch",
       "mode": "auto",
       "program": "${workspaceFolder}/main.go",
-      "env": {
-        "CHE_FLAVOR": "che",
-        "CONSOLE_LINK_NAME": "che",
-        "CONSOLE_LINK_DISPLAY_NAME": "Eclipse Che",
-        "CONSOLE_LINK_SECTION": "Red Hat Applications",
-        "CONSOLE_LINK_IMAGE": "/dashboard/assets/branding/loader.svg",
-        "MAX_CONCURRENT_RECONCILES": 10,
-      },
-      "envFile": "/tmp/che-operator-debug.env",
+      "envFile": "/tmp/che-operator-dev/vscode.env",
       "cwd": "${workspaceFolder}",
       "args": [
         "--defaults-path",
         "config/manager/manager.yaml"
       ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug",
+      "cwd": "${workspaceFolder}",
+      "program": "${file}",
+      "args": []
+    },
+    {
+      "name": "Launch Main *.go File",
+      "type": "go",
+      "request": "launch",
+      "program": "${file}",
     }
   ]
 }

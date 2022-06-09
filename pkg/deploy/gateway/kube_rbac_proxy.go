@@ -13,15 +13,15 @@
 package gateway
 
 import (
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func getGatewayKubeRbacProxyConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
+func getGatewayKubeRbacProxyConfigSpec(instance *chev2.CheCluster) corev1.ConfigMap {
 	return corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
@@ -30,7 +30,7 @@ func getGatewayKubeRbacProxyConfigSpec(instance *orgv1.CheCluster) corev1.Config
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "che-gateway-config-kube-rbac-proxy",
 			Namespace: instance.Namespace,
-			Labels:    deploy.GetLabels(instance, GatewayServiceName),
+			Labels:    deploy.GetLabels(GatewayServiceName),
 		},
 		Data: map[string]string{
 			"authorization-config.yaml": `
@@ -47,12 +47,11 @@ authorization:
 	}
 }
 
-func getKubeRbacProxyContainerSpec(instance *orgv1.CheCluster) corev1.Container {
-	authzImage := util.GetValue(instance.Spec.Auth.GatewayAuthorizationSidecarImage, deploy.DefaultGatewayAuthorizationSidecarImage(instance))
+func getKubeRbacProxyContainerSpec(instance *chev2.CheCluster) corev1.Container {
 	return corev1.Container{
 		Name:            "kube-rbac-proxy",
-		Image:           authzImage,
-		ImagePullPolicy: corev1.PullAlways,
+		Image:           defaults.GetGatewayAuthorizationSidecarImage(instance),
+		ImagePullPolicy: corev1.PullIfNotPresent,
 		Args: []string{
 			"--insecure-listen-address=0.0.0.0:8089",
 			"--upstream=http://127.0.0.1:8090/ping",

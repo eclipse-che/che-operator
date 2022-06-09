@@ -18,55 +18,76 @@
 # - use environment variables to overwrite this value (e.g export VERSION=0.0.2)
 VERSION ?= 1.0.2
 
+ifeq (,$(shell which kubectl)$(shell which oc))
+	$(error oc or kubectl is required to proceed)
+endif
+
+ifneq (,$(shell which kubectl))
+	K8S_CLI := kubectl
+else
+	K8S_CLI := oc
+endif
+
+# Detect image tool
+ifneq (,$(shell which docker))
+	IMAGE_TOOL := docker
+else
+	IMAGE_TOOL := podman
+endif
 
 ifndef VERBOSE
-MAKEFLAGS += --silent
+	MAKEFLAGS += --silent
 endif
+
+ifeq ($(shell $(K8S_CLI) api-resources --api-group='route.openshift.io' 2>&1 | grep -o routes),routes)
+  PLATFORM := openshift
+else
+  PLATFORM := kubernetes
+endif
+
+# go-get-tool will 'go get' any package $2 and install it to $1.
+PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
+define go-get-tool
+@[ -f $(1) ] || { \
+set -e ;\
+TMP_DIR=$$(mktemp -d) ;\
+cd $$TMP_DIR ;\
+go mod init tmp ;\
+echo "[INFO] Downloading $(2)" ;\
+GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
+rm -rf $$TMP_DIR ;\
+}
+endef
 
 mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
 mkfile_dir := $(dir $(mkfile_path))
 
-OPERATOR_SDK_BINARY ?= operator-sdk
-
-# IMAGE_TAG_BASE defines the quay.io namespace and part of the image name for remote images.
-# This variable is used to construct full image tags for bundle and catalog images.
-#
-# For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
-# quay.io/eclipse/che-operator-bundle:$VERSION and quay.io/eclipse/che-operator-catalog:$VERSION.
-IMAGE_TAG_BASE ?= quay.io/eclipse/che-operator
-
-# BUNDLE_IMG defines the image:tag used for the bundle.
-# You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
-BUNDLE_IMG ?= $(IMAGE_TAG_BASE)-bundle:v$(VERSION)
-
-# Image URL to use all building/pushing image targets
+# Default Eclipse Che operator image
 IMG ?= quay.io/eclipse/che-operator:next
-# Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 
-OPERATOR_YAML="config/manager/manager.yaml"
+CRD_OPTIONS ?= "crd:crdVersions=v1"
+CONFIG_MANAGER="config/manager/manager.yaml"
 
-ENV_FILE="/tmp/che-operator-debug.env"
+INTERNAL_TMP_DIR=/tmp/che-operator-dev
+BASH_ENV_FILE=$(INTERNAL_TMP_DIR)/bash.env
+VSCODE_ENV_FILE=$(INTERNAL_TMP_DIR)/vscode.env
+
+DEPLOYMENT_DIR=$(PROJECT_DIR)/deploy/deployment
+
 ECLIPSE_CHE_NAMESPACE="eclipse-che"
+ECLIPSE_CHE_PACKAGE_NAME="eclipse-che-preview-openshift"
 
-CRD_FOLDER="config/crd/bases"
-
-ECLIPSE_CHE_CR=config/samples/org.eclipse.che_v1_checluster.yaml
-
-# legacy crd file names
-ECLIPSE_CHE_CRD_V1="$(CRD_FOLDER)/org_v1_che_crd.yaml"
-
-# default crd names used operator-sdk from the box
-ECLIPSE_CHE_CRD="$(CRD_FOLDER)/org.eclipse.che_checlusters.yaml"
+CHECLUSTER_CR_PATH="$(PROJECT_DIR)/config/samples/org_v2_checluster.yaml"
+CHECLUSTER_CRD_PATH="$(PROJECT_DIR)/config/crd/bases/org.eclipse.che_checlusters.yaml"
 
 DEV_WORKSPACE_CONTROLLER_VERSION="v0.14.1"
 DEV_HEADER_REWRITE_TRAEFIK_PLUGIN="main"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
-GOBIN=$(shell go env GOPATH)/bin
+	GOBIN=$(shell go env GOPATH)/bin
 else
-GOBIN=$(shell go env GOBIN)
+	GOBIN=$(shell go env GOBIN)
 endif
 
 # Setting SHELL to bash allows bash commands to be executed by recipes.
@@ -90,242 +111,30 @@ all: build
 # http://linuxcommand.org/lc3_adv_awk.php
 
 help: ## Display this help.
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-25s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ##@ Development
 
-download-operator-sdk:
-	ARCH=$$(case "$$(uname -m)" in
-	x86_64) echo -n amd64 ;;
-	aarch64) echo -n arm64 ;;
-	*) echo -n $$(uname -m)
-	esac)
-	OS=$$(uname | awk '{print tolower($$0)}')
+update-dev-resources: SHELL := /bin/bash
+update-dev-resources: validate-requirements ## Update all resources
+	# Update ubi8 image
+	ubiMinimal8Version=$$(skopeo --override-os linux inspect docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.version')
+	ubiMinimal8Release=$$(skopeo --override-os linux inspect docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.release')
+	UBI8_MINIMAL_IMAGE="registry.access.redhat.com/ubi8-minimal:$${ubiMinimal8Version}-$${ubiMinimal8Release}"
+	skopeo --override-os linux inspect docker://$${UBI8_MINIMAL_IMAGE} > /dev/null
+	echo "[INFO] UBI8 image $${UBI8_MINIMAL_IMAGE}"
 
-	OPERATOR_SDK_VERSION=$$(sed -r 's|operator-sdk:\s*(.*)|\1|' REQUIREMENTS)
+	# Dockerfile
+	sed -i 's|registry.access.redhat.com/ubi8-minimal:[^\s]* |'$${UBI8_MINIMAL_IMAGE}' |g' $(PROJECT_DIR)/Dockerfile
 
-	echo "[INFO] ARCH: $$ARCH, OS: $$OS. operator-sdk version: $$OPERATOR_SDK_VERSION"
+	$(MAKE) update-rbac
+	$(MAKE) bundle CHANNEL=next
+	$(MAKE) gen-deployment
+	$(MAKE) update-helmcharts CHANNEL=next
+	$(MAKE) fmt
 
-	if [ -z $(OP_SDK_DIR) ]; then
-		OP_SDK_PATH="operator-sdk"
-	else
-		OP_SDK_PATH="$(OP_SDK_DIR)/operator-sdk"
-	fi
-
-	echo "[INFO] Downloading operator-sdk..."
-
-	OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/$${OPERATOR_SDK_VERSION}
-	curl -sSLo $${OP_SDK_PATH} $${OPERATOR_SDK_DL_URL}/operator-sdk_$${OS}_$${ARCH}
-
-	echo "[INFO] operator-sdk will downloaded to: $${OP_SDK_PATH}"
-	echo "[INFO] Set up executable permissions to binary."
-	chmod +x $${OP_SDK_PATH}
-	echo "[INFO] operator-sdk is ready."
-
-manifests: controller-gen add-license-download ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	# Generate CRDs v1
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-	mv "$(ECLIPSE_CHE_CRD)" "$(ECLIPSE_CHE_CRD_V1)"
-
-	# remove yaml delimitier, which makes OLM catalog source image broken.
-	sed -i.bak '/---/d' "$(ECLIPSE_CHE_CRD_V1)"
-	rm -rf "$(ECLIPSE_CHE_CRD_V1).bak"
-
-	# remove v1alphav2 version from crd files
-	yq -rYi "del(.spec.versions[1])" "$(ECLIPSE_CHE_CRD_V1)"
-
-	$(MAKE) add-license $$(find ./config/crd -not -path "./vendor/*" -name "*.yaml")
-
-generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
-
-compile:
-	binary="$(BINARY)"
-	if [ -z "$${binary}" ]; then
-		binary="/tmp/che-operator/che-operator"
-	fi
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=on go build -mod=vendor -a -o "$${binary}" main.go
-	echo "che-operator binary compiled to $${binary}"
-
-fmt: add-license-download ## Run go fmt against code.
-  ifneq ($(shell command -v goimports 2> /dev/null),)
-	  find . -not -path "./vendor/*" -name "*.go" -exec goimports -w {} \;
-  else
-	  @echo "WARN: goimports is not installed -- formatting using go fmt instead."
-	  @echo "      Please install goimports to ensure file imports are consistent."
-	  go fmt -x ./...
-  endif
-
-	FILES_TO_CHECK_LICENSE=$$(find . \
-		-not -path "./mocks/*" \
-		-not -path "./vendor/*" \
-		-not -path "./testbin/*" \
-		-not -path "./bundle/stable/*" \
-		-not -path "./config/manager/controller_manager_config.yaml" \
-		\( -name '*.sh' -o -name "*.go" -o -name "*.yaml" -o -name "*.yml" \))
-
-	for f in $${FILES_TO_CHECK_LICENSE}
-	do
-		$(MAKE) add-license $${f}
-	done
-
-
-vet: ## Run go vet against code.
-	go vet ./...
-
-ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
-test: prepare-templates ## Run tests.
-	export MOCK_API=true; go test -mod=vendor ./... -coverprofile cover.out
-
-##@ Build
-
-build: generate fmt vet ## Build manager binary.
-	go build -o bin/manager main.go
-
-run: manifests generate fmt vet ## Run a controller from your host.
-	go run ./main.go
-
-IMAGE_TOOL=docker
-
-docker-build: ## Build docker image with the manager.
-	${IMAGE_TOOL} build -t ${IMG} .
-
-docker-push: ## Push docker image with the manager.
-	${IMAGE_TOOL} push ${IMG}
-
-##@ Deployment
-
-install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/crd | kubectl apply -f -
-
-uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/crd | kubectl delete -f -
-
-deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager || true && $(KUSTOMIZE) edit set image quay.io/eclipse/che-operator:next=${IMG} && cd ../..
-	$(KUSTOMIZE) build config/default | kubectl apply -f -
-
-	echo "[INFO] Start printing logs..."
-	oc wait --for=condition=ready pod -l app.kubernetes.io/component=che-operator -n ${ECLIPSE_CHE_NAMESPACE} --timeout=60s
-	oc logs $$(oc get pods -o json -n ${ECLIPSE_CHE_NAMESPACE} | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name') -n ${ECLIPSE_CHE_NAMESPACE} --all-containers -f
-
-undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/default | kubectl delete -f -
-
-prepare-templates:
-	# Download Dev Workspace operator templates
-	echo "[INFO] Downloading Dev Workspace operator templates ..."
-	rm -f /tmp/devworkspace-operator.zip
-	rm -rf /tmp/devfile-devworkspace-operator-*
-	rm -rf /tmp/devworkspace-operator/
-	mkdir -p /tmp/devworkspace-operator/templates
-
-	curl -sL https://api.github.com/repos/devfile/devworkspace-operator/zipball/${DEV_WORKSPACE_CONTROLLER_VERSION} > /tmp/devworkspace-operator.zip
-
-	unzip -q /tmp/devworkspace-operator.zip '*/deploy/deployment/*' -d /tmp
-	cp -rf /tmp/devfile-devworkspace-operator*/deploy/* /tmp/devworkspace-operator/templates
-	echo "[INFO] Downloading Dev Workspace operator templates completed."
-
-	echo "[INFO] Downloading Gateway plugin resources ..."
-	rm -f /tmp/asset-header-rewrite-traefik-plugin.zip
-	rm -rf /tmp/header-rewrite-traefik-plugin
-	rm -rf /tmp/*-header-rewrite-traefik-plugin-*/
-	curl -sL https://api.github.com/repos/che-incubator/header-rewrite-traefik-plugin/zipball/${DEV_HEADER_REWRITE_TRAEFIK_PLUGIN} > /tmp/asset-header-rewrite-traefik-plugin.zip
-
-	unzip -q /tmp/asset-header-rewrite-traefik-plugin.zip -d /tmp
-	mkdir -p /tmp/header-rewrite-traefik-plugin
-	mv /tmp/*-header-rewrite-traefik-plugin-*/headerRewrite.go /tmp/*-header-rewrite-traefik-plugin-*/.traefik.yml /tmp/header-rewrite-traefik-plugin
-	echo "[INFO] Downloading Gateway plugin resources completed."
-
-create-namespace:
-	set +e
-	kubectl create namespace ${ECLIPSE_CHE_NAMESPACE} || true
-	set -e
-
-apply-crd:
-	kubectl apply -f ${ECLIPSE_CHE_CRD_V1}
-
-.PHONY: init-cr
-init-cr:
-	if [ "$$(oc get checluster -n ${ECLIPSE_CHE_NAMESPACE} eclipse-che || false )" ]; then
-		echo "Che Cluster already exists. Using it."
-	else
-	echo "Che Cluster is not found. Creating a new one from $(ECLIPSE_CHE_CR)"
-		# before applying resources on K8s check if ingress domain corresponds to the current cluster
-		# no OpenShift ingress domain is ignored, so skip it
-		if [ "$$(oc api-resources --api-group='route.openshift.io' 2>&1 | grep -o routes)" != "routes" ]; then
-			export CLUSTER_API_URL=$$(oc whoami --show-server=true) || true;
-			export CLUSTER_DOMAIN=$$(echo $${CLUSTER_API_URL} | sed -E 's/https:\/\/(.*):.*/\1/g')
-			export CHE_CLUSTER_DOMAIN=$$(yq -r .spec.k8s.ingressDomain $(ECLIPSE_CHE_CR))
-			export CHE_CLUSTER_DOMAIN=$${CHE_CLUSTER_DOMAIN%".nip.io"}
-			if [ $${CLUSTER_DOMAIN} != $${CHE_CLUSTER_DOMAIN} ];then
-				echo "[WARN] Your cluster address is $${CLUSTER_DOMAIN} but CheCluster has $${CHE_CLUSTER_DOMAIN} configured"
-				echo "[WARN] Make sure that .spec.k8s.ingressDomain in $${ECLIPSE_CHE_CR} has the right value and rerun"
-				echo "[WARN] Press y to continue anyway. [y/n] ? " && read ans && [ $${ans:-N} = y ] || exit 1;
-			fi
-		fi
-		kubectl apply -f ${ECLIPSE_CHE_CR} -n ${ECLIPSE_CHE_NAMESPACE}
-	fi
-
-create-env-file: prepare-templates
-	rm -rf "${ENV_FILE}"
-	touch "${ENV_FILE}"
-	CLUSTER_API_URL=$$(oc whoami --show-server=true) || true;
-	if [ -n $${CLUSTER_API_URL} ]; then
-		echo "CLUSTER_API_URL='$${CLUSTER_API_URL}'" >> "${ENV_FILE}"
-		echo "[INFO] Set up cluster api url: $${CLUSTER_API_URL}"
-	fi;
-	echo "WATCH_NAMESPACE='${ECLIPSE_CHE_NAMESPACE}'" >> "${ENV_FILE}"
-
-create-full-env-file: create-env-file
-	cat ./$(OPERATOR_YAML) | \
-	yq -r '.spec.template.spec.containers[0].env[] | select(.name == "WATCH_NAMESPACE" | not) | "export \(.name)=\"\(.value)\""' \
-	>> ${ENV_FILE}
-	echo "[INFO] Env file: ${ENV_FILE}"
-	source ${ENV_FILE} ; env | grep CHE_VERSION
-
-debug: generate manifests kustomize prepare-templates create-namespace apply-crd init-cr create-env-file
-	echo "[WARN] Make sure that your CR contains valid ingress domain!"
-	# dlv has an issue with 'Ctrl-C' termination, that's why we're doing trick with detach.
-	dlv debug --listen=:2345 --headless=true --api-version=2 ./main.go -- &
-	OPERATOR_SDK_PID=$!
-	echo "[INFO] Use 'make uninstall' to remove Che installation after debug"
-	wait $$OPERATOR_SDK_PID
-
-CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
-controller-gen: ## Download controller-gen locally if necessary.
-	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1)
-
-KUSTOMIZE = $(shell pwd)/bin/kustomize
-kustomize: ## Download kustomize locally if necessary.
-	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
-
-ADD_LICENSE = $(shell pwd)/bin/addlicense
-add-license-download: ## Download addlicense locally if necessary.
-	$(call go-get-tool,$(ADD_LICENSE),github.com/google/addlicense@99ebc9c9db7bceb8623073e894533b978d7b7c8a)
-
-add-license:
-	# Get all argument and remove make goal("add-license") to get only list files
-	FILES=$$(echo $(filter-out $@,$(MAKECMDGOALS)))
-	$(ADD_LICENSE) -f hack/license-header.txt $${FILES}
-
-# go-get-tool will 'go get' any package $2 and install it to $1.
-PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
-define go-get-tool
-@[ -f $(1) ] || { \
-set -e ;\
-TMP_DIR=$$(mktemp -d) ;\
-cd $$TMP_DIR ;\
-go mod init tmp ;\
-echo "[INFO] Downloading $(2)" ;\
-GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
-rm -rf $$TMP_DIR ;\
-}
-endef
-
-update-roles:
-	echo "[INFO] Updating roles with DW roles"
-
+update-rbac: SHELL := /bin/bash
+update-rbac:
 	CLUSTER_ROLES=(
 		https://raw.githubusercontent.com/devfile/devworkspace-operator/${DEV_WORKSPACE_CONTROLLER_VERSION}/deploy/deployment/openshift/objects/devworkspace-controller-view-workspaces.ClusterRole.yaml
 		https://raw.githubusercontent.com/devfile/devworkspace-operator/${DEV_WORKSPACE_CONTROLLER_VERSION}/deploy/deployment/openshift/objects/devworkspace-controller-edit-workspaces.ClusterRole.yaml
@@ -369,419 +178,546 @@ update-roles:
 		done <<< "$$CONTENT"
 	done
 
+	echo "[INFO] Updated config/rbac/role.yaml"
+	echo "[INFO] Updated config/rbac/cluster_role.yam"
+
+update-helmcharts: SHELL := /bin/bash
+update-helmcharts: ## Update Helm Charts
+	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
+
+	HELM_DIR=$(PROJECT_DIR)/helmcharts/$(CHANNEL)
+	HELMCHARTS_TEMPLATES=$${HELM_DIR}/templates
+	HELMCHARTS_CRDS=$${HELM_DIR}/crds
+
+	rm -rf $${HELMCHARTS_TEMPLATES} $${HELMCHARTS_CRDS}
+	mkdir -p $${HELMCHARTS_TEMPLATES} $${HELMCHARTS_CRDS}
+
+	rsync -a --exclude='checlusters.org.eclipse.che.CustomResourceDefinition.yaml' $(DEPLOYMENT_DIR)/kubernetes/objects/ $${HELMCHARTS_TEMPLATES}
+	cp $(DEPLOYMENT_DIR)/kubernetes/org_v2_checluster.yaml $${HELMCHARTS_TEMPLATES}
+	cp $(DEPLOYMENT_DIR)/kubernetes/objects/checlusters.org.eclipse.che.CustomResourceDefinition.yaml $${HELMCHARTS_CRDS}
+
+	# Remove namespace since its creation is mentioned is README.md
+	rm $${HELMCHARTS_TEMPLATES}/eclipse-che.Namespace.yaml
+
+	if [ $(CHANNEL) == "stable" ]; then
+		chartYaml=$${HELM_DIR}/Chart.yaml
+
+		CRDS_SAMPLES_FILES=(
+			$${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+		)
+
+		CRDS_SAMPLES=""
+		for CRD_SAMPLE in "$${CRDS_SAMPLES_FILES[@]}"; do
+			CRD_SAMPLE=$$(cat $${CRD_SAMPLE} | yq -rY ". | (.metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\") | [.]")
+		 	CRDS_SAMPLES=$${CRDS_SAMPLES}$${CRD_SAMPLE}$$'\n'
+		done
+
+		yq -rYi --arg examples "$${CRDS_SAMPLES}" ".annotations.\"artifacthub.io/crdsExamples\" = \$$examples" $${chartYaml}
+		rm -rf $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+	else
+		yq -riY '.spec.networking.tlsSecretName = "che-tls"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+		yq -riY '.spec.networking.domain = "{{ .Values.networking.domain }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+		yq -riY '.spec.networking.auth.oAuthSecret = "{{ .Values.networking.auth.oAuthSecret }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+		yq -riY '.spec.networking.auth.oAuthClientName = "{{ .Values.networking.auth.oAuthClientName }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+		yq -riY '.spec.networking.auth.identityProviderURL = "{{ .Values.networking.auth.identityProviderURL }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+	fi
+
+	echo "[INFO] HelmCharts updated $${HELM_DIR}"
+
+gen-deployment: SHELL := /bin/bash
+gen-deployment: manifests download-kustomize _kustomize-operator-image ## Generate Eclipse Che k8s deployment resources
+	rm -rf $(DEPLOYMENT_DIR)
+	for TARGET_PLATFORM in kubernetes openshift; do
+		PLATFORM_DIR=$(DEPLOYMENT_DIR)/$${TARGET_PLATFORM}
+		OBJECTS_DIR=$${PLATFORM_DIR}/objects
+
+		mkdir -p $${OBJECTS_DIR}
+
+		COMBINED_FILENAME=$${PLATFORM_DIR}/combined.yaml
+		$(KUSTOMIZE) build config/$${TARGET_PLATFORM} | cat > $${COMBINED_FILENAME} -
+
+		# Split the giant files output by kustomize per-object
+		csplit -s -f "temp" --suppress-matched "$${COMBINED_FILENAME}" '/^---$$/' '{*}'
+		for file in temp??; do
+			name_kind=$$(yq -r '"\(.metadata.name).\(.kind)"' "$${file}")
+			mv "$${file}" "$${OBJECTS_DIR}/$${name_kind}.yaml"
+		done
+		cp $(PROJECT_DIR)/config/samples/org_v2_checluster.yaml $${PLATFORM_DIR}
+
+		echo "[INFO] Deployments resources generated into $${PLATFORM_DIR}"
+	done
+
+gen-chectl-tmpl: SHELL := /bin/bash
+gen-chectl-tmpl: ## Generate Eclipse Che k8s deployment resources used by chectl
+	[[ -z "$(TARGET)" ]] && { echo [ERROR] TARGET not defined; exit 1; }
+	[[ -z "$(SOURCE)" ]] && src=$(PROJECT_DIR) || src=$(SOURCE)
+
+	dst=$(TARGET)/che-operator && rm -rf $${dst}
+
+	if [[ -d "$${src}/deploy/deployment" ]]; then
+  		# CheCluster API v2
+		src="$${src}/deploy/deployment"
+
+		for TARGET_PLATFORM in kubernetes openshift; do
+			mkdir -p "$${dst}/$${TARGET_PLATFORM}/crds"
+
+			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.Deployment.yaml $${dst}/$${TARGET_PLATFORM}/operator.yaml
+
+			cp $${src}/$${TARGET_PLATFORM}/objects/checlusters.org.eclipse.che.CustomResourceDefinition.yaml $${dst}/$${TARGET_PLATFORM}/crds/org.eclipse.che_checlusters.yaml
+			cp $${src}/$${TARGET_PLATFORM}/org_v2_checluster.yaml $${dst}/$${TARGET_PLATFORM}/crds/org_checluster_cr.yaml
+
+			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.ServiceAccount.yaml $${dst}/$${TARGET_PLATFORM}/service_account.yaml
+			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.ClusterRoleBinding.yaml $${dst}/$${TARGET_PLATFORM}/cluster_rolebinding.yaml
+			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.ClusterRole.yaml $${dst}/$${TARGET_PLATFORM}/cluster_role.yaml
+			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.RoleBinding.yaml $${dst}/$${TARGET_PLATFORM}/role_binding.yaml
+			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.Role.yaml $${dst}/$${TARGET_PLATFORM}/role.yaml
+
+			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator-service.Service.yaml $${dst}/$${TARGET_PLATFORM}/webhook-service.yaml
+
+			if [[ $${TARGET_PLATFORM} == "kubernetes" ]]; then
+				cp $${src}/$${TARGET_PLATFORM}/objects/che-operator-serving-cert.Certificate.yaml $${dst}/$${TARGET_PLATFORM}/serving-cert.yaml
+				cp $${src}/$${TARGET_PLATFORM}/objects/che-operator-selfsigned-issuer.Issuer.yaml $${dst}/$${TARGET_PLATFORM}/selfsigned-issuer.yaml
+			fi
+		done
+	else
+		# CheCluster API v1
+		mkdir -p $${dst}/crds
+
+		cp -f $${src}/config/manager/manager.yaml $${dst}/operator.yaml
+
+		cp -f $${src}/config/crd/bases/org_v1_che_crd.yaml $${dst}/crds
+		cp -f $${src}/config/samples/org.eclipse.che_v1_checluster.yaml $${dst}/crds/org_v1_che_cr.yaml
+
+		cp -f $${src}/config/rbac/role.yaml $${dst}
+		cp -f $${src}/config/rbac/role_binding.yaml $${dst}
+		cp -f $${src}/config/rbac/cluster_role.yaml $${dst}
+		cp -f $${src}/config/rbac/cluster_rolebinding.yaml $${dst}
+		cp -f $${src}/config/rbac/service_account.yaml $${dst}
+	fi
+
+	echo "[INFO] Generated chectl templates into $${dst}"
+
+build: generate ## Build Eclipse Che operator binary
+	go build -o bin/manager main.go
+
+run: SHELL := /bin/bash
+run: generate manifests download-kustomize genenerate-env download-devworkspace-resources  ## Run Eclipse Che operator
+	echo "[INFO] Running on $(PLATFORM)"
+	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
+
+	$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
+	$(MAKE) wait-pod-running COMPONENT=che-operator NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)
+
+	$(K8S_CLI) scale deploy che-operator -n $(ECLIPSE_CHE_NAMESPACE) --replicas=0
+	$(MAKE) store_tls_cert
+	$(MAKE) create-checluster-cr
+
+	source $(BASH_ENV_FILE)
+
+	go run ./main.go
+
+debug: SHELL := /bin/bash
+debug: generate manifests download-kustomize genenerate-env download-devworkspace-resources ## Run and debug Eclipse Che operator
+	echo "[INFO] Running on $(PLATFORM)"
+	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
+
+	$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
+	$(MAKE) wait-pod-running COMPONENT=che-operator NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)
+
+	$(K8S_CLI) scale deploy che-operator -n $(ECLIPSE_CHE_NAMESPACE) --replicas=0
+	$(MAKE) store_tls_cert
+	$(MAKE) create-checluster-cr
+
+	source $(BASH_ENV_FILE)
+
+	# dlv has an issue with 'Ctrl-C' termination, that's why we're doing trick with detach.
+	dlv debug --listen=:2345 --headless=true --api-version=2 ./main.go -- &
+	DLV_PID=$!
+	wait $${DLV_PID}
+
+docker-build: ## Build Eclipse Che operator image
+	if [ "$(SKIP_TESTS)" = true ]; then
+		${IMAGE_TOOL} build -t ${IMG} --build-arg SKIP_TESTS=true .
+	else
+		${IMAGE_TOOL} build -t ${IMG} .
+	fi
+
+docker-push: ## Push Eclipse Che operator image to a registry
+	${IMAGE_TOOL} push ${IMG}
+
+manifests: download-controller-gen download-addlicense ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+
+	# remove yaml delimitier, which makes OLM catalog source image broken.
+	sed -i '/---/d' "$(CHECLUSTER_CRD_PATH)"
+
+	$(MAKE) license $$(find ./config/crd -not -path "./vendor/*" -name "*.yaml")
+
+generate: download-controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+
+fmt: download-addlicense ## Run go fmt against code.
+  ifneq ($(shell command -v goimports 2> /dev/null),)
+	  find . -not -path "./vendor/*" -name "*.go" -exec goimports -w {} \;
+  else
+	  @echo "WARN: goimports is not installed -- formatting using go fmt instead."
+	  @echo "      Please install goimports to ensure file imports are consistent."
+	  go fmt -x ./...
+  endif
+
+	FILES_TO_CHECK_LICENSE=$$(find . \
+		-not -path "./mocks/*" \
+		-not -path "./vendor/*" \
+		-not -path "./testbin/*" \
+		-not -path "./bundle/stable/*" \
+		-not -path "./config/manager/controller_manager_config.yaml" \
+		\( -name '*.sh' -o -name "*.go" -o -name "*.yaml" -o -name "*.yml" \))
+
+	$(MAKE) license $${FILES_TO_CHECK_LICENSE}
+
+vet: ## Run go vet against code.
+	go vet ./...
+
+ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
+test: download-devworkspace-resources ## Run tests.
+	export MOCK_API=true; go test -mod=vendor ./... -coverprofile cover.out
+
+##@ Development utilities
+
+license: ## Add license to the files
+	FILES=$$(echo $(filter-out $@,$(MAKECMDGOALS)))
+	$(ADD_LICENSE) -f hack/license-header.txt $${FILES}
+
+genenerate-env: ## Generates environment files to use by bash and vscode
+	mkdir -p $(INTERNAL_TMP_DIR)
+	cat $(CONFIG_MANAGER) \
+	  | yq -r \
+	    '.spec.template.spec.containers[]
+	      | select(.name=="che-operator")
+	      | .env[]
+	      | select(has("value"))
+	      | "export \(.name)=\(.value)"' \
+	  > $(BASH_ENV_FILE)
+	echo "export WATCH_NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)" >> $(BASH_ENV_FILE)
+	echo "[INFO] Created $(BASH_ENV_FILE)"
+
+	cat $(CONFIG_MANAGER) \
+	  | yq -r \
+	    '.spec.template.spec.containers[]
+	      | select(.name=="che-operator")
+	      | .env[]
+	      | select(has("value"))
+	      | "\(.name)=\(.value)"' \
+	  > $(VSCODE_ENV_FILE)
+	echo "WATCH_NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)" >> $(VSCODE_ENV_FILE)
+	echo "[INFO] Created $(VSCODE_ENV_FILE)"
+
+	cat $(BASH_ENV_FILE)
+
+install-certmgr: SHELL := /bin/bash
+install-certmgr: ## Install Cert Manager v1.7.1
+	oc apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.7.1/cert-manager.yaml
+	$(MAKE) wait-pod-running COMPONENT=controller NAMESPACE=cert-manager
+	$(MAKE) wait-pod-running COMPONENT=cainjector NAMESPACE=cert-manager
+	$(MAKE) wait-pod-running COMPONENT=webhook NAMESPACE=cert-manager
+
+download-devworkspace-resources: ## Downloads Dev Workspace resources
+	DEVWORKSPACE_RESOURCES=/tmp/devworkspace-operator/templates
+	GATEWAY_RESOURCES=/tmp/header-rewrite-traefik-plugin
+
+	rm -rf /tmp/devworkspace-operator.zip /tmp/devfile-devworkspace-operator-* $${DEVWORKSPACE_RESOURCES}
+	mkdir -p $${DEVWORKSPACE_RESOURCES}
+	curl -sL https://api.github.com/repos/devfile/devworkspace-operator/zipball/${DEV_WORKSPACE_CONTROLLER_VERSION} > /tmp/devworkspace-operator.zip
+	unzip -q /tmp/devworkspace-operator.zip '*/deploy/deployment/*' -d /tmp
+	cp -rf /tmp/devfile-devworkspace-operator*/deploy/* $${DEVWORKSPACE_RESOURCES}
+
+	echo "[INFO] DevWorkspace resources downloaded into $${DEVWORKSPACE_RESOURCES}"
+
+	rm -rf /tmp/asset-header-rewrite-traefik-plugin.zip /tmp/*-header-rewrite-traefik-plugin-*/ $${GATEWAY_RESOURCES}
+	mkdir -p $${GATEWAY_RESOURCES}
+	curl -sL https://api.github.com/repos/che-incubator/header-rewrite-traefik-plugin/zipball/${DEV_HEADER_REWRITE_TRAEFIK_PLUGIN} > /tmp/asset-header-rewrite-traefik-plugin.zip
+	unzip -q /tmp/asset-header-rewrite-traefik-plugin.zip -d /tmp
+	mv /tmp/*-header-rewrite-traefik-plugin-*/headerRewrite.go /tmp/*-header-rewrite-traefik-plugin-*/.traefik.yml $${GATEWAY_RESOURCES}
+
+	echo "[INFO] Gateway resources downloaded into  $${GATEWAY_RESOURCES}"
+
+setup-checluster: create-namespace create-checluster-crd create-checluster-cr ## Setup CheCluster (creates namespace, CRD and CheCluster CR)
+
+create-namespace: ## Creates eclipse-che namespace
+	$(K8S_CLI) create namespace ${ECLIPSE_CHE_NAMESPACE} || true
+
+create-checluster-crd: SHELL := /bin/bash
+create-checluster-crd: ## Creates CheCluster Custom Resource Definition
+	if [[ $(PLATFORM) == "kubernetes" ]]; then
+		$(MAKE) install-certmgr
+		$(K8S_CLI) apply -f $(DEPLOYMENT_DIR)/$(PLATFORM)/objects/che-operator-selfsigned-issuer.Issuer.yaml
+		$(K8S_CLI) apply -f $(DEPLOYMENT_DIR)/$(PLATFORM)/objects/che-operator-serving-cert.Certificate.yaml
+	fi
+	$(K8S_CLI) apply -f $(DEPLOYMENT_DIR)/$(PLATFORM)/objects/checlusters.org.eclipse.che.CustomResourceDefinition.yaml
+
+create-checluster-cr: SHELL := /bin/bash
+create-checluster-cr: ## Creates CheCluster Custom Resource V2
+	if [[ "$$($(K8S_CLI) get checluster eclipse-che -n $(ECLIPSE_CHE_NAMESPACE) || false )" ]]; then
+		echo "[INFO] CheCluster already exists."
+	else
+		CHECLUSTER_CR_2_APPLY=/tmp/checluster_cr.yaml
+		cp  $(CHECLUSTER_CR_PATH) $${CHECLUSTER_CR_2_APPLY}
+
+		# Update networking.domain field with an actual value
+		if [[ $(PLATFORM) == "kubernetes" ]]; then
+  			# kubectl does not have `whoami` command
+			CLUSTER_API_URL=$$(oc whoami --show-server=true) || true;
+			CLUSTER_DOMAIN=$$(echo $${CLUSTER_API_URL} | sed -E 's/https:\/\/(.*):.*/\1/g')
+			yq -riY  '.spec.networking.domain = "'$${CLUSTER_DOMAIN}'.nip.io"' $${CHECLUSTER_CR_2_APPLY}
+		fi
+		$(K8S_CLI) apply -f $${CHECLUSTER_CR_2_APPLY} -n $(ECLIPSE_CHE_NAMESPACE)
+	fi
+
+wait-pod-running: SHELL := /bin/bash
+wait-pod-running: ## Wait until pod is up and running
+	[[ -z "$(COMPONENT)" ]] && { echo [ERROR] COMPONENT not defined; exit 1; }
+	[[ -z "$(NAMESPACE)" ]] && { echo [ERROR] NAMESPACE not defined; exit 1; }
+
+	while [ $$(oc get pod -l app.kubernetes.io/component=$(COMPONENT) -n $(NAMESPACE) -o go-template='{{len .items}}') -eq 0 ]; do
+		sleep 10s
+	done
+	oc wait --for=condition=ready pod -l app.kubernetes.io/component=$(COMPONENT) -n $(NAMESPACE) --timeout=120s
+
+store_tls_cert: ## Store `che-operator-webhook-server-cert` secret locally
+	mkdir -p /tmp/k8s-webhook-server/serving-certs/
+	$(K8S_CLI) get secret che-operator-webhook-server-cert -n $(ECLIPSE_CHE_NAMESPACE) -o json | jq -r '.data["tls.crt"]' | base64 -d > /tmp/k8s-webhook-server/serving-certs/tls.crt
+	$(K8S_CLI) get secret che-operator-webhook-server-cert -n $(ECLIPSE_CHE_NAMESPACE) -o json | jq -r '.data["tls.key"]' | base64 -d > /tmp/k8s-webhook-server/serving-certs/tls.key
+
+##@ Deployment
+install: SHELL := /bin/bash
+install: manifests download-kustomize _kustomize-operator-image ## Install Eclipse Che
+	echo "[INFO] Running on $(PLATFORM)"
+	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
+
+	$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
+	$(MAKE) wait-pod-running COMPONENT=che-operator NAMESPACE=${ECLIPSE_CHE_NAMESPACE}
+	$(MAKE) create-checluster-cr
+
+	# Printing logs
+	echo "[INFO] Waiting for Eclipse Che"
+	oc logs $$(oc get pods -o json -n ${ECLIPSE_CHE_NAMESPACE} | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name') -n ${ECLIPSE_CHE_NAMESPACE} --all-containers -f
+
+uninstall: ## Uninstall Eclipse Che
+	$(K8S_CLI) patch checluster eclipse-che -n ${ECLIPSE_CHE_NAMESPACE} --type json  -p='[{"op": "remove", "path": "/metadata/finalizers"}]'
+	$(K8S_CLI) delete checluster eclipse-che -n ${ECLIPSE_CHE_NAMESPACE}
+	$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) delete -f -
+
 .PHONY: bundle
-bundle: generate manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
-	if [ -z "$(channel)" ]; then
-		echo "[ERROR] 'channel' is not specified."
-		exit 1
-	fi
-
-	if [ -z "$(NO_INCREMENT)" ]; then
-		$(MAKE) increment-next-version
-	fi
-
+bundle: SHELL := /bin/bash
+bundle: generate manifests download-kustomize download-operator-sdk ## Generate OLM bundle
 	echo "[INFO] Updating OperatorHub bundle"
 
-	BUNDLE_PATH=$$($(MAKE) getBundlePath channel="$${channel}" -s)
-	NEW_CSV=$${BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml
-	newNextBundleVersion=$$(yq -r ".spec.version" "$${NEW_CSV}")
-	echo "[INFO] Creation new next bundle version: $${newNextBundleVersion}"
+	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
+	[[ "$(INCREMENT_BUNDLE_VERSION)" == false ]] || $(MAKE) _increment-bundle-version
 
-	createdAtOld=$$(yq -r ".metadata.annotations.createdAt" "$${NEW_CSV}")
+	BUNDLE_PATH=$$($(MAKE) bundle-path)
+	CSV_PATH=$$($(MAKE) csv-path)
+	NEXT_BUNDLE_VERSION=$$($(MAKE) bundle-version)
+	NEXT_BUNDLE_CREATION_DATE=$$(yq -r ".metadata.annotations.createdAt" "$${CSV_PATH}")
 
-	BUNDLE_PACKAGE=$$($(MAKE) getPackageName)
-	BUNDLE_DIR="bundle/"$${channel}"/$${BUNDLE_PACKAGE}"
-	GENERATED_CSV_NAME=$${BUNDLE_PACKAGE}.clusterserviceversion.yaml
-	DESIRED_CSV_NAME=che-operator.clusterserviceversion.yaml
-	GENERATED_CRD_NAME=org.eclipse.che_checlusters.yaml
-	DESIRED_CRD_NAME=org_v1_che_crd.yaml
+	# Build default clusterserviceversion file
+	$(OPERATOR_SDK) generate kustomize manifests
 
-	$(OPERATOR_SDK_BINARY) generate kustomize manifests -q
-	cd config/manager && $(KUSTOMIZE) edit set image quay.io/eclipse/che-operator:next=$(IMG) && cd ../..
-	$(KUSTOMIZE) build config/platforms/openshift | \
-	$(OPERATOR_SDK_BINARY) generate bundle \
+	$(KUSTOMIZE) build config/openshift/olm | \
+	$(OPERATOR_SDK) generate bundle \
 	--quiet \
 	--overwrite \
-	--version $${newNextBundleVersion} \
-	--package $${BUNDLE_PACKAGE} \
-	--output-dir $${BUNDLE_DIR} \
-	--channels $(channel) \
-	--default-channel $(channel)
+	--version $${NEXT_BUNDLE_VERSION} \
+	--package $(ECLIPSE_CHE_PACKAGE_NAME) \
+	--output-dir $${BUNDLE_PATH} \
+	--channels $(CHANNEL) \
+	--default-channel $(CHANNEL)
 
-	# Copy bundle.Dockerfile to the bundle dir and patch paths
-	mv bundle.Dockerfile $${BUNDLE_DIR}
-	sed -i 's|bundle/next/eclipse-che-preview-openshift/||' $${BUNDLE_DIR}/bundle.Dockerfile
+	# Remove service from the bundle since OLM create that itself
+	rm $${BUNDLE_PATH}/manifests/che-operator-service_v1_service.yaml
 
-	# Add specific labels
-	printf "\nLABEL com.redhat.openshift.versions=\"v4.8\"" >> $${BUNDLE_DIR}/bundle.Dockerfile
+	# Rename clusterserviceversion file
+	mv $${BUNDLE_PATH}/manifests/$(ECLIPSE_CHE_PACKAGE_NAME).clusterserviceversion.yaml $${CSV_PATH}
 
-	cd $${BUNDLE_DIR}/manifests;
-	mv $${GENERATED_CSV_NAME} $${DESIRED_CSV_NAME}
-	mv $${GENERATED_CRD_NAME} $${DESIRED_CRD_NAME}
-	cd $(mkfile_dir)
-
-	$(OPERATOR_SDK_BINARY) bundle validate ./$${BUNDLE_DIR}
-
-	containerImage=$$(sed -n 's|^ *image: *\([^ ]*/che-operator:[^ ]*\) *|\1|p' $${NEW_CSV})
-	echo "[INFO] Updating new package version fields:"
-	echo "[INFO]        - containerImage => $${containerImage}"
-	sed -e "s|containerImage:.*$$|containerImage: $${containerImage}|" "$${NEW_CSV}" > "$${NEW_CSV}.new"
-	mv "$${NEW_CSV}.new" "$${NEW_CSV}"
-
-	if [ "$(NO_DATE_UPDATE)" = true ]; then
-		echo "[INFO]        - createdAt => $${createdAtOld}"
-		sed -e "s/createdAt:.*$$/createdAt: \"$${createdAtOld}\"/" "$${NEW_CSV}" > "$${NEW_CSV}.new"
-		mv "$${NEW_CSV}.new" "$${NEW_CSV}"
+	# Rollback creation date if version is not incremented
+	if [[ "$(INCREMENT_BUNDLE_VERSION)" == false ]]; then
+		sed -i "s/createdAt:.*$$/createdAt: \"$${NEXT_BUNDLE_CREATION_DATE}\"/" "$${CSV_PATH}"
 	fi
 
-	CRD="$${BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
-	yq -riY  '.spec.preserveUnknownFields = false' $${CRD}
+	# Copy bundle.Dockerfile to the bundle dir
+ 	# Update paths (since it is created in the root of the project) and labels
+	mv bundle.Dockerfile $${BUNDLE_PATH}
+	sed -i 's|$(PROJECT_DIR)/bundle/$(CHANNEL)/eclipse-che-preview-openshift/||' $${BUNDLE_PATH}/bundle.Dockerfile
+	printf "\nLABEL com.redhat.openshift.versions=\"v4.8\"" >> $${BUNDLE_PATH}/bundle.Dockerfile
 
-	if [ -n "$(TAG)" ]; then
-		echo "[INFO] Set tags in next OLM files"
-		sed -ri "s/(.*:\s?)$(RELEASE)([^-])?$$/\1$(TAG)\2/" "$${NEW_CSV}"
-	fi
-
-	# Remove roles for openshift bundle
-	YAML_CONTENT=$$(cat "$${NEW_CSV}")
-	clusterPermLength=$$(echo "$${YAML_CONTENT}" | yq -r ".spec.install.spec.clusterPermissions[0].rules | length")
-	i=0
-	while [ "$${i}" -lt "$${clusterPermLength}" ]; do
-		apiGroupLength=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.clusterPermissions[0].rules['$${i}'].apiGroups | length')
-		if [ "$${apiGroupLength}" -gt 0 ]; then
-			j=0
-			while [ "$${j}" -lt "$${apiGroupLength}" ]; do
-				apiGroup=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.clusterPermissions[0].rules['$${i}'].apiGroups['$${j}']')
-				case $${apiGroup} in cert-manager.io)
-					YAML_CONTENT=$$(echo "$${YAML_CONTENT}" | yq -rY 'del(.spec.install.spec.clusterPermissions[0].rules['$${i}'])' )
-					j=$$((j-1))
-					i=$$((i-1))
-					break
-					;;
-				esac;
-				j=$$((i+1))
-			done
-		fi
-		i=$$((i+1))
-	done
-	echo "$${YAML_CONTENT}" > "$${NEW_CSV}"
-
-	# Removes che-tls-secret-creator
-	index=0
-	while [ $${index} -le 30 ]
-	do
-		if [ $$(cat $${NEW_CSV} | yq -r '.spec.install.spec.deployments[0].spec.template.spec.containers[0].env['$${index}'].name') = "RELATED_IMAGE_che_tls_secrets_creation_job" ]; then
-			yq -rYSi 'del(.spec.install.spec.deployments[0].spec.template.spec.containers[0].env['$${index}'])' $${NEW_CSV}
-			break
-		fi
-		index=$$((index+1))
-	done
-
-	# Fix CSV
-	echo "[INFO] Fix CSV"
-	fixedSample=$$(yq -r ".metadata.annotations[\"alm-examples\"] | \
-		fromjson | \
-		del( .[] | select(.kind == \"CheCluster\") | .spec.k8s)" $${NEW_CSV} |  sed -r 's/"/\\"/g')
-
-	yq -riY ".metadata.annotations[\"alm-examples\"] = \"$${fixedSample}\"" $${NEW_CSV}
-
-	# set `app.kubernetes.io/managed-by` label
-	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.metadata.labels."app.kubernetes.io/managed-by") = "olm"' "$${NEW_CSV}"
-
-	# set Pod Security Context Posture
-	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostIPC") = false' "$${NEW_CSV}"
-	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostNetwork") = false' "$${NEW_CSV}"
-	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostPID") = false' "$${NEW_CSV}"
-	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."allowPrivilegeEscalation") = false' "$${NEW_CSV}"
-	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."runAsNonRoot") = true' "$${NEW_CSV}"
-
+	# Update annotations.yaml correspondingly to bundle.Dockerfile
 	printf "\n  com.redhat.openshift.versions: \"v4.8\"" >> $${BUNDLE_PATH}/metadata/annotations.yaml
 
 	# Base cluster service version file has got correctly sorted CRDs.
 	# They are sorted with help of annotation markers in the api type files ("api/v1" folder).
 	# Example such annotation: +operator-sdk:csv:customresourcedefinitions:order=0
-	# Let's copy this sorted CRDs to the bundle cluster service version file.
-	BASE_CSV="config/manifests/bases/che-operator.clusterserviceversion.yaml"
-	CRD_API=$$(yq -c '.spec.customresourcedefinitions.owned' $${BASE_CSV})
-	yq -riSY ".spec.customresourcedefinitions.owned = $$CRD_API" "$${NEW_CSV}"
-	yq -riSY "del(.spec.customresourcedefinitions.owned[] | select(.version == \"v2alpha1\"))" "$${NEW_CSV}"
+	# Copy this sorted CRDs to the bundle clusterserviceversion file.
+	CRDS_OWNED=$$(yq  '.spec.customresourcedefinitions.owned' "$(PROJECT_DIR)/config/manifests/bases/che-operator.clusterserviceversion.yaml")
+	yq -riSY ".spec.customresourcedefinitions.owned = $${CRDS_OWNED}" "$${CSV_PATH}"
 
-	# Format code.
-	yq -rY "." "$${NEW_CSV}" > "$${NEW_CSV}.old"
-	mv "$${NEW_CSV}.old" "$${NEW_CSV}"
+	# Kustomize won't set default values
+	# Update deployment explicitly
+	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostIPC") = false' "$${CSV_PATH}"
+	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostNetwork") = false' "$${CSV_PATH}"
+	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostPID") = false' "$${CSV_PATH}"
+	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."allowPrivilegeEscalation") = false' "$${CSV_PATH}"
+	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."runAsNonRoot") = true' "$${CSV_PATH}"
 
-	$(MAKE) add-license $$(find $${BUNDLE_PATH} -name "*.yaml")
-	$(MAKE) add-license $${BASE_CSV}
+	# Fix examples by removing some special characters
+	FIXED_ALM_EXAMPLES=$$(yq -r '.metadata.annotations["alm-examples"]' $${CSV_PATH}  | sed -r 's/"/\\"/g')
+	yq -riY ".metadata.annotations[\"alm-examples\"] = \"$${FIXED_ALM_EXAMPLES}\"" $${CSV_PATH}
 
-getPackageName:
-	echo "eclipse-che-preview-openshift"
+	# Update image
+	yq -riY '.metadata.annotations.containerImage = "'$(IMG)'"' $${CSV_PATH}
+	yq -riY '.spec.install.spec.deployments[0].spec.template.spec.containers[0].image = "'$(IMG)'"' $${CSV_PATH}
 
-getBundlePath:
-	if [ -z "$(channel)" ]; then
-		echo "[ERROR] 'channel' is not specified"
-		exit 1
-	fi
-	PACKAGE_NAME=$$($(MAKE) getPackageName)
-	echo "$(PROJECT_DIR)/bundle/$(channel)/$${PACKAGE_NAME}"
+	# Format file
+	yq -riY "." "$${BUNDLE_PATH}/manifests/org.eclipse.che_checlusters.yaml"
 
-increment-next-version:
-	if [ -z "$(channel)" ]; then
-		echo "[ERROR] 'channel' is not specified"
-		exit 1
-	fi
+	$(MAKE) license $$(find $${BUNDLE_PATH} -name "*.yaml")
 
-	BUNDLE_PATH=$$($(MAKE) getBundlePath channel="$(channel)" -s)
-	OPM_BUNDLE_MANIFESTS_DIR="$${BUNDLE_PATH}/manifests"
-	CSV="$${OPM_BUNDLE_MANIFESTS_DIR}/che-operator.clusterserviceversion.yaml"
-
-	currentNextVersion=$$(yq -r ".spec.version" "$${CSV}")
-	echo  "[INFO] Current next version: $${currentNextVersion}"
-
-	incrementPart=$$($(MAKE) get-next-version-increment nextVersion="$${currentNextVersion}" -s)
-
-	PACKAGE_NAME=$$($(MAKE) getPackageName)
-
-	CLUSTER_SERVICE_VERSION=$$($(MAKE) get-current-stable-version)
-	STABLE_PACKAGE_VERSION=$$(echo "$${CLUSTER_SERVICE_VERSION}" | sed -e "s/$${PACKAGE_NAME}.v//")
-	echo "[INFO] Current stable package version: $${STABLE_PACKAGE_VERSION}"
-
-	# Parse stable version parts
-	majorAndMinor=$${STABLE_PACKAGE_VERSION%.*}
-	STABLE_MINOR_VERSION=$${majorAndMinor#*.}
-	STABLE_MAJOR_VERSION=$${majorAndMinor%.*}
-
-	STABLE_MINOR_VERSION=$$(($$STABLE_MINOR_VERSION+1))
-	echo "$${STABLE_MINOR_VERSION}"
-
-	incrementPart=$$((incrementPart+1))
-	newVersion="$${STABLE_MAJOR_VERSION}.$${STABLE_MINOR_VERSION}.0-$${incrementPart}.$(channel)"
-
-	echo "[INFO] Set up next version: $${newVersion}"
-	yq -rY "(.spec.version) = \"$${newVersion}\" | (.metadata.name) = \"$${PACKAGE_NAME}.v$${newVersion}\"" "$${CSV}" > "$${CSV}.old"
-	mv "$${CSV}.old" "$${CSV}"
-
-get-current-stable-version:
-	STABLE_BUNDLE_PATH=$$($(MAKE) getBundlePath channel="stable" -s)
-	LAST_STABLE_CSV="$${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
-
-	lastStableVersion=$$(yq -r ".spec.version" "$${LAST_STABLE_CSV}")
-	echo "$${lastStableVersion}"
-
-get-next-version-increment:
-	if [ -z $(nextVersion) ]; then
-		echo "[ERROR] Provide next version to parse"
-		exit 1
-	fi
-
-	versionWithoutNext="$${nextVersion%.next*}"
-	version="$${versionWithoutNext%-*}"
-	incrementPart="$${versionWithoutNext#*-}"
-	echo "$${incrementPart}"
-
-update-resources: SHELL := /bin/bash
-update-resources: check-requirements update-resource-images update-roles
-	$(MAKE) bundle channel=next
-	$(MAKE) update-helmcharts HELM_FOLDER=next
-
-update-helmcharts: SHELL := /bin/bash
-update-helmcharts: add-license-download check-requirements
-	helmFolder=$(HELM_FOLDER)
-	if [ -z "$${helmFolder}" ]; then
-		helmFolder="next"
-	fi
-	HELMCHARTS_TEMPLATES="helmcharts/$${helmFolder}/templates"
-	HELMCHARTS_CRDS="helmcharts/$${helmFolder}/crds"
-
-	echo "[INFO] Update Helm templates $${HELMCHARTS_TEMPLATES}"
-	cp config/manager/manager.yaml $${HELMCHARTS_TEMPLATES}
-	cp config/rbac/cluster_role.yaml $${HELMCHARTS_TEMPLATES}
-	cp config/rbac/cluster_rolebinding.yaml $${HELMCHARTS_TEMPLATES}
-	cp config/rbac/service_account.yaml $${HELMCHARTS_TEMPLATES}
-	cp config/rbac/role.yaml $${HELMCHARTS_TEMPLATES}
-	cp config/rbac/role_binding.yaml $${HELMCHARTS_TEMPLATES}
-	cp config/samples/org.eclipse.che_v1_checluster.yaml $${HELMCHARTS_TEMPLATES}
-
-	echo "[INFO] Update helm CRDs $${HELMCHARTS_CRDS}"
-	cp config/crd/bases/org_v1_che_crd.yaml $${HELMCHARTS_CRDS}
-
-	yq -riY ".metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\"" $${HELMCHARTS_TEMPLATES}/manager.yaml
-	yq -riY ".metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\"" $${HELMCHARTS_TEMPLATES}/service_account.yaml
-	yq -riY ".metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\"" $${HELMCHARTS_TEMPLATES}/role.yaml
-	yq -riY ".metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\"" $${HELMCHARTS_TEMPLATES}/role_binding.yaml
-	yq -riY ".subjects[0].namespace = \"$(ECLIPSE_CHE_NAMESPACE)\"" $${HELMCHARTS_TEMPLATES}/cluster_rolebinding.yaml
-
-	if [ $${helmFolder} == "stable" ]; then
-		chartYaml="helmcharts/$${helmFolder}/Chart.yaml"
-
-		EXAMPLE_FILES=(
-			$${HELMCHARTS_TEMPLATES}/org.eclipse.che_v1_checluster.yaml
-		)
-
-		CRDS=""
-		for exampleFile in "$${EXAMPLE_FILES[@]}"; do
-			example=$$(cat $${exampleFile} | yq -rY ". | (.metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\") | [.]")
-		 	CRDS=$${CRDS}$${example}$$'\n'
-		done
-
-		yq -rYi --arg examples "$${CRDS}" ".annotations.\"artifacthub.io/crdsExamples\" = \$$examples" $${chartYaml}
-		rm -rf $${HELMCHARTS_TEMPLATES}/org.eclipse.che_v1_checluster.yaml
-	else
-		# Set references to values
-		yq -riY ".metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\"" $${HELMCHARTS_TEMPLATES}/org.eclipse.che_v1_checluster.yaml
-		yq -riY ".spec.k8s.ingressDomain |= \"{{ .Values.k8s.ingressDomain }}\"" $${HELMCHARTS_TEMPLATES}/org.eclipse.che_v1_checluster.yaml
-	fi
-
-	$(MAKE) add-license $$(find ./helmcharts -name "*.yaml")
-
-check-requirements:
-	. olm/check-yq.sh
-
-	DOCKER=$$(command -v docker || true)
-	if [[ ! -x $$DOCKER ]]; then
-		echo "[ERROR] "docker" is not installed."
-		exit 1
-	fi
-
-	SKOPEO=$$(command -v skopeo || true)
-	if [[ ! -x $$SKOPEO ]]; then
-		echo "[ERROR] "scopeo" is not installed."
-		exit 1
-	fi
-
-	OPERATOR_SDK_BINARY=$(OPERATOR_SDK_BINARY)
-	if [ -z "$${OPERATOR_SDK_BINARY}" ]; then
-		OPERATOR_SDK_BINARY=$$(command -v operator-sdk)
-		if [[ ! -x "$${OPERATOR_SDK_BINARY}" ]]; then
-			echo "[ERROR] operator-sdk is not installed."
-			exit 1
-		fi
-	fi
-
-	operatorVersion=$$($${OPERATOR_SDK_BINARY} version)
-	REQUIRED_OPERATOR_SDK=$$(yq -r ".\"operator-sdk\"" "REQUIREMENTS")
-	case "$$operatorVersion" in
-		*$$REQUIRED_OPERATOR_SDK*) ;;
-		*) echo "[ERROR] operator-sdk $${REQUIRED_OPERATOR_SDK} is required"; exit 1 ;;
-	esac
-
-update-deployment-yaml-images: add-license-download
-	if [ -z $(UBI8_MINIMAL_IMAGE) ]; then
-		echo "[ERROR] Define required arguments: `UBI8_MINIMAL_IMAGE`"
-		exit 1
-	fi
-	yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_pvc_jobs\") | .value ) = \"$(UBI8_MINIMAL_IMAGE)\"" $(OPERATOR_YAML)
-
-	$(MAKE) add-license $(OPERATOR_YAML)
-
-update-dockerfile-image:
-	if [ -z $(UBI8_MINIMAL_IMAGE) ]; then
-		echo "[ERROR] Define `UBI8_MINIMAL_IMAGE` argument"
-	fi
-	DOCKERFILE="Dockerfile"
-	sed -i 's|registry.access.redhat.com/ubi8-minimal:[^\s]* |'${UBI8_MINIMAL_IMAGE}' |g' $${DOCKERFILE}
-
-update-resource-images:
-	# Detect newer images
-	echo "[INFO] Check update some base images..."
-	ubiMinimal8Version=$$(skopeo --override-os linux inspect docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.version')
-	ubiMinimal8Release=$$(skopeo --override-os linux inspect docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.release')
-	UBI8_MINIMAL_IMAGE="registry.access.redhat.com/ubi8-minimal:$${ubiMinimal8Version}-$${ubiMinimal8Release}"
-	skopeo --override-os linux inspect docker://$${UBI8_MINIMAL_IMAGE} > /dev/null
-
-	echo "[INFO] UBI base image               : $${UBI8_MINIMAL_IMAGE}"
-
-	# Update operator deployment images.
-	$(MAKE) update-deployment-yaml-images \
-	UBI8_MINIMAL_IMAGE="$${UBI8_MINIMAL_IMAGE}" \
-
-	# Update che-operator Dockerfile
-	$(MAKE) update-dockerfile-image UBI8_MINIMAL_IMAGE="$${UBI8_MINIMAL_IMAGE}"
+	$(OPERATOR_SDK) bundle validate $${BUNDLE_PATH}
 
 .PHONY: bundle-build
-bundle-build: ## Build the bundle image.
-	if [ -z "$(channel)" ]; then
-		echo "[ERROR] 'channel' is not specified"
-		exit 1
-	fi
+bundle-build: SHELL := /bin/bash
+bundle-build: ## Build a bundle image
+	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
+	[[ -z "$(BUNDLE_IMG)" ]] && { echo [ERROR] BUNDLE_IMG not defined; exit 1; }
 
-	BUNDLE_PACKAGE=$$($(MAKE) getPackageName)
-	BUNDLE_DIR="bundle/$(channel)/$${BUNDLE_PACKAGE}"
-	cd $${BUNDLE_DIR}
-	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
-	cd ../../..
+	BUNDLE_DIR="$(PROJECT_DIR)/bundle/$(CHANNEL)/$(ECLIPSE_CHE_PACKAGE_NAME)"
+	pushd $${BUNDLE_DIR}
+	$(IMAGE_TOOL) build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+	popd
 
 .PHONY: bundle-push
-bundle-push: ## Push the bundle image.
+bundle-push: SHELL := /bin/bash
+bundle-push: ## Push a bundle image
+	[[ -z "$(BUNDLE_IMG)" ]] && { echo [ERROR] BUNDLE_IMG not defined; exit 1; }
 	$(MAKE) docker-push IMG=$(BUNDLE_IMG)
-
-.PHONY: opm
-OPM = ./bin/opm
-opm: ## Download opm locally if necessary.
-ifeq (,$(wildcard $(OPM)))
-ifeq (,$(shell which opm 2>/dev/null))
-	@{ \
-	set -e ;\
-	mkdir -p $(dir $(OPM)) ;\
-	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
-	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/v1.15.2/$${OS}-$${ARCH}-opm ;\
-	chmod +x $(OPM) ;\
-	}
-else
-OPM = $(shell which opm)
-endif
-endif
-
-# A comma-separated list of bundle images (e.g. make catalog-build BUNDLE_IMGS=quay.io/eclipse/operator-bundle:v0.1.0,quay.io/eclipse/operator-bundle:v0.2.0).
-# These images MUST exist in a registry and be pull-able.
-BUNDLE_IMGS ?= $(BUNDLE_IMG)
-
-# The image tag given to the resulting catalog image (e.g. make catalog-build CATALOG_IMG=quay.io/eclipse/operator-catalog:v0.2.0).
-CATALOG_IMG ?= $(IMAGE_TAG_BASE)-catalog:v$(VERSION)
-
-# Set CATALOG_BASE_IMG to an existing catalog image tag to add $BUNDLE_IMGS to that image.
-ifneq ($(origin CATALOG_BASE_IMG), undefined)
-FROM_INDEX_OPT := --from-index $(CATALOG_BASE_IMG)
-endif
 
 # Build a catalog image by adding bundle images to an empty catalog using the operator package manager tool, 'opm'.
 # This recipe invokes 'opm' in 'semver' bundle add mode. For more information on add modes, see:
 # https://github.com/operator-framework/community-operators/blob/7f1438c/docs/packaging-operator.md#updating-your-existing-operator
 .PHONY: catalog-build
-catalog-build: opm ## Build a catalog image.
+catalog-build: SHELL := /bin/bash
+catalog-build: download-opm ## Build a catalog image
+	[[ -z "$(BUNDLE_IMG)" ]] && { echo [ERROR] BUNDLE_IMG not defined; exit 1; }
+	[[ -z "$(CATALOG_IMG)" ]] && { echo [ERROR] CATALOG_IMG not defined; exit 1; }
+
 	$(OPM) index add \
 	--build-tool $(IMAGE_TOOL) \
-	--bundles $(BUNDLE_IMGS) \
+	--bundles $(BUNDLE_IMG) \
 	--tag $(CATALOG_IMG) \
 	--pull-tool $(IMAGE_TOOL) \
 	--binary-image=quay.io/operator-framework/upstream-opm-builder:v1.15.2 \
 	--mode semver $(FROM_INDEX_OPT)
 
-# Push the catalog image.
 .PHONY: catalog-push
-catalog-push: ## Push a catalog image.
+catalog-push: SHELL := /bin/bash
+catalog-push: ## Push a catalog image
+	[[ -z "$(CATALOG_IMG)" ]] && { echo [ERROR] CATALOG_IMG not defined; exit 1; }
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
 
-chectl-templ: SHELL := /bin/bash
-chectl-templ:
-	if [ -z "$(TARGET)" ]; then
-		echo "[ERROR] Specify templates target location, using argument `TARGET`"
-		exit 1
-	fi
-	if [ -z "$(SRC)" ]; then
-		SRC=$$(pwd)
-	else
-		SRC=$(SRC)
-	fi
+##@ Utilities
 
-	mkdir -p $(TARGET)
+bundle-path: SHELL := /bin/bash
+bundle-path: ## Prints path to a bundle directory for a given channel
+	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
+	echo "$(PROJECT_DIR)/bundle/$(CHANNEL)/$(ECLIPSE_CHE_PACKAGE_NAME)"
 
-	cp -f "$${SRC}/config/manager/manager.yaml" "$(TARGET)/operator.yaml"
-	cp -rf "$${SRC}/config/crd/bases/" "$(TARGET)/crds/"
-	cp -f "$${SRC}/config/rbac/role.yaml" "$(TARGET)/"
-	cp -f "$${SRC}/config/rbac/role_binding.yaml" "$(TARGET)/"
-	cp -f "$${SRC}/config/rbac/cluster_role.yaml" "$(TARGET)/"
-	cp -f "$${SRC}/config/rbac/cluster_rolebinding.yaml" "$(TARGET)/"
-	cp -f "$${SRC}/config/rbac/service_account.yaml" "$(TARGET)/"
-	cp -f "$${SRC}/$(ECLIPSE_CHE_CR)" "$(TARGET)/crds/org_v1_che_cr.yaml"
+csv-path: SHELL := /bin/bash
+csv-path: ## Prints path to a clusterserviceversion file for a given channel
+	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
+	BUNDLE_PATH=$$($(MAKE) bundle-path)
+	echo "$${BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
 
-	echo "[INFO] chectl template folder is ready: ${TARGET}"
+bundle-version: SHELL := /bin/bash
+bundle-version: ## Prints a bundle version for a given channel
+	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
+	CSV_PATH=$$($(MAKE) csv-path)
+	echo $$(yq -r ".spec.version" "$${CSV_PATH}")
+
+OPM ?= $(shell pwd)/bin/opm
+download-opm: ## Download opm tool
+	command -v $(OPM) >/dev/null 2>&1 && exit
+
+	OS=$(shell go env GOOS)
+	ARCH=$(shell go env GOARCH)
+	OPM_VERSION=$$(yq -r '.opm' $(PROJECT_DIR)/REQUIREMENTS)
+
+	echo "[INFO] Downloading opm version: $$OPM_VERSION"
+
+	curl -SLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/$${OPM_VERSION}/$${OS}-$${ARCH}-opm
+	chmod +x $(OPM)
+
+CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
+download-controller-gen: ## Download controller-gen tool
+	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1)
+
+KUSTOMIZE = $(shell pwd)/bin/kustomize
+download-kustomize: ## Download kustomize tool
+	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
+
+ADD_LICENSE = $(shell pwd)/bin/addlicense
+download-addlicense: ## Download addlicense tool
+	$(call go-get-tool,$(ADD_LICENSE),github.com/google/addlicense@99ebc9c9db7bceb8623073e894533b978d7b7c8a)
+
+OPERATOR_SDK ?= $(shell pwd)/bin/operator-sdk
+download-operator-sdk: SHELL := /bin/bash
+download-operator-sdk: ## Downloads operator sdk tool
+	command -v $(OPERATOR_SDK) >/dev/null 2>&1 && exit
+
+	OS=$(shell go env GOOS)
+	ARCH=$(shell go env GOARCH)
+	OPERATOR_SDK_VERSION=$$(yq -r '."operator-sdk"' $(PROJECT_DIR)/REQUIREMENTS)
+
+	[[ -z "$(DEST)" ]] && dest=$(OPERATOR_SDK) || dest=$(DEST)/$(OPERATOR_SDK)
+	echo "[INFO] Downloading operator-sdk version $$OPERATOR_SDK_VERSION into $${dest}"
+
+	curl -SLo $${dest} https://github.com/operator-framework/operator-sdk/releases/download/$${OPERATOR_SDK_VERSION}/operator-sdk_$${OS}_$${ARCH}
+	chmod +x $${dest}
+
+validate-requirements: SHELL := /bin/bash
+validate-requirements: ## Check if all required packages are installed
+	command -v yq >/dev/null 2>&1 || { echo "[ERROR] yq is not installed. See https://github.com/kislyuk/yq"; exit 1; }
+	command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] skopeo is not installed."; exit 1; }
+
+# Set a new operator image for kustomize
+_kustomize-operator-image:
+	cd config/manager
+	$(KUSTOMIZE) edit set image quay.io/eclipse/che-operator:next=$(IMG)
+	cd ../..
+
+# Set a new version for the next channel
+_increment-bundle-version: SHELL := /bin/bash
+_increment-bundle-version:
+	echo "[INFO] Increment bundle version for the next channel"
+
+	STABLE_BUNDLE_VERSION=$$($(MAKE) bundle-version CHANNEL=stable)
+	echo "[INFO] Current stable version: $${STABLE_BUNDLE_VERSION}"
+
+	# Parse stable bundle version
+	STABLE_BUNDLE_MAJOR_AND_MINOR_VERSION=$${STABLE_BUNDLE_VERSION%.*}
+	STABLE_BUNDLE_MINOR_VERSION=$${STABLE_BUNDLE_MAJOR_AND_MINOR_VERSION#*.}
+	STABLE_BUNDLE_MAJOR_VERSION=$${STABLE_BUNDLE_MAJOR_AND_MINOR_VERSION%.*}
+
+	NEXT_BUNDLE_VERSION=$$($(MAKE) bundle-version CHANNEL=next)
+	echo "[INFO] Current next version: $${NEXT_BUNDLE_VERSION}"
+
+	# Parse next bundle version
+	NEXT_BUNDLE_VERSION_STIPPED_NEXT="$${NEXT_BUNDLE_VERSION%.next*}"
+	NEXT_BUNDLE_VERSION_INCRIMENT_PART="$${NEXT_BUNDLE_VERSION_STIPPED_NEXT#*-}"
+
+	# Set a new next bundle version
+	NEW_NEXT_BUNDLE_VERSION="$${STABLE_BUNDLE_MAJOR_VERSION}.$$(($$STABLE_BUNDLE_MINOR_VERSION+1)).0-$$(($$NEXT_BUNDLE_VERSION_INCRIMENT_PART+1)).next"
+
+	# Update csv
+	NEXT_CSV_PATH=$$($(MAKE) csv-path CHANNEL=next)
+	yq -riY "(.spec.version) = \"$${NEW_NEXT_BUNDLE_VERSION}\" | (.metadata.name) = \"$(ECLIPSE_CHE_PACKAGE_NAME).v$${NEW_NEXT_BUNDLE_VERSION}\"" $${NEXT_CSV_PATH}
+
+	echo "[INFO] New next version: $${NEW_NEXT_BUNDLE_VERSION}"

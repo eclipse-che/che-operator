@@ -14,8 +14,9 @@ package deploy
 import (
 	"context"
 
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
-	"github.com/eclipse-che/che-operator/pkg/util"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	corev1 "k8s.io/api/core/v1"
@@ -187,7 +188,7 @@ func TestSyncAndAddFinalizer(t *testing.T) {
 		t.Fatalf("Failed to get object: %v", err)
 	}
 
-	if !util.ContainsString(deployContext.CheCluster.Finalizers, "test-finalizer") {
+	if !utils.Contains(deployContext.CheCluster.Finalizers, "test-finalizer") {
 		t.Fatalf("Failed to add finalizer")
 	}
 }
@@ -233,17 +234,17 @@ func TestShouldNotDeleteObject(t *testing.T) {
 	}
 }
 
-func initDeployContext() (client.Client, *DeployContext) {
-	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+func initDeployContext() (client.Client, *chetypes.DeployContext) {
+	chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
 	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
-	deployContext := &DeployContext{
-		CheCluster: &orgv1.CheCluster{
+	deployContext := &chetypes.DeployContext{
+		CheCluster: &chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "eclipse-che",
 				Name:      "eclipse-che",
 			},
 		},
-		ClusterAPI: ClusterAPI{
+		ClusterAPI: chetypes.ClusterAPI{
 			Client:           cli,
 			NonCachingClient: cli,
 			Scheme:           scheme.Scheme,

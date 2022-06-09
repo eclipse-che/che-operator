@@ -13,7 +13,6 @@ package imagepuller
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"sort"
 	"strings"
@@ -25,18 +24,18 @@ import (
 	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"sigs.k8s.io/yaml"
 
-	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/util"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	routev1 "github.com/openshift/api/route/v1"
 	operatorsv1 "github.com/operator-framework/api/pkg/operators/v1"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	packagesv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
 
-	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -60,9 +59,9 @@ var (
 func TestImagePullerConfiguration(t *testing.T) {
 	type testCase struct {
 		name                  string
-		initCR                *orgv1.CheCluster
+		initCR                *chev2.CheCluster
 		initObjects           []runtime.Object
-		expectedCR            *orgv1.CheCluster
+		expectedCR            *chev2.CheCluster
 		expectedOperatorGroup *operatorsv1.OperatorGroup
 		expectedSubscription  *operatorsv1alpha1.Subscription
 		expectedImagePuller   *chev1alpha1.KubernetesImagePuller
@@ -100,25 +99,23 @@ func TestImagePullerConfiguration(t *testing.T) {
 		{
 			name:   "image puller enabled with finalizer but default values are empty, subscription exists, should update the CR",
 			initCR: InitCheCRWithImagePullerFinalizer(),
-			expectedCR: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
+			expectedCR: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            os.Getenv("CHE_FLAVOR"),
+					Name:            "eclipse-che",
 					Namespace:       namespace,
 					ResourceVersion: "1",
 					Finalizers: []string{
 						"kubernetesimagepullers.finalizers.che.eclipse.org",
 					},
 				},
-				Spec: orgv1.CheClusterSpec{
-					ImagePuller: orgv1.CheClusterSpecImagePuller{
-						Enable: true,
-						Spec: chev1alpha1.KubernetesImagePullerSpec{
-							DeploymentName: "kubernetes-image-puller",
-							ConfigMapName:  "k8s-image-puller",
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						ImagePuller: chev2.ImagePuller{
+							Enable: true,
+							Spec: chev1alpha1.KubernetesImagePullerSpec{
+								DeploymentName: "kubernetes-image-puller",
+								ConfigMapName:  "k8s-image-puller",
+							},
 						},
 					},
 				},
@@ -184,20 +181,20 @@ func TestImagePullerConfiguration(t *testing.T) {
 				TypeMeta: metav1.TypeMeta{Kind: "KubernetesImagePuller", APIVersion: "che.eclipse.org/v1alpha1"},
 				ObjectMeta: metav1.ObjectMeta{
 					ResourceVersion: "2",
-					Name:            os.Getenv("CHE_FLAVOR") + "-image-puller",
+					Name:            "eclipse-che-image-puller",
 					Namespace:       namespace,
 					Labels: map[string]string{
-						"app":                       os.Getenv("CHE_FLAVOR"),
+						"app":                       defaults.GetCheFlavor(),
 						"component":                 "kubernetes-image-puller",
-						"app.kubernetes.io/part-of": deploy.CheEclipseOrg,
+						"app.kubernetes.io/part-of": constants.CheEclipseOrg,
 					},
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion:         "org.eclipse.che/v1",
+							APIVersion:         "org.eclipse.che/v2",
 							Kind:               "CheCluster",
 							BlockOwnerDeletion: &valueTrue,
 							Controller:         &valueTrue,
-							Name:               os.Getenv("CHE_FLAVOR"),
+							Name:               "eclipse-che",
 						},
 					},
 				},
@@ -239,9 +236,9 @@ func TestImagePullerConfiguration(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
-			deployContext := deploy.GetTestDeployContext(testCase.initCR, []runtime.Object{})
+			deployContext := test.GetDeployContext(testCase.initCR, []runtime.Object{})
 
-			orgv1.SchemeBuilder.AddToScheme(deployContext.ClusterAPI.Scheme)
+			chev2.SchemeBuilder.AddToScheme(deployContext.ClusterAPI.Scheme)
 			packagesv1.AddToScheme(deployContext.ClusterAPI.Scheme)
 			operatorsv1alpha1.AddToScheme(deployContext.ClusterAPI.Scheme)
 			operatorsv1.AddToScheme(deployContext.ClusterAPI.Scheme)
@@ -315,8 +312,8 @@ func TestImagePullerConfiguration(t *testing.T) {
 			}
 			// if expectedCR is not set, don't check it
 			if testCase.expectedCR != nil && !reflect.DeepEqual(testCase.initCR, testCase.expectedCR) {
-				gotCR := &orgv1.CheCluster{}
-				err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: os.Getenv("CHE_FLAVOR")}, gotCR)
+				gotCR := &chev2.CheCluster{}
+				err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: "eclipse-che"}, gotCR)
 				if err != nil {
 					t.Errorf("Error getting CheCluster: %v", err)
 				}
@@ -349,15 +346,15 @@ func TestImagePullerConfiguration(t *testing.T) {
 			}
 			if testCase.shouldDelete {
 				if testCase.expectedCR == nil {
-					gotCR := &orgv1.CheCluster{}
-					err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: os.Getenv("CHE_FLAVOR")}, gotCR)
+					gotCR := &chev2.CheCluster{}
+					err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: "eclipse-che"}, gotCR)
 					if !errors.IsNotFound(err) {
 						t.Fatal("CR CheCluster should be removed")
 					}
 				}
 
 				imagePuller := &chev1alpha1.KubernetesImagePuller{}
-				err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: os.Getenv("CHE_FLAVOR") + "-image-puller"}, imagePuller)
+				err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: "eclipse-che-image-puller"}, imagePuller)
 				if err == nil || !errors.IsNotFound(err) {
 					t.Fatalf("Should not have found KubernetesImagePuller: %v", err)
 				}
@@ -393,7 +390,7 @@ func TestEnvVars(t *testing.T) {
 
 	// unset RELATED_IMAGE environment variables, set them back
 	// after tests complete
-	matches := util.GetEnvByRegExp("^RELATED_IMAGE_.*")
+	matches := utils.GetEnvByRegExp("^RELATED_IMAGE_.*")
 	for _, match := range matches {
 		if originalValue, exists := os.LookupEnv(match.Name); exists {
 			os.Unsetenv(match.Name)
@@ -493,172 +490,177 @@ func sortImages(images []ImageAndName) []ImageAndName {
 	return imagesCopy
 }
 
-func InitCheCRWithImagePullerEnabled() *orgv1.CheCluster {
-	return &orgv1.CheCluster{
+func InitCheCRWithImagePullerEnabled() *chev2.CheCluster {
+	return &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            os.Getenv("CHE_FLAVOR"),
+			Name:            "eclipse-che",
 			Namespace:       namespace,
 			ResourceVersion: "0",
 		},
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "org.eclipse.che/v1",
-			Kind:       "CheCluster",
-		},
-		Spec: orgv1.CheClusterSpec{
-			ImagePuller: orgv1.CheClusterSpecImagePuller{
-				Enable: true,
+		Spec: chev2.CheClusterSpec{
+			Components: chev2.CheClusterComponents{
+				ImagePuller: chev2.ImagePuller{
+					Enable: true,
+				},
 			},
 		},
 	}
 }
 
-func InitCheCRWithImagePullerFinalizer() *orgv1.CheCluster {
-	return &orgv1.CheCluster{
+func InitCheCRWithImagePullerFinalizer() *chev2.CheCluster {
+	return &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      os.Getenv("CHE_FLAVOR"),
+			Name:      "eclipse-che",
 			Namespace: namespace,
 			Finalizers: []string{
 				"kubernetesimagepullers.finalizers.che.eclipse.org",
 			},
 			ResourceVersion: "0",
 		},
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "org.eclipse.che/v1",
-			Kind:       "CheCluster",
-		},
-		Spec: orgv1.CheClusterSpec{
-			ImagePuller: orgv1.CheClusterSpecImagePuller{
-				Enable: true,
+		Spec: chev2.CheClusterSpec{
+			Components: chev2.CheClusterComponents{
+				ImagePuller: chev2.ImagePuller{
+					Enable: true,
+				},
 			},
 		},
 	}
 }
 
-func InitCheCRWithImagePullerFinalizerAndDeletionTimestamp() *orgv1.CheCluster {
-	return &orgv1.CheCluster{
+func InitCheCRWithImagePullerFinalizerAndDeletionTimestamp() *chev2.CheCluster {
+	return &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      os.Getenv("CHE_FLAVOR"),
+			Name:      "eclipse-che",
 			Namespace: namespace,
 			Finalizers: []string{
 				"kubernetesimagepullers.finalizers.che.eclipse.org",
 			},
 			DeletionTimestamp: &metav1.Time{Time: time.Unix(1, 0)},
 		},
-		Spec: orgv1.CheClusterSpec{
-			ImagePuller: orgv1.CheClusterSpecImagePuller{
-				Enable: true,
+		Spec: chev2.CheClusterSpec{
+			Components: chev2.CheClusterComponents{
+				ImagePuller: chev2.ImagePuller{
+					Enable: true,
+				},
 			},
 		},
 	}
 }
 
-func ExpectedCheCRWithImagePullerFinalizer() *orgv1.CheCluster {
-	return &orgv1.CheCluster{
+func ExpectedCheCRWithImagePullerFinalizer() *chev2.CheCluster {
+	return &chev2.CheCluster{
 		TypeMeta: metav1.TypeMeta{
+			APIVersion: "org.eclipse.che/v2",
 			Kind:       "CheCluster",
-			APIVersion: "org.eclipse.che/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      os.Getenv("CHE_FLAVOR"),
+			Name:      "eclipse-che",
 			Namespace: namespace,
 			Finalizers: []string{
 				"kubernetesimagepullers.finalizers.che.eclipse.org",
 			},
 			ResourceVersion: "1",
 		},
-		Spec: orgv1.CheClusterSpec{
-			ImagePuller: orgv1.CheClusterSpecImagePuller{
-				Enable: true,
+		Spec: chev2.CheClusterSpec{
+			Components: chev2.CheClusterComponents{
+				ImagePuller: chev2.ImagePuller{
+					Enable: true,
+				},
 			},
 		},
 	}
 }
 
-func InitCheCRWithImagePullerDisabled() *orgv1.CheCluster {
-	return &orgv1.CheCluster{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "CheCluster",
-			APIVersion: "org.eclipse.che/v1",
-		},
+func InitCheCRWithImagePullerDisabled() *chev2.CheCluster {
+	return &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            os.Getenv("CHE_FLAVOR"),
+			Name:            "eclipse-che",
 			Namespace:       namespace,
 			ResourceVersion: "0",
 		},
-		Spec: orgv1.CheClusterSpec{
-			ImagePuller: orgv1.CheClusterSpecImagePuller{
-				Enable: false,
-			},
-		},
-	}
-}
-
-func InitCheCRWithImagePullerEnabledAndDefaultValuesSet() *orgv1.CheCluster {
-	return &orgv1.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      os.Getenv("CHE_FLAVOR"),
-			Namespace: namespace,
-			Finalizers: []string{
-				"kubernetesimagepullers.finalizers.che.eclipse.org",
-			},
-		},
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "org.eclipse.che/v1",
-			Kind:       "CheCluster",
-		},
-		Spec: orgv1.CheClusterSpec{
-			ImagePuller: orgv1.CheClusterSpecImagePuller{
-				Enable: true,
-				Spec: chev1alpha1.KubernetesImagePullerSpec{
-					DeploymentName: "kubernetes-image-puller",
-					ConfigMapName:  "k8s-image-puller",
+		Spec: chev2.CheClusterSpec{
+			Components: chev2.CheClusterComponents{
+				ImagePuller: chev2.ImagePuller{
+					Enable: false,
 				},
 			},
 		},
 	}
 }
 
-func InitCheCRWithImagePullerEnabledAndImagesSet(images string) *orgv1.CheCluster {
-	return &orgv1.CheCluster{
+func InitCheCRWithImagePullerEnabledAndDefaultValuesSet() *chev2.CheCluster {
+	return &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      os.Getenv("CHE_FLAVOR"),
+			Name:      "eclipse-che",
 			Namespace: namespace,
 			Finalizers: []string{
 				"kubernetesimagepullers.finalizers.che.eclipse.org",
 			},
 		},
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "org.eclipse.che/v1",
+			APIVersion: "org.eclipse.che/v2",
 			Kind:       "CheCluster",
 		},
-		Spec: orgv1.CheClusterSpec{
-			ImagePuller: orgv1.CheClusterSpecImagePuller{
-				Enable: true,
-				Spec: chev1alpha1.KubernetesImagePullerSpec{
-					DeploymentName: "kubernetes-image-puller",
-					ConfigMapName:  "k8s-image-puller",
-					Images:         images,
+
+		Spec: chev2.CheClusterSpec{
+			Components: chev2.CheClusterComponents{
+				ImagePuller: chev2.ImagePuller{
+					Enable: true,
+					Spec: chev1alpha1.KubernetesImagePullerSpec{
+						DeploymentName: "kubernetes-image-puller",
+						ConfigMapName:  "k8s-image-puller",
+					},
 				},
 			},
 		},
 	}
 }
 
-func InitCheCRWithImagePullerEnabledAndNewValuesSet() *orgv1.CheCluster {
-	return &orgv1.CheCluster{
+func InitCheCRWithImagePullerEnabledAndImagesSet(images string) *chev2.CheCluster {
+	return &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      os.Getenv("CHE_FLAVOR"),
+			Name:      "eclipse-che",
 			Namespace: namespace,
 			Finalizers: []string{
 				"kubernetesimagepullers.finalizers.che.eclipse.org",
 			},
 		},
-		Spec: orgv1.CheClusterSpec{
-			ImagePuller: orgv1.CheClusterSpecImagePuller{
-				Enable: true,
-				Spec: chev1alpha1.KubernetesImagePullerSpec{
-					DeploymentName: "kubernetes-image-puller-trigger-update",
-					ConfigMapName:  "k8s-image-puller-trigger-update",
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "org.eclipse.che/v2",
+			Kind:       "CheCluster",
+		},
+		Spec: chev2.CheClusterSpec{
+			Components: chev2.CheClusterComponents{
+				ImagePuller: chev2.ImagePuller{
+					Enable: true,
+					Spec: chev1alpha1.KubernetesImagePullerSpec{
+						DeploymentName: "kubernetes-image-puller",
+						ConfigMapName:  "k8s-image-puller",
+						Images:         images,
+					},
+				},
+			},
+		},
+	}
+}
+
+func InitCheCRWithImagePullerEnabledAndNewValuesSet() *chev2.CheCluster {
+	return &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: namespace,
+			Finalizers: []string{
+				"kubernetesimagepullers.finalizers.che.eclipse.org",
+			},
+		},
+		Spec: chev2.CheClusterSpec{
+			Components: chev2.CheClusterComponents{
+				ImagePuller: chev2.ImagePuller{
+					Enable: true,
+					Spec: chev1alpha1.KubernetesImagePullerSpec{
+						DeploymentName: "kubernetes-image-puller-trigger-update",
+						ConfigMapName:  "k8s-image-puller-trigger-update",
+					},
 				},
 			},
 		},
@@ -677,21 +679,21 @@ func InitImagePuller(options ImagePullerOptions) *chev1alpha1.KubernetesImagePul
 			Kind:       "KubernetesImagePuller",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            os.Getenv("CHE_FLAVOR") + "-image-puller",
+			Name:            "eclipse-che-image-puller",
 			Namespace:       namespace,
 			ResourceVersion: options.ObjectMetaResourceVersion,
 			Labels: map[string]string{
-				"app.kubernetes.io/part-of": deploy.CheEclipseOrg,
-				"app":                       os.Getenv("CHE_FLAVOR"),
+				"app":                       defaults.GetCheFlavor(),
+				"app.kubernetes.io/part-of": constants.CheEclipseOrg,
 				"component":                 "kubernetes-image-puller",
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion:         "org.eclipse.che/v1",
+					APIVersion:         "org.eclipse.che/v2",
 					Kind:               "CheCluster",
 					Controller:         &valueTrue,
 					BlockOwnerDeletion: &valueTrue,
-					Name:               os.Getenv("CHE_FLAVOR"),
+					Name:               "eclipse-che",
 				},
 			},
 		},
@@ -710,20 +712,20 @@ func getDefaultImagePuller() *chev1alpha1.KubernetesImagePuller {
 			Kind:       "KubernetesImagePuller",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      os.Getenv("CHE_FLAVOR") + "-image-puller",
+			Name:      "eclipse-che-image-puller",
 			Namespace: namespace,
 			Labels: map[string]string{
-				"app.kubernetes.io/part-of": deploy.CheEclipseOrg,
-				"app":                       os.Getenv("CHE_FLAVOR"),
+				"app":                       defaults.GetCheFlavor(),
+				"app.kubernetes.io/part-of": constants.CheEclipseOrg,
 				"component":                 "kubernetes-image-puller",
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion:         "org.eclipse.che/v1",
+					APIVersion:         "org.eclipse.che/v2",
 					Kind:               "CheCluster",
 					Controller:         &valueTrue,
 					BlockOwnerDeletion: &valueTrue,
-					Name:               os.Getenv("CHE_FLAVOR"),
+					Name:               "eclipse-che",
 				},
 			},
 		},
@@ -795,16 +797,4 @@ func getClusterServiceVersion() *operatorsv1alpha1.ClusterServiceVersion {
 			Name:      csvName,
 		},
 	}
-}
-
-func init() {
-	operator := &appsv1.Deployment{}
-	data, err := ioutil.ReadFile("../../config/manager/manager.yaml")
-	yaml.Unmarshal(data, operator)
-	if err == nil {
-		for _, env := range operator.Spec.Template.Spec.Containers[0].Env {
-			os.Setenv(env.Name, env.Value)
-		}
-	}
-	defaultImagePullerImages = ""
 }

@@ -1,0 +1,47 @@
+#
+# Copyright (c) 2019-2022 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Red Hat, Inc. - initial API and implementation
+#
+
+# The following manifests contain a self-signed issuer CR and a certificate CR.
+# More document can be found at https://docs.cert-manager.io
+# WARNING: Targets CertManager v1.0. Check https://cert-manager.io/docs/installation/upgrading/ for breaking changes.
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: che-operator-selfsigned-issuer
+  namespace: eclipse-che
+  labels:
+    app.kubernetes.io/name: che
+    app.kubernetes.io/instance: che
+    app.kubernetes.io/part-of: che.eclipse.org
+    app.kubernetes.io/component: che-operator
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: che-operator-serving-cert  # this name should match the one appeared in kustomizeconfig.yaml
+  namespace: eclipse-che
+  labels:
+    app.kubernetes.io/name: che
+    app.kubernetes.io/instance: che
+    app.kubernetes.io/part-of: che.eclipse.org
+    app.kubernetes.io/component: che-operator
+spec:
+  # $(SERVICE_NAME) and $(SERVICE_NAMESPACE) will be substituted by kustomize
+  dnsNames:
+  - $(SERVICE_NAME).$(SERVICE_NAMESPACE).svc
+  - $(SERVICE_NAME).$(SERVICE_NAMESPACE).svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: che-operator-selfsigned-issuer
+  secretName: che-operator-webhook-server-cert # this secret will not be prefixed, since it's not managed by kustomize

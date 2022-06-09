@@ -13,8 +13,10 @@
 package tls
 
 import (
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -26,17 +28,17 @@ func NewTlsSecretReconciler() *TlsSecretReconciler {
 	return &TlsSecretReconciler{}
 }
 
-func (t *TlsSecretReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
-	if util.IsOpenShift {
+func (t *TlsSecretReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
+	if infrastructure.IsOpenShift() {
 		// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
 		if ctx.IsSelfSignedCertificate {
-			if err := CreateTLSSecretFromEndpoint(ctx, "", deploy.CheTLSSelfSignedCertificateSecretName); err != nil {
+			if err := CreateTLSSecretFromEndpoint(ctx, "", constants.DefaultSelfSignedCertificateSecretName); err != nil {
 				return reconcile.Result{}, false, err
 			}
 		}
 	} else {
 		// Handle Che TLS certificates on Kubernetes infrastructure
-		if ctx.CheCluster.Spec.K8s.TlsSecretName != "" {
+		if ctx.CheCluster.Spec.Networking.TlsSecretName != "" {
 			// Self-signed certificate should be created to secure Che ingresses
 			result, err := K8sHandleCheTLSSecrets(ctx)
 			if result.Requeue || result.RequeueAfter > 0 {
@@ -44,7 +46,7 @@ func (t *TlsSecretReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Re
 			}
 		} else if ctx.IsSelfSignedCertificate {
 			// Use default self-signed ingress certificate
-			if err := CreateTLSSecretFromEndpoint(ctx, "", deploy.CheTLSSelfSignedCertificateSecretName); err != nil {
+			if err := CreateTLSSecretFromEndpoint(ctx, "", constants.DefaultSelfSignedCertificateSecretName); err != nil {
 				return reconcile.Result{}, false, err
 			}
 		}
@@ -53,6 +55,6 @@ func (t *TlsSecretReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Re
 	return reconcile.Result{}, true, nil
 }
 
-func (t *TlsSecretReconciler) Finalize(ctx *deploy.DeployContext) bool {
+func (t *TlsSecretReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	return true
 }

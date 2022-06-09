@@ -18,10 +18,12 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
-	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -43,11 +45,11 @@ func NewDashboardReconciler() *DashboardReconciler {
 	return &DashboardReconciler{}
 }
 
-func (d *DashboardReconciler) getComponentName(ctx *deploy.DeployContext) string {
-	return deploy.DefaultCheFlavor(ctx.CheCluster) + "-dashboard"
+func (d *DashboardReconciler) getComponentName(ctx *chetypes.DeployContext) string {
+	return defaults.GetCheFlavor() + "-dashboard"
 }
 
-func (d *DashboardReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
+func (d *DashboardReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	// Create a new dashboard service
 	done, err := deploy.SyncServiceToCluster(ctx, d.getComponentName(ctx), []string{"http"}, []int32{8080}, d.getComponentName(ctx))
 	if !done {
@@ -55,7 +57,7 @@ func (d *DashboardReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Re
 	}
 
 	// Expose dashboard service with route or ingress
-	_, done, err = expose.ExposeWithHostPath(ctx, d.getComponentName(ctx), ctx.CheCluster.GetCheHost(),
+	_, done, err = expose.ExposeWithHostPath(ctx, d.getComponentName(ctx), ctx.CheHost,
 		exposePath,
 		d.createGatewayConfig(ctx),
 	)
@@ -98,7 +100,7 @@ func (d *DashboardReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Re
 	return reconcile.Result{}, true, nil
 }
 
-func (d *DashboardReconciler) Finalize(ctx *deploy.DeployContext) bool {
+func (d *DashboardReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	done := true
 	if _, err := deploy.Delete(ctx, types.NamespacedName{Name: d.getClusterRoleName(ctx)}, &rbacv1.ClusterRole{}); err != nil {
 		done = false
@@ -117,14 +119,14 @@ func (d *DashboardReconciler) Finalize(ctx *deploy.DeployContext) bool {
 	return done
 }
 
-func (d *DashboardReconciler) createGatewayConfig(ctx *deploy.DeployContext) *gateway.TraefikConfig {
+func (d *DashboardReconciler) createGatewayConfig(ctx *chetypes.DeployContext) *gateway.TraefikConfig {
 	cfg := gateway.CreateCommonTraefikConfig(
 		d.getComponentName(ctx),
 		fmt.Sprintf("Path(`/`, `/f`) || PathPrefix(`%s`)", exposePath),
 		10,
 		"http://"+d.getComponentName(ctx)+":8080",
 		[]string{})
-	if util.IsOpenShift {
+	if infrastructure.IsOpenShift() {
 		cfg.AddAuthHeaderRewrite(d.getComponentName(ctx))
 	}
 	return cfg

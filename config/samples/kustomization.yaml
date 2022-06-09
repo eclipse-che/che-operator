@@ -10,11 +10,6 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-## Append samples you want in your CSV to this file as resources ##
 resources:
-- org.eclipse.che_v1_checluster.yaml
-# Uncomment it to enable sample for CheCluster with version v2alphav1
-# - org_v2alpha1_checluster.yaml
-# Uncomment to enable a devworkspace sample
-# - devworkspace_flattened_theia-nodejs.yaml
-#+kubebuilder:scaffold:manifestskustomizesamples
+- org_v1_checluster.yaml
+- org_v2_checluster.yaml

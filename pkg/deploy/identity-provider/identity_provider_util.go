@@ -15,7 +15,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+
 	oauth "github.com/openshift/api/oauth/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -30,7 +32,7 @@ func getOAuthClientSpec(name string, oauthSecret string, redirectURIs []string) 
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
-			Labels: map[string]string{deploy.KubernetesPartOfLabelKey: deploy.CheEclipseOrg},
+			Labels: map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg},
 		},
 
 		Secret:       oauthSecret,
@@ -39,9 +41,9 @@ func getOAuthClientSpec(name string, oauthSecret string, redirectURIs []string) 
 	}
 }
 
-func FindOAuthClient(ctx *deploy.DeployContext) (*oauth.OAuthClient, error) {
+func FindOAuthClient(ctx *chetypes.DeployContext) (*oauth.OAuthClient, error) {
 	oauthClients := &oauth.OAuthClientList{}
-	listOptions := &client.ListOptions{LabelSelector: labels.SelectorFromSet(map[string]string{deploy.KubernetesPartOfLabelKey: deploy.CheEclipseOrg})}
+	listOptions := &client.ListOptions{LabelSelector: labels.SelectorFromSet(map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg})}
 
 	if err := ctx.ClusterAPI.Client.List(
 		context.TODO(),
@@ -56,6 +58,6 @@ func FindOAuthClient(ctx *deploy.DeployContext) (*oauth.OAuthClient, error) {
 	case 1:
 		return &oauthClients.Items[0], nil
 	default:
-		return nil, fmt.Errorf("more than one OAuthClient found with '%s:%s' labels", deploy.KubernetesPartOfLabelKey, deploy.CheEclipseOrg)
+		return nil, fmt.Errorf("more than one OAuthClient found with '%s:%s' labels", constants.KubernetesPartOfLabelKey, constants.CheEclipseOrg)
 	}
 }

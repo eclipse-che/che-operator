@@ -22,9 +22,11 @@ import (
 
 	"testing"
 
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/util"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
@@ -42,62 +44,47 @@ const (
 
 func TestReconcileDevWorkspace(t *testing.T) {
 	type testCase struct {
-		name         string
-		IsOpenShift  bool
-		IsOpenShift4 bool
-		cheCluster   *orgv1.CheCluster
+		name           string
+		infrastructure infrastructure.Type
+		cheCluster     *chev2.CheCluster
 	}
 
 	testCases := []testCase{
 		{
 			name: "Reconcile DevWorkspace on OpenShift",
-			cheCluster: &orgv1.CheCluster{
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
-						Enable: true,
-					},
-				},
 			},
-			IsOpenShift:  true,
-			IsOpenShift4: true,
+			infrastructure: infrastructure.OpenShiftv4,
 		},
 		{
 			name: "Reconcile DevWorkspace on K8S",
-			cheCluster: &orgv1.CheCluster{
+			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 				},
-				Spec: orgv1.CheClusterSpec{
-					DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
-						Enable: true,
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						CheServer: chev2.CheServer{
+							ExtraProperties: map[string]string{"CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S": "true"},
+						},
 					},
-					Server: orgv1.CheClusterSpecServer{
-						CustomCheProperties: map[string]string{"CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S": "true"},
-					},
-					K8s: orgv1.CheClusterSpecK8SOnly{
-						IngressDomain: "che.domain",
+					Networking: chev2.CheClusterSpecNetworking{
+						Domain: "che.domain",
 					},
 				},
 			},
-			IsOpenShift:  false,
-			IsOpenShift4: false,
+			infrastructure: infrastructure.Kubernetes,
 		},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
+			deployContext := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
 
-			util.IsOpenShift = testCase.IsOpenShift
-			util.IsOpenShift4 = testCase.IsOpenShift4
-
-			// reread templates (workaround after setting IsOpenShift value)
-			DevWorkspaceTemplates = DevWorkspaceTemplatesPath()
-			DevWorkspaceIssuerFile = DevWorkspaceTemplates + "/devworkspace-controller-selfsigned-issuer.Issuer.yaml"
-			DevWorkspaceCertificateFile = DevWorkspaceTemplates + "/devworkspace-controller-serving-cert.Certificate.yaml"
+			infrastructure.InitializeForTesting(testCase.infrastructure)
 
 			err := os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
 			assert.NoError(t, err)
@@ -111,15 +98,10 @@ func TestReconcileDevWorkspace(t *testing.T) {
 }
 
 func TestShouldReconcileDevWorkspaceIfDevWorkspaceDeploymentExists(t *testing.T) {
-	cheCluster := &orgv1.CheCluster{
+	cheCluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
-		},
-		Spec: orgv1.CheClusterSpec{
-			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
-				Enable: true,
-			},
 		},
 	}
 
@@ -134,10 +116,9 @@ func TestShouldReconcileDevWorkspaceIfDevWorkspaceDeploymentExists(t *testing.T)
 		},
 	}
 
-	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{devworkspaceDeployment})
+	deployContext := test.GetDeployContext(cheCluster, []runtime.Object{devworkspaceDeployment})
 
-	util.IsOpenShift = true
-	util.IsOpenShift4 = true
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 	err := os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "false")
 	assert.NoError(t, err)
 
@@ -149,14 +130,9 @@ func TestShouldReconcileDevWorkspaceIfDevWorkspaceDeploymentExists(t *testing.T)
 }
 
 func TestReconcileWhenWebTerminalSubscriptionExists(t *testing.T) {
-	cheCluster := &orgv1.CheCluster{
+	cheCluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
-		},
-		Spec: orgv1.CheClusterSpec{
-			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
-				Enable: true,
-			},
 		},
 	}
 	subscription := &operatorsv1alpha1.Subscription{
@@ -167,7 +143,7 @@ func TestReconcileWhenWebTerminalSubscriptionExists(t *testing.T) {
 		Spec: &operatorsv1alpha1.SubscriptionSpec{},
 	}
 
-	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{subscription})
+	deployContext := test.GetDeployContext(cheCluster, []runtime.Object{subscription})
 	deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.Subscription{})
 	deployContext.ClusterAPI.Scheme.AddKnownTypes(admissionregistrationv1.SchemeGroupVersion, &admissionregistrationv1.MutatingWebhookConfiguration{})
 	deployContext.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
@@ -177,8 +153,8 @@ func TestReconcileWhenWebTerminalSubscriptionExists(t *testing.T) {
 			},
 		},
 	}
-	util.IsOpenShift = true
-	util.IsOpenShift4 = true
+
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 	err := os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
 	assert.NoError(t, err)
 
@@ -195,14 +171,9 @@ func TestReconcileWhenWebTerminalSubscriptionExists(t *testing.T) {
 }
 
 func TestReconcileDevWorkspaceCheckIfCSVExists(t *testing.T) {
-	cheCluster := &orgv1.CheCluster{
+	cheCluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
-		},
-		Spec: orgv1.CheClusterSpec{
-			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
-				Enable: true,
-			},
 		},
 	}
 	devWorkspaceCSV := &operatorsv1alpha1.ClusterServiceVersion{
@@ -213,7 +184,7 @@ func TestReconcileDevWorkspaceCheckIfCSVExists(t *testing.T) {
 		Spec: operatorsv1alpha1.ClusterServiceVersionSpec{},
 	}
 
-	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
+	deployContext := test.GetDeployContext(cheCluster, []runtime.Object{})
 	deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.ClusterServiceVersion{})
 	deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.ClusterServiceVersionList{})
 	err := deployContext.ClusterAPI.Client.Create(context.TODO(), devWorkspaceCSV)
@@ -228,8 +199,7 @@ func TestReconcileDevWorkspaceCheckIfCSVExists(t *testing.T) {
 		},
 	}
 
-	util.IsOpenShift = true
-	util.IsOpenShift4 = true
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 	err = os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
 	assert.NoError(t, err)
 
@@ -244,14 +214,9 @@ func TestReconcileDevWorkspaceCheckIfCSVExists(t *testing.T) {
 }
 
 func TestReconcileDevWorkspaceIfUnmanagedDWONamespaceExists(t *testing.T) {
-	cheCluster := &orgv1.CheCluster{
+	cheCluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
-		},
-		Spec: orgv1.CheClusterSpec{
-			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
-				Enable: true,
-			},
 		},
 	}
 
@@ -261,12 +226,12 @@ func TestReconcileDevWorkspaceIfUnmanagedDWONamespaceExists(t *testing.T) {
 			// no che annotations are there
 		},
 	}
-	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
+	deployContext := test.GetDeployContext(cheCluster, []runtime.Object{})
 	err := deployContext.ClusterAPI.Client.Create(context.TODO(), dwoNamespace)
 	assert.NoError(t, err)
 
-	util.IsOpenShift = true
-	util.IsOpenShift4 = true
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
 	err = os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
 	assert.NoError(t, err)
 
@@ -281,14 +246,9 @@ func TestReconcileDevWorkspaceIfUnmanagedDWONamespaceExists(t *testing.T) {
 }
 
 func TestReconcileDevWorkspaceIfManagedDWONamespaceExists(t *testing.T) {
-	cheCluster := &orgv1.CheCluster{
+	cheCluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
-		},
-		Spec: orgv1.CheClusterSpec{
-			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
-				Enable: true,
-			},
 		},
 	}
 
@@ -296,12 +256,12 @@ func TestReconcileDevWorkspaceIfManagedDWONamespaceExists(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: DevWorkspaceNamespace,
 			Annotations: map[string]string{
-				deploy.CheEclipseOrgNamespace: "eclipse-che",
+				constants.CheEclipseOrgNamespace: "eclipse-che",
 			},
 			// no che annotations are there
 		},
 	}
-	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
+	deployContext := test.GetDeployContext(cheCluster, []runtime.Object{})
 	err := deployContext.ClusterAPI.NonCachingClient.Create(context.TODO(), dwoNamespace)
 	assert.NoError(t, err)
 
@@ -309,8 +269,8 @@ func TestReconcileDevWorkspaceIfManagedDWONamespaceExists(t *testing.T) {
 		types.NamespacedName{Name: DevWorkspaceNamespace, Namespace: DevWorkspaceNamespace},
 		&corev1.Namespace{})
 
-	util.IsOpenShift = true
-	util.IsOpenShift4 = true
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
 	err = os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
 	assert.NoError(t, err)
 
@@ -329,14 +289,9 @@ func TestReconcileDevWorkspaceIfManagedDWONamespaceExists(t *testing.T) {
 }
 
 func TestReconcileDevWorkspaceIfManagedDWOShouldBeTakenUnderControl(t *testing.T) {
-	cheCluster := &orgv1.CheCluster{
+	cheCluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
-		},
-		Spec: orgv1.CheClusterSpec{
-			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
-				Enable: true,
-			},
 		},
 	}
 
@@ -344,12 +299,12 @@ func TestReconcileDevWorkspaceIfManagedDWOShouldBeTakenUnderControl(t *testing.T
 		ObjectMeta: metav1.ObjectMeta{
 			Name: DevWorkspaceNamespace,
 			Annotations: map[string]string{
-				deploy.CheEclipseOrgNamespace: "eclipse-che-removed",
+				constants.CheEclipseOrgNamespace: "eclipse-che-removed",
 			},
 			// no che annotations are there
 		},
 	}
-	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
+	deployContext := test.GetDeployContext(cheCluster, []runtime.Object{})
 	deployContext.ClusterAPI.Scheme.AddKnownTypes(crdv1.SchemeGroupVersion, &crdv1.CustomResourceDefinition{})
 	err := deployContext.ClusterAPI.NonCachingClient.Create(context.TODO(), dwoNamespace)
 	assert.NoError(t, err)
@@ -358,8 +313,8 @@ func TestReconcileDevWorkspaceIfManagedDWOShouldBeTakenUnderControl(t *testing.T
 		types.NamespacedName{Name: DevWorkspaceNamespace, Namespace: DevWorkspaceNamespace},
 		&corev1.Namespace{})
 
-	util.IsOpenShift = true
-	util.IsOpenShift4 = true
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
 	err = os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
 	assert.NoError(t, err)
 
@@ -374,7 +329,7 @@ func TestReconcileDevWorkspaceIfManagedDWOShouldBeTakenUnderControl(t *testing.T
 		types.NamespacedName{Name: DevWorkspaceNamespace},
 		dwoNamespace)
 	assert.True(t, exists, "DevWorkspace Namespace does not exist")
-	assert.Equal(t, "eclipse-che", dwoNamespace.GetAnnotations()[deploy.CheEclipseOrgNamespace])
+	assert.Equal(t, "eclipse-che", dwoNamespace.GetAnnotations()[constants.CheEclipseOrgNamespace])
 
 	// check that objects are sync
 	exists, err = deploy.Get(deployContext,
@@ -385,26 +340,16 @@ func TestReconcileDevWorkspaceIfManagedDWOShouldBeTakenUnderControl(t *testing.T
 }
 
 func TestReconcileDevWorkspaceIfManagedDWOShouldNotBeTakenUnderControl(t *testing.T) {
-	cheCluster := &orgv1.CheCluster{
+	cheCluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "che-cluster",
 		},
-		Spec: orgv1.CheClusterSpec{
-			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
-				Enable: true,
-			},
-		},
 	}
-	cheCluster2 := &orgv1.CheCluster{
+	cheCluster2 := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che2",
 			Name:      "che-cluster2",
-		},
-		Spec: orgv1.CheClusterSpec{
-			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
-				Enable: true,
-			},
 		},
 	}
 
@@ -412,12 +357,12 @@ func TestReconcileDevWorkspaceIfManagedDWOShouldNotBeTakenUnderControl(t *testin
 		ObjectMeta: metav1.ObjectMeta{
 			Name: DevWorkspaceNamespace,
 			Annotations: map[string]string{
-				deploy.CheEclipseOrgNamespace: "eclipse-che2",
+				constants.CheEclipseOrgNamespace: "eclipse-che2",
 			},
 			// no che annotations are there
 		},
 	}
-	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
+	deployContext := test.GetDeployContext(cheCluster, []runtime.Object{})
 	deployContext.ClusterAPI.Scheme.AddKnownTypes(crdv1.SchemeGroupVersion, &crdv1.CustomResourceDefinition{})
 	err := deployContext.ClusterAPI.NonCachingClient.Create(context.TODO(), dwoNamespace)
 	assert.NoError(t, err)
@@ -428,8 +373,8 @@ func TestReconcileDevWorkspaceIfManagedDWOShouldNotBeTakenUnderControl(t *testin
 		types.NamespacedName{Name: DevWorkspaceNamespace, Namespace: DevWorkspaceNamespace},
 		&corev1.Namespace{})
 
-	util.IsOpenShift = true
-	util.IsOpenShift4 = true
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
 	err = os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
 	assert.NoError(t, err)
 
@@ -444,7 +389,7 @@ func TestReconcileDevWorkspaceIfManagedDWOShouldNotBeTakenUnderControl(t *testin
 		types.NamespacedName{Name: DevWorkspaceNamespace},
 		dwoNamespace)
 	assert.True(t, exists, "DevWorkspace Namespace does not exist")
-	assert.Equal(t, "eclipse-che2", dwoNamespace.GetAnnotations()[deploy.CheEclipseOrgNamespace])
+	assert.Equal(t, "eclipse-che2", dwoNamespace.GetAnnotations()[constants.CheEclipseOrgNamespace])
 
 	// check that objects are sync
 	exists, err = deploy.Get(deployContext,

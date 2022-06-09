@@ -1,0 +1,28 @@
+#
+# Copyright (c) 2019-2022 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Red Hat, Inc. - initial API and implementation
+#
+
+# This configuration is for teaching kustomize how to update name ref and var substitution
+nameReference:
+- kind: Issuer
+  group: cert-manager.io
+  fieldSpecs:
+  - kind: Certificate
+    group: cert-manager.io
+    path: spec/issuerRef/name
+
+varReference:
+- kind: Certificate
+  group: cert-manager.io
+  path: spec/commonName
+- kind: Certificate
+  group: cert-manager.io
+  path: spec/dnsNames

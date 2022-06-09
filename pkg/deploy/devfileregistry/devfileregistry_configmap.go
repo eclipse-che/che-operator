@@ -15,7 +15,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 )
 
 type DevFileRegistryConfigMap struct {
@@ -25,13 +27,13 @@ type DevFileRegistryConfigMap struct {
 	CheDevfileRegistryInternalURL        string `json:"CHE_DEVFILE_REGISTRY_INTERNAL_URL"`
 }
 
-func (d *DevfileRegistryReconciler) getConfigMapData(ctx *deploy.DeployContext) (map[string]string, error) {
+func (d *DevfileRegistryReconciler) getConfigMapData(ctx *chetypes.DeployContext) (map[string]string, error) {
 	devfileRegistryEnv := make(map[string]string)
 	data := &DevFileRegistryConfigMap{
-		CheDevfileImagesRegistryURL:          ctx.CheCluster.Spec.Server.AirGapContainerRegistryHostname,
-		CheDevfileImagesRegistryOrganization: ctx.CheCluster.Spec.Server.AirGapContainerRegistryOrganization,
+		CheDevfileImagesRegistryURL:          ctx.CheCluster.Spec.ContainerRegistry.Hostname,
+		CheDevfileImagesRegistryOrganization: ctx.CheCluster.Spec.ContainerRegistry.Organization,
 		CheDevfileRegistryURL:                ctx.CheCluster.Status.DevfileRegistryURL,
-		CheDevfileRegistryInternalURL:        fmt.Sprintf("http://%s.%s.svc:8080", deploy.DevfileRegistryName, ctx.CheCluster.Namespace),
+		CheDevfileRegistryInternalURL:        fmt.Sprintf("http://%s.%s.svc:8080", constants.DevfileRegistryName, ctx.CheCluster.Namespace),
 	}
 
 	out, err := json.Marshal(data)

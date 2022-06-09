@@ -20,13 +20,9 @@ import (
 
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
-	checluster "github.com/eclipse-che/che-operator/api"
-	v1 "github.com/eclipse-che/che-operator/api/v1"
-	"github.com/eclipse-che/che-operator/api/v2alpha1"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/sync"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/util"
 
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -34,7 +30,6 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/api/node/v1alpha1"
 	rbac "k8s.io/api/rbac/v1"
-	"k8s.io/utils/pointer"
 
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,13 +51,15 @@ func createTestScheme() *runtime.Scheme {
 	utilruntime.Must(appsv1.AddToScheme(scheme))
 	utilruntime.Must(rbac.AddToScheme(scheme))
 	utilruntime.Must(routev1.AddToScheme(scheme))
-	utilruntime.Must(v1.AddToScheme(scheme))
+	utilruntime.Must(chev2.AddToScheme(scheme))
 	utilruntime.Must(dwo.AddToScheme(scheme))
 
 	return scheme
 }
 
 func TestNoCustomResourceSharedWhenReconcilingNonExistent(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
 	// clear the map before the test
 	for k := range currentCheInstances {
 		delete(currentCheInstances, k)
@@ -89,24 +86,21 @@ func TestNoCustomResourceSharedWhenReconcilingNonExistent(t *testing.T) {
 	}
 
 	// now add some manager and reconcile a non-existent one
-	cl.Create(ctx, asV1(&v2alpha1.CheCluster{
+	cl.Create(ctx, &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       managerName + "-not-me",
 			Namespace:  ns,
 			Finalizers: []string{FinalizerName},
 		},
-		Spec: v2alpha1.CheClusterSpec{
-			Gateway: v2alpha1.CheGatewaySpec{
-				Host:    "over.the.rainbow",
-				Enabled: pointer.BoolPtr(false),
-			},
-			Workspaces: v2alpha1.Workspaces{
-				DomainEndpoints: v2alpha1.DomainEndpoints{
-					BaseDomain: "down.on.earth",
-				},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Hostname: "over.the.rainbow",
 			},
 		},
-	}))
+		Status: chev2.CheClusterStatus{
+			WorkspaceBaseDomain: "down.on.earth",
+		},
+	})
 
 	_, err = reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
 	if err != nil {
@@ -120,6 +114,8 @@ func TestNoCustomResourceSharedWhenReconcilingNonExistent(t *testing.T) {
 }
 
 func TestAddsCustomResourceToSharedMapOnCreate(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
 	// clear the map before the test
 	for k := range currentCheInstances {
 		delete(currentCheInstances, k)
@@ -128,24 +124,19 @@ func TestAddsCustomResourceToSharedMapOnCreate(t *testing.T) {
 	managerName := "che"
 	ns := "default"
 	scheme := createTestScheme()
-	cl := fake.NewFakeClientWithScheme(scheme, asV1(&v2alpha1.CheCluster{
+	cl := fake.NewFakeClientWithScheme(scheme, &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       managerName,
 			Namespace:  ns,
 			Finalizers: []string{FinalizerName},
 		},
-		Spec: v2alpha1.CheClusterSpec{
-			Gateway: v2alpha1.CheGatewaySpec{
-				Host:    "over.the.rainbow",
-				Enabled: pointer.BoolPtr(false),
-			},
-			Workspaces: v2alpha1.Workspaces{
-				DomainEndpoints: v2alpha1.DomainEndpoints{
-					BaseDomain: "down.on.earth",
-				},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Hostname: "over.the.rainbow",
+				Domain:   "down.on.earth",
 			},
 		},
-	}))
+	})
 
 	reconciler := CheClusterReconciler{client: cl, scheme: scheme, syncer: sync.New(cl, scheme)}
 
@@ -170,6 +161,8 @@ func TestAddsCustomResourceToSharedMapOnCreate(t *testing.T) {
 }
 
 func TestUpdatesCustomResourceInSharedMapOnUpdate(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
 	// clear the map before the test
 	for k := range currentCheInstances {
 		delete(currentCheInstances, k)
@@ -179,24 +172,19 @@ func TestUpdatesCustomResourceInSharedMapOnUpdate(t *testing.T) {
 	ns := "default"
 	scheme := createTestScheme()
 
-	cl := fake.NewFakeClientWithScheme(scheme, asV1(&v2alpha1.CheCluster{
+	cl := fake.NewFakeClientWithScheme(scheme, &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       managerName,
 			Namespace:  ns,
 			Finalizers: []string{FinalizerName},
 		},
-		Spec: v2alpha1.CheClusterSpec{
-			Gateway: v2alpha1.CheGatewaySpec{
-				Enabled: pointer.BoolPtr(false),
-				Host:    "over.the.rainbow",
-			},
-			Workspaces: v2alpha1.Workspaces{
-				DomainEndpoints: v2alpha1.DomainEndpoints{
-					BaseDomain: "down.on.earth",
-				},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Hostname: "over.the.rainbow",
+				Domain:   "down.on.earth",
 			},
 		},
-	}))
+	})
 
 	reconciler := CheClusterReconciler{client: cl, scheme: scheme, syncer: sync.New(cl, scheme)}
 
@@ -219,19 +207,19 @@ func TestUpdatesCustomResourceInSharedMapOnUpdate(t *testing.T) {
 		t.Fatalf("Found a manager that we didn't reconcile. Curious (and buggy). We found %s but should have found %s", mgr.Name, managerName)
 	}
 
-	if mgr.Spec.Gateway.Host != "over.the.rainbow" {
-		t.Fatalf("Unexpected host value: expected: over.the.rainbow, actual: %s", mgr.Spec.Gateway.Host)
+	if mgr.GetCheHost() != "over.the.rainbow" {
+		t.Fatalf("Unexpected host value: expected: over.the.rainbow, actual: %s", mgr.GetCheHost())
 	}
 
 	// now update the manager and reconcile again. See that the map contains the updated value
-	mgrInCluster := v1.CheCluster{}
+	mgrInCluster := chev2.CheCluster{}
 	cl.Get(context.TODO(), client.ObjectKey{Name: managerName, Namespace: ns}, &mgrInCluster)
 
 	// to be able to update, we need to set the resource version
 	mgr.SetResourceVersion(mgrInCluster.GetResourceVersion())
 
-	mgr.Spec.Gateway.Host = "over.the.shoulder"
-	err = cl.Update(context.TODO(), asV1(&mgr))
+	mgr.Spec.Networking.Hostname = "over.the.shoulder"
+	err = cl.Update(context.TODO(), &mgr)
 	if err != nil {
 		t.Fatalf("Failed to update. Wat? %s", err)
 	}
@@ -247,8 +235,8 @@ func TestUpdatesCustomResourceInSharedMapOnUpdate(t *testing.T) {
 		t.Fatalf("Found a manager that we didn't reconcile. Curious (and buggy). We found %s but should have found %s", mgr.Name, managerName)
 	}
 
-	if mgr.Spec.Gateway.Host != "over.the.rainbow" {
-		t.Fatalf("Unexpected host value: expected: over.the.rainbow, actual: %s", mgr.Spec.Gateway.Host)
+	if mgr.Spec.Networking.Hostname != "over.the.rainbow" {
+		t.Fatalf("Unexpected host value: expected: over.the.rainbow, actual: %s", mgr.Spec.Networking.Hostname)
 	}
 
 	// now reconcile and see that the value in the map is now updated
@@ -268,12 +256,14 @@ func TestUpdatesCustomResourceInSharedMapOnUpdate(t *testing.T) {
 		t.Fatalf("Found a manager that we didn't reconcile. Curious (and buggy). We found %s but should have found %s", mgr.Name, managerName)
 	}
 
-	if mgr.Spec.Gateway.Host != "over.the.shoulder" {
-		t.Fatalf("Unexpected host value: expected: over.the.shoulder, actual: %s", mgr.Spec.Gateway.Host)
+	if mgr.Spec.Networking.Hostname != "over.the.shoulder" {
+		t.Fatalf("Unexpected host value: expected: over.the.shoulder, actual: %s", mgr.Spec.Networking.Hostname)
 	}
 }
 
 func TestRemovesCustomResourceFromSharedMapOnDelete(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
 	// clear the map before the test
 	for k := range currentCheInstances {
 		delete(currentCheInstances, k)
@@ -283,24 +273,19 @@ func TestRemovesCustomResourceFromSharedMapOnDelete(t *testing.T) {
 	ns := "default"
 	scheme := createTestScheme()
 
-	cl := fake.NewFakeClientWithScheme(scheme, asV1(&v2alpha1.CheCluster{
+	cl := fake.NewFakeClientWithScheme(scheme, &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       managerName,
 			Namespace:  ns,
 			Finalizers: []string{FinalizerName},
 		},
-		Spec: v2alpha1.CheClusterSpec{
-			Gateway: v2alpha1.CheGatewaySpec{
-				Host:    "over.the.rainbow",
-				Enabled: pointer.BoolPtr(false),
-			},
-			Workspaces: v2alpha1.Workspaces{
-				DomainEndpoints: v2alpha1.DomainEndpoints{
-					BaseDomain: "down.on.earth",
-				},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Hostname: "over.the.rainbow",
+				Domain:   "down.on.earth",
 			},
 		},
-	}))
+	})
 
 	reconciler := CheClusterReconciler{client: cl, scheme: scheme, syncer: sync.New(cl, scheme)}
 
@@ -323,7 +308,7 @@ func TestRemovesCustomResourceFromSharedMapOnDelete(t *testing.T) {
 		t.Fatalf("Found a manager that we didn't reconcile. Curious (and buggy). We found %s but should have found %s", mgr.Name, managerName)
 	}
 
-	cl.Delete(context.TODO(), asV1(&mgr))
+	cl.Delete(context.TODO(), &mgr)
 
 	// now reconcile and see that the value is no longer in the map
 
@@ -340,28 +325,26 @@ func TestRemovesCustomResourceFromSharedMapOnDelete(t *testing.T) {
 }
 
 func TestCustomResourceFinalization(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
 	managerName := "che"
 	ns := "default"
 	scheme := createTestScheme()
 	ctx := context.TODO()
 	cl := fake.NewFakeClientWithScheme(scheme,
-		asV1(&v2alpha1.CheCluster{
+		&chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:       managerName,
 				Namespace:  ns,
 				Finalizers: []string{FinalizerName},
 			},
-			Spec: v2alpha1.CheClusterSpec{
-				Gateway: v2alpha1.CheGatewaySpec{
-					Host: "over.the.rainbow",
-				},
-				Workspaces: v2alpha1.Workspaces{
-					DomainEndpoints: v2alpha1.DomainEndpoints{
-						BaseDomain: "down.on.earth",
-					},
+			Spec: chev2.CheClusterSpec{
+				Networking: chev2.CheClusterSpecNetworking{
+					Hostname: "over.the.rainbow",
+					Domain:   "down.on.earth",
 				},
 			},
-		}),
+		},
 		&corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "ws1",
@@ -382,7 +365,7 @@ func TestCustomResourceFinalization(t *testing.T) {
 	}
 
 	// check that the reconcile loop added the finalizer
-	manager := v1.CheCluster{}
+	manager := chev2.CheCluster{}
 	err = cl.Get(ctx, client.ObjectKey{Name: managerName, Namespace: ns}, &manager)
 	if err != nil {
 		t.Fatalf("Failed to obtain the manager from the fake client: %s", err)
@@ -407,7 +390,7 @@ func TestCustomResourceFinalization(t *testing.T) {
 		t.Fatalf("Failed to reconcile che manager with error: %s", err)
 	}
 
-	manager = v1.CheCluster{}
+	manager = chev2.CheCluster{}
 	err = cl.Get(ctx, client.ObjectKey{Name: managerName, Namespace: ns}, &manager)
 	if err != nil {
 		t.Fatalf("Failed to obtain the manager from the fake client: %s", err)
@@ -417,10 +400,10 @@ func TestCustomResourceFinalization(t *testing.T) {
 		t.Fatalf("There should have been a finalizer on the manager after a failed finalization attempt")
 	}
 
-	if manager.Status.DevworkspaceStatus.Phase != v2alpha1.ClusterPhasePendingDeletion {
-		t.Fatalf("Expected the manager to be in the pending deletion phase but it is: %s", manager.Status.DevworkspaceStatus.Phase)
+	if manager.Status.ChePhase != chev2.ClusterPhasePendingDeletion {
+		t.Fatalf("Expected the manager to be in the pending deletion phase but it is: %s", manager.Status.ChePhase)
 	}
-	if len(manager.Status.DevworkspaceStatus.Message) == 0 {
+	if len(manager.Status.Message) == 0 {
 		t.Fatalf("Expected an non-empty message about the failed finalization in the manager status")
 	}
 
@@ -440,7 +423,7 @@ func TestCustomResourceFinalization(t *testing.T) {
 		t.Fatalf("Failed to reconcile che manager with error: %s", err)
 	}
 
-	manager = v1.CheCluster{}
+	manager = chev2.CheCluster{}
 	err = cl.Get(ctx, client.ObjectKey{Name: managerName, Namespace: ns}, &manager)
 	if err == nil || !k8sErrors.IsNotFound(err) {
 		t.Fatalf("Failed to obtain the manager from the fake client: %s", err)
@@ -461,40 +444,19 @@ func TestExternalGatewayDetection(t *testing.T) {
 	clusterName := "eclipse-che"
 	ns := "default"
 
-	v2cluster := &v2alpha1.CheCluster{
+	cluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterName,
 			Namespace: ns,
 		},
-		Spec: v2alpha1.CheClusterSpec{
-			Workspaces: v2alpha1.Workspaces{
-				DomainEndpoints: v2alpha1.DomainEndpoints{
-					BaseDomain: "down.on.earth",
-				},
-			},
+		Status: chev2.CheClusterStatus{
+			WorkspaceBaseDomain: "down.on.earth",
+			CheURL:              "https://host",
 		},
 	}
 
 	onKubernetes(func() {
-		v1Cluster := asV1(v2cluster)
-
-		cl := fake.NewFakeClientWithScheme(scheme,
-			v1Cluster,
-			&networkingv1.Ingress{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "ingress",
-					Namespace: ns,
-					Labels:    deploy.GetLabels(v1Cluster, "test-che"),
-				},
-				Spec: networkingv1.IngressSpec{
-					Rules: []networkingv1.IngressRule{
-						{
-							Host: "ingress.host",
-						},
-					},
-				},
-			},
-		)
+		cl := fake.NewFakeClientWithScheme(scheme, cluster)
 
 		reconciler := CheClusterReconciler{client: cl, scheme: scheme, syncer: sync.New(cl, scheme)}
 
@@ -508,36 +470,18 @@ func TestExternalGatewayDetection(t *testing.T) {
 			t.Fatalf("Failed to reconcile che manager with error: %s", err)
 		}
 
-		persisted := v1.CheCluster{}
+		persisted := chev2.CheCluster{}
 		if err := cl.Get(context.TODO(), types.NamespacedName{Name: clusterName, Namespace: ns}, &persisted); err != nil {
 			t.Fatal(err)
 		}
 
-		if persisted.Status.DevworkspaceStatus.Phase != v2alpha1.ClusterPhaseActive {
-			t.Fatalf("Unexpected cluster state: %v", persisted.Status.DevworkspaceStatus.Phase)
-		}
-
-		if persisted.Status.DevworkspaceStatus.GatewayHost != "ingress.host" {
-			t.Fatalf("Unexpected gateway host: %v", persisted.Status.DevworkspaceStatus.GatewayHost)
+		if persisted.GetCheHost() != "host" {
+			t.Fatalf("Unexpected gateway host: %v", persisted.GetCheHost())
 		}
 	})
 
 	onOpenShift(func() {
-		v1Cluster := asV1(v2cluster)
-
-		cl := fake.NewFakeClientWithScheme(scheme,
-			v1Cluster,
-			&routev1.Route{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "route",
-					Namespace: ns,
-					Labels:    deploy.GetLabels(v1Cluster, "test-che"),
-				},
-				Spec: routev1.RouteSpec{
-					Host: "route.host",
-				},
-			},
-		)
+		cl := fake.NewFakeClientWithScheme(scheme, cluster)
 
 		reconciler := CheClusterReconciler{client: cl, scheme: scheme, syncer: sync.New(cl, scheme)}
 
@@ -551,49 +495,23 @@ func TestExternalGatewayDetection(t *testing.T) {
 			t.Fatalf("Failed to reconcile che manager with error: %s", err)
 		}
 
-		persisted := v1.CheCluster{}
+		persisted := chev2.CheCluster{}
 		if err := cl.Get(context.TODO(), types.NamespacedName{Name: clusterName, Namespace: ns}, &persisted); err != nil {
 			t.Fatal(err)
 		}
 
-		if persisted.Status.DevworkspaceStatus.Phase != v2alpha1.ClusterPhaseActive {
-			t.Fatalf("Unexpected cluster state: %v", persisted.Status.DevworkspaceStatus.Phase)
-		}
-
-		if persisted.Status.DevworkspaceStatus.GatewayHost != "route.host" {
-			t.Fatalf("Unexpected gateway host: %v", persisted.Status.DevworkspaceStatus.GatewayHost)
+		if persisted.GetCheHost() != "host" {
+			t.Fatalf("Unexpected gateway host: %v", persisted.GetCheHost())
 		}
 	})
 }
 
-func asV1(v2Obj *v2alpha1.CheCluster) *v1.CheCluster {
-	v1 := checluster.AsV1(v2Obj)
-	v1.Status.CheURL = "https://" + v1.Spec.Server.CheHost
-	return v1
-}
-
 func onKubernetes(f func()) {
-	isOpenShift := util.IsOpenShift
-	isOpenShift4 := util.IsOpenShift4
-
-	util.IsOpenShift = false
-	util.IsOpenShift4 = false
-
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 	f()
-
-	util.IsOpenShift = isOpenShift
-	util.IsOpenShift4 = isOpenShift4
 }
 
 func onOpenShift(f func()) {
-	isOpenShift := util.IsOpenShift
-	isOpenShift4 := util.IsOpenShift4
-
-	util.IsOpenShift = true
-	util.IsOpenShift4 = true
-
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 	f()
-
-	util.IsOpenShift = isOpenShift
-	util.IsOpenShift4 = isOpenShift4
 }

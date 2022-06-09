@@ -12,18 +12,20 @@
 package deploy
 
 import (
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func SyncServiceAccountToCluster(deployContext *DeployContext, name string) (bool, error) {
+func SyncServiceAccountToCluster(deployContext *chetypes.DeployContext, name string) (bool, error) {
 	saSpec := getServiceAccountSpec(deployContext, name)
 	_, err := CreateIfNotExists(deployContext, saSpec)
 	return err == nil, err
 }
 
-func getServiceAccountSpec(deployContext *DeployContext, name string) *corev1.ServiceAccount {
-	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
+func getServiceAccountSpec(deployContext *chetypes.DeployContext, name string) *corev1.ServiceAccount {
+	labels := GetLabels(defaults.GetCheFlavor())
 	serviceAccount := &corev1.ServiceAccount{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ServiceAccount",

@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -32,7 +33,7 @@ import (
 // WARNING: For legacy reasons, this method bails out quickly without doing anything if the CheCluster resource
 // is being deleted (it does this by examining the deployContext, not the cluster). If you don't want
 // this behavior, use the DoSync method.
-func Sync(deployContext *DeployContext, blueprint client.Object, diffOpts ...cmp.Option) (bool, error) {
+func Sync(deployContext *chetypes.DeployContext, blueprint client.Object, diffOpts ...cmp.Option) (bool, error) {
 	// eclipse-che custom resource is being deleted, we shouldn't sync
 	// TODO move this check before `Sync` invocation
 	if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -44,7 +45,7 @@ func Sync(deployContext *DeployContext, blueprint client.Object, diffOpts ...cmp
 
 // Sync syncs the blueprint to the cluster in a generic (as much as Go allows) manner.
 // Returns true if object is up to date otherwiser returns false
-func DoSync(deployContext *DeployContext, blueprint client.Object, diffOpts ...cmp.Option) (bool, error) {
+func DoSync(deployContext *chetypes.DeployContext, blueprint client.Object, diffOpts ...cmp.Option) (bool, error) {
 	runtimeObject, ok := blueprint.(runtime.Object)
 	if !ok {
 		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
@@ -75,7 +76,7 @@ func DoSync(deployContext *DeployContext, blueprint client.Object, diffOpts ...c
 }
 
 func SyncAndAddFinalizer(
-	deployContext *DeployContext,
+	deployContext *chetypes.DeployContext,
 	blueprint metav1.Object,
 	diffOpts cmp.Option,
 	finalizer string) (bool, error) {
@@ -95,14 +96,14 @@ func SyncAndAddFinalizer(
 
 // Gets object by key.
 // Returns true if object exists otherwise returns false.
-func Get(deployContext *DeployContext, key client.ObjectKey, actual client.Object) (bool, error) {
+func Get(deployContext *chetypes.DeployContext, key client.ObjectKey, actual client.Object) (bool, error) {
 	cli := getClientForObject(key.Namespace, deployContext)
 	return doGet(cli, key, actual)
 }
 
 // Gets namespaced scope object by name
 // Returns true if object exists otherwise returns false.
-func GetNamespacedObject(deployContext *DeployContext, name string, actual client.Object) (bool, error) {
+func GetNamespacedObject(deployContext *chetypes.DeployContext, name string, actual client.Object) (bool, error) {
 	client := deployContext.ClusterAPI.Client
 	key := types.NamespacedName{Name: name, Namespace: deployContext.CheCluster.Namespace}
 	return doGet(client, key, actual)
@@ -110,7 +111,7 @@ func GetNamespacedObject(deployContext *DeployContext, name string, actual clien
 
 // Gets cluster scope object by name
 // Returns true if object exists otherwise returns false
-func GetClusterObject(deployContext *DeployContext, name string, actual client.Object) (bool, error) {
+func GetClusterObject(deployContext *chetypes.DeployContext, name string, actual client.Object) (bool, error) {
 	client := deployContext.ClusterAPI.NonCachingClient
 	key := types.NamespacedName{Name: name}
 	return doGet(client, key, actual)
@@ -118,7 +119,7 @@ func GetClusterObject(deployContext *DeployContext, name string, actual client.O
 
 // Creates object.
 // Return true if a new object is created, false if it has been already created or error occurred.
-func CreateIfNotExists(deployContext *DeployContext, blueprint client.Object) (isCreated bool, err error) {
+func CreateIfNotExists(deployContext *chetypes.DeployContext, blueprint client.Object) (isCreated bool, err error) {
 	// eclipse-che custom resource is being deleted, we shouldn't sync
 	// TODO move this check before `Sync` invocation
 	if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -148,7 +149,7 @@ func CreateIfNotExists(deployContext *DeployContext, blueprint client.Object) (i
 
 // Creates object.
 // Return true if a new object is created otherwise returns false.
-func Create(deployContext *DeployContext, blueprint client.Object) (bool, error) {
+func Create(deployContext *chetypes.DeployContext, blueprint client.Object) (bool, error) {
 	// eclipse-che custom resource is being deleted, we shouldn't sync
 	// TODO move this check before `Sync` invocation
 	if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -169,18 +170,18 @@ func Create(deployContext *DeployContext, blueprint client.Object) (bool, error)
 
 // Deletes object.
 // Returns true if object deleted or not found otherwise returns false.
-func Delete(deployContext *DeployContext, key client.ObjectKey, objectMeta client.Object) (bool, error) {
+func Delete(deployContext *chetypes.DeployContext, key client.ObjectKey, objectMeta client.Object) (bool, error) {
 	client := getClientForObject(key.Namespace, deployContext)
 	return doDeleteByKey(client, deployContext.ClusterAPI.Scheme, key, objectMeta)
 }
 
-func DeleteNamespacedObject(deployContext *DeployContext, name string, objectMeta client.Object) (bool, error) {
+func DeleteNamespacedObject(deployContext *chetypes.DeployContext, name string, objectMeta client.Object) (bool, error) {
 	client := deployContext.ClusterAPI.Client
 	key := types.NamespacedName{Name: name, Namespace: deployContext.CheCluster.Namespace}
 	return doDeleteByKey(client, deployContext.ClusterAPI.Scheme, key, objectMeta)
 }
 
-func DeleteClusterObject(deployContext *DeployContext, name string, objectMeta client.Object) (bool, error) {
+func DeleteClusterObject(deployContext *chetypes.DeployContext, name string, objectMeta client.Object) (bool, error) {
 	client := deployContext.ClusterAPI.NonCachingClient
 	key := types.NamespacedName{Name: name}
 	return doDeleteByKey(client, deployContext.ClusterAPI.Scheme, key, objectMeta)
@@ -188,7 +189,7 @@ func DeleteClusterObject(deployContext *DeployContext, name string, objectMeta c
 
 // Updates object.
 // Returns true if object is up to date otherwiser return false
-func Update(deployContext *DeployContext, actual client.Object, blueprint client.Object, diffOpts ...cmp.Option) (bool, error) {
+func Update(deployContext *chetypes.DeployContext, actual client.Object, blueprint client.Object, diffOpts ...cmp.Option) (bool, error) {
 	// eclipse-che custom resource is being deleted, we shouldn't sync
 	// TODO move this check before `Sync` invocation
 	if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -316,7 +317,7 @@ func isUpdateUsingDeleteCreate(kind string) bool {
 	return "Service" == kind || "Ingress" == kind || "Route" == kind || "Job" == kind || "Secret" == kind
 }
 
-func setOwnerReferenceIfNeeded(deployContext *DeployContext, blueprint metav1.Object) error {
+func setOwnerReferenceIfNeeded(deployContext *chetypes.DeployContext, blueprint metav1.Object) error {
 	if shouldSetOwnerReferenceForObject(deployContext, blueprint) {
 		return controllerutil.SetControllerReference(deployContext.CheCluster, blueprint, deployContext.ClusterAPI.Scheme)
 	}
@@ -324,12 +325,12 @@ func setOwnerReferenceIfNeeded(deployContext *DeployContext, blueprint metav1.Ob
 	return nil
 }
 
-func shouldSetOwnerReferenceForObject(deployContext *DeployContext, blueprint metav1.Object) bool {
+func shouldSetOwnerReferenceForObject(deployContext *chetypes.DeployContext, blueprint metav1.Object) bool {
 	// empty workspace (cluster scope object) or object in another namespace
 	return blueprint.GetNamespace() == deployContext.CheCluster.Namespace
 }
 
-func getClientForObject(objectNamespace string, deployContext *DeployContext) client.Client {
+func getClientForObject(objectNamespace string, deployContext *chetypes.DeployContext) client.Client {
 	// empty namespace (cluster scope object) or object in another namespace
 	if deployContext.CheCluster.Namespace == objectNamespace {
 		return deployContext.ClusterAPI.Client
