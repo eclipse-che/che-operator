@@ -351,6 +351,9 @@ type Auth struct {
 	OAuthClientName string `json:"oAuthClientName,omitempty"`
 	// Name of the secret set in the OpenShift `OAuthClient` resource used to set up identity federation on the OpenShift side.
 	OAuthSecret string `json:"oAuthSecret,omitempty"`
+	// Access Token Scope. Ignored for OpenShift due to hardcoded value 'user:full'.
+	// +optional
+	OAuthScope string `json:"oAuthScope,omitempty"`
 	// Gateway settings.
 	// +optional
 	Gateway Gateway `json:"gateway,omitempty"`
