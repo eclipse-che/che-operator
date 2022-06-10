@@ -502,7 +502,7 @@ type CheClusterSpecAuth struct {
 	// Name of the secret set in the OpenShift `OAuthClient` resource used to setup identity federation on the OpenShift side. Auto-generated when left blank. See also the `OAuthClientName` field.
 	// +optional
 	OAuthSecret string `json:"oAuthSecret,omitempty"`
-	// Access Token Scope. Ignored for OpenShift due to hardcoded value 'user:full'.
+	// Access Token Scope. Ignored for OpenShift due to hardcoded value `user:full`.
 	// +optional
 	OAuthScope string `json:"oAuthScope,omitempty"`
 	// Deprecated. The value of this flag is ignored.

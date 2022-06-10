@@ -259,7 +259,7 @@ spec:
                     type: string
                   oAuthScope:
                     description: Access Token Scope. Ignored for OpenShift due
-                      to hardcoded value 'user:full'.
+                      to hardcoded value `user:full`.
                     type: string
                   oAuthSecret:
                     description: Name of the secret set in the OpenShift `OAuthClient`
@@ -2242,7 +2242,7 @@ spec:
                         type: string
                       oAuthScope:
                         description: Access Token Scope. Ignored for OpenShift due
-                          to hardcoded value 'user:full'.
+                          to hardcoded value `user:full`.
                         type: string
                       oAuthSecret:
                         description: Name of the secret set in the OpenShift `OAuthClient`
