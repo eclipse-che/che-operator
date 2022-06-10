@@ -650,9 +650,10 @@ download-opm: ## Download opm tool
 	ARCH=$(shell go env GOARCH)
 	OPM_VERSION=$$(yq -r '.opm' $(PROJECT_DIR)/REQUIREMENTS)
 
-	echo "[INFO] Downloading opm version: $$OPM_VERSION"
+	echo "[INFO] Downloading opm version: $${OPM_VERSION}"
 
-	curl -SLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/$${OPM_VERSION}/$${OS}-$${ARCH}-opm
+	mkdir -p $$(dirname "$(OPM)")
+	curl -sL https://github.com/operator-framework/operator-registry/releases/download/$${OPM_VERSION}/$${OS}-$${ARCH}-opm > $(OPM)
 	chmod +x $(OPM)
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
@@ -679,7 +680,8 @@ download-operator-sdk: ## Downloads operator sdk tool
 	[[ -z "$(DEST)" ]] && dest=$(OPERATOR_SDK) || dest=$(DEST)/$(OPERATOR_SDK)
 	echo "[INFO] Downloading operator-sdk version $$OPERATOR_SDK_VERSION into $${dest}"
 
-	curl -SLo $${dest} https://github.com/operator-framework/operator-sdk/releases/download/$${OPERATOR_SDK_VERSION}/operator-sdk_$${OS}_$${ARCH}
+	mkdir -p $$(dirname "$${dest}")
+	curl -sL https://github.com/operator-framework/operator-sdk/releases/download/$${OPERATOR_SDK_VERSION}/operator-sdk_$${OS}_$${ARCH} > $${dest}
 	chmod +x $${dest}
 
 validate-requirements: SHELL := /bin/bash
