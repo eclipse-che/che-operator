@@ -265,6 +265,7 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 						IdentityProviderURL: "IdentityProviderURL",
 						OAuthClientName:     "OAuthClientName",
 						OAuthSecret:         "OAuthSecret",
+						OAuthScope:          "OAuthScope",
 						Gateway: chev2.Gateway{
 							Deployment: chev2.Deployment{
 								Containers: []chev2.Container{
@@ -466,6 +467,7 @@ func TestRoundConvertCheClusterV1(t *testing.T) {
 					IdentityProviderURL:               "IdentityProviderURL",
 					OAuthClientName:                   "OAuthClientName",
 					OAuthSecret:                       "OAuthSecret",
+					OAuthScope:                        "OAuthScope",
 					GatewayAuthenticationSidecarImage: "GatewayAuthenticationSidecarImage",
 					GatewayAuthorizationSidecarImage:  "GatewayAuthorizationSidecarImage",
 				},

@@ -26,6 +26,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -117,13 +118,21 @@ cookie_httponly = false
 pass_authorization_header = true
 skip_provider_button = true
 %s
+pass_access_token = true
+cookie_refresh = "1h0m0s"
+whitelist_domains = "%s"
+cookie_domains = "%s"
+%s
 `, GatewayServicePort,
 		ctx.CheHost,
 		ctx.CheCluster.Spec.Networking.Auth.IdentityProviderURL,
 		ctx.CheCluster.Spec.Networking.Auth.OAuthClientName,
 		ctx.CheCluster.Spec.Networking.Auth.OAuthSecret,
 		cookieSecret,
-		skipAuthConfig(ctx.CheCluster))
+		skipAuthConfig(ctx.CheCluster),
+		utils.Whitelist(ctx.CheHost),
+		utils.Whitelist(ctx.CheHost),
+		oauthScopeConfig(ctx.CheCluster))
 }
 
 func skipAuthConfig(instance *chev2.CheCluster) string {
@@ -143,6 +152,14 @@ func skipAuthConfig(instance *chev2.CheCluster) string {
 			propName = "skip_auth_regex"
 		}
 		return fmt.Sprintf("%s = \"%s\"", propName, strings.Join(skipAuthPaths, "|"))
+	}
+	return ""
+}
+
+func oauthScopeConfig(instance *chev2.CheCluster) string {
+	scope := instance.Spec.Networking.Auth.OAuthScope
+	if len(scope) > 1 {
+		return fmt.Sprintf("scope = \"%s\"", scope)
 	}
 	return ""
 }

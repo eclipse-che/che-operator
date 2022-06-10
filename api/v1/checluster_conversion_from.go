@@ -241,6 +241,7 @@ func (dst *CheCluster) convertFrom_Auth(src *chev2.CheCluster) error {
 	dst.Spec.Auth.IdentityProviderURL = src.Spec.Networking.Auth.IdentityProviderURL
 	dst.Spec.Auth.OAuthClientName = src.Spec.Networking.Auth.OAuthClientName
 	dst.Spec.Auth.OAuthSecret = src.Spec.Networking.Auth.OAuthSecret
+	dst.Spec.Auth.OAuthScope = src.Spec.Networking.Auth.OAuthScope
 
 	for _, c := range src.Spec.Networking.Auth.Gateway.Deployment.Containers {
 		switch c.Name {

@@ -63,3 +63,21 @@ func TestGetImageNameAndTag(t *testing.T) {
 		}
 	}
 }
+
+func TestWhitelist(t *testing.T) {
+	var tests = []struct {
+		host            string
+		whitelistedHost string
+	}{
+		{"che.qwruwqlrj.com", ".qwruwqlrj.com"},
+		{"one.two.three.four", ".two.three.four"},
+		{"abraCadabra-KvakaZybra", "abraCadabra-KvakaZybra"},
+		{".", "."},
+		{"", ""},
+	}
+	for _, test := range tests {
+		if actual := Whitelist(test.host); !reflect.DeepEqual(test.whitelistedHost, actual) {
+			t.Errorf("Test Failed. Expected '%s', but got '%s'", test.whitelistedHost, actual)
+		}
+	}
+}

@@ -259,3 +259,13 @@ func FormatLabels(m map[string]string) string {
 
 	return labels.FormatLabels(m)
 }
+
+// Whitelists the host.
+// Sample: Whitelist("che.yourcompany.com") -> ".yourcompany.com"
+func Whitelist(hostname string) (value string) {
+	i := strings.Index(hostname, ".")
+	if i > -1 {
+		return hostname[i:]
+	}
+	return hostname
+}
