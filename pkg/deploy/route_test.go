@@ -13,7 +13,6 @@ package deploy
 
 import (
 	"context"
-	"os"
 
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/stretchr/testify/assert"
@@ -81,7 +80,7 @@ func TestRouteSpec(t *testing.T) {
 					APIVersion: routev1.SchemeGroupVersion.String(),
 				},
 				Spec: routev1.RouteSpec{
-					Host: map[bool]string{false: "eclipse-che.route-domain", true: "devspaces.route-domain"}[os.Getenv("CHE_FLAVOR") == "devspaces"],
+					Host: map[bool]string{false: "eclipse-che.route-domain", true: "devspaces.route-domain"}[defaults.GetCheFlavor() == "devspaces"],
 					To: routev1.RouteTargetReference{
 						Kind:   "Service",
 						Name:   "che",
