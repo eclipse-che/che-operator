@@ -38,7 +38,6 @@ var (
 	defaultSingleHostGatewayConfigSidecarImage    string
 	defaultGatewayAuthenticationSidecarImage      string
 	defaultGatewayAuthorizationSidecarImage       string
-	defaultGatewayHeaderProxySidecarImage         string
 	defaultCheWorkspacePluginBrokerMetadataImage  string
 	defaultCheWorkspacePluginBrokerArtifactsImage string
 	defaultCheServerSecureExposerJwtProxyImage    string
@@ -122,7 +121,6 @@ func InitializeFromEnv() {
 	defaultSingleHostGatewayConfigSidecarImage = ensureEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))
 	defaultGatewayAuthenticationSidecarImage = ensureEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authentication_sidecar"))
 	defaultGatewayAuthorizationSidecarImage = ensureEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authorization_sidecar"))
-	defaultGatewayHeaderProxySidecarImage = ensureEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_header_sidecar"))
 
 	// Don't get some k8s specific env
 	if !infrastructure.IsOpenShift() {
@@ -271,14 +269,6 @@ func GetGatewayAuthorizationSidecarImage(checluster *chev2.CheCluster) string {
 	return PatchDefaultImageName(checluster, defaultGatewayAuthorizationSidecarImage)
 }
 
-func GetGatewayHeaderProxySidecarImage(checluster *chev2.CheCluster) string {
-	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
-	}
-
-	return PatchDefaultImageName(checluster, defaultGatewayHeaderProxySidecarImage)
-}
-
 func GetCheFlavor() string {
 	if !initialized {
 		logrus.Fatalf("Operator defaults are not initialized.")
@@ -321,16 +311,6 @@ func GetConsoleLinkImage() string {
 	}
 
 	return defaultsConsoleLinkImage
-}
-
-func getDefaultFromEnv(envName string) string {
-	value := os.Getenv(envName)
-
-	if len(value) == 0 {
-		logrus.Fatalf("Failed to initialize default value: '%s'. Environment variable with default value was not found.", envName)
-	}
-
-	return value
 }
 
 func PatchDefaultImageName(checluster *chev2.CheCluster, imageName string) string {
