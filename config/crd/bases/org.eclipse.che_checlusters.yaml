@@ -258,8 +258,8 @@ spec:
                       when left blank. See also the `OpenShiftoAuth` field.
                     type: string
                   oAuthScope:
-                    description: Access Token Scope. Ignored for OpenShift due
-                      to hardcoded value `user:full`.
+                    description: Access Token Scope. Ignored for OpenShift due to
+                      hardcoded value `user:full`.
                     type: string
                   oAuthSecret:
                     description: Name of the secret set in the OpenShift `OAuthClient`
