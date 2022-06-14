@@ -1439,16 +1439,6 @@ spec:
                       description: Configuration settings related to the Dashboard
                         used by the Che installation.
                       properties:
-                        HeaderMessage:
-                          description: Dashboard header message.
-                          properties:
-                            show:
-                              description: Instructs dashboard to show the message.
-                              type: boolean
-                            warning:
-                              description: Warning message displayed on the user dashboard.
-                              type: string
-                          type: object
                         deployment:
                           description: Deployment override options.
                           properties:
@@ -1534,6 +1524,16 @@ spec:
                                   format: int64
                                   type: integer
                               type: object
+                          type: object
+                        headerMessage:
+                          description: Dashboard header message.
+                          properties:
+                            show:
+                              description: Instructs dashboard to show the message.
+                              type: boolean
+                            warning:
+                              description: Warning message displayed on the user dashboard.
+                              type: string
                           type: object
                       type: object
                     database:
