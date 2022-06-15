@@ -39,7 +39,7 @@ type CheClusterSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=2
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Components"
 	Components CheClusterComponents `json:"components"`
-	// Networking, Che authentication and TLS configuration.
+	// Networking, Che authentication, and TLS configuration.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=3
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Networking"
@@ -57,7 +57,7 @@ type CheClusterDevEnvironments struct {
 	// Workspaces persistent storage.
 	// +optional
 	Storage WorkspaceStorage `json:"storage"`
-	// Default plug-ins applied to Dev Workspaces.
+	// Default plug-ins applied to DevWorkspaces.
 	// +optional
 	DefaultPlugins []WorkspaceDefaultPlugins `json:"defaultPlugins,omitempty"`
 	// The node selector limits the nodes that can run the workspace pods.
@@ -77,7 +77,7 @@ type CheClusterDevEnvironments struct {
 // Che components configuration.
 // +k8s:openapi-gen=true
 type CheClusterComponents struct {
-	// DevWorkspace operator configuration.
+	// DevWorkspace Operator configuration.
 	// +optional
 	DevWorkspace DevWorkspace `json:"devWorkspace"`
 	// General configuration settings related to the Che server.
@@ -86,13 +86,13 @@ type CheClusterComponents struct {
 	// Configuration settings related to the plug-in registry used by the Che installation.
 	// +optional
 	PluginRegistry PluginRegistry `json:"pluginRegistry"`
-	// Configuration settings related to the Devfile registry used by the Che installation.
+	// Configuration settings related to the devfile registry used by the Che installation.
 	// +optional
 	DevfileRegistry DevfileRegistry `json:"devfileRegistry"`
 	// Configuration settings related to the database used by the Che installation.
 	// +optional
 	Database Database `json:"database"`
-	// Configuration settings related to the Dashboard used by the Che installation.
+	// Configuration settings related to the dashboard used by the Che installation.
 	// +optional
 	Dashboard Dashboard `json:"dashboard"`
 	// Kubernetes Image Puller configuration.
@@ -103,13 +103,13 @@ type CheClusterComponents struct {
 	Metrics ServerMetrics `json:"metrics"`
 }
 
-// Configuration settings related to the Networking used by the Che installation.
+// Configuration settings related to the networking used by the Che installation.
 // +k8s:openapi-gen=true
 type CheClusterSpecNetworking struct {
-	// Defines labels which will be set to an ingress (a route for OpenShift platform).
+	// Defines labels which will be set for an Ingress (a route for OpenShift platform).
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
-	// Defines annotations which will be set to an ingress (a route for OpenShift platform).
+	// Defines annotations which will be set for an Ingress (a route for OpenShift platform).
 	// The defaults for kubernetes platforms are:
 	//     kubernetes.io/ingress.class:                       "nginx"
 	//     nginx.ingress.kubernetes.io/proxy-read-timeout:    "3600",
@@ -117,10 +117,10 @@ type CheClusterSpecNetworking struct {
 	//     nginx.ingress.kubernetes.io/ssl-redirect:          "true"
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
-	// For an OpenShift cluster, the Operator uses the domain to generate a hostname for a route.
+	// For an OpenShift cluster, the operator uses the domain to generate a hostname for the route.
 	// The generated hostname follows this pattern: che-<che-namespace>.<domain>. The <che-namespace> is the namespace where the CheCluster CRD is created.
-	// In a conjunction with labels it creates a route, which is served by a non-default Ingress controller.
-	// For Kubernetes cluster it contains a global ingress domain. This MUST be explicitly specified: there are no defaults.
+	// In conjunction with labels, it creates a route served by a non-default Ingress controller.
+	// For a Kubernetes cluster, it contains a global Ingress domain. This MUST be specified, there are no default values.
 	// +optional
 	Domain string `json:"domain,omitempty"`
 	// The public hostname of the installed Che server.
@@ -178,9 +178,9 @@ type CheServer struct {
 	// By specifying these settings for the OpenShift cluster, you override the OpenShift proxy configuration.
 	// +optional
 	Proxy Proxy `json:"proxy"`
-	// A map of additional environment variables applied in the generated `che` ConfigMap to be used by the Che server,
+	// A map of additional environment variables applied in the generated `che` ConfigMap to be used by the Che server
 	// in addition to the values already generated from other fields of the `CheCluster` custom resource (CR).
-	// If the `extraProperties` fields contains a property normally generated in `che` ConfigMap from other CR fields,
+	// If the `extraProperties` field contains a property normally generated in `che` ConfigMap from other CR fields,
 	// the value defined in the `extraProperties` is used instead.
 	// +optional
 	ExtraProperties map[string]string `json:"extraProperties,omitempty"`
@@ -211,7 +211,7 @@ type PluginRegistry struct {
 	ExternalPluginRegistries []ExternalPluginRegistry `json:"externalPluginRegistries,omitempty"`
 }
 
-// Configuration settings related to the devfile Registry used by the Che installation.
+// Configuration settings related to the devfile registry used by the Che installation.
 // +k8s:openapi-gen=true
 type DevfileRegistry struct {
 	// Deployment override options.
@@ -228,10 +228,10 @@ type DevfileRegistry struct {
 // Configuration settings related to the database used by the Che installation.
 // +k8s:openapi-gen=true
 type Database struct {
-	// Instructs the Operator to deploy a dedicated database.
+	// Instructs the operator to deploy a dedicated database.
 	// By default, a dedicated PostgreSQL database is deployed as part of the Che installation.
 	// When `externalDb` is set as `true`, no dedicated database is deployed by the
-	// Operator and you need to provide connection details to the external DB you want to use.
+	// operator and you need to provide connection details to the external database you want to use.
 	// +optional
 	ExternalDb bool `json:"externalDb"`
 	// Deployment override options.
@@ -247,11 +247,11 @@ type Database struct {
 	// +optional
 	// +kubebuilder:default:="5432"
 	PostgresPort string `json:"postgresPort,omitempty"`
-	// PostgreSQL database name that the Che server uses to connect to the DB.
+	// PostgreSQL database name that the Che server uses to connect to the database.
 	// +optional
 	// +kubebuilder:default:="dbche"
 	PostgresDb string `json:"postgresDb,omitempty"`
-	// The secret that contains PostgreSQL `user` and `password` that the Che server uses to connect to the DB.
+	// The secret that contains PostgreSQL `user` and `password` that the Che server uses to connect to the database.
 	// The secret must have a `app.kubernetes.io/part-of=che.eclipse.org` label.
 	// +optional
 	// +kubebuilder:default:="postgres-credentials"
@@ -274,20 +274,20 @@ type ServerMetrics struct {
 // +k8s:openapi-gen=true
 type ImagePuller struct {
 	// Install and configure the community supported Kubernetes Image Puller Operator. When you set the value to `true` without providing any specs,
-	// it creates a default Kubernetes Image Puller object managed by the Operator.
-	// When you set the value to `false`, the Kubernetes Image Puller object is deleted, and the Operator uninstalled,
+	// it creates a default Kubernetes Image Puller object managed by the operator.
+	// When you set the value to `false`, the Kubernetes Image Puller object is deleted, and the operator uninstalled,
 	// regardless of whether a spec is provided.
 	// If you leave the `spec.images` field empty, a set of recommended workspace-related images is automatically detected and
 	// pre-pulled after installation.
-	// Note that while this Operator and its behavior is community-supported, its payload may be commercially-supported
+	// Note that while this operator and its behavior is community-supported, its payload may be commercially-supported
 	// for pulling commercially-supported images.
 	Enable bool `json:"enable"`
-	// A Kubernetes Image Puller spec  to configure the image puller in the CheCluster
+	// A Kubernetes Image Puller spec to configure the image puller in the CheCluster.
 	// +optional
 	Spec imagepullerv1alpha1.KubernetesImagePullerSpec `json:"spec"`
 }
 
-// Settings for installation and configuration of the DevWorkspace operator
+// Settings for installation and configuration of the DevWorkspace Operator
 // See https://github.com/devfile/devworkspace-operator
 // +k8s:openapi-gen=true
 type DevWorkspace struct {
@@ -300,7 +300,7 @@ type DevWorkspace struct {
 }
 
 type DefaultNamespace struct {
-	// If you don't create user namespaces in advance, this field defines the Kubernetes namespace created when you start your first workspace.
+	// If you don't create the user namespaces in advance, this field defines the Kubernetes namespace created when you start your first workspace.
 	// You can use `<username>`, `<userid>` and `<workspaceid>` placeholders, such as che-workspace-<username>.
 	// +optional
 	Template string `json:"template,omitempty"`
@@ -329,7 +329,7 @@ type WorkspaceStorage struct {
 	// +optional
 	Pvc PVC `json:"pvc,omitempty"`
 	// Persistent volume claim strategy for the Che server.
-	// Only the `common` strategy is supported (all workspaces PVCs in one volume).
+	// Only the `common` strategy (all workspaces PVCs in one volume) is supported .
 	// For details, see https://github.com/eclipse/che/issues/21185.
 	// +optional
 	// +kubebuilder:default:="common"
@@ -337,7 +337,7 @@ type WorkspaceStorage struct {
 }
 
 type WorkspaceDefaultPlugins struct {
-	// The editor id to specify default plug-ins for.
+	// The editor ID to specify default plug-ins for.
 	Editor string `json:"editor,omitempty"`
 	// Default plug-in URIs for the specified editor.
 	Plugins []string `json:"plugins,omitempty"`
@@ -374,7 +374,7 @@ type Gateway struct {
 // Proxy server configuration.
 type Proxy struct {
 	// URL (protocol+hostname) of the proxy server.
-	// Use only when a proxy configuration is required. Operator respects OpenShift cluster-wide proxy configuration,
+	// Use only when a proxy configuration is required. The operator respects OpenShift cluster-wide proxy configuration,
 	// defining `url` in a custom resource leads to overriding the cluster proxy configuration.
 	// See the following page: https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html. See also the `proxyPort` and `nonProxyHosts` fields.
 	// +optional
@@ -387,7 +387,7 @@ type Proxy struct {
 	//    - localhost
 	//    - my.host.com
 	//    - 123.42.12.32
-	// Use only when a proxy configuration is required. Operator respects OpenShift cluster-wide proxy configuration,
+	// Use only when a proxy configuration is required. The operator respects OpenShift cluster-wide proxy configuration,
 	// defining `nonProxyHosts` in a custom resource leads to merging non-proxy hosts lists from the cluster proxy configuration, and the ones defined in the custom resources.
 	// See the following page: https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html. See also the `proxyURL` fields.
 	NonProxyHosts []string `json:"nonProxyHosts,omitempty"`
@@ -399,7 +399,7 @@ type Proxy struct {
 
 // PersistentVolumeClaim custom settings.
 type PVC struct {
-	// Persistent Volume Claim size. To update the claim size, Storage class that provisions it must support resize.
+	// Persistent Volume Claim size. To update the claim size, the storage class that provisions it must support resizing.
 	// +optional
 	ClaimSize string `json:"claimSize,omitempty"`
 	// Storage class for the Persistent Volume Claim. When omitted or left blank, a default storage class is used.
@@ -436,7 +436,7 @@ type Container struct {
 	// Container name.
 	// +optional
 	Name string `json:"name,omitempty"`
-	// Container image. Omit it or leave it empty to use the default container image provided by the Operator.
+	// Container image. Omit it or leave it empty to use the default container image provided by the operator.
 	// +optional
 	Image string `json:"image,omitempty"`
 	// Image pull policy. Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
@@ -449,10 +449,10 @@ type Container struct {
 
 // Describes the compute resource requirements.
 type ResourceRequirements struct {
-	// Request describes the minimum amount of compute resources required.
+	// Describes the minimum amount of compute resources required.
 	// +optional
 	Requests ResourceList `json:"request,omitempty"`
-	// Limits describe the maximum amount of compute resources allowed.
+	// Describes the maximum amount of compute resources allowed.
 	// +optional
 	Limits ResourceList `json:"limits,omitempty"`
 }
@@ -504,13 +504,13 @@ type CheClusterStatus struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Gateway phase"
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors="urn:alm:descriptor:text"
 	GatewayPhase GatewayPhase `json:"gatewayPhase,omitempty"`
-	// Current installed Che version.
+	// Currently installed Che version.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="displayName: Eclipse Che version"
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors="urn:alm:descriptor:text"
 	CheVersion string `json:"cheVersion"`
-	// Public URL to the Che server.
+	// Public URL of the Che server.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Eclipse Che URL"
@@ -522,25 +522,25 @@ type CheClusterStatus struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="ChePhase"
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors="urn:alm:descriptor:text"
 	ChePhase CheClusterPhase `json:"chePhase,omitempty"`
-	// The public URL to the internal devfile registry.
+	// The public URL of the internal devfile registry.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Devfile registry URL"
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors="urn:alm:descriptor:org.w3:link"
 	DevfileRegistryURL string `json:"devfileRegistryURL"`
-	// The public URL to the internal plug-in registry.
+	// The public URL of the internal plug-in registry.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Plugin registry URL"
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors="urn:alm:descriptor:org.w3:link"
 	PluginRegistryURL string `json:"pluginRegistryURL"`
-	// A human readable message indicating details about why the Che deployment is in current phase.
+	// A human readable message indicating details about why the Che deployment is in the current phase.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Message"
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors="urn:alm:descriptor:text"
 	Message string `json:"message,omitempty"`
-	// A brief CamelCase message indicating details about why the Che deployment is in current phase.
+	// A brief CamelCase message indicating details about why the Che deployment is in the current phase.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Reason"
@@ -563,7 +563,7 @@ type CheClusterStatus struct {
 }
 
 // The `CheCluster` custom resource allows defining and managing Eclipse Che server installation.
-// Based on these settings, the  Operator automatically creates and maintains several ConfigMaps:
+// Based on these settings, the  operator automatically creates and maintains several ConfigMaps:
 // `che`, `plugin-registry`, `devfile-registry` that will contain the appropriate environment variables
 // of the various components of the installation. These generated ConfigMaps must NOT be updated manually.
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -581,7 +581,7 @@ type CheCluster struct {
 	// Desired configuration of Eclipse Che installation.
 	Spec CheClusterSpec `json:"spec,omitempty"`
 
-	// CheClusterStatus defines the observed state of Che installation.
+	// Defines the observed state of Che installation.
 	Status CheClusterStatus `json:"status,omitempty"`
 }
 
