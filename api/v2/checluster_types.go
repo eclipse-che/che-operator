@@ -117,7 +117,7 @@ type CheClusterSpecNetworking struct {
 	//     nginx.ingress.kubernetes.io/ssl-redirect:          "true"
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
-	// For an OpenShift cluster, the operator uses the domain to generate a hostname for the route.
+	// For an OpenShift cluster, the Operator uses the domain to generate a hostname for the route.
 	// The generated hostname follows this pattern: che-<che-namespace>.<domain>. The <che-namespace> is the namespace where the CheCluster CRD is created.
 	// In conjunction with labels, it creates a route served by a non-default Ingress controller.
 	// For a Kubernetes cluster, it contains a global ingress domain. There are no default values: you must specify them.
@@ -228,10 +228,10 @@ type DevfileRegistry struct {
 // Configuration settings related to the database used by the Che installation.
 // +k8s:openapi-gen=true
 type Database struct {
-	// Instructs the operator to deploy a dedicated database.
+	// Instructs the Operator to deploy a dedicated database.
 	// By default, a dedicated PostgreSQL database is deployed as part of the Che installation.
 	// When `externalDb` is set as `true`, no dedicated database is deployed by the
-	// operator and you need to provide connection details about the external database you want to use.
+	// Operator and you need to provide connection details about the external database you want to use.
 	// +optional
 	ExternalDb bool `json:"externalDb"`
 	// Deployment override options.
@@ -274,12 +274,12 @@ type ServerMetrics struct {
 // +k8s:openapi-gen=true
 type ImagePuller struct {
 	// Install and configure the community supported Kubernetes Image Puller Operator. When you set the value to `true` without providing any specs,
-	// it creates a default Kubernetes Image Puller object managed by the operator.
-	// When you set the value to `false`, the Kubernetes Image Puller object is deleted, and the operator uninstalled,
+	// it creates a default Kubernetes Image Puller object managed by the Operator.
+	// When you set the value to `false`, the Kubernetes Image Puller object is deleted, and the Operator uninstalled,
 	// regardless of whether a spec is provided.
 	// If you leave the `spec.images` field empty, a set of recommended workspace-related images is automatically detected and
 	// pre-pulled after installation.
-	// Note that while this operator and its behavior is community-supported, its payload may be commercially-supported
+	// Note that while this Operator and its behavior is community-supported, its payload may be commercially-supported
 	// for pulling commercially-supported images.
 	Enable bool `json:"enable"`
 	// A Kubernetes Image Puller spec to configure the image puller in the CheCluster.
@@ -374,7 +374,7 @@ type Gateway struct {
 // Proxy server configuration.
 type Proxy struct {
 	// URL (protocol+hostname) of the proxy server.
-	// Use only when a proxy configuration is required. The operator respects OpenShift cluster-wide proxy configuration,
+	// Use only when a proxy configuration is required. The Operator respects OpenShift cluster-wide proxy configuration,
 	// defining `url` in a custom resource leads to overriding the cluster proxy configuration.
 	// See the following page: https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html. See also the `proxyPort` and `nonProxyHosts` fields.
 	// +optional
@@ -387,7 +387,7 @@ type Proxy struct {
 	//    - localhost
 	//    - my.host.com
 	//    - 123.42.12.32
-	// Use only when a proxy configuration is required. The operator respects OpenShift cluster-wide proxy configuration,
+	// Use only when a proxy configuration is required. The Operator respects OpenShift cluster-wide proxy configuration,
 	// defining `nonProxyHosts` in a custom resource leads to merging non-proxy hosts lists from the cluster proxy configuration, and the ones defined in the custom resources.
 	// See the following page: https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html. See also the `proxyURL` fields.
 	NonProxyHosts []string `json:"nonProxyHosts,omitempty"`
@@ -436,7 +436,7 @@ type Container struct {
 	// Container name.
 	// +optional
 	Name string `json:"name,omitempty"`
-	// Container image. Omit it or leave it empty to use the default container image provided by the operator.
+	// Container image. Omit it or leave it empty to use the default container image provided by the Operator.
 	// +optional
 	Image string `json:"image,omitempty"`
 	// Image pull policy. Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
@@ -563,7 +563,7 @@ type CheClusterStatus struct {
 }
 
 // The `CheCluster` custom resource allows defining and managing Eclipse Che server installation.
-// Based on these settings, the  operator automatically creates and maintains several ConfigMaps:
+// Based on these settings, the  Operator automatically creates and maintains several ConfigMaps:
 // `che`, `plugin-registry`, `devfile-registry` that will contain the appropriate environment variables
 // of the various components of the installation. These generated ConfigMaps must NOT be updated manually.
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
