@@ -115,13 +115,11 @@ cookie_secret = "%s"
 cookie_expire = "24h0m0s"
 email_domains = "*"
 cookie_httponly = false
-pass_authorization_header = true
 skip_provider_button = true
-%s
-pass_access_token = true
-cookie_refresh = "1h0m0s"
 whitelist_domains = "%s"
 cookie_domains = "%s"
+%s
+%s
 %s
 `, GatewayServicePort,
 		ctx.CheHost,
@@ -129,10 +127,20 @@ cookie_domains = "%s"
 		ctx.CheCluster.Spec.Networking.Auth.OAuthClientName,
 		ctx.CheCluster.Spec.Networking.Auth.OAuthSecret,
 		cookieSecret,
+		utils.Whitelist(ctx.CheHost),
+		utils.Whitelist(ctx.CheHost),
 		skipAuthConfig(ctx.CheCluster),
-		utils.Whitelist(ctx.CheHost),
-		utils.Whitelist(ctx.CheHost),
+		identityTokenConfig(ctx.CheCluster),
 		oauthScopeConfig(ctx.CheCluster))
+}
+
+func identityTokenConfig(instance *chev2.CheCluster) string {
+	if utils.IsAccessTokenToPass(instance) {
+		// pass OAuth access_token to upstream via X-Forwarded-Access-Token header
+		return "pass_access_token = true"
+	}
+	// pass OIDC IDToken to upstream via Authorization Bearer header
+	return "pass_authorization_header = true"
 }
 
 func skipAuthConfig(instance *chev2.CheCluster) string {

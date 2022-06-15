@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNoScopeForKubernetesOauthProxyConfig(t *testing.T) {
+func TestKubernetesOauthProxyConfig(t *testing.T) {
 	ctx := test.GetDeployContext(
 		&chev2.CheCluster{
 			Spec: chev2.CheClusterSpec{
@@ -34,11 +34,11 @@ func TestNoScopeForKubernetesOauthProxyConfig(t *testing.T) {
 	ctx.CheHost = "che-site.che-domain.com"
 
 	config := kubernetesOauthProxyConfig(ctx, "blabol")
-	assert.Contains(t, config, "pass_access_token = true")
-	assert.Contains(t, config, "cookie_refresh = \"1h0m0s\"")
+	assert.Contains(t, config, "pass_authorization_header = true")
 	assert.Contains(t, config, "whitelist_domains = \".che-domain.com\"")
 	assert.Contains(t, config, "cookie_domains = \".che-domain.com\"")
 	assert.NotContains(t, config, "scope = ")
+	assert.NotContains(t, config, "pass_access_token = true")
 }
 
 func TestScopeDefinedForKubernetesOauthProxyConfig(t *testing.T) {
@@ -57,4 +57,23 @@ func TestScopeDefinedForKubernetesOauthProxyConfig(t *testing.T) {
 
 	config := kubernetesOauthProxyConfig(ctx, "blabol")
 	assert.Contains(t, config, "scope = \"scope1 scope2 scope3 scope4 scope5\"")
+}
+
+func TestAccessTokenDefinedForKubernetesOauthProxyConfig(t *testing.T) {
+	ctx := test.GetDeployContext(
+		&chev2.CheCluster{
+			Spec: chev2.CheClusterSpec{
+				Networking: chev2.CheClusterSpecNetworking{
+					Auth: chev2.Auth{
+						IdentityProviderURL: "http://bla.bla.bla/idp",
+						OAuthClientName:     "client name",
+						OAuthSecret:         "secret",
+						IdentityToken:       "access_token",
+					},
+				}},
+		}, nil)
+
+	config := kubernetesOauthProxyConfig(ctx, "blabol")
+	assert.Contains(t, config, "pass_access_token = true")
+	assert.NotContains(t, config, "pass_authorization_header = true")
 }

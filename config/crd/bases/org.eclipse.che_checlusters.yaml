@@ -234,6 +234,11 @@ spec:
                       By default, this will be automatically calculated and set by
                       the Operator.
                     type: string
+                  identityToken:
+                    description: 'Identity token to be passed to upstream. There are
+                      two types of tokens supported: `id_token` and `access_token`.
+                      Default value is `id_token`.'
+                    type: string
                   initialOpenShiftOAuthUser:
                     description: Deprecated. The value of this flag is ignored. For
                       operating with the OpenShift OAuth authentication, create a
@@ -2235,6 +2240,11 @@ spec:
                         type: object
                       identityProviderURL:
                         description: Public URL of the Identity Provider server.
+                        type: string
+                      identityToken:
+                        description: 'Identity token to be passed to upstream. There
+                          are two types of tokens supported: `id_token` and `access_token`.
+                          Default value is `id_token`.'
                         type: string
                       oAuthClientName:
                         description: Name of the OpenShift `OAuthClient` resource

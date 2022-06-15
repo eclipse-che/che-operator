@@ -354,6 +354,10 @@ type Auth struct {
 	// Access Token Scope. Ignored for OpenShift due to hardcoded value `user:full`.
 	// +optional
 	OAuthScope string `json:"oAuthScope,omitempty"`
+	// Identity token to be passed to upstream. There are two types of tokens supported: `id_token` and `access_token`.
+	// Default value is `id_token`.
+	// +optional
+	IdentityToken string `json:"identityToken,omitempty"`
 	// Gateway settings.
 	// +optional
 	Gateway Gateway `json:"gateway,omitempty"`

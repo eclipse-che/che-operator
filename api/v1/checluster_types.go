@@ -502,6 +502,10 @@ type CheClusterSpecAuth struct {
 	// Access Token Scope. Ignored for OpenShift due to hardcoded value `user:full`.
 	// +optional
 	OAuthScope string `json:"oAuthScope,omitempty"`
+	// Identity token to be passed to upstream. There are two types of tokens supported: `id_token` and `access_token`.
+	// Default value is `id_token`.
+	// +optional
+	IdentityToken string `json:"identityToken,omitempty"`
 	// Deprecated. The value of this flag is ignored.
 	// Overrides the container image used in the Identity Provider, Keycloak or RH-SSO, deployment.
 	// This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.

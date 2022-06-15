@@ -246,6 +246,7 @@ func TestConvertTo(t *testing.T) {
 				OAuthClientName:                   "OAuthClientName",
 				OAuthSecret:                       "OAuthSecret",
 				OAuthScope:                        "OAuthScope",
+				IdentityToken:                     "IdentityToken",
 				GatewayAuthenticationSidecarImage: "GatewayAuthenticationSidecarImage",
 				GatewayAuthorizationSidecarImage:  "GatewayAuthorizationSidecarImage",
 			},
@@ -306,6 +307,7 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.Networking.Auth.OAuthClientName, "OAuthClientName")
 	assert.Equal(t, checlusterv2.Spec.Networking.Auth.OAuthSecret, "OAuthSecret")
 	assert.Equal(t, checlusterv2.Spec.Networking.Auth.OAuthScope, "OAuthScope")
+	assert.Equal(t, checlusterv2.Spec.Networking.Auth.IdentityToken, "IdentityToken")
 
 	assert.Equal(t, checlusterv2.Spec.ContainerRegistry.Hostname, "AirGapContainerRegistryHostname")
 	assert.Equal(t, checlusterv2.Spec.ContainerRegistry.Organization, "AirGapContainerRegistryOrganization")

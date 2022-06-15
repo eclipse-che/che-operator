@@ -287,6 +287,7 @@ func TestConvertFrom(t *testing.T) {
 					OAuthClientName:     "OAuthClientName",
 					OAuthSecret:         "OAuthSecret",
 					OAuthScope:          "OAuthScope",
+					IdentityToken:       "IdentityToken",
 					Gateway: chev2.Gateway{
 						Deployment: chev2.Deployment{
 							Containers: []chev2.Container{
@@ -379,6 +380,7 @@ func TestConvertFrom(t *testing.T) {
 	assert.Equal(t, checlusterv1.Spec.Auth.OAuthClientName, "OAuthClientName")
 	assert.Equal(t, checlusterv1.Spec.Auth.OAuthSecret, "OAuthSecret")
 	assert.Equal(t, checlusterv1.Spec.Auth.OAuthScope, "OAuthScope")
+	assert.Equal(t, checlusterv1.Spec.Auth.IdentityToken, "IdentityToken")
 
 	assert.Equal(t, checlusterv1.Spec.Database.ChePostgresContainerResources.Limits.Cpu, "2")
 	assert.Equal(t, checlusterv1.Spec.Database.ChePostgresContainerResources.Limits.Memory, "228Mi")
