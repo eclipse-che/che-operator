@@ -120,7 +120,7 @@ type CheClusterSpecNetworking struct {
 	// For an OpenShift cluster, the operator uses the domain to generate a hostname for the route.
 	// The generated hostname follows this pattern: che-<che-namespace>.<domain>. The <che-namespace> is the namespace where the CheCluster CRD is created.
 	// In conjunction with labels, it creates a route served by a non-default Ingress controller.
-	// For a Kubernetes cluster, it contains a global Ingress domain. This MUST be specified, there are no default values.
+	// For a Kubernetes cluster, it contains a global ingress domain. There are no default values: you must specify them.
 	// +optional
 	Domain string `json:"domain,omitempty"`
 	// The public hostname of the installed Che server.
