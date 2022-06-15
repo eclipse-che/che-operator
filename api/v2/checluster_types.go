@@ -194,7 +194,7 @@ type Dashboard struct {
 	Deployment Deployment `json:"deployment,omitempty"`
 	// Dashboard header message.
 	// +optional
-	HeaderMessage DashboardHeaderMessage `json:"HeaderMessage,omitempty"`
+	HeaderMessage DashboardHeaderMessage `json:"headerMessage,omitempty"`
 }
 
 // Configuration settings related to the plug-in registry used by the Che installation.

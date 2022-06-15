@@ -76,10 +76,6 @@ echo "[INFO] Will create release '${RELEASE}' from next version ${lastPackageNex
 
 sed \
 -e 's/imagePullPolicy: *Always/imagePullPolicy: IfNotPresent/' \
--e 's/"cheImageTag": *"next"/"cheImageTag": ""/' \
--e 's|quay.io/eclipse/che-dashboard:next|quay.io/eclipse/che-dashboard:'${RELEASE}'|' \
--e 's|"devfileRegistryImage": *"quay.io/eclipse/che-devfile-registry:next"|"devfileRegistryImage": ""|' \
--e 's|"pluginRegistryImage": *"quay.io/eclipse/che-plugin-registry:next"|"pluginRegistryImage": ""|' \
 -e "/^  replaces: ${ECLIPSE_CHE_PACKAGE_NAME}.v.*/d" \
 -e "s/^  version: ${lastPackageNextVersion}/  version: ${RELEASE}/" \
 -e "s/: next/: ${RELEASE}/" \
