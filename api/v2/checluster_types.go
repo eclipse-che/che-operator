@@ -231,7 +231,7 @@ type Database struct {
 	// Instructs the operator to deploy a dedicated database.
 	// By default, a dedicated PostgreSQL database is deployed as part of the Che installation.
 	// When `externalDb` is set as `true`, no dedicated database is deployed by the
-	// operator and you need to provide connection details to the external database you want to use.
+	// operator and you need to provide connection details about the external database you want to use.
 	// +optional
 	ExternalDb bool `json:"externalDb"`
 	// Deployment override options.
