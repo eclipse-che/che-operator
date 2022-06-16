@@ -1296,8 +1296,8 @@ spec:
                         deployment:
                           description: Deployment override options.
                           properties:
-                            container:
-                              description: A single application container.
+                            containers:
+                              description: List of containers belonging to the pod.
                               items:
                                 description: Container custom settings.
                                 properties:
@@ -1442,8 +1442,8 @@ spec:
                         deployment:
                           description: Deployment override options.
                           properties:
-                            container:
-                              description: A single application container.
+                            containers:
+                              description: List of containers belonging to the pod.
                               items:
                                 description: Container custom settings.
                                 properties:
@@ -1550,8 +1550,8 @@ spec:
                         deployment:
                           description: Deployment override options.
                           properties:
-                            container:
-                              description: A single application container.
+                            containers:
+                              description: List of containers belonging to the pod.
                               items:
                                 description: Container custom settings.
                                 properties:
@@ -1679,8 +1679,8 @@ spec:
                         deployment:
                           description: Deployment override options.
                           properties:
-                            container:
-                              description: A single application container.
+                            containers:
+                              description: List of containers belonging to the pod.
                               items:
                                 description: Container custom settings.
                                 properties:
@@ -1774,8 +1774,8 @@ spec:
                         deployment:
                           description: Deployment override options.
                           properties:
-                            container:
-                              description: A single application container.
+                            containers:
+                              description: List of containers belonging to the pod.
                               items:
                                 description: Container custom settings.
                                 properties:
@@ -1939,8 +1939,8 @@ spec:
                         deployment:
                           description: Deployment override options.
                           properties:
-                            container:
-                              description: A single application container.
+                            containers:
+                              description: List of containers belonging to the pod.
                               items:
                                 description: Container custom settings.
                                 properties:
@@ -2197,8 +2197,9 @@ spec:
                                 be distinguished in the configuration by their names:
                                 - `gateway` - `configbump` - `oauth-proxy` - `kube-rbac-proxy`'
                               properties:
-                                container:
-                                  description: A single application container.
+                                containers:
+                                  description: List of containers belonging to the
+                                    pod.
                                   items:
                                     description: Container custom settings.
                                     properties:

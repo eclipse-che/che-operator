@@ -423,9 +423,9 @@ type ExternalPluginRegistry struct {
 
 // Deployment custom settings.
 type Deployment struct {
-	// A single application container.
+	// List of containers belonging to the pod.
 	// +optional
-	Containers []Container `json:"container,omitempty"`
+	Containers []Container `json:"containers,omitempty"`
 	// Security options the pod should run with.
 	// +optional
 	SecurityContext PodSecurityContext `json:"securityContext,omitempty"`
