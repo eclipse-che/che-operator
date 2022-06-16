@@ -484,6 +484,8 @@ func provisionMainWorkspaceRoute(cheCluster *chev2.CheCluster, routing *dwo.DevW
 	// authorize against kube-rbac-proxy in che-gateway. This will be needed for k8s native auth as well.
 	cfg.AddAuth(dwId, "http://127.0.0.1:8089?namespace="+dwNamespace)
 
+	add5XXErrorHandling(cfg, dwId)
+
 	// make '/healthz' path of main endpoints reachable from outside
 	routeForHealthzEndpoint(cfg, dwId, routing.Spec.Endpoints)
 
@@ -502,6 +504,28 @@ func provisionMainWorkspaceRoute(cheCluster *chev2.CheCluster, routing *dwo.DevW
 			},
 			Data: map[string]string{dwId + ".yml": string(contents)},
 		}, nil
+	}
+}
+
+// when accessing workspace url, if 5xx error is returned, redirect to the dashboard service
+func add5XXErrorHandling(cfg *gateway.TraefikConfig, dwId string) {
+	// revalidate cache to prevent case where redirect to dashboard after trying to restart an idled workspace
+	noCacheHeader := map[string]string{"cache-control": "no-store, max-age=0"}
+	cfg.AddResponseHeaders(dwId, noCacheHeader)
+
+	// dashboard service name must match Traefik dashboard service name
+	dashboardServiceName := defaults.GetCheFlavor() + "-dashboard"
+	cfg.AddErrors(dwId, "500-599", dashboardServiceName, "/")
+
+	if infrastructure.IsOpenShift() {
+		// On OpenShift, fire errors middleware after 4 seconds of not being able to connect to service
+		cfg.HTTP.ServersTransports = map[string]*gateway.TraefikConfigServersTransport{}
+		cfg.HTTP.ServersTransports[dwId] = &gateway.TraefikConfigServersTransport{
+			ForwardingTimeouts: &gateway.TraefikConfigForwardingTimeouts{
+				DialTimeout: "4s",
+			},
+		}
+		cfg.HTTP.Services[dwId].LoadBalancer.ServersTransport = dwId
 	}
 }
 

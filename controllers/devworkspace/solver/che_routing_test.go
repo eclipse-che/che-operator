@@ -302,12 +302,14 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 
 		workspaceMainConfig := gateway.TraefikConfig{}
 		assert.NoError(t, yaml.Unmarshal([]byte(traefikMainWorkspaceConfig), &workspaceMainConfig))
-		assert.Len(t, workspaceMainConfig.HTTP.Middlewares, 2)
+		assert.Len(t, workspaceMainConfig.HTTP.Middlewares, 4)
 
 		wsid = "wsid"
 		mwares = []string{
 			wsid + gateway.AuthMiddlewareSuffix,
-			wsid + gateway.StripPrefixMiddlewareSuffix}
+			wsid + gateway.StripPrefixMiddlewareSuffix,
+			wsid + gateway.HeadersMiddlewareSuffix,
+			wsid + gateway.ErrorsMiddlewareSuffix}
 		for _, mware := range mwares {
 			assert.Contains(t, workspaceMainConfig.HTTP.Middlewares, mware)
 
@@ -319,6 +321,14 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 			}
 			assert.Truef(t, found, "traefik config route doesn't set middleware '%s'", mware)
 		}
+
+		t.Run("testServerTransportIsEmpty", func(t *testing.T) {
+			assert.Empty(t, workspaceMainConfig.HTTP.ServersTransports)
+
+			assert.Len(t, workspaceMainConfig.HTTP.Services, 1)
+			assert.Contains(t, workspaceMainConfig.HTTP.Services, wsid)
+			assert.Empty(t, workspaceMainConfig.HTTP.Services[wsid].LoadBalancer.ServersTransport)
+		})
 
 		t.Run("testHealthzEndpointInMainWorkspaceRoute", func(t *testing.T) {
 			healthzName := "wsid-9999-healthz"
@@ -392,13 +402,15 @@ func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 
 		workspaceMainConfig := gateway.TraefikConfig{}
 		assert.NoError(t, yaml.Unmarshal([]byte(traefikMainWorkspaceConfig), &workspaceMainConfig))
-		assert.Len(t, workspaceMainConfig.HTTP.Middlewares, 3)
+		assert.Len(t, workspaceMainConfig.HTTP.Middlewares, 5)
 
 		wsid = "wsid"
 		mwares := []string{
 			wsid + gateway.AuthMiddlewareSuffix,
 			wsid + gateway.StripPrefixMiddlewareSuffix,
-			wsid + gateway.HeaderRewriteMiddlewareSuffix}
+			wsid + gateway.HeaderRewriteMiddlewareSuffix,
+			wsid + gateway.HeadersMiddlewareSuffix,
+			wsid + gateway.ErrorsMiddlewareSuffix}
 		for _, mware := range mwares {
 			assert.Contains(t, workspaceMainConfig.HTTP.Middlewares, mware)
 
@@ -410,6 +422,17 @@ func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 			}
 			assert.Truef(t, found, "traefik config route doesn't set middleware '%s'", mware)
 		}
+
+		t.Run("testServerTransportInMainWorkspaceRoute", func(t *testing.T) {
+			serverTransportName := wsid
+
+			assert.Len(t, workspaceMainConfig.HTTP.ServersTransports, 1)
+			assert.Contains(t, workspaceMainConfig.HTTP.ServersTransports, serverTransportName)
+
+			assert.Len(t, workspaceMainConfig.HTTP.Services, 1)
+			assert.Contains(t, workspaceMainConfig.HTTP.Services, wsid)
+			assert.Equal(t, workspaceMainConfig.HTTP.Services[wsid].LoadBalancer.ServersTransport, serverTransportName)
+		})
 
 		t.Run("testHealthzEndpointInMainWorkspaceRoute", func(t *testing.T) {
 			healthzName := "wsid-9999-healthz"
