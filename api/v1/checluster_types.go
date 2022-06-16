@@ -499,11 +499,13 @@ type CheClusterSpecAuth struct {
 	// Name of the secret set in the OpenShift `OAuthClient` resource used to setup identity federation on the OpenShift side. Auto-generated when left blank. See also the `OAuthClientName` field.
 	// +optional
 	OAuthSecret string `json:"oAuthSecret,omitempty"`
-	// Access Token Scope. Ignored for OpenShift due to hardcoded value `user:full`.
+	// Access Token Scope.
+	// This field is specific to Che installations made for Kubernetes only and ignored for OpenShift.
 	// +optional
 	OAuthScope string `json:"oAuthScope,omitempty"`
 	// Identity token to be passed to upstream. There are two types of tokens supported: `id_token` and `access_token`.
 	// Default value is `id_token`.
+	// This field is specific to Che installations made for Kubernetes only and ignored for OpenShift.
 	// +optional
 	IdentityToken string `json:"identityToken,omitempty"`
 	// Deprecated. The value of this flag is ignored.

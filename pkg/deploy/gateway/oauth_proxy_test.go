@@ -75,5 +75,5 @@ func TestAccessTokenDefinedForKubernetesOauthProxyConfig(t *testing.T) {
 
 	config := kubernetesOauthProxyConfig(ctx, "blabol")
 	assert.Contains(t, config, "pass_access_token = true")
-	assert.Contains(t, config, "pass_authorization_header = true")
+	assert.NotContains(t, config, "pass_authorization_header = true")
 }

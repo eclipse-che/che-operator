@@ -115,7 +115,6 @@ cookie_secret = "%s"
 cookie_expire = "24h0m0s"
 email_domains = "*"
 cookie_httponly = false
-pass_authorization_header = true
 skip_provider_button = true
 whitelist_domains = "%s"
 cookie_domains = "%s"
@@ -131,7 +130,7 @@ cookie_domains = "%s"
 		utils.Whitelist(ctx.CheHost),
 		utils.Whitelist(ctx.CheHost),
 		skipAuthConfig(ctx.CheCluster),
-		accessTokenConfig(ctx.CheCluster),
+		identityTokenConfig(ctx.CheCluster),
 		oauthScopeConfig(ctx.CheCluster))
 }
 
@@ -156,12 +155,13 @@ func skipAuthConfig(instance *chev2.CheCluster) string {
 	return ""
 }
 
-func accessTokenConfig(instance *chev2.CheCluster) string {
+func identityTokenConfig(instance *chev2.CheCluster) string {
 	if utils.IsAccessTokenToPass(instance) {
 		// pass OAuth access_token to upstream via X-Forwarded-Access-Token header
 		return "pass_access_token = true"
 	}
-	return ""
+	// pass OIDC IDToken to upstream via Authorization Bearer header
+	return "pass_authorization_header = true"
 }
 
 func oauthScopeConfig(instance *chev2.CheCluster) string {
