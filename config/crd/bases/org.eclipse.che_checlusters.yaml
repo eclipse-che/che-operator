@@ -1280,8 +1280,8 @@ spec:
                                     container.
                                   properties:
                                     limits:
-                                      description: Limits describe the maximum amount
-                                        of compute resources allowed.
+                                      description: Describes the maximum amount of
+                                        compute resources allowed.
                                       properties:
                                         cpu:
                                           anyOf:
@@ -1300,8 +1300,8 @@ spec:
                                           x-kubernetes-int-or-string: true
                                       type: object
                                     request:
-                                      description: Request describes the minimum amount
-                                        of compute resources required.
+                                      description: Describes the minimum amount of
+                                        compute resources required.
                                       properties:
                                         cpu:
                                           anyOf:
@@ -1342,10 +1342,10 @@ spec:
                         additionalProperties:
                           type: string
                         description: A map of additional environment variables applied
-                          in the generated `che` ConfigMap to be used by the Che server,
+                          in the generated `che` ConfigMap to be used by the Che server
                           in addition to the values already generated from other fields
                           of the `CheCluster` custom resource (CR). If the `extraProperties`
-                          fields contains a property normally generated in `che` ConfigMap
+                          field contains a property normally generated in `che` ConfigMap
                           from other CR fields, the value defined in the `extraProperties`
                           is used instead.
                         type: object
@@ -1370,7 +1370,7 @@ spec:
                               bypassing the proxy. Specify wild card domain use the
                               following form `.<DOMAIN>`, for example:    - localhost    -
                               my.host.com    - 123.42.12.32 Use only when a proxy
-                              configuration is required. Operator respects OpenShift
+                              configuration is required. The Operator respects OpenShift
                               cluster-wide proxy configuration, defining `nonProxyHosts`
                               in a custom resource leads to merging non-proxy hosts
                               lists from the cluster proxy configuration, and the
@@ -1385,8 +1385,8 @@ spec:
                             type: string
                           url:
                             description: 'URL (protocol+hostname) of the proxy server.
-                              Use only when a proxy configuration is required. Operator
-                              respects OpenShift cluster-wide proxy configuration,
+                              Use only when a proxy configuration is required. The
+                              Operator respects OpenShift cluster-wide proxy configuration,
                               defining `url` in a custom resource leads to overriding
                               the cluster proxy configuration. See the following page:
                               https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html.
@@ -1395,7 +1395,7 @@ spec:
                         type: object
                     type: object
                   dashboard:
-                    description: Configuration settings related to the Dashboard used
+                    description: Configuration settings related to the dashboard used
                       by the Che installation.
                     properties:
                       deployment:
@@ -1424,8 +1424,8 @@ spec:
                                     container.
                                   properties:
                                     limits:
-                                      description: Limits describe the maximum amount
-                                        of compute resources allowed.
+                                      description: Describes the maximum amount of
+                                        compute resources allowed.
                                       properties:
                                         cpu:
                                           anyOf:
@@ -1444,8 +1444,8 @@ spec:
                                           x-kubernetes-int-or-string: true
                                       type: object
                                     request:
-                                      description: Request describes the minimum amount
-                                        of compute resources required.
+                                      description: Describes the minimum amount of
+                                        compute resources required.
                                       properties:
                                         cpu:
                                           anyOf:
@@ -1500,7 +1500,7 @@ spec:
                       credentialsSecretName:
                         default: postgres-credentials
                         description: The secret that contains PostgreSQL `user` and
-                          `password` that the Che server uses to connect to the DB.
+                          `password` that the Che server uses to connect to the database.
                           The secret must have a `app.kubernetes.io/part-of=che.eclipse.org`
                           label.
                         type: string
@@ -1530,8 +1530,8 @@ spec:
                                     container.
                                   properties:
                                     limits:
-                                      description: Limits describe the maximum amount
-                                        of compute resources allowed.
+                                      description: Describes the maximum amount of
+                                        compute resources allowed.
                                       properties:
                                         cpu:
                                           anyOf:
@@ -1550,8 +1550,8 @@ spec:
                                           x-kubernetes-int-or-string: true
                                       type: object
                                     request:
-                                      description: Request describes the minimum amount
-                                        of compute resources required.
+                                      description: Describes the minimum amount of
+                                        compute resources required.
                                       properties:
                                         cpu:
                                           anyOf:
@@ -1593,13 +1593,13 @@ spec:
                           database. By default, a dedicated PostgreSQL database is
                           deployed as part of the Che installation. When `externalDb`
                           is set as `true`, no dedicated database is deployed by the
-                          Operator and you need to provide connection details to the
-                          external DB you want to use.
+                          Operator and you need to provide connection details about
+                          the external database you want to use.
                         type: boolean
                       postgresDb:
                         default: dbche
                         description: PostgreSQL database name that the Che server
-                          uses to connect to the DB.
+                          uses to connect to the database.
                         type: string
                       postgresHostName:
                         default: postgres
@@ -1618,8 +1618,8 @@ spec:
                         properties:
                           claimSize:
                             description: Persistent Volume Claim size. To update the
-                              claim size, Storage class that provisions it must support
-                              resize.
+                              claim size, the storage class that provisions it must
+                              support resizing.
                             type: string
                           storageClass:
                             description: Storage class for the Persistent Volume Claim.
@@ -1629,7 +1629,7 @@ spec:
                         type: object
                     type: object
                   devWorkspace:
-                    description: DevWorkspace operator configuration.
+                    description: DevWorkspace Operator configuration.
                     properties:
                       deployment:
                         description: Deployment override options.
@@ -1657,8 +1657,8 @@ spec:
                                     container.
                                   properties:
                                     limits:
-                                      description: Limits describe the maximum amount
-                                        of compute resources allowed.
+                                      description: Describes the maximum amount of
+                                        compute resources allowed.
                                       properties:
                                         cpu:
                                           anyOf:
@@ -1677,8 +1677,8 @@ spec:
                                           x-kubernetes-int-or-string: true
                                       type: object
                                     request:
-                                      description: Request describes the minimum amount
-                                        of compute resources required.
+                                      description: Describes the minimum amount of
+                                        compute resources required.
                                       properties:
                                         cpu:
                                           anyOf:
@@ -1721,7 +1721,7 @@ spec:
                         type: string
                     type: object
                   devfileRegistry:
-                    description: Configuration settings related to the Devfile registry
+                    description: Configuration settings related to the devfile registry
                       used by the Che installation.
                     properties:
                       deployment:
@@ -1750,8 +1750,8 @@ spec:
                                     container.
                                   properties:
                                     limits:
-                                      description: Limits describe the maximum amount
-                                        of compute resources allowed.
+                                      description: Describes the maximum amount of
+                                        compute resources allowed.
                                       properties:
                                         cpu:
                                           anyOf:
@@ -1770,8 +1770,8 @@ spec:
                                           x-kubernetes-int-or-string: true
                                       type: object
                                     request:
-                                      description: Request describes the minimum amount
-                                        of compute resources required.
+                                      description: Describes the minimum amount of
+                                        compute resources required.
                                       properties:
                                         cpu:
                                           anyOf:
@@ -1842,8 +1842,8 @@ spec:
                           images.
                         type: boolean
                       spec:
-                        description: A Kubernetes Image Puller spec  to configure
-                          the image puller in the CheCluster
+                        description: A Kubernetes Image Puller spec to configure the
+                          image puller in the CheCluster.
                         properties:
                           affinity:
                             type: string
@@ -1913,8 +1913,8 @@ spec:
                                     container.
                                   properties:
                                     limits:
-                                      description: Limits describe the maximum amount
-                                        of compute resources allowed.
+                                      description: Describes the maximum amount of
+                                        compute resources allowed.
                                       properties:
                                         cpu:
                                           anyOf:
@@ -1933,8 +1933,8 @@ spec:
                                           x-kubernetes-int-or-string: true
                                       type: object
                                     request:
-                                      description: Request describes the minimum amount
-                                        of compute resources required.
+                                      description: Describes the minimum amount of
+                                        compute resources required.
                                       properties:
                                         cpu:
                                           anyOf:
@@ -2012,18 +2012,18 @@ spec:
                     description: User's default namespace.
                     properties:
                       template:
-                        description: If you don't create user namespaces in advance,
+                        description: If you don't create the user namespaces in advance,
                           this field defines the Kubernetes namespace created when
                           you start your first workspace. You can use `<username>`,
                           `<userid>` and `<workspaceid>` placeholders, such as che-workspace-<username>.
                         type: string
                     type: object
                   defaultPlugins:
-                    description: Default plug-ins applied to Dev Workspaces.
+                    description: Default plug-ins applied to DevWorkspaces.
                     items:
                       properties:
                         editor:
-                          description: The editor id to specify default plug-ins for.
+                          description: The editor ID to specify default plug-ins for.
                           type: string
                         plugins:
                           description: Default plug-in URIs for the specified editor.
@@ -2046,8 +2046,8 @@ spec:
                         properties:
                           claimSize:
                             description: Persistent Volume Claim size. To update the
-                              claim size, Storage class that provisions it must support
-                              resize.
+                              claim size, the storage class that provisions it must
+                              support resizing.
                             type: string
                           storageClass:
                             description: Storage class for the Persistent Volume Claim.
@@ -2058,8 +2058,8 @@ spec:
                       pvcStrategy:
                         default: common
                         description: Persistent volume claim strategy for the Che
-                          server. Only the `common` strategy is supported (all workspaces
-                          PVCs in one volume). For details, see https://github.com/eclipse/che/issues/21185.
+                          server. Only the `common` strategy (all workspaces PVCs
+                          in one volume) is supported . For details, see https://github.com/eclipse/che/issues/21185.
                         type: string
                     type: object
                   tolerations:
@@ -2117,12 +2117,12 @@ spec:
                     type: object
                 type: object
               networking:
-                description: Networking, Che authentication and TLS configuration.
+                description: Networking, Che authentication, and TLS configuration.
                 properties:
                   annotations:
                     additionalProperties:
                       type: string
-                    description: 'Defines annotations which will be set to an ingress
+                    description: 'Defines annotations which will be set for an Ingress
                       (a route for OpenShift platform). The defaults for kubernetes
                       platforms are:     kubernetes.io/ingress.class:                       "nginx"     nginx.ingress.kubernetes.io/proxy-read-timeout:    "3600",     nginx.ingress.kubernetes.io/proxy-connect-timeout:
                       "3600",     nginx.ingress.kubernetes.io/ssl-redirect:          "true"'
@@ -2167,8 +2167,8 @@ spec:
                                         container.
                                       properties:
                                         limits:
-                                          description: Limits describe the maximum
-                                            amount of compute resources allowed.
+                                          description: Describes the maximum amount
+                                            of compute resources allowed.
                                           properties:
                                             cpu:
                                               anyOf:
@@ -2188,8 +2188,8 @@ spec:
                                               x-kubernetes-int-or-string: true
                                           type: object
                                         request:
-                                          description: Request describes the minimum
-                                            amount of compute resources required.
+                                          description: Describes the minimum amount
+                                            of compute resources required.
                                           properties:
                                             cpu:
                                               anyOf:
@@ -2244,13 +2244,12 @@ spec:
                     type: object
                   domain:
                     description: 'For an OpenShift cluster, the Operator uses the
-                      domain to generate a hostname for a route. The generated hostname
+                      domain to generate a hostname for the route. The generated hostname
                       follows this pattern: che-<che-namespace>.<domain>. The <che-namespace>
-                      is the namespace where the CheCluster CRD is created. In a conjunction
-                      with labels it creates a route, which is served by a non-default
-                      Ingress controller. For Kubernetes cluster it contains a global
-                      ingress domain. This MUST be explicitly specified: there are
-                      no defaults.'
+                      is the namespace where the CheCluster CRD is created. In conjunction
+                      with labels, it creates a route served by a non-default Ingress
+                      controller. For a Kubernetes cluster, it contains a global ingress
+                      domain. There are no default values: you must specify them.'
                     type: string
                   hostname:
                     description: The public hostname of the installed Che server.
@@ -2258,7 +2257,7 @@ spec:
                   labels:
                     additionalProperties:
                       type: string
-                    description: Defines labels which will be set to an ingress (a
+                    description: Defines labels which will be set for an Ingress (a
                       route for OpenShift platform).
                     type: object
                   tlsSecretName:
@@ -2270,36 +2269,36 @@ spec:
                 type: object
             type: object
           status:
-            description: CheClusterStatus defines the observed state of Che installation.
+            description: Defines the observed state of Che installation.
             properties:
               chePhase:
                 description: Specifies the current phase of the Che deployment.
                 type: string
               cheURL:
-                description: Public URL to the Che server.
+                description: Public URL of the Che server.
                 type: string
               cheVersion:
-                description: Current installed Che version.
+                description: Currently installed Che version.
                 type: string
               devfileRegistryURL:
-                description: The public URL to the internal devfile registry.
+                description: The public URL of the internal devfile registry.
                 type: string
               gatewayPhase:
                 description: Specifies the current phase of the gateway deployment.
                 type: string
               message:
                 description: A human readable message indicating details about why
-                  the Che deployment is in current phase.
+                  the Che deployment is in the current phase.
                 type: string
               pluginRegistryURL:
-                description: The public URL to the internal plug-in registry.
+                description: The public URL of the internal plug-in registry.
                 type: string
               postgresVersion:
                 description: The PostgreSQL version of the image in use.
                 type: string
               reason:
                 description: A brief CamelCase message indicating details about why
-                  the Che deployment is in current phase.
+                  the Che deployment is in the current phase.
                 type: string
               workspaceBaseDomain:
                 description: The resolved workspace base domain. This is either the
