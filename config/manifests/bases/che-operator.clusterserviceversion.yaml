@@ -79,7 +79,7 @@ spec:
       - description: Che components configuration.
         displayName: Components
         path: components
-      - description: Networking, Che authentication and TLS configuration.
+      - description: Networking, Che authentication, and TLS configuration.
         displayName: Networking
         path: networking
       - description: Configuration of an alternative registry that stores Che images.
@@ -91,17 +91,17 @@ spec:
         path: chePhase
         x-descriptors:
         - urn:alm:descriptor:text
-      - description: Public URL to the Che server.
+      - description: Public URL of the Che server.
         displayName: Eclipse Che URL
         path: cheURL
         x-descriptors:
         - urn:alm:descriptor:org.w3:link
-      - description: Current installed Che version.
+      - description: Currently installed Che version.
         displayName: 'displayName: Eclipse Che version'
         path: cheVersion
         x-descriptors:
         - urn:alm:descriptor:text
-      - description: The public URL to the internal devfile registry.
+      - description: The public URL of the internal devfile registry.
         displayName: Devfile registry URL
         path: devfileRegistryURL
         x-descriptors:
@@ -112,12 +112,12 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:text
       - description: A human readable message indicating details about why the Che
-          deployment is in current phase.
+          deployment is in the current phase.
         displayName: Message
         path: message
         x-descriptors:
         - urn:alm:descriptor:text
-      - description: The public URL to the internal plug-in registry.
+      - description: The public URL of the internal plug-in registry.
         displayName: Plugin registry URL
         path: pluginRegistryURL
         x-descriptors:
@@ -128,7 +128,7 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:text
       - description: A brief CamelCase message indicating details about why the Che
-          deployment is in current phase.
+          deployment is in the current phase.
         displayName: Reason
         path: reason
         x-descriptors:
