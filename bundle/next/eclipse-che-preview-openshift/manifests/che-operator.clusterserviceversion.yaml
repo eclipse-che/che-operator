@@ -55,31 +55,10 @@ metadata:
             "namespace": "eclipse-che"
           },
           "spec": {
-            "components": {
-              "database": {
-                "externalDb": false
-              },
-              "metrics": {
-                "enable": true
-              }
-            },
-            "devEnvironments": {
-              "defaultNamespace": {
-                "template": "<username>-che"
-              },
-              "storage": {
-                "pvcStrategy": "common"
-              }
-            },
-            "networking": {
-              "auth": {
-                "identityProviderURL": "",
-                "oAuthClientName": "",
-                "oAuthSecret": ""
-              },
-              "domain": "",
-              "tlsSecretName": ""
-            }
+            "components": {},
+            "containerRegistry": {},
+            "devEnvironments": {},
+            "networking": {}
           }
         }
       ]
@@ -97,7 +76,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.50.0-568.next
+  name: eclipse-che-preview-openshift.v7.50.0-597.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -150,7 +129,7 @@ spec:
           - description: Che components configuration.
             displayName: Components
             path: components
-          - description: Networking, Che authentication, and TLS configuration.
+          - description: Networking, Che authentication and TLS configuration.
             displayName: Networking
             path: networking
           - description: Configuration of an alternative registry that stores Che
@@ -163,17 +142,17 @@ spec:
             path: chePhase
             x-descriptors:
               - urn:alm:descriptor:text
-          - description: Public URL of the Che server.
+          - description: Public URL to the Che server.
             displayName: Eclipse Che URL
             path: cheURL
             x-descriptors:
               - urn:alm:descriptor:org.w3:link
-          - description: Currently installed Che version.
+          - description: Current installed Che version.
             displayName: 'displayName: Eclipse Che version'
             path: cheVersion
             x-descriptors:
               - urn:alm:descriptor:text
-          - description: The public URL of the internal devfile registry.
+          - description: The public URL to the internal devfile registry.
             displayName: Devfile registry URL
             path: devfileRegistryURL
             x-descriptors:
@@ -184,12 +163,12 @@ spec:
             x-descriptors:
               - urn:alm:descriptor:text
           - description: A human readable message indicating details about why the
-              Che deployment is in the current phase.
+              Che deployment is in current phase.
             displayName: Message
             path: message
             x-descriptors:
               - urn:alm:descriptor:text
-          - description: The public URL of the internal plug-in registry.
+          - description: The public URL to the internal plug-in registry.
             displayName: Plugin registry URL
             path: pluginRegistryURL
             x-descriptors:
@@ -200,7 +179,7 @@ spec:
             x-descriptors:
               - urn:alm:descriptor:text
           - description: A brief CamelCase message indicating details about why the
-              Che deployment is in the current phase.
+              Che deployment is in current phase.
             displayName: Reason
             path: reason
             x-descriptors:
@@ -1408,7 +1387,7 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.50.0-568.next
+  version: 7.50.0-597.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1

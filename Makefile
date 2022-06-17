@@ -65,7 +65,6 @@ mkfile_dir := $(dir $(mkfile_path))
 # Default Eclipse Che operator image
 IMG ?= quay.io/eclipse/che-operator:next
 
-CRD_OPTIONS ?= "crd:crdVersions=v1"
 CONFIG_MANAGER="config/manager/manager.yaml"
 
 INTERNAL_TMP_DIR=/tmp/che-operator-dev
@@ -346,7 +345,7 @@ docker-push: ## Push Eclipse Che operator image to a registry
 	${IMAGE_TOOL} push ${IMG}
 
 manifests: download-controller-gen download-addlicense ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) crd:crdVersions=v1 rbac:roleName=manager-role paths="./..." output:crd:artifacts:config=config/crd/bases
 
 	# remove yaml delimitier, which makes OLM catalog source image broken.
 	sed -i '/---/d' "$(CHECLUSTER_CRD_PATH)"

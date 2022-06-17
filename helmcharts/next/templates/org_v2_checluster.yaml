@@ -16,20 +16,10 @@ metadata:
   name: eclipse-che
   namespace: eclipse-che
 spec:
-  devEnvironments:
-    defaultNamespace:
-      template: '<username>-che'
-    storage:
-      pvcStrategy: 'common'
-  components:
-    database:
-      externalDb: false
-    metrics:
-      enable: true
-  networking:
-    domain: '{{ .Values.networking.domain }}'
-    tlsSecretName: 'che-tls'
-    auth:
-      identityProviderURL: '{{ .Values.networking.auth.identityProviderURL }}'
-      oAuthClientName: '{{ .Values.networking.auth.oAuthClientName }}'
-      oAuthSecret: '{{ .Values.networking.auth.oAuthSecret }}'
+  components: {}
+  devEnvironments: {}
+  networking: {tlsSecretName: che-tls, domain: '{{ .Values.networking.domain }}',
+    auth: {oAuthSecret: '{{ .Values.networking.auth.oAuthSecret }}', oAuthClientName: '{{
+        .Values.networking.auth.oAuthClientName }}', identityProviderURL: '{{ .Values.networking.auth.identityProviderURL
+        }}'}}
+  containerRegistry: {}

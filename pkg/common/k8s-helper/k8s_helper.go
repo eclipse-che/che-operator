@@ -16,8 +16,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 
-	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/sirupsen/logrus"
@@ -42,7 +42,7 @@ func New() *K8sHelper {
 		return k8sHelper
 	}
 
-	if test.IsTestMode() {
+	if isTestMode() {
 		return initializeForTesting()
 	}
 
@@ -180,4 +180,7 @@ func initialize() *K8sHelper {
 	}
 
 	return k8sHelper
+}
+func isTestMode() bool {
+	return len(os.Getenv("MOCK_API")) != 0
 }
