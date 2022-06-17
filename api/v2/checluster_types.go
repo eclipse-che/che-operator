@@ -94,7 +94,7 @@ type CheClusterComponents struct {
 	DevfileRegistry DevfileRegistry `json:"devfileRegistry"`
 	// Configuration settings related to the database used by the Che installation.
 	// +optional
-	// +kubebuilder:default:={externalDb: false, postgresHostName: postgres, postgresPort: "5432", postgresDb: dbche, pvc: {claimSize: "1Gi"}}
+	// +kubebuilder:default:={externalDb: false, credentialsSecretName: postgres-credentials, postgresHostName: postgres, postgresPort: "5432", postgresDb: dbche, pvc: {claimSize: "1Gi"}}
 	Database Database `json:"database"`
 	// Configuration settings related to the dashboard used by the Che installation.
 	// +optional
@@ -262,6 +262,7 @@ type Database struct {
 	// The secret that contains PostgreSQL `user` and `password` that the Che server uses to connect to the database.
 	// The secret must have a `app.kubernetes.io/part-of=che.eclipse.org` label.
 	// +optional
+	// +kubebuilder:default:="postgres-credentials"
 	CredentialsSecretName string `json:"credentialsSecretName,omitempty"`
 	// PVC settings for PostgreSQL database.
 	// +optional

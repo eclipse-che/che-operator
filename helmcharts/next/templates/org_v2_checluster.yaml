@@ -18,8 +18,11 @@ metadata:
 spec:
   components: {}
   devEnvironments: {}
-  networking: {tlsSecretName: che-tls, domain: '{{ .Values.networking.domain }}',
-    auth: {oAuthSecret: '{{ .Values.networking.auth.oAuthSecret }}', oAuthClientName: '{{
-        .Values.networking.auth.oAuthClientName }}', identityProviderURL: '{{ .Values.networking.auth.identityProviderURL
-        }}'}}
+  networking:
+    tlsSecretName: che-tls
+    domain: '{{ .Values.networking.domain }}'
+    auth:
+      oAuthSecret: '{{ .Values.networking.auth.oAuthSecret }}'
+      oAuthClientName: '{{ .Values.networking.auth.oAuthClientName }}'
+      identityProviderURL: '{{ .Values.networking.auth.identityProviderURL }}'
   containerRegistry: {}

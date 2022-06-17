@@ -994,6 +994,7 @@ spec:
                     type: object
                   database:
                     default:
+                      credentialsSecretName: postgres-credentials
                       externalDb: false
                       postgresDb: dbche
                       postgresHostName: postgres
@@ -1003,6 +1004,7 @@ spec:
                     description: Configuration settings related to the database used by the Che installation.
                     properties:
                       credentialsSecretName:
+                        default: postgres-credentials
                         description: The secret that contains PostgreSQL `user` and `password` that the Che server uses to connect to the database. The secret must have a `app.kubernetes.io/part-of=che.eclipse.org` label.
                         type: string
                       deployment:

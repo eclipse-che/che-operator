@@ -214,6 +214,7 @@ update-helmcharts: ## Update Helm Charts
 		yq -rYi --arg examples "$${CRDS_SAMPLES}" ".annotations.\"artifacthub.io/crdsExamples\" = \$$examples" $${chartYaml}
 		rm -rf $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
 	else
+		yq -riY '.spec.networking = null' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
 		yq -riY '.spec.networking.tlsSecretName = "che-tls"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
 		yq -riY '.spec.networking.domain = "{{ .Values.networking.domain }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
 		yq -riY '.spec.networking.auth.oAuthSecret = "{{ .Values.networking.auth.oAuthSecret }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
