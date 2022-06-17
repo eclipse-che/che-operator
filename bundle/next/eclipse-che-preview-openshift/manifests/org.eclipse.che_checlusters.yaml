@@ -259,7 +259,8 @@ spec:
                     identityToken:
                       description: 'Identity token to be passed to upstream. There
                         are two types of tokens supported: `id_token` and `access_token`.
-                        Default value is `id_token`.'
+                        Default value is `id_token`. This field is specific to Che
+                        installations made for Kubernetes only and ignored for OpenShift.'
                       type: string
                     initialOpenShiftOAuthUser:
                       description: Deprecated. The value of this flag is ignored.
@@ -285,8 +286,8 @@ spec:
                         when left blank. See also the `OpenShiftoAuth` field.
                       type: string
                     oAuthScope:
-                      description: Access Token Scope. Ignored for OpenShift due to
-                        hardcoded value `user:full`.
+                      description: Access Token Scope. This field is specific to Che
+                        installations made for Kubernetes only and ignored for OpenShift.
                       type: string
                     oAuthSecret:
                       description: Name of the secret set in the OpenShift `OAuthClient`
@@ -2298,15 +2299,18 @@ spec:
                         identityToken:
                           description: 'Identity token to be passed to upstream. There
                             are two types of tokens supported: `id_token` and `access_token`.
-                            Default value is `id_token`.'
+                            Default value is `id_token`. This field is specific to
+                            Che installations made for Kubernetes only and ignored
+                            for OpenShift.'
                           type: string
                         oAuthClientName:
                           description: Name of the OpenShift `OAuthClient` resource
                             used to set up identity federation on the OpenShift side.
                           type: string
                         oAuthScope:
-                          description: Access Token Scope. Ignored for OpenShift due
-                            to hardcoded value `user:full`.
+                          description: Access Token Scope. This field is specific
+                            to Che installations made for Kubernetes only and ignored
+                            for OpenShift.
                           type: string
                         oAuthSecret:
                           description: Name of the secret set in the OpenShift `OAuthClient`
