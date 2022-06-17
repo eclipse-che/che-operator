@@ -123,6 +123,9 @@ func (src *CheCluster) convertTo_DevEnvironments(dst *chev2.CheCluster) error {
 			})
 	}
 
+	dst.Spec.DevEnvironments.DefaultEditor = src.Spec.Server.WorkspaceDefaultEditor
+	dst.Spec.DevEnvironments.DefaultComponents = src.Spec.Server.WorkspaceDefaultComponents
+
 	if err := src.convertTo_Workspaces_Storage(dst); err != nil {
 		return err
 	}

@@ -17,6 +17,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/resource"
 
+	devfile "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev1 "github.com/eclipse-che/che-operator/api/v1"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -161,6 +162,12 @@ func TestConvertTo(t *testing.T) {
 				CheClusterRoles:                     "CheClusterRoles_1,CheClusterRoles_2",
 				CheWorkspaceClusterRole:             "CheWorkspaceClusterRole",
 				WorkspaceNamespaceDefault:           "WorkspaceNamespaceDefault",
+				WorkspaceDefaultEditor:              "WorkspaceDefaultEditor",
+				WorkspaceDefaultComponents: []devfile.Component{
+					{
+						Name: "universal-developer-image",
+					},
+				},
 				ServerTrustStoreConfigMapName:       "ServerTrustStoreConfigMapName",
 				GitSelfSignedCert:                   true,
 				DashboardImage:                      "DashboardImage",
@@ -330,6 +337,8 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Proxy.Port, "ProxyPort")
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Proxy.Url, "ProxyURL")
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.DefaultNamespace.Template, "WorkspaceNamespaceDefault")
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.DefaultEditor, "WorkspaceDefaultEditor")
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.DefaultComponents, []devfile.Component{{Name: "universal-developer-image"}})
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.NodeSelector, map[string]string{"a": "b", "c": "d"})
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Tolerations, []corev1.Toleration{{
 		Key:      "Key",

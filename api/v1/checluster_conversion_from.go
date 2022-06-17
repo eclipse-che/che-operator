@@ -102,6 +102,9 @@ func (dst *CheCluster) convertFrom_Server(src *chev2.CheCluster) error {
 			})
 	}
 
+	dst.Spec.Server.WorkspaceDefaultEditor = src.Spec.DevEnvironments.DefaultEditor
+	dst.Spec.Server.WorkspaceDefaultComponents = src.Spec.DevEnvironments.DefaultComponents
+
 	if len(src.Spec.Components.CheServer.Deployment.Containers) != 0 {
 		cheServerImageAndTag := strings.Split(src.Spec.Components.CheServer.Deployment.Containers[0].Image, ":")
 		dst.Spec.Server.CheImage = strings.Join(cheServerImageAndTag[0:len(cheServerImageAndTag)-1], ":")
