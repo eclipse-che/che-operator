@@ -14,6 +14,7 @@ package gateway
 import (
 	"testing"
 
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
@@ -32,6 +33,7 @@ func TestKubernetesOauthProxyConfig(t *testing.T) {
 				}},
 		}, nil)
 	ctx.CheHost = "che-site.che-domain.com"
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
 	config := kubernetesOauthProxyConfig(ctx, "blabol")
 	assert.Contains(t, config, "pass_authorization_header = true")
@@ -54,6 +56,7 @@ func TestScopeDefinedForKubernetesOauthProxyConfig(t *testing.T) {
 					},
 				}},
 		}, nil)
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
 	config := kubernetesOauthProxyConfig(ctx, "blabol")
 	assert.Contains(t, config, "scope = \"scope1 scope2 scope3 scope4 scope5\"")
@@ -72,6 +75,7 @@ func TestAccessTokenDefinedForKubernetesOauthProxyConfig(t *testing.T) {
 					},
 				}},
 		}, nil)
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
 	config := kubernetesOauthProxyConfig(ctx, "blabol")
 	assert.Contains(t, config, "pass_access_token = true")

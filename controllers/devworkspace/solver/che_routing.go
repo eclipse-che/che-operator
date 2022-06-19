@@ -475,9 +475,7 @@ func provisionMainWorkspaceRoute(cheCluster *chev2.CheCluster, routing *dwo.DevW
 		getServiceURL(wsGatewayPort, dwId, dwNamespace),
 		[]string{"/" + dwId})
 
-	if infrastructure.IsOpenShift() || utils.IsAccessTokenToPass(cheCluster) {
-		// on OpenShift, we need to set authorization header.
-		// This MUST come before Auth, because Auth needs Authorization header to be properly set.
+	if utils.IsAccessTokenToPass(cheCluster) {
 		cfg.AddAuthHeaderRewrite(dwId)
 	}
 

@@ -2247,6 +2247,9 @@ spec:
                           are two types of tokens supported: `id_token` and `access_token`.
                           Default value is `id_token`. This field is specific to Che
                           installations made for Kubernetes only and ignored for OpenShift.'
+                        enum:
+                        - id_token
+                        - access_token
                         type: string
                       oAuthClientName:
                         description: Name of the OpenShift `OAuthClient` resource

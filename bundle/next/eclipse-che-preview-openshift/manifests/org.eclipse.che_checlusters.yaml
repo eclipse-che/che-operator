@@ -2302,6 +2302,9 @@ spec:
                             Default value is `id_token`. This field is specific to
                             Che installations made for Kubernetes only and ignored
                             for OpenShift.'
+                          enum:
+                            - id_token
+                            - access_token
                           type: string
                         oAuthClientName:
                           description: Name of the OpenShift `OAuthClient` resource

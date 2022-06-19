@@ -18,7 +18,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
@@ -127,7 +126,7 @@ func (d *DashboardReconciler) createGatewayConfig(ctx *chetypes.DeployContext) *
 		10,
 		"http://"+d.getComponentName(ctx)+":8080",
 		[]string{})
-	if infrastructure.IsOpenShift() || utils.IsAccessTokenToPass(ctx.CheCluster) {
+	if utils.IsAccessTokenToPass(ctx.CheCluster) {
 		cfg.AddAuthHeaderRewrite(d.getComponentName(ctx))
 	}
 	return cfg

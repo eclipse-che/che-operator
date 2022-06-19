@@ -24,6 +24,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/labels"
 
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	corev1 "k8s.io/api/core/v1"
@@ -273,5 +274,21 @@ func Whitelist(hostname string) (value string) {
 }
 
 func IsAccessTokenToPass(instance *chev2.CheCluster) bool {
-	return instance.Spec.Networking.Auth.IdentityToken == constants.AccessToken
+	identityToken := GetIdentityToken(instance)
+	return identityToken == constants.AccessToken
+}
+
+func GetIdentityToken(instance *chev2.CheCluster) string {
+	identityToken := instance.Spec.Networking.Auth.IdentityToken
+	if len(identityToken) < 1 {
+		return GetDefaultIdentityToken()
+	}
+	return identityToken
+}
+
+func GetDefaultIdentityToken() string {
+	if infrastructure.IsOpenShift() {
+		return constants.AccessToken
+	}
+	return constants.IDToken
 }

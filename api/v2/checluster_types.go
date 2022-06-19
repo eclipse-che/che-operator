@@ -359,7 +359,7 @@ type Auth struct {
 	// Default value is `id_token`.
 	// This field is specific to Che installations made for Kubernetes only and ignored for OpenShift.
 	// +optional
-        // +kubebuilder:validation:Enum=id_token;access_token
+	// +kubebuilder:validation:Enum=id_token;access_token
 	IdentityToken string `json:"identityToken,omitempty"`
 	// Gateway settings.
 	// +optional

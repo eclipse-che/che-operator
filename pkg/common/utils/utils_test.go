@@ -14,6 +14,12 @@ package utils
 import (
 	"reflect"
 	"testing"
+
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGeneratePasswd(t *testing.T) {
@@ -78,6 +84,118 @@ func TestWhitelist(t *testing.T) {
 	for _, test := range tests {
 		if actual := Whitelist(test.host); !reflect.DeepEqual(test.whitelistedHost, actual) {
 			t.Errorf("Test Failed. Expected '%s', but got '%s'", test.whitelistedHost, actual)
+		}
+	}
+}
+
+func TestGetIdentityToken(t *testing.T) {
+	t.Run("TestGetIdentityToken when access_token defined in config and k8s", func(t *testing.T) {
+		ctx := test.GetDeployContext(
+			&chev2.CheCluster{
+				Spec: chev2.CheClusterSpec{
+					Networking: chev2.CheClusterSpecNetworking{
+						Auth: chev2.Auth{
+							IdentityToken: "access_token",
+						},
+					}},
+			}, nil)
+		infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
+		assert.Equal(t, constants.AccessToken, GetIdentityToken(ctx.CheCluster),
+			"'access_token' should be used")
+	})
+
+	t.Run("TestGetIdentityToken when id_token defined in config and k8s", func(t *testing.T) {
+		ctx := test.GetDeployContext(
+			&chev2.CheCluster{
+				Spec: chev2.CheClusterSpec{
+					Networking: chev2.CheClusterSpecNetworking{
+						Auth: chev2.Auth{
+							IdentityToken: "id_token",
+						},
+					}},
+			}, nil)
+		infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
+		assert.Equal(t, constants.IDToken, GetIdentityToken(ctx.CheCluster),
+			"'id_token' should be used")
+	})
+
+	t.Run("TestGetIdentityToken when no defined token in config and k8s", func(t *testing.T) {
+		ctx := test.GetDeployContext(
+			&chev2.CheCluster{
+				Spec: chev2.CheClusterSpec{
+					Networking: chev2.CheClusterSpecNetworking{
+						Auth: chev2.Auth{},
+					}},
+			}, nil)
+		infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
+		assert.Equal(t, constants.IDToken, GetIdentityToken(ctx.CheCluster),
+			"'id_token' should be used")
+	})
+
+	t.Run("TestGetIdentityToken when access_token defined in config and openshift", func(t *testing.T) {
+		ctx := test.GetDeployContext(
+			&chev2.CheCluster{
+				Spec: chev2.CheClusterSpec{
+					Networking: chev2.CheClusterSpecNetworking{
+						Auth: chev2.Auth{
+							IdentityToken: "access_token",
+						},
+					}},
+			}, nil)
+		infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+		assert.Equal(t, constants.AccessToken, GetIdentityToken(ctx.CheCluster),
+			"'access_token' should be used")
+	})
+
+	t.Run("TestGetIdentityToken when id_token defined in config and openshift", func(t *testing.T) {
+		ctx := test.GetDeployContext(
+			&chev2.CheCluster{
+				Spec: chev2.CheClusterSpec{
+					Networking: chev2.CheClusterSpecNetworking{
+						Auth: chev2.Auth{
+							IdentityToken: "id_token",
+						},
+					}},
+			}, nil)
+		infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+		assert.Equal(t, constants.IDToken, GetIdentityToken(ctx.CheCluster),
+			"'id_token' should be used")
+	})
+
+	t.Run("TestGetIdentityToken when no defined token in config and openshift", func(t *testing.T) {
+		ctx := test.GetDeployContext(
+			&chev2.CheCluster{
+				Spec: chev2.CheClusterSpec{
+					Networking: chev2.CheClusterSpecNetworking{
+						Auth: chev2.Auth{},
+					}},
+			}, nil)
+		infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+		assert.Equal(t, constants.AccessToken, GetIdentityToken(ctx.CheCluster),
+			"'access_token' should be used")
+	})
+
+}
+
+func TestGetDefaultIdentityToken(t *testing.T) {
+	var tests = []struct {
+		infrastructure infrastructure.Type
+		identityToken  string
+	}{
+		{infrastructure.OpenShiftv4, constants.AccessToken},
+		{infrastructure.Kubernetes, constants.IDToken},
+		{infrastructure.Unsupported, constants.IDToken},
+	}
+	for _, test := range tests {
+		infrastructure.InitializeForTesting(test.infrastructure)
+		if actual := GetDefaultIdentityToken(); !reflect.DeepEqual(test.identityToken, actual) {
+			t.Errorf("Test Failed. Expected '%s', but got '%s'", test.identityToken, actual)
 		}
 	}
 }

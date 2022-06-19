@@ -72,6 +72,7 @@ const (
 	GitLabOAuthConfigClientSecretFileName   = "secret"
 	OAuthScmConfiguration                   = "oauth-scm-configuration"
 	AccessToken                             = "access_token"
+	IDToken                                 = "id_token"
 
 	// Labels
 	KubernetesComponentLabelKey = "app.kubernetes.io/component"
