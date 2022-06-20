@@ -82,12 +82,12 @@ type CheClusterDevEnvironments struct {
 	// +optional
 	TrustedCerts TrustedCerts `json:"trustedCerts,omitempty"`
 	// The default editor to workspace create with. It could be a plugin ID or a URI.
-	// The plugin ID must have `publisher/plugin/version`.
-	// The URI must start from `http`.
+	// The plugin ID must have `publisher/plugin/version` format.
+	// The URI must start from `http://` or `https://`.
 	// +optional
 	DefaultEditor string `json:"defaultEditor,omitempty"`
 	// Default components applied to DevWorkspaces.
-	// These default components are meant to be used when a Devfile does not contain any components.
+	// These default components are meant to be used when a Devfile, that does not contain any components.
 	// +optional
 	DefaultComponents []devfile.Component `json:"defaultComponents,omitempty"`
 }
