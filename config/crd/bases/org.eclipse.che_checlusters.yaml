@@ -1234,6 +1234,20 @@ spec:
             description: Desired configuration of Eclipse Che installation.
             properties:
               components:
+                default:
+                  cheServer:
+                    debug: false
+                    logLevel: INFO
+                  database:
+                    credentialsSecretName: postgres-credentials
+                    externalDb: false
+                    postgresDb: dbche
+                    postgresHostName: postgres
+                    postgresPort: "5432"
+                    pvc:
+                      claimSize: 1Gi
+                  metrics:
+                    enable: true
                 description: Che components configuration.
                 properties:
                   cheServer:
@@ -1275,6 +1289,10 @@ spec:
                                   description: Image pull policy. Default value is
                                     `Always` for `nightly`, `next` or `latest` images,
                                     and `IfNotPresent` in other cases.
+                                  enum:
+                                  - Always
+                                  - IfNotPresent
+                                  - Never
                                   type: string
                                 name:
                                   description: Container name.
@@ -1419,6 +1437,10 @@ spec:
                                   description: Image pull policy. Default value is
                                     `Always` for `nightly`, `next` or `latest` images,
                                     and `IfNotPresent` in other cases.
+                                  enum:
+                                  - Always
+                                  - IfNotPresent
+                                  - Never
                                   type: string
                                 name:
                                   description: Container name.
@@ -1533,6 +1555,10 @@ spec:
                                   description: Image pull policy. Default value is
                                     `Always` for `nightly`, `next` or `latest` images,
                                     and `IfNotPresent` in other cases.
+                                  enum:
+                                  - Always
+                                  - IfNotPresent
+                                  - Never
                                   type: string
                                 name:
                                   description: Container name.
@@ -1663,6 +1689,10 @@ spec:
                                   description: Image pull policy. Default value is
                                     `Always` for `nightly`, `next` or `latest` images,
                                     and `IfNotPresent` in other cases.
+                                  enum:
+                                  - Always
+                                  - IfNotPresent
+                                  - Never
                                   type: string
                                 name:
                                   description: Container name.
@@ -1756,6 +1786,10 @@ spec:
                                   description: Image pull policy. Default value is
                                     `Always` for `nightly`, `next` or `latest` images,
                                     and `IfNotPresent` in other cases.
+                                  enum:
+                                  - Always
+                                  - IfNotPresent
+                                  - Never
                                   type: string
                                 name:
                                   description: Container name.
@@ -1919,6 +1953,10 @@ spec:
                                   description: Image pull policy. Default value is
                                     `Always` for `nightly`, `next` or `latest` images,
                                     and `IfNotPresent` in other cases.
+                                  enum:
+                                  - Always
+                                  - IfNotPresent
+                                  - Never
                                   type: string
                                 name:
                                   description: Container name.
@@ -2021,6 +2059,11 @@ spec:
                     type: string
                 type: object
               devEnvironments:
+                default:
+                  defaultNamespace:
+                    template: <username>-che
+                  storage:
+                    pvcStrategy: common
                 description: Development environment default configuration options.
                 properties:
                   defaultNamespace:
@@ -2141,6 +2184,12 @@ spec:
                     type: object
                 type: object
               networking:
+                default:
+                  auth:
+                    gateway:
+                      configLabels:
+                        app: che
+                        component: che-gateway-config
                 description: Networking, Che authentication, and TLS configuration.
                 properties:
                   annotations:
@@ -2194,6 +2243,10 @@ spec:
                                       description: Image pull policy. Default value
                                         is `Always` for `nightly`, `next` or `latest`
                                         images, and `IfNotPresent` in other cases.
+                                      enum:
+                                      - Always
+                                      - IfNotPresent
+                                      - Never
                                       type: string
                                     name:
                                       description: Container name.
