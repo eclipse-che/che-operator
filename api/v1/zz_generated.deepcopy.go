@@ -17,6 +17,7 @@
 package v1
 
 import (
+	"github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -282,6 +283,13 @@ func (in *CheClusterSpecServer) DeepCopyInto(out *CheClusterSpecServer) {
 	if in.WorkspacePodTolerations != nil {
 		in, out := &in.WorkspacePodTolerations, &out.WorkspacePodTolerations
 		*out = make([]corev1.Toleration, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.WorkspaceDefaultComponents != nil {
+		in, out := &in.WorkspaceDefaultComponents, &out.WorkspaceDefaultComponents
+		*out = make([]v1alpha2.Component, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

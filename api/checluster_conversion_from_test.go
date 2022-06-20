@@ -17,11 +17,11 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/resource"
 
+	devfile "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev1 "github.com/eclipse-che/che-operator/api/v1"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/stretchr/testify/assert"
-	devfile "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -457,7 +457,7 @@ func TestConvertFrom(t *testing.T) {
 	assert.Equal(t, checlusterv1.Spec.Server.SingleHostGatewayImage, "GatewayImage")
 	assert.Equal(t, checlusterv1.Spec.Server.WorkspaceNamespaceDefault, "WorkspaceNamespaceName")
 	assert.Equal(t, checlusterv1.Spec.Server.WorkspaceDefaultEditor, "DefaultEditor")
-	assert.Equal(t, checlusterv1.Spec.Server.WorkspaceDefaultComponents, []devfile.Component{{Name: "universal-developer-image",}})
+	assert.Equal(t, checlusterv1.Spec.Server.WorkspaceDefaultComponents, []devfile.Component{{Name: "universal-developer-image"}})
 	assert.Equal(t, checlusterv1.Spec.Server.WorkspacePodNodeSelector, map[string]string{"a": "b", "c": "d"})
 	assert.Equal(t, checlusterv1.Spec.Server.WorkspacePodTolerations, []corev1.Toleration{
 		{
