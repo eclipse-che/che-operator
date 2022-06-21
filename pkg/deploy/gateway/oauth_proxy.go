@@ -156,7 +156,7 @@ func skipAuthConfig(instance *chev2.CheCluster) string {
 }
 
 func identityTokenConfig(instance *chev2.CheCluster) string {
-	if defaults.IsAccesTokenConfigured(instance) {
+	if instance.IsAccessTokenConfigured() {
 		// pass OAuth access_token to upstream via X-Forwarded-Access-Token header
 		return "pass_access_token = true"
 	}

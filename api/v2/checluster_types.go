@@ -19,6 +19,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	imagepullerv1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
@@ -642,10 +645,17 @@ func (c *CheCluster) GetDefaultNamespace() string {
 	return "<username>-" + os.Getenv("CHE_FLAVOR")
 }
 
-func (c *CheCluster) IsIdentityTokenConfigured() bool {
-	return len(c.Spec.Networking.Auth.IdentityToken) > 0
+func (c *CheCluster) GetIdentityToken() string {
+	if len(c.Spec.Networking.Auth.IdentityToken) > 0 {
+		return c.Spec.Networking.Auth.IdentityToken
+	}
+
+	if infrastructure.IsOpenShift() {
+		return constants.AccessToken
+	}
+	return constants.IdToken
 }
 
-func (c *CheCluster) GetIdentityToken() string {
-	return c.Spec.Networking.Auth.IdentityToken
+func (c *CheCluster) IsAccessTokenConfigured() bool {
+	return c.GetIdentityToken() == constants.AccessToken
 }

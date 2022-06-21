@@ -475,7 +475,7 @@ func provisionMainWorkspaceRoute(cheCluster *chev2.CheCluster, routing *dwo.DevW
 		getServiceURL(wsGatewayPort, dwId, dwNamespace),
 		[]string{"/" + dwId})
 
-	if defaults.IsAccesTokenConfigured(cheCluster) {
+	if cheCluster.IsAccessTokenConfigured() {
 		cfg.AddAuthHeaderRewrite(dwId)
 	}
 

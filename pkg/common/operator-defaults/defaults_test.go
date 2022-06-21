@@ -97,7 +97,7 @@ func TestIsAccesTokenConfigured(t *testing.T) {
 					},
 				}},
 		}
-		assert.True(t, IsAccesTokenConfigured(cheCluster), "'access_token' should be activated")
+		assert.True(t, cheCluster.IsAccessTokenConfigured(), "'access_token' should be activated")
 	})
 	t.Run("TestIsAccesTokenConfigured when id_token defined", func(t *testing.T) {
 		cheCluster := &chev2.CheCluster{
@@ -108,7 +108,7 @@ func TestIsAccesTokenConfigured(t *testing.T) {
 					},
 				}},
 		}
-		assert.False(t, IsAccesTokenConfigured(cheCluster), "'access_token' should not be activated")
+		assert.False(t, cheCluster.IsAccessTokenConfigured(), "'access_token' should not be activated")
 	})
 }
 
@@ -124,7 +124,7 @@ func TestGetIdentityToken(t *testing.T) {
 		}
 		infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
-		assert.Equal(t, "access_token", GetIdentityToken(cheCluster),
+		assert.Equal(t, "access_token", cheCluster.GetIdentityToken(),
 			"'access_token' should be used")
 	})
 
@@ -139,7 +139,7 @@ func TestGetIdentityToken(t *testing.T) {
 		}
 		infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
-		assert.Equal(t, "id_token", GetIdentityToken(cheCluster),
+		assert.Equal(t, "id_token", cheCluster.GetIdentityToken(),
 			"'id_token' should be used")
 	})
 
@@ -152,7 +152,7 @@ func TestGetIdentityToken(t *testing.T) {
 		}
 		infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
-		assert.Equal(t, "id_token", GetIdentityToken(cheCluster),
+		assert.Equal(t, "id_token", cheCluster.GetIdentityToken(),
 			"'id_token' should be used")
 	})
 
@@ -167,7 +167,7 @@ func TestGetIdentityToken(t *testing.T) {
 		}
 		infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 
-		assert.Equal(t, "access_token", GetIdentityToken(cheCluster),
+		assert.Equal(t, "access_token", cheCluster.GetIdentityToken(),
 			"'access_token' should be used")
 	})
 
@@ -182,7 +182,7 @@ func TestGetIdentityToken(t *testing.T) {
 		}
 		infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 
-		assert.Equal(t, "id_token", GetIdentityToken(cheCluster),
+		assert.Equal(t, "id_token", cheCluster.GetIdentityToken(),
 			"'id_token' should be used")
 	})
 
@@ -195,13 +195,15 @@ func TestGetIdentityToken(t *testing.T) {
 		}
 		infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 
-		assert.Equal(t, "access_token", GetIdentityToken(cheCluster),
+		assert.Equal(t, "access_token", cheCluster.GetIdentityToken(),
 			"'access_token' should be used")
 	})
 
 }
 
 func TestGetDefaultIdentityToken(t *testing.T) {
+	emptyCheCluster := chev2.CheCluster{}
+
 	var tests = []struct {
 		infrastructure infrastructure.Type
 		identityToken  string
@@ -212,7 +214,7 @@ func TestGetDefaultIdentityToken(t *testing.T) {
 	}
 	for _, test := range tests {
 		infrastructure.InitializeForTesting(test.infrastructure)
-		if actual := GetDefaultIdentityToken(); !reflect.DeepEqual(test.identityToken, actual) {
+		if actual := emptyCheCluster.GetIdentityToken(); !reflect.DeepEqual(test.identityToken, actual) {
 			t.Errorf("Test Failed. Expected '%s', but got '%s'", test.identityToken, actual)
 		}
 	}
