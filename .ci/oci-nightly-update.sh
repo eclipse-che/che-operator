@@ -26,17 +26,18 @@ source "${OPERATOR_REPO}/.github/bin/common.sh"
 trap "catchFinish" EXIT SIGINT
 
 overrideDefaults() {
-  # CI_CHE_OPERATOR_IMAGE it is che operator image builded in openshift CI job workflow. More info about how works image dependencies in ci:https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates
+  # CI_CHE_OPERATOR_IMAGE it is che operator image built in openshift CI job workflow. More info about how works image dependencies in ci:https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates
   export OPERATOR_IMAGE=${CI_CHE_OPERATOR_IMAGE}
 }
 
 runTests() {
   deployDevWorkspaceOperator "stable"
-  deployEclipseCheWithOperator "chectl" "openshift" ${LAST_OPERATOR_VERSION_TEMPLATE_PATH} "false"
+  deployEclipseCheWithOperator "/tmp/chectl-${LAST_PACKAGE_VERSION}/chectl/bin/run" "openshift" ${LAST_OPERATOR_VERSION_TEMPLATE_PATH} "false"
   updateEclipseChe "chectl" "openshift" ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH} "true"
 }
 
 initDefaults
 initTemplates
 overrideDefaults
+installchectl "${LAST_PACKAGE_VERSION}"
 runTests
