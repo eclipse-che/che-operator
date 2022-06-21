@@ -20,7 +20,6 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
-	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
@@ -126,7 +125,7 @@ func (d *DashboardReconciler) createGatewayConfig(ctx *chetypes.DeployContext) *
 		10,
 		"http://"+d.getComponentName(ctx)+":8080",
 		[]string{})
-	if utils.IsAccessTokenToPass(ctx.CheCluster) {
+	if defaults.IsAccesTokenConfigured(ctx.CheCluster) {
 		cfg.AddAuthHeaderRewrite(d.getComponentName(ctx))
 	}
 	return cfg

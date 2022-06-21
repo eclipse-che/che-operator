@@ -392,3 +392,26 @@ func getOrganizationFromImage(image string) string {
 	}
 	return organization
 }
+
+const (
+	accessToken = "access_token"
+	idToken     = "id_token"
+)
+
+func IsAccesTokenConfigured(checluster *chev2.CheCluster) bool {
+	return GetIdentityToken(checluster) == accessToken
+}
+
+func GetIdentityToken(checluster *chev2.CheCluster) string {
+	if checluster.IsIdentityTokenConfigured() {
+		return checluster.GetIdentityToken()
+	}
+	return GetDefaultIdentityToken()
+}
+
+func GetDefaultIdentityToken() string {
+	if infrastructure.IsOpenShift() {
+		return accessToken
+	}
+	return idToken
+}

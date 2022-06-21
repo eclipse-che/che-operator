@@ -641,3 +641,11 @@ func (c *CheCluster) GetDefaultNamespace() string {
 
 	return "<username>-" + os.Getenv("CHE_FLAVOR")
 }
+
+func (c *CheCluster) IsIdentityTokenConfigured() bool {
+	return len(c.Spec.Networking.Auth.IdentityToken) > 0
+}
+
+func (c *CheCluster) GetIdentityToken() string {
+	return c.Spec.Networking.Auth.IdentityToken
+}
