@@ -127,7 +127,7 @@ func syncAll(deployContext *chetypes.DeployContext) error {
 		return err
 	}
 
-	if defaults.IsAccesTokenConfigured(instance) {
+	if instance.IsAccessTokenConfigured() {
 		if headerRewritePluginConfig, err := getGatewayHeaderRewritePluginConfigSpec(instance); err == nil {
 			if _, err := deploy.Sync(deployContext, headerRewritePluginConfig, configMapDiffOpts); err != nil {
 				return err
@@ -238,7 +238,7 @@ func getGatewayServerConfigSpec(deployContext *chetypes.DeployContext) (corev1.C
 		"http://"+deploy.CheServiceName+":8080",
 		[]string{})
 
-	if defaults.IsAccesTokenConfigured(deployContext.CheCluster) {
+	if deployContext.CheCluster.IsAccessTokenConfigured() {
 		cfg.AddAuthHeaderRewrite(serverComponentName)
 	}
 	if infrastructure.IsOpenShift() {
@@ -400,7 +400,7 @@ providers:
 log:
   level: "INFO"`, traefikPort)
 
-	if defaults.IsAccesTokenConfigured(instance) {
+	if instance.IsAccessTokenConfigured() {
 		data += `
 experimental:
   localPlugins:
@@ -548,7 +548,7 @@ func getTraefikContainerVolumeMounts(instance *chev2.CheCluster) []corev1.Volume
 			MountPath: "/dynamic-config",
 		},
 	}
-	if defaults.IsAccesTokenConfigured(instance) {
+	if instance.IsAccessTokenConfigured() {
 		mounts = append(mounts, corev1.VolumeMount{
 			Name:      "header-rewrite-traefik-plugin",
 			MountPath: "/plugins-local/src/github.com/che-incubator/header-rewrite-traefik-plugin",
@@ -582,7 +582,7 @@ func getVolumesSpec(instance *chev2.CheCluster) []corev1.Volume {
 		getOauthProxyConfigVolume(),
 		getKubeRbacProxyConfigVolume())
 
-	if defaults.IsAccesTokenConfigured(instance) {
+	if instance.IsAccessTokenConfigured() {
 		volumes = append(volumes, corev1.Volume{
 			Name: "header-rewrite-traefik-plugin",
 			VolumeSource: corev1.VolumeSource{

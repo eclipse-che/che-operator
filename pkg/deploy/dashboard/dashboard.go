@@ -125,7 +125,7 @@ func (d *DashboardReconciler) createGatewayConfig(ctx *chetypes.DeployContext) *
 		10,
 		"http://"+d.getComponentName(ctx)+":8080",
 		[]string{})
-	if defaults.IsAccesTokenConfigured(ctx.CheCluster) {
+	if ctx.CheCluster.IsAccessTokenConfigured() {
 		cfg.AddAuthHeaderRewrite(d.getComponentName(ctx))
 	}
 	return cfg
