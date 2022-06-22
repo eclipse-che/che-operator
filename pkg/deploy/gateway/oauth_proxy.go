@@ -26,6 +26,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -114,8 +115,11 @@ cookie_secret = "%s"
 cookie_expire = "24h0m0s"
 email_domains = "*"
 cookie_httponly = false
-pass_authorization_header = true
 skip_provider_button = true
+whitelist_domains = "%s"
+cookie_domains = "%s"
+%s
+%s
 %s
 `, GatewayServicePort,
 		ctx.CheHost,
@@ -123,7 +127,11 @@ skip_provider_button = true
 		ctx.CheCluster.Spec.Networking.Auth.OAuthClientName,
 		ctx.CheCluster.Spec.Networking.Auth.OAuthSecret,
 		cookieSecret,
-		skipAuthConfig(ctx.CheCluster))
+		utils.Whitelist(ctx.CheHost),
+		utils.Whitelist(ctx.CheHost),
+		skipAuthConfig(ctx.CheCluster),
+		identityTokenConfig(ctx.CheCluster),
+		oauthScopeConfig(ctx.CheCluster))
 }
 
 func skipAuthConfig(instance *chev2.CheCluster) string {
@@ -143,6 +151,23 @@ func skipAuthConfig(instance *chev2.CheCluster) string {
 			propName = "skip_auth_regex"
 		}
 		return fmt.Sprintf("%s = \"%s\"", propName, strings.Join(skipAuthPaths, "|"))
+	}
+	return ""
+}
+
+func identityTokenConfig(instance *chev2.CheCluster) string {
+	if instance.IsAccessTokenConfigured() {
+		// pass OAuth access_token to upstream via X-Forwarded-Access-Token header
+		return "pass_access_token = true"
+	}
+	// pass OIDC IDToken to upstream via Authorization Bearer header
+	return "pass_authorization_header = true"
+}
+
+func oauthScopeConfig(instance *chev2.CheCluster) string {
+	scope := instance.Spec.Networking.Auth.OAuthScope
+	if len(scope) > 1 {
+		return fmt.Sprintf("scope = \"%s\"", scope)
 	}
 	return ""
 }

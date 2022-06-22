@@ -19,6 +19,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	imagepullerv1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
@@ -351,6 +354,16 @@ type Auth struct {
 	OAuthClientName string `json:"oAuthClientName,omitempty"`
 	// Name of the secret set in the OpenShift `OAuthClient` resource used to set up identity federation on the OpenShift side.
 	OAuthSecret string `json:"oAuthSecret,omitempty"`
+	// Access Token Scope.
+	// This field is specific to Che installations made for Kubernetes only and ignored for OpenShift.
+	// +optional
+	OAuthScope string `json:"oAuthScope,omitempty"`
+	// Identity token to be passed to upstream. There are two types of tokens supported: `id_token` and `access_token`.
+	// Default value is `id_token`.
+	// This field is specific to Che installations made for Kubernetes only and ignored for OpenShift.
+	// +optional
+	// +kubebuilder:validation:Enum=id_token;access_token
+	IdentityToken string `json:"identityToken,omitempty"`
 	// Gateway settings.
 	// +optional
 	Gateway Gateway `json:"gateway,omitempty"`
@@ -630,4 +643,19 @@ func (c *CheCluster) GetDefaultNamespace() string {
 	}
 
 	return "<username>-" + os.Getenv("CHE_FLAVOR")
+}
+
+func (c *CheCluster) GetIdentityToken() string {
+	if len(c.Spec.Networking.Auth.IdentityToken) > 0 {
+		return c.Spec.Networking.Auth.IdentityToken
+	}
+
+	if infrastructure.IsOpenShift() {
+		return constants.AccessToken
+	}
+	return constants.IdToken
+}
+
+func (c *CheCluster) IsAccessTokenConfigured() bool {
+	return c.GetIdentityToken() == constants.AccessToken
 }

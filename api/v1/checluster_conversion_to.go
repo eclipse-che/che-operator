@@ -182,6 +182,8 @@ func (src *CheCluster) convertTo_Networking_Auth(dst *chev2.CheCluster) error {
 	dst.Spec.Networking.Auth.IdentityProviderURL = src.Spec.Auth.IdentityProviderURL
 	dst.Spec.Networking.Auth.OAuthClientName = src.Spec.Auth.OAuthClientName
 	dst.Spec.Networking.Auth.OAuthSecret = src.Spec.Auth.OAuthSecret
+	dst.Spec.Networking.Auth.OAuthScope = src.Spec.Auth.OAuthScope
+	dst.Spec.Networking.Auth.IdentityToken = src.Spec.Auth.IdentityToken
 
 	if err := src.convertTo_Networking_Auth_Gateway(dst); err != nil {
 		return err

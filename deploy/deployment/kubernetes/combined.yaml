@@ -161,6 +161,9 @@ spec:
                   identityProviderURL:
                     description: Public URL of the Identity Provider server (Keycloak / RH-SSO server). Set this ONLY when a use of an external Identity Provider is needed. See the `externalIdentityProvider` field. By default, this will be automatically calculated and set by the Operator.
                     type: string
+                  identityToken:
+                    description: 'Identity token to be passed to upstream. There are two types of tokens supported: `id_token` and `access_token`. Default value is `id_token`. This field is specific to Che installations made for Kubernetes only and ignored for OpenShift.'
+                    type: string
                   initialOpenShiftOAuthUser:
                     description: Deprecated. The value of this flag is ignored. For operating with the OpenShift OAuth authentication, create a new user account since the kubeadmin can not be used. If the value is true, then a new OpenShift OAuth user will be created for the HTPasswd identity provider. If the value is false and the user has already been created, then it will be removed. If value is an empty, then do nothing. The user's credentials are stored in the `openshift-oauth-user-credentials` secret in 'openshift-config' namespace by Operator. Note that this solution is Openshift 4 platform-specific.
                     type: boolean
@@ -169,6 +172,9 @@ spec:
                     type: boolean
                   oAuthClientName:
                     description: Name of the OpenShift `OAuthClient` resource used to setup identity federation on the OpenShift side. Auto-generated when left blank. See also the `OpenShiftoAuth` field.
+                    type: string
+                  oAuthScope:
+                    description: Access Token Scope. This field is specific to Che installations made for Kubernetes only and ignored for OpenShift.
                     type: string
                   oAuthSecret:
                     description: Name of the secret set in the OpenShift `OAuthClient` resource used to setup identity federation on the OpenShift side. Auto-generated when left blank. See also the `OAuthClientName` field.
@@ -1581,8 +1587,17 @@ spec:
                       identityProviderURL:
                         description: Public URL of the Identity Provider server.
                         type: string
+                      identityToken:
+                        description: 'Identity token to be passed to upstream. There are two types of tokens supported: `id_token` and `access_token`. Default value is `id_token`. This field is specific to Che installations made for Kubernetes only and ignored for OpenShift.'
+                        enum:
+                        - id_token
+                        - access_token
+                        type: string
                       oAuthClientName:
                         description: Name of the OpenShift `OAuthClient` resource used to set up identity federation on the OpenShift side.
+                        type: string
+                      oAuthScope:
+                        description: Access Token Scope. This field is specific to Che installations made for Kubernetes only and ignored for OpenShift.
                         type: string
                       oAuthSecret:
                         description: Name of the secret set in the OpenShift `OAuthClient` resource used to set up identity federation on the OpenShift side.
