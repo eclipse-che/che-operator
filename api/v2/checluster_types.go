@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2021 Red Hat, Inc.
+// Copyright (c) 2019-2022 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -36,17 +36,20 @@ type CheClusterSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Development environments"
+	// +kubebuilder:default:={storage: {pvcStrategy: common}, defaultNamespace: {template: <username>-che}}
 	DevEnvironments CheClusterDevEnvironments `json:"devEnvironments"`
 	// Che components configuration.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=2
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Components"
+	// +kubebuilder:default:={cheServer: {logLevel: INFO, debug: false}, metrics: {enable: true}, database: {externalDb: false, credentialsSecretName: postgres-credentials, postgresHostName: postgres, postgresPort: "5432", postgresDb: dbche, pvc: {claimSize: "1Gi"}}}
 	Components CheClusterComponents `json:"components"`
 	// Networking, Che authentication, and TLS configuration.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=3
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Networking"
-	Networking CheClusterSpecNetworking `json:"networking,omitempty"`
+	// +kubebuilder:default:={auth: {gateway: {configLabels: {app: che, component: che-gateway-config}}}}
+	Networking CheClusterSpecNetworking `json:"networking"`
 	// Configuration of an alternative registry that stores Che images.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=4
@@ -59,7 +62,8 @@ type CheClusterSpec struct {
 type CheClusterDevEnvironments struct {
 	// Workspaces persistent storage.
 	// +optional
-	Storage WorkspaceStorage `json:"storage"`
+	// +kubebuilder:default:={pvcStrategy: common}
+	Storage WorkspaceStorage `json:"storage,omitempty"`
 	// Default plug-ins applied to DevWorkspaces.
 	// +optional
 	DefaultPlugins []WorkspaceDefaultPlugins `json:"defaultPlugins,omitempty"`
@@ -71,6 +75,7 @@ type CheClusterDevEnvironments struct {
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 	// User's default namespace.
 	// +optional
+	// +kubebuilder:default:={template: <username>-che}
 	DefaultNamespace DefaultNamespace `json:"defaultNamespace,omitempty"`
 	// Trusted certificate settings.
 	// +optional
@@ -85,6 +90,7 @@ type CheClusterComponents struct {
 	DevWorkspace DevWorkspace `json:"devWorkspace"`
 	// General configuration settings related to the Che server.
 	// +optional
+	// +kubebuilder:default:={logLevel: INFO, debug: false}
 	CheServer CheServer `json:"cheServer"`
 	// Configuration settings related to the plug-in registry used by the Che installation.
 	// +optional
@@ -94,6 +100,7 @@ type CheClusterComponents struct {
 	DevfileRegistry DevfileRegistry `json:"devfileRegistry"`
 	// Configuration settings related to the database used by the Che installation.
 	// +optional
+	// +kubebuilder:default:={externalDb: false, credentialsSecretName: postgres-credentials, postgresHostName: postgres, postgresPort: "5432", postgresDb: dbche, pvc: {claimSize: "1Gi"}}
 	Database Database `json:"database"`
 	// Configuration settings related to the dashboard used by the Che installation.
 	// +optional
@@ -103,6 +110,7 @@ type CheClusterComponents struct {
 	ImagePuller ImagePuller `json:"imagePuller"`
 	// Che server metrics configuration.
 	// +optional
+	// +kubebuilder:default:={enable: true}
 	Metrics ServerMetrics `json:"metrics"`
 }
 
@@ -136,6 +144,7 @@ type CheClusterSpecNetworking struct {
 	TlsSecretName string `json:"tlsSecretName,omitempty"`
 	// Authentication settings.
 	// +optional
+	// +kubebuilder:default:={gateway: {configLabels: {app: che, component: che-gateway-config}}}
 	Auth Auth `json:"auth"`
 }
 
@@ -166,6 +175,7 @@ type CheServer struct {
 	LogLevel string `json:"logLevel,omitempty"`
 	// Enables the debug mode for Che server.
 	// +optional
+	// +kubebuilder:default:=false
 	Debug *bool `json:"debug,omitempty"`
 	// ClusterRoles assigned to Che ServiceAccount.
 	// The defaults roles are:
@@ -236,6 +246,7 @@ type Database struct {
 	// When `externalDb` is set as `true`, no dedicated database is deployed by the
 	// Operator and you need to provide connection details about the external database you want to use.
 	// +optional
+	// +kubebuilder:default:=false
 	ExternalDb bool `json:"externalDb"`
 	// Deployment override options.
 	// +optional
@@ -261,14 +272,15 @@ type Database struct {
 	CredentialsSecretName string `json:"credentialsSecretName,omitempty"`
 	// PVC settings for PostgreSQL database.
 	// +optional
+	// +kubebuilder:default:={claimSize: "1Gi"}
 	Pvc PVC `json:"pvc,omitempty"`
 }
 
 // Che server metrics configuration
 type ServerMetrics struct {
 	// Enables `metrics` for the Che server endpoint.
-	// +kubebuilder:default:=true
 	// +optional
+	// +kubebuilder:default:=true
 	Enable bool `json:"enable"`
 }
 
@@ -284,6 +296,7 @@ type ImagePuller struct {
 	// pre-pulled after installation.
 	// Note that while this Operator and its behavior is community-supported, its payload may be commercially-supported
 	// for pulling commercially-supported images.
+	// +optional
 	Enable bool `json:"enable"`
 	// A Kubernetes Image Puller spec to configure the image puller in the CheCluster.
 	// +optional
@@ -304,8 +317,10 @@ type DevWorkspace struct {
 
 type DefaultNamespace struct {
 	// If you don't create the user namespaces in advance, this field defines the Kubernetes namespace created when you start your first workspace.
-	// You can use `<username>`, `<userid>` and `<workspaceid>` placeholders, such as che-workspace-<username>.
+	// You can use `<username>` and `<userid>` placeholders, such as che-workspace-<username>.
 	// +optional
+	// +kubebuilder:default:=<username>-che
+	// +kubebuilder:validation:Pattern=<username>|<userid>
 	Template string `json:"template,omitempty"`
 }
 
@@ -336,6 +351,7 @@ type WorkspaceStorage struct {
 	// For details, see https://github.com/eclipse/che/issues/21185.
 	// +optional
 	// +kubebuilder:default:="common"
+	// +kubebuilder:validation:Enum=common;per-workspace
 	PvcStrategy string `json:"pvcStrategy,omitempty"`
 }
 
@@ -349,10 +365,13 @@ type WorkspaceDefaultPlugins struct {
 // Authentication settings.
 type Auth struct {
 	// Public URL of the Identity Provider server.
+	// +optional
 	IdentityProviderURL string `json:"identityProviderURL,omitempty"`
 	// Name of the OpenShift `OAuthClient` resource used to set up identity federation on the OpenShift side.
+	// +optional
 	OAuthClientName string `json:"oAuthClientName,omitempty"`
 	// Name of the secret set in the OpenShift `OAuthClient` resource used to set up identity federation on the OpenShift side.
+	// +optional
 	OAuthSecret string `json:"oAuthSecret,omitempty"`
 	// Access Token Scope.
 	// This field is specific to Che installations made for Kubernetes only and ignored for OpenShift.
@@ -366,6 +385,7 @@ type Auth struct {
 	IdentityToken string `json:"identityToken,omitempty"`
 	// Gateway settings.
 	// +optional
+	// +kubebuilder:default:={configLabels: {app: che, component: che-gateway-config}}
 	Gateway Gateway `json:"gateway,omitempty"`
 }
 
@@ -379,8 +399,9 @@ type Gateway struct {
 	// - `kube-rbac-proxy`
 	// +optional
 	Deployment Deployment `json:"deployment,omitempty"`
-	// Gate configuration labels.
+	// Gateway configuration labels.
 	// +optional
+	// +kubebuilder:default:={app: che, component: che-gateway-config}
 	ConfigLabels map[string]string `json:"configLabels,omitempty"`
 }
 
@@ -403,6 +424,7 @@ type Proxy struct {
 	// Use only when a proxy configuration is required. The Operator respects OpenShift cluster-wide proxy configuration,
 	// defining `nonProxyHosts` in a custom resource leads to merging non-proxy hosts lists from the cluster proxy configuration, and the ones defined in the custom resources.
 	// See the following page: https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html. See also the `proxyURL` fields.
+	// +optional
 	NonProxyHosts []string `json:"nonProxyHosts,omitempty"`
 	// The secret name that contains `user` and `password` for a proxy server.
 	// The secret must have a `app.kubernetes.io/part-of=che.eclipse.org` label.
@@ -454,6 +476,7 @@ type Container struct {
 	Image string `json:"image,omitempty"`
 	// Image pull policy. Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
+	// +kubebuilder:validation:Enum=Always;IfNotPresent;Never
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 	// Compute resources required by this container.
 	// +optional

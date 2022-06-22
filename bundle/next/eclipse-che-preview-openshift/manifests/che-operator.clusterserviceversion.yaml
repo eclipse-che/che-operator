@@ -55,31 +55,10 @@ metadata:
             "namespace": "eclipse-che"
           },
           "spec": {
-            "components": {
-              "database": {
-                "externalDb": false
-              },
-              "metrics": {
-                "enable": true
-              }
-            },
-            "devEnvironments": {
-              "defaultNamespace": {
-                "template": "<username>-che"
-              },
-              "storage": {
-                "pvcStrategy": "common"
-              }
-            },
-            "networking": {
-              "auth": {
-                "identityProviderURL": "",
-                "oAuthClientName": "",
-                "oAuthSecret": ""
-              },
-              "domain": "",
-              "tlsSecretName": ""
-            }
+            "components": {},
+            "containerRegistry": {},
+            "devEnvironments": {},
+            "networking": {}
           }
         }
       ]
@@ -97,7 +76,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.50.0-568.next
+  name: eclipse-che-preview-openshift.v7.50.0-606.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1408,7 +1387,7 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.50.0-568.next
+  version: 7.50.0-606.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1

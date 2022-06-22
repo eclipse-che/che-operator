@@ -16,20 +16,7 @@ metadata:
   name: eclipse-che
   namespace: eclipse-che
 spec:
-  devEnvironments:
-    defaultNamespace:
-      template: '<username>-che'
-    storage:
-      pvcStrategy: 'common'
-  components:
-    database:
-      externalDb: false
-    metrics:
-      enable: true
-  networking:
-    domain: ''
-    tlsSecretName: ''
-    auth:
-      identityProviderURL: ''
-      oAuthClientName: ''
-      oAuthSecret: ''
+  components: {}
+  devEnvironments: {}
+  networking: {}
+  containerRegistry: {}

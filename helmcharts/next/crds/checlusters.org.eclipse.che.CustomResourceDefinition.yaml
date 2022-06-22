@@ -790,9 +790,26 @@ spec:
             description: Desired configuration of Eclipse Che installation.
             properties:
               components:
+                default:
+                  cheServer:
+                    debug: false
+                    logLevel: INFO
+                  database:
+                    credentialsSecretName: postgres-credentials
+                    externalDb: false
+                    postgresDb: dbche
+                    postgresHostName: postgres
+                    postgresPort: "5432"
+                    pvc:
+                      claimSize: 1Gi
+                  metrics:
+                    enable: true
                 description: Che components configuration.
                 properties:
                   cheServer:
+                    default:
+                      debug: false
+                      logLevel: INFO
                     description: General configuration settings related to the Che server.
                     properties:
                       clusterRoles:
@@ -801,6 +818,7 @@ spec:
                           type: string
                         type: array
                       debug:
+                        default: false
                         description: Enables the debug mode for Che server.
                         type: boolean
                       deployment:
@@ -816,6 +834,10 @@ spec:
                                   type: string
                                 imagePullPolicy:
                                   description: Image pull policy. Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
+                                  enum:
+                                  - Always
+                                  - IfNotPresent
+                                  - Never
                                   type: string
                                 name:
                                   description: Container name.
@@ -919,6 +941,10 @@ spec:
                                   type: string
                                 imagePullPolicy:
                                   description: Image pull policy. Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
+                                  enum:
+                                  - Always
+                                  - IfNotPresent
+                                  - Never
                                   type: string
                                 name:
                                   description: Container name.
@@ -990,6 +1016,14 @@ spec:
                         type: object
                     type: object
                   database:
+                    default:
+                      credentialsSecretName: postgres-credentials
+                      externalDb: false
+                      postgresDb: dbche
+                      postgresHostName: postgres
+                      postgresPort: "5432"
+                      pvc:
+                        claimSize: 1Gi
                     description: Configuration settings related to the database used by the Che installation.
                     properties:
                       credentialsSecretName:
@@ -1009,6 +1043,10 @@ spec:
                                   type: string
                                 imagePullPolicy:
                                   description: Image pull policy. Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
+                                  enum:
+                                  - Always
+                                  - IfNotPresent
+                                  - Never
                                   type: string
                                 name:
                                   description: Container name.
@@ -1069,6 +1107,7 @@ spec:
                             type: object
                         type: object
                       externalDb:
+                        default: false
                         description: Instructs the Operator to deploy a dedicated database. By default, a dedicated PostgreSQL database is deployed as part of the Che installation. When `externalDb` is set as `true`, no dedicated database is deployed by the Operator and you need to provide connection details about the external database you want to use.
                         type: boolean
                       postgresDb:
@@ -1084,6 +1123,8 @@ spec:
                         description: PostgreSQL Database port the Che server connects to. Override this value only when using an external database. See field `externalDb`.
                         type: string
                       pvc:
+                        default:
+                          claimSize: 1Gi
                         description: PVC settings for PostgreSQL database.
                         properties:
                           claimSize:
@@ -1110,6 +1151,10 @@ spec:
                                   type: string
                                 imagePullPolicy:
                                   description: Image pull policy. Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
+                                  enum:
+                                  - Always
+                                  - IfNotPresent
+                                  - Never
                                   type: string
                                 name:
                                   description: Container name.
@@ -1189,6 +1234,10 @@ spec:
                                   type: string
                                 imagePullPolicy:
                                   description: Image pull policy. Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
+                                  enum:
+                                  - Always
+                                  - IfNotPresent
+                                  - Never
                                   type: string
                                 name:
                                   description: Container name.
@@ -1298,10 +1347,10 @@ spec:
                           nodeSelector:
                             type: string
                         type: object
-                    required:
-                    - enable
                     type: object
                   metrics:
+                    default:
+                      enable: true
                     description: Che server metrics configuration.
                     properties:
                       enable:
@@ -1325,6 +1374,10 @@ spec:
                                   type: string
                                 imagePullPolicy:
                                   description: Image pull policy. Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
+                                  enum:
+                                  - Always
+                                  - IfNotPresent
+                                  - Never
                                   type: string
                                 name:
                                   description: Container name.
@@ -1410,13 +1463,22 @@ spec:
                     type: string
                 type: object
               devEnvironments:
+                default:
+                  defaultNamespace:
+                    template: <username>-che
+                  storage:
+                    pvcStrategy: common
                 description: Development environment default configuration options.
                 properties:
                   defaultNamespace:
+                    default:
+                      template: <username>-che
                     description: User's default namespace.
                     properties:
                       template:
-                        description: If you don't create the user namespaces in advance, this field defines the Kubernetes namespace created when you start your first workspace. You can use `<username>`, `<userid>` and `<workspaceid>` placeholders, such as che-workspace-<username>.
+                        default: <username>-che
+                        description: If you don't create the user namespaces in advance, this field defines the Kubernetes namespace created when you start your first workspace. You can use `<username>` and `<userid>` placeholders, such as che-workspace-<username>.
+                        pattern: <username>|<userid>
                         type: string
                     type: object
                   defaultPlugins:
@@ -1439,6 +1501,8 @@ spec:
                     description: The node selector limits the nodes that can run the workspace pods.
                     type: object
                   storage:
+                    default:
+                      pvcStrategy: common
                     description: Workspaces persistent storage.
                     properties:
                       pvc:
@@ -1454,6 +1518,9 @@ spec:
                       pvcStrategy:
                         default: common
                         description: Persistent volume claim strategy for the Che server. Only the `common` strategy (all workspaces PVCs in one volume) is supported . For details, see https://github.com/eclipse/che/issues/21185.
+                        enum:
+                        - common
+                        - per-workspace
                         type: string
                     type: object
                   tolerations:
@@ -1488,6 +1555,12 @@ spec:
                     type: object
                 type: object
               networking:
+                default:
+                  auth:
+                    gateway:
+                      configLabels:
+                        app: che
+                        component: che-gateway-config
                 description: Networking, Che authentication, and TLS configuration.
                 properties:
                   annotations:
@@ -1496,15 +1569,27 @@ spec:
                     description: 'Defines annotations which will be set for an Ingress (a route for OpenShift platform). The defaults for kubernetes platforms are:     kubernetes.io/ingress.class:                       "nginx"     nginx.ingress.kubernetes.io/proxy-read-timeout:    "3600",     nginx.ingress.kubernetes.io/proxy-connect-timeout: "3600",     nginx.ingress.kubernetes.io/ssl-redirect:          "true"'
                     type: object
                   auth:
+                    default:
+                      gateway:
+                        configLabels:
+                          app: che
+                          component: che-gateway-config
                     description: Authentication settings.
                     properties:
                       gateway:
+                        default:
+                          configLabels:
+                            app: che
+                            component: che-gateway-config
                         description: Gateway settings.
                         properties:
                           configLabels:
                             additionalProperties:
                               type: string
-                            description: Gate configuration labels.
+                            default:
+                              app: che
+                              component: che-gateway-config
+                            description: Gateway configuration labels.
                             type: object
                           deployment:
                             description: 'Deployment override options. Since gateway deployment consists of several containers, they must be distinguished in the configuration by their names: - `gateway` - `configbump` - `oauth-proxy` - `kube-rbac-proxy`'
@@ -1519,6 +1604,10 @@ spec:
                                       type: string
                                     imagePullPolicy:
                                       description: Image pull policy. Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
+                                      enum:
+                                      - Always
+                                      - IfNotPresent
+                                      - Never
                                       type: string
                                     name:
                                       description: Container name.

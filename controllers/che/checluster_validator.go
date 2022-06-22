@@ -14,7 +14,6 @@ package che
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
@@ -22,15 +21,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const (
-	NamespaceStrategyErrorMessage = "Namespace strategies other than 'per user' is not supported anymore. Using the <username> or <userid> placeholder is required in the 'spec.server.workspaceNamespaceDefault' field. The current value is: %s"
-)
-
 // CheClusterValidator checks CheCluster CR configuration.
-// It detect:
+// It detects:
 // - configurations which miss required field(s) to deploy Che
-// - self-contradictory configurations
-// - configurations with which it is impossible to deploy Che
 type CheClusterValidator struct {
 	deploy.Reconcilable
 }
@@ -44,11 +37,6 @@ func (v *CheClusterValidator) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 		if ctx.CheCluster.Spec.Networking.Domain == "" {
 			return reconcile.Result{}, false, fmt.Errorf("Required field \"spec.networking.domain\" is not set")
 		}
-	}
-
-	workspaceNamespaceDefault := ctx.CheCluster.GetDefaultNamespace()
-	if strings.Index(workspaceNamespaceDefault, "<username>") == -1 && strings.Index(workspaceNamespaceDefault, "<userid>") == -1 {
-		return reconcile.Result{}, false, fmt.Errorf(NamespaceStrategyErrorMessage, workspaceNamespaceDefault)
 	}
 
 	return reconcile.Result{}, true, nil
