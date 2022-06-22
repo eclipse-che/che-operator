@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	imagepullerv1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
+	devfile "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -80,6 +81,15 @@ type CheClusterDevEnvironments struct {
 	// Trusted certificate settings.
 	// +optional
 	TrustedCerts TrustedCerts `json:"trustedCerts,omitempty"`
+	// The default editor to workspace create with. It could be a plugin ID or a URI.
+	// The plugin ID must have `publisher/plugin/version` format.
+	// The URI must start from `http://` or `https://`.
+	// +optional
+	DefaultEditor string `json:"defaultEditor,omitempty"`
+	// Default components applied to DevWorkspaces.
+	// These default components are meant to be used when a Devfile, that does not contain any components.
+	// +optional
+	DefaultComponents []devfile.Component `json:"defaultComponents,omitempty"`
 }
 
 // Che components configuration.
