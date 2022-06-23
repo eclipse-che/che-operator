@@ -14,6 +14,8 @@ package postgres
 import (
 	"strings"
 
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
+
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
@@ -80,8 +82,16 @@ func (p *PostgresReconciler) syncService(ctx *chetypes.DeployContext) (bool, err
 }
 
 func (p *PostgresReconciler) syncPVC(ctx *chetypes.DeployContext) (bool, error) {
-	pvc := ctx.CheCluster.Spec.Components.Database.Pvc.DeepCopy()
-	pvc.ClaimSize = utils.GetValue(ctx.CheCluster.Spec.Components.Database.Pvc.ClaimSize, constants.DefaultPostgresPvcClaimSize)
+	pvc := &chev2.PVC{
+		ClaimSize: constants.DefaultPostgresPvcClaimSize,
+	}
+
+	if ctx.CheCluster.Spec.Components.Database.Pvc != nil {
+		pvc.StorageClass = ctx.CheCluster.Spec.Components.Database.Pvc.StorageClass
+		if ctx.CheCluster.Spec.Components.Database.Pvc.ClaimSize != "" {
+			pvc.ClaimSize = ctx.CheCluster.Spec.Components.Database.Pvc.ClaimSize
+		}
+	}
 
 	done, err := deploy.SyncPVCToCluster(ctx, constants.DefaultPostgresVolumeClaimName, pvc, constants.PostgresName)
 	if !done {

@@ -112,9 +112,11 @@ func addPartOfCheLabeltoUserDefinedObjects(ctx *chetypes.DeployContext) error {
 	}
 
 	// Proxy credentials
-	proxyCredentialsSecret := utils.GetValue(ctx.CheCluster.Spec.Components.CheServer.Proxy.CredentialsSecretName, constants.DefaultProxyCredentialsSecret)
-	if err := addPartOfCheLabelToSecret(ctx, proxyCredentialsSecret); err != nil {
-		return err
+	if ctx.CheCluster.Spec.Components.CheServer.Proxy != nil {
+		proxyCredentialsSecret := utils.GetValue(ctx.CheCluster.Spec.Components.CheServer.Proxy.CredentialsSecretName, constants.DefaultProxyCredentialsSecret)
+		if err := addPartOfCheLabelToSecret(ctx, proxyCredentialsSecret); err != nil {
+			return err
+		}
 	}
 
 	// Database credentials
@@ -129,9 +131,11 @@ func addPartOfCheLabeltoUserDefinedObjects(ctx *chetypes.DeployContext) error {
 	}
 
 	// Config map with CA certificates for git
-	gitTrustedCertsConfigMapName := utils.GetValue(ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName, constants.DefaultGitSelfSignedCertsConfigMapName)
-	if err := addPartOfCheLabelToConfigMap(ctx, gitTrustedCertsConfigMapName); err != nil {
-		return err
+	if ctx.CheCluster.Spec.DevEnvironments.TrustedCerts != nil {
+		gitTrustedCertsConfigMapName := utils.GetValue(ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName, constants.DefaultGitSelfSignedCertsConfigMapName)
+		if err := addPartOfCheLabelToConfigMap(ctx, gitTrustedCertsConfigMapName); err != nil {
+			return err
+		}
 	}
 
 	return nil

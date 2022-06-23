@@ -120,18 +120,25 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 	tlsSecretName := ctx.CheCluster.Spec.Networking.TlsSecretName
 
 	securityContextFsGroup := strconv.FormatInt(constants.DefaultSecurityContextFsGroup, 10)
-	if ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext.FsGroup != nil {
-		securityContextFsGroup = strconv.FormatInt(*ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext.FsGroup, 10)
-	}
-
 	securityContextRunAsUser := strconv.FormatInt(constants.DefaultSecurityContextRunAsUser, 10)
-	if ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext.RunAsUser != nil {
-		securityContextRunAsUser = strconv.FormatInt(*ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext.RunAsUser, 10)
+	if ctx.CheCluster.Spec.Components.CheServer.Deployment != nil {
+		if ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext != nil {
+			if ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext.FsGroup != nil {
+				securityContextFsGroup = strconv.FormatInt(*ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext.FsGroup, 10)
+			}
+			if ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext.RunAsUser != nil {
+				securityContextRunAsUser = strconv.FormatInt(*ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext.RunAsUser, 10)
+			}
+		}
 	}
 
 	pvcStrategy := utils.GetValue(ctx.CheCluster.Spec.DevEnvironments.Storage.PvcStrategy, constants.DefaultPvcStrategy)
-	pvcClaimSize := utils.GetValue(ctx.CheCluster.Spec.DevEnvironments.Storage.Pvc.ClaimSize, constants.DefaultPvcClaimSize)
-	workspacePvcStorageClassName := ctx.CheCluster.Spec.DevEnvironments.Storage.Pvc.StorageClass
+	workspacePvcStorageClassName := ""
+	pvcClaimSize := constants.DefaultPvcClaimSize
+	if ctx.CheCluster.Spec.DevEnvironments.Storage.Pvc != nil {
+		pvcClaimSize = ctx.CheCluster.Spec.DevEnvironments.Storage.Pvc.ClaimSize
+		workspacePvcStorageClassName = ctx.CheCluster.Spec.DevEnvironments.Storage.Pvc.StorageClass
+	}
 
 	chePostgresHostName := utils.GetValue(ctx.CheCluster.Spec.Components.Database.PostgresHostName, constants.DefaultPostgresHostName)
 	chePostgresPort := utils.GetValue(ctx.CheCluster.Spec.Components.Database.PostgresPort, constants.DefaultPostgresPort)

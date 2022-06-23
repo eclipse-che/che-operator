@@ -69,16 +69,16 @@ func TestGetDevfileRegistryDeploymentSpec(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
 						DevfileRegistry: chev2.DevfileRegistry{
-							Deployment: chev2.Deployment{
+							Deployment: &chev2.Deployment{
 								Containers: []chev2.Container{
 									{
 										Name: constants.DevfileRegistryName,
-										Resources: chev2.ResourceRequirements{
-											Requests: chev2.ResourceList{
+										Resources: &chev2.ResourceRequirements{
+											Requests: &chev2.ResourceList{
 												Memory: resource.MustParse("150Mi"),
 												Cpu:    resource.MustParse("150m"),
 											},
-											Limits: chev2.ResourceList{
+											Limits: &chev2.ResourceList{
 												Memory: resource.MustParse("250Mi"),
 												Cpu:    resource.MustParse("250m"),
 											},

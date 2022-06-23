@@ -73,7 +73,7 @@ func TestReadProxyConfiguration(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
 						CheServer: chev2.CheServer{
-							Proxy: chev2.Proxy{
+							Proxy: &chev2.Proxy{
 								Url:           "http://proxy",
 								Port:          "3128",
 								NonProxyHosts: []string{"host1"},
@@ -118,7 +118,7 @@ func TestReadProxyConfiguration(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
 						CheServer: chev2.CheServer{
-							Proxy: chev2.Proxy{
+							Proxy: &chev2.Proxy{
 								Url:           "http://proxy",
 								Port:          "3128",
 								NonProxyHosts: []string{"host1"},
@@ -225,7 +225,7 @@ func TestReadProxyConfiguration(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
 						CheServer: chev2.CheServer{
-							Proxy: chev2.Proxy{
+							Proxy: &chev2.Proxy{
 								NonProxyHosts: []string{"host2"},
 							},
 						},
@@ -259,7 +259,7 @@ func TestReadProxyConfiguration(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
 						CheServer: chev2.CheServer{
-							Proxy: chev2.Proxy{
+							Proxy: &chev2.Proxy{
 								Url:           "http://proxy",
 								Port:          "3128",
 								NonProxyHosts: []string{"host1"},
@@ -295,7 +295,7 @@ func TestReadProxyConfiguration(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
 						CheServer: chev2.CheServer{
-							Proxy: chev2.Proxy{
+							Proxy: &chev2.Proxy{
 								Url:           "http://proxy",
 								Port:          "3128",
 								NonProxyHosts: []string{"host1"},

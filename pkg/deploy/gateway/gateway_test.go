@@ -277,7 +277,7 @@ func TestCustomizeGatewayDeploymentAllImages(t *testing.T) {
 			Networking: chev2.CheClusterSpecNetworking{
 				Auth: chev2.Auth{
 					Gateway: chev2.Gateway{
-						Deployment: chev2.Deployment{
+						Deployment: &chev2.Deployment{
 							Containers: []chev2.Container{
 								{
 									Name:  constants.GatewayContainerName,
@@ -329,7 +329,7 @@ func TestCustomizeGatewayDeploymentSingleImage(t *testing.T) {
 			Networking: chev2.CheClusterSpecNetworking{
 				Auth: chev2.Auth{
 					Gateway: chev2.Gateway{
-						Deployment: chev2.Deployment{
+						Deployment: &chev2.Deployment{
 							Containers: []chev2.Container{
 								{
 									Name:  constants.GatewayContainerName,

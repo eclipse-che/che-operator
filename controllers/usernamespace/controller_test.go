@@ -73,7 +73,7 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 						Value:    "d",
 					},
 				},
-				TrustedCerts: chev2.TrustedCerts{
+				TrustedCerts: &chev2.TrustedCerts{
 					GitTrustedCertsConfigMapName: "che-git-self-signed-cert",
 				},
 			},

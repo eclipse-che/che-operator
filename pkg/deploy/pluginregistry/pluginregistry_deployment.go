@@ -50,6 +50,6 @@ func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(ctx *chetypes
 		resources,
 		probePath)
 
-	deploy.CustomizeDeployment(deployment, &ctx.CheCluster.Spec.Components.PluginRegistry.Deployment, false)
+	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.PluginRegistry.Deployment, false)
 	return deployment
 }

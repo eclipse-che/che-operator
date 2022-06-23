@@ -63,6 +63,10 @@ func ReadClusterWideProxyConfiguration(clusterProxy *configv1.Proxy) (*chetypes.
 }
 
 func ReadCheClusterProxyConfiguration(ctx *chetypes.DeployContext) (*chetypes.Proxy, error) {
+	if ctx.CheCluster.Spec.Components.CheServer.Proxy == nil {
+		return &chetypes.Proxy{}, nil
+	}
+
 	proxyParts := strings.Split(ctx.CheCluster.Spec.Components.CheServer.Proxy.Url, "://")
 	proxyProtocol := ""
 	proxyHost := ""

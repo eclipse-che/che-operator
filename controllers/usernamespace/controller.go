@@ -458,7 +458,7 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 		return err
 	}
 
-	if checluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName == "" {
+	if checluster.Spec.DevEnvironments.TrustedCerts == nil || checluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName == "" {
 		return delConfigMap()
 	}
 

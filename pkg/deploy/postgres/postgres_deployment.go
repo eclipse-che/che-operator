@@ -200,15 +200,16 @@ func (p *PostgresReconciler) getDeploymentSpec(clusterDeployment *appsv1.Deploym
 		}
 	}
 
-	deploy.CustomizeDeployment(deployment, &ctx.CheCluster.Spec.Components.Database.Deployment, false)
+	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.Database.Deployment, false)
 	return deployment, nil
 }
 
 func getPostgresImage(clusterDeployment *appsv1.Deployment, cheCluster *chev2.CheCluster) (string, error) {
-	containers := cheCluster.Spec.Components.Database.Deployment.Containers
-	if len(containers) > 0 && containers[0].Image != "" {
+	if cheCluster.Spec.Components.Database.Deployment != nil &&
+		len(cheCluster.Spec.Components.Database.Deployment.Containers) > 0 &&
+		cheCluster.Spec.Components.Database.Deployment.Containers[0].Image != "" {
 		// use image explicitly set in a CR
-		return containers[0].Image, nil
+		return cheCluster.Spec.Components.Database.Deployment.Containers[0].Image, nil
 	} else if cheCluster.Status.PostgresVersion == PostgresVersion9_6 {
 		return defaults.GetPostgresImage(cheCluster), nil
 	} else if strings.HasPrefix(cheCluster.Status.PostgresVersion, "13.") {

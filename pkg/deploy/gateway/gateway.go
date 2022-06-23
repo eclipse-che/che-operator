@@ -461,7 +461,7 @@ func getGatewayDeploymentSpec(ctx *chetypes.DeployContext) appsv1.Deployment {
 		},
 	}
 
-	deploy.CustomizeDeployment(&deployment, &ctx.CheCluster.Spec.Networking.Auth.Gateway.Deployment, false)
+	deploy.CustomizeDeployment(&deployment, ctx.CheCluster.Spec.Networking.Auth.Gateway.Deployment, false)
 	return deployment
 }
 

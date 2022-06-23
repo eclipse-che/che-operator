@@ -81,30 +81,33 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 			},
 		}
 	}
-	if ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName != "" {
-		gitSelfSignedCertEnv = corev1.EnvVar{
-			Name: "CHE_GIT_SELF__SIGNED__CERT",
-			ValueFrom: &corev1.EnvVarSource{
-				ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-					Key: "ca.crt",
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName,
+
+	if ctx.CheCluster.Spec.DevEnvironments.TrustedCerts != nil {
+		if ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName != "" {
+			gitSelfSignedCertEnv = corev1.EnvVar{
+				Name: "CHE_GIT_SELF__SIGNED__CERT",
+				ValueFrom: &corev1.EnvVarSource{
+					ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+						Key: "ca.crt",
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName,
+						},
+						Optional: &optionalEnv,
 					},
-					Optional: &optionalEnv,
 				},
-			},
-		}
-		gitSelfSignedCertHostEnv = corev1.EnvVar{
-			Name: "CHE_GIT_SELF__SIGNED__CERT__HOST",
-			ValueFrom: &corev1.EnvVarSource{
-				ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-					Key: "githost",
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName,
+			}
+			gitSelfSignedCertHostEnv = corev1.EnvVar{
+				Name: "CHE_GIT_SELF__SIGNED__CERT__HOST",
+				ValueFrom: &corev1.EnvVarSource{
+					ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+						Key: "githost",
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName,
+						},
+						Optional: &optionalEnv,
 					},
-					Optional: &optionalEnv,
 				},
-			},
+			}
 		}
 	}
 
@@ -313,7 +316,7 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 		}
 	}
 
-	deploy.CustomizeDeployment(deployment, &ctx.CheCluster.Spec.Components.CheServer.Deployment, true)
+	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.CheServer.Deployment, true)
 
 	return deployment, nil
 }
