@@ -105,9 +105,12 @@ func CustomizeDeployment(deployment *appsv1.Deployment, customDeployment *chev2.
 	for index, _ := range deployment.Spec.Template.Spec.Containers {
 		container := &deployment.Spec.Template.Spec.Containers[index]
 
-		customContainer := getContainerByName(container.Name, customDeployment.Containers)
-		if customContainer == nil {
-			continue
+		customContainer := &customDeployment.Containers[0]
+		if len(deployment.Spec.Template.Spec.Containers) != 1 {
+			customContainer = getContainerByName(container.Name, customDeployment.Containers)
+			if customContainer == nil {
+				continue
+			}
 		}
 
 		container.Image = utils.GetValue(customContainer.Image, container.Image)

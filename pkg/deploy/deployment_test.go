@@ -778,7 +778,6 @@ func TestCustomizeDeploymentImagePullPolicy(t *testing.T) {
 			customizationDeployment: &chev2.Deployment{
 				Containers: []chev2.Container{
 					{
-						Name:  "test",
 						Image: "test/test:next",
 					},
 				},
