@@ -14,6 +14,7 @@ package test
 import (
 	"context"
 	"os"
+	"strings"
 	"testing"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -158,7 +159,7 @@ func GetDeployContext(cheCluster *chev2.CheCluster, initObjs []runtime.Object) *
 				Namespace: "eclipse-che",
 			},
 			Status: chev2.CheClusterStatus{
-				CheURL: "che-host",
+				CheURL: "https://che-host",
 			},
 		}
 	}
@@ -190,6 +191,6 @@ func GetDeployContext(cheCluster *chev2.CheCluster, initObjs []runtime.Object) *
 			DiscoveryClient:  fakeDiscovery,
 		},
 		Proxy:   &chetypes.Proxy{},
-		CheHost: "che-host",
+		CheHost: strings.TrimPrefix(cheCluster.Status.CheURL, "https://"),
 	}
 }
