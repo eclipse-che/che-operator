@@ -13,14 +13,14 @@ package consolelink
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	consolev1 "github.com/openshift/api/console/v1"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,6 +33,10 @@ const (
 	ConsoleLinksResourceName = "consolelinks"
 )
 
+var consoleLinkDiffOpts = cmp.Options{
+	cmpopts.IgnoreFields(consolev1.ConsoleLink{}, "TypeMeta", "ObjectMeta"),
+}
+
 type ConsoleLinkReconciler struct {
 	deploy.Reconcilable
 }
@@ -43,11 +47,11 @@ func NewConsoleLinkReconciler() *ConsoleLinkReconciler {
 
 func (c *ConsoleLinkReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	if !infrastructure.IsOpenShift() || !utils.IsK8SResourceServed(ctx.ClusterAPI.DiscoveryClient, ConsoleLinksResourceName) {
-		logrus.Debug("Console link won't be created. Consolelinks is not supported by kubernetes cluster.")
+		logrus.Debug("Console link won't be created. ConsoleLinks is not supported by kubernetes cluster.")
 		return reconcile.Result{}, true, nil
 	}
 
-	done, err := c.createConsoleLink(ctx)
+	done, err := c.syncConsoleLink(ctx)
 	if !done {
 		return reconcile.Result{Requeue: true}, false, err
 	}
@@ -63,39 +67,23 @@ func (c *ConsoleLinkReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	return true
 }
 
-func (c *ConsoleLinkReconciler) createConsoleLink(ctx *chetypes.DeployContext) (bool, error) {
+func (c *ConsoleLinkReconciler) syncConsoleLink(ctx *chetypes.DeployContext) (bool, error) {
+	if err := deploy.AppendFinalizer(ctx, ConsoleLinkFinalizerName); err != nil {
+		return false, err
+	}
+
 	consoleLinkSpec := c.getConsoleLinkSpec(ctx)
-	_, err := deploy.CreateIfNotExists(ctx, consoleLinkSpec)
-	if err != nil {
-		return false, err
-	}
-
-	consoleLink := &consolev1.ConsoleLink{}
-	exists, err := deploy.Get(ctx, client.ObjectKey{Name: defaults.GetConsoleLinkName()}, consoleLink)
-	if !exists || err != nil {
-		return false, err
-	}
-
-	// consolelink is for this specific instance of Eclipse Che
-	if strings.Index(consoleLink.Spec.Link.Href, ctx.CheHost) != -1 {
-		err = deploy.AppendFinalizer(ctx, ConsoleLinkFinalizerName)
-		return err == nil, err
-	}
-
-	return true, nil
+	return deploy.Sync(ctx, consoleLinkSpec, consoleLinkDiffOpts)
 }
 
 func (c *ConsoleLinkReconciler) getConsoleLinkSpec(ctx *chetypes.DeployContext) *consolev1.ConsoleLink {
 	consoleLink := &consolev1.ConsoleLink{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConsoleLink",
-			APIVersion: consolev1.SchemeGroupVersion.String(),
+			APIVersion: consolev1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: defaults.GetConsoleLinkName(),
-			Annotations: map[string]string{
-				constants.CheEclipseOrgNamespace: ctx.CheCluster.Namespace,
-			},
 		},
 		Spec: consolev1.ConsoleLinkSpec{
 			Link: consolev1.Link{
