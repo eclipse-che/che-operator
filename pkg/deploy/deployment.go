@@ -96,60 +96,79 @@ func SyncDeploymentSpecToCluster(
 	return provisioned, nil
 }
 
-func CustomizeDeployment(deployment *appsv1.Deployment, customization *chev2.Deployment, customizeSecurityContext bool) error {
-	if customization == nil || len(customization.Containers) == 0 {
+// CustomizeDeployment customize deployment
+func CustomizeDeployment(deployment *appsv1.Deployment, customDeployment *chev2.Deployment, useCustomSecurityContext bool) error {
+	if customDeployment == nil || len(customDeployment.Containers) == 0 {
 		return nil
 	}
 
 	for index, _ := range deployment.Spec.Template.Spec.Containers {
 		container := &deployment.Spec.Template.Spec.Containers[index]
 
-		customizationContainer := findCustomizationContainer(container.Name, customization.Containers)
-		if customizationContainer == nil {
-			break
+		customContainer := &customDeployment.Containers[0]
+		if len(deployment.Spec.Template.Spec.Containers) != 1 {
+			customContainer = getContainerByName(container.Name, customDeployment.Containers)
+			if customContainer == nil {
+				continue
+			}
 		}
 
-		container.Image = utils.GetValue(customizationContainer.Image, container.Image)
-		if customizationContainer.ImagePullPolicy != "" {
-			container.ImagePullPolicy = customizationContainer.ImagePullPolicy
-		} else {
+		container.Image = utils.GetValue(customContainer.Image, container.Image)
+
+		if customContainer.ImagePullPolicy != "" {
+			container.ImagePullPolicy = customContainer.ImagePullPolicy
+		} else if container.ImagePullPolicy == "" {
 			container.ImagePullPolicy = corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(container.Image))
 		}
 
-		container.Resources = corev1.ResourceRequirements{
-			Requests: corev1.ResourceList{
-				corev1.ResourceMemory: getQuantity(customizationContainer.Resources.Requests.Memory, container.Resources.Requests[corev1.ResourceMemory]),
-				corev1.ResourceCPU:    getQuantity(customizationContainer.Resources.Requests.Cpu, container.Resources.Requests[corev1.ResourceCPU]),
-			},
-			Limits: corev1.ResourceList{
-				corev1.ResourceMemory: getQuantity(customizationContainer.Resources.Limits.Memory, container.Resources.Limits[corev1.ResourceMemory]),
-				corev1.ResourceCPU:    getQuantity(customizationContainer.Resources.Limits.Cpu, container.Resources.Limits[corev1.ResourceCPU]),
-			},
+		if customContainer.Resources != nil {
+			if customContainer.Resources.Requests != nil {
+				if !customContainer.Resources.Requests.Memory.IsZero() {
+					container.Resources.Requests[corev1.ResourceMemory] = customContainer.Resources.Requests.Memory
+				}
+				if !customContainer.Resources.Requests.Cpu.IsZero() {
+					container.Resources.Requests[corev1.ResourceCPU] = customContainer.Resources.Requests.Cpu
+				}
+			}
+
+			if customContainer.Resources.Limits != nil {
+				if !customContainer.Resources.Limits.Memory.IsZero() {
+					container.Resources.Limits[corev1.ResourceMemory] = customContainer.Resources.Limits.Memory
+				}
+				if !customContainer.Resources.Limits.Cpu.IsZero() {
+					container.Resources.Limits[corev1.ResourceCPU] = customContainer.Resources.Limits.Cpu
+				}
+			}
 		}
 	}
 
-	if customizeSecurityContext && !infrastructure.IsOpenShift() {
-		if customization.SecurityContext.FsGroup != nil {
-			deployment.Spec.Template.Spec.SecurityContext.FSGroup = pointer.Int64Ptr(*customization.SecurityContext.FsGroup)
-		}
-		if customization.SecurityContext.RunAsUser != nil {
-			deployment.Spec.Template.Spec.SecurityContext.RunAsUser = pointer.Int64Ptr(*customization.SecurityContext.RunAsUser)
+	if !infrastructure.IsOpenShift() {
+		if useCustomSecurityContext {
+			if customDeployment.SecurityContext != nil {
+				if customDeployment.SecurityContext.FsGroup != nil {
+					deployment.Spec.Template.Spec.SecurityContext.FSGroup = pointer.Int64Ptr(*customDeployment.SecurityContext.FsGroup)
+				}
+
+				if customDeployment.SecurityContext.RunAsUser != nil {
+					deployment.Spec.Template.Spec.SecurityContext.RunAsUser = pointer.Int64Ptr(*customDeployment.SecurityContext.RunAsUser)
+				}
+			}
 		}
 	}
 
 	return nil
 }
 
-func getQuantity(value resource.Quantity, defaultValue resource.Quantity) resource.Quantity {
+func getOrDefaultQuantity(value resource.Quantity, defaultValue resource.Quantity) resource.Quantity {
 	if !value.IsZero() {
 		return value
 	}
 	return defaultValue
 }
 
-func findCustomizationContainer(origContainerName string, custContainers []chev2.Container) *chev2.Container {
-	for _, c := range custContainers {
-		if c.Name == origContainerName {
+func getContainerByName(name string, containers []chev2.Container) *chev2.Container {
+	for _, c := range containers {
+		if c.Name == name {
 			return &c
 		}
 	}

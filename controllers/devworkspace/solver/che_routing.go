@@ -168,9 +168,11 @@ func (c *CheRoutingSolver) provisionPodAdditions(objs *solvers.RoutingObjects, c
 	}
 
 	image := defaults.GetGatewayImage(cheCluster)
-	for _, c := range cheCluster.Spec.Networking.Auth.Gateway.Deployment.Containers {
-		if c.Name == constants.GatewayContainerName {
-			image = c.Image
+	if cheCluster.Spec.Networking.Auth.Gateway.Deployment != nil {
+		for _, c := range cheCluster.Spec.Networking.Auth.Gateway.Deployment.Containers {
+			if c.Name == constants.GatewayContainerName {
+				image = c.Image
+			}
 		}
 	}
 

@@ -90,18 +90,18 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 					},
 					Database: chev2.Database{
 						ExternalDb: true,
-						Deployment: chev2.Deployment{
+						Deployment: &chev2.Deployment{
 							Containers: []chev2.Container{
 								{
 									Name:            "postgres",
 									Image:           "DatabaseImage",
 									ImagePullPolicy: corev1.PullAlways,
-									Resources: chev2.ResourceRequirements{
-										Requests: chev2.ResourceList{
+									Resources: &chev2.ResourceRequirements{
+										Requests: &chev2.ResourceList{
 											Memory: resource.MustParse("148Mi"),
 											Cpu:    resource.MustParse("1"),
 										},
-										Limits: chev2.ResourceList{
+										Limits: &chev2.ResourceList{
 											Memory: resource.MustParse("228Mi"),
 											Cpu:    resource.MustParse("2"),
 										},
@@ -113,24 +113,24 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 						PostgresPort:          "PostgresPort",
 						PostgresDb:            "PostgresDb",
 						CredentialsSecretName: "DatabaseCredentialsSecretName",
-						Pvc: chev2.PVC{
+						Pvc: &chev2.PVC{
 							ClaimSize:    "DatabaseClaimSize",
 							StorageClass: "DatabaseStorageClass",
 						},
 					},
 					PluginRegistry: chev2.PluginRegistry{
-						Deployment: chev2.Deployment{
+						Deployment: &chev2.Deployment{
 							Containers: []chev2.Container{
 								{
 									Name:            "plugin-registry",
 									Image:           "PluginRegistryImage",
 									ImagePullPolicy: corev1.PullAlways,
-									Resources: chev2.ResourceRequirements{
-										Requests: chev2.ResourceList{
+									Resources: &chev2.ResourceRequirements{
+										Requests: &chev2.ResourceList{
 											Memory: resource.MustParse("148Mi"),
 											Cpu:    resource.MustParse("1"),
 										},
-										Limits: chev2.ResourceList{
+										Limits: &chev2.ResourceList{
 											Memory: resource.MustParse("228Mi"),
 											Cpu:    resource.MustParse("2"),
 										},
@@ -146,18 +146,18 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 						},
 					},
 					DevfileRegistry: chev2.DevfileRegistry{
-						Deployment: chev2.Deployment{
+						Deployment: &chev2.Deployment{
 							Containers: []chev2.Container{
 								{
 									Name:            "devfile-registry",
 									Image:           "DevfileRegistryImage",
 									ImagePullPolicy: corev1.PullAlways,
-									Resources: chev2.ResourceRequirements{
-										Requests: chev2.ResourceList{
+									Resources: &chev2.ResourceRequirements{
+										Requests: &chev2.ResourceList{
 											Memory: resource.MustParse("148Mi"),
 											Cpu:    resource.MustParse("1"),
 										},
-										Limits: chev2.ResourceList{
+										Limits: &chev2.ResourceList{
 											Memory: resource.MustParse("228Mi"),
 											Cpu:    resource.MustParse("2"),
 										},
@@ -173,30 +173,30 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 						},
 					},
 					Dashboard: chev2.Dashboard{
-						Deployment: chev2.Deployment{
+						Deployment: &chev2.Deployment{
 							Containers: []chev2.Container{
 								{
 									Name:            defaults.GetCheFlavor() + "-dashboard",
 									Image:           "DashboardImage",
 									ImagePullPolicy: corev1.PullAlways,
-									Resources: chev2.ResourceRequirements{
-										Requests: chev2.ResourceList{
+									Resources: &chev2.ResourceRequirements{
+										Requests: &chev2.ResourceList{
 											Memory: resource.MustParse("148Mi"),
 											Cpu:    resource.MustParse("1"),
 										},
-										Limits: chev2.ResourceList{
+										Limits: &chev2.ResourceList{
 											Memory: resource.MustParse("228Mi"),
 											Cpu:    resource.MustParse("2"),
 										},
 									},
 								},
 							},
-							SecurityContext: chev2.PodSecurityContext{
+							SecurityContext: &chev2.PodSecurityContext{
 								RunAsUser: pointer.Int64Ptr(64),
 								FsGroup:   pointer.Int64Ptr(65),
 							},
 						},
-						HeaderMessage: chev2.DashboardHeaderMessage{
+						HeaderMessage: &chev2.DashboardHeaderMessage{
 							Show: true,
 							Text: "DashboardWarning",
 						},
@@ -206,25 +206,25 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 					},
 					CheServer: chev2.CheServer{
 						ExtraProperties: map[string]string{"a": "b", "c": "d"},
-						Deployment: chev2.Deployment{
+						Deployment: &chev2.Deployment{
 							Containers: []chev2.Container{
 								{
 									Name:            defaults.GetCheFlavor(),
 									Image:           "ServerImage:ServerTag",
 									ImagePullPolicy: corev1.PullAlways,
-									Resources: chev2.ResourceRequirements{
-										Requests: chev2.ResourceList{
+									Resources: &chev2.ResourceRequirements{
+										Requests: &chev2.ResourceList{
 											Memory: resource.MustParse("148Mi"),
 											Cpu:    resource.MustParse("1"),
 										},
-										Limits: chev2.ResourceList{
+										Limits: &chev2.ResourceList{
 											Memory: resource.MustParse("228Mi"),
 											Cpu:    resource.MustParse("2"),
 										},
 									},
 								},
 							},
-							SecurityContext: chev2.PodSecurityContext{
+							SecurityContext: &chev2.PodSecurityContext{
 								RunAsUser: pointer.Int64Ptr(64),
 								FsGroup:   pointer.Int64Ptr(65),
 							},
@@ -232,7 +232,7 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 						LogLevel:     "LogLevel",
 						Debug:        pointer.BoolPtr(true),
 						ClusterRoles: []string{"ClusterRoles_1", "ClusterRoles_2"},
-						Proxy: chev2.Proxy{
+						Proxy: &chev2.Proxy{
 							Url:                   "ProxyUrl",
 							Port:                  "ProxyPort",
 							NonProxyHosts:         []string{"NonProxyHosts_1", "NonProxyHosts_2"},
@@ -240,7 +240,7 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 						},
 					},
 					DevWorkspace: chev2.DevWorkspace{
-						Deployment: chev2.Deployment{
+						Deployment: &chev2.Deployment{
 							Containers: []chev2.Container{
 								{
 									Name:  "devworkspace-controller",
@@ -268,7 +268,7 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 						OAuthScope:          "OAuthScope",
 						IdentityToken:       "IdentityToken",
 						Gateway: chev2.Gateway{
-							Deployment: chev2.Deployment{
+							Deployment: &chev2.Deployment{
 								Containers: []chev2.Container{
 									{
 										Name:  "gateway",
@@ -296,11 +296,11 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 					DefaultNamespace: chev2.DefaultNamespace{
 						Template: "WorkspaceNamespaceName",
 					},
-					TrustedCerts: chev2.TrustedCerts{
+					TrustedCerts: &chev2.TrustedCerts{
 						GitTrustedCertsConfigMapName: "che-git-self-signed-cert",
 					},
 					Storage: chev2.WorkspaceStorage{
-						Pvc: chev2.PVC{
+						Pvc: &chev2.PVC{
 							ClaimSize:    "StorageClaimSize",
 							StorageClass: "StorageClass",
 						},

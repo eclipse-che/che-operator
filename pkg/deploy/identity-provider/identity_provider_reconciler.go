@@ -80,7 +80,7 @@ func syncNativeIdentityProviderItems(ctx *chetypes.DeployContext) (bool, error) 
 		oauthClientName = oauthClient.Name
 	}
 
-	redirectURIs := []string{"https://" + ctx.CheCluster.GetCheHost() + "/oauth/callback"}
+	redirectURIs := []string{"https://" + ctx.CheHost + "/oauth/callback"}
 	oauthClientSpec := getOAuthClientSpec(oauthClientName, oauthSecret, redirectURIs)
 	done, err := deploy.Sync(ctx, oauthClientSpec, oAuthClientDiffOpts)
 	if !done {

@@ -416,7 +416,7 @@ genenerate-env: ## Generates environment files to use by bash and vscode
 
 install-certmgr: SHELL := /bin/bash
 install-certmgr: ## Install Cert Manager v1.7.1
-	oc apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.7.1/cert-manager.yaml
+	$(K8S_CLI) apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.7.1/cert-manager.yaml
 	$(MAKE) wait-pod-running COMPONENT=controller NAMESPACE=cert-manager
 	$(MAKE) wait-pod-running COMPONENT=cainjector NAMESPACE=cert-manager
 	$(MAKE) wait-pod-running COMPONENT=webhook NAMESPACE=cert-manager
@@ -466,7 +466,7 @@ create-checluster-cr: ## Creates CheCluster Custom Resource V2
 		# Update networking.domain field with an actual value
 		if [[ $(PLATFORM) == "kubernetes" ]]; then
   			# kubectl does not have `whoami` command
-			CLUSTER_API_URL=$$(oc whoami --show-server=true) || true;
+			CLUSTER_API_URL=$$($(K8S_CLI) whoami --show-server=true) || true;
 			CLUSTER_DOMAIN=$$(echo $${CLUSTER_API_URL} | sed -E 's/https:\/\/(.*):.*/\1/g')
 			yq -riY  '.spec.networking.domain = "'$${CLUSTER_DOMAIN}'.nip.io"' $${CHECLUSTER_CR_2_APPLY}
 		fi
@@ -478,10 +478,10 @@ wait-pod-running: ## Wait until pod is up and running
 	[[ -z "$(COMPONENT)" ]] && { echo [ERROR] COMPONENT not defined; exit 1; }
 	[[ -z "$(NAMESPACE)" ]] && { echo [ERROR] NAMESPACE not defined; exit 1; }
 
-	while [ $$(oc get pod -l app.kubernetes.io/component=$(COMPONENT) -n $(NAMESPACE) -o go-template='{{len .items}}') -eq 0 ]; do
+	while [ $$($(K8S_CLI) get pod -l app.kubernetes.io/component=$(COMPONENT) -n $(NAMESPACE) -o go-template='{{len .items}}') -eq 0 ]; do
 		sleep 10s
 	done
-	oc wait --for=condition=ready pod -l app.kubernetes.io/component=$(COMPONENT) -n $(NAMESPACE) --timeout=120s
+	$(K8S_CLI) wait --for=condition=ready pod -l app.kubernetes.io/component=$(COMPONENT) -n $(NAMESPACE) --timeout=120s
 
 store_tls_cert: ## Store `che-operator-webhook-server-cert` secret locally
 	mkdir -p /tmp/k8s-webhook-server/serving-certs/
@@ -500,7 +500,7 @@ install: manifests download-kustomize _kustomize-operator-image ## Install Eclip
 
 	# Printing logs
 	echo "[INFO] Waiting for Eclipse Che"
-	oc logs $$(oc get pods -o json -n ${ECLIPSE_CHE_NAMESPACE} | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name') -n ${ECLIPSE_CHE_NAMESPACE} --all-containers -f
+	$(K8S_CLI) logs $$($(K8S_CLI) get pods -o json -n ${ECLIPSE_CHE_NAMESPACE} | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name') -n ${ECLIPSE_CHE_NAMESPACE} --all-containers -f
 
 uninstall: ## Uninstall Eclipse Che
 	$(K8S_CLI) patch checluster eclipse-che -n ${ECLIPSE_CHE_NAMESPACE} --type json  -p='[{"op": "remove", "path": "/metadata/finalizers"}]'

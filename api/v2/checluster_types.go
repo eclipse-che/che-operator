@@ -80,7 +80,7 @@ type CheClusterDevEnvironments struct {
 	DefaultNamespace DefaultNamespace `json:"defaultNamespace,omitempty"`
 	// Trusted certificate settings.
 	// +optional
-	TrustedCerts TrustedCerts `json:"trustedCerts,omitempty"`
+	TrustedCerts *TrustedCerts `json:"trustedCerts,omitempty"`
 	// The default editor to workspace create with. It could be a plugin ID or a URI.
 	// The plugin ID must have `publisher/plugin/version` format.
 	// The URI must start from `http://` or `https://`.
@@ -178,7 +178,7 @@ type CheClusterContainerRegistry struct {
 type CheServer struct {
 	// Deployment override options.
 	// +optional
-	Deployment Deployment `json:"deployment,omitempty"`
+	Deployment *Deployment `json:"deployment,omitempty"`
 	// The log level for the Che server: `INFO` or `DEBUG`.
 	// +optional
 	// +kubebuilder:default:="INFO"
@@ -200,7 +200,7 @@ type CheServer struct {
 	// Proxy server settings for Kubernetes cluster. No additional configuration is required for OpenShift cluster.
 	// By specifying these settings for the OpenShift cluster, you override the OpenShift proxy configuration.
 	// +optional
-	Proxy Proxy `json:"proxy"`
+	Proxy *Proxy `json:"proxy,omitempty"`
 	// A map of additional environment variables applied in the generated `che` ConfigMap to be used by the Che server
 	// in addition to the values already generated from other fields of the `CheCluster` custom resource (CR).
 	// If the `extraProperties` field contains a property normally generated in `che` ConfigMap from other CR fields,
@@ -214,10 +214,10 @@ type CheServer struct {
 type Dashboard struct {
 	// Deployment override options.
 	// +optional
-	Deployment Deployment `json:"deployment,omitempty"`
+	Deployment *Deployment `json:"deployment,omitempty"`
 	// Dashboard header message.
 	// +optional
-	HeaderMessage DashboardHeaderMessage `json:"headerMessage,omitempty"`
+	HeaderMessage *DashboardHeaderMessage `json:"headerMessage,omitempty"`
 }
 
 // Configuration settings related to the plug-in registry used by the Che installation.
@@ -225,7 +225,7 @@ type Dashboard struct {
 type PluginRegistry struct {
 	// Deployment override options.
 	// +optional
-	Deployment Deployment `json:"deployment,omitempty"`
+	Deployment *Deployment `json:"deployment,omitempty"`
 	// Disables internal plug-in registry.
 	// +optional
 	DisableInternalRegistry bool `json:"disableInternalRegistry,omitempty"`
@@ -239,7 +239,7 @@ type PluginRegistry struct {
 type DevfileRegistry struct {
 	// Deployment override options.
 	// +optional
-	Deployment Deployment `json:"deployment,omitempty"`
+	Deployment *Deployment `json:"deployment,omitempty"`
 	// Disables internal devfile registry.
 	// +optional
 	DisableInternalRegistry bool `json:"disableInternalRegistry,omitempty"`
@@ -260,7 +260,7 @@ type Database struct {
 	ExternalDb bool `json:"externalDb"`
 	// Deployment override options.
 	// +optional
-	Deployment Deployment `json:"deployment,omitempty"`
+	Deployment *Deployment `json:"deployment,omitempty"`
 	// PostgreSQL database hostname that the Che server connects to.
 	// Override this value only when using an external database. See field `externalDb`.
 	// +kubebuilder:default:="postgres"
@@ -283,7 +283,7 @@ type Database struct {
 	// PVC settings for PostgreSQL database.
 	// +optional
 	// +kubebuilder:default:={claimSize: "1Gi"}
-	Pvc PVC `json:"pvc,omitempty"`
+	Pvc *PVC `json:"pvc,omitempty"`
 }
 
 // Che server metrics configuration
@@ -319,7 +319,7 @@ type ImagePuller struct {
 type DevWorkspace struct {
 	// Deployment override options.
 	// +optional
-	Deployment Deployment `json:"deployment,omitempty"`
+	Deployment *Deployment `json:"deployment,omitempty"`
 	// The maximum number of running workspaces per user.
 	// +optional
 	RunningLimit string `json:"runningLimit,omitempty"`
@@ -355,7 +355,7 @@ type TrustedCerts struct {
 type WorkspaceStorage struct {
 	// PVC settings.
 	// +optional
-	Pvc PVC `json:"pvc,omitempty"`
+	Pvc *PVC `json:"pvc,omitempty"`
 	// Persistent volume claim strategy for the Che server.
 	// Only the `common` strategy (all workspaces PVCs in one volume) is supported .
 	// For details, see https://github.com/eclipse/che/issues/21185.
@@ -408,7 +408,7 @@ type Gateway struct {
 	// - `oauth-proxy`
 	// - `kube-rbac-proxy`
 	// +optional
-	Deployment Deployment `json:"deployment,omitempty"`
+	Deployment *Deployment `json:"deployment,omitempty"`
 	// Gateway configuration labels.
 	// +optional
 	// +kubebuilder:default:={app: che, component: che-gateway-config}
@@ -473,7 +473,7 @@ type Deployment struct {
 	Containers []Container `json:"containers,omitempty"`
 	// Security options the pod should run with.
 	// +optional
-	SecurityContext PodSecurityContext `json:"securityContext,omitempty"`
+	SecurityContext *PodSecurityContext `json:"securityContext,omitempty"`
 }
 
 // Container custom settings.
@@ -490,17 +490,17 @@ type Container struct {
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 	// Compute resources required by this container.
 	// +optional
-	Resources ResourceRequirements `json:"resources,omitempty"`
+	Resources *ResourceRequirements `json:"resources,omitempty"`
 }
 
 // Describes the compute resource requirements.
 type ResourceRequirements struct {
 	// Describes the minimum amount of compute resources required.
 	// +optional
-	Requests ResourceList `json:"request,omitempty"`
+	Requests *ResourceList `json:"request,omitempty"`
 	// Describes the maximum amount of compute resources allowed.
 	// +optional
-	Limits ResourceList `json:"limits,omitempty"`
+	Limits *ResourceList `json:"limits,omitempty"`
 }
 
 // List of resources.

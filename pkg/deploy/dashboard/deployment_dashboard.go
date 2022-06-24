@@ -189,7 +189,7 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployCon
 		}
 	}
 
-	deploy.CustomizeDeployment(deployment, &ctx.CheCluster.Spec.Components.Dashboard.Deployment, true)
+	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.Dashboard.Deployment, true)
 	return deployment, nil
 }
 

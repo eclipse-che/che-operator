@@ -767,9 +767,8 @@ func TestCustomizeDeploymentImagePullPolicy(t *testing.T) {
 						Spec: corev1.PodSpec{
 							Containers: []corev1.Container{
 								{
-									Name:            "test",
-									Image:           "test/test:test",
-									ImagePullPolicy: corev1.PullIfNotPresent,
+									Name:  "test",
+									Image: "test/test:test",
 								},
 							},
 						},
@@ -779,42 +778,11 @@ func TestCustomizeDeploymentImagePullPolicy(t *testing.T) {
 			customizationDeployment: &chev2.Deployment{
 				Containers: []chev2.Container{
 					{
-						Name:  "test",
 						Image: "test/test:next",
 					},
 				},
 			},
 			expectedImagePullPolicy: corev1.PullAlways,
-		},
-		{
-			name: "Should not update ImagePullPolicy",
-			initDeployment: &appsv1.Deployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test",
-					Namespace: "test",
-				},
-				Spec: appsv1.DeploymentSpec{
-					Template: corev1.PodTemplateSpec{
-						Spec: corev1.PodSpec{
-							Containers: []corev1.Container{
-								{
-									Name:            "test",
-									Image:           "test/test:v2.5.0",
-									ImagePullPolicy: corev1.PullIfNotPresent,
-								},
-							},
-						},
-					},
-				},
-			},
-			customizationDeployment: &chev2.Deployment{
-				Containers: []chev2.Container{
-					{
-						Name: "test",
-					},
-				},
-			},
-			expectedImagePullPolicy: corev1.PullIfNotPresent,
 		},
 	}
 
