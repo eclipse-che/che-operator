@@ -15,8 +15,6 @@ import (
 	"os"
 	"testing"
 
-	corev1 "k8s.io/api/core/v1"
-
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	oauthv1 "github.com/openshift/api/oauth/v1"
@@ -78,46 +76,6 @@ func TestSyncOAuthClientGenerateSecret(t *testing.T) {
 	assert.Equal(t, 1, len(oauthClients))
 	assert.Equal(t, "name", oauthClients[0].Name)
 	assert.NotEmpty(t, oauthClients[0].Secret)
-}
-
-func TestSyncOAuthClientOAuthSecretContainSecretReference(t *testing.T) {
-	secret := &corev1.Secret{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Secret",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "oauth-secret-container",
-			Namespace: "eclipse-che",
-		},
-		Type: corev1.SecretTypeOpaque,
-		Data: map[string][]byte{"secret": []byte("new-secret")},
-	}
-
-	cheCluster := &chev2.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "eclipse-che",
-			Namespace: "eclipse-che",
-		},
-		Spec: chev2.CheClusterSpec{
-			Networking: chev2.CheClusterSpecNetworking{
-				Auth: chev2.Auth{
-					OAuthSecret:     "oauth-secret-container",
-					OAuthClientName: "test",
-				},
-			},
-		},
-	}
-
-	ctx := test.GetDeployContext(cheCluster, []runtime.Object{secret})
-	_, err := syncOAuthClient(ctx)
-	assert.Nil(t, err)
-
-	oauthClients, err := FindAllEclipseCheOAuthClients(ctx)
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(oauthClients))
-	assert.Equal(t, "test", oauthClients[0].Name)
-	assert.Equal(t, "new-secret", oauthClients[0].Secret)
 }
 
 func TestSyncOAuthClient(t *testing.T) {

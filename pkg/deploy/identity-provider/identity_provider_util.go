@@ -17,9 +17,6 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
-	corev1 "k8s.io/api/core/v1"
-
 	oauth "github.com/openshift/api/oauth/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -70,16 +67,4 @@ func FindAllEclipseCheOAuthClients(ctx *chetypes.DeployContext) ([]oauth.OAuthCl
 		return nil, err
 	}
 	return oauthClients.Items, nil
-}
-
-func GetOrReadOAuthSecret(plainTextSecretOrSecretReference string, ctx *chetypes.DeployContext) (string, error) {
-	secret := &corev1.Secret{}
-	exists, err := deploy.GetNamespacedObject(ctx, plainTextSecretOrSecretReference, secret)
-	if err != nil {
-		return "", err
-	} else if exists {
-		return string(secret.Data["secret"]), nil
-	}
-
-	return plainTextSecretOrSecretReference, nil
 }

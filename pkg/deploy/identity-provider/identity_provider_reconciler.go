@@ -67,10 +67,7 @@ func (ip *IdentityProviderReconciler) Finalize(ctx *chetypes.DeployContext) bool
 
 func syncOAuthClient(ctx *chetypes.DeployContext) (bool, error) {
 	oauthClientName := ctx.CheCluster.Spec.Networking.Auth.OAuthClientName
-	oauthSecret, err := GetOrReadOAuthSecret(ctx.CheCluster.Spec.Networking.Auth.OAuthSecret, ctx)
-	if err != nil {
-		return false, err
-	}
+	oauthSecret := ctx.CheCluster.Spec.Networking.Auth.OAuthSecret
 
 	if oauthClientName == "" {
 		oauthClient, err := FindOAuthClient(ctx)
