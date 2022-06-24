@@ -97,6 +97,11 @@ skip_provider_button = false
 }
 
 func kubernetesOauthProxyConfig(ctx *chetypes.DeployContext, cookieSecret string) string {
+	oAuthSecret, err := identityprovider.GetOrReadOAuthSecret(ctx.CheCluster.Spec.Networking.Auth.OAuthSecret, ctx)
+	if err != nil {
+		logrus.Errorf("Error reading %s secret: %v", ctx.CheCluster.Spec.Networking.Auth.OAuthSecret, err)
+	}
+
 	return fmt.Sprintf(`
 proxy_prefix = "/oauth"
 http_address = ":%d"
@@ -125,7 +130,7 @@ cookie_domains = "%s"
 		ctx.CheHost,
 		ctx.CheCluster.Spec.Networking.Auth.IdentityProviderURL,
 		ctx.CheCluster.Spec.Networking.Auth.OAuthClientName,
-		ctx.CheCluster.Spec.Networking.Auth.OAuthSecret,
+		oAuthSecret,
 		cookieSecret,
 		utils.Whitelist(ctx.CheHost),
 		utils.Whitelist(ctx.CheHost),

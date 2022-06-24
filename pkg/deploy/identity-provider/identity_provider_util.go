@@ -17,6 +17,8 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
+	corev1 "k8s.io/api/core/v1"
 
 	oauth "github.com/openshift/api/oauth/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func getOAuthClientSpec(name string, oauthSecret string, redirectURIs []string) *oauth.OAuthClient {
+func GetOAuthClientSpec(name string, oauthSecret string, redirectURIs []string) *oauth.OAuthClient {
 	return &oauth.OAuthClient{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "OAuthClient",
@@ -42,6 +44,22 @@ func getOAuthClientSpec(name string, oauthSecret string, redirectURIs []string) 
 }
 
 func FindOAuthClient(ctx *chetypes.DeployContext) (*oauth.OAuthClient, error) {
+	oauthClients, err := FindAllEclipseCheOAuthClients(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	switch len(oauthClients) {
+	case 0:
+		return nil, nil
+	case 1:
+		return &oauthClients[0], nil
+	default:
+		return nil, fmt.Errorf("more than one OAuthClient found with '%s:%s' labels", constants.KubernetesPartOfLabelKey, constants.CheEclipseOrg)
+	}
+}
+
+func FindAllEclipseCheOAuthClients(ctx *chetypes.DeployContext) ([]oauth.OAuthClient, error) {
 	oauthClients := &oauth.OAuthClientList{}
 	listOptions := &client.ListOptions{LabelSelector: labels.SelectorFromSet(map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg})}
 
@@ -51,13 +69,17 @@ func FindOAuthClient(ctx *chetypes.DeployContext) (*oauth.OAuthClient, error) {
 		listOptions); err != nil {
 		return nil, err
 	}
+	return oauthClients.Items, nil
+}
 
-	switch len(oauthClients.Items) {
-	case 0:
-		return nil, nil
-	case 1:
-		return &oauthClients.Items[0], nil
-	default:
-		return nil, fmt.Errorf("more than one OAuthClient found with '%s:%s' labels", constants.KubernetesPartOfLabelKey, constants.CheEclipseOrg)
+func GetOrReadOAuthSecret(plainTextSecretOrSecretReference string, ctx *chetypes.DeployContext) (string, error) {
+	secret := &corev1.Secret{}
+	exists, err := deploy.GetNamespacedObject(ctx, plainTextSecretOrSecretReference, secret)
+	if err != nil {
+		return "", err
+	} else if exists {
+		return string(secret.Data["secret"]), nil
 	}
+
+	return plainTextSecretOrSecretReference, nil
 }
