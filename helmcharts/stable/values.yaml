@@ -10,9 +10,3 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-ingress:
-  domain: ""
-  auth:
-    identityProviderURL: ""
-    oAuthClientName: ""
-    oAuthSecret: ""
