@@ -49,7 +49,7 @@ annotations:
     \   devWorkspace:\n      enable: true\n"
   artifacthub.io/crds: |-
     - kind: CheCluster
-      version: v2
+      version: v1
       name: checlusters.org.eclipse.che
       displayName: CheCluster
       description: The `CheCluster` custom resource allows defining and managing a Che server installation"
