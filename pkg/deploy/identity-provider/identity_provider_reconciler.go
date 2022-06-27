@@ -103,8 +103,8 @@ func syncOAuthClient(ctx *chetypes.DeployContext) (bool, error) {
 		oauthClientName,
 		oauthSecret,
 		redirectURIs,
-		ctx.CheCluster.Spec.Networking.Auth.OAccessTokenInactivityTimeoutSeconds,
-		ctx.CheCluster.Spec.Networking.Auth.OAccessTokenMaxAgeSeconds)
+		ctx.CheCluster.Spec.Networking.Auth.OAuthAccessTokenInactivityTimeoutSeconds,
+		ctx.CheCluster.Spec.Networking.Auth.OAuthAccessTokenMaxAgeSeconds)
 	done, err := deploy.Sync(ctx, oauthClientSpec, oAuthClientDiffOpts)
 	if !done {
 		return false, err

@@ -390,11 +390,11 @@ type Auth struct {
 	// Inactivity timeout for tokens to set in the OpenShift `OAuthClient` resource used to set up identity federation on the OpenShift side.
 	// 0 means tokens for this client never time out.
 	// +optional
-	OAccessTokenInactivityTimeoutSeconds *int32 `json:"oAccessTokenInactivityTimeoutSeconds,omitempty"`
+	OAuthAccessTokenInactivityTimeoutSeconds *int32 `json:"oAuthAccessTokenInactivityTimeoutSeconds,omitempty"`
 	// Access token max age for tokens to set in the OpenShift `OAuthClient` resource used to set up identity federation on the OpenShift side.
 	// 0 means no expiration.
 	// +optional
-	OAccessTokenMaxAgeSeconds *int32 `json:"oAccessTokenMaxAgeSeconds,omitempty"`
+	OAuthAccessTokenMaxAgeSeconds *int32 `json:"oAuthAccessTokenMaxAgeSeconds,omitempty"`
 	// Identity token to be passed to upstream. There are two types of tokens supported: `id_token` and `access_token`.
 	// Default value is `id_token`.
 	// This field is specific to Che installations made for Kubernetes only and ignored for OpenShift.
