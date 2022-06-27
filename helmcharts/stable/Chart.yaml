@@ -52,4 +52,4 @@ annotations:
       version: v1
       name: checlusters.org.eclipse.che
       displayName: CheCluster
-      description: The `CheCluster` custom resource allows defining and managing a Che server installation"
+      description: The `CheCluster` custom resource allows defining and managing a Che server installation
