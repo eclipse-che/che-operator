@@ -27,9 +27,9 @@ import (
 )
 
 func TestFinalize(t *testing.T) {
-	oauthClient1 := GetOAuthClientSpec("test1", "secret", []string{"https://che-host/oauth/callback"})
-	oauthClient2 := GetOAuthClientSpec("test2", "secret", []string{"https://che-host/oauth/callback"})
-	oauthClient3 := GetOAuthClientSpec("test3", "secret", []string{"https://che-host/oauth/callback"})
+	oauthClient1 := GetOAuthClientSpec("test1", "secret", []string{"https://che-host/oauth/callback"}, nil, nil)
+	oauthClient2 := GetOAuthClientSpec("test2", "secret", []string{"https://che-host/oauth/callback"}, nil, nil)
+	oauthClient3 := GetOAuthClientSpec("test3", "secret", []string{"https://che-host/oauth/callback"}, nil, nil)
 	oauthClient3.ObjectMeta.Labels = map[string]string{}
 
 	checluster := &chev2.CheCluster{
@@ -178,7 +178,7 @@ func TestSyncOAuthClient(t *testing.T) {
 }
 
 func TestSyncExistedOAuthClient(t *testing.T) {
-	oauthClient := GetOAuthClientSpec("test", "secret", []string{})
+	oauthClient := GetOAuthClientSpec("test", "secret", []string{}, nil, nil)
 
 	type testCase struct {
 		name           string

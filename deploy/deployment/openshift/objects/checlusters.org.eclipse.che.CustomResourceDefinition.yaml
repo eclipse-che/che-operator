@@ -3521,6 +3521,14 @@ spec:
                         - id_token
                         - access_token
                         type: string
+                      oAccessTokenInactivityTimeoutSeconds:
+                        description: Inactivity timeout for tokens to set in the OpenShift `OAuthClient` resource used to set up identity federation on the OpenShift side. 0 means tokens for this client never time out.
+                        format: int32
+                        type: integer
+                      oAccessTokenMaxAgeSeconds:
+                        description: Access token max age for tokens to set in the OpenShift `OAuthClient` resource used to set up identity federation on the OpenShift side. 0 means no expiration.
+                        format: int32
+                        type: integer
                       oAuthClientName:
                         description: Name of the OpenShift `OAuthClient` resource used to set up identity federation on the OpenShift side.
                         type: string
