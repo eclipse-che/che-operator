@@ -46,10 +46,6 @@ func (ip *IdentityProviderReconciler) Reconcile(ctx *chetypes.DeployContext) (re
 }
 
 func (ip *IdentityProviderReconciler) Finalize(ctx *chetypes.DeployContext) bool {
-	if err := deploy.DeleteFinalizer(ctx, OAuthFinalizerName); err != nil {
-		logrus.Errorf("Error deleting finalizer: %v", err)
-	}
-
 	oauthClients, err := FindAllEclipseCheOAuthClients(ctx)
 	if err != nil {
 		logrus.Errorf("Error getting OAuthClients: %v", err)
@@ -59,7 +55,13 @@ func (ip *IdentityProviderReconciler) Finalize(ctx *chetypes.DeployContext) bool
 	for _, oauthClient := range oauthClients {
 		if _, err := deploy.DeleteClusterObject(ctx, oauthClient.Name, &oauth.OAuthClient{}); err != nil {
 			logrus.Errorf("Error deleting OAuthClient: %v", err)
+			return false
 		}
+	}
+
+	if err := deploy.DeleteFinalizer(ctx, OAuthFinalizerName); err != nil {
+		logrus.Errorf("Error deleting finalizer: %v", err)
+		return false
 	}
 
 	return true

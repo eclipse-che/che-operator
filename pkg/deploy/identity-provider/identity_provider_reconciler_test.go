@@ -29,6 +29,9 @@ import (
 func TestFinalize(t *testing.T) {
 	oauthClient1 := GetOAuthClientSpec("test1", "secret", []string{"https://che-host/oauth/callback"})
 	oauthClient2 := GetOAuthClientSpec("test2", "secret", []string{"https://che-host/oauth/callback"})
+	oauthClient3 := GetOAuthClientSpec("test3", "secret", []string{"https://che-host/oauth/callback"})
+	oauthClient3.ObjectMeta.Labels = map[string]string{}
+
 	checluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "eclipse-che",
@@ -37,16 +40,18 @@ func TestFinalize(t *testing.T) {
 		},
 	}
 
-	ctx := test.GetDeployContext(checluster, []runtime.Object{oauthClient1, oauthClient2})
+	ctx := test.GetDeployContext(checluster, []runtime.Object{oauthClient1, oauthClient2, oauthClient3})
 
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test1"}, &oauthv1.OAuthClient{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test2"}, &oauthv1.OAuthClient{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test3"}, &oauthv1.OAuthClient{}))
 
 	identityProviderReconciler := NewIdentityProviderReconciler()
 	done := identityProviderReconciler.Finalize(ctx)
 	assert.True(t, done)
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test1"}, &oauthv1.OAuthClient{}))
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test2"}, &oauthv1.OAuthClient{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test3"}, &oauthv1.OAuthClient{}))
 	assert.Equal(t, 0, len(checluster.Finalizers))
 }
 
