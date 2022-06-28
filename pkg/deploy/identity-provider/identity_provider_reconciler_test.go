@@ -12,9 +12,10 @@
 package identityprovider
 
 import (
-	"k8s.io/utils/pointer"
 	"os"
 	"testing"
+
+	"k8s.io/utils/pointer"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
