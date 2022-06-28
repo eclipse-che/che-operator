@@ -25,7 +25,7 @@ import (
 
 func GetOAuthClientSpec(
 	name string,
-	oauthSecret string,
+	secret string,
 	redirectURIs []string,
 	accessTokenInactivityTimeoutSeconds *int32,
 	accessTokenMaxAgeSeconds *int32) *oauth.OAuthClient {
@@ -39,7 +39,7 @@ func GetOAuthClientSpec(
 			Labels: map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg},
 		},
 
-		Secret:                              oauthSecret,
+		Secret:                              secret,
 		RedirectURIs:                        redirectURIs,
 		GrantMethod:                         oauth.GrantHandlerPrompt,
 		AccessTokenInactivityTimeoutSeconds: accessTokenInactivityTimeoutSeconds,

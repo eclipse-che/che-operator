@@ -12,6 +12,7 @@
 package identityprovider
 
 import (
+	"k8s.io/utils/pointer"
 	"os"
 	"testing"
 
@@ -55,7 +56,7 @@ func TestFinalize(t *testing.T) {
 	assert.Equal(t, 0, len(checluster.Finalizers))
 }
 
-func TestSyncOAuthClientGenerateSecret(t *testing.T) {
+func TestSyncOAuthClientShouldSyncTokenTimeout(t *testing.T) {
 	checluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "eclipse-che",
@@ -64,7 +65,8 @@ func TestSyncOAuthClientGenerateSecret(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
 				Auth: chev2.Auth{
-					OAuthClientName: "name",
+					OAuthAccessTokenInactivityTimeoutSeconds: pointer.Int32Ptr(10),
+					OAuthAccessTokenMaxAgeSeconds:            pointer.Int32Ptr(20),
 				},
 			},
 		},
@@ -74,13 +76,11 @@ func TestSyncOAuthClientGenerateSecret(t *testing.T) {
 	done, err := syncOAuthClient(ctx)
 	assert.True(t, done)
 	assert.Nil(t, err)
-	assert.Empty(t, checluster.Spec.Networking.Auth.OAuthSecret)
 
 	oauthClients, err := FindAllEclipseCheOAuthClients(ctx)
 	assert.Nil(t, err)
-	assert.Equal(t, 1, len(oauthClients))
-	assert.Equal(t, "name", oauthClients[0].Name)
-	assert.NotEmpty(t, oauthClients[0].Secret)
+	assert.Equal(t, int32(10), *oauthClients[0].AccessTokenInactivityTimeoutSeconds)
+	assert.Equal(t, int32(20), *oauthClients[0].AccessTokenMaxAgeSeconds)
 }
 
 func TestSyncOAuthClient(t *testing.T) {
