@@ -99,7 +99,12 @@ func syncOAuthClient(ctx *chetypes.DeployContext) (bool, error) {
 	oauthClientName = utils.GetValue(oauthClientName, ctx.CheCluster.Name+"-openshift-identity-provider-"+strings.ToLower(utils.GeneratePassword(6)))
 
 	redirectURIs := []string{"https://" + ctx.CheHost + "/oauth/callback"}
-	oauthClientSpec := GetOAuthClientSpec(oauthClientName, oauthSecret, redirectURIs)
+	oauthClientSpec := GetOAuthClientSpec(
+		oauthClientName,
+		oauthSecret,
+		redirectURIs,
+		ctx.CheCluster.Spec.Networking.Auth.OAuthAccessTokenInactivityTimeoutSeconds,
+		ctx.CheCluster.Spec.Networking.Auth.OAuthAccessTokenMaxAgeSeconds)
 	done, err := deploy.Sync(ctx, oauthClientSpec, oAuthClientDiffOpts)
 	if !done {
 		return false, err

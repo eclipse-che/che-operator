@@ -23,7 +23,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func GetOAuthClientSpec(name string, oauthSecret string, redirectURIs []string) *oauth.OAuthClient {
+func GetOAuthClientSpec(
+	name string,
+	secret string,
+	redirectURIs []string,
+	accessTokenInactivityTimeoutSeconds *int32,
+	accessTokenMaxAgeSeconds *int32) *oauth.OAuthClient {
 	return &oauth.OAuthClient{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "OAuthClient",
@@ -34,9 +39,11 @@ func GetOAuthClientSpec(name string, oauthSecret string, redirectURIs []string) 
 			Labels: map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg},
 		},
 
-		Secret:       oauthSecret,
-		RedirectURIs: redirectURIs,
-		GrantMethod:  oauth.GrantHandlerPrompt,
+		Secret:                              secret,
+		RedirectURIs:                        redirectURIs,
+		GrantMethod:                         oauth.GrantHandlerPrompt,
+		AccessTokenInactivityTimeoutSeconds: accessTokenInactivityTimeoutSeconds,
+		AccessTokenMaxAgeSeconds:            accessTokenMaxAgeSeconds,
 	}
 }
 

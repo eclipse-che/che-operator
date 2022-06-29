@@ -15,6 +15,8 @@ import (
 	"os"
 	"testing"
 
+	"k8s.io/utils/pointer"
+
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	oauthv1 "github.com/openshift/api/oauth/v1"
@@ -27,9 +29,9 @@ import (
 )
 
 func TestFinalize(t *testing.T) {
-	oauthClient1 := GetOAuthClientSpec("test1", "secret", []string{"https://che-host/oauth/callback"})
-	oauthClient2 := GetOAuthClientSpec("test2", "secret", []string{"https://che-host/oauth/callback"})
-	oauthClient3 := GetOAuthClientSpec("test3", "secret", []string{"https://che-host/oauth/callback"})
+	oauthClient1 := GetOAuthClientSpec("test1", "secret", []string{"https://che-host/oauth/callback"}, nil, nil)
+	oauthClient2 := GetOAuthClientSpec("test2", "secret", []string{"https://che-host/oauth/callback"}, nil, nil)
+	oauthClient3 := GetOAuthClientSpec("test3", "secret", []string{"https://che-host/oauth/callback"}, nil, nil)
 	oauthClient3.ObjectMeta.Labels = map[string]string{}
 
 	checluster := &chev2.CheCluster{
@@ -55,7 +57,7 @@ func TestFinalize(t *testing.T) {
 	assert.Equal(t, 0, len(checluster.Finalizers))
 }
 
-func TestSyncOAuthClientGenerateSecret(t *testing.T) {
+func TestSyncOAuthClientShouldSyncTokenTimeout(t *testing.T) {
 	checluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "eclipse-che",
@@ -64,7 +66,8 @@ func TestSyncOAuthClientGenerateSecret(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
 				Auth: chev2.Auth{
-					OAuthClientName: "name",
+					OAuthAccessTokenInactivityTimeoutSeconds: pointer.Int32Ptr(10),
+					OAuthAccessTokenMaxAgeSeconds:            pointer.Int32Ptr(20),
 				},
 			},
 		},
@@ -74,13 +77,11 @@ func TestSyncOAuthClientGenerateSecret(t *testing.T) {
 	done, err := syncOAuthClient(ctx)
 	assert.True(t, done)
 	assert.Nil(t, err)
-	assert.Empty(t, checluster.Spec.Networking.Auth.OAuthSecret)
 
 	oauthClients, err := FindAllEclipseCheOAuthClients(ctx)
 	assert.Nil(t, err)
-	assert.Equal(t, 1, len(oauthClients))
-	assert.Equal(t, "name", oauthClients[0].Name)
-	assert.NotEmpty(t, oauthClients[0].Secret)
+	assert.Equal(t, int32(10), *oauthClients[0].AccessTokenInactivityTimeoutSeconds)
+	assert.Equal(t, int32(20), *oauthClients[0].AccessTokenMaxAgeSeconds)
 }
 
 func TestSyncOAuthClient(t *testing.T) {
@@ -178,7 +179,7 @@ func TestSyncOAuthClient(t *testing.T) {
 }
 
 func TestSyncExistedOAuthClient(t *testing.T) {
-	oauthClient := GetOAuthClientSpec("test", "secret", []string{})
+	oauthClient := GetOAuthClientSpec("test", "secret", []string{}, nil, nil)
 
 	type testCase struct {
 		name           string
