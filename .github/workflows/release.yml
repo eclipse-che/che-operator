@@ -88,6 +88,8 @@ jobs:
           OP_SDK_DIR=/opt/operator-sdk
           mkdir -p $OP_SDK_DIR
           make download-operator-sdk DEST="${OP_SDK_DIR}"
+          
+          go install golang.org/x/tools/cmd/goimports@latest
 
           export PATH="$PATH:$OP_SDK_DIR"
           export QUAY_ECLIPSE_CHE_USERNAME=${{ secrets.QUAY_USERNAME }}
