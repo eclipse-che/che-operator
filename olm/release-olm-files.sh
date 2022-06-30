@@ -22,7 +22,7 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 OPERATOR_DIR=$(dirname $(dirname $(readlink -f "${BASH_SOURCE[0]}")))
-source "${OPERATOR_REPO}/.github/bin/common.sh"
+source "${OPERATOR_DIR}/.github/bin/common.sh"
 
 BASE_DIR="${OPERATOR_DIR}/olm"
 
