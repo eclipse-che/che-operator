@@ -108,9 +108,9 @@ source ${BASE_DIR}/addDigests.sh -w ${BASE_DIR} \
 popd || exit 1
 
 pushd "${OPERATOR_REPO}" || exit 1
-make add-license-download
-make add-license "${RELEASE_CSV}"
-make add-license "${MANAGER_YAML}"
+make download-addlicense
+make license "${RELEASE_CSV}"
+make license "${MANAGER_YAML}"
 popd || exit 1
 
 if [[ -n "${PRE_RELEASE_CSV}" ]] && [[ -n "${PRE_RELEASE_CHE_CRD}" ]]; then
