@@ -677,15 +677,14 @@ download-addlicense: ## Download addlicense tool
 OPERATOR_SDK ?= $(shell pwd)/bin/operator-sdk
 download-operator-sdk: SHELL := /bin/bash
 download-operator-sdk: ## Downloads operator sdk tool
-	command -v $(OPERATOR_SDK) >/dev/null 2>&1 && exit
+	[[ -z "$(DEST)" ]] && dest=$(OPERATOR_SDK) || dest=$(DEST)/operator-sdk
+	command -v $${dest} >/dev/null 2>&1 && exit
 
 	OS=$(shell go env GOOS)
 	ARCH=$(shell go env GOARCH)
 	OPERATOR_SDK_VERSION=$$(yq -r '."operator-sdk"' $(PROJECT_DIR)/REQUIREMENTS)
 
-	[[ -z "$(DEST)" ]] && dest=$(OPERATOR_SDK) || dest=$(DEST)/$(OPERATOR_SDK)
-	echo "[INFO] Downloading operator-sdk version $$OPERATOR_SDK_VERSION into $${dest}"
-
+	echo "[INFO] Downloading operator-sdk version $${OPERATOR_SDK_VERSION} into $${dest}"
 	mkdir -p $$(dirname "$${dest}")
 	curl -sL https://github.com/operator-framework/operator-sdk/releases/download/$${OPERATOR_SDK_VERSION}/operator-sdk_$${OS}_$${ARCH} > $${dest}
 	chmod +x $${dest}
