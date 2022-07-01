@@ -211,12 +211,15 @@ update-helmcharts: ## Update Helm Charts
 		 	CRDS_SAMPLES=$${CRDS_SAMPLES}$${CRD_SAMPLE}$$'\n'
 		done
 
+		# Update Chart.yaml
 		yq -rYi --arg examples "$${CRDS_SAMPLES}" ".annotations.\"artifacthub.io/crdsExamples\" = \$$examples" $${chartYaml}
 
 		# Set CheCluster API version to v2 (TODO: remove in a next release)
 		CRDS=$$(yq -r '.annotations."artifacthub.io/crds"' $${chartYaml} | yq -ry -w 9999 '.[0].version="v2"')
 		yq -rYi --arg crds "$${CRDS}" ".annotations.\"artifacthub.io/crds\" = \$$crds" $${chartYaml}
 		sed -i 's|org_v1_checluster|org_v2_checluster|g' $${HELM_DIR}/README.md
+
+		make license $${chartYaml}
 
 		rm -rf $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
 	else
