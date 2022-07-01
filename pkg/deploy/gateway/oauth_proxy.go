@@ -61,7 +61,7 @@ func openshiftOauthProxyConfig(ctx *chetypes.DeployContext, cookieSecret string)
 	oauthSecret := ""
 	oauthClientName := ""
 
-	oauthClient, _ := identityprovider.FindOAuthClient(ctx)
+	oauthClient, _ := identityprovider.GetOAuthClient(ctx)
 	if oauthClient == nil {
 		logrus.Error("oauth client not found")
 	} else {

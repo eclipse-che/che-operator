@@ -28,11 +28,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
-func TestFinalize(t *testing.T) {
-	oauthClient1 := GetOAuthClientSpec("test1", "secret", []string{"https://che-host/oauth/callback"}, nil, nil)
-	oauthClient2 := GetOAuthClientSpec("test2", "secret", []string{"https://che-host/oauth/callback"}, nil, nil)
-	oauthClient3 := GetOAuthClientSpec("test3", "secret", []string{"https://che-host/oauth/callback"}, nil, nil)
-	oauthClient3.ObjectMeta.Labels = map[string]string{}
+func TestFinalizeDefaultOAuthClientName(t *testing.T) {
+	oauthClient := GetOAuthClientSpec("eclipse-che-client", "secret", []string{"https://che-host/oauth/callback"}, nil, nil)
+	oauthClient.ObjectMeta.Labels = map[string]string{}
 
 	checluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -42,18 +40,44 @@ func TestFinalize(t *testing.T) {
 		},
 	}
 
-	ctx := test.GetDeployContext(checluster, []runtime.Object{oauthClient1, oauthClient2, oauthClient3})
+	ctx := test.GetDeployContext(checluster, []runtime.Object{oauthClient})
 
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test1"}, &oauthv1.OAuthClient{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test2"}, &oauthv1.OAuthClient{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test3"}, &oauthv1.OAuthClient{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "eclipse-che-client"}, &oauthv1.OAuthClient{}))
 
 	identityProviderReconciler := NewIdentityProviderReconciler()
 	done := identityProviderReconciler.Finalize(ctx)
 	assert.True(t, done)
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test1"}, &oauthv1.OAuthClient{}))
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test2"}, &oauthv1.OAuthClient{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test3"}, &oauthv1.OAuthClient{}))
+	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "eclipse-che-client"}, &oauthv1.OAuthClient{}))
+	assert.Equal(t, 0, len(checluster.Finalizers))
+}
+
+func TestFinalizeOAuthClient(t *testing.T) {
+	oauthClient := GetOAuthClientSpec("test", "secret", []string{"https://che-host/oauth/callback"}, nil, nil)
+	oauthClient.ObjectMeta.Labels = map[string]string{}
+
+	checluster := &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "eclipse-che",
+			Namespace:  "eclipse-che",
+			Finalizers: []string{OAuthFinalizerName},
+		},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Auth: chev2.Auth{
+					OAuthClientName: "test",
+				},
+			},
+		},
+	}
+
+	ctx := test.GetDeployContext(checluster, []runtime.Object{oauthClient})
+
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test"}, &oauthv1.OAuthClient{}))
+
+	identityProviderReconciler := NewIdentityProviderReconciler()
+	done := identityProviderReconciler.Finalize(ctx)
+	assert.True(t, done)
+	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test"}, &oauthv1.OAuthClient{}))
 	assert.Equal(t, 0, len(checluster.Finalizers))
 }
 
@@ -76,7 +100,7 @@ func TestShouldFindSingleOAuthClient(t *testing.T) {
 	}
 
 	ctx := test.GetDeployContext(checluster, []runtime.Object{oauthClient1, oauthClient2})
-	oauthClient, err := FindOAuthClient(ctx)
+	oauthClient, err := GetOAuthClient(ctx)
 	assert.Nil(t, err)
 	assert.NotNil(t, oauthClient)
 	assert.Equal(t, "test1", oauthClient.Name)
@@ -103,10 +127,11 @@ func TestSyncOAuthClientShouldSyncTokenTimeout(t *testing.T) {
 	assert.True(t, done)
 	assert.Nil(t, err)
 
-	oauthClients, err := FindAllEclipseCheOAuthClients(ctx)
+	oauthClient, err := GetOAuthClient(ctx)
 	assert.Nil(t, err)
-	assert.Equal(t, int32(10), *oauthClients[0].AccessTokenInactivityTimeoutSeconds)
-	assert.Equal(t, int32(20), *oauthClients[0].AccessTokenMaxAgeSeconds)
+	assert.NotNil(t, oauthClient)
+	assert.Equal(t, int32(10), *oauthClient.AccessTokenInactivityTimeoutSeconds)
+	assert.Equal(t, int32(20), *oauthClient.AccessTokenMaxAgeSeconds)
 }
 
 func TestSyncOAuthClient(t *testing.T) {
@@ -138,13 +163,14 @@ func TestSyncOAuthClient(t *testing.T) {
 			expectedSecret: "secret",
 		},
 		{
-			name: "Sync OAuthClient, generate name and secret",
+			name: "Sync OAuthClient, generate secret, default name",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
 					Namespace: "eclipse-che",
 				},
 			},
+			expectedName: "eclipse-che-client",
 		},
 		{
 			name: "Sync OAuthClient, generate secret",
@@ -164,7 +190,7 @@ func TestSyncOAuthClient(t *testing.T) {
 			expectedName: "test",
 		},
 		{
-			name: "Sync OAuthClient, generate name",
+			name: "Sync OAuthClient, default name",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
@@ -179,6 +205,7 @@ func TestSyncOAuthClient(t *testing.T) {
 				},
 			},
 			expectedSecret: "secret",
+			expectedName:   "eclipse-che-client",
 		},
 	}
 
@@ -190,21 +217,22 @@ func TestSyncOAuthClient(t *testing.T) {
 			_, err := syncOAuthClient(ctx)
 			assert.Nil(t, err)
 
-			oauthClients, err := FindAllEclipseCheOAuthClients(ctx)
+			oauthClient, err := GetOAuthClient(ctx)
 			assert.Nil(t, err)
-			assert.Equal(t, 1, len(oauthClients))
+			assert.NotNil(t, oauthClient)
 			if testCase.expectedName != "" {
-				assert.Equal(t, testCase.expectedName, oauthClients[0].Name)
+				assert.Equal(t, testCase.expectedName, oauthClient.Name)
 			}
 			if testCase.expectedSecret != "" {
-				assert.Equal(t, testCase.expectedSecret, oauthClients[0].Secret)
+				assert.Equal(t, testCase.expectedSecret, oauthClient.Secret)
 			}
 		})
 	}
 }
 
 func TestSyncExistedOAuthClient(t *testing.T) {
-	oauthClient := GetOAuthClientSpec("test", "secret", []string{}, nil, nil)
+	oauthClient1 := GetOAuthClientSpec("test", "secret", []string{}, nil, nil)
+	oauthClient2 := GetOAuthClientSpec("eclipse-che-client", "secret", []string{}, nil, nil)
 
 	type testCase struct {
 		name           string
@@ -215,7 +243,7 @@ func TestSyncExistedOAuthClient(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name: "Sync existed OAuthClient",
+			name: "Sync existed OAuthClient with the default name",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
@@ -223,29 +251,10 @@ func TestSyncExistedOAuthClient(t *testing.T) {
 				},
 			},
 			expectedSecret: "secret",
-			expectedName:   "test",
+			expectedName:   "eclipse-che-client",
 		},
 		{
-			name: "Sync existed OAuthClient, OAuthSecret and OAuthClientName are defined",
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "eclipse-che",
-					Namespace: "eclipse-che",
-				},
-				Spec: chev2.CheClusterSpec{
-					Networking: chev2.CheClusterSpecNetworking{
-						Auth: chev2.Auth{
-							OAuthSecret:     "secret",
-							OAuthClientName: "test",
-						},
-					},
-				},
-			},
-			expectedSecret: "secret",
-			expectedName:   "test",
-		},
-		{
-			name: "Sync existed OAuthClient, OAuthClientName is defined",
+			name: "Sync existed OAuthClient with a custom name",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
@@ -263,43 +272,7 @@ func TestSyncExistedOAuthClient(t *testing.T) {
 			expectedName:   "test",
 		},
 		{
-			name: "Sync existed OAuthClient, OAuthSecret is defined",
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "eclipse-che",
-					Namespace: "eclipse-che",
-				},
-				Spec: chev2.CheClusterSpec{
-					Networking: chev2.CheClusterSpecNetworking{
-						Auth: chev2.Auth{
-							OAuthSecret: "secret",
-						},
-					},
-				},
-			},
-			expectedSecret: "secret",
-			expectedName:   "test",
-		},
-		{
-			name: "Sync existed OAuthClient, update secret, usecase #1",
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "eclipse-che",
-					Namespace: "eclipse-che",
-				},
-				Spec: chev2.CheClusterSpec{
-					Networking: chev2.CheClusterSpecNetworking{
-						Auth: chev2.Auth{
-							OAuthSecret: "new-secret",
-						},
-					},
-				},
-			},
-			expectedSecret: "new-secret",
-			expectedName:   "test",
-		},
-		{
-			name: "Sync existed OAuthClient, update secret, usecase #2",
+			name: "Sync existed OAuthClient with a custom name, update secret",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
@@ -317,24 +290,42 @@ func TestSyncExistedOAuthClient(t *testing.T) {
 			expectedSecret: "new-secret",
 			expectedName:   "test",
 		},
+		{
+			name: "Sync existed OAuthClient with the default name, update secret",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Networking: chev2.CheClusterSpecNetworking{
+						Auth: chev2.Auth{
+							OAuthSecret: "new-secret",
+						},
+					},
+				},
+			},
+			expectedSecret: "new-secret",
+			expectedName:   "eclipse-che-client",
+		},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
-			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{oauthClient})
+			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{oauthClient1, oauthClient2})
 			_, err := syncOAuthClient(ctx)
 			assert.Nil(t, err)
 
-			oauthClients, err := FindAllEclipseCheOAuthClients(ctx)
+			oauthClient, err := GetOAuthClient(ctx)
 			assert.Nil(t, err)
-			assert.Equal(t, 1, len(oauthClients))
+			assert.NotNil(t, oauthClient)
 			if testCase.expectedName != "" {
-				assert.Equal(t, testCase.expectedName, oauthClients[0].Name)
+				assert.Equal(t, testCase.expectedName, oauthClient.Name)
 			}
 			if testCase.expectedSecret != "" {
-				assert.Equal(t, testCase.expectedSecret, oauthClients[0].Secret)
+				assert.Equal(t, testCase.expectedSecret, oauthClient.Secret)
 			}
 		})
 	}
