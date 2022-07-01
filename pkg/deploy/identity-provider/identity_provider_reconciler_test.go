@@ -57,6 +57,31 @@ func TestFinalize(t *testing.T) {
 	assert.Equal(t, 0, len(checluster.Finalizers))
 }
 
+func TestShouldFindSingleOAuthClient(t *testing.T) {
+	oauthClient1 := GetOAuthClientSpec("test1", "secret", []string{"https://che-host/oauth/callback"}, nil, nil)
+	oauthClient2 := GetOAuthClientSpec("test2", "secret", []string{"https://che-host/oauth/callback"}, nil, nil)
+
+	checluster := &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Auth: chev2.Auth{
+					OAuthClientName: "test1",
+				},
+			},
+		},
+	}
+
+	ctx := test.GetDeployContext(checluster, []runtime.Object{oauthClient1, oauthClient2})
+	oauthClient, err := FindOAuthClient(ctx)
+	assert.Nil(t, err)
+	assert.NotNil(t, oauthClient)
+	assert.Equal(t, "test1", oauthClient.Name)
+}
+
 func TestSyncOAuthClientShouldSyncTokenTimeout(t *testing.T) {
 	checluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{

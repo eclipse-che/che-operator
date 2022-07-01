@@ -14,12 +14,14 @@ package identityprovider
 import (
 	"context"
 	"fmt"
-
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 	oauth "github.com/openshift/api/oauth/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -36,7 +38,7 @@ func GetOAuthClientSpec(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
-			Labels: map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg},
+			Labels: deploy.GetLabels(defaults.GetCheFlavor()),
 		},
 
 		Secret:                              secret,
@@ -48,6 +50,17 @@ func GetOAuthClientSpec(
 }
 
 func FindOAuthClient(ctx *chetypes.DeployContext) (*oauth.OAuthClient, error) {
+	if ctx.CheCluster.Spec.Networking.Auth.OAuthClientName != "" {
+		oauthClient := &oauth.OAuthClient{}
+		if err := ctx.ClusterAPI.Client.Get(
+			context.TODO(),
+			types.NamespacedName{Name: ctx.CheCluster.Spec.Networking.Auth.OAuthClientName},
+			oauthClient); err != nil {
+			return nil, err
+		}
+		return oauthClient, nil
+	}
+
 	oauthClients, err := FindAllEclipseCheOAuthClients(ctx)
 	if err != nil {
 		return nil, err
@@ -65,7 +78,7 @@ func FindOAuthClient(ctx *chetypes.DeployContext) (*oauth.OAuthClient, error) {
 
 func FindAllEclipseCheOAuthClients(ctx *chetypes.DeployContext) ([]oauth.OAuthClient, error) {
 	oauthClients := &oauth.OAuthClientList{}
-	listOptions := &client.ListOptions{LabelSelector: labels.SelectorFromSet(map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg})}
+	listOptions := &client.ListOptions{LabelSelector: labels.SelectorFromSet(deploy.GetLabels(defaults.GetCheFlavor()))}
 
 	if err := ctx.ClusterAPI.Client.List(
 		context.TODO(),
