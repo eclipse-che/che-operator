@@ -327,15 +327,15 @@ run: generate manifests download-kustomize genenerate-env download-devworkspace-
 
 debug: SHELL := /bin/bash
 debug: generate manifests download-kustomize genenerate-env download-devworkspace-resources ## Run and debug Eclipse Che operator
-	echo "[INFO] Running on $(PLATFORM)"
-	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
-
-	$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
-	$(MAKE) wait-pod-running COMPONENT=che-operator NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)
-
-	$(K8S_CLI) scale deploy che-operator -n $(ECLIPSE_CHE_NAMESPACE) --replicas=0
+#	echo "[INFO] Running on $(PLATFORM)"
+#	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
+#
+#	$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
+#	$(MAKE) wait-pod-running COMPONENT=che-operator NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)
+#
+#	$(K8S_CLI) scale deploy che-operator -n $(ECLIPSE_CHE_NAMESPACE) --replicas=0
 	$(MAKE) store_tls_cert
-	$(MAKE) create-checluster-cr
+#	$(MAKE) create-checluster-cr
 
 	source $(BASH_ENV_FILE)
 
