@@ -10,19 +10,20 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-apiVersion: v1
-kind: Service
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
 metadata:
+  name: che-operator
   labels:
-    app.kubernetes.io/component: che-operator
-    app.kubernetes.io/instance: che
     app.kubernetes.io/name: che
+    app.kubernetes.io/instance: che
     app.kubernetes.io/part-of: che.eclipse.org
-  name: che-operator-service
-  namespace: eclipse-che
-spec:
-  ports:
-  - port: 443
-    targetPort: 9443
-  selector:
-    app: che-operator
+    app.kubernetes.io/component: che-operator
+subjects:
+  - kind: ServiceAccount
+    name: che-operator
+    namespace: eclipse-che
+roleRef:
+  kind: ClusterRole
+  name: che-operator
+  apiGroup: rbac.authorization.k8s.io
