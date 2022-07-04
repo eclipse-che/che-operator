@@ -10,13 +10,15 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-apiVersion: v1
-kind: ServiceAccount
+apiVersion: cert-manager.io/v1
+kind: Issuer
 metadata:
-  name: che-operator
   labels:
-    app.kubernetes.io/name: che
-    app.kubernetes.io/instance: che
-    app.kubernetes.io/part-of: che.eclipse.org
     app.kubernetes.io/component: che-operator
+    app.kubernetes.io/instance: che
+    app.kubernetes.io/name: che
+    app.kubernetes.io/part-of: che.eclipse.org
+  name: che-operator-selfsigned-issuer
   namespace: eclipse-che
+spec:
+  selfSigned: {}

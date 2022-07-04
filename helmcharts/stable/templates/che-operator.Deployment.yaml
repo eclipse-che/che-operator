@@ -1,0 +1,156 @@
+#
+# Copyright (c) 2019-2021 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Red Hat, Inc. - initial API and implementation
+#
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: che-operator
+    app.kubernetes.io/component: che-operator
+    app.kubernetes.io/instance: che
+    app.kubernetes.io/name: che
+    app.kubernetes.io/part-of: che.eclipse.org
+  name: che-operator
+  namespace: eclipse-che
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: che-operator
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: che-operator
+        app.kubernetes.io/component: che-operator
+        app.kubernetes.io/instance: che
+        app.kubernetes.io/name: che
+        app.kubernetes.io/part-of: che.eclipse.org
+    spec:
+      containers:
+      - args:
+        - --leader-elect
+        command:
+        - /manager
+        env:
+        - name: WATCH_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: OPERATOR_NAME
+          value: che-operator
+        - name: CHE_VERSION
+          value: next
+        - name: RELATED_IMAGE_che_server
+          value: quay.io/eclipse/che-server:next
+        - name: RELATED_IMAGE_dashboard
+          value: quay.io/eclipse/che-dashboard:next
+        - name: RELATED_IMAGE_plugin_registry
+          value: quay.io/eclipse/che-plugin-registry:next
+        - name: RELATED_IMAGE_devfile_registry
+          value: quay.io/eclipse/che-devfile-registry:next
+        - name: RELATED_IMAGE_che_tls_secrets_creation_job
+          value: quay.io/eclipse/che-tls-secret-creator:alpine-01a4c34
+        - name: RELATED_IMAGE_postgres
+          value: quay.io/eclipse/che--centos--postgresql-96-centos7:9.6-b681d78125361519180a6ac05242c296f8906c11eab7e207b5ca9a89b6344392
+        - name: RELATED_IMAGE_postgres_13_3
+          value: quay.io/eclipse/che--centos--postgresql-13-centos7:1-71b24684d64da46f960682cc4216222a7e4ed8b1a31dd5a865b3e71afdea20d2
+        - name: RELATED_IMAGE_single_host_gateway
+          value: quay.io/eclipse/che--traefik:v2.5.0-eb30f9f09a65cee1fab5ef9c64cb4ec91b800dc3fdd738d62a9d4334f0114683
+        - name: RELATED_IMAGE_single_host_gateway_config_sidecar
+          value: quay.io/che-incubator/configbump:0.1.4
+        - name: RELATED_IMAGE_devworkspace_controller
+          value: quay.io/devfile/devworkspace-controller:v0.14.1
+        - name: RELATED_IMAGE_gateway_authentication_sidecar
+          value: quay.io/openshift/origin-oauth-proxy:4.7
+        - name: RELATED_IMAGE_gateway_authorization_sidecar
+          value: quay.io/openshift/origin-kube-rbac-proxy:4.7
+        - name: RELATED_IMAGE_gateway_authentication_sidecar_k8s
+          value: quay.io/oauth2-proxy/oauth2-proxy:v7.2.0
+        - name: RELATED_IMAGE_gateway_authorization_sidecar_k8s
+          value: quay.io/brancz/kube-rbac-proxy:v0.11.0
+        - name: RELATED_IMAGE_gateway_header_sidecar
+          value: quay.io/che-incubator/header-rewrite-proxy:latest
+        - name: CHE_FLAVOR
+          value: che
+        - name: CONSOLE_LINK_NAME
+          value: che
+        - name: CONSOLE_LINK_DISPLAY_NAME
+          value: Eclipse Che
+        - name: CONSOLE_LINK_SECTION
+          value: Red Hat Applications
+        - name: CONSOLE_LINK_IMAGE
+          value: /dashboard/assets/branding/loader.svg
+        - name: MAX_CONCURRENT_RECONCILES
+          value: "1"
+        - name: ADD_COMPONENT_READINESS_INIT_CONTAINERS
+          value: "false"
+        image: quay.io/eclipse/che-operator:next
+        imagePullPolicy: Always
+        livenessProbe:
+          failureThreshold: 10
+          httpGet:
+            path: /healthz
+            port: 6789
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: che-operator
+        ports:
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
+        - containerPort: 60000
+          name: metrics
+        readinessProbe:
+          failureThreshold: 10
+          httpGet:
+            path: /readyz
+            port: 6789
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 500m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        securityContext:
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: false
+        volumeMounts:
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: webhook-tls-certs
+          readOnly: true
+      hostIPC: false
+      hostNetwork: false
+      hostPID: false
+      restartPolicy: Always
+      serviceAccountName: che-operator
+      terminationGracePeriodSeconds: 20
+      volumes:
+      - name: webhook-tls-certs
+        secret:
+          defaultMode: 420
+          secretName: che-operator-webhook-server-cert
