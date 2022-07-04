@@ -10,21 +10,20 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-apiVersion: cert-manager.io/v1
-kind: Certificate
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
 metadata:
+  name: che-operator
   labels:
-    app.kubernetes.io/component: che-operator
-    app.kubernetes.io/instance: che
     app.kubernetes.io/name: che
+    app.kubernetes.io/instance: che
     app.kubernetes.io/part-of: che.eclipse.org
-  name: che-operator-serving-cert
+    app.kubernetes.io/component: che-operator
   namespace: eclipse-che
-spec:
-  dnsNames:
-  - che-operator-service.eclipse-che.svc
-  - che-operator-service.eclipse-che.svc.cluster.local
-  issuerRef:
-    kind: Issuer
-    name: che-operator-selfsigned-issuer
-  secretName: che-operator-webhook-server-cert
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: che-operator
+subjects:
+  - kind: ServiceAccount
+    name: che-operator
