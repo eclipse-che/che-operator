@@ -33,7 +33,7 @@ $ kubectl get pods -n eclipse-che
 eclipse-che   che-operator-554c564476-fl98z                           1/1     Running   0          13s
 ```
 
-Click `CRDS` button, select `CheCluster` template and copy custom resource Eclipse Che to file `org_v1_checluster.yaml`.
+Click `CRDS` button, select `CheCluster` template and copy custom resource Eclipse Che to file `org_v2_checluster.yaml`.
 Set the following fields:
 - `spec.networking.domain`
 - `spec.networking.auth.identityProviderURL`
@@ -42,7 +42,7 @@ Set the following fields:
 
 4. Apply CR:
 ```bash
-$ kubectl apply -f org_v1_checluster.yaml -n eclipse-che
+$ kubectl apply -f org_v2_checluster.yaml -n eclipse-che
 ```
 Also, you can use `kubectl edit checluster/eclipse-che -n eclipse-che` to update Eclipse Che configuration.
 See more configuration options in the [Installation guide](https://www.eclipse.org/che/docs/che-7/installation-guide/configuring-the-che-installation/).
