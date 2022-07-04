@@ -89,8 +89,8 @@ cp -rf "${NEXT_BUNDLE_PATH}/metadata" "${STABLE_BUNDLE_PATH}"
 cp -rf "${NEXT_BUNDLE_PATH}/tests" "${STABLE_BUNDLE_PATH}"
 
 # Remove old CRD files (TODO remove in future release)
-rm "${NEXT_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
-rm "${NEXT_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml.diff"
+rm "${STABLE_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
+rm "${STABLE_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml.diff"
 
 ANNOTATION_METADATA_YAML="${STABLE_BUNDLE_PATH}/metadata/annotations.yaml"
 sed \
