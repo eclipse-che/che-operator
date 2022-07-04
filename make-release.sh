@@ -127,6 +127,10 @@ releaseOperatorCode() {
   echo "[INFO] releaseOperatorCode :: Replacing tags"
   replaceImagesTags
 
+  echo "[INFO] releaseOperatorCode :: Updating deployment files"
+  make gen-deployment
+  make fmt
+
   local operatorYaml=$RELEASE_DIR/config/manager/manager.yaml
   echo "[INFO] releaseOperatorCode :: Validate changes for $operatorYaml"
   checkImageReferences $operatorYaml
