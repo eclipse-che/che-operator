@@ -19,8 +19,6 @@ set -o pipefail
 set -u
 
 CURRENT_DIR=$(pwd)
-SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
-BASE_DIR=$(dirname "$(dirname "$SCRIPT")")
 STABLE_CHANNELS=("stable")
 OPERATOR_REPO=$(dirname $(dirname $(readlink -f "${BASH_SOURCE[0]}")))
 source "${OPERATOR_REPO}/.github/bin/common.sh"
@@ -124,7 +122,7 @@ do
     -i "${folderToUpdate}/${LAST_PACKAGE_VERSION}/metadata/annotations.yaml"
 
   echo "   - Replace ci.yaml file"
-  cp ${BASE_DIR}/ci.yaml ${folderToUpdate}/ci.yaml
+  cp ${OPERATOR_REPO}/olm/ci.yaml ${folderToUpdate}/ci.yaml
 
   echo "   - Commit changes"
   cd "${communityOperatorsLocalGitFolder}"
