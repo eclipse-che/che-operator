@@ -269,7 +269,7 @@ func (c *WorkspacePermissionsReconciler) getWorkspacesPolicies() []rbacv1.Policy
 		{
 			APIGroups: []string{""},
 			Resources: []string{"pods/exec"},
-			Verbs:     []string{"create"},
+			Verbs:     []string{"get", "create"},
 		},
 		{
 			APIGroups: []string{""},
