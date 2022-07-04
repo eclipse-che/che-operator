@@ -22,7 +22,7 @@ CURRENT_DIR=$(pwd)
 SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
 BASE_DIR=$(dirname "$(dirname "$SCRIPT")")
 STABLE_CHANNELS=("stable")
-OPERATOR_REPO=$(dirname "$BASE_DIR")
+OPERATOR_REPO=$(dirname $(dirname $(readlink -f "${BASH_SOURCE[0]}")))
 source "${OPERATOR_REPO}/.github/bin/common.sh"
 
 base_branch="main"
