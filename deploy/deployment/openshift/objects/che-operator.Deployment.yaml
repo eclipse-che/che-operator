@@ -54,15 +54,15 @@ spec:
         - name: OPERATOR_NAME
           value: che-operator
         - name: CHE_VERSION
-          value: next
+          value: 7.50.0
         - name: RELATED_IMAGE_che_server
-          value: quay.io/eclipse/che-server:next
+          value: quay.io/eclipse/che-server:7.50.0
         - name: RELATED_IMAGE_dashboard
-          value: quay.io/eclipse/che-dashboard:next
+          value: quay.io/eclipse/che-dashboard:7.50.0
         - name: RELATED_IMAGE_plugin_registry
-          value: quay.io/eclipse/che-plugin-registry:next
+          value: quay.io/eclipse/che-plugin-registry:7.50.0
         - name: RELATED_IMAGE_devfile_registry
-          value: quay.io/eclipse/che-devfile-registry:next
+          value: quay.io/eclipse/che-devfile-registry:7.50.0
         - name: RELATED_IMAGE_che_tls_secrets_creation_job
           value: quay.io/eclipse/che-tls-secret-creator:alpine-01a4c34
         - name: RELATED_IMAGE_postgres
@@ -99,7 +99,7 @@ spec:
           value: "1"
         - name: ADD_COMPONENT_READINESS_INIT_CONTAINERS
           value: "false"
-        image: quay.io/eclipse/che-operator:next
+        image: quay.io/eclipse/che-operator:7.50.0
         imagePullPolicy: Always
         livenessProbe:
           failureThreshold: 10
