@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/utils/pointer"
 
 	devfile "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
@@ -274,9 +275,11 @@ func TestConvertTo(t *testing.T) {
 				Enable: true,
 			},
 			DevWorkspace: chev1.CheClusterSpecDevWorkspace{
-				Enable:          true,
-				ControllerImage: "ControllerImage",
-				RunningLimit:    "RunningLimit",
+				Enable:                          true,
+				ControllerImage:                 "ControllerImage",
+				RunningLimit:                    "RunningLimit",
+				SecondsOfInactivityBeforeIdling: pointer.Int32Ptr(900),
+				SecondsOfRunBeforeIdling:        pointer.Int32Ptr(-1),
 			},
 			Dashboard: chev1.CheClusterSpecDashboard{
 				Warning: "DashboardWarning",
@@ -413,6 +416,8 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Storage.Pvc.ClaimSize, "WorkspacePvcClaimSize")
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Storage.Pvc.StorageClass, "WorkspacePVCStorageClassName")
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Storage.PvcStrategy, "PvcStrategy")
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling, pointer.Int32Ptr(900))
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.SecondsOfRunBeforeIdling, pointer.Int32Ptr(-1))
 
 	assert.Equal(t, checlusterv2.Status.CheURL, "CheURL")
 	assert.Equal(t, checlusterv2.Status.CheVersion, "CheVersion")

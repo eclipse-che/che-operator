@@ -76,6 +76,8 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 				TrustedCerts: &chev2.TrustedCerts{
 					GitTrustedCertsConfigMapName: "che-git-self-signed-cert",
 				},
+				SecondsOfInactivityBeforeIdling: pointer.Int32Ptr(900),
+				SecondsOfRunBeforeIdling:        pointer.Int32Ptr(1800),
 			},
 			Networking: chev2.CheClusterSpecNetworking{
 				Domain: "root-domain",
@@ -324,6 +326,20 @@ func TestCreatesDataInNamespace(t *testing.T) {
 		assert.Equal(t, 1, len(proxySettings.Data), "Expecting just 1 element in the default proxy settings")
 
 		assert.Equal(t, ".svc", proxySettings.Data["NO_PROXY"], "Unexpected proxy settings")
+
+		idleSettings := corev1.ConfigMap{}
+		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-idle-settings", Namespace: namespace.GetName()}, &idleSettings))
+
+		assert.Equal(t, "env", idleSettings.GetAnnotations()[dwconstants.DevWorkspaceMountAsAnnotation],
+			"idle settings should be annotated as mount as 'env'")
+
+		assert.Equal(t, "true", idleSettings.GetLabels()[dwconstants.DevWorkspaceMountLabel],
+			"idle settings should be labeled as mounted")
+
+		assert.Equal(t, 2, len(idleSettings.Data), "Expecting 2 elements in the idle settings")
+
+		assert.Equal(t, "900", idleSettings.Data["SECONDS_OF_DW_INACTIVITY_BEFORE_IDLING"], "Unexpected idle settings")
+		assert.Equal(t, "1800", idleSettings.Data["SECONDS_OF_DW_RUN_BEFORE_IDLING"], "Unexpected idle settings")
 
 		cert := corev1.Secret{}
 		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-server-cert", Namespace: namespace.GetName()}, &cert))

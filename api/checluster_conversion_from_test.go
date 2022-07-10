@@ -347,6 +347,8 @@ func TestConvertFrom(t *testing.T) {
 					Value:    "Value",
 					Effect:   "Effect",
 				}},
+				SecondsOfInactivityBeforeIdling: pointer.Int32Ptr(900),
+				SecondsOfRunBeforeIdling:        pointer.Int32Ptr(-1),
 			},
 			ContainerRegistry: chev2.CheClusterContainerRegistry{
 				Hostname:     "AirGapContainerRegistryHostname",
@@ -405,6 +407,8 @@ func TestConvertFrom(t *testing.T) {
 
 	assert.Equal(t, checlusterv1.Spec.DevWorkspace.ControllerImage, "DevWorkspaceImage")
 	assert.Equal(t, checlusterv1.Spec.DevWorkspace.RunningLimit, "RunningLimit")
+	assert.Equal(t, checlusterv1.Spec.DevWorkspace.SecondsOfInactivityBeforeIdling, pointer.Int32Ptr(900))
+	assert.Equal(t, checlusterv1.Spec.DevWorkspace.SecondsOfRunBeforeIdling, pointer.Int32Ptr(-1))
 	assert.True(t, checlusterv1.Spec.DevWorkspace.Enable)
 
 	assert.Equal(t, checlusterv1.Spec.Dashboard.Warning, "DashboardWarning")

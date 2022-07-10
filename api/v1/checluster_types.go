@@ -724,6 +724,16 @@ type CheClusterSpecDevWorkspace struct {
 	// Maximum number of the running workspaces per user.
 	// +optional
 	RunningLimit string `json:"runningLimit,omitempty"`
+	// Idle timeout for workspaces in seconds.
+	// This timeout is the duration after which a workspace will be idled if there is no activity.
+	// To disable workspace idling due to inactivity, set this value to -1.
+	// +kubebuilder:default:=900
+	SecondsOfInactivityBeforeIdling *int32 `json:"secondsOfInactivityBeforeIdling,omitempty"`
+	// Run timeout for workspaces in seconds.
+	// This timeout is the maximum duration a workspace runs.
+	// To disable workspace run timeout, set this value to -1.
+	// +kubebuilder:default:=-1
+	SecondsOfRunBeforeIdling *int32 `json:"secondsOfRunBeforeIdling,omitempty"`
 }
 
 // +k8s:openapi-gen=true
