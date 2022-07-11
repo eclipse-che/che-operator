@@ -496,8 +496,8 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.OpenVSXURL, "open-vsx-registry")
 	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.ExternalPluginRegistries, []chev2.ExternalPluginRegistry{{Url: "PluginRegistryUrl"}})
 
-	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Storage.Pvc.ClaimSize, "WorkspacePvcClaimSize")
-	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Storage.Pvc.StorageClass, "WorkspacePVCStorageClassName")
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.ClaimSize, "WorkspacePvcClaimSize")
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.StorageClass, "WorkspacePVCStorageClassName")
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Storage.PvcStrategy, "PvcStrategy")
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling, pointer.Int32Ptr(1800))
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.SecondsOfRunBeforeIdling, pointer.Int32Ptr(-1))

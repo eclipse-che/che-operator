@@ -300,7 +300,7 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 						GitTrustedCertsConfigMapName: "che-git-self-signed-cert",
 					},
 					Storage: chev2.WorkspaceStorage{
-						Pvc: &chev2.PVC{
+						PerUserStrategyPvcConfig: &chev2.PVC{
 							ClaimSize:    "StorageClaimSize",
 							StorageClass: "StorageClass",
 						},
