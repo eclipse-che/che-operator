@@ -14,7 +14,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.7.0
+    controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
   labels:
     app.kubernetes.io/instance: che
@@ -2209,10 +2209,14 @@ spec:
                       items:
                         properties:
                           attributes:
+                            additionalProperties:
+                              x-kubernetes-preserve-unknown-fields: true
+                            allOf:
+                              - x-kubernetes-preserve-unknown-fields: true
+                              - x-kubernetes-preserve-unknown-fields: true
                             description: Map of implementation-dependant free-form
                               YAML attributes.
                             type: object
-                            x-kubernetes-preserve-unknown-fields: true
                           componentType:
                             description: Type of component
                             enum:
@@ -2281,13 +2285,17 @@ spec:
                                         Ingress or Openshift Route
                                       type: object
                                     attributes:
+                                      additionalProperties:
+                                        x-kubernetes-preserve-unknown-fields: true
+                                      allOf:
+                                        - x-kubernetes-preserve-unknown-fields: true
+                                        - x-kubernetes-preserve-unknown-fields: true
                                       description: "Map of implementation-dependant\
                                         \ string-based free-form attributes. \n Examples\
                                         \ of Che-specific attributes: \n - cookiesAuthEnabled:\
                                         \ \"true\" / \"false\", \n - type: \"terminal\"\
                                         \ / \"ide\" / \"ide-dev\","
                                       type: object
-                                      x-kubernetes-preserve-unknown-fields: true
                                     exposure:
                                       default: public
                                       description: "Describes how the endpoint should\
@@ -2578,13 +2586,17 @@ spec:
                                         Ingress or Openshift Route
                                       type: object
                                     attributes:
+                                      additionalProperties:
+                                        x-kubernetes-preserve-unknown-fields: true
+                                      allOf:
+                                        - x-kubernetes-preserve-unknown-fields: true
+                                        - x-kubernetes-preserve-unknown-fields: true
                                       description: "Map of implementation-dependant\
                                         \ string-based free-form attributes. \n Examples\
                                         \ of Che-specific attributes: \n - cookiesAuthEnabled:\
                                         \ \"true\" / \"false\", \n - type: \"terminal\"\
                                         \ / \"ide\" / \"ide-dev\","
                                       type: object
-                                      x-kubernetes-preserve-unknown-fields: true
                                     exposure:
                                       default: public
                                       description: "Describes how the endpoint should\
@@ -2700,13 +2712,17 @@ spec:
                                         Ingress or Openshift Route
                                       type: object
                                     attributes:
+                                      additionalProperties:
+                                        x-kubernetes-preserve-unknown-fields: true
+                                      allOf:
+                                        - x-kubernetes-preserve-unknown-fields: true
+                                        - x-kubernetes-preserve-unknown-fields: true
                                       description: "Map of implementation-dependant\
                                         \ string-based free-form attributes. \n Examples\
                                         \ of Che-specific attributes: \n - cookiesAuthEnabled:\
                                         \ \"true\" / \"false\", \n - type: \"terminal\"\
                                         \ / \"ide\" / \"ide-dev\","
                                       type: object
-                                      x-kubernetes-preserve-unknown-fields: true
                                     exposure:
                                       default: public
                                       description: "Describes how the endpoint should\
@@ -2854,10 +2870,14 @@ spec:
                                           type: string
                                       type: object
                                     attributes:
+                                      additionalProperties:
+                                        x-kubernetes-preserve-unknown-fields: true
+                                      allOf:
+                                        - x-kubernetes-preserve-unknown-fields: true
+                                        - x-kubernetes-preserve-unknown-fields: true
                                       description: Map of implementation-dependant
                                         free-form YAML attributes.
                                       type: object
-                                      x-kubernetes-preserve-unknown-fields: true
                                     commandType:
                                       description: Type of devworkspace command
                                       enum:
@@ -3003,10 +3023,14 @@ spec:
                                 items:
                                   properties:
                                     attributes:
+                                      additionalProperties:
+                                        x-kubernetes-preserve-unknown-fields: true
+                                      allOf:
+                                        - x-kubernetes-preserve-unknown-fields: true
+                                        - x-kubernetes-preserve-unknown-fields: true
                                       description: Map of implementation-dependant
                                         free-form YAML attributes.
                                       type: object
-                                      x-kubernetes-preserve-unknown-fields: true
                                     componentType:
                                       description: Type of component
                                       enum:
@@ -3079,6 +3103,11 @@ spec:
                                                   Route
                                                 type: object
                                               attributes:
+                                                additionalProperties:
+                                                  x-kubernetes-preserve-unknown-fields: true
+                                                allOf:
+                                                  - x-kubernetes-preserve-unknown-fields: true
+                                                  - x-kubernetes-preserve-unknown-fields: true
                                                 description: "Map of implementation-dependant\
                                                   \ string-based free-form attributes.\
                                                   \ \n Examples of Che-specific attributes:\
@@ -3086,7 +3115,6 @@ spec:
                                                   \ / \"false\", \n - type: \"terminal\"\
                                                   \ / \"ide\" / \"ide-dev\","
                                                 type: object
-                                                x-kubernetes-preserve-unknown-fields: true
                                               exposure:
                                                 description: "Describes how the endpoint\
                                                   \ should be exposed on the network.\
@@ -3380,6 +3408,11 @@ spec:
                                                   Route
                                                 type: object
                                               attributes:
+                                                additionalProperties:
+                                                  x-kubernetes-preserve-unknown-fields: true
+                                                allOf:
+                                                  - x-kubernetes-preserve-unknown-fields: true
+                                                  - x-kubernetes-preserve-unknown-fields: true
                                                 description: "Map of implementation-dependant\
                                                   \ string-based free-form attributes.\
                                                   \ \n Examples of Che-specific attributes:\
@@ -3387,7 +3420,6 @@ spec:
                                                   \ / \"false\", \n - type: \"terminal\"\
                                                   \ / \"ide\" / \"ide-dev\","
                                                 type: object
-                                                x-kubernetes-preserve-unknown-fields: true
                                               exposure:
                                                 description: "Describes how the endpoint\
                                                   \ should be exposed on the network.\
@@ -3518,6 +3550,11 @@ spec:
                                                   Route
                                                 type: object
                                               attributes:
+                                                additionalProperties:
+                                                  x-kubernetes-preserve-unknown-fields: true
+                                                allOf:
+                                                  - x-kubernetes-preserve-unknown-fields: true
+                                                  - x-kubernetes-preserve-unknown-fields: true
                                                 description: "Map of implementation-dependant\
                                                   \ string-based free-form attributes.\
                                                   \ \n Examples of Che-specific attributes:\
@@ -3525,7 +3562,6 @@ spec:
                                                   \ / \"false\", \n - type: \"terminal\"\
                                                   \ / \"ide\" / \"ide-dev\","
                                                 type: object
-                                                x-kubernetes-preserve-unknown-fields: true
                                               exposure:
                                                 description: "Describes how the endpoint\
                                                   \ should be exposed on the network.\
@@ -5550,10 +5586,14 @@ spec:
                       items:
                         properties:
                           attributes:
+                            additionalProperties:
+                              x-kubernetes-preserve-unknown-fields: true
+                            allOf:
+                              - x-kubernetes-preserve-unknown-fields: true
+                              - x-kubernetes-preserve-unknown-fields: true
                             description: Map of implementation-dependant free-form
                               YAML attributes.
                             type: object
-                            x-kubernetes-preserve-unknown-fields: true
                           componentType:
                             description: Type of component
                             enum:
@@ -5622,13 +5662,17 @@ spec:
                                         Ingress or Openshift Route
                                       type: object
                                     attributes:
+                                      additionalProperties:
+                                        x-kubernetes-preserve-unknown-fields: true
+                                      allOf:
+                                        - x-kubernetes-preserve-unknown-fields: true
+                                        - x-kubernetes-preserve-unknown-fields: true
                                       description: "Map of implementation-dependant\
                                         \ string-based free-form attributes. \n Examples\
                                         \ of Che-specific attributes: \n - cookiesAuthEnabled:\
                                         \ \"true\" / \"false\", \n - type: \"terminal\"\
                                         \ / \"ide\" / \"ide-dev\","
                                       type: object
-                                      x-kubernetes-preserve-unknown-fields: true
                                     exposure:
                                       default: public
                                       description: "Describes how the endpoint should\
@@ -5919,13 +5963,17 @@ spec:
                                         Ingress or Openshift Route
                                       type: object
                                     attributes:
+                                      additionalProperties:
+                                        x-kubernetes-preserve-unknown-fields: true
+                                      allOf:
+                                        - x-kubernetes-preserve-unknown-fields: true
+                                        - x-kubernetes-preserve-unknown-fields: true
                                       description: "Map of implementation-dependant\
                                         \ string-based free-form attributes. \n Examples\
                                         \ of Che-specific attributes: \n - cookiesAuthEnabled:\
                                         \ \"true\" / \"false\", \n - type: \"terminal\"\
                                         \ / \"ide\" / \"ide-dev\","
                                       type: object
-                                      x-kubernetes-preserve-unknown-fields: true
                                     exposure:
                                       default: public
                                       description: "Describes how the endpoint should\
@@ -6041,13 +6089,17 @@ spec:
                                         Ingress or Openshift Route
                                       type: object
                                     attributes:
+                                      additionalProperties:
+                                        x-kubernetes-preserve-unknown-fields: true
+                                      allOf:
+                                        - x-kubernetes-preserve-unknown-fields: true
+                                        - x-kubernetes-preserve-unknown-fields: true
                                       description: "Map of implementation-dependant\
                                         \ string-based free-form attributes. \n Examples\
                                         \ of Che-specific attributes: \n - cookiesAuthEnabled:\
                                         \ \"true\" / \"false\", \n - type: \"terminal\"\
                                         \ / \"ide\" / \"ide-dev\","
                                       type: object
-                                      x-kubernetes-preserve-unknown-fields: true
                                     exposure:
                                       default: public
                                       description: "Describes how the endpoint should\
@@ -6195,10 +6247,14 @@ spec:
                                           type: string
                                       type: object
                                     attributes:
+                                      additionalProperties:
+                                        x-kubernetes-preserve-unknown-fields: true
+                                      allOf:
+                                        - x-kubernetes-preserve-unknown-fields: true
+                                        - x-kubernetes-preserve-unknown-fields: true
                                       description: Map of implementation-dependant
                                         free-form YAML attributes.
                                       type: object
-                                      x-kubernetes-preserve-unknown-fields: true
                                     commandType:
                                       description: Type of devworkspace command
                                       enum:
@@ -6344,10 +6400,14 @@ spec:
                                 items:
                                   properties:
                                     attributes:
+                                      additionalProperties:
+                                        x-kubernetes-preserve-unknown-fields: true
+                                      allOf:
+                                        - x-kubernetes-preserve-unknown-fields: true
+                                        - x-kubernetes-preserve-unknown-fields: true
                                       description: Map of implementation-dependant
                                         free-form YAML attributes.
                                       type: object
-                                      x-kubernetes-preserve-unknown-fields: true
                                     componentType:
                                       description: Type of component
                                       enum:
@@ -6420,6 +6480,11 @@ spec:
                                                   Route
                                                 type: object
                                               attributes:
+                                                additionalProperties:
+                                                  x-kubernetes-preserve-unknown-fields: true
+                                                allOf:
+                                                  - x-kubernetes-preserve-unknown-fields: true
+                                                  - x-kubernetes-preserve-unknown-fields: true
                                                 description: "Map of implementation-dependant\
                                                   \ string-based free-form attributes.\
                                                   \ \n Examples of Che-specific attributes:\
@@ -6427,7 +6492,6 @@ spec:
                                                   \ / \"false\", \n - type: \"terminal\"\
                                                   \ / \"ide\" / \"ide-dev\","
                                                 type: object
-                                                x-kubernetes-preserve-unknown-fields: true
                                               exposure:
                                                 description: "Describes how the endpoint\
                                                   \ should be exposed on the network.\
@@ -6721,6 +6785,11 @@ spec:
                                                   Route
                                                 type: object
                                               attributes:
+                                                additionalProperties:
+                                                  x-kubernetes-preserve-unknown-fields: true
+                                                allOf:
+                                                  - x-kubernetes-preserve-unknown-fields: true
+                                                  - x-kubernetes-preserve-unknown-fields: true
                                                 description: "Map of implementation-dependant\
                                                   \ string-based free-form attributes.\
                                                   \ \n Examples of Che-specific attributes:\
@@ -6728,7 +6797,6 @@ spec:
                                                   \ / \"false\", \n - type: \"terminal\"\
                                                   \ / \"ide\" / \"ide-dev\","
                                                 type: object
-                                                x-kubernetes-preserve-unknown-fields: true
                                               exposure:
                                                 description: "Describes how the endpoint\
                                                   \ should be exposed on the network.\
@@ -6859,6 +6927,11 @@ spec:
                                                   Route
                                                 type: object
                                               attributes:
+                                                additionalProperties:
+                                                  x-kubernetes-preserve-unknown-fields: true
+                                                allOf:
+                                                  - x-kubernetes-preserve-unknown-fields: true
+                                                  - x-kubernetes-preserve-unknown-fields: true
                                                 description: "Map of implementation-dependant\
                                                   \ string-based free-form attributes.\
                                                   \ \n Examples of Che-specific attributes:\
@@ -6866,7 +6939,6 @@ spec:
                                                   \ / \"false\", \n - type: \"terminal\"\
                                                   \ / \"ide\" / \"ide-dev\","
                                                 type: object
-                                                x-kubernetes-preserve-unknown-fields: true
                                               exposure:
                                                 description: "Describes how the endpoint\
                                                   \ should be exposed on the network.\
@@ -7105,8 +7177,9 @@ spec:
                         pvcStrategy: per-user
                       description: Workspaces persistent storage.
                       properties:
-                        pvc:
-                          description: PVC settings.
+                        perUserStrategyPvcConfig:
+                          description: PVC settings when using the "per-user" PVC
+                            strategy.
                           properties:
                             claimSize:
                               description: Persistent Volume Claim size. To update
