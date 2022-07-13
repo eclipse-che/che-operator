@@ -46,6 +46,20 @@ metadata:
               "pvcStrategy": "common"
             }
           }
+        },
+        {
+          "apiVersion": "org.eclipse.che/v2",
+          "kind": "CheCluster",
+          "metadata": {
+            "name": "eclipse-che",
+            "namespace": "eclipse-che"
+          },
+          "spec": {
+            "components": {},
+            "containerRegistry": {},
+            "devEnvironments": {},
+            "networking": {}
+          }
         }
       ]
     capabilities: Seamless Upgrades
@@ -62,7 +76,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.51.0-623.next
+  name: eclipse-che-preview-openshift.v7.51.0-622.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1376,7 +1390,7 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.51.0-623.next
+  version: 7.51.0-622.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1
