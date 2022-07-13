@@ -416,6 +416,21 @@ spec:
                   runningLimit:
                     description: Maximum number of the running workspaces per user.
                     type: string
+                  secondsOfInactivityBeforeIdling:
+                    default: 1800
+                    description: Idle timeout for workspaces in seconds. This timeout
+                      is the duration after which a workspace will be idled if there
+                      is no activity. To disable workspace idling due to inactivity,
+                      set this value to -1.
+                    format: int32
+                    type: integer
+                  secondsOfRunBeforeIdling:
+                    default: -1
+                    description: Run timeout for workspaces in seconds. This timeout
+                      is the maximum duration a workspace runs. To disable workspace
+                      run timeout, set this value to -1.
+                    format: int32
+                    type: integer
                 required:
                 - enable
                 type: object
@@ -3528,6 +3543,8 @@ spec:
                 default:
                   defaultNamespace:
                     template: <username>-che
+                  secondsOfInactivityBeforeIdling: 1800
+                  secondsOfRunBeforeIdling: -1
                   storage:
                     pvcStrategy: common
                 description: Development environment default configuration options.
@@ -5022,6 +5039,21 @@ spec:
                     description: The node selector limits the nodes that can run the
                       workspace pods.
                     type: object
+                  secondsOfInactivityBeforeIdling:
+                    default: 1800
+                    description: Idle timeout for workspaces in seconds. This timeout
+                      is the duration after which a workspace will be idled if there
+                      is no activity. To disable workspace idling due to inactivity,
+                      set this value to -1.
+                    format: int32
+                    type: integer
+                  secondsOfRunBeforeIdling:
+                    default: -1
+                    description: Run timeout for workspaces in seconds. This timeout
+                      is the maximum duration a workspace runs. To disable workspace
+                      run timeout, set this value to -1.
+                    format: int32
+                    type: integer
                   storage:
                     default:
                       pvcStrategy: common

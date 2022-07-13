@@ -37,7 +37,7 @@ type CheClusterSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Development environments"
-	// +kubebuilder:default:={storage: {pvcStrategy: common}, defaultNamespace: {template: <username>-che}}
+	// +kubebuilder:default:={storage: {pvcStrategy: common}, defaultNamespace: {template: <username>-che}, secondsOfInactivityBeforeIdling:1800, secondsOfRunBeforeIdling:-1}
 	DevEnvironments CheClusterDevEnvironments `json:"devEnvironments"`
 	// Che components configuration.
 	// +optional
@@ -90,6 +90,16 @@ type CheClusterDevEnvironments struct {
 	// These default components are meant to be used when a Devfile, that does not contain any components.
 	// +optional
 	DefaultComponents []devfile.Component `json:"defaultComponents,omitempty"`
+	// Idle timeout for workspaces in seconds.
+	// This timeout is the duration after which a workspace will be idled if there is no activity.
+	// To disable workspace idling due to inactivity, set this value to -1.
+	// +kubebuilder:default:=1800
+	SecondsOfInactivityBeforeIdling *int32 `json:"secondsOfInactivityBeforeIdling,omitempty"`
+	// Run timeout for workspaces in seconds.
+	// This timeout is the maximum duration a workspace runs.
+	// To disable workspace run timeout, set this value to -1.
+	// +kubebuilder:default:=-1
+	SecondsOfRunBeforeIdling *int32 `json:"secondsOfRunBeforeIdling,omitempty"`
 }
 
 // Che components configuration.
