@@ -35,7 +35,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -457,8 +456,7 @@ func (r *CheUserNamespaceReconciler) reconcileProxySettings(ctx context.Context,
 
 func (r *CheUserNamespaceReconciler) reconcileIdleSettings(ctx context.Context, targetNs string, checluster *chev2.CheCluster, deployContext *chetypes.DeployContext) error {
 
-	noIdle := pointer.Int32Ptr(-1)
-	if checluster.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling == noIdle && checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling == noIdle {
+	if checluster.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling == nil && checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling == nil {
 		return nil
 	}
 	configMapName := prefixedName("idle-settings")
@@ -474,12 +472,12 @@ func (r *CheUserNamespaceReconciler) reconcileIdleSettings(ctx context.Context, 
 
 	data := map[string]string{}
 
-	if checluster.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling != noIdle {
-		data["SECONDS_OF_DW_INACTIVITY_BEFORE_IDLING"] = strconv.Itoa(int(*checluster.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling))
+	if checluster.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling != nil {
+		data["SECONDS_OF_DW_INACTIVITY_BEFORE_IDLING"] = strconv.FormatInt(int64(*checluster.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling), 10)
 	}
 
-	if checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling != noIdle {
-		data["SECONDS_OF_DW_RUN_BEFORE_IDLING"] = strconv.Itoa(int(*checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling))
+	if checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling != nil {
+		data["SECONDS_OF_DW_RUN_BEFORE_IDLING"] = strconv.FormatInt(int64(*checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling), 10)
 	}
 
 	cfg = &corev1.ConfigMap{
