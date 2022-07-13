@@ -727,7 +727,7 @@ type CheClusterSpecDevWorkspace struct {
 	// Idle timeout for workspaces in seconds.
 	// This timeout is the duration after which a workspace will be idled if there is no activity.
 	// To disable workspace idling due to inactivity, set this value to -1.
-	// +kubebuilder:default:=900
+	// +kubebuilder:default:=1800
 	SecondsOfInactivityBeforeIdling *int32 `json:"secondsOfInactivityBeforeIdling,omitempty"`
 	// Run timeout for workspaces in seconds.
 	// This timeout is the maximum duration a workspace runs.
