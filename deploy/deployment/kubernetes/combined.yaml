@@ -3565,6 +3565,11 @@ spec:
                       oAuthSecret:
                         description: Name of the secret set in the OpenShift `OAuthClient` resource used to set up identity federation on the OpenShift side.
                         type: string
+                      oauthProxyExtraProperties:
+                        additionalProperties:
+                          type: string
+                        description: A map of environment variables in addition to the configuration file settings in `che-gateway-config-oauth-proxy` ConfigMap to configure `oauth-proxy`. If the `oauthProxyExtraProperties` field contains a property normally configured in `che-gateway-config-oauth-proxy` ConfigMap, the value defined in the `oauthProxyExtraProperties` is used instead. For details, see https://oauth2-proxy.github.io/oauth2-proxy/docs/configuration/overview/
+                        type: object
                     type: object
                   domain:
                     description: 'For an OpenShift cluster, the Operator uses the domain to generate a hostname for the route. The generated hostname follows this pattern: che-<che-namespace>.<domain>. The <che-namespace> is the namespace where the CheCluster CRD is created. In conjunction with labels, it creates a route served by a non-default Ingress controller. For a Kubernetes cluster, it contains a global ingress domain. There are no default values: you must specify them.'
