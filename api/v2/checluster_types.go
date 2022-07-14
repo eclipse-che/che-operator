@@ -415,6 +415,12 @@ type Auth struct {
 	// +optional
 	// +kubebuilder:default:={configLabels: {app: che, component: che-gateway-config}}
 	Gateway Gateway `json:"gateway,omitempty"`
+	// A map of environment variables in addition to the configuration file settings in `che-gateway-config-oauth-proxy` ConfigMap to configure `oauth-proxy`.
+	// If the `oauthProxyExtraProperties` field contains a property normally configured in `che-gateway-config-oauth-proxy` ConfigMap,
+	// the value defined in the `oauthProxyExtraProperties` is used instead.
+	// For details, see https://oauth2-proxy.github.io/oauth2-proxy/docs/configuration/overview/
+	// +optional
+	OAuthProxyExtraProperties map[string]string `json:"oauthProxyExtraProperties,omitempty"`
 }
 
 // Gateway settings.
@@ -709,4 +715,16 @@ func (c *CheCluster) GetIdentityToken() string {
 
 func (c *CheCluster) IsAccessTokenConfigured() bool {
 	return c.GetIdentityToken() == constants.AccessToken
+}
+
+func (c *CheCluster) GetOAuthProxyEnvVars() []corev1.EnvVar {
+	var envVars []corev1.EnvVar
+	if c.Spec.Networking.Auth.OAuthProxyExtraProperties != nil {
+		for property, value := range c.Spec.Networking.Auth.OAuthProxyExtraProperties {
+			if strings.HasPrefix(property, "OAUTH2_PROXY_") {
+				envVars = append(envVars, corev1.EnvVar{Name: property, Value: value})
+			}
+		}
+	}
+	return envVars
 }

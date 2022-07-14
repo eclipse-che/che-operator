@@ -18,6 +18,7 @@ import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func TestKubernetesOauthProxyConfig(t *testing.T) {
@@ -80,4 +81,26 @@ func TestAccessTokenDefinedForKubernetesOauthProxyConfig(t *testing.T) {
 	config := kubernetesOauthProxyConfig(ctx, "blabol")
 	assert.Contains(t, config, "pass_access_token = true")
 	assert.NotContains(t, config, "pass_authorization_header = true")
+}
+
+func TestOAuthProxyEnvVarsInContainerSpec(t *testing.T) {
+	ctx := test.GetDeployContext(
+		&chev2.CheCluster{
+			Spec: chev2.CheClusterSpec{
+				Networking: chev2.CheClusterSpecNetworking{
+					Auth: chev2.Auth{
+						OAuthProxyExtraProperties: map[string]string{
+							"OAUTH2_PROXY_COOKIE_SECRET": "ssdjflsd",
+						},
+					},
+				}},
+		}, nil)
+
+	spec := getOauthProxyContainerSpec(ctx)
+
+	assert.Contains(t, spec.Env, corev1.EnvVar{Name: "http_proxy", Value: ""})
+	assert.Contains(t, spec.Env, corev1.EnvVar{Name: "https_proxy", Value: ""})
+	assert.Contains(t, spec.Env, corev1.EnvVar{Name: "no_proxy", Value: ""})
+	assert.Contains(t, spec.Env, corev1.EnvVar{Name: "CM_REVISION", Value: ""})
+	assert.Contains(t, spec.Env, corev1.EnvVar{Name: "OAUTH2_PROXY_COOKIE_SECRET", Value: "ssdjflsd"})
 }

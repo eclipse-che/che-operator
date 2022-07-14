@@ -178,7 +178,7 @@ func getOauthProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
 	exists, _ := deploy.GetNamespacedObject(ctx, "che-gateway-config-oauth-proxy", cm)
 	configMapRevision := map[bool]string{true: cm.GetResourceVersion(), false: ""}[exists]
 
-	return corev1.Container{
+	c := corev1.Container{
 		Name:            "oauth-proxy",
 		Image:           defaults.GetGatewayAuthenticationSidecarImage(ctx.CheCluster),
 		ImagePullPolicy: corev1.PullIfNotPresent,
@@ -223,6 +223,8 @@ func getOauthProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
 			},
 		},
 	}
+	c.Env = append(c.Env, ctx.CheCluster.GetOAuthProxyEnvVars()...)
+	return c
 }
 
 func getOauthProxyConfigVolume() corev1.Volume {
