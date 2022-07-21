@@ -41,11 +41,11 @@ setLatestReleasedVersion() {
 downloadLatestReleasedBundleCRCRD() {
   mkdir -p "${STABLE_BUNDLE_PATH}/manifests" "${STABLE_BUNDLE_PATH}/generated/openshift" "${STABLE_BUNDLE_PATH}/metadata"
   PRE_RELEASE_CSV="${STABLE_BUNDLE_PATH}/generated/openshift/che-operator.clusterserviceversion.yaml"
-  PRE_RELEASE_CHE_CRD="${STABLE_BUNDLE_PATH}/generated/openshift/org_v1_che_crd.yaml"
+  PRE_RELEASE_CHE_CRD="${STABLE_BUNDLE_PATH}/generated/openshift/org.eclipse.che_checlusters.yaml"
 
   wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml" \
       -q -O "${PRE_RELEASE_CSV}"
-  wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml" \
+  wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-openshift/manifests/org.eclipse.che_checlusters.yaml" \
       -q -O "${PRE_RELEASE_CHE_CRD}"
 }
 
@@ -87,10 +87,6 @@ cp "${NEXT_BUNDLE_PATH}/manifests/org.eclipse.che_checlusters.yaml" "${RELEASE_C
 cp -rf "${NEXT_BUNDLE_PATH}/bundle.Dockerfile" "${STABLE_BUNDLE_PATH}"
 cp -rf "${NEXT_BUNDLE_PATH}/metadata" "${STABLE_BUNDLE_PATH}"
 cp -rf "${NEXT_BUNDLE_PATH}/tests" "${STABLE_BUNDLE_PATH}"
-
-# Remove old CRD files (TODO remove in future release)
-rm "${STABLE_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
-rm "${STABLE_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml.diff"
 
 ANNOTATION_METADATA_YAML="${STABLE_BUNDLE_PATH}/metadata/annotations.yaml"
 sed \
