@@ -127,10 +127,6 @@ releaseOperatorCode() {
   echo "[INFO] releaseOperatorCode :: Replacing tags"
   replaceImagesTags
 
-  echo "[INFO] releaseOperatorCode :: Updating deployment files"
-  make gen-deployment
-  make fmt
-
   local operatorYaml=$RELEASE_DIR/config/manager/manager.yaml
   echo "[INFO] releaseOperatorCode :: Validate changes for $operatorYaml"
   checkImageReferences $operatorYaml
@@ -193,6 +189,13 @@ releaseHelmPackage() {
   make update-helmcharts CHANNEL=stable
   git add -A helmcharts/stable
   git commit -m "ci: Update Helm Charts to $RELEASE" --signoff
+}
+
+releaseDeploymentFiles() {
+  echo "[INFO] releaseDeploymentFiles :: release deployment files"
+  make gen-deployment
+  make fmt
+  git commit -m "ci: Update Deployment Files" --signoff
 }
 
 releaseOlmFiles() {
@@ -286,6 +289,8 @@ run() {
   if [[ $RELEASE_OLM_FILES == "true" ]]; then
     releaseOlmFiles
   fi
+  # Must be done after launching `addDigest.sh`
+  releaseDeploymentFiles
   releaseHelmPackage
 }
 
