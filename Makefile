@@ -79,7 +79,7 @@ ECLIPSE_CHE_PACKAGE_NAME="eclipse-che-preview-openshift"
 CHECLUSTER_CR_PATH="$(PROJECT_DIR)/config/samples/org_v2_checluster.yaml"
 CHECLUSTER_CRD_PATH="$(PROJECT_DIR)/config/crd/bases/org.eclipse.che_checlusters.yaml"
 
-DEV_WORKSPACE_CONTROLLER_VERSION="v0.14.1"
+DEV_WORKSPACE_CONTROLLER_VERSION="v0.15.2"
 DEV_HEADER_REWRITE_TRAEFIK_PLUGIN="main"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
