@@ -195,6 +195,7 @@ releaseDeploymentFiles() {
   echo "[INFO] releaseDeploymentFiles :: release deployment files"
   make gen-deployment
   make fmt
+  git add -A deploy
   git commit -m "ci: Update Deployment Files" --signoff
 }
 
