@@ -6,7 +6,7 @@ require (
 	github.com/Shopify/logrus-bugsnag v0.0.0-00010101000000-000000000000 // indirect
 	github.com/che-incubator/kubernetes-image-puller-operator v0.0.0-20210929175054-0128446f5af7
 	github.com/devfile/api/v2 v2.0.0-20220414122024-32cae1f8e42c
-	github.com/devfile/devworkspace-operator v0.14.1
+	github.com/devfile/devworkspace-operator v0.15.2
 	github.com/go-logr/logr v0.4.0
 	github.com/golang/mock v1.5.0
 	github.com/google/go-cmp v0.5.6
