@@ -345,16 +345,7 @@ useCustomOperatorImageInCSV() {
 }
 
 getCheClusterCRFromExistedCSV() {
-  CHE_CLUSTER=""
-  CHE_CLUSTER_V2=$(oc get csv $(getCSVName) -n openshift-operators -o yaml | yq -r '.metadata.annotations["alm-examples"] | fromjson | .[] | select(.apiVersion == "org.eclipse.che/v2")')
-  if [[ -n "${CHE_CLUSTER_V2}" ]]; then
-    CHE_CLUSTER="${CHE_CLUSTER_V2}"
-  else
-    CHE_CLUSTER_V1=$(oc get csv $(getCSVName) -n openshift-operators -o yaml | yq -r '.metadata.annotations["alm-examples"] | fromjson | .[] | select(.apiVersion == "org.eclipse.che/v1")')
-    CHE_CLUSTER="${CHE_CLUSTER_V1}"
-  fi
-
-  echo "${CHE_CLUSTER}"
+  oc get csv $(getCSVName) -n openshift-operators -o yaml | yq -r '.metadata.annotations["alm-examples"] | fromjson | .[] | select(.apiVersion == "org.eclipse.che/v2")'
 }
 
 getCheVersionFromExistedCSV() {

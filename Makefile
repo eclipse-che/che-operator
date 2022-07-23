@@ -261,48 +261,30 @@ gen-chectl-tmpl: ## Generate Eclipse Che k8s deployment resources used by chectl
 	[[ -z "$(TARGET)" ]] && { echo [ERROR] TARGET not defined; exit 1; }
 	[[ -z "$(SOURCE)" ]] && src=$(PROJECT_DIR) || src=$(SOURCE)
 
+	src="$${src}/deploy/deployment"
 	dst=$(TARGET)/che-operator && rm -rf $${dst}
 
-	if [[ -d "$${src}/deploy/deployment" ]]; then
-  		# CheCluster API v2
-		src="$${src}/deploy/deployment"
+	for TARGET_PLATFORM in kubernetes openshift; do
+		mkdir -p "$${dst}/$${TARGET_PLATFORM}/crds"
 
-		for TARGET_PLATFORM in kubernetes openshift; do
-			mkdir -p "$${dst}/$${TARGET_PLATFORM}/crds"
+		cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.Deployment.yaml $${dst}/$${TARGET_PLATFORM}/operator.yaml
 
-			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.Deployment.yaml $${dst}/$${TARGET_PLATFORM}/operator.yaml
+		cp $${src}/$${TARGET_PLATFORM}/objects/checlusters.org.eclipse.che.CustomResourceDefinition.yaml $${dst}/$${TARGET_PLATFORM}/crds/org.eclipse.che_checlusters.yaml
+		cp $${src}/$${TARGET_PLATFORM}/org_v2_checluster.yaml $${dst}/$${TARGET_PLATFORM}/crds/org_checluster_cr.yaml
 
-			cp $${src}/$${TARGET_PLATFORM}/objects/checlusters.org.eclipse.che.CustomResourceDefinition.yaml $${dst}/$${TARGET_PLATFORM}/crds/org.eclipse.che_checlusters.yaml
-			cp $${src}/$${TARGET_PLATFORM}/org_v2_checluster.yaml $${dst}/$${TARGET_PLATFORM}/crds/org_checluster_cr.yaml
+		cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.ServiceAccount.yaml $${dst}/$${TARGET_PLATFORM}/service_account.yaml
+		cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.ClusterRoleBinding.yaml $${dst}/$${TARGET_PLATFORM}/cluster_rolebinding.yaml
+		cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.ClusterRole.yaml $${dst}/$${TARGET_PLATFORM}/cluster_role.yaml
+		cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.RoleBinding.yaml $${dst}/$${TARGET_PLATFORM}/role_binding.yaml
+		cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.Role.yaml $${dst}/$${TARGET_PLATFORM}/role.yaml
 
-			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.ServiceAccount.yaml $${dst}/$${TARGET_PLATFORM}/service_account.yaml
-			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.ClusterRoleBinding.yaml $${dst}/$${TARGET_PLATFORM}/cluster_rolebinding.yaml
-			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.ClusterRole.yaml $${dst}/$${TARGET_PLATFORM}/cluster_role.yaml
-			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.RoleBinding.yaml $${dst}/$${TARGET_PLATFORM}/role_binding.yaml
-			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.Role.yaml $${dst}/$${TARGET_PLATFORM}/role.yaml
+		cp $${src}/$${TARGET_PLATFORM}/objects/che-operator-service.Service.yaml $${dst}/$${TARGET_PLATFORM}/webhook-service.yaml
 
-			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator-service.Service.yaml $${dst}/$${TARGET_PLATFORM}/webhook-service.yaml
-
-			if [[ $${TARGET_PLATFORM} == "kubernetes" ]]; then
-				cp $${src}/$${TARGET_PLATFORM}/objects/che-operator-serving-cert.Certificate.yaml $${dst}/$${TARGET_PLATFORM}/serving-cert.yaml
-				cp $${src}/$${TARGET_PLATFORM}/objects/che-operator-selfsigned-issuer.Issuer.yaml $${dst}/$${TARGET_PLATFORM}/selfsigned-issuer.yaml
-			fi
-		done
-	else
-		# CheCluster API v1
-		mkdir -p $${dst}/crds
-
-		cp -f $${src}/config/manager/manager.yaml $${dst}/operator.yaml
-
-		cp -f $${src}/config/crd/bases/org_v1_che_crd.yaml $${dst}/crds
-		cp -f $${src}/config/samples/org.eclipse.che_v1_checluster.yaml $${dst}/crds/org_v1_che_cr.yaml
-
-		cp -f $${src}/config/rbac/role.yaml $${dst}
-		cp -f $${src}/config/rbac/role_binding.yaml $${dst}
-		cp -f $${src}/config/rbac/cluster_role.yaml $${dst}
-		cp -f $${src}/config/rbac/cluster_rolebinding.yaml $${dst}
-		cp -f $${src}/config/rbac/service_account.yaml $${dst}
-	fi
+		if [[ $${TARGET_PLATFORM} == "kubernetes" ]]; then
+			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator-serving-cert.Certificate.yaml $${dst}/$${TARGET_PLATFORM}/serving-cert.yaml
+			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator-selfsigned-issuer.Issuer.yaml $${dst}/$${TARGET_PLATFORM}/selfsigned-issuer.yaml
+		fi
+	done
 
 	echo "[INFO] Generated chectl templates into $${dst}"
 
