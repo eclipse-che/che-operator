@@ -42,7 +42,7 @@ spec:
   scope: Namespaced
   versions:
   - deprecated: true
-    deprecationWarning: org.eclipse.che/v1 CheCluster API is deprecated
+    deprecationWarning: org.eclipse.che/v1 CheCluster is deprecated and will be removed in future releases
     name: v1
     schema:
       openAPIV3Schema:
