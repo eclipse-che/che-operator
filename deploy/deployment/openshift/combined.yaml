@@ -46,7 +46,9 @@ spec:
     singular: checluster
   scope: Namespaced
   versions:
-  - name: v1
+  - deprecated: true
+    deprecationWarning: org.eclipse.che/v1 CheCluster API is deprecated
+    name: v1
     schema:
       openAPIV3Schema:
         description: The `CheCluster` custom resource allows defining and managing a Che server installation
