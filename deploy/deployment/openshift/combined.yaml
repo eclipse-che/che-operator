@@ -6113,7 +6113,7 @@ spec:
           value: "1"
         - name: ADD_COMPONENT_READINESS_INIT_CONTAINERS
           value: "false"
-        image: quay.io/eclipse/che-operator:next
+        image: quay.io/abazko/operator:21577
         imagePullPolicy: Always
         livenessProbe:
           failureThreshold: 10

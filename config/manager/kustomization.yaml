@@ -23,5 +23,5 @@ kind: Kustomization
 apiVersion: kustomize.config.k8s.io/v1beta1
 images:
 - name: quay.io/eclipse/che-operator:next
-  newName: quay.io/eclipse/che-operator
-  newTag: next
+  newName: quay.io/abazko/operator
+  newTag: "21577"
