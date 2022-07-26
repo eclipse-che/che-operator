@@ -67,8 +67,42 @@ func (dst *CheCluster) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
+	if err := dst.convertFrom_GitServices(src); err != nil {
+		return err
+	}
+
 	if err := dst.convertFrom_Status(src); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (dst *CheCluster) convertFrom_GitServices(src *chev2.CheCluster) error {
+	for _, github := range src.Spec.GitServices.GitHub {
+		dst.Spec.GitServices.GitHub = append(
+			dst.Spec.GitServices.GitHub,
+			GitHubService{
+				SecretName: github.SecretName,
+			})
+	}
+
+	for _, gitlab := range src.Spec.GitServices.GitLab {
+		dst.Spec.GitServices.GitLab = append(
+			dst.Spec.GitServices.GitLab,
+			GitLabService{
+				SecretName: gitlab.SecretName,
+				Endpoint:   gitlab.Endpoint,
+			})
+	}
+
+	for _, bitbucket := range src.Spec.GitServices.BitBucket {
+		dst.Spec.GitServices.BitBucket = append(
+			dst.Spec.GitServices.BitBucket,
+			BitBucketService{
+				SecretName: bitbucket.SecretName,
+				Endpoint:   bitbucket.Endpoint,
+			})
 	}
 
 	return nil

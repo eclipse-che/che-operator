@@ -26,3 +26,4 @@ spec:
       oAuthClientName: '{{ .Values.networking.auth.oAuthClientName }}'
       identityProviderURL: '{{ .Values.networking.auth.identityProviderURL }}'
   containerRegistry: {}
+  gitServices: {}

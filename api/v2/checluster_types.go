@@ -45,15 +45,20 @@ type CheClusterSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Components"
 	// +kubebuilder:default:={cheServer: {logLevel: INFO, debug: false}, metrics: {enable: true}, database: {externalDb: false, credentialsSecretName: postgres-credentials, postgresHostName: postgres, postgresPort: "5432", postgresDb: dbche, pvc: {claimSize: "1Gi"}}}
 	Components CheClusterComponents `json:"components"`
-	// Networking, Che authentication, and TLS configuration.
+	// A configuration that allows users to work with remote Git repositories.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=3
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Git Services"
+	GitServices CheClusterGitServices `json:"gitServices"`
+	// Networking, Che authentication, and TLS configuration.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=4
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Networking"
 	// +kubebuilder:default:={auth: {gateway: {configLabels: {app: che, component: che-gateway-config}}}}
 	Networking CheClusterSpecNetworking `json:"networking"`
 	// Configuration of an alternative registry that stores Che images.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=4
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=5
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Container registry"
 	ContainerRegistry CheClusterContainerRegistry `json:"containerRegistry"`
 }
@@ -556,6 +561,54 @@ type PodSecurityContext struct {
 	// A special supplemental group that applies to all containers in a pod. The default value is `1724`.
 	// +optional
 	FsGroup *int64 `json:"fsGroup,omitempty"`
+}
+
+type CheClusterGitServices struct {
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="GitHub"
+	GitHub []GitHubService `json:"github,omitempty"`
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="GitLab"
+	GitLab []GitLabService `json:"gitlab,omitempty"`
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="BitBucket"
+	BitBucket []BitBucketService `json:"bitbucket,omitempty"`
+}
+
+// GitHubService enables users to work with a remote Git repository that is hosted on GitHub.
+type GitHubService struct {
+	// Kubernetes secret, that contains Base64-encoded GitHub OAuth Client id and GitHub OAuth Client secret data.
+	// The GitHub OAuth data must be stored in the Kubernetes secret in `id` and `secret` keys respectively.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:io.kubernetes:Secret"
+	SecretName string `json:"secretName"`
+}
+
+type GitLabService struct {
+	// Kubernetes secret, that contains Base64-encoded GitHub Application id and GitHub Application Client secret data.
+	// The GitHub Application data must be stored in `id` and `secret` keys of the Kubernetes secret respectively.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:io.kubernetes:Secret"
+	SecretName string `json:"secretName"`
+	// GitLab server endpoint URL.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:default:="https://gitlab.com"
+	Endpoint string `json:"endpoint"`
+}
+
+type BitBucketService struct {
+	// Kubernetes secret, that contains Base64-encoded BitBucket OAuth 1.0 or OAuth 2.0 data.
+	// For OAuth 1.0: private key, BitBucket Application link consumer key and BitBucket Application link shared secret must be stored
+	// in `private.key`, `consumer.key` and `shared_secret` keys of the Kubernetes secret respectively.
+	// For OAuth 2.0: BitBucket OAuth consumer key and BitBucket OAuth consumer secret must be stored
+	// in `id` and `secret` keys of the Kubernetes secret respectively.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:io.kubernetes:Secret"
+	SecretName string `json:"secretName"`
+	// BitBucket server endpoint URL.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:default:="https://bitbucket.org"
+	Endpoint string `json:"endpoint,omitempty"`
 }
 
 // GatewayPhase describes the different phases of the Che gateway lifecycle.

@@ -348,7 +348,25 @@ func TestConvertTo(t *testing.T) {
 			Dashboard: chev1.CheClusterSpecDashboard{
 				Warning: "DashboardWarning",
 			},
-		},
+			GitServices: chev1.CheClusterGitServices{
+				GitHub: []chev1.GitHubService{
+					{
+						SecretName: "github-secret-name",
+					},
+				},
+				GitLab: []chev1.GitLabService{
+					{
+						SecretName: "gitlab-secret-name",
+						Endpoint:   "gitlab-endpoint",
+					},
+				},
+				BitBucket: []chev1.BitBucketService{
+					{
+						SecretName: "bitbucket-secret-name",
+						Endpoint:   "bitbucket-endpoint",
+					},
+				},
+			}},
 		Status: chev1.CheClusterStatus{
 			CheClusterRunning:  "Available",
 			CheVersion:         "CheVersion",
@@ -516,4 +534,10 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Status.PluginRegistryURL, "PluginRegistryURL")
 	assert.Equal(t, checlusterv2.Status.Reason, "Reason")
 	assert.Equal(t, checlusterv2.Status.PostgresVersion, "PostgresVersion")
+
+	assert.Equal(t, checlusterv2.Spec.GitServices.GitHub[0].SecretName, "github-secret-name")
+	assert.Equal(t, checlusterv2.Spec.GitServices.GitLab[0].SecretName, "gitlab-secret-name")
+	assert.Equal(t, checlusterv2.Spec.GitServices.GitLab[0].Endpoint, "gitlab-endpoint")
+	assert.Equal(t, checlusterv2.Spec.GitServices.BitBucket[0].SecretName, "bitbucket-secret-name")
+	assert.Equal(t, checlusterv2.Spec.GitServices.BitBucket[0].Endpoint, "bitbucket-endpoint")
 }

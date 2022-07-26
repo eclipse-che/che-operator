@@ -10,14 +10,9 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-apiVersion: org.eclipse.che/v2
-kind: CheCluster
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
 metadata:
-  name: eclipse-che
-  namespace: eclipse-che
-spec:
-  components: {}
-  devEnvironments: {}
-  networking: {}
-  containerRegistry: {}
-  gitServices: {}
+  name: org.eclipse.che
+  annotations:
+    cert-manager.io/inject-ca-from: $(CERTIFICATE_NAMESPACE)/$(CERTIFICATE_NAME)

@@ -20,3 +20,4 @@ spec:
   devEnvironments: {}
   networking: {}
   containerRegistry: {}
+  gitServices: {}

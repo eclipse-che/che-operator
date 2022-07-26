@@ -756,6 +756,50 @@ spec:
                 required:
                 - enable
                 type: object
+              gitServices:
+                description: A configuration that allows users to work with remote Git repositories.
+                properties:
+                  bitbucket:
+                    items:
+                      properties:
+                        endpoint:
+                          default: https://bitbucket.org
+                          description: BitBucket server endpoint URL.
+                          type: string
+                        secretName:
+                          description: 'Kubernetes secret, that contains Base64-encoded BitBucket OAuth 1.0 or OAuth 2.0 data. For OAuth 1.0: private key, BitBucket Application link consumer key and BitBucket Application link shared secret must be stored in `private.key`, `consumer.key` and `shared_secret` keys of the Kubernetes secret respectively. For OAuth 2.0: BitBucket OAuth consumer key and BitBucket OAuth consumer secret must be stored in `id` and `secret` keys of the Kubernetes secret respectively.'
+                          type: string
+                      required:
+                      - secretName
+                      type: object
+                    type: array
+                  github:
+                    items:
+                      description: GitHubService enables users to work with a remote Git repository that is hosted on GitHub.
+                      properties:
+                        secretName:
+                          description: Kubernetes secret, that contains Base64-encoded GitHub OAuth Client id and GitHub OAuth Client secret data. The GitHub OAuth data must be stored in the Kubernetes secret in `id` and `secret` keys respectively.
+                          type: string
+                      required:
+                      - secretName
+                      type: object
+                    type: array
+                  gitlab:
+                    items:
+                      properties:
+                        endpoint:
+                          default: https://gitlab.com
+                          description: GitLab server endpoint URL.
+                          type: string
+                        secretName:
+                          description: Kubernetes secret, that contains Base64-encoded GitHub Application id and GitHub Application Client secret data. The GitHub Application data must be stored in `id` and `secret` keys of the Kubernetes secret respectively.
+                          type: string
+                      required:
+                      - endpoint
+                      - secretName
+                      type: object
+                    type: array
+                type: object
               imagePuller:
                 description: Kubernetes Image Puller configuration
                 properties:
@@ -4748,6 +4792,50 @@ spec:
                         description: 'The ConfigMap contains certificates to propagate to the Che components and to provide a particular configuration for Git. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/deploying-che-with-support-for-git-repositories-with-self-signed-certificates/ The ConfigMap must have a `app.kubernetes.io/part-of=che.eclipse.org` label.'
                         type: string
                     type: object
+                type: object
+              gitServices:
+                description: A configuration that allows users to work with remote Git repositories.
+                properties:
+                  bitbucket:
+                    items:
+                      properties:
+                        endpoint:
+                          default: https://bitbucket.org
+                          description: BitBucket server endpoint URL.
+                          type: string
+                        secretName:
+                          description: 'Kubernetes secret, that contains Base64-encoded BitBucket OAuth 1.0 or OAuth 2.0 data. For OAuth 1.0: private key, BitBucket Application link consumer key and BitBucket Application link shared secret must be stored in `private.key`, `consumer.key` and `shared_secret` keys of the Kubernetes secret respectively. For OAuth 2.0: BitBucket OAuth consumer key and BitBucket OAuth consumer secret must be stored in `id` and `secret` keys of the Kubernetes secret respectively.'
+                          type: string
+                      required:
+                      - secretName
+                      type: object
+                    type: array
+                  github:
+                    items:
+                      description: GitHubService enables users to work with a remote Git repository that is hosted on GitHub.
+                      properties:
+                        secretName:
+                          description: Kubernetes secret, that contains Base64-encoded GitHub OAuth Client id and GitHub OAuth Client secret data. The GitHub OAuth data must be stored in the Kubernetes secret in `id` and `secret` keys respectively.
+                          type: string
+                      required:
+                      - secretName
+                      type: object
+                    type: array
+                  gitlab:
+                    items:
+                      properties:
+                        endpoint:
+                          default: https://gitlab.com
+                          description: GitLab server endpoint URL.
+                          type: string
+                        secretName:
+                          description: Kubernetes secret, that contains Base64-encoded GitHub Application id and GitHub Application Client secret data. The GitHub Application data must be stored in `id` and `secret` keys of the Kubernetes secret respectively.
+                          type: string
+                      required:
+                      - endpoint
+                      - secretName
+                      type: object
+                    type: array
                 type: object
               networking:
                 default:

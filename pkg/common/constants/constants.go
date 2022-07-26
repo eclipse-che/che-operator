@@ -90,7 +90,6 @@ const (
 	CheEclipseOrgMountAs                  = "che.eclipse.org/mount-as"
 	CheEclipseOrgEnvName                  = "che.eclipse.org/env-name"
 	CheEclipseOrgNamespace                = "che.eclipse.org/namespace"
-	CheEclipseOrgGithubOAuthCredentials   = "che.eclipse.org/github-oauth-credentials"
 	CheEclipseOrgOAuthScmServer           = "che.eclipse.org/oauth-scm-server"
 	CheEclipseOrgScmServerEndpoint        = "che.eclipse.org/scm-server-endpoint"
 	CheEclipseOrgHash256                  = "che.eclipse.org/hash256"
