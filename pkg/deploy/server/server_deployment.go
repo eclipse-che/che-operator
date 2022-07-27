@@ -12,7 +12,6 @@
 package server
 
 import (
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -26,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/utils/pointer"
 )
 
 func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
@@ -294,13 +292,6 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 		}
 	}
 
-	if !infrastructure.IsOpenShift() {
-		deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{
-			RunAsUser: pointer.Int64Ptr(constants.DefaultSecurityContextRunAsUser),
-			FSGroup:   pointer.Int64Ptr(constants.DefaultSecurityContextFsGroup),
-		}
-	}
-
 	if defaults.IsComponentReadinessInitContainersConfigured() {
 		if !ctx.CheCluster.Spec.Components.Database.ExternalDb {
 			waitForPostgresInitContainer, err := postgres.GetWaitForPostgresInitContainer(ctx)
@@ -311,7 +302,7 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 		}
 	}
 
-	deploy.EnsureContainerSecurityContext(deployment)
+	deploy.EnsureContainerSecurityContext(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
 	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.CheServer.Deployment, true)
 
 	return deployment, nil

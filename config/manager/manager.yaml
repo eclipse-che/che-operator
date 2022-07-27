@@ -140,6 +140,9 @@ spec:
             requests:
               cpu: 100m
               memory: 64Mi
+      securityContext:
+        runAsUser: 1724
+        fsGroup: 1724
       hostIPC: false
       hostNetwork: false
       hostPID: false

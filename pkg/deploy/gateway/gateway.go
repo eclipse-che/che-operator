@@ -461,7 +461,7 @@ func getGatewayDeploymentSpec(ctx *chetypes.DeployContext) *appsv1.Deployment {
 		},
 	}
 
-	deploy.EnsureContainerSecurityContext(deployment)
+	deploy.EnsureContainerSecurityContext(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
 	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Networking.Auth.Gateway.Deployment, false)
 	return deployment
 }

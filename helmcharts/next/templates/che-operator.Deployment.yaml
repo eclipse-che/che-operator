@@ -151,6 +151,9 @@ spec:
       hostNetwork: false
       hostPID: false
       restartPolicy: Always
+      securityContext:
+        fsGroup: 1724
+        runAsUser: 1724
       serviceAccountName: che-operator
       terminationGracePeriodSeconds: 20
       volumes:

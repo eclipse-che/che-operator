@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -187,15 +186,7 @@ func (p *PostgresReconciler) getDeploymentSpec(clusterDeployment *appsv1.Deploym
 			},
 		})
 
-	if !infrastructure.IsOpenShift() {
-		var runAsUser int64 = 26
-		deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{
-			RunAsUser: &runAsUser,
-			FSGroup:   &runAsUser,
-		}
-	}
-
-	deploy.EnsureContainerSecurityContext(deployment)
+	deploy.EnsureContainerSecurityContext(deployment, 26, 26)
 	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.Database.Deployment, false)
 	return deployment, nil
 }

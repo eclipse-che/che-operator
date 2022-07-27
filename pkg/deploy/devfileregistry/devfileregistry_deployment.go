@@ -50,7 +50,7 @@ func (d *DevfileRegistryReconciler) getDevfileRegistryDeploymentSpec(ctx *chetyp
 		resources,
 		probePath)
 
-	deploy.EnsureContainerSecurityContext(deployment)
+	deploy.EnsureContainerSecurityContext(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
 	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.DevfileRegistry.Deployment, false)
 	return deployment
 }
