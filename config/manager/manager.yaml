@@ -125,7 +125,11 @@ spec:
             timeoutSeconds: 5
           securityContext:
             privileged: false
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false
+            seccompProfile:
+              type: RuntimeDefault
             capabilities:
               drop:
                 - ALL

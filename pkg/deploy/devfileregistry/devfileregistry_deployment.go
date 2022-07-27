@@ -49,6 +49,8 @@ func (d *DevfileRegistryReconciler) getDevfileRegistryDeploymentSpec(ctx *chetyp
 		registryImagePullPolicy,
 		resources,
 		probePath)
+
+	deploy.EnsureContainerSecurityContext(deployment)
 	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.DevfileRegistry.Deployment, false)
 	return deployment
 }

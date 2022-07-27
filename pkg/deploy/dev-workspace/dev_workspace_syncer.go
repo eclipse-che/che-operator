@@ -203,6 +203,7 @@ func syncDwDeployment(deployContext *chetypes.DeployContext) (bool, error) {
 		}
 	}
 
+	deploy.EnsureContainerSecurityContext(deployment)
 	return syncObject(deployContext, deployment, DevWorkspaceNamespace)
 }
 

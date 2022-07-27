@@ -17,6 +17,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"k8s.io/utils/pointer"
+
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	console "github.com/openshift/api/console/v1"
@@ -79,9 +82,10 @@ func CompareResources(actualDeployment *appsv1.Deployment, expected TestExpected
 }
 
 func ValidateSecurityContext(actualDeployment *appsv1.Deployment, t *testing.T) {
-	if actualDeployment.Spec.Template.Spec.Containers[0].SecurityContext.Capabilities.Drop[0] != "ALL" {
-		t.Error("Deployment doesn't contain 'Capabilities Drop ALL' in a SecurityContext")
-	}
+	assert.Equal(t, corev1.Capability("ALL"), actualDeployment.Spec.Template.Spec.Containers[0].SecurityContext.Capabilities.Drop[0])
+	assert.Equal(t, pointer.BoolPtr(true), actualDeployment.Spec.Template.Spec.Containers[0].SecurityContext.RunAsNonRoot)
+	assert.Equal(t, pointer.BoolPtr(false), actualDeployment.Spec.Template.Spec.Containers[0].SecurityContext.AllowPrivilegeEscalation)
+	assert.Equal(t, corev1.SeccompProfileTypeRuntimeDefault, actualDeployment.Spec.Template.Spec.Containers[0].SecurityContext.SeccompProfile.Type)
 }
 
 func compareQuantity(resource string, actualQuantity *resource.Quantity, expected string, t *testing.T) {

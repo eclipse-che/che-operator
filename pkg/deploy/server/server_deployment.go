@@ -192,11 +192,6 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 									corev1.ResourceCPU:    resource.MustParse(constants.DefaultServerCpuLimit),
 								},
 							},
-							SecurityContext: &corev1.SecurityContext{
-								Capabilities: &corev1.Capabilities{
-									Drop: []corev1.Capability{"ALL"},
-								},
-							},
 							EnvFrom: []corev1.EnvFromSource{
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
@@ -316,6 +311,7 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 		}
 	}
 
+	deploy.EnsureContainerSecurityContext(deployment)
 	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.CheServer.Deployment, true)
 
 	return deployment, nil

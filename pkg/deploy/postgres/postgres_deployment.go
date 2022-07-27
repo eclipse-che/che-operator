@@ -143,11 +143,6 @@ func (p *PostgresReconciler) getDeploymentSpec(clusterDeployment *appsv1.Deploym
 								PeriodSeconds:       10,
 								TimeoutSeconds:      5,
 							},
-							SecurityContext: &corev1.SecurityContext{
-								Capabilities: &corev1.Capabilities{
-									Drop: []corev1.Capability{"ALL"},
-								},
-							},
 							Env: []corev1.EnvVar{
 								{
 									Name:  "POSTGRESQL_DATABASE",
@@ -200,6 +195,7 @@ func (p *PostgresReconciler) getDeploymentSpec(clusterDeployment *appsv1.Deploym
 		}
 	}
 
+	deploy.EnsureContainerSecurityContext(deployment)
 	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.Database.Deployment, false)
 	return deployment, nil
 }

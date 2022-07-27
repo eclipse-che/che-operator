@@ -159,11 +159,18 @@ func CustomizeDeployment(deployment *appsv1.Deployment, customDeployment *chev2.
 	return nil
 }
 
-func getOrDefaultQuantity(value resource.Quantity, defaultValue resource.Quantity) resource.Quantity {
-	if !value.IsZero() {
-		return value
+// EnsureContainerSecurityContext sets SecurityContext accordingly
+// to standards https://kubernetes.io/docs/concepts/security/pod-security-standards/#restricted
+func EnsureContainerSecurityContext(deployment *appsv1.Deployment) {
+	for i, _ := range deployment.Spec.Template.Spec.Containers {
+		if deployment.Spec.Template.Spec.Containers[i].SecurityContext == nil {
+			deployment.Spec.Template.Spec.Containers[i].SecurityContext = &corev1.SecurityContext{}
+		}
+		deployment.Spec.Template.Spec.Containers[i].SecurityContext.RunAsNonRoot = pointer.BoolPtr(true)
+		deployment.Spec.Template.Spec.Containers[i].SecurityContext.Capabilities = &corev1.Capabilities{Drop: []corev1.Capability{"ALL"}}
+		deployment.Spec.Template.Spec.Containers[i].SecurityContext.AllowPrivilegeEscalation = pointer.BoolPtr(false)
+		deployment.Spec.Template.Spec.Containers[i].SecurityContext.SeccompProfile = &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeRuntimeDefault}
 	}
-	return defaultValue
 }
 
 func getContainerByName(name string, containers []chev2.Container) *chev2.Container {

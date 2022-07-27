@@ -143,7 +143,7 @@ func syncAll(deployContext *chetypes.DeployContext) error {
 	}
 
 	depl := getGatewayDeploymentSpec(deployContext)
-	if _, err := deploy.Sync(deployContext, &depl, deploy.DefaultDeploymentDiffOpts); err != nil {
+	if _, err := deploy.Sync(deployContext, depl, deploy.DefaultDeploymentDiffOpts); err != nil {
 		// Failed to sync (update), let's delete and create instead
 		if strings.Contains(err.Error(), "field is immutable") {
 			if _, err := deploy.DeleteNamespacedObject(deployContext, depl.Name, &appsv1.Deployment{}); err != nil {
@@ -424,12 +424,12 @@ experimental:
 	}
 }
 
-func getGatewayDeploymentSpec(ctx *chetypes.DeployContext) appsv1.Deployment {
+func getGatewayDeploymentSpec(ctx *chetypes.DeployContext) *appsv1.Deployment {
 	terminationGracePeriodSeconds := int64(10)
 
 	deployLabels, labelsSelector := deploy.GetLabelsAndSelector(GatewayServiceName)
 
-	deployment := appsv1.Deployment{
+	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: appsv1.SchemeGroupVersion.String(),
 			Kind:       "Deployment",
@@ -461,7 +461,8 @@ func getGatewayDeploymentSpec(ctx *chetypes.DeployContext) appsv1.Deployment {
 		},
 	}
 
-	deploy.CustomizeDeployment(&deployment, ctx.CheCluster.Spec.Networking.Auth.Gateway.Deployment, false)
+	deploy.EnsureContainerSecurityContext(deployment)
+	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Networking.Auth.Gateway.Deployment, false)
 	return deployment
 }
 
