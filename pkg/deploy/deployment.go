@@ -169,7 +169,6 @@ func EnsurePodSecurityStandards(deployment *appsv1.Deployment, userId int64, gro
 		}
 		deployment.Spec.Template.Spec.Containers[i].SecurityContext.RunAsNonRoot = pointer.BoolPtr(true)
 		deployment.Spec.Template.Spec.Containers[i].SecurityContext.AllowPrivilegeEscalation = pointer.BoolPtr(false)
-		deployment.Spec.Template.Spec.Containers[i].SecurityContext.SeccompProfile = &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeRuntimeDefault}
 		deployment.Spec.Template.Spec.Containers[i].SecurityContext.Capabilities = &corev1.Capabilities{Drop: []corev1.Capability{"ALL"}}
 	}
 

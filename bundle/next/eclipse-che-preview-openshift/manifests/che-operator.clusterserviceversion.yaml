@@ -76,7 +76,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.52.0-632.next
+  name: eclipse-che-preview-openshift.v7.52.0-639.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1180,8 +1180,6 @@ spec:
                       privileged: false
                       readOnlyRootFilesystem: false
                       runAsNonRoot: true
-                      seccompProfile:
-                        type: RuntimeDefault
                     volumeMounts:
                       - mountPath: /tmp/k8s-webhook-server/serving-certs
                         name: webhook-tls-certs
@@ -1190,9 +1188,6 @@ spec:
                 hostNetwork: false
                 hostPID: false
                 restartPolicy: Always
-                securityContext:
-                  fsGroup: 1724
-                  runAsUser: 1724
                 serviceAccountName: che-operator
                 terminationGracePeriodSeconds: 20
                 volumes:
@@ -1395,7 +1390,7 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.52.0-632.next
+  version: 7.52.0-639.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1
