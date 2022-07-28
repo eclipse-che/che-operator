@@ -9,7 +9,7 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-# https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8/go-toolset
+# https://registry.access.redhat.com/ubi8/go-toolset
 FROM registry.access.redhat.com/ubi8/go-toolset:1.17.10-4 as builder
 ENV GOPATH=/go/
 ARG DEV_WORKSPACE_CONTROLLER_VERSION="v0.15.2"
@@ -50,7 +50,7 @@ RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH=
     if [[ ${SKIP_TESTS} == "false" ]]; then export MOCK_API=true && go test -mod=vendor -v ./...; fi && \
     CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} GO111MODULE=on go build -mod=vendor -a -o che-operator main.go
 
-# https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8-minimal
+# https://registry.access.redhat.com/ubi8-minimal
 FROM registry.access.redhat.com/ubi8-minimal:8.6-854
 
 # install httpd-tools for /usr/bin/htpasswd
