@@ -10,7 +10,7 @@
 #
 
 # https://registry.access.redhat.com/ubi8/go-toolset
-FROM registry.access.redhat.com/ubi8/go-toolset:1.17.10-4 as builder
+FROM registry.access.redhat.com/ubi8/go-toolset:1.17.10 as builder
 ENV GOPATH=/go/
 ARG DEV_WORKSPACE_CONTROLLER_VERSION="v0.15.2"
 ARG DEV_HEADER_REWRITE_TRAEFIK_PLUGIN="main"
@@ -51,7 +51,7 @@ RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH=
     CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} GO111MODULE=on go build -mod=vendor -a -o che-operator main.go
 
 # https://registry.access.redhat.com/ubi8-minimal
-FROM registry.access.redhat.com/ubi8-minimal:8.6-854
+FROM registry.access.redhat.com/ubi8-minimal:8.6
 
 # install httpd-tools for /usr/bin/htpasswd
 RUN microdnf install -y httpd-tools && microdnf -y update && microdnf -y clean all && rm -rf /var/cache/yum && echo "Installed Packages" && rpm -qa | sort -V && echo "End Of Installed Packages" && \
