@@ -175,8 +175,8 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployCon
 		},
 	}
 
-	deploy.EnsureContainerSecurityContext(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
-	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.Dashboard.Deployment, true)
+	deploy.EnsurePodSecurityStandards(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
+	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.Dashboard.Deployment)
 	return deployment, nil
 }
 

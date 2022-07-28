@@ -186,8 +186,8 @@ func (p *PostgresReconciler) getDeploymentSpec(clusterDeployment *appsv1.Deploym
 			},
 		})
 
-	deploy.EnsureContainerSecurityContext(deployment, 26, 26)
-	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.Database.Deployment, false)
+	deploy.EnsurePodSecurityStandards(deployment, 26, 26)
+	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.Database.Deployment)
 	return deployment, nil
 }
 

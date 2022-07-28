@@ -203,7 +203,7 @@ func syncDwDeployment(deployContext *chetypes.DeployContext) (bool, error) {
 		}
 	}
 
-	deploy.EnsureContainerSecurityContext(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
+	deploy.EnsurePodSecurityStandards(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
 	return syncObject(deployContext, deployment, DevWorkspaceNamespace)
 }
 

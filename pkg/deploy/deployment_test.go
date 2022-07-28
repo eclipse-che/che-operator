@@ -707,7 +707,7 @@ func TestCustomizeDeploymentShouldNotUpdateResources(t *testing.T) {
 		},
 	}
 
-	err := CustomizeDeployment(deployment, customizationDeployment, false)
+	err := CustomizeDeployment(deployment, customizationDeployment)
 	assert.Nil(t, err)
 	assert.Equal(t, "1", deployment.Spec.Template.Spec.Containers[0].Resources.Requests.Cpu().String())
 	assert.Equal(t, "100Mi", deployment.Spec.Template.Spec.Containers[0].Resources.Requests.Memory().String())
@@ -790,7 +790,7 @@ func TestCustomizeDeploymentImagePullPolicy(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
-			err := CustomizeDeployment(testCase.initDeployment, testCase.customizationDeployment, false)
+			err := CustomizeDeployment(testCase.initDeployment, testCase.customizationDeployment)
 			assert.Nil(t, err)
 			assert.Equal(t, testCase.expectedImagePullPolicy, testCase.initDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
 		})

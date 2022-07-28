@@ -302,8 +302,8 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 		}
 	}
 
-	deploy.EnsureContainerSecurityContext(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
-	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.CheServer.Deployment, true)
+	deploy.EnsurePodSecurityStandards(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
+	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.CheServer.Deployment)
 
 	return deployment, nil
 }
