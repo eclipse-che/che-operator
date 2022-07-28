@@ -33,7 +33,7 @@ const (
 	DefaultDashboardCpuRequest    = "100m"
 
 	// PluginRegistry
-	DefaultPluginRegistryMemoryLimit   = "256Mi"
+	DefaultPluginRegistryMemoryLimit   = "512Mi"
 	DefaultPluginRegistryMemoryRequest = "32Mi"
 	DefaultPluginRegistryCpuLimit      = "500m"
 	DefaultPluginRegistryCpuRequest    = "100m"
