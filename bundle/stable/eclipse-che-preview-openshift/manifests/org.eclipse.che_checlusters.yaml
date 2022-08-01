@@ -918,7 +918,7 @@ spec:
                       type: object
                     pluginRegistryMemoryLimit:
                       description: Overrides the memory limit used in the plugin registry
-                        deployment. Defaults to 512Mi.
+                        deployment. Defaults to 1536Mi.
                       type: string
                     pluginRegistryMemoryRequest:
                       description: Overrides the memory request used in the plugin
