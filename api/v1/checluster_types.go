@@ -251,7 +251,7 @@ type CheClusterSpecServer struct {
 	// Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	PluginRegistryPullPolicy corev1.PullPolicy `json:"pluginRegistryPullPolicy,omitempty"`
-	// Overrides the memory limit used in the plugin registry deployment. Defaults to 512Mi.
+	// Overrides the memory limit used in the plugin registry deployment. Defaults to 1536Mi.
 	// +optional
 	PluginRegistryMemoryLimit string `json:"pluginRegistryMemoryLimit,omitempty"`
 	// Overrides the memory request used in the plugin registry deployment. Defaults to 16Mi.
