@@ -21,6 +21,7 @@ resources:
 # Kubernetes platform specific patches
 patchesStrategicMerge:
   - patches/cainjection_in_checlusters.yaml
+  - patches/manager_pod_security_context.yaml
 
 vars:
   - name: CERTIFICATE_NAMESPACE # namespace of the certificate CR

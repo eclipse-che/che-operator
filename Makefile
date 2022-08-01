@@ -475,7 +475,7 @@ create-checluster-cr: ## Creates CheCluster Custom Resource V2
 		# Update networking.domain field with an actual value
 		if [[ $(PLATFORM) == "kubernetes" ]]; then
   			# kubectl does not have `whoami` command
-			CLUSTER_API_URL=$$($(K8S_CLI) whoami --show-server=true) || true;
+			CLUSTER_API_URL=$$(oc whoami --show-server=true) || true;
 			CLUSTER_DOMAIN=$$(echo $${CLUSTER_API_URL} | sed -E 's/https:\/\/(.*):.*/\1/g')
 			yq -riY  '.spec.networking.domain = "'$${CLUSTER_DOMAIN}'.nip.io"' $${CHECLUSTER_CR_2_APPLY}
 		fi
@@ -574,8 +574,6 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostIPC") = false' "$${CSV_PATH}"
 	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostNetwork") = false' "$${CSV_PATH}"
 	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostPID") = false' "$${CSV_PATH}"
-	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."allowPrivilegeEscalation") = false' "$${CSV_PATH}"
-	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."runAsNonRoot") = true' "$${CSV_PATH}"
 
 	# Fix examples by removing some special characters
 	FIXED_ALM_EXAMPLES=$$(yq -r '.metadata.annotations["alm-examples"]' $${CSV_PATH}  | sed -r 's/"/\\"/g')

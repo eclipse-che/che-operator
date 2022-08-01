@@ -97,7 +97,7 @@ func SyncDeploymentSpecToCluster(
 }
 
 // CustomizeDeployment customize deployment
-func CustomizeDeployment(deployment *appsv1.Deployment, customDeployment *chev2.Deployment, useCustomSecurityContext bool) error {
+func CustomizeDeployment(deployment *appsv1.Deployment, customDeployment *chev2.Deployment) error {
 	if customDeployment == nil || len(customDeployment.Containers) == 0 {
 		return nil
 	}
@@ -143,15 +143,16 @@ func CustomizeDeployment(deployment *appsv1.Deployment, customDeployment *chev2.
 	}
 
 	if !infrastructure.IsOpenShift() {
-		if useCustomSecurityContext {
-			if customDeployment.SecurityContext != nil {
-				if customDeployment.SecurityContext.FsGroup != nil {
-					deployment.Spec.Template.Spec.SecurityContext.FSGroup = pointer.Int64Ptr(*customDeployment.SecurityContext.FsGroup)
-				}
+		if customDeployment.SecurityContext != nil {
+			if deployment.Spec.Template.Spec.SecurityContext == nil {
+				deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{}
+			}
 
-				if customDeployment.SecurityContext.RunAsUser != nil {
-					deployment.Spec.Template.Spec.SecurityContext.RunAsUser = pointer.Int64Ptr(*customDeployment.SecurityContext.RunAsUser)
-				}
+			if customDeployment.SecurityContext.FsGroup != nil {
+				deployment.Spec.Template.Spec.SecurityContext.FSGroup = pointer.Int64Ptr(*customDeployment.SecurityContext.FsGroup)
+			}
+			if customDeployment.SecurityContext.RunAsUser != nil {
+				deployment.Spec.Template.Spec.SecurityContext.RunAsUser = pointer.Int64Ptr(*customDeployment.SecurityContext.RunAsUser)
 			}
 		}
 	}
@@ -159,11 +160,25 @@ func CustomizeDeployment(deployment *appsv1.Deployment, customDeployment *chev2.
 	return nil
 }
 
-func getOrDefaultQuantity(value resource.Quantity, defaultValue resource.Quantity) resource.Quantity {
-	if !value.IsZero() {
-		return value
+// EnsurePodSecurityStandards sets SecurityContext accordingly
+// to standards https://kubernetes.io/docs/concepts/security/pod-security-standards/#restricted
+func EnsurePodSecurityStandards(deployment *appsv1.Deployment, userId int64, groupId int64) {
+	for i, _ := range deployment.Spec.Template.Spec.Containers {
+		if deployment.Spec.Template.Spec.Containers[i].SecurityContext == nil {
+			deployment.Spec.Template.Spec.Containers[i].SecurityContext = &corev1.SecurityContext{}
+		}
+		deployment.Spec.Template.Spec.Containers[i].SecurityContext.RunAsNonRoot = pointer.BoolPtr(true)
+		deployment.Spec.Template.Spec.Containers[i].SecurityContext.AllowPrivilegeEscalation = pointer.BoolPtr(false)
+		deployment.Spec.Template.Spec.Containers[i].SecurityContext.Capabilities = &corev1.Capabilities{Drop: []corev1.Capability{"ALL"}}
 	}
-	return defaultValue
+
+	if !infrastructure.IsOpenShift() {
+		if deployment.Spec.Template.Spec.SecurityContext == nil {
+			deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{}
+		}
+		deployment.Spec.Template.Spec.SecurityContext.RunAsUser = pointer.Int64Ptr(userId)
+		deployment.Spec.Template.Spec.SecurityContext.FSGroup = pointer.Int64Ptr(groupId)
+	}
 }
 
 func getContainerByName(name string, containers []chev2.Container) *chev2.Container {

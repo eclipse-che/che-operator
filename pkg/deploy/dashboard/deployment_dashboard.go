@@ -17,20 +17,18 @@ import (
 	"fmt"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
-	configv1 "github.com/openshift/api/config/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
-
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
+	configv1 "github.com/openshift/api/config/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -131,11 +129,6 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployCon
 									corev1.ResourceCPU:    resource.MustParse(constants.DefaultDashboardCpuLimit),
 								},
 							},
-							SecurityContext: &corev1.SecurityContext{
-								Capabilities: &corev1.Capabilities{
-									Drop: []corev1.Capability{"ALL"},
-								},
-							},
 							ReadinessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									HTTPGet: &corev1.HTTPGetAction{
@@ -182,14 +175,8 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployCon
 		},
 	}
 
-	if !infrastructure.IsOpenShift() {
-		deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{
-			RunAsUser: pointer.Int64Ptr(constants.DefaultSecurityContextRunAsUser),
-			FSGroup:   pointer.Int64Ptr(constants.DefaultSecurityContextFsGroup),
-		}
-	}
-
-	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.Dashboard.Deployment, true)
+	deploy.EnsurePodSecurityStandards(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
+	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.Dashboard.Deployment)
 	return deployment, nil
 }
 

@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -143,11 +142,6 @@ func (p *PostgresReconciler) getDeploymentSpec(clusterDeployment *appsv1.Deploym
 								PeriodSeconds:       10,
 								TimeoutSeconds:      5,
 							},
-							SecurityContext: &corev1.SecurityContext{
-								Capabilities: &corev1.Capabilities{
-									Drop: []corev1.Capability{"ALL"},
-								},
-							},
 							Env: []corev1.EnvVar{
 								{
 									Name:  "POSTGRESQL_DATABASE",
@@ -192,15 +186,8 @@ func (p *PostgresReconciler) getDeploymentSpec(clusterDeployment *appsv1.Deploym
 			},
 		})
 
-	if !infrastructure.IsOpenShift() {
-		var runAsUser int64 = 26
-		deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{
-			RunAsUser: &runAsUser,
-			FSGroup:   &runAsUser,
-		}
-	}
-
-	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.Database.Deployment, false)
+	deploy.EnsurePodSecurityStandards(deployment, 26, 26)
+	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.Database.Deployment)
 	return deployment, nil
 }
 
