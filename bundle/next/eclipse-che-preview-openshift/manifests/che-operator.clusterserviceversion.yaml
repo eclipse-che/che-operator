@@ -307,34 +307,42 @@ spec:
               repositories.
             displayName: Git Services
             path: gitServices
-          - displayName: BitBucket
+          - description: Enables users to work with repositories hosted on Bitbucket
+              (bitbucket.org or self-hosted).
+            displayName: Bitbucket
             path: gitServices.bitbucket
-          - description: 'Kubernetes secret, that contains Base64-encoded BitBucket
-              OAuth 1.0 or OAuth 2.0 data. For OAuth 1.0: private key, BitBucket Application
-              link consumer key and BitBucket Application link shared secret must
+          - description: 'Kubernetes secret, that contains Base64-encoded Bitbucket
+              OAuth 1.0 or OAuth 2.0 data. For OAuth 1.0: private key, Bitbucket Application
+              link consumer key and Bitbucket Application link shared secret must
               be stored in `private.key`, `consumer.key` and `shared_secret` keys
-              of the Kubernetes secret respectively. For OAuth 2.0: BitBucket OAuth
-              consumer key and BitBucket OAuth consumer secret must be stored in `id`
-              and `secret` keys of the Kubernetes secret respectively.'
+              of the Kubernetes secret respectively. For OAuth 2.0: Bitbucket OAuth
+              consumer key and Bitbucket OAuth consumer secret must be stored in `id`
+              and `secret` keys of the Kubernetes secret respectively. See the following
+              page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-bitbucket/.'
             displayName: Secret Name
             path: gitServices.bitbucket[0].secretName
             x-descriptors:
               - urn:alm:descriptor:io.kubernetes:Secret
-          - displayName: GitHub
+          - description: Enables users to work with repositories hosted on GitHub
+              (github.com or GitHub Enterprise).
+            displayName: GitHub
             path: gitServices.github
-          - description: Kubernetes secret, that contains Base64-encoded GitHub OAuth
+          - description: 'Kubernetes secret, that contains Base64-encoded GitHub OAuth
               Client id and GitHub OAuth Client secret data. The GitHub OAuth data
               must be stored in the Kubernetes secret in `id` and `secret` keys respectively.
+              See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
             displayName: Secret Name
             path: gitServices.github[0].secretName
             x-descriptors:
               - urn:alm:descriptor:io.kubernetes:Secret
-          - displayName: GitLab
+          - description: Enables users to work with repositories hosted on GitLab
+              (gitlab.com or self-hosted).
+            displayName: GitLab
             path: gitServices.gitlab
-          - description: Kubernetes secret, that contains Base64-encoded GitHub Application
-              id and GitHub Application Client secret data. The GitHub Application
+          - description: 'Kubernetes secret, that contains Base64-encoded GitHub Application
+              id and GitLab Application Client secret data. The GitLab Application
               data must be stored in `id` and `secret` keys of the Kubernetes secret
-              respectively.
+              respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
             displayName: Secret Name
             path: gitServices.gitlab[0].secretName
             x-descriptors:

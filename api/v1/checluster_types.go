@@ -793,29 +793,35 @@ type ExternalDevfileRegistries struct {
 }
 
 type CheClusterGitServices struct {
+	// Enables users to work with repositories hosted on GitHub (github.com or GitHub Enterprise).
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="GitHub"
 	GitHub []GitHubService `json:"github,omitempty"`
+	// Enables users to work with repositories hosted on GitLab (gitlab.com or self-hosted).
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="GitLab"
 	GitLab []GitLabService `json:"gitlab,omitempty"`
+	// Enables users to work with repositories hosted on Bitbucket (bitbucket.org or self-hosted).
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="BitBucket"
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Bitbucket"
 	BitBucket []BitBucketService `json:"bitbucket,omitempty"`
 }
 
-// GitHubService enables users to work with a remote Git repository that is hosted on GitHub.
+// GitHubService enables users to work with repositories hosted on GitHub (GitHub.com or GitHub Enterprise).
 type GitHubService struct {
 	// Kubernetes secret, that contains Base64-encoded GitHub OAuth Client id and GitHub OAuth Client secret data.
 	// The GitHub OAuth data must be stored in the Kubernetes secret in `id` and `secret` keys respectively.
+	// See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:io.kubernetes:Secret"
 	SecretName string `json:"secretName"`
 }
 
+// GitLabService enables users to work with repositories hosted on GitLab (gitlab.com or self-hosted).
 type GitLabService struct {
-	// Kubernetes secret, that contains Base64-encoded GitHub Application id and GitHub Application Client secret data.
-	// The GitHub Application data must be stored in `id` and `secret` keys of the Kubernetes secret respectively.
+	// Kubernetes secret, that contains Base64-encoded GitHub Application id and GitLab Application Client secret data.
+	// The GitLab Application data must be stored in `id` and `secret` keys of the Kubernetes secret respectively.
+	// See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:io.kubernetes:Secret"
 	SecretName string `json:"secretName"`
@@ -825,16 +831,18 @@ type GitLabService struct {
 	Endpoint string `json:"endpoint"`
 }
 
+// BitBucketService enables users to work with repositories hosted on Bitbucket (bitbucket.org or self-hosted).
 type BitBucketService struct {
-	// Kubernetes secret, that contains Base64-encoded BitBucket OAuth 1.0 or OAuth 2.0 data.
-	// For OAuth 1.0: private key, BitBucket Application link consumer key and BitBucket Application link shared secret must be stored
+	// Kubernetes secret, that contains Base64-encoded Bitbucket OAuth 1.0 or OAuth 2.0 data.
+	// For OAuth 1.0: private key, Bitbucket Application link consumer key and Bitbucket Application link shared secret must be stored
 	// in `private.key`, `consumer.key` and `shared_secret` keys of the Kubernetes secret respectively.
-	// For OAuth 2.0: BitBucket OAuth consumer key and BitBucket OAuth consumer secret must be stored
+	// For OAuth 2.0: Bitbucket OAuth consumer key and Bitbucket OAuth consumer secret must be stored
 	// in `id` and `secret` keys of the Kubernetes secret respectively.
+	// See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-bitbucket/.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:io.kubernetes:Secret"
 	SecretName string `json:"secretName"`
-	// BitBucket server endpoint URL.
+	// Bitbucket server endpoint URL.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:default:="https://bitbucket.org"
 	Endpoint string `json:"endpoint,omitempty"`
