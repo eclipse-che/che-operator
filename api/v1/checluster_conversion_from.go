@@ -180,6 +180,7 @@ func (dst *CheCluster) convertFrom_Server(src *chev2.CheCluster) error {
 }
 
 func (dst *CheCluster) convertFrom_Server_PluginRegistry(src *chev2.CheCluster) error {
+	dst.Spec.Server.OpenVSXRegistryURL = src.Spec.Components.PluginRegistry.OpenVSXRegistryURL
 	dst.Spec.Server.ExternalPluginRegistry = src.Spec.Components.PluginRegistry.DisableInternalRegistry
 
 	if src.Spec.Components.PluginRegistry.DisableInternalRegistry {

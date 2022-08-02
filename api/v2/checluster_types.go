@@ -242,6 +242,9 @@ type PluginRegistry struct {
 	// External plugin registries.
 	// +optional
 	ExternalPluginRegistries []ExternalPluginRegistry `json:"externalPluginRegistries,omitempty"`
+	// Open VSX registry URL.
+	// +optional
+	OpenVSXRegistryURL string `json:"openVSXRegistryURL,omitempty"`
 }
 
 // Configuration settings related to the devfile registry used by the Che installation.
