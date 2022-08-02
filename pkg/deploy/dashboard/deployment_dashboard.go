@@ -75,6 +75,38 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployCon
 			Value: fmt.Sprintf("http://%s.%s.svc:8080/api", deploy.CheServiceName, ctx.CheCluster.Namespace)},
 	)
 
+	if ctx.CheCluster.Spec.Components.CheServer.ExtraProperties["CHE_INFRA_KUBERNETES_PORT"]!="" {
+		envVars = append(envVars,
+			corev1.EnvVar{
+				Name: "CHE_INFRA_KUBERNETES_PORT",
+				Value: fmt.Sprintf("%s", ctx.CheCluster.Spec.Components.CheServer.ExtraProperties["CHE_INFRA_KUBERNETES_PORT"])},
+		)
+	}
+
+	if ctx.CheCluster.Spec.Components.CheServer.ExtraProperties["CHE_INFRA_KUBERNETES_PORT_443_TCP_ADDR"]!=""{
+		envVars = append(envVars,
+			corev1.EnvVar{
+				Name: "CHE_INFRA_KUBERNETES_PORT_443_TCP_ADDR",
+				Value: fmt.Sprintf("%s", ctx.CheCluster.Spec.Components.CheServer.ExtraProperties["CHE_INFRA_KUBERNETES_PORT_443_TCP_ADDR"])},
+		)
+	}
+
+	if ctx.CheCluster.Spec.Components.CheServer.ExtraProperties["CHE_INFRA_KUBERNETES_PORT_443_TCP"]!=""{
+		envVars = append(envVars,
+			corev1.EnvVar{
+				Name: "CHE_INFRA_KUBERNETES_PORT_443_TCP",
+				Value: fmt.Sprintf("%s", ctx.CheCluster.Spec.Components.CheServer.ExtraProperties["CHE_INFRA_KUBERNETES_PORT_443_TCP"])},
+		)
+	}
+
+	if ctx.CheCluster.Spec.Components.CheServer.ExtraProperties["CHE_INFRA_KUBERNETES_SERVICE_HOST"]!=""{
+		envVars = append(envVars,
+			corev1.EnvVar{
+				Name: "CHE_INFRA_KUBERNETES_SERVICE_HOST",
+				Value: fmt.Sprintf("%s", ctx.CheCluster.Spec.Components.CheServer.ExtraProperties["CHE_INFRA_KUBERNETES_SERVICE_HOST"])},
+		)
+	}
+
 	if infrastructure.IsOpenShift() {
 		envVars = append(envVars,
 			corev1.EnvVar{
