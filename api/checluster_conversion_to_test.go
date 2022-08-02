@@ -412,7 +412,7 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Requests.Cpu, resource.MustParse("1"))
 	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Requests.Memory, resource.MustParse("100Mi"))
 	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.DisableInternalRegistry, true)
-	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.OpenVSXRegistryURL, "open-vsx-registry")
+	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.OpenVSXURL, "open-vsx-registry")
 	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.ExternalPluginRegistries, []chev2.ExternalPluginRegistry{{Url: "PluginRegistryUrl"}})
 
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Storage.Pvc.ClaimSize, "WorkspacePvcClaimSize")

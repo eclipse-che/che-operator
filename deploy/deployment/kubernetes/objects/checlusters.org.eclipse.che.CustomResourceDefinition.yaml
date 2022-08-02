@@ -540,7 +540,7 @@ spec:
                     description: 'List of hosts that will be reached directly, bypassing the proxy. Specify wild card domain use the following form `.<DOMAIN>` and `|` as delimiter, for example: `localhost|.my.host.com|123.42.12.32` Only use when configuring a proxy is required. Operator respects OpenShift cluster wide proxy configuration and no additional configuration is required, but defining `nonProxyHosts` in a custom resource leads to merging non proxy hosts lists from the cluster proxy configuration and ones defined in the custom resources. See the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html. See also the `proxyURL` fields.'
                     type: string
                   openVSXRegistryURL:
-                    description: Open VSX registry URL.
+                    description: Open VSX registry URL. If omitted an embedded instance will be used.
                     type: string
                   pluginRegistryCpuLimit:
                     description: Overrides the CPU limit used in the plugin registry deployment. In cores. (500m = .5 cores). Default to 500m.
@@ -2387,8 +2387,8 @@ spec:
                               type: string
                           type: object
                         type: array
-                      openVSXRegistryURL:
-                        description: Open VSX registry URL.
+                      openVSXURL:
+                        description: Open VSX registry URL. If omitted an embedded instance will be used.
                         type: string
                     type: object
                 type: object

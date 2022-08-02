@@ -175,7 +175,7 @@ func TestConvertFrom(t *testing.T) {
 							Url: "ExternalPluginRegistries_2",
 						},
 					},
-					OpenVSXRegistryURL: "open-vsx-registry",
+					OpenVSXURL: "open-vsx-registry",
 				},
 				DevfileRegistry: chev2.DevfileRegistry{
 					Deployment: &chev2.Deployment{

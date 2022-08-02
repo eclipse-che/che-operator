@@ -394,7 +394,7 @@ func (src *CheCluster) convertTo_Components_CheServer(dst *chev2.CheCluster) err
 }
 
 func (src *CheCluster) convertTo_Components_PluginRegistry(dst *chev2.CheCluster) error {
-	dst.Spec.Components.PluginRegistry.OpenVSXRegistryURL = src.Spec.Server.OpenVSXRegistryURL
+	dst.Spec.Components.PluginRegistry.OpenVSXURL = src.Spec.Server.OpenVSXRegistryURL
 	dst.Spec.Components.PluginRegistry.DisableInternalRegistry = src.Spec.Server.ExternalPluginRegistry
 
 	if dst.Spec.Components.PluginRegistry.DisableInternalRegistry {

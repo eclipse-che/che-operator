@@ -889,7 +889,8 @@ spec:
                         See also the `proxyURL` fields.'
                       type: string
                     openVSXRegistryURL:
-                      description: Open VSX registry URL.
+                      description: Open VSX registry URL. If omitted an embedded instance
+                        will be used.
                       type: string
                     pluginRegistryCpuLimit:
                       description: Overrides the CPU limit used in the plugin registry
@@ -3625,8 +3626,9 @@ spec:
                                 type: string
                             type: object
                           type: array
-                        openVSXRegistryURL:
-                          description: Open VSX registry URL.
+                        openVSXURL:
+                          description: Open VSX registry URL. If omitted an embedded
+                            instance will be used.
                           type: string
                       type: object
                   type: object
