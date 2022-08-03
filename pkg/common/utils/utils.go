@@ -14,6 +14,8 @@ package utils
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -268,4 +270,12 @@ func Whitelist(hostname string) (value string) {
 		return hostname[i:]
 	}
 	return hostname
+}
+
+func GetOperatorNamespace() (string, error) {
+	if test.IsTestMode() {
+		return "eclipse-che", nil
+	}
+
+	return infrastructure.GetOperatorNamespace()
 }

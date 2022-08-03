@@ -14,60 +14,56 @@ package devworkspace
 
 import (
 	"context"
-	"strings"
-
-	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
-	"github.com/sirupsen/logrus"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func isDevWorkspaceOperatorCSVExists(deployContext *chetypes.DeployContext) bool {
-	// If clusterserviceversions resource doesn't exist in cluster DWO as well will not be present
-	if !utils.IsK8SResourceServed(deployContext.ClusterAPI.DiscoveryClient, ClusterServiceVersionResourceName) {
-		return false
-	}
-
-	csvList := &operatorsv1alpha1.ClusterServiceVersionList{}
-	err := deployContext.ClusterAPI.NonCachingClient.List(context.TODO(), csvList, &client.ListOptions{Namespace: OperatorNamespace})
+// Indicates if Web Terminal installed on the cluster by checking
+// its subscription in both `openshift-operators` and current namespaces
+func isWebTerminalInstalledByOlm(deployContext *chetypes.DeployContext) (bool, error) {
+	cheOperatorNamespace, err := utils.GetOperatorNamespace()
 	if err != nil {
-		logrus.Errorf("Failed to list csv: %v", err)
-		return false
+		return false, err
 	}
 
-	for _, csv := range csvList.Items {
-		if strings.HasPrefix(csv.Name, DevWorkspaceCSVNamePrefix) {
-			return true
+	namespace2check := []string{cheOperatorNamespace, OperatorNamespace}
+	for _, namespace := range namespace2check {
+		isWebTerminalSubscriptionExist, err := isSubscriptionExist(WebTerminalOperatorSubscriptionName, namespace, deployContext)
+		if isWebTerminalSubscriptionExist {
+			return true, nil
+		} else if err != nil {
+			return false, err
 		}
 	}
 
-	return false
+	return false, nil
 }
 
-func isWebTerminalSubscriptionExist(deployContext *chetypes.DeployContext) (bool, error) {
-	// If subscriptions resource doesn't exist in cluster WTO as well will not be present
-	if !utils.IsK8SResourceServed(deployContext.ClusterAPI.DiscoveryClient, SubscriptionResourceName) {
+func isSubscriptionExist(name string, namespace string, ctx *chetypes.DeployContext) (bool, error) {
+	if !utils.IsK8SResourceServed(ctx.ClusterAPI.DiscoveryClient, SubscriptionResourceName) {
 		return false, nil
 	}
 
-	subscription := &operatorsv1alpha1.Subscription{}
-	if err := deployContext.ClusterAPI.NonCachingClient.Get(
+	if err := ctx.ClusterAPI.NonCachingClient.Get(
 		context.TODO(),
 		types.NamespacedName{
-			Name:      WebTerminalOperatorSubscriptionName,
-			Namespace: OperatorNamespace,
+			Name:      name,
+			Namespace: namespace,
 		},
-		subscription); err != nil {
+		&operatorsv1alpha1.Subscription{}); err != nil {
 
-		if apierrors.IsNotFound(err) {
+		if errors.IsNotFound(err) {
 			return false, nil
 		}
 		return false, err
@@ -90,12 +86,41 @@ func createDwNamespace(deployContext *chetypes.DeployContext) (bool, error) {
 	return deploy.CreateIfNotExists(deployContext, namespace)
 }
 
-func isOnlyOneOperatorManagesDWResources(deployContext *chetypes.DeployContext) (bool, error) {
-	cheClusters := &chev2.CheClusterList{}
-	err := deployContext.ClusterAPI.NonCachingClient.List(context.TODO(), cheClusters)
+// Indicates if Eclipse Che operator installed by OLM by checking existence `olm.owner` label.
+func isCheOperatorInstalledByOLM(ctx *chetypes.DeployContext) (bool, error) {
+	operatorNamespace, err := utils.GetOperatorNamespace()
 	if err != nil {
 		return false, err
 	}
 
-	return len(cheClusters.Items) == 1, nil
+	deployment := &appsv1.Deployment{}
+	if err := ctx.ClusterAPI.NonCachingClient.Get(
+		context.TODO(),
+		types.NamespacedName{Namespace: operatorNamespace, Name: defaults.GetCheFlavor() + "-operator"},
+		deployment); err != nil {
+		return false, err
+	}
+
+	return deployment.Labels[constants.OlmOwnerLabelKey] != "", nil
+}
+
+func isDevWorkspaceOperatorInstalledByOLM(ctx *chetypes.DeployContext) (bool, error) {
+	deployments := &appsv1.DeploymentList{}
+	if err := ctx.ClusterAPI.NonCachingClient.List(
+		context.TODO(),
+		deployments,
+		&client.ListOptions{
+			LabelSelector: labels.SelectorFromSet(map[string]string{
+				constants.KubernetesPartOfLabelKey: constants.DevWorkspaceOperator,
+				constants.KubernetesNameLabelKey:   constants.DevWorkspaceController,
+			}),
+		}); err != nil {
+		return false, err
+	}
+
+	if len(deployments.Items) != 1 {
+		return false, nil
+	}
+
+	return deployments.Items[0].Labels[constants.OlmOwnerLabelKey] != "", nil
 }

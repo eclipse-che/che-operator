@@ -82,6 +82,7 @@ const (
 	KubernetesManagedByLabelKey = "app.kubernetes.io/managed-by"
 	KubernetesInstanceLabelKey  = "app.kubernetes.io/instance"
 	KubernetesNameLabelKey      = "app.kubernetes.io/name"
+	OlmOwnerLabelKey            = "olm.owner"
 
 	// Annotations
 	CheEclipseOrgMountPath                = "che.eclipse.org/mount-path"
@@ -120,8 +121,9 @@ const (
 	GatewayAuthenticationContainerName = "oauth-proxy"
 	GatewayAuthorizationContainerName  = "kube-rbac-proxy"
 
-	//
+	// common
 	CheEclipseOrg         = "che.eclipse.org"
+	DevWorkspaceOperator  = "devworkspace-operator"
 	InstallOrUpdateFailed = "InstallOrUpdateFailed"
 )
 
