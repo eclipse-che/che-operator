@@ -366,6 +366,9 @@ type CheClusterSpecServer struct {
 	// These default components are meant to be used when a Devfile does not contain any components.
 	// +optional
 	WorkspaceDefaultComponents []devfile.Component `json:"workspaceDefaultComponents,omitempty"`
+	// Open VSX registry URL. If omitted an embedded instance will be used.
+	// +optional
+	OpenVSXRegistryURL string `json:"openVSXRegistryURL,omitempty"`
 }
 
 // +k8s:openapi-gen=true

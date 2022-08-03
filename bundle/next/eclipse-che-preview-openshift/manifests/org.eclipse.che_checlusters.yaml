@@ -888,6 +888,10 @@ spec:
                         resources. See the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html.
                         See also the `proxyURL` fields.'
                       type: string
+                    openVSXRegistryURL:
+                      description: Open VSX registry URL. If omitted an embedded instance
+                        will be used.
+                      type: string
                     pluginRegistryCpuLimit:
                       description: Overrides the CPU limit used in the plugin registry
                         deployment. In cores. (500m = .5 cores). Default to 500m.
@@ -3622,6 +3626,10 @@ spec:
                                 type: string
                             type: object
                           type: array
+                        openVSXURL:
+                          description: Open VSX registry URL. If omitted an embedded
+                            instance will be used.
+                          type: string
                       type: object
                   type: object
                 containerRegistry:

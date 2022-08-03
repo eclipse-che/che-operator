@@ -175,6 +175,7 @@ func TestConvertFrom(t *testing.T) {
 							Url: "ExternalPluginRegistries_2",
 						},
 					},
+					OpenVSXURL: "open-vsx-registry",
 				},
 				DevfileRegistry: chev2.DevfileRegistry{
 					Deployment: &chev2.Deployment{
@@ -442,6 +443,7 @@ func TestConvertFrom(t *testing.T) {
 	assert.Equal(t, checlusterv1.Spec.Server.ExternalPluginRegistry, true)
 	assert.Equal(t, checlusterv1.Spec.Server.GitSelfSignedCert, true)
 	assert.Equal(t, checlusterv1.Spec.Server.NonProxyHosts, "NonProxyHosts_1|NonProxyHosts_2")
+	assert.Equal(t, checlusterv1.Spec.Server.OpenVSXRegistryURL, "open-vsx-registry")
 	assert.Equal(t, checlusterv1.Spec.Server.PluginRegistryCpuLimit, "2")
 	assert.Equal(t, checlusterv1.Spec.Server.PluginRegistryCpuRequest, "1")
 	assert.Equal(t, checlusterv1.Spec.Server.PluginRegistryImage, "PluginRegistryImage")
