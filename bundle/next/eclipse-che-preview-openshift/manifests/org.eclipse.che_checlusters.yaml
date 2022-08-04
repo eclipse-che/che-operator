@@ -1321,7 +1321,7 @@ spec:
                       description: 'Log level for the Che server: `INFO` or `DEBUG`.
                         Defaults to `INFO`.'
                       type: string
-                    cheServerEnvenv:
+                    cheServerEnv:
                       description: List of environment variables to set in the Che
                         server container.
                       items:
