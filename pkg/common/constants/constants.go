@@ -82,7 +82,6 @@ const (
 	KubernetesManagedByLabelKey = "app.kubernetes.io/managed-by"
 	KubernetesInstanceLabelKey  = "app.kubernetes.io/instance"
 	KubernetesNameLabelKey      = "app.kubernetes.io/name"
-	OlmOwnerLabelKey            = "olm.owner"
 
 	// Annotations
 	CheEclipseOrgMountPath                = "che.eclipse.org/mount-path"

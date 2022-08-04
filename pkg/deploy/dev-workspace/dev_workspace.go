@@ -62,27 +62,19 @@ func NewDevWorkspaceReconciler() *DevWorkspaceReconciler {
 
 func (d *DevWorkspaceReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	if infrastructure.IsOpenShift() {
-		// Do nothing if Eclipse Che operator installed by OLM
-		// In this case DevWorkspace operator should be managed by OLM as well
-		cheOperatorInstalledByOLM, err := isCheOperatorInstalledByOLM(ctx)
-		if cheOperatorInstalledByOLM {
+		// Do nothing if Che operator has owner.
+		// In this case DevWorkspace operator resources mustn't be managed by Che operator.
+		cheOperatorHasOwner, err := isCheOperatorHasOwner(ctx)
+		if cheOperatorHasOwner {
 			return reconcile.Result{}, true, nil
 		} else if err != nil {
 			return reconcile.Result{Requeue: true}, false, err
 		}
 
-		// Do nothing if Dev Workspace operator installed by OLM
-		devWorkspaceInstalledByOLM, err := isDevWorkspaceOperatorInstalledByOLM(ctx)
-		if devWorkspaceInstalledByOLM {
-			return reconcile.Result{}, true, nil
-		} else if err != nil {
-			return reconcile.Result{Requeue: true}, false, err
-		}
-
-		// Do nothing if WTO exists since it should bring or embeds DWO
-		// TODO check if it is needed
-		wtoInstalledByOlm, err := isWebTerminalInstalledByOlm(ctx)
-		if wtoInstalledByOlm {
+		// Do nothing if Dev Workspace operator has owner.
+		// In this case DevWorkspace operator resources mustn't be managed by Che operator.
+		devWorkspaceOperatorHasOwner, err := isDevWorkspaceOperatorHasOwner(ctx)
+		if devWorkspaceOperatorHasOwner {
 			return reconcile.Result{}, true, nil
 		} else if err != nil {
 			return reconcile.Result{Requeue: true}, false, err

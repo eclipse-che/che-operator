@@ -25,14 +25,11 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/stretchr/testify/assert"
-	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	fakeDiscovery "k8s.io/client-go/discovery/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -132,50 +129,6 @@ func TestShouldReconcileDevWorkspaceIfDevWorkspaceDeploymentExists(t *testing.T)
 	assert.True(t, done, "DevWorkspace should be reconciled.")
 }
 
-func TestShouldNotReconcileDevWorkspaceWhenWebTerminalSubscriptionExists(t *testing.T) {
-	cheCluster := &chev2.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "eclipse-che",
-		},
-	}
-	cheOperatorDeployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      defaults.GetCheFlavor() + "-operator",
-			Namespace: "eclipse-che",
-		},
-	}
-	subscription := &operatorsv1alpha1.Subscription{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      WebTerminalOperatorSubscriptionName,
-			Namespace: OperatorNamespace,
-		},
-		Spec: &operatorsv1alpha1.SubscriptionSpec{},
-	}
-
-	deployContext := test.GetDeployContext(cheCluster, []runtime.Object{subscription, cheOperatorDeployment})
-	deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.Subscription{})
-	deployContext.ClusterAPI.Scheme.AddKnownTypes(admissionregistrationv1.SchemeGroupVersion, &admissionregistrationv1.MutatingWebhookConfiguration{})
-	deployContext.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
-		{
-			APIResources: []metav1.APIResource{
-				{Name: SubscriptionResourceName},
-			},
-		},
-	}
-
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-
-	devWorkspaceReconciler := NewDevWorkspaceReconciler()
-	_, done, err := devWorkspaceReconciler.Reconcile(deployContext)
-
-	assert.NoError(t, err)
-	assert.True(t, done)
-
-	// verify that DWO is not provisioned
-	err = deployContext.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Name: DevWorkspaceNamespace}, &corev1.Namespace{})
-	assert.True(t, k8sErrors.IsNotFound(err))
-}
-
 func TestShouldNotReconcileDevWorkspaceIfDevWorkspaceDeploymentManagedByOLM(t *testing.T) {
 	cheOperatorDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -194,8 +147,8 @@ func TestShouldNotReconcileDevWorkspaceIfDevWorkspaceDeploymentManagedByOLM(t *t
 			Labels: map[string]string{
 				constants.KubernetesPartOfLabelKey: constants.DevWorkspaceOperator,
 				constants.KubernetesNameLabelKey:   constants.DevWorkspaceController,
-				constants.OlmOwnerLabelKey:         "olm",
 			},
+			OwnerReferences: []metav1.OwnerReference{{}},
 		},
 	}
 	cheCluster := &chev2.CheCluster{
@@ -220,11 +173,9 @@ func TestShouldNotReconcileDevWorkspaceIfDevWorkspaceDeploymentManagedByOLM(t *t
 func TestShouldNotReconcileDevWorkspaceIfCheOperatorDeploymentManagedByOLM(t *testing.T) {
 	cheOperatorDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      defaults.GetCheFlavor() + "-operator",
-			Namespace: "eclipse-che",
-			Labels: map[string]string{
-				constants.OlmOwnerLabelKey: "olm",
-			},
+			Name:            defaults.GetCheFlavor() + "-operator",
+			Namespace:       "eclipse-che",
+			OwnerReferences: []metav1.OwnerReference{{}},
 		},
 	}
 	devworkspaceDeployment := &appsv1.Deployment{
