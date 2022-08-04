@@ -14,8 +14,6 @@ package utils
 import (
 	"crypto/sha256"
 	"encoding/base64"
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
-	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -23,6 +21,9 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 
 	"k8s.io/apimachinery/pkg/labels"
 
