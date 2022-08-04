@@ -76,11 +76,9 @@ func isDevWorkspaceOperatorHasOwner(ctx *chetypes.DeployContext) (bool, error) {
 		return false, err
 	}
 
-	if len(deployments.Items) > 0 {
-		for _, deployment := range deployments.Items {
-			if len(deployment.OwnerReferences) != 0 {
-				return true, nil
-			}
+	for _, deployment := range deployments.Items {
+		if len(deployment.OwnerReferences) != 0 {
+			return true, nil
 		}
 	}
 
