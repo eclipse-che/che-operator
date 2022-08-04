@@ -796,3 +796,86 @@ func TestCustomizeDeploymentImagePullPolicy(t *testing.T) {
 		})
 	}
 }
+
+func TestCustomizeDeploymentEnvVar(t *testing.T) {
+	type testCase struct {
+		name                    string
+		initDeployment          *appsv1.Deployment
+		customizationDeployment *chev2.Deployment
+		expectedEnv             []corev1.EnvVar
+	}
+
+	testCases := []testCase{
+		{
+			name: "Should use ImagePullPolicy set explicitly",
+			initDeployment: &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "test",
+				},
+				Spec: appsv1.DeploymentSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{
+								{
+									Name: "test",
+									Env: []corev1.EnvVar{
+										{
+											Name:  "env_1",
+											Value: "value_1",
+										},
+										{
+											Name:  "env_3",
+											Value: "value_3",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			customizationDeployment: &chev2.Deployment{
+				Containers: []chev2.Container{
+					{
+						Name: "test",
+						Env: []corev1.EnvVar{
+							{
+								Name:  "env_1",
+								Value: "value_2",
+							},
+							{
+								Name:  "env_2",
+								Value: "value_2",
+							},
+						},
+					},
+				},
+			},
+			expectedEnv: []corev1.EnvVar{
+				{
+					Name:  "env_1",
+					Value: "value_2",
+				},
+				{
+					Name:  "env_3",
+					Value: "value_3",
+				},
+				{
+					Name:  "env_2",
+					Value: "value_2",
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
+
+			err := CustomizeDeployment(testCase.initDeployment, testCase.customizationDeployment)
+			assert.Nil(t, err)
+			assert.Equal(t, testCase.expectedEnv, testCase.initDeployment.Spec.Template.Spec.Containers[0].Env)
+		})
+	}
+}

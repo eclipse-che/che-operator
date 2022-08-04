@@ -366,6 +366,18 @@ type CheClusterSpecServer struct {
 	// These default components are meant to be used when a Devfile does not contain any components.
 	// +optional
 	WorkspaceDefaultComponents []devfile.Component `json:"workspaceDefaultComponents,omitempty"`
+	// List of environment variables to set in the Che server container.
+	// +optional
+	CheServerEnv []corev1.EnvVar `json:"cheServerEnv,omitempty"`
+	// List of environment variables to set in the plugin registry container.
+	// +optional
+	DevfileRegistryEnv []corev1.EnvVar `json:"devfileRegistryEnv,omitempty"`
+	// List of environment variables to set in the devfile registry container.
+	// +optional
+	PluginRegistryEnv []corev1.EnvVar `json:"pluginRegistryEnv,omitempty"`
+	// List of environment variables to set in the dashboard container.
+	// +optional
+	DashboardEnv []corev1.EnvVar `json:"dashboardEnv,omitempty"`
 	// Open VSX registry URL. If omitted an embedded instance will be used.
 	// +optional
 	OpenVSXRegistryURL string `json:"openVSXRegistryURL,omitempty"`
@@ -423,6 +435,9 @@ type CheClusterSpecDB struct {
 	// To update pvc storageclass that provisions it must support resize when Eclipse Che has been already deployed.
 	// +optional
 	PvcClaimSize string `json:"pvcClaimSize,omitempty"`
+	// List of environment variables to set in the PostgreSQL container.
+	// +optional
+	PostgresEnv []corev1.EnvVar `json:"postgresEnv,omitempty"`
 }
 
 // +k8s:openapi-gen=true
@@ -563,6 +578,18 @@ type CheClusterSpecAuth struct {
 	// Deprecated. The value of this flag is ignored.
 	// Debug internal identity provider.
 	Debug bool `json:"debug,omitempty"`
+	// List of environment variables to set in the Gateway container.
+	// +optional
+	GatewayEnv []corev1.EnvVar `json:"gatewayEnv,omitempty"`
+	// List of environment variables to set in the Configbump container.
+	// +optional
+	GatewayConfigBumpEnv []corev1.EnvVar `json:"gatewayConfigBumpEnv,omitempty"`
+	// List of environment variables to set in the OAuth proxy container.
+	// +optional
+	GatewayOAuthProxyEnv []corev1.EnvVar `json:"gatewayOAuthProxyEnv,omitempty"`
+	// List of environment variables to set in the Kube rbac proxy container.
+	// +optional
+	GatewayKubeRbacProxyEnv []corev1.EnvVar `json:"gatewayKubeRbacProxyEnv,omitempty"`
 }
 
 // Ingress custom settings, can be extended in the future
@@ -737,6 +764,9 @@ type CheClusterSpecDevWorkspace struct {
 	// To disable workspace run timeout, set this value to -1.
 	// +kubebuilder:default:=-1
 	SecondsOfRunBeforeIdling *int32 `json:"secondsOfRunBeforeIdling,omitempty"`
+	// List of environment variables to set in the DevWorkspace container.
+	// +optional
+	Env []corev1.EnvVar `json:"env,omitempty"`
 }
 
 // +k8s:openapi-gen=true

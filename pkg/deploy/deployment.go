@@ -115,6 +115,15 @@ func CustomizeDeployment(deployment *appsv1.Deployment, customDeployment *chev2.
 
 		container.Image = utils.GetValue(customContainer.Image, container.Image)
 
+		for _, env := range customContainer.Env {
+			index := utils.FindEnv(container.Env, env.Name)
+			if index == -1 {
+				container.Env = append(container.Env, env)
+			} else {
+				container.Env[index] = env
+			}
+		}
+
 		if customContainer.ImagePullPolicy != "" {
 			container.ImagePullPolicy = customContainer.ImagePullPolicy
 		} else if container.ImagePullPolicy == "" {

@@ -102,6 +102,16 @@ func GetEnv(envs []corev1.EnvVar, name string) string {
 	return ""
 }
 
+func FindEnv(envs []corev1.EnvVar, name string) int {
+	for i, env := range envs {
+		if env.Name == name {
+			return i
+		}
+	}
+
+	return -1
+}
+
 func GetEnvByRegExp(regExp string) []corev1.EnvVar {
 	var env []corev1.EnvVar
 	for _, e := range os.Environ() {

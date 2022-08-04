@@ -199,62 +199,20 @@ func (src *CheCluster) convertTo_Networking_Auth(dst *chev2.CheCluster) error {
 func (src *CheCluster) convertTo_Networking_Auth_Gateway(dst *chev2.CheCluster) error {
 	dst.Spec.Networking.Auth.Gateway.ConfigLabels = utils.CloneMap(src.Spec.Server.SingleHostGatewayConfigMapLabels)
 
-	if src.Spec.Server.SingleHostGatewayImage != "" {
-		if dst.Spec.Networking.Auth.Gateway.Deployment == nil {
-			dst.Spec.Networking.Auth.Gateway.Deployment = &chev2.Deployment{}
+	containers2add := append([]*chev2.Container{},
+		toCheV2ContainerWithImageAndEnv(constants.GatewayContainerName, src.Spec.Server.SingleHostGatewayImage, src.Spec.Auth.GatewayEnv),
+		toCheV2ContainerWithImageAndEnv(constants.GatewayConfigSideCarContainerName, src.Spec.Server.SingleHostGatewayConfigSidecarImage, src.Spec.Auth.GatewayConfigBumpEnv),
+		toCheV2ContainerWithImageAndEnv(constants.GatewayAuthenticationContainerName, src.Spec.Auth.GatewayAuthenticationSidecarImage, src.Spec.Auth.GatewayOAuthProxyEnv),
+		toCheV2ContainerWithImageAndEnv(constants.GatewayAuthorizationContainerName, src.Spec.Auth.GatewayAuthorizationSidecarImage, src.Spec.Auth.GatewayKubeRbacProxyEnv))
+
+	for _, container := range containers2add {
+		if container != nil {
+			if dst.Spec.Networking.Auth.Gateway.Deployment == nil {
+				dst.Spec.Networking.Auth.Gateway.Deployment = &chev2.Deployment{}
+			}
+			dst.Spec.Networking.Auth.Gateway.Deployment.Containers = append(dst.Spec.Networking.Auth.Gateway.Deployment.Containers, *container)
 		}
-
-		dst.Spec.Networking.Auth.Gateway.Deployment.Containers = append(
-			dst.Spec.Networking.Auth.Gateway.Deployment.Containers,
-			chev2.Container{
-				Name:  constants.GatewayContainerName,
-				Image: src.Spec.Server.SingleHostGatewayImage,
-			},
-		)
 	}
-
-	if src.Spec.Server.SingleHostGatewayConfigSidecarImage != "" {
-		if dst.Spec.Networking.Auth.Gateway.Deployment == nil {
-			dst.Spec.Networking.Auth.Gateway.Deployment = &chev2.Deployment{}
-		}
-
-		dst.Spec.Networking.Auth.Gateway.Deployment.Containers = append(
-			dst.Spec.Networking.Auth.Gateway.Deployment.Containers,
-			chev2.Container{
-				Name:  constants.GatewayConfigSideCarContainerName,
-				Image: src.Spec.Server.SingleHostGatewayConfigSidecarImage,
-			},
-		)
-	}
-
-	if src.Spec.Auth.GatewayAuthenticationSidecarImage != "" {
-		if dst.Spec.Networking.Auth.Gateway.Deployment == nil {
-			dst.Spec.Networking.Auth.Gateway.Deployment = &chev2.Deployment{}
-		}
-
-		dst.Spec.Networking.Auth.Gateway.Deployment.Containers = append(
-			dst.Spec.Networking.Auth.Gateway.Deployment.Containers,
-			chev2.Container{
-				Name:  constants.GatewayAuthenticationContainerName,
-				Image: src.Spec.Auth.GatewayAuthenticationSidecarImage,
-			},
-		)
-	}
-
-	if src.Spec.Auth.GatewayAuthorizationSidecarImage != "" {
-		if dst.Spec.Networking.Auth.Gateway.Deployment == nil {
-			dst.Spec.Networking.Auth.Gateway.Deployment = &chev2.Deployment{}
-		}
-
-		dst.Spec.Networking.Auth.Gateway.Deployment.Containers = append(
-			dst.Spec.Networking.Auth.Gateway.Deployment.Containers,
-			chev2.Container{
-				Name:  constants.GatewayAuthorizationContainerName,
-				Image: src.Spec.Auth.GatewayAuthorizationSidecarImage,
-			},
-		)
-	}
-
 	return nil
 }
 
@@ -295,18 +253,15 @@ func (src *CheCluster) convertTo_Components(dst *chev2.CheCluster) error {
 }
 
 func (src *CheCluster) convertTo_Components_DevWorkspace(dst *chev2.CheCluster) error {
-	if src.Spec.DevWorkspace.ControllerImage != "" {
-		dst.Spec.Components.DevWorkspace.Deployment = &chev2.Deployment{
-			Containers: []chev2.Container{
-				{
-					Name:  constants.DevWorkspaceController,
-					Image: src.Spec.DevWorkspace.ControllerImage,
-				},
-			},
-		}
+	container := toCheV2ContainerWithImageAndEnv(
+		constants.DevWorkspaceController,
+		src.Spec.DevWorkspace.ControllerImage,
+		src.Spec.DevWorkspace.Env)
+	if container != nil {
+		dst.Spec.Components.DevWorkspace.Deployment = &chev2.Deployment{Containers: []chev2.Container{*container}}
 	}
-	dst.Spec.Components.DevWorkspace.RunningLimit = src.Spec.DevWorkspace.RunningLimit
 
+	dst.Spec.Components.DevWorkspace.RunningLimit = src.Spec.DevWorkspace.RunningLimit
 	return nil
 }
 
@@ -382,6 +337,7 @@ func (src *CheCluster) convertTo_Components_CheServer(dst *chev2.CheCluster) err
 		src.Spec.Server.ServerCpuLimit,
 		fsGroup,
 		runAsUser,
+		src.Spec.Server.CheServerEnv,
 	)
 
 	if src.Spec.Server.ServerTrustStoreConfigMapName != "" {
@@ -415,6 +371,7 @@ func (src *CheCluster) convertTo_Components_PluginRegistry(dst *chev2.CheCluster
 		src.Spec.Server.PluginRegistryCpuLimit,
 		nil,
 		nil,
+		src.Spec.Server.PluginRegistryEnv,
 	)
 
 	return nil
@@ -440,6 +397,7 @@ func (src *CheCluster) convertTo_Components_DevfileRegistry(dst *chev2.CheCluste
 		src.Spec.Server.DevfileRegistryCpuLimit,
 		nil,
 		nil,
+		src.Spec.Server.DevfileRegistryEnv,
 	)
 
 	return nil
@@ -469,6 +427,7 @@ func (src *CheCluster) convertTo_Components_Database(dst *chev2.CheCluster) erro
 		src.Spec.Database.ChePostgresContainerResources.Limits.Cpu,
 		nil,
 		nil,
+		src.Spec.Database.PostgresEnv,
 	)
 
 	dst.Spec.Components.Database.ExternalDb = src.Spec.Database.ExternalDb
@@ -496,6 +455,7 @@ func (src *CheCluster) convertTo_Components_Dashboard(dst *chev2.CheCluster) err
 		src.Spec.Server.DashboardCpuLimit,
 		fsGroup,
 		runAsUser,
+		src.Spec.Server.DashboardEnv,
 	)
 
 	if src.Spec.Dashboard.Warning != "" {
@@ -623,6 +583,31 @@ func renameTrustStoreConfigMapToDefault(trustStoreConfigMapName string, namespac
 	return nil
 }
 
+func toCheV2ContainerWithImageAndEnv(
+	name string,
+	image string,
+	env []corev1.EnvVar) *chev2.Container {
+
+	var container *chev2.Container
+	if image != "" {
+		container = &chev2.Container{
+			Name:  name,
+			Image: image,
+		}
+	}
+
+	if len(env) != 0 {
+		if container == nil {
+			container = &chev2.Container{
+				Name: name,
+			}
+		}
+		container.Env = env
+	}
+
+	return container
+}
+
 func toCheV2Deployment(
 	name string,
 	image string,
@@ -632,7 +617,8 @@ func toCheV2Deployment(
 	cpuRequest string,
 	cpuLimit string,
 	fsGroup *int64,
-	runAsUser *int64) *chev2.Deployment {
+	runAsUser *int64,
+	env []corev1.EnvVar) *chev2.Deployment {
 
 	var deployment *chev2.Deployment
 	var container *chev2.Container
@@ -670,6 +656,13 @@ func toCheV2Deployment(
 			container = &chev2.Container{}
 		}
 		container.Resources = resources
+	}
+
+	if len(env) != 0 {
+		if container == nil {
+			container = &chev2.Container{}
+		}
+		container.Env = env
 	}
 
 	if runAsUser != nil || fsGroup != nil {
