@@ -186,42 +186,6 @@ func TestShouldNotReconcileDevWorkspaceIfNoOptExists(t *testing.T) {
 	os.Unsetenv("NO_OPT_DWO")
 }
 
-func TestShouldNotReconcileDevWorkspaceIfCheOperatorDeploymentManagedByOLM(t *testing.T) {
-	cheOperatorDeployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            defaults.GetCheFlavor() + "-operator",
-			Namespace:       "eclipse-che",
-			OwnerReferences: []metav1.OwnerReference{{}},
-		},
-	}
-	devworkspaceDeployment := &appsv1.Deployment{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Deployment",
-			APIVersion: "apps/v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      DevWorkspaceDeploymentName,
-			Namespace: DevWorkspaceNamespace,
-			Labels: map[string]string{
-				constants.KubernetesPartOfLabelKey: constants.DevWorkspaceOperator,
-				constants.KubernetesNameLabelKey:   constants.DevWorkspaceController,
-			},
-		},
-	}
-
-	deployContext := test.GetDeployContext(nil, []runtime.Object{cheOperatorDeployment, devworkspaceDeployment})
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-
-	devWorkspaceReconciler := NewDevWorkspaceReconciler()
-	_, done, err := devWorkspaceReconciler.Reconcile(deployContext)
-
-	assert.True(t, done)
-
-	// verify that DWO is not provisioned
-	err = deployContext.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Name: DevWorkspaceNamespace}, &corev1.Namespace{})
-	assert.True(t, k8sErrors.IsNotFound(err))
-}
-
 func TestShouldNotReconcileDevWorkspaceIfUnmanagedDWONamespaceExists(t *testing.T) {
 	cheOperatorDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{

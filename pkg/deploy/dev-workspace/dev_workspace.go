@@ -63,15 +63,6 @@ func (d *DevWorkspaceReconciler) Reconcile(ctx *chetypes.DeployContext) (reconci
 			return reconcile.Result{Requeue: true}, false, err
 		}
 
-		// Do nothing if Che operator has owner (installed via OLM).
-		// In this case Dev Workspace operator resources mustn't be managed by Che operator.
-		isCheOperatorHasOwner, err := isCheOperatorHasOwner(ctx)
-		if isCheOperatorHasOwner {
-			return reconcile.Result{}, true, nil
-		} else if err != nil {
-			return reconcile.Result{Requeue: true}, false, err
-		}
-
 		// Do nothing if Dev Workspace operator has owner (installed via OLM).
 		// In this case Dev Workspace operator resources mustn't be managed by Che operator.
 		isDevWorkspaceOperatorHasOwner, err := isDevWorkspaceOperatorHasOwner(ctx)

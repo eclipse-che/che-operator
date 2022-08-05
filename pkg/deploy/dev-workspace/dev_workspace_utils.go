@@ -19,14 +19,11 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
-	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -51,26 +48,6 @@ func isNoOptDWO() (bool, error) {
 	}
 
 	return strconv.ParseBool(value)
-}
-
-func isCheOperatorHasOwner(ctx *chetypes.DeployContext) (bool, error) {
-	operatorNamespace, err := utils.GetOperatorNamespace()
-	if err != nil {
-		return false, err
-	}
-
-	deployment := &appsv1.Deployment{}
-	if err := ctx.ClusterAPI.NonCachingClient.Get(
-		context.TODO(),
-		types.NamespacedName{
-			Namespace: operatorNamespace,
-			Name:      defaults.GetCheFlavor() + "-operator",
-		},
-		deployment); err != nil {
-		return false, err
-	}
-
-	return len(deployment.OwnerReferences) != 0, nil
 }
 
 func isDevWorkspaceOperatorHasOwner(ctx *chetypes.DeployContext) (bool, error) {
