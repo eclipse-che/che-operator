@@ -118,8 +118,9 @@ const (
 	GatewayAuthenticationContainerName = "oauth-proxy"
 	GatewayAuthorizationContainerName  = "kube-rbac-proxy"
 
-	//
+	// common
 	CheEclipseOrg         = "che.eclipse.org"
+	DevWorkspaceOperator  = "devworkspace-operator"
 	InstallOrUpdateFailed = "InstallOrUpdateFailed"
 )
 

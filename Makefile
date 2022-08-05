@@ -585,6 +585,9 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 	yq -riY '.metadata.annotations.containerImage = "'$(IMG)'"' $${CSV_PATH}
 	yq -riY '.spec.install.spec.deployments[0].spec.template.spec.containers[0].image = "'$(IMG)'"' $${CSV_PATH}
 
+	# Add No Opt DWO environment variable
+	yq -riY '.spec.install.spec.deployments[0].spec.template.spec.containers[0].env += [{"name": "NO_OPT_DWO", "value": "true"}]' "$${CSV_PATH}"
+
 	# Format file
 	yq -riY "." "$${BUNDLE_PATH}/manifests/org.eclipse.che_checlusters.yaml"
 
