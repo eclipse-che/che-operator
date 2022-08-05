@@ -14,6 +14,7 @@ package pluginregistry
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 
@@ -25,6 +26,7 @@ type PluginRegistryConfigMap struct {
 	CheSidecarContainersRegistryOrganization string `json:"CHE_SIDECAR_CONTAINERS_REGISTRY_ORGANIZATION"`
 	ChePluginRegistryURL                     string `json:"CHE_PLUGIN_REGISTRY_URL"`
 	ChePluginRegistryInternalURL             string `json:"CHE_PLUGIN_REGISTRY_INTERNAL_URL"`
+	StartOpenVSX                             string `json:"START_OPENVSX"`
 }
 
 func (p *PluginRegistryReconciler) getConfigMapData(ctx *chetypes.DeployContext) (map[string]string, error) {
@@ -34,6 +36,7 @@ func (p *PluginRegistryReconciler) getConfigMapData(ctx *chetypes.DeployContext)
 		CheSidecarContainersRegistryOrganization: ctx.CheCluster.Spec.ContainerRegistry.Organization,
 		ChePluginRegistryURL:                     ctx.CheCluster.Status.PluginRegistryURL,
 		ChePluginRegistryInternalURL:             fmt.Sprintf("http://%s.%s.svc:8080", constants.PluginRegistryName, ctx.CheCluster.Namespace),
+		StartOpenVSX:                             strconv.FormatBool(ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL == ""),
 	}
 
 	out, err := json.Marshal(data)
