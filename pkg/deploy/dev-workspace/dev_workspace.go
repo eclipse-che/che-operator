@@ -31,14 +31,6 @@ const (
 	DevWorkspaceNamespace      = "devworkspace-controller"
 	DevWorkspaceDeploymentName = "devworkspace-controller-manager"
 	DevWorkspaceWebhookName    = "controller.devfile.io"
-
-	SubscriptionResourceName          = "subscriptions"
-	ClusterServiceVersionResourceName = "clusterserviceversions"
-	DevWorkspaceCSVNamePrefix         = "devworkspace-operator"
-
-	WebTerminalOperatorSubscriptionName = "web-terminal"
-
-	OperatorNamespace = "openshift-operators"
 )
 
 var (
@@ -59,24 +51,22 @@ func NewDevWorkspaceReconciler() *DevWorkspaceReconciler {
 }
 
 func (d *DevWorkspaceReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
-	if util.IsOpenShift && !util.IsOpenShift4 {
-		// OpenShift 3.x is not supported
-		return reconcile.Result{}, true, nil
-	}
-
-	if isDevWorkspaceOperatorCSVExists(ctx) {
-		// Do nothing if DevWorkspace has been already deployed via OLM
-		return reconcile.Result{}, true, nil
-	}
-
 	if util.IsOpenShift {
-		wtoInstalled, err := isWebTerminalSubscriptionExist(ctx)
-		if err != nil {
+		// Do nothing if explicitly declared not to manage Dev Workspace resources
+		isNoOptDWO, err := isNoOptDWO()
+		if isNoOptDWO {
+			return reconcile.Result{}, true, nil
+		} else if err != nil {
 			return reconcile.Result{Requeue: true}, false, err
 		}
-		if wtoInstalled {
-			// Do nothing if WTO exists since it should bring or embeds DWO
+
+		// Do nothing if Dev Workspace operator has owner (installed via OLM).
+		// In this case Dev Workspace operator resources mustn't be managed by Che operator.
+		isDevWorkspaceOperatorHasOwner, err := isDevWorkspaceOperatorHasOwner(ctx)
+		if isDevWorkspaceOperatorHasOwner {
 			return reconcile.Result{}, true, nil
+		} else if err != nil {
+			return reconcile.Result{Requeue: true}, false, err
 		}
 	}
 
@@ -93,25 +83,8 @@ func (d *DevWorkspaceReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile
 
 		namespaceOwnershipAnnotation := namespace.GetAnnotations()[deploy.CheEclipseOrgNamespace]
 		if namespaceOwnershipAnnotation == "" {
-			// don't manage DWO if namespace is create by someone else not but not Che Operator
+			// don't manage DWO if namespace is created by someone else not but not Che Operator
 			return reconcile.Result{}, true, nil
-		}
-
-		// if DWO is managed by another Che, check if we should take control under it after possible removal
-		if namespaceOwnershipAnnotation != ctx.CheCluster.Namespace {
-			isOnlyOneOperatorManagesDWResources, err := isOnlyOneOperatorManagesDWResources(ctx)
-			if err != nil {
-				return reconcile.Result{Requeue: true}, false, err
-			}
-			if !isOnlyOneOperatorManagesDWResources {
-				// Don't take a control over DWO if CheCluster in another CR is handling it
-				return reconcile.Result{}, true, nil
-			}
-			namespace.GetAnnotations()[deploy.CheEclipseOrgNamespace] = ctx.CheCluster.Namespace
-			_, err = deploy.Sync(ctx, namespace)
-			if err != nil {
-				return reconcile.Result{Requeue: true}, false, err
-			}
 		}
 	}
 
