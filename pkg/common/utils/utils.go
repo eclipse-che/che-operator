@@ -22,6 +22,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
+
 	"k8s.io/apimachinery/pkg/labels"
 
 	corev1 "k8s.io/api/core/v1"
@@ -268,4 +271,12 @@ func Whitelist(hostname string) (value string) {
 		return hostname[i:]
 	}
 	return hostname
+}
+
+func GetOperatorNamespace() (string, error) {
+	if test.IsTestMode() {
+		return "eclipse-che", nil
+	}
+
+	return infrastructure.GetOperatorNamespace()
 }
