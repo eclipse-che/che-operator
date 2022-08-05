@@ -34,13 +34,6 @@ const (
 	DevWorkspaceNamespace      = "devworkspace-controller"
 	DevWorkspaceDeploymentName = "devworkspace-controller-manager"
 	DevWorkspaceWebhookName    = "controller.devfile.io"
-
-	SubscriptionResourceName          = "subscriptions"
-	ClusterServiceVersionResourceName = "clusterserviceversions"
-
-	WebTerminalOperatorSubscriptionName = "web-terminal"
-
-	OperatorNamespace = "openshift-operators"
 )
 
 var (
@@ -62,19 +55,27 @@ func NewDevWorkspaceReconciler() *DevWorkspaceReconciler {
 
 func (d *DevWorkspaceReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	if infrastructure.IsOpenShift() {
-		// Do nothing if Che operator has owner.
-		// In this case DevWorkspace operator resources mustn't be managed by Che operator.
-		cheOperatorHasOwner, err := isCheOperatorHasOwner(ctx)
-		if cheOperatorHasOwner {
+		// Do nothing if explicitly declared not to manage Dev Workspace resources
+		isNoOptDWO, err := isNoOptDWO()
+		if isNoOptDWO {
 			return reconcile.Result{}, true, nil
 		} else if err != nil {
 			return reconcile.Result{Requeue: true}, false, err
 		}
 
-		// Do nothing if Dev Workspace operator has owner.
-		// In this case DevWorkspace operator resources mustn't be managed by Che operator.
-		devWorkspaceOperatorHasOwner, err := isDevWorkspaceOperatorHasOwner(ctx)
-		if devWorkspaceOperatorHasOwner {
+		// Do nothing if Che operator has owner (installed via OLM).
+		// In this case Dev Workspace operator resources mustn't be managed by Che operator.
+		isCheOperatorHasOwner, err := isCheOperatorHasOwner(ctx)
+		if isCheOperatorHasOwner {
+			return reconcile.Result{}, true, nil
+		} else if err != nil {
+			return reconcile.Result{Requeue: true}, false, err
+		}
+
+		// Do nothing if Dev Workspace operator has owner (installed via OLM).
+		// In this case Dev Workspace operator resources mustn't be managed by Che operator.
+		isDevWorkspaceOperatorHasOwner, err := isDevWorkspaceOperatorHasOwner(ctx)
+		if isDevWorkspaceOperatorHasOwner {
 			return reconcile.Result{}, true, nil
 		} else if err != nil {
 			return reconcile.Result{Requeue: true}, false, err

@@ -13,6 +13,7 @@ package devworkspace
 
 import (
 	"context"
+	"os"
 
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"k8s.io/apimachinery/pkg/types"
@@ -93,12 +94,6 @@ func TestReconcileDevWorkspace(t *testing.T) {
 }
 
 func TestShouldReconcileDevWorkspaceIfDevWorkspaceDeploymentExists(t *testing.T) {
-	cheCluster := &chev2.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "eclipse-che",
-			Name:      "eclipse-che",
-		},
-	}
 	cheOperatorDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      defaults.GetCheFlavor() + "-operator",
@@ -120,7 +115,7 @@ func TestShouldReconcileDevWorkspaceIfDevWorkspaceDeploymentExists(t *testing.T)
 		},
 	}
 
-	deployContext := test.GetDeployContext(cheCluster, []runtime.Object{devworkspaceDeployment, cheOperatorDeployment})
+	deployContext := test.GetDeployContext(nil, []runtime.Object{devworkspaceDeployment, cheOperatorDeployment})
 	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 
 	devWorkspaceReconciler := NewDevWorkspaceReconciler()
@@ -152,13 +147,8 @@ func TestShouldNotReconcileDevWorkspaceIfDevWorkspaceDeploymentManagedByOLM(t *t
 			OwnerReferences: []metav1.OwnerReference{{}},
 		},
 	}
-	cheCluster := &chev2.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "eclipse-che",
-		},
-	}
 
-	deployContext := test.GetDeployContext(cheCluster, []runtime.Object{cheOperatorDeployment, devworkspaceDeployment})
+	deployContext := test.GetDeployContext(nil, []runtime.Object{cheOperatorDeployment, devworkspaceDeployment})
 	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 
 	devWorkspaceReconciler := NewDevWorkspaceReconciler()
@@ -169,6 +159,31 @@ func TestShouldNotReconcileDevWorkspaceIfDevWorkspaceDeploymentManagedByOLM(t *t
 	// verify that DWO is not provisioned
 	err = deployContext.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Name: DevWorkspaceNamespace}, &corev1.Namespace{})
 	assert.True(t, k8sErrors.IsNotFound(err))
+}
+
+func TestShouldNotReconcileDevWorkspaceIfNoOptExists(t *testing.T) {
+	os.Setenv("NO_OPT_DWO", "true")
+
+	cheOperatorDeployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      defaults.GetCheFlavor() + "-operator",
+			Namespace: "eclipse-che",
+		},
+	}
+
+	deployContext := test.GetDeployContext(nil, []runtime.Object{cheOperatorDeployment})
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+	devWorkspaceReconciler := NewDevWorkspaceReconciler()
+	_, done, err := devWorkspaceReconciler.Reconcile(deployContext)
+
+	assert.True(t, done)
+
+	// verify that DWO is not provisioned
+	err = deployContext.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Name: DevWorkspaceNamespace}, &corev1.Namespace{})
+	assert.True(t, k8sErrors.IsNotFound(err))
+
+	os.Unsetenv("NO_OPT_DWO")
 }
 
 func TestShouldNotReconcileDevWorkspaceIfCheOperatorDeploymentManagedByOLM(t *testing.T) {
@@ -193,13 +208,8 @@ func TestShouldNotReconcileDevWorkspaceIfCheOperatorDeploymentManagedByOLM(t *te
 			},
 		},
 	}
-	cheCluster := &chev2.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "eclipse-che",
-		},
-	}
 
-	deployContext := test.GetDeployContext(cheCluster, []runtime.Object{cheOperatorDeployment, devworkspaceDeployment})
+	deployContext := test.GetDeployContext(nil, []runtime.Object{cheOperatorDeployment, devworkspaceDeployment})
 	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 
 	devWorkspaceReconciler := NewDevWorkspaceReconciler()
@@ -213,11 +223,6 @@ func TestShouldNotReconcileDevWorkspaceIfCheOperatorDeploymentManagedByOLM(t *te
 }
 
 func TestShouldNotReconcileDevWorkspaceIfUnmanagedDWONamespaceExists(t *testing.T) {
-	cheCluster := &chev2.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "eclipse-che",
-		},
-	}
 	cheOperatorDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      defaults.GetCheFlavor() + "-operator",
@@ -230,7 +235,7 @@ func TestShouldNotReconcileDevWorkspaceIfUnmanagedDWONamespaceExists(t *testing.
 			// no che annotations are there
 		},
 	}
-	deployContext := test.GetDeployContext(cheCluster, []runtime.Object{cheOperatorDeployment, dwoNamespace})
+	deployContext := test.GetDeployContext(nil, []runtime.Object{cheOperatorDeployment, dwoNamespace})
 	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 
 	devWorkspaceReconciler := NewDevWorkspaceReconciler()
@@ -244,11 +249,6 @@ func TestShouldNotReconcileDevWorkspaceIfUnmanagedDWONamespaceExists(t *testing.
 }
 
 func TestReconcileDevWorkspaceIfManagedDWONamespaceExists(t *testing.T) {
-	cheCluster := &chev2.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "eclipse-che",
-		},
-	}
 	cheOperatorDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      defaults.GetCheFlavor() + "-operator",
@@ -264,7 +264,7 @@ func TestReconcileDevWorkspaceIfManagedDWONamespaceExists(t *testing.T) {
 			// no che annotations are there
 		},
 	}
-	deployContext := test.GetDeployContext(cheCluster, []runtime.Object{cheOperatorDeployment, dwoNamespace})
+	deployContext := test.GetDeployContext(nil, []runtime.Object{cheOperatorDeployment, dwoNamespace})
 	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 
 	devWorkspaceReconciler := NewDevWorkspaceReconciler()

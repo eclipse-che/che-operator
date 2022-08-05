@@ -14,6 +14,8 @@ package devworkspace
 
 import (
 	"context"
+	"os"
+	"strconv"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -40,6 +42,15 @@ func createDwNamespace(deployContext *chetypes.DeployContext) (bool, error) {
 	}
 
 	return deploy.CreateIfNotExists(deployContext, namespace)
+}
+
+func isNoOptDWO() (bool, error) {
+	value, exists := os.LookupEnv("NO_OPT_DWO")
+	if !exists {
+		return false, nil
+	}
+
+	return strconv.ParseBool(value)
 }
 
 func isCheOperatorHasOwner(ctx *chetypes.DeployContext) (bool, error) {
