@@ -1007,6 +1007,8 @@ spec:
                         value: "1"
                       - name: ADD_COMPONENT_READINESS_INIT_CONTAINERS
                         value: "false"
+                      - name: NO_OPT_DWO
+                        value: 'true'
                     image: quay.io/eclipse/che-operator:next
                     imagePullPolicy: Always
                     livenessProbe:

@@ -162,6 +162,9 @@ const (
 
 	InstallOrUpdateFailed                = "InstallOrUpdateFailed"
 	DefaultServerTrustStoreConfigMapName = "ca-certs"
+
+	DevWorkspaceOperator   = "devworkspace-operator"
+	DevWorkspaceController = "devworkspace-controller"
 )
 
 func InitDefaults(defaultsPath string) {

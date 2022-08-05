@@ -75,59 +75,6 @@ func TestShouldSyncObjectIfItWasCreatedBySameOriginHashDifferent(t *testing.T) {
 	assert.Equal(t, "c", actual.Data["a"], "data mismatch")
 }
 
-func TestShouldNotSyncObjectIfThereIsAnotherCheCluster(t *testing.T) {
-	cheCluster := &orgv1.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "eclipse-che",
-			Namespace: "eclipse-che-1",
-		},
-		Spec: orgv1.CheClusterSpec{
-			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
-				Enable: true,
-			},
-		},
-	}
-	anotherCheCluster := &orgv1.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "eclipse-che",
-			Namespace: "eclipse-che-2",
-		},
-		Spec: orgv1.CheClusterSpec{
-			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
-				Enable: true,
-			},
-		},
-	}
-	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{anotherCheCluster})
-
-	// creates initial object
-	initialObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "b"}, "test")
-	initialObject.SetAnnotations(map[string]string{
-		deploy.CheEclipseOrgHash256:   "hash-2",
-		deploy.CheEclipseOrgNamespace: "eclipse-che-2",
-	})
-	isCreated, err := deploy.Create(deployContext, initialObject)
-	assert.NoError(t, err)
-	assert.True(t, isCreated)
-
-	// tries to sync object with a new hash but different origin
-	newObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "c"}, "test")
-	newObject.GetAnnotations()[deploy.CheEclipseOrgHash256] = "newHash"
-	isDone, err := syncObject(deployContext, newObject, "eclipse-che")
-	assert.NoError(t, err, "Failed to sync object")
-	assert.True(t, isDone, "Failed to sync object")
-
-	// reads object and check content, object isn't supposed to be updated
-	actual := &corev1.ConfigMap{}
-	exists, err := deploy.GetNamespacedObject(deployContext, "test", actual)
-	assert.NoError(t, err, "failed to get configmap")
-	assert.True(t, exists, "configmap is not found")
-
-	assert.Equal(t, "eclipse-che-2", actual.GetAnnotations()[deploy.CheEclipseOrgNamespace], "hash annotation mismatch")
-	assert.Equal(t, "hash-2", actual.GetAnnotations()[deploy.CheEclipseOrgHash256], "namespace annotation mismatch")
-	assert.Equal(t, "b", actual.Data["a"], "data mismatch")
-}
-
 func TestShouldNotSyncObjectIfHashIsEqual(t *testing.T) {
 	deployContext := deploy.GetTestDeployContext(nil, []runtime.Object{})
 
