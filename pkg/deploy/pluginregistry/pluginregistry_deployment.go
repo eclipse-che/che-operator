@@ -28,7 +28,7 @@ func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(ctx *chetypes
 	registryImage := defaults.GetPluginRegistryImage(ctx.CheCluster)
 	registryImagePullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(registryImage))
 	probePath := "/v3/plugins/"
-	pluginImagesEnv := utils.GetEnvByRegExp("^.*plugin_registry_image.*$")
+	pluginImagesEnv := utils.GetEnvsByRegExp("^.*plugin_registry_image.*$")
 
 	resources := corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{

@@ -227,6 +227,30 @@ func TestConvertTo(t *testing.T) {
 						Effect:   "Effect",
 					},
 				},
+				CheServerEnv: []corev1.EnvVar{
+					{
+						Name:  "che-server-name",
+						Value: "che-server-value",
+					},
+				},
+				PluginRegistryEnv: []corev1.EnvVar{
+					{
+						Name:  "plugin-registry-name",
+						Value: "plugin-registry-value",
+					},
+				},
+				DevfileRegistryEnv: []corev1.EnvVar{
+					{
+						Name:  "devfile-registry-name",
+						Value: "devfile-registry-value",
+					},
+				},
+				DashboardEnv: []corev1.EnvVar{
+					{
+						Name:  "dashboard-name",
+						Value: "dashboard-value",
+					},
+				},
 				OpenVSXRegistryURL: "open-vsx-registry",
 			},
 			Database: chev1.CheClusterSpecDB{
@@ -249,6 +273,12 @@ func TestConvertTo(t *testing.T) {
 						Cpu:    "2",
 					},
 				},
+				PostgresEnv: []corev1.EnvVar{
+					{
+						Name:  "database-name",
+						Value: "database-value",
+					},
+				},
 			},
 			Auth: chev1.CheClusterSpecAuth{
 				IdentityProviderURL:               "IdentityProviderURL",
@@ -258,6 +288,30 @@ func TestConvertTo(t *testing.T) {
 				IdentityToken:                     "IdentityToken",
 				GatewayAuthenticationSidecarImage: "GatewayAuthenticationSidecarImage",
 				GatewayAuthorizationSidecarImage:  "GatewayAuthorizationSidecarImage",
+				GatewayConfigBumpEnv: []corev1.EnvVar{
+					{
+						Name:  "configbump-name",
+						Value: "configbump-value",
+					},
+				},
+				GatewayOAuthProxyEnv: []corev1.EnvVar{
+					{
+						Name:  "oauth-proxy-name",
+						Value: "oauth-proxy-value",
+					},
+				},
+				GatewayEnv: []corev1.EnvVar{
+					{
+						Name:  "gateway-name",
+						Value: "gateway-value",
+					},
+				},
+				GatewayKubeRbacProxyEnv: []corev1.EnvVar{
+					{
+						Name:  "kube-rbac-proxy-name",
+						Value: "kube-rbac-proxy-value",
+					},
+				},
 			},
 			Storage: chev1.CheClusterSpecStorage{
 				PvcStrategy:                  "PvcStrategy",
@@ -281,6 +335,12 @@ func TestConvertTo(t *testing.T) {
 				RunningLimit:                    "RunningLimit",
 				SecondsOfInactivityBeforeIdling: pointer.Int32Ptr(1800),
 				SecondsOfRunBeforeIdling:        pointer.Int32Ptr(-1),
+				Env: []corev1.EnvVar{
+					{
+						Name:  "dev-workspace-name",
+						Value: "dev-workspace-value",
+					},
+				},
 			},
 			Dashboard: chev1.CheClusterSpecDashboard{
 				Warning: "DashboardWarning",
@@ -307,12 +367,20 @@ func TestConvertTo(t *testing.T) {
 
 	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[0].Name, constants.GatewayContainerName)
 	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[0].Image, "SingleHostGatewayImage")
+	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[0].Env[0].Name, "gateway-name")
+	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[0].Env[0].Value, "gateway-value")
 	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[1].Name, constants.GatewayConfigSideCarContainerName)
 	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[1].Image, "SingleHostGatewayConfigSidecarImage")
+	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[1].Env[0].Name, "configbump-name")
+	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[1].Env[0].Value, "configbump-value")
 	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[2].Name, constants.GatewayAuthenticationContainerName)
 	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[2].Image, "GatewayAuthenticationSidecarImage")
+	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[2].Env[0].Name, "oauth-proxy-name")
+	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[2].Env[0].Value, "oauth-proxy-value")
 	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[3].Name, constants.GatewayAuthorizationContainerName)
 	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[3].Image, "GatewayAuthorizationSidecarImage")
+	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[3].Env[0].Name, "kube-rbac-proxy-name")
+	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[3].Env[0].Value, "kube-rbac-proxy-value")
 	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.ConfigLabels, map[string]string{"a": "b", "c": "d"})
 	assert.Equal(t, checlusterv2.Spec.Networking.Auth.IdentityProviderURL, "IdentityProviderURL")
 	assert.Equal(t, checlusterv2.Spec.Networking.Auth.OAuthClientName, "OAuthClientName")
@@ -327,6 +395,8 @@ func TestConvertTo(t *testing.T) {
 	assert.True(t, *checlusterv2.Spec.Components.CheServer.Debug)
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].Image, "CheImage:CheImageTag")
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].Name, defaults.GetCheFlavor())
+	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].Env[0].Name, "che-server-name")
+	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].Env[0].Value, "che-server-value")
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].ImagePullPolicy, corev1.PullPolicy("Always"))
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].Resources.Limits.Cpu, resource.MustParse("2"))
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].Resources.Limits.Memory, resource.MustParse("200Mi"))
@@ -334,12 +404,13 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].Resources.Requests.Memory, resource.MustParse("100Mi"))
 	assert.Equal(t, *checlusterv2.Spec.Components.CheServer.Deployment.SecurityContext.FsGroup, int64(64))
 	assert.Equal(t, *checlusterv2.Spec.Components.CheServer.Deployment.SecurityContext.RunAsUser, int64(65))
-	assert.Equal(t, checlusterv2.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName, "che-git-self-signed-cert")
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.LogLevel, "CheLogLevel")
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Proxy.CredentialsSecretName, "ProxySecret")
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Proxy.NonProxyHosts, []string{"NonProxyHosts_1", "NonProxyHosts_2"})
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Proxy.Port, "ProxyPort")
 	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Proxy.Url, "ProxyURL")
+
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName, "che-git-self-signed-cert")
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.DefaultNamespace.Template, "WorkspaceNamespaceDefault")
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.DefaultEditor, "WorkspaceDefaultEditor")
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.DefaultComponents, []devfile.Component{{Name: "universal-developer-image"}})
@@ -357,6 +428,8 @@ func TestConvertTo(t *testing.T) {
 
 	assert.Equal(t, checlusterv2.Spec.Components.Dashboard.Deployment.Containers[0].Name, defaults.GetCheFlavor()+"-dashboard")
 	assert.Equal(t, checlusterv2.Spec.Components.Dashboard.Deployment.Containers[0].Image, "DashboardImage")
+	assert.Equal(t, checlusterv2.Spec.Components.Dashboard.Deployment.Containers[0].Env[0].Name, "dashboard-name")
+	assert.Equal(t, checlusterv2.Spec.Components.Dashboard.Deployment.Containers[0].Env[0].Value, "dashboard-value")
 	assert.Equal(t, checlusterv2.Spec.Components.Dashboard.Deployment.Containers[0].ImagePullPolicy, corev1.PullPolicy("Always"))
 	assert.Equal(t, checlusterv2.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Limits.Cpu, resource.MustParse("2"))
 	assert.Equal(t, checlusterv2.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Limits.Memory, resource.MustParse("200Mi"))
@@ -370,6 +443,8 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.Components.Database.CredentialsSecretName, "ChePostgresSecret")
 	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].Name, constants.PostgresName)
 	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].Image, "PostgresImage")
+	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].Env[0].Name, "database-name")
+	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].Env[0].Value, "database-value")
 	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].ImagePullPolicy, corev1.PullPolicy("Always"))
 	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].Resources.Limits.Cpu, resource.MustParse("2"))
 	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].Resources.Limits.Memory, resource.MustParse("200Mi"))
@@ -383,6 +458,8 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.Components.Database.Pvc.StorageClass, "PostgresPVCStorageClassName")
 
 	assert.Equal(t, checlusterv2.Spec.Components.DevWorkspace.Deployment.Containers[0].Image, "ControllerImage")
+	assert.Equal(t, checlusterv2.Spec.Components.DevWorkspace.Deployment.Containers[0].Env[0].Name, "dev-workspace-name")
+	assert.Equal(t, checlusterv2.Spec.Components.DevWorkspace.Deployment.Containers[0].Env[0].Value, "dev-workspace-value")
 	assert.Equal(t, checlusterv2.Spec.Components.DevWorkspace.RunningLimit, "RunningLimit")
 
 	assert.Equal(t, checlusterv2.Spec.Components.ImagePuller.Enable, true)
@@ -390,6 +467,8 @@ func TestConvertTo(t *testing.T) {
 
 	assert.Equal(t, checlusterv2.Spec.Components.DevfileRegistry.Deployment.Containers[0].Name, constants.DevfileRegistryName)
 	assert.Equal(t, checlusterv2.Spec.Components.DevfileRegistry.Deployment.Containers[0].Image, "DevfileRegistryImage")
+	assert.Equal(t, checlusterv2.Spec.Components.DevfileRegistry.Deployment.Containers[0].Env[0].Name, "devfile-registry-name")
+	assert.Equal(t, checlusterv2.Spec.Components.DevfileRegistry.Deployment.Containers[0].Env[0].Value, "devfile-registry-value")
 	assert.Equal(t, checlusterv2.Spec.Components.DevfileRegistry.Deployment.Containers[0].ImagePullPolicy, corev1.PullPolicy("Always"))
 	assert.Equal(t, checlusterv2.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Limits.Cpu, resource.MustParse("2"))
 	assert.Equal(t, checlusterv2.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Limits.Memory, resource.MustParse("200Mi"))
@@ -406,6 +485,8 @@ func TestConvertTo(t *testing.T) {
 
 	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.Deployment.Containers[0].Name, constants.PluginRegistryName)
 	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.Deployment.Containers[0].Image, "PluginRegistryImage")
+	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.Deployment.Containers[0].Env[0].Name, "plugin-registry-name")
+	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.Deployment.Containers[0].Env[0].Value, "plugin-registry-value")
 	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.Deployment.Containers[0].ImagePullPolicy, corev1.PullPolicy("Always"))
 	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Limits.Cpu, resource.MustParse("2"))
 	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Limits.Memory, resource.MustParse("200Mi"))

@@ -109,6 +109,7 @@ func (dst *CheCluster) convertFrom_Server(src *chev2.CheCluster) error {
 
 	if src.Spec.Components.CheServer.Deployment != nil {
 		if len(src.Spec.Components.CheServer.Deployment.Containers) != 0 {
+			dst.Spec.Server.CheServerEnv = src.Spec.Components.CheServer.Deployment.Containers[0].Env
 			cheServerImageAndTag := strings.Split(src.Spec.Components.CheServer.Deployment.Containers[0].Image, ":")
 			dst.Spec.Server.CheImage = strings.Join(cheServerImageAndTag[0:len(cheServerImageAndTag)-1], ":")
 			dst.Spec.Server.CheImageTag = cheServerImageAndTag[len(cheServerImageAndTag)-1]
@@ -191,6 +192,7 @@ func (dst *CheCluster) convertFrom_Server_PluginRegistry(src *chev2.CheCluster) 
 
 	if src.Spec.Components.PluginRegistry.Deployment != nil {
 		if len(src.Spec.Components.PluginRegistry.Deployment.Containers) != 0 {
+			dst.Spec.Server.PluginRegistryEnv = src.Spec.Components.PluginRegistry.Deployment.Containers[0].Env
 			dst.Spec.Server.PluginRegistryImage = src.Spec.Components.PluginRegistry.Deployment.Containers[0].Image
 			dst.Spec.Server.PluginRegistryPullPolicy = src.Spec.Components.PluginRegistry.Deployment.Containers[0].ImagePullPolicy
 
@@ -222,6 +224,7 @@ func (dst *CheCluster) convertFrom_Server_DevfileRegistry(src *chev2.CheCluster)
 
 	if src.Spec.Components.DevfileRegistry.Deployment != nil {
 		if len(src.Spec.Components.DevfileRegistry.Deployment.Containers) != 0 {
+			dst.Spec.Server.DevfileRegistryEnv = src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Env
 			dst.Spec.Server.DevfileRegistryImage = src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Image
 			dst.Spec.Server.DevfileRegistryPullPolicy = src.Spec.Components.DevfileRegistry.Deployment.Containers[0].ImagePullPolicy
 
@@ -244,6 +247,7 @@ func (dst *CheCluster) convertFrom_Server_DevfileRegistry(src *chev2.CheCluster)
 func (dst *CheCluster) convertFrom_Server_Dashboard(src *chev2.CheCluster) error {
 	if src.Spec.Components.Dashboard.Deployment != nil {
 		if len(src.Spec.Components.Dashboard.Deployment.Containers) != 0 {
+			dst.Spec.Server.DashboardEnv = src.Spec.Components.Dashboard.Deployment.Containers[0].Env
 			dst.Spec.Server.DashboardImage = src.Spec.Components.Dashboard.Deployment.Containers[0].Image
 			dst.Spec.Server.DashboardImagePullPolicy = string(src.Spec.Components.Dashboard.Deployment.Containers[0].ImagePullPolicy)
 			if src.Spec.Components.Dashboard.Deployment.Containers[0].Resources != nil {
@@ -295,8 +299,14 @@ func (dst *CheCluster) convertFrom_Auth(src *chev2.CheCluster) error {
 			switch c.Name {
 			case constants.GatewayAuthenticationContainerName:
 				dst.Spec.Auth.GatewayAuthenticationSidecarImage = c.Image
+				dst.Spec.Auth.GatewayOAuthProxyEnv = c.Env
 			case constants.GatewayAuthorizationContainerName:
 				dst.Spec.Auth.GatewayAuthorizationSidecarImage = c.Image
+				dst.Spec.Auth.GatewayKubeRbacProxyEnv = c.Env
+			case constants.GatewayConfigSideCarContainerName:
+				dst.Spec.Auth.GatewayConfigBumpEnv = c.Env
+			case constants.GatewayContainerName:
+				dst.Spec.Auth.GatewayEnv = c.Env
 			}
 		}
 	}
@@ -317,6 +327,7 @@ func (dst *CheCluster) convertFrom_Database(src *chev2.CheCluster) error {
 
 	if src.Spec.Components.Database.Deployment != nil {
 		if len(src.Spec.Components.Database.Deployment.Containers) != 0 {
+			dst.Spec.Database.PostgresEnv = src.Spec.Components.Database.Deployment.Containers[0].Env
 			dst.Spec.Database.PostgresImage = src.Spec.Components.Database.Deployment.Containers[0].Image
 			dst.Spec.Database.PostgresImagePullPolicy = src.Spec.Components.Database.Deployment.Containers[0].ImagePullPolicy
 			if src.Spec.Components.Database.Deployment.Containers[0].Resources != nil {
@@ -339,6 +350,7 @@ func (dst *CheCluster) convertFrom_DevWorkspace(src *chev2.CheCluster) error {
 	if src.Spec.Components.DevWorkspace.Deployment != nil {
 		if len(src.Spec.Components.DevWorkspace.Deployment.Containers) != 0 {
 			dst.Spec.DevWorkspace.ControllerImage = src.Spec.Components.DevWorkspace.Deployment.Containers[0].Image
+			dst.Spec.DevWorkspace.Env = src.Spec.Components.DevWorkspace.Deployment.Containers[0].Env
 		}
 	}
 

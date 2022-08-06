@@ -127,6 +127,12 @@ func TestConvertFrom(t *testing.T) {
 										Cpu:    resource.MustParse("2"),
 									},
 								},
+								Env: []corev1.EnvVar{
+									{
+										Name:  "database-name",
+										Value: "database-value",
+									},
+								},
 							},
 						},
 						SecurityContext: &chev2.PodSecurityContext{
@@ -157,6 +163,12 @@ func TestConvertFrom(t *testing.T) {
 									Limits: &chev2.ResourceList{
 										Memory: resource.MustParse("228Mi"),
 										Cpu:    resource.MustParse("2"),
+									},
+								},
+								Env: []corev1.EnvVar{
+									{
+										Name:  "plugin-registry-name",
+										Value: "plugin-registry-value",
 									},
 								},
 							},
@@ -193,6 +205,12 @@ func TestConvertFrom(t *testing.T) {
 										Cpu:    resource.MustParse("2"),
 									},
 								},
+								Env: []corev1.EnvVar{
+									{
+										Name:  "devfile-registry-name",
+										Value: "devfile-registry-value",
+									},
+								},
 							},
 						},
 						SecurityContext: &chev2.PodSecurityContext{
@@ -221,6 +239,12 @@ func TestConvertFrom(t *testing.T) {
 									Limits: &chev2.ResourceList{
 										Memory: resource.MustParse("228Mi"),
 										Cpu:    resource.MustParse("2"),
+									},
+								},
+								Env: []corev1.EnvVar{
+									{
+										Name:  "dashboard-name",
+										Value: "dashboard-value",
 									},
 								},
 							},
@@ -255,7 +279,12 @@ func TestConvertFrom(t *testing.T) {
 										Cpu:    resource.MustParse("2"),
 									},
 								},
-							},
+								Env: []corev1.EnvVar{
+									{
+										Name:  "che-server-name",
+										Value: "che-server-value",
+									},
+								}},
 						},
 						SecurityContext: &chev2.PodSecurityContext{
 							RunAsUser: pointer.Int64Ptr(64),
@@ -277,6 +306,12 @@ func TestConvertFrom(t *testing.T) {
 						Containers: []chev2.Container{
 							{
 								Image: "DevWorkspaceImage",
+								Env: []corev1.EnvVar{
+									{
+										Name:  "dev-workspace-name",
+										Value: "dev-workspace-value",
+									},
+								},
 							},
 						},
 					},
@@ -296,18 +331,42 @@ func TestConvertFrom(t *testing.T) {
 								{
 									Name:  "gateway",
 									Image: "GatewayImage",
+									Env: []corev1.EnvVar{
+										{
+											Name:  "gateway-name",
+											Value: "gateway-value",
+										},
+									},
 								},
 								{
 									Name:  "configbump",
 									Image: "ConfigSidecarImage",
+									Env: []corev1.EnvVar{
+										{
+											Name:  "configbump-name",
+											Value: "configbump-value",
+										},
+									},
 								},
 								{
 									Name:  "oauth-proxy",
 									Image: "AuthenticationSidecarImage",
+									Env: []corev1.EnvVar{
+										{
+											Name:  "oauth-proxy-name",
+											Value: "oauth-proxy-value",
+										},
+									},
 								},
 								{
 									Name:  "kube-rbac-proxy",
 									Image: "AuthorizationSidecarImage",
+									Env: []corev1.EnvVar{
+										{
+											Name:  "kube-rbac-proxy-name",
+											Value: "kube-rbac-proxy-value",
+										},
+									},
 								},
 							},
 						},
@@ -391,6 +450,14 @@ func TestConvertFrom(t *testing.T) {
 	assert.Equal(t, checlusterv1.Spec.Auth.OAuthSecret, "OAuthSecret")
 	assert.Equal(t, checlusterv1.Spec.Auth.OAuthScope, "OAuthScope")
 	assert.Equal(t, checlusterv1.Spec.Auth.IdentityToken, "IdentityToken")
+	assert.Equal(t, checlusterv1.Spec.Auth.GatewayEnv[0].Name, "gateway-name")
+	assert.Equal(t, checlusterv1.Spec.Auth.GatewayEnv[0].Value, "gateway-value")
+	assert.Equal(t, checlusterv1.Spec.Auth.GatewayKubeRbacProxyEnv[0].Name, "kube-rbac-proxy-name")
+	assert.Equal(t, checlusterv1.Spec.Auth.GatewayKubeRbacProxyEnv[0].Value, "kube-rbac-proxy-value")
+	assert.Equal(t, checlusterv1.Spec.Auth.GatewayOAuthProxyEnv[0].Name, "oauth-proxy-name")
+	assert.Equal(t, checlusterv1.Spec.Auth.GatewayOAuthProxyEnv[0].Value, "oauth-proxy-value")
+	assert.Equal(t, checlusterv1.Spec.Auth.GatewayConfigBumpEnv[0].Name, "configbump-name")
+	assert.Equal(t, checlusterv1.Spec.Auth.GatewayConfigBumpEnv[0].Value, "configbump-value")
 
 	assert.Equal(t, checlusterv1.Spec.Database.ChePostgresContainerResources.Limits.Cpu, "2")
 	assert.Equal(t, checlusterv1.Spec.Database.ChePostgresContainerResources.Limits.Memory, "228Mi")
@@ -405,18 +472,30 @@ func TestConvertFrom(t *testing.T) {
 	assert.Equal(t, checlusterv1.Spec.Database.PostgresImagePullPolicy, corev1.PullAlways)
 	assert.Equal(t, checlusterv1.Spec.Database.PostgresVersion, "PostgresVersion")
 	assert.Equal(t, checlusterv1.Spec.Database.PvcClaimSize, "DatabaseClaimSize")
+	assert.Equal(t, checlusterv1.Spec.Database.PostgresEnv[0].Name, "database-name")
+	assert.Equal(t, checlusterv1.Spec.Database.PostgresEnv[0].Value, "database-value")
 
 	assert.Equal(t, checlusterv1.Spec.DevWorkspace.ControllerImage, "DevWorkspaceImage")
 	assert.Equal(t, checlusterv1.Spec.DevWorkspace.RunningLimit, "RunningLimit")
 	assert.Equal(t, checlusterv1.Spec.DevWorkspace.SecondsOfInactivityBeforeIdling, pointer.Int32Ptr(1800))
 	assert.Equal(t, checlusterv1.Spec.DevWorkspace.SecondsOfRunBeforeIdling, pointer.Int32Ptr(-1))
 	assert.True(t, checlusterv1.Spec.DevWorkspace.Enable)
+	assert.Equal(t, checlusterv1.Spec.DevWorkspace.Env[0].Name, "dev-workspace-name")
+	assert.Equal(t, checlusterv1.Spec.DevWorkspace.Env[0].Value, "dev-workspace-value")
 
 	assert.Equal(t, checlusterv1.Spec.Dashboard.Warning, "DashboardWarning")
 
 	assert.Equal(t, checlusterv1.Spec.ImagePuller.Enable, true)
 	assert.Equal(t, checlusterv1.Spec.Metrics.Enable, true)
 
+	assert.Equal(t, checlusterv1.Spec.Server.CheServerEnv[0].Name, "che-server-name")
+	assert.Equal(t, checlusterv1.Spec.Server.CheServerEnv[0].Value, "che-server-value")
+	assert.Equal(t, checlusterv1.Spec.Server.PluginRegistryEnv[0].Name, "plugin-registry-name")
+	assert.Equal(t, checlusterv1.Spec.Server.PluginRegistryEnv[0].Value, "plugin-registry-value")
+	assert.Equal(t, checlusterv1.Spec.Server.DevfileRegistryEnv[0].Name, "devfile-registry-name")
+	assert.Equal(t, checlusterv1.Spec.Server.DevfileRegistryEnv[0].Value, "devfile-registry-value")
+	assert.Equal(t, checlusterv1.Spec.Server.DashboardEnv[0].Name, "dashboard-name")
+	assert.Equal(t, checlusterv1.Spec.Server.DashboardEnv[0].Value, "dashboard-value")
 	assert.Equal(t, checlusterv1.Spec.Server.AirGapContainerRegistryHostname, "AirGapContainerRegistryHostname")
 	assert.Equal(t, checlusterv1.Spec.Server.AirGapContainerRegistryOrganization, "AirGapContainerRegistryOrganization")
 	assert.Equal(t, checlusterv1.Spec.Server.CheClusterRoles, "ClusterRoles_1,ClusterRoles_2")

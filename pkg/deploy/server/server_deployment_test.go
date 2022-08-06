@@ -197,13 +197,13 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 
 			container := &deployment.Spec.Template.Spec.Containers[0]
 
-			value := utils.GetEnv(container.Env, "CHE_OAUTH1_BITBUCKET_CONSUMERKEYPATH")
+			value := utils.GetEnvByName("CHE_OAUTH1_BITBUCKET_CONSUMERKEYPATH", container.Env)
 			assert.Equal(t, testCase.expectedConsumerKeyPath, value)
 
-			value = utils.GetEnv(container.Env, "CHE_OAUTH1_BITBUCKET_PRIVATEKEYPATH")
+			value = utils.GetEnvByName("CHE_OAUTH1_BITBUCKET_PRIVATEKEYPATH", container.Env)
 			assert.Equal(t, testCase.expectedPrivateKeyPath, value)
 
-			value = utils.GetEnv(container.Env, "CHE_OAUTH1_BITBUCKET_ENDPOINT")
+			value = utils.GetEnvByName("CHE_OAUTH1_BITBUCKET_ENDPOINT", container.Env)
 			assert.Equal(t, testCase.expectedOAuthEndpoint, value)
 
 			volume := test.FindVolume(deployment.Spec.Template.Spec.Volumes, "github-oauth-config")
@@ -283,13 +283,13 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 
 			container := &deployment.Spec.Template.Spec.Containers[0]
 
-			value := utils.GetEnv(container.Env, "CHE_OAUTH2_GITHUB_CLIENTID__FILEPATH")
+			value := utils.GetEnvByName("CHE_OAUTH2_GITHUB_CLIENTID__FILEPATH", container.Env)
 			assert.Equal(t, testCase.expectedIdKeyPath, value)
 
-			value = utils.GetEnv(container.Env, "CHE_OAUTH2_GITHUB_CLIENTSECRET__FILEPATH")
+			value = utils.GetEnvByName("CHE_OAUTH2_GITHUB_CLIENTSECRET__FILEPATH", container.Env)
 			assert.Equal(t, testCase.expectedSecretKeyPath, value)
 
-			value = utils.GetEnv(container.Env, "CHE_INTEGRATION_GITHUB_OAUTH__ENDPOINT")
+			value = utils.GetEnvByName("CHE_INTEGRATION_GITHUB_OAUTH__ENDPOINT", container.Env)
 			assert.Equal(t, testCase.expectedOAuthEndpoint, value)
 
 			volume := test.FindVolume(deployment.Spec.Template.Spec.Volumes, "github-oauth-config")
@@ -369,13 +369,13 @@ func TestMountGitLabOAuthEnvVar(t *testing.T) {
 
 			container := &deployment.Spec.Template.Spec.Containers[0]
 
-			value := utils.GetEnv(container.Env, "CHE_OAUTH2_GITLAB_CLIENTID__FILEPATH")
+			value := utils.GetEnvByName("CHE_OAUTH2_GITLAB_CLIENTID__FILEPATH", container.Env)
 			assert.Equal(t, testCase.expectedIdKeyPath, value)
 
-			value = utils.GetEnv(container.Env, "CHE_OAUTH2_GITLAB_CLIENTSECRET__FILEPATH")
+			value = utils.GetEnvByName("CHE_OAUTH2_GITLAB_CLIENTSECRET__FILEPATH", container.Env)
 			assert.Equal(t, testCase.expectedSecretKeyPath, value)
 
-			value = utils.GetEnv(container.Env, "CHE_INTEGRATION_GITLAB_OAUTH__ENDPOINT")
+			value = utils.GetEnvByName("CHE_INTEGRATION_GITLAB_OAUTH__ENDPOINT", container.Env)
 			assert.Equal(t, testCase.expectedOAuthEndpoint, value)
 
 			volume := test.FindVolume(deployment.Spec.Template.Spec.Volumes, "gitlab-oauth-config")

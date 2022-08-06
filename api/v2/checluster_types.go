@@ -512,6 +512,9 @@ type Container struct {
 	// Compute resources required by this container.
 	// +optional
 	Resources *ResourceRequirements `json:"resources,omitempty"`
+	// List of environment variables to set in the container.
+	// +optional
+	Env []corev1.EnvVar `json:"env,omitempty"`
 }
 
 // Describes the compute resource requirements.

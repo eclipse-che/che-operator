@@ -49,7 +49,7 @@ func (p *PostgresReconciler) getDeploymentSpec(clusterDeployment *appsv1.Deploym
 
 	if clusterDeployment != nil {
 		clusterContainer := &clusterDeployment.Spec.Template.Spec.Containers[0]
-		value := utils.GetEnv(clusterContainer.Env, "POSTGRESQL_ADMIN_PASSWORD")
+		value := utils.GetEnvByName("POSTGRESQL_ADMIN_PASSWORD", clusterContainer.Env)
 		if value != "" {
 			postgresAdminPassword = value
 		}

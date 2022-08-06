@@ -28,7 +28,7 @@ func (d *DevfileRegistryReconciler) getDevfileRegistryDeploymentSpec(ctx *chetyp
 	registryImage := defaults.GetDevfileRegistryImage(ctx.CheCluster)
 	registryImagePullPolicy := v1.PullPolicy(utils.GetPullPolicyFromDockerImage(registryImage))
 	probePath := "/devfiles/"
-	devfileImagesEnv := utils.GetEnvByRegExp("^.*devfile_registry_image.*$")
+	devfileImagesEnv := utils.GetEnvsByRegExp("^.*devfile_registry_image.*$")
 
 	resources := v1.ResourceRequirements{
 		Requests: v1.ResourceList{
