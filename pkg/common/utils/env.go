@@ -12,11 +12,12 @@
 package utils
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	"os"
 	"regexp"
 	"runtime"
 	"strings"
+
+	corev1 "k8s.io/api/core/v1"
 )
 
 func GetEnvByName(name string, envs []corev1.EnvVar) string {
