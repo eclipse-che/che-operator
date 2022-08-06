@@ -664,7 +664,7 @@ func TestSyncEnvVarDeploymentToCluster(t *testing.T) {
 	}
 
 	// check env var
-	value := utils.GetEnv(actual.Spec.Template.Spec.Containers[0].Env, "test-name")
+	value := utils.GetEnvByName("test-name", actual.Spec.Template.Spec.Containers[0].Env)
 	if value != "test-value" {
 		t.Fatalf("Failed to sync deployment")
 	}

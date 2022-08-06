@@ -116,7 +116,7 @@ func CustomizeDeployment(deployment *appsv1.Deployment, customDeployment *chev2.
 		container.Image = utils.GetValue(customContainer.Image, container.Image)
 
 		for _, env := range customContainer.Env {
-			index := utils.FindEnv(container.Env, env.Name)
+			index := utils.IndexEnv(env.Name, container.Env)
 			if index == -1 {
 				container.Env = append(container.Env, env)
 			} else {

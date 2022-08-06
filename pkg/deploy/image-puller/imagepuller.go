@@ -485,7 +485,7 @@ func GetDefaultImages() []ImageAndName {
 		"^RELATED_IMAGE_.*_java.{1,2}(_maven)?_devfile_registry_image.*",
 	}
 	for _, pattern := range imagePatterns {
-		matches := utils.GetEnvByRegExp(pattern)
+		matches := utils.GetEnvsByRegExp(pattern)
 		for _, match := range matches {
 			match.Name = match.Name[len("RELATED_IMAGE_"):]
 			images = append(images, ImageAndName{Name: match.Name, Image: match.Value})

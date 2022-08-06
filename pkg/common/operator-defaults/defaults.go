@@ -69,30 +69,30 @@ func InitializeFromFile(operatorDeploymentFilePath string) {
 		logrus.Fatalf("Containers not found in operator deployment '%s'", operatorDeploymentFilePath)
 	}
 
-	defaultCheVersion = util.GetEnv(containers[0].Env, "CHE_VERSION")
-	defaultCheFlavor = util.GetEnv(containers[0].Env, "CHE_FLAVOR")
-	defaultConsoleLinkDisplayName = util.GetEnv(containers[0].Env, "CONSOLE_LINK_DISPLAY_NAME")
-	defaultConsoleLinkName = util.GetEnv(containers[0].Env, "CONSOLE_LINK_NAME")
-	defaultConsoleLinkSection = util.GetEnv(containers[0].Env, "CONSOLE_LINK_SECTION")
-	defaultsConsoleLinkImage = util.GetEnv(containers[0].Env, "CONSOLE_LINK_IMAGE")
+	defaultCheVersion = util.GetEnvByName("CHE_VERSION", containers[0].Env)
+	defaultCheFlavor = util.GetEnvByName("CHE_FLAVOR", containers[0].Env)
+	defaultConsoleLinkDisplayName = util.GetEnvByName("CONSOLE_LINK_DISPLAY_NAME", containers[0].Env)
+	defaultConsoleLinkName = util.GetEnvByName("CONSOLE_LINK_NAME", containers[0].Env)
+	defaultConsoleLinkSection = util.GetEnvByName("CONSOLE_LINK_SECTION", containers[0].Env)
+	defaultsConsoleLinkImage = util.GetEnvByName("CONSOLE_LINK_IMAGE", containers[0].Env)
 
-	defaultCheServerImage = util.GetEnv(containers[0].Env, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server"))
-	defaultDashboardImage = util.GetEnv(containers[0].Env, util.GetArchitectureDependentEnv("RELATED_IMAGE_dashboard"))
-	defaultDevworkspaceControllerImage = util.GetEnv(containers[0].Env, util.GetArchitectureDependentEnv("RELATED_IMAGE_devworkspace_controller"))
-	defaultPluginRegistryImage = util.GetEnv(containers[0].Env, util.GetArchitectureDependentEnv("RELATED_IMAGE_plugin_registry"))
-	defaultDevfileRegistryImage = util.GetEnv(containers[0].Env, util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
-	defaultPostgresImage = util.GetEnv(containers[0].Env, util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
-	defaultPostgres13Image = util.GetEnv(containers[0].Env, util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres_13_3"))
-	defaultSingleHostGatewayImage = util.GetEnv(containers[0].Env, util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
-	defaultSingleHostGatewayConfigSidecarImage = util.GetEnv(containers[0].Env, util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))
-	defaultGatewayAuthenticationSidecarImage = util.GetEnv(containers[0].Env, util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authentication_sidecar"))
-	defaultGatewayAuthorizationSidecarImage = util.GetEnv(containers[0].Env, util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authorization_sidecar"))
+	defaultCheServerImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_che_server"), containers[0].Env)
+	defaultDashboardImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_dashboard"), containers[0].Env)
+	defaultDevworkspaceControllerImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_devworkspace_controller"), containers[0].Env)
+	defaultPluginRegistryImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_plugin_registry"), containers[0].Env)
+	defaultDevfileRegistryImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_devfile_registry"), containers[0].Env)
+	defaultPostgresImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_postgres"), containers[0].Env)
+	defaultPostgres13Image = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_postgres_13_3"), containers[0].Env)
+	defaultSingleHostGatewayImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_single_host_gateway"), containers[0].Env)
+	defaultSingleHostGatewayConfigSidecarImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_single_host_gateway_config_sidecar"), containers[0].Env)
+	defaultGatewayAuthenticationSidecarImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authentication_sidecar"), containers[0].Env)
+	defaultGatewayAuthorizationSidecarImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authorization_sidecar"), containers[0].Env)
 
 	// Don't get some k8s specific env
 	if !infrastructure.IsOpenShift() {
-		defaultCheTLSSecretsCreationJobImage = util.GetEnv(containers[0].Env, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_tls_secrets_creation_job"))
-		defaultGatewayAuthenticationSidecarImage = util.GetEnv(containers[0].Env, util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authentication_sidecar_k8s"))
-		defaultGatewayAuthorizationSidecarImage = util.GetEnv(containers[0].Env, util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authorization_sidecar_k8s"))
+		defaultCheTLSSecretsCreationJobImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_che_tls_secrets_creation_job"), containers[0].Env)
+		defaultGatewayAuthenticationSidecarImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authentication_sidecar_k8s"), containers[0].Env)
+		defaultGatewayAuthorizationSidecarImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authorization_sidecar_k8s"), containers[0].Env)
 	}
 
 	initialized = true
@@ -106,27 +106,27 @@ func InitializeFromEnv() {
 	defaultConsoleLinkSection = ensureEnv("CONSOLE_LINK_SECTION")
 	defaultsConsoleLinkImage = ensureEnv("CONSOLE_LINK_IMAGE")
 
-	defaultCheServerImage = ensureEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server"))
-	defaultDashboardImage = ensureEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_dashboard"))
-	defaultDevworkspaceControllerImage = ensureEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devworkspace_controller"))
-	defaultPluginRegistryImage = ensureEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_plugin_registry"))
-	defaultDevfileRegistryImage = ensureEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
-	defaultPostgresImage = ensureEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
+	defaultCheServerImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_che_server"))
+	defaultDashboardImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_dashboard"))
+	defaultDevworkspaceControllerImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_devworkspace_controller"))
+	defaultPluginRegistryImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_plugin_registry"))
+	defaultDevfileRegistryImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_devfile_registry"))
+	defaultPostgresImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_postgres"))
 
 	// allow not to set env variable into a container
 	// while downstream is not migrated to PostgreSQL 13.3 yet
-	defaultPostgres13Image = os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres_13_3"))
+	defaultPostgres13Image = os.Getenv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_postgres_13_3"))
 
-	defaultSingleHostGatewayImage = ensureEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
-	defaultSingleHostGatewayConfigSidecarImage = ensureEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))
-	defaultGatewayAuthenticationSidecarImage = ensureEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authentication_sidecar"))
-	defaultGatewayAuthorizationSidecarImage = ensureEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authorization_sidecar"))
+	defaultSingleHostGatewayImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_single_host_gateway"))
+	defaultSingleHostGatewayConfigSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_single_host_gateway_config_sidecar"))
+	defaultGatewayAuthenticationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authentication_sidecar"))
+	defaultGatewayAuthorizationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authorization_sidecar"))
 
 	// Don't get some k8s specific env
 	if !infrastructure.IsOpenShift() {
-		defaultCheTLSSecretsCreationJobImage = ensureEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_tls_secrets_creation_job"))
-		defaultGatewayAuthenticationSidecarImage = ensureEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authentication_sidecar_k8s"))
-		defaultGatewayAuthorizationSidecarImage = ensureEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authorization_sidecar_k8s"))
+		defaultCheTLSSecretsCreationJobImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_che_tls_secrets_creation_job"))
+		defaultGatewayAuthenticationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authentication_sidecar_k8s"))
+		defaultGatewayAuthorizationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authorization_sidecar_k8s"))
 	}
 
 	initialized = true

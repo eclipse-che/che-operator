@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2021 Red Hat, Inc.
+// Copyright (c) 2019-2022 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -16,15 +16,11 @@ import (
 	"encoding/base64"
 	"io/ioutil"
 	"math/rand"
-	"os"
-	"regexp"
-	"runtime"
 	"strings"
 	"time"
 
 	"k8s.io/apimachinery/pkg/labels"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -90,51 +86,6 @@ func GetValue(value string, defaultValue string) string {
 		value = defaultValue
 	}
 	return value
-}
-
-func GetEnv(envs []corev1.EnvVar, name string) string {
-	for _, env := range envs {
-		if env.Name == name {
-			return env.Value
-		}
-	}
-
-	return ""
-}
-
-func FindEnv(envs []corev1.EnvVar, name string) int {
-	for i, env := range envs {
-		if env.Name == name {
-			return i
-		}
-	}
-
-	return -1
-}
-
-func GetEnvByRegExp(regExp string) []corev1.EnvVar {
-	var env []corev1.EnvVar
-	for _, e := range os.Environ() {
-		pair := strings.SplitN(e, "=", 2)
-		envName := pair[0]
-		rxp := regexp.MustCompile(regExp)
-		if rxp.MatchString(envName) {
-			envName = GetArchitectureDependentEnv(envName)
-			env = append(env, corev1.EnvVar{Name: envName, Value: pair[1]})
-		}
-	}
-	return env
-}
-
-// GetArchitectureDependentEnv returns environment variable dependending on architecture
-// by adding "_<ARCHITECTURE>" suffix. If variable is not set then the default will be return.
-func GetArchitectureDependentEnv(env string) string {
-	archEnv := env + "_" + runtime.GOARCH
-	if _, ok := os.LookupEnv(archEnv); ok {
-		return archEnv
-	}
-
-	return env
 }
 
 // GetImageNameAndTag returns the image repository and tag name from the provided image
