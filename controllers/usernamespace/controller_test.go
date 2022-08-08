@@ -247,42 +247,56 @@ func TestRequiresLabelsToMatchOneOfMultipleCheCluster(t *testing.T) {
 }
 
 func TestMatchingCheClusterCanBeSelectedUsingLabels(t *testing.T) {
-	test := func(t *testing.T, infraType devworkspaceinfra.Type, namespace metav1.Object) {
+	test := func(t *testing.T, infraType devworkspaceinfra.Type, namespace string, objs ...runtime.Object) {
 		ctx := context.TODO()
-		scheme, cl, r := setup(infraType, namespace.(runtime.Object))
+		scheme, cl, r := setup(infraType, objs...)
 		setupCheCluster(t, ctx, cl, scheme, "che1", "che")
 		setupCheCluster(t, ctx, cl, scheme, "che2", "che")
 
-		res, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}})
+		res, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace}})
 		assert.NoError(t, err, "Reconciliation shouldn't have failed")
 
 		assert.False(t, res.Requeue, "The reconciliation request should have succeeded but is requesting a requeue.")
 	}
 
 	t.Run("k8s", func(t *testing.T) {
-		test(t, devworkspaceinfra.Kubernetes, &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "ns",
-				Labels: map[string]string{
-					workspaceNamespaceOwnerUidLabel: "uid",
-					cheNameLabel:                    "che",
-					cheNamespaceLabel:               "che1",
+		test(t, devworkspaceinfra.Kubernetes,
+			"ns",
+			&corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "ns",
+					Labels: map[string]string{
+						workspaceNamespaceOwnerUidLabel: "uid",
+						cheNameLabel:                    "che",
+						cheNamespaceLabel:               "che1",
+					},
 				},
-			},
-		})
+			})
 	})
 
 	t.Run("openshift", func(t *testing.T) {
-		test(t, devworkspaceinfra.OpenShiftv4, &projectv1.Project{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "prj",
-				Labels: map[string]string{
-					workspaceNamespaceOwnerUidLabel: "uid",
-					cheNameLabel:                    "che",
-					cheNamespaceLabel:               "che1",
+		test(t, devworkspaceinfra.OpenShiftv4,
+			"ns",
+			&corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "ns",
+					Labels: map[string]string{
+						workspaceNamespaceOwnerUidLabel: "uid",
+						cheNameLabel:                    "che",
+						cheNamespaceLabel:               "che1",
+					},
 				},
 			},
-		})
+			&projectv1.Project{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "prj",
+					Labels: map[string]string{
+						workspaceNamespaceOwnerUidLabel: "uid",
+						cheNameLabel:                    "che",
+						cheNamespaceLabel:               "che1",
+					},
+				},
+			})
 	})
 }
 
@@ -387,24 +401,33 @@ func TestCreatesDataInNamespace(t *testing.T) {
 	})
 
 	t.Run("openshift", func(t *testing.T) {
-		test(t, devworkspaceinfra.OpenShiftv4, &projectv1.Project{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "prj",
-				Labels: map[string]string{
-					workspaceNamespaceOwnerUidLabel: "uid",
+		test(t, devworkspaceinfra.OpenShiftv4,
+			&corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "prj",
+					Labels: map[string]string{
+						workspaceNamespaceOwnerUidLabel: "uid",
+					},
 				},
 			},
-		}, &configv1.Proxy{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "cluster",
-			},
-			Spec: configv1.ProxySpec{
-				NoProxy: ".svc",
-			},
-			Status: configv1.ProxyStatus{
-				NoProxy: ".svc",
-			},
-		})
+			&projectv1.Project{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "prj",
+					Labels: map[string]string{
+						workspaceNamespaceOwnerUidLabel: "uid",
+					},
+				},
+			}, &configv1.Proxy{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Spec: configv1.ProxySpec{
+					NoProxy: ".svc",
+				},
+				Status: configv1.ProxyStatus{
+					NoProxy: ".svc",
+				},
+			})
 	})
 }
 
