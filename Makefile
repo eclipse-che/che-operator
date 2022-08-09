@@ -236,7 +236,7 @@ update-helmcharts: ## Update Helm Charts
 gen-deployment: SHELL := /bin/bash
 gen-deployment: manifests download-kustomize _kustomize-operator-image ## Generate Eclipse Che k8s deployment resources
 	rm -rf $(DEPLOYMENT_DIR)
-	for TARGET_PLATFORM in kubernetes openshift; do
+	for TARGET_PLATFORM in kubernetes; do
 		PLATFORM_DIR=$(DEPLOYMENT_DIR)/$${TARGET_PLATFORM}
 		OBJECTS_DIR=$${PLATFORM_DIR}/objects
 
@@ -258,53 +258,27 @@ gen-deployment: manifests download-kustomize _kustomize-operator-image ## Genera
 
 gen-chectl-tmpl: SHELL := /bin/bash
 gen-chectl-tmpl: ## Generate Eclipse Che k8s deployment resources used by chectl
-	[[ -z "$(TARGET)" ]] && { echo [ERROR] TARGET not defined; exit 1; }
-	[[ -z "$(SOURCE)" ]] && src=$(PROJECT_DIR) || src=$(SOURCE)
+	[[ -z "$(TEMPLATES)" ]] && { echo [ERROR] TARGET not defined; exit 1; }
+	[[ -z "$(SOURCE_PROJECT)" ]] && src=$(PROJECT_DIR) || src=$(SOURCE_PROJECT)
 
-	dst=$(TARGET)/che-operator && rm -rf $${dst}
+	dst="$(TEMPLATES)/che-operator/kubernetes" && rm -rf $${dst}
 
-	if [[ -d "$${src}/deploy/deployment" ]]; then
-  		# CheCluster API v2
-		src="$${src}/deploy/deployment"
+	src="$${src}/deploy/deployment/kubernetes/objects"
+	mkdir -p "$${dst}/crds"
 
-		for TARGET_PLATFORM in kubernetes openshift; do
-			mkdir -p "$${dst}/$${TARGET_PLATFORM}/crds"
+	cp $${src}/che-operator.Deployment.yaml $${dst}/operator.yaml
+	cp $${src}/checlusters.org.eclipse.che.CustomResourceDefinition.yaml $${dst}/crds/org.eclipse.che_checlusters.yaml
+	cp $${src}/../org_v2_checluster.yaml $${dst}/crds/org_checluster_cr.yaml
+	cp $${src}/che-operator.ServiceAccount.yaml $${dst}/service_account.yaml
+	cp $${src}/che-operator.ClusterRoleBinding.yaml $${dst}/cluster_rolebinding.yaml
+	cp $${src}/che-operator.ClusterRole.yaml $${dst}/cluster_role.yaml
+	cp $${src}/che-operator.RoleBinding.yaml $${dst}/role_binding.yaml
+	cp $${src}/che-operator.Role.yaml $${dst}/role.yaml
+	cp $${src}/che-operator-service.Service.yaml $${dst}/webhook-service.yaml
+	cp $${src}/che-operator-serving-cert.Certificate.yaml $${dst}/serving-cert.yaml
+	cp $${src}/che-operator-selfsigned-issuer.Issuer.yaml $${dst}/selfsigned-issuer.yaml
 
-			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.Deployment.yaml $${dst}/$${TARGET_PLATFORM}/operator.yaml
-
-			cp $${src}/$${TARGET_PLATFORM}/objects/checlusters.org.eclipse.che.CustomResourceDefinition.yaml $${dst}/$${TARGET_PLATFORM}/crds/org.eclipse.che_checlusters.yaml
-			cp $${src}/$${TARGET_PLATFORM}/org_v2_checluster.yaml $${dst}/$${TARGET_PLATFORM}/crds/org_checluster_cr.yaml
-
-			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.ServiceAccount.yaml $${dst}/$${TARGET_PLATFORM}/service_account.yaml
-			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.ClusterRoleBinding.yaml $${dst}/$${TARGET_PLATFORM}/cluster_rolebinding.yaml
-			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.ClusterRole.yaml $${dst}/$${TARGET_PLATFORM}/cluster_role.yaml
-			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.RoleBinding.yaml $${dst}/$${TARGET_PLATFORM}/role_binding.yaml
-			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.Role.yaml $${dst}/$${TARGET_PLATFORM}/role.yaml
-
-			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator-service.Service.yaml $${dst}/$${TARGET_PLATFORM}/webhook-service.yaml
-
-			if [[ $${TARGET_PLATFORM} == "kubernetes" ]]; then
-				cp $${src}/$${TARGET_PLATFORM}/objects/che-operator-serving-cert.Certificate.yaml $${dst}/$${TARGET_PLATFORM}/serving-cert.yaml
-				cp $${src}/$${TARGET_PLATFORM}/objects/che-operator-selfsigned-issuer.Issuer.yaml $${dst}/$${TARGET_PLATFORM}/selfsigned-issuer.yaml
-			fi
-		done
-	else
-		# CheCluster API v1
-		mkdir -p $${dst}/crds
-
-		cp -f $${src}/config/manager/manager.yaml $${dst}/operator.yaml
-
-		cp -f $${src}/config/crd/bases/org_v1_che_crd.yaml $${dst}/crds
-		cp -f $${src}/config/samples/org.eclipse.che_v1_checluster.yaml $${dst}/crds/org_v1_che_cr.yaml
-
-		cp -f $${src}/config/rbac/role.yaml $${dst}
-		cp -f $${src}/config/rbac/role_binding.yaml $${dst}
-		cp -f $${src}/config/rbac/cluster_role.yaml $${dst}
-		cp -f $${src}/config/rbac/cluster_rolebinding.yaml $${dst}
-		cp -f $${src}/config/rbac/service_account.yaml $${dst}
-	fi
-
-	echo "[INFO] Generated chectl templates into $${dst}"
+	echo "[INFO] Generated chectl templates into $(TEMPLATES)"
 
 build: generate ## Build Eclipse Che operator binary
 	go build -o bin/manager main.go
@@ -582,9 +556,6 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 	# Update image
 	yq -riY '.metadata.annotations.containerImage = "'$(IMG)'"' $${CSV_PATH}
 	yq -riY '.spec.install.spec.deployments[0].spec.template.spec.containers[0].image = "'$(IMG)'"' $${CSV_PATH}
-
-	# Add No Opt DWO environment variable
-	yq -riY '.spec.install.spec.deployments[0].spec.template.spec.containers[0].env += [{"name": "NO_OPT_DWO", "value": "true"}]' "$${CSV_PATH}"
 
 	# Format file
 	yq -riY "." "$${BUNDLE_PATH}/manifests/org.eclipse.che_checlusters.yaml"

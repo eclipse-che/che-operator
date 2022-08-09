@@ -13,20 +13,14 @@ package devworkspace
 
 import (
 	"context"
-	"os"
-
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
-	"k8s.io/apimachinery/pkg/types"
-
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"testing"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
-	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -35,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func TestReconcileDevWorkspace(t *testing.T) {
+func TestShouldNotReconcileDevWorkspaceOnOpenShift(t *testing.T) {
 	cheOperatorDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      defaults.GetCheFlavor() + "-operator",
@@ -43,54 +37,38 @@ func TestReconcileDevWorkspace(t *testing.T) {
 		},
 	}
 
-	type testCase struct {
-		name           string
-		infrastructure infrastructure.Type
-		cheCluster     *chev2.CheCluster
-	}
+	deployContext := test.GetDeployContext(nil, []runtime.Object{cheOperatorDeployment})
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 
-	testCases := []testCase{
-		{
-			name: "Reconcile DevWorkspace on OpenShift",
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-			},
-			infrastructure: infrastructure.OpenShiftv4,
-		},
-		{
-			name: "Reconcile DevWorkspace on K8S",
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: chev2.CheClusterSpec{
-					Components: chev2.CheClusterComponents{
-						CheServer: chev2.CheServer{
-							ExtraProperties: map[string]string{"CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S": "true"},
-						},
-					},
-					Networking: chev2.CheClusterSpecNetworking{
-						Domain: "che.domain",
-					},
-				},
-			},
-			infrastructure: infrastructure.Kubernetes,
+	devWorkspaceReconciler := NewDevWorkspaceReconciler()
+	_, done, err := devWorkspaceReconciler.Reconcile(deployContext)
+	assert.True(t, done)
+	assert.Nil(t, err)
+
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: DevWorkspaceNamespace}, &corev1.Namespace{})
+	assert.True(t, k8sErrors.IsNotFound(err))
+}
+
+func TestShouldReconcileDevWorkspaceOnKubernetes(t *testing.T) {
+	cheOperatorDeployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      defaults.GetCheFlavor() + "-operator",
+			Namespace: "eclipse-che",
 		},
 	}
 
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.cheCluster, []runtime.Object{cheOperatorDeployment})
-			infrastructure.InitializeForTesting(testCase.infrastructure)
+	deployContext := test.GetDeployContext(nil, []runtime.Object{cheOperatorDeployment})
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
-			devWorkspaceReconciler := NewDevWorkspaceReconciler()
-			_, done, err := devWorkspaceReconciler.Reconcile(deployContext)
-			assert.NoError(t, err, "Reconcile failed")
-			assert.True(t, done, "Dev Workspace operator has not been provisioned")
-		})
-	}
+	devWorkspaceReconciler := NewDevWorkspaceReconciler()
+	_, done, err := devWorkspaceReconciler.Reconcile(deployContext)
+	assert.True(t, done)
+	assert.Nil(t, err)
+
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(),
+		client.ObjectKey{Name: DevWorkspaceDeploymentName, Namespace: DevWorkspaceNamespace},
+		&appsv1.Deployment{})
+	assert.Nil(t, err)
 }
 
 func TestShouldReconcileDevWorkspaceIfDevWorkspaceDeploymentExists(t *testing.T) {
@@ -116,74 +94,13 @@ func TestShouldReconcileDevWorkspaceIfDevWorkspaceDeploymentExists(t *testing.T)
 	}
 
 	deployContext := test.GetDeployContext(nil, []runtime.Object{devworkspaceDeployment, cheOperatorDeployment})
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
 	devWorkspaceReconciler := NewDevWorkspaceReconciler()
 	_, done, err := devWorkspaceReconciler.Reconcile(deployContext)
 
-	assert.Nil(t, err, "Reconciliation error occurred %v", err)
-	assert.True(t, done, "DevWorkspace should be reconciled.")
-}
-
-func TestShouldNotReconcileDevWorkspaceIfDevWorkspaceDeploymentManagedByOLM(t *testing.T) {
-	cheOperatorDeployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      defaults.GetCheFlavor() + "-operator",
-			Namespace: "eclipse-che",
-		},
-	}
-	devworkspaceDeployment := &appsv1.Deployment{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Deployment",
-			APIVersion: "apps/v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      DevWorkspaceDeploymentName,
-			Namespace: DevWorkspaceNamespace,
-			Labels: map[string]string{
-				constants.KubernetesPartOfLabelKey: constants.DevWorkspaceOperator,
-				constants.KubernetesNameLabelKey:   constants.DevWorkspaceController,
-			},
-			OwnerReferences: []metav1.OwnerReference{{}},
-		},
-	}
-
-	deployContext := test.GetDeployContext(nil, []runtime.Object{cheOperatorDeployment, devworkspaceDeployment})
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-
-	devWorkspaceReconciler := NewDevWorkspaceReconciler()
-	_, done, err := devWorkspaceReconciler.Reconcile(deployContext)
-
+	assert.Nil(t, err)
 	assert.True(t, done)
-
-	// verify that DWO is not provisioned
-	err = deployContext.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Name: DevWorkspaceNamespace}, &corev1.Namespace{})
-	assert.True(t, k8sErrors.IsNotFound(err))
-}
-
-func TestShouldNotReconcileDevWorkspaceIfNoOptExists(t *testing.T) {
-	os.Setenv("NO_OPT_DWO", "true")
-
-	cheOperatorDeployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      defaults.GetCheFlavor() + "-operator",
-			Namespace: "eclipse-che",
-		},
-	}
-
-	deployContext := test.GetDeployContext(nil, []runtime.Object{cheOperatorDeployment})
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-
-	devWorkspaceReconciler := NewDevWorkspaceReconciler()
-	_, done, err := devWorkspaceReconciler.Reconcile(deployContext)
-
-	assert.True(t, done)
-
-	// verify that DWO is not provisioned
-	err = deployContext.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Name: DevWorkspaceNamespace}, &corev1.Namespace{})
-	assert.True(t, k8sErrors.IsNotFound(err))
-
-	os.Unsetenv("NO_OPT_DWO")
 }
 
 func TestShouldNotReconcileDevWorkspaceIfUnmanagedDWONamespaceExists(t *testing.T) {
@@ -200,16 +117,18 @@ func TestShouldNotReconcileDevWorkspaceIfUnmanagedDWONamespaceExists(t *testing.
 		},
 	}
 	deployContext := test.GetDeployContext(nil, []runtime.Object{cheOperatorDeployment, dwoNamespace})
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
 	devWorkspaceReconciler := NewDevWorkspaceReconciler()
 	_, done, err := devWorkspaceReconciler.Reconcile(deployContext)
 
-	assert.True(t, done, "Reconcile is not triggered")
+	assert.True(t, done)
+	assert.Nil(t, err)
 
-	// check is reconcile created deployment if existing namespace is not annotated in che specific way
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: DevWorkspaceDeploymentName}, &appsv1.Deployment{})
-	assert.True(t, k8sErrors.IsNotFound(err), "DevWorkspace deployment is created but it should not since it's DWO namespace managed not by Che")
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(),
+		client.ObjectKey{Name: DevWorkspaceDeploymentName, Namespace: DevWorkspaceNamespace},
+		&appsv1.Deployment{})
+	assert.True(t, k8sErrors.IsNotFound(err))
 }
 
 func TestReconcileDevWorkspaceIfManagedDWONamespaceExists(t *testing.T) {
@@ -229,18 +148,16 @@ func TestReconcileDevWorkspaceIfManagedDWONamespaceExists(t *testing.T) {
 		},
 	}
 	deployContext := test.GetDeployContext(nil, []runtime.Object{cheOperatorDeployment, dwoNamespace})
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
 	devWorkspaceReconciler := NewDevWorkspaceReconciler()
 	_, done, err := devWorkspaceReconciler.Reconcile(deployContext)
 
-	assert.True(t, done, "Reconcile is not triggered")
-	assert.NoError(t, err, "Reconcile failed")
+	assert.True(t, done)
+	assert.Nil(t, err)
 
-	// check is reconcile created deployment if existing namespace is not annotated in che specific way
-	exists, err := deploy.Get(deployContext,
-		types.NamespacedName{Name: DevWorkspaceDeploymentName, Namespace: DevWorkspaceNamespace},
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(),
+		client.ObjectKey{Name: DevWorkspaceDeploymentName, Namespace: DevWorkspaceNamespace},
 		&appsv1.Deployment{})
-	assert.True(t, exists, "DevWorkspace deployment is not created in Che managed DWO namespace")
-	assert.NoError(t, err, "Failed to get devworkspace deployment")
+	assert.Nil(t, err)
 }

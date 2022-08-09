@@ -13,18 +13,11 @@
 package devworkspace
 
 import (
-	"context"
-	"os"
-	"strconv"
-
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func createDwNamespace(deployContext *chetypes.DeployContext) (bool, error) {
@@ -39,36 +32,4 @@ func createDwNamespace(deployContext *chetypes.DeployContext) (bool, error) {
 	}
 
 	return deploy.CreateIfNotExists(deployContext, namespace)
-}
-
-func isNoOptDWO() (bool, error) {
-	value, exists := os.LookupEnv("NO_OPT_DWO")
-	if !exists {
-		return false, nil
-	}
-
-	return strconv.ParseBool(value)
-}
-
-func isDevWorkspaceOperatorHasOwner(ctx *chetypes.DeployContext) (bool, error) {
-	deployments := &appsv1.DeploymentList{}
-	if err := ctx.ClusterAPI.NonCachingClient.List(
-		context.TODO(),
-		deployments,
-		&client.ListOptions{
-			LabelSelector: labels.SelectorFromSet(map[string]string{
-				constants.KubernetesPartOfLabelKey: constants.DevWorkspaceOperator,
-				constants.KubernetesNameLabelKey:   constants.DevWorkspaceController,
-			}),
-		}); err != nil {
-		return false, err
-	}
-
-	for _, deployment := range deployments.Items {
-		if len(deployment.OwnerReferences) != 0 {
-			return true, nil
-		}
-	}
-
-	return false, nil
 }

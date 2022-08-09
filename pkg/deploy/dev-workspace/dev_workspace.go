@@ -55,22 +55,8 @@ func NewDevWorkspaceReconciler() *DevWorkspaceReconciler {
 
 func (d *DevWorkspaceReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	if infrastructure.IsOpenShift() {
-		// Do nothing if explicitly declared not to manage Dev Workspace resources
-		isNoOptDWO, err := isNoOptDWO()
-		if isNoOptDWO {
-			return reconcile.Result{}, true, nil
-		} else if err != nil {
-			return reconcile.Result{Requeue: true}, false, err
-		}
-
-		// Do nothing if Dev Workspace operator has owner (installed via OLM).
-		// In this case Dev Workspace operator resources mustn't be managed by Che operator.
-		isDevWorkspaceOperatorHasOwner, err := isDevWorkspaceOperatorHasOwner(ctx)
-		if isDevWorkspaceOperatorHasOwner {
-			return reconcile.Result{}, true, nil
-		} else if err != nil {
-			return reconcile.Result{Requeue: true}, false, err
-		}
+		// Dev Workspace operator should be managed by OLM only
+		return reconcile.Result{}, true, nil
 	}
 
 	isCreated, err := createDwNamespace(ctx)
