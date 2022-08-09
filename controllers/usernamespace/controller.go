@@ -545,14 +545,7 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 }
 
 func (r *CheUserNamespaceReconciler) reconcileNodeSelectorAndTolerations(ctx context.Context, targetNs string, checluster *chev2.CheCluster, deployContext *chetypes.DeployContext) error {
-	var ns client.Object
-
-	if infrastructure.IsOpenShift() {
-		ns = &projectv1.Project{}
-	} else {
-		ns = &corev1.Namespace{}
-	}
-
+	ns := &corev1.Namespace{}
 	if err := r.client.Get(ctx, client.ObjectKey{Name: targetNs}, ns); err != nil {
 		return err
 	}
