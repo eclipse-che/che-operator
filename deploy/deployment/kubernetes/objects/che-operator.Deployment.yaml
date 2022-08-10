@@ -140,7 +140,6 @@ spec:
             - ALL
           privileged: false
           readOnlyRootFilesystem: false
-          runAsNonRoot: true
         volumeMounts:
         - mountPath: /tmp/k8s-webhook-server/serving-certs
           name: webhook-tls-certs
