@@ -83,7 +83,6 @@ func CompareResources(actualDeployment *appsv1.Deployment, expected TestExpected
 
 func ValidateSecurityContext(actualDeployment *appsv1.Deployment, t *testing.T) {
 	assert.Equal(t, corev1.Capability("ALL"), actualDeployment.Spec.Template.Spec.Containers[0].SecurityContext.Capabilities.Drop[0])
-	assert.Equal(t, pointer.BoolPtr(true), actualDeployment.Spec.Template.Spec.Containers[0].SecurityContext.RunAsNonRoot)
 	assert.Equal(t, pointer.BoolPtr(false), actualDeployment.Spec.Template.Spec.Containers[0].SecurityContext.AllowPrivilegeEscalation)
 }
 
