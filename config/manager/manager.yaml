@@ -125,7 +125,6 @@ spec:
             timeoutSeconds: 5
           securityContext:
             privileged: false
-            runAsNonRoot: true
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false
             capabilities:
