@@ -353,7 +353,7 @@ type DashboardHeaderMessage struct {
 	Show bool `json:"show,omitempty"`
 	// Warning message displayed on the user dashboard.
 	// +optional
-	Text string `json:"warning,text"`
+	Text string `json:"text,omitempty"`
 }
 
 type TrustedCerts struct {
