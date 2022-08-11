@@ -28,8 +28,8 @@ runTests() {
   useCustomOperatorImageInCSV "${CI_CHE_OPERATOR_IMAGE}"
 
   createNamespace "${NAMESPACE}"
-  getCheClusterCRFromExistedCSV | oc apply -n "${NAMESPACE}" -f -
-  waitEclipseCheDeployed "$(getCheVersionFromExistedCSV)"
+  getCheClusterCRFromCSV | oc apply -n "${NAMESPACE}" -f -
+  waitEclipseCheDeployed "$(getCheVersionFromCSV)"
 
   bash <(curl -s https://raw.githubusercontent.com/eclipse/che/${CHE_REPO_BRANCH}/tests/devworkspace-happy-path/remote-launch.sh)
 }

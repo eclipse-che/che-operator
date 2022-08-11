@@ -31,8 +31,8 @@ runTests() {
   useCustomOperatorImageInCSV "${CI_CHE_OPERATOR_IMAGE}"
 
   createNamespace "${NAMESPACE}"
-  getCheClusterCRFromExistedCSV | oc apply -n "${NAMESPACE}" -f -
-  waitEclipseCheDeployed "$(getCheVersionFromExistedCSV)"
+  getCheClusterCRFromCSV | oc apply -n "${NAMESPACE}" -f -
+  waitEclipseCheDeployed "$(getCheVersionFromCSV)"
 }
 
 initDefaults

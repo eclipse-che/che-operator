@@ -27,18 +27,14 @@ trap "catchFinish" EXIT SIGINT
 
 # Uninstall Eclipse Che next version operator by removing subscription
 deleteEclipseCheNextSubscription() {
-  # Eclipse Che subscription is created by OpenShift CI
-  ECLIPSE_CHE_NEXT_SUBSCRIPTION_RECORD=($(oc get subscription -A | grep ${ECLIPSE_CHE_PACKAGE_NAME}))
-  ECLIPSE_CHE_NEXT_SUBSCRIPTION_NAMESPACE=$(echo ${ECLIPSE_CHE_NEXT_SUBSCRIPTION_RECORD[0]})
-  ECLIPSE_CHE_NEXT_SUBSCRIPTION_NAME=$(echo ${ECLIPSE_CHE_NEXT_SUBSCRIPTION_RECORD[1]})
-  ECLIPSE_CHE_NEXT_INSTALLED_CSV=$(oc get subscription ${ECLIPSE_CHE_NEXT_SUBSCRIPTION_NAME} -n ${ECLIPSE_CHE_NEXT_SUBSCRIPTION_NAMESPACE} -o jsonpath="{.status.installedCSV}")
+  findEclipseCheSubscription
 
   # save .spec to recreate subscription later
-  ECLIPSE_CHE_NEXT_SUBSCRIPTION_SPEC_SOURCE=$(oc get subscription ${ECLIPSE_CHE_NEXT_SUBSCRIPTION_NAME} -n ${ECLIPSE_CHE_NEXT_SUBSCRIPTION_NAMESPACE} -o "jsonpath={.spec.source}")
-  ECLIPSE_CHE_NEXT_SUBSCRIPTION_SPEC_SOURCE_NAMESPACE=$(oc get subscription ${ECLIPSE_CHE_NEXT_SUBSCRIPTION_NAME} -n ${ECLIPSE_CHE_NEXT_SUBSCRIPTION_NAMESPACE} -o "jsonpath={.spec.sourceNamespace}")
+  ECLIPSE_CHE_NEXT_SUBSCRIPTION_SPEC_SOURCE=$(oc get subscription ${ECLIPSE_CHE_SUBSCRIPTION_NAME} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE} -o "jsonpath={.spec.source}")
+  ECLIPSE_CHE_NEXT_SUBSCRIPTION_SPEC_SOURCE_NAMESPACE=$(oc get subscription ${ECLIPSE_CHE_SUBSCRIPTION_NAME} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE} -o "jsonpath={.spec.sourceNamespace}")
 
-  oc delete csv ${ECLIPSE_CHE_NEXT_INSTALLED_CSV} -n ${ECLIPSE_CHE_NEXT_SUBSCRIPTION_NAMESPACE}
-  oc delete subscription ${ECLIPSE_CHE_NEXT_SUBSCRIPTION_NAME} -n ${ECLIPSE_CHE_NEXT_SUBSCRIPTION_NAMESPACE}
+  oc delete csv ${ECLIPSE_CHE_NEXT_INSTALLED_CSV} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE}
+  oc delete subscription ${ECLIPSE_CHE_SUBSCRIPTION_NAME} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE}
 }
 
 # Install Eclipse Che next version operator by recreating subscription
@@ -46,11 +42,11 @@ createEclipseCheNextSubscription() {
   pushd "${OPERATOR_REPO}" || exit 1
 
   make create-subscription \
-    NAME=${ECLIPSE_CHE_NEXT_SUBSCRIPTION_NAME} \ # declared in common.sh
-    CHANNEL="next" \
+    NAME=${ECLIPSE_CHE_SUBSCRIPTION_NAME} \
     SOURCE=${ECLIPSE_CHE_NEXT_SUBSCRIPTION_SPEC_SOURCE} \
     SOURCE_NAMESPACE=${ECLIPSE_CHE_NEXT_SUBSCRIPTION_SPEC_SOURCE_NAMESPACE} \
-    PACKAGE_NAME=${ECLIPSE_CHE_PACKAGE_NAME} \
+    PACKAGE_NAME=${ECLIPSE_CHE_NEXT_PACKAGE_NAME} \
+    CHANNEL="next" \
     INSTALL_PLAN_APPROVAL="Auto"
 
   popd
@@ -58,13 +54,10 @@ createEclipseCheNextSubscription() {
 
 # Uninstall Eclipse Che stable version operator by removing subscription
 deleteEclipseCheStableSubscription() {
-  ECLIPSE_CHE_STABLE_SUBSCRIPTION_RECORD=($(oc get subscription -A | grep eclipse-che))
-  ECLIPSE_CHE_STABLE_SUBSCRIPTION_NAMESPACE=$(echo ${ECLIPSE_CHE_STABLE_SUBSCRIPTION_RECORD[0]})
-  ECLIPSE_CHE_STABLE_SUBSCRIPTION_NAME=$(echo ${ECLIPSE_CHE_STABLE_SUBSCRIPTION_RECORD[1]})
-  ECLIPSE_CHE_STABLE_INSTALLED_CSV=$(oc get subscription ${ECLIPSE_CHE_STABLE_SUBSCRIPTION_NAME} -n ${ECLIPSE_CHE_STABLE_SUBSCRIPTION_NAMESPACE} -o jsonpath="{.status.installedCSV}")
+  findEclipseCheSubscription
 
-  oc delete csv ${ECLIPSE_CHE_STABLE_INSTALLED_CSV} -n ${ECLIPSE_CHE_STABLE_SUBSCRIPTION_NAMESPACE}
-  oc delete subscription ${ECLIPSE_CHE_STABLE_SUBSCRIPTION_NAME} -n ${ECLIPSE_CHE_STABLE_SUBSCRIPTION_NAMESPACE}
+  oc delete csv ${ECLIPSE_CHE_NEXT_INSTALLED_CSV} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE}
+  oc delete subscription ${ECLIPSE_CHE_SUBSCRIPTION_NAME} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE}
 }
 
 runTests() {

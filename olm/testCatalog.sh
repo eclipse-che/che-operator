@@ -82,8 +82,8 @@ run() {
 
   sleep 10s
 
-  getCheClusterCRFromExistedCSV | oc apply -n "${NAMESPACE}" -f -
-  waitEclipseCheDeployed "$(getCheVersionFromExistedCSV)"
+  getCheClusterCRFromCSV | oc apply -n "${NAMESPACE}" -f -
+  waitEclipseCheDeployed "$(getCheVersionFromCSV)"
 }
 
 init "$@"
