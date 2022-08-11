@@ -2912,7 +2912,7 @@ spec:
                           show:
                             description: Instructs dashboard to show the message.
                             type: boolean
-                          warning:
+                          text:
                             description: Warning message displayed on the user dashboard.
                             type: string
                         type: object
@@ -6025,7 +6025,6 @@ spec:
             - ALL
           privileged: false
           readOnlyRootFilesystem: false
-          runAsNonRoot: true
         volumeMounts:
         - mountPath: /tmp/k8s-webhook-server/serving-certs
           name: webhook-tls-certs
