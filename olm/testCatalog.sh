@@ -57,16 +57,27 @@ usage () {
 }
 
 run() {
-  deployDevWorkspaceOperator "${CHANNEL}"
+  if [[ ${CHANNEL} == "next" ]]; then
+    make install-devworkspace CHANNEL=next
+  else
+    make install-devworkspace CHANNEL=fast
+  fi
 
   createNamespace "${NAMESPACE}"
-  createCatalogSource "${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" "${CATALOG_IMAGE}"
+
+  make create-catalogsource NAME="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" IMAGE="${CATALOG_IMAGE}"
 
   local bundles=$(getCatalogSourceBundles "${ECLIPSE_CHE_CATALOG_SOURCE_NAME}")
   fetchLatestCSVInfo "${CHANNEL}" "${bundles}"
   forcePullingOlmImages "${LATEST_CSV_BUNDLE_IMAGE}"
 
-  createSubscription "${ECLIPSE_CHE_SUBSCRIPTION_NAME}" "${ECLIPSE_CHE_PACKAGE_NAME}" "${CHANNEL}" "${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" "Manual"
+  make create-subscription \
+    NAME="${ECLIPSE_CHE_SUBSCRIPTION_NAME}" \
+    PACKAGE_NAME"${ECLIPSE_CHE_PACKAGE_NAME}" \
+    CHANNEL="${CHANNEL}" \
+    SOURCE="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" \
+    SOURCE_NAMESPACE="openshift-marketplace" \
+    INSTALL_PLAN_APPROVAL="Manual"
   approveInstallPlan "${ECLIPSE_CHE_SUBSCRIPTION_NAME}"
 
   sleep 10s

@@ -236,7 +236,7 @@ update-helmcharts: ## Update Helm Charts
 gen-deployment: SHELL := /bin/bash
 gen-deployment: manifests download-kustomize _kustomize-operator-image ## Generate Eclipse Che k8s deployment resources
 	rm -rf $(DEPLOYMENT_DIR)
-	for TARGET_PLATFORM in kubernetes; do
+	for TARGET_PLATFORM in kubernetes openshift; do
 		PLATFORM_DIR=$(DEPLOYMENT_DIR)/$${TARGET_PLATFORM}
 		OBJECTS_DIR=$${PLATFORM_DIR}/objects
 
@@ -284,39 +284,30 @@ build: generate ## Build Eclipse Che operator binary
 	go build -o bin/manager main.go
 
 run: SHELL := /bin/bash
-run: generate manifests download-kustomize genenerate-env download-devworkspace-resources  ## Run Eclipse Che operator
-	echo "[INFO] Running on $(PLATFORM)"
-	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
-
-	$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
-	$(MAKE) wait-pod-running COMPONENT=che-operator NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)
-
-	$(K8S_CLI) scale deploy che-operator -n $(ECLIPSE_CHE_NAMESPACE) --replicas=0
-	$(MAKE) store_tls_cert
-	$(MAKE) create-checluster-cr
-
+run: _install-che-operands  ## Run Eclipse Che operator
 	source $(BASH_ENV_FILE)
-
 	go run ./main.go
 
 debug: SHELL := /bin/bash
-debug: generate manifests download-kustomize genenerate-env download-devworkspace-resources ## Run and debug Eclipse Che operator
-	echo "[INFO] Running on $(PLATFORM)"
-	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
-
-	$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
-	$(MAKE) wait-pod-running COMPONENT=che-operator NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)
-
-	$(K8S_CLI) scale deploy che-operator -n $(ECLIPSE_CHE_NAMESPACE) --replicas=0
-	$(MAKE) store_tls_cert
-	$(MAKE) create-checluster-cr
-
+debug: _install-che-operands ## Run and debug Eclipse Che operator
 	source $(BASH_ENV_FILE)
-
 	# dlv has an issue with 'Ctrl-C' termination, that's why we're doing trick with detach.
 	dlv debug --listen=:2345 --headless=true --api-version=2 ./main.go -- &
 	DLV_PID=$!
 	wait $${DLV_PID}
+
+_install-che-operands: SHELL := /bin/bash
+_install-che-operands: generate manifests download-kustomize genenerate-env download-devworkspace-resources
+	echo "[INFO] Running on $(PLATFORM)"
+	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
+	[[ $(PLATFORM) == "openshift" ]] && $(MAKE) install-devworkspace CHANNEL=next
+
+	$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
+	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/component=che-operator" NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)
+
+	$(K8S_CLI) scale deploy che-operator -n $(ECLIPSE_CHE_NAMESPACE) --replicas=0
+	$(MAKE) store_tls_cert
+	$(MAKE) create-checluster-cr
 
 docker-build: ## Build Eclipse Che operator image
 	if [ "$(SKIP_TESTS)" = true ]; then
@@ -400,9 +391,25 @@ genenerate-env: ## Generates environment files to use by bash and vscode
 install-certmgr: SHELL := /bin/bash
 install-certmgr: ## Install Cert Manager v1.7.1
 	$(K8S_CLI) apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.7.1/cert-manager.yaml
-	$(MAKE) wait-pod-running COMPONENT=controller NAMESPACE=cert-manager
-	$(MAKE) wait-pod-running COMPONENT=cainjector NAMESPACE=cert-manager
-	$(MAKE) wait-pod-running COMPONENT=webhook NAMESPACE=cert-manager
+	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/component=controller" NAMESPACE=cert-manager
+	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/component=controller" NAMESPACE=cert-manager
+	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/component=webhook" NAMESPACE=cert-manager
+
+install-devworkspace: SHELL := /bin/bash
+install-devworkspace: ## Install Dev Workspace operator, supported channels: next and fast
+	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
+
+	if [[ $(CHANNEL) == "fast" ]]; then
+		IMAGE="quay.io/devfile/devworkspace-operator-index:release"
+	else
+		IMAGE="quay.io/devfile/devworkspace-operator-index:next"
+	fi
+
+	$(MAKE) create-catalogsource IMAGE="$${IMAGE}" NAME="devworkspace-operator"
+	$(MAKE) create-subscription NAME="devworkspace-operator" PACKAGE_NAME="devworkspace-operator" CHANNEL="$(CHANNEL)" SOURCE="devworkspace-operator" INSTALL_PLAN_APPROVAL="Auto"
+
+	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/name=devworkspace-controller,app.kubernetes.io/part-of=devworkspace-operator" NAMESPACE="openshift-operators"
+	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/name=devworkspace-webhook-server,app.kubernetes.io/part-of=devworkspace-operator" NAMESPACE="openshift-operators"
 
 download-devworkspace-resources: ## Downloads Dev Workspace resources
 	DEVWORKSPACE_RESOURCES=/tmp/devworkspace-operator/templates
@@ -458,13 +465,13 @@ create-checluster-cr: ## Creates CheCluster Custom Resource V2
 
 wait-pod-running: SHELL := /bin/bash
 wait-pod-running: ## Wait until pod is up and running
-	[[ -z "$(COMPONENT)" ]] && { echo [ERROR] COMPONENT not defined; exit 1; }
+	[[ -z "$(SELECTOR)" ]] && { echo [ERROR] SELECTOR not defined; exit 1; }
 	[[ -z "$(NAMESPACE)" ]] && { echo [ERROR] NAMESPACE not defined; exit 1; }
 
-	while [ $$($(K8S_CLI) get pod -l app.kubernetes.io/component=$(COMPONENT) -n $(NAMESPACE) -o go-template='{{len .items}}') -eq 0 ]; do
+	while [ $$($(K8S_CLI) get pod -l $(SELECTOR) -n $(NAMESPACE) -o go-template='{{len .items}}') -eq 0 ]; do
 		sleep 10s
 	done
-	$(K8S_CLI) wait --for=condition=ready pod -l app.kubernetes.io/component=$(COMPONENT) -n $(NAMESPACE) --timeout=120s
+	$(K8S_CLI) wait --for=condition=ready pod -l $(SELECTOR) -n $(NAMESPACE) --timeout=120s
 
 store_tls_cert: ## Store `che-operator-webhook-server-cert` secret locally
 	mkdir -p /tmp/k8s-webhook-server/serving-certs/
@@ -472,23 +479,6 @@ store_tls_cert: ## Store `che-operator-webhook-server-cert` secret locally
 	$(K8S_CLI) get secret che-operator-webhook-server-cert -n $(ECLIPSE_CHE_NAMESPACE) -o json | jq -r '.data["tls.key"]' | base64 -d > /tmp/k8s-webhook-server/serving-certs/tls.key
 
 ##@ Deployment
-install: SHELL := /bin/bash
-install: manifests download-kustomize _kustomize-operator-image ## Install Eclipse Che
-	echo "[INFO] Running on $(PLATFORM)"
-	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
-
-	$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
-	$(MAKE) wait-pod-running COMPONENT=che-operator NAMESPACE=${ECLIPSE_CHE_NAMESPACE}
-	$(MAKE) create-checluster-cr
-
-	# Printing logs
-	echo "[INFO] Waiting for Eclipse Che"
-	$(K8S_CLI) logs $$($(K8S_CLI) get pods -o json -n ${ECLIPSE_CHE_NAMESPACE} | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name') -n ${ECLIPSE_CHE_NAMESPACE} --all-containers -f
-
-uninstall: ## Uninstall Eclipse Che
-	$(K8S_CLI) patch checluster eclipse-che -n ${ECLIPSE_CHE_NAMESPACE} --type json  -p='[{"op": "remove", "path": "/metadata/finalizers"}]'
-	$(K8S_CLI) delete checluster eclipse-che -n ${ECLIPSE_CHE_NAMESPACE}
-	$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) delete -f -
 
 .PHONY: bundle
 bundle: SHELL := /bin/bash
@@ -668,6 +658,64 @@ validate-requirements: SHELL := /bin/bash
 validate-requirements: ## Check if all required packages are installed
 	command -v yq >/dev/null 2>&1 || { echo "[ERROR] yq is not installed. See https://github.com/kislyuk/yq"; exit 1; }
 	command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] skopeo is not installed."; exit 1; }
+
+create-catalogsource: SHELL := /bin/bash
+create-catalogsource: ## Creates catalog source
+	[[ -z "$(NAME)" ]] && { echo [ERROR] NAME not defined; exit 1; }
+	[[ -z "$(IMAGE)" ]] && { echo [ERROR] IMAGE not defined; exit 1; }
+
+	echo '{
+	  "apiVersion": "operators.coreos.com/v1alpha1",
+	  "kind": "CatalogSource",
+	  "metadata": {
+		"name": "$(NAME)",
+		"namespace": "openshift-marketplace"
+	  },
+	  "spec": {
+		"sourceType": "grpc",
+		"publisher": "$(PUBLISHER)",
+		"displayName": "$(DISPLAY_NAME)",
+		"image": "$(IMAGE)",
+		"updateStrategy": {
+		  "registryPoll": {
+			"interval": "15m"
+		  }
+		}
+	  }
+	}' | $(K8S_CLI) apply -f -
+
+	sleep 20s
+	$(K8S_CLI) wait --for=condition=ready pod -l "olm.catalogSource=$(NAME)" -n openshift-operators --timeout=240s
+
+create-subscription: SHELL := /bin/bash
+create-subscription: ## Creates subscription
+	[[ -z "$(NAME)" ]] && { echo [ERROR] NAME not defined; exit 1; }
+	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
+	[[ -z "$(INSTALL_PLAN_APPROVAL)" ]] && { echo [ERROR] INSTALL_PLAN_APPROVAL not defined; exit 1; }
+	[[ -z "$(PACKAGE_NAME)" ]] && { echo [ERROR] PACKAGE_NAME not defined; exit 1; }
+	[[ -z "$(SOURCE)" ]] && { echo [ERROR] SOURCE not defined; exit 1; }
+	[[ -z "$(SOURCE_NAMESPACE)" ]] && { echo [ERROR] SOURCE_NAMESPACE not defined; exit 1; }
+
+	echo '{
+		"apiVersion": "operators.coreos.com/v1alpha1",
+		"kind": "Subscription",
+		"metadata": {
+		  "name": "$(NAME)",
+		  "namespace": "openshift-operators"
+		},
+		"spec": {
+		  "channel": "$(CHANNEL)",
+		  "installPlanApproval": "${INSTALL_PLAN_APPROVAL}",
+		  "name": "$(PACKAGE_NAME)",
+		  "source": "$(SOURCE)",
+		  "sourceNamespace": "$(SOURCE_NAMESPACE)",
+		  "startingCSV": "$(STARTING_CSV)"
+		}
+	  }' | $(K8S_CLI) apply -f -
+
+	if [[ ${INSTALL_PLAN_APPROVAL} == "Manual" ]]; then
+		$(K8S_CLI) wait subscription $(NAME) -n openshift-operators --for=condition=InstallPlanPending --timeout=60s
+	fi
 
 # Set a new operator image for kustomize
 _kustomize-operator-image:

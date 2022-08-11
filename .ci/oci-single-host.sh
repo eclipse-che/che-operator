@@ -16,31 +16,24 @@
 ##########  More info about how it is configured can be found here: https://docs.ci.openshift.org/docs/how-tos/testing-operator-sdk-operators #############
 #######################################################################################################################################################
 
-set -e
-set -x
+set -ex
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
 source "${OPERATOR_REPO}/.github/bin/common.sh"
+source "${OPERATOR_REPO}/.ci/oci-common.sh"
 
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
-overrideDefaults() {
-  # CI_CHE_OPERATOR_IMAGE it is che operator image builded in openshift CI job workflow. More info about how works image dependencies in ci:https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates
-  export OPERATOR_IMAGE=${CI_CHE_OPERATOR_IMAGE}
-}
-
 runTests() {
+  # CI_CHE_OPERATOR_IMAGE it is che operator image built in openshift CI job workflow.
+  # More info about how works image dependencies in ci:https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates
+  useCustomOperatorImageInCSV "${CI_CHE_OPERATOR_IMAGE}"
+
   createNamespace "${NAMESPACE}"
-
-  useCustomOperatorImageInCSV "${OPERATOR_IMAGE}"
-
   getCheClusterCRFromExistedCSV | oc apply -n "${NAMESPACE}" -f -
   waitEclipseCheDeployed "$(getCheVersionFromExistedCSV)"
-
-  waitDevWorkspaceControllerStarted
 }
 
 initDefaults
-overrideDefaults
 runTests

@@ -11,30 +11,28 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-set -e
-set -x
+set -ex
 
 export CHE_REPO_BRANCH="main"
-
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
 source "${OPERATOR_REPO}/.github/bin/common.sh"
+source "${OPERATOR_REPO}/.ci/oci-common.sh"
 source <(curl -s https://raw.githubusercontent.com/eclipse/che/${CHE_REPO_BRANCH}/tests/devworkspace-happy-path/common.sh)
 
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
-overrideDefaults() {
-  # CI_CHE_OPERATOR_IMAGE it is che operator image builded in openshift CI job workflow. More info about how works image dependencies in ci:https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates
-  export OPERATOR_IMAGE=${CI_CHE_OPERATOR_IMAGE}
-}
+runTests() {
+  # CI_CHE_OPERATOR_IMAGE it is che operator image built in openshift CI job workflow.
+  # More info about how works image dependencies in ci:https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates
+  useCustomOperatorImageInCSV "${CI_CHE_OPERATOR_IMAGE}"
 
-deployChe() {
-  deployEclipseCheWithOperator "chectl" "openshift" ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH} "true"
+  createNamespace "${NAMESPACE}"
+  getCheClusterCRFromExistedCSV | oc apply -n "${NAMESPACE}" -f -
+  waitEclipseCheDeployed "$(getCheVersionFromExistedCSV)"
+
+  bash <(curl -s https://raw.githubusercontent.com/eclipse/che/${CHE_REPO_BRANCH}/tests/devworkspace-happy-path/remote-launch.sh)
 }
 
 initDefaults
-initTemplates
-overrideDefaults
-deployChe
-
-bash <(curl -s https://raw.githubusercontent.com/eclipse/che/${CHE_REPO_BRANCH}/tests/devworkspace-happy-path/remote-launch.sh)
+runTests

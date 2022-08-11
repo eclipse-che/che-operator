@@ -11,11 +11,11 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-set -e
-set -x
+set -ex
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
 source "${OPERATOR_REPO}/.github/bin/common.sh"
+source "${OPERATOR_REPO}/.ci/oci-common.sh"
 
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
