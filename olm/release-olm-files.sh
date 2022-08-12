@@ -57,13 +57,13 @@ fi
 
 echo "[INFO] Creating release '${RELEASE}'"
 
-NEXT_BUNDLE_PATH=$(getBundlePath "next")
+NEXT_BUNDLE_PATH=$(make bundle-path CHANNEL="next")
 
 LAST_NEXT_CSV="${NEXT_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
 lastPackageNextVersion=$(yq -r ".spec.version" "${LAST_NEXT_CSV}")
 echo "[INFO] Last package next version: ${lastPackageNextVersion}"
 
-STABLE_BUNDLE_PATH=$(getBundlePath $CHANNEL)
+STABLE_BUNDLE_PATH=$(make bundle-path CHANNEL="stable")
 RELEASE_CSV="${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
 RELEASE_CHE_CRD="${STABLE_BUNDLE_PATH}/manifests/org.eclipse.che_checlusters.yaml"
 

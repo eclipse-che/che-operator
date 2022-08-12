@@ -20,16 +20,15 @@ source "${OPERATOR_REPO}/.ci/oci-common.sh"
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
-overrideDefaults() {
-  OPERATOR_IMAGE=${CI_CHE_OPERATOR_IMAGE}
-}
-
 runTests() {
-  deployEclipseCheWithOperator "chectl" "openshift" ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH} "true"
+  # CI_CHE_OPERATOR_IMAGE it is che operator image built in openshift CI job workflow.
+  # More info about how works image dependencies in ci:https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates
+  useCustomOperatorImageInCSV "${CI_CHE_OPERATOR_IMAGE}"
+
+  make create-namespace NAMESPACE="eclipse-che"
+  getCheClusterCRFromCSV | oc apply -n "${NAMESPACE}" -f -
+  waitEclipseCheDeployed "$(getCheVersionFromCSV)"
 }
 
 initDefaults
-initTemplates
-overrideDefaults
-
 runTests

@@ -27,7 +27,7 @@ runTests() {
   # More info about how works image dependencies in ci:https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates
   useCustomOperatorImageInCSV "${CI_CHE_OPERATOR_IMAGE}"
 
-  createNamespace "${NAMESPACE}"
+  make create-namespace NAMESPACE="eclipse-che"
   getCheClusterCRFromCSV | oc apply -n "${NAMESPACE}" -f -
   waitEclipseCheDeployed "$(getCheVersionFromCSV)"
 

@@ -433,9 +433,6 @@ download-devworkspace-resources: ## Downloads Dev Workspace resources
 
 setup-checluster: create-namespace create-checluster-crd create-checluster-cr ## Setup CheCluster (creates namespace, CRD and CheCluster CR)
 
-create-namespace: ## Creates eclipse-che namespace
-	$(K8S_CLI) create namespace ${ECLIPSE_CHE_NAMESPACE} || true
-
 create-checluster-crd: SHELL := /bin/bash
 create-checluster-crd: ## Creates CheCluster Custom Resource Definition
 	if [[ $(PLATFORM) == "kubernetes" ]]; then
@@ -462,16 +459,6 @@ create-checluster-cr: ## Creates CheCluster Custom Resource V2
 		fi
 		$(K8S_CLI) apply -f $${CHECLUSTER_CR_2_APPLY} -n $(ECLIPSE_CHE_NAMESPACE)
 	fi
-
-wait-pod-running: SHELL := /bin/bash
-wait-pod-running: ## Wait until pod is up and running
-	[[ -z "$(SELECTOR)" ]] && { echo [ERROR] SELECTOR not defined; exit 1; }
-	[[ -z "$(NAMESPACE)" ]] && { echo [ERROR] NAMESPACE not defined; exit 1; }
-
-	while [ $$($(K8S_CLI) get pod -l $(SELECTOR) -n $(NAMESPACE) -o go-template='{{len .items}}') -eq 0 ]; do
-		sleep 10s
-	done
-	$(K8S_CLI) wait --for=condition=ready pod -l $(SELECTOR) -n $(NAMESPACE) --timeout=120s
 
 store_tls_cert: ## Store `che-operator-webhook-server-cert` secret locally
 	mkdir -p /tmp/k8s-webhook-server/serving-certs/
@@ -659,64 +646,6 @@ validate-requirements: ## Check if all required packages are installed
 	command -v yq >/dev/null 2>&1 || { echo "[ERROR] yq is not installed. See https://github.com/kislyuk/yq"; exit 1; }
 	command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] skopeo is not installed."; exit 1; }
 
-create-catalogsource: SHELL := /bin/bash
-create-catalogsource: ## Creates catalog source
-	[[ -z "$(NAME)" ]] && { echo [ERROR] NAME not defined; exit 1; }
-	[[ -z "$(IMAGE)" ]] && { echo [ERROR] IMAGE not defined; exit 1; }
-
-	echo '{
-	  "apiVersion": "operators.coreos.com/v1alpha1",
-	  "kind": "CatalogSource",
-	  "metadata": {
-		"name": "$(NAME)",
-		"namespace": "openshift-marketplace"
-	  },
-	  "spec": {
-		"sourceType": "grpc",
-		"publisher": "$(PUBLISHER)",
-		"displayName": "$(DISPLAY_NAME)",
-		"image": "$(IMAGE)",
-		"updateStrategy": {
-		  "registryPoll": {
-			"interval": "15m"
-		  }
-		}
-	  }
-	}' | $(K8S_CLI) apply -f -
-
-	sleep 20s
-	$(K8S_CLI) wait --for=condition=ready pod -l "olm.catalogSource=$(NAME)" -n openshift-operators --timeout=240s
-
-create-subscription: SHELL := /bin/bash
-create-subscription: ## Creates subscription
-	[[ -z "$(NAME)" ]] && { echo [ERROR] NAME not defined; exit 1; }
-	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
-	[[ -z "$(INSTALL_PLAN_APPROVAL)" ]] && { echo [ERROR] INSTALL_PLAN_APPROVAL not defined; exit 1; }
-	[[ -z "$(PACKAGE_NAME)" ]] && { echo [ERROR] PACKAGE_NAME not defined; exit 1; }
-	[[ -z "$(SOURCE)" ]] && { echo [ERROR] SOURCE not defined; exit 1; }
-	[[ -z "$(SOURCE_NAMESPACE)" ]] && { echo [ERROR] SOURCE_NAMESPACE not defined; exit 1; }
-
-	echo '{
-		"apiVersion": "operators.coreos.com/v1alpha1",
-		"kind": "Subscription",
-		"metadata": {
-		  "name": "$(NAME)",
-		  "namespace": "openshift-operators"
-		},
-		"spec": {
-		  "channel": "$(CHANNEL)",
-		  "installPlanApproval": "${INSTALL_PLAN_APPROVAL}",
-		  "name": "$(PACKAGE_NAME)",
-		  "source": "$(SOURCE)",
-		  "sourceNamespace": "$(SOURCE_NAMESPACE)",
-		  "startingCSV": "$(STARTING_CSV)"
-		}
-	  }' | $(K8S_CLI) apply -f -
-
-	if [[ ${INSTALL_PLAN_APPROVAL} == "Manual" ]]; then
-		$(K8S_CLI) wait subscription $(NAME) -n openshift-operators --for=condition=InstallPlanPending --timeout=60s
-	fi
-
 # Set a new operator image for kustomize
 _kustomize-operator-image:
 	cd config/manager
@@ -751,3 +680,86 @@ _increment-bundle-version:
 	yq -riY "(.spec.version) = \"$${NEW_NEXT_BUNDLE_VERSION}\" | (.metadata.name) = \"$(ECLIPSE_CHE_PACKAGE_NAME).v$${NEW_NEXT_BUNDLE_VERSION}\"" $${NEXT_CSV_PATH}
 
 	echo "[INFO] New next version: $${NEW_NEXT_BUNDLE_VERSION}"
+
+##@ Kubernetes tools
+
+create-catalogsource: SHELL := /bin/bash
+create-catalogsource: ## Creates catalog source
+	[[ -z "$(NAME)" ]] && { echo [ERROR] NAME not defined; exit 1; }
+	[[ -z "$(IMAGE)" ]] && { echo [ERROR] IMAGE not defined; exit 1; }
+
+	echo '{
+	  "apiVersion": "operators.coreos.com/v1alpha1",
+	  "kind": "CatalogSource",
+	  "metadata": {
+		"name": "$(NAME)",
+		"namespace": "openshift-marketplace"
+	  },
+	  "spec": {
+		"sourceType": "grpc",
+		"publisher": "$(PUBLISHER)",
+		"displayName": "$(DISPLAY_NAME)",
+		"image": "$(IMAGE)",
+		"updateStrategy": {
+		  "registryPoll": {
+			"interval": "15m"
+		  }
+		}
+	  }
+	}' | $(K8S_CLI) apply -f -
+
+	sleep 20s
+	$(K8S_CLI) wait --for=condition=ready pod -l "olm.catalogSource=$(NAME)" -n openshift-marketplace --timeout=240s
+
+create-subscription: SHELL := /bin/bash
+create-subscription: ## Creates subscription
+	[[ -z "$(NAME)" ]] && { echo [ERROR] NAME not defined; exit 1; }
+	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
+	[[ -z "$(INSTALL_PLAN_APPROVAL)" ]] && { echo [ERROR] INSTALL_PLAN_APPROVAL not defined; exit 1; }
+	[[ -z "$(PACKAGE_NAME)" ]] && { echo [ERROR] PACKAGE_NAME not defined; exit 1; }
+	[[ -z "$(SOURCE)" ]] && { echo [ERROR] SOURCE not defined; exit 1; }
+	[[ -z "$(SOURCE_NAMESPACE)" ]] && DEFINED_SOURCE_NAMESPACE="openshift-marketplace" || DEFINED_SOURCE_NAMESPACE=$(SOURCE_NAMESPACE)
+
+	echo '{
+		"apiVersion": "operators.coreos.com/v1alpha1",
+		"kind": "Subscription",
+		"metadata": {
+		  "name": "$(NAME)",
+		  "namespace": "openshift-operators"
+		},
+		"spec": {
+		  "channel": "$(CHANNEL)",
+		  "installPlanApproval": "$(INSTALL_PLAN_APPROVAL)",
+		  "name": "$(PACKAGE_NAME)",
+		  "source": "$(SOURCE)",
+		  "sourceNamespace": "'$${DEFINED_SOURCE_NAMESPACE}'",
+		  "startingCSV": "$(STARTING_CSV)"
+		}
+	  }' | $(K8S_CLI) apply -f -
+
+	if [[ ${INSTALL_PLAN_APPROVAL} == "Manual" ]]; then
+		$(K8S_CLI) wait subscription $(NAME) -n openshift-operators --for=condition=InstallPlanPending --timeout=60s
+	fi
+
+approve-installplan: SHELL := /bin/bash
+approve-installplan: ## Approves install plan
+	[[ -z "$(SUBSCRIPTION_NAME)" ]] && { echo [ERROR] SUBSCRIPTION_NAME not defined; exit 1; }
+
+	INSTALL_PLAN_NAME=$$($(K8S_CLI) get subscription/$(SUBSCRIPTION_NAME) -n openshift-operators -o jsonpath='{.status.installplan.name}')
+	$(K8S_CLI) patch installplan $${INSTALL_PLAN_NAME} -n openshift-operators --type=merge -p '{"spec":{"approved":true}}'
+	$(K8S_CLI) wait installplan $${INSTALL_PLAN_NAME} -n openshift-operators --for=condition=Installed --timeout=240s
+
+create-namespace: SHELL := /bin/bash
+create-namespace: ## Creates namespace
+	[[ -z "$(NAMESPACE)" ]] && DEFINED_NAMESPACE=$(ECLIPSE_CHE_NAMESPACE) || DEFINED_NAMESPACE=$(NAMESPACE)
+	$(K8S_CLI) create namespace $${DEFINED_NAMESPACE} || true
+
+wait-pod-running: SHELL := /bin/bash
+wait-pod-running: ## Wait until pod is up and running
+	[[ -z "$(SELECTOR)" ]] && { echo [ERROR] SELECTOR not defined; exit 1; }
+	[[ -z "$(NAMESPACE)" ]] && { echo [ERROR] NAMESPACE not defined; exit 1; }
+
+	while [ $$($(K8S_CLI) get pod -l $(SELECTOR) -n $(NAMESPACE) -o go-template='{{len .items}}') -eq 0 ]; do
+		sleep 10s
+	done
+	$(K8S_CLI) wait --for=condition=ready pod -l $(SELECTOR) -n $(NAMESPACE) --timeout=120s

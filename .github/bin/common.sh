@@ -338,96 +338,10 @@ waitDevWorkspaceControllerStarted() {
   exit 1
 }
 
-createNamespace() {
-  namespace="${1}"
-
-  echo "[INFO] Create namespace '${namespace}'"
-
-  kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: ${namespace}
-EOF
-}
-
-approveInstallPlan() {
-  local name="${1}"
-
-  echo "[INFO] Approve install plan '${name}'"
-
-  local installPlan=$(kubectl get subscription/${name} -n openshift-operators -o jsonpath='{.status.installplan.name}')
-  kubectl patch installplan/${installPlan} -n openshift-operators --type=merge -p '{"spec":{"approved":true}}'
-  kubectl wait installplan/${installPlan} -n openshift-operators --for=condition=Installed --timeout=240s
-}
-
-getCatalogSourceBundles() {
-  local name=${1}
-  local catalogService=$(kubectl get service "${name}" -n openshift-operators -o yaml)
-  local catalogIP=$(echo "${catalogService}" | yq -r ".spec.clusterIP")
-  local catalogPort=$(echo "${catalogService}" | yq -r ".spec.ports[0].targetPort")
-
-  LIST_BUNDLES=$(kubectl run grpcurl-query -n openshift-operators \
-  --rm=true \
-  --restart=Never \
-  --attach=true \
-  --image=docker.io/fullstorydev/grpcurl:v1.7.0 \
-  --  -plaintext "${catalogIP}:${catalogPort}" api.Registry.ListBundles
-  )
-
-  echo "${LIST_BUNDLES}" | head -n -1
-}
-
-fetchPreviousCSVInfo() {
-  local channel="${1}"
-  local bundles="${2}"
-
-  previousBundle=$(echo "${bundles}" | jq -s '.' | jq ". | map(. | select(.channelName == \"${channel}\"))" | yq -r '. |=sort_by(.csvName) | .[length - 2]')
-  export PREVIOUS_CSV_NAME=$(echo "${previousBundle}" | yq -r ".csvName")
-  if [ "${PREVIOUS_CSV_NAME}" == "null" ]; then
-    echo "[ERROR] Catalog source image hasn't got previous bundle."
-    exit 1
-  fi
-  export PREVIOUS_CSV_BUNDLE_IMAGE=$(echo "${previousBundle}" | yq -r ".bundlePath")
-}
-
-fetchLatestCSVInfo() {
-  local channel="${1}"
-  local bundles="${2}"
-
-  latestBundle=$(echo "${bundles}" | jq -s '.' | jq ". | map(. | select(.channelName == \"${channel}\"))" | yq -r '. |=sort_by(.csvName) | .[length - 1]')
-  export LATEST_CSV_NAME=$(echo "${latestBundle}" | yq -r ".csvName")
-  export LATEST_CSV_BUNDLE_IMAGE=$(echo "${latestBundle}" | yq -r ".bundlePath")
-}
-
-# HACK. Unfortunately catalog source image bundle job has image pull policy "IfNotPresent".
-# It makes troubles for test scripts, because image bundle could be outdated with
-# such pull policy. That's why we launch job to fource image bundle pulling before Che installation.
-forcePullingOlmImages() {
-  image="${1}"
-
-  echo "[INFO] Pulling image '${image}'"
-
-  yq -r "(.spec.template.spec.containers[0].image) = \"${image}\"" "${OPERATOR_REPO}/olm/force-pulling-olm-images-job.yaml" | kubectl apply -f - -n openshift-operators
-
-  kubectl wait --for=condition=complete --timeout=30s job/force-pulling-olm-images-job -n openshift-operators
-  kubectl delete job/force-pulling-olm-images-job -n openshift-operators
-}
-
 installchectl() {
   local version=$1
   curl -L https://github.com/che-incubator/chectl/releases/download/${version}/chectl-linux-x64.tar.gz -o /tmp/chectl-${version}.tar.gz
   rm -rf /tmp/chectl-${version}
   mkdir /tmp/chectl-${version}
   tar -xvzf /tmp/chectl-${version}.tar.gz -C /tmp/chectl-${version}
-}
-
-getBundlePath() {
-  channel="${1}"
-  if [ -z "${channel}" ]; then
-    echo "[ERROR] 'channel' is not specified"
-    exit 1
-  fi
-
-  echo "${OPERATOR_REPO}/bundle/${channel}/${ECLIPSE_CHE_PACKAGE_NAME}"
 }
