@@ -11,12 +11,7 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-# exit immediately when a command fails
-set -e
-# only exit with zero if all commands of the pipeline exit successfully
-set -o pipefail
-# error on unset variables
-set -u
+set -ex
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
 source "${OPERATOR_REPO}/.github/bin/common.sh"

@@ -87,7 +87,7 @@ Where:
 If you have changed Che operator deployment, roles, cluster roles, CRD or CR then you must use `--templates` flag to point chectl to modified Che operator templates. Use make command to prepare chectl templates folder:
 
 ```bash
-$ make gen-chectl-tmpl TARGET=<SOME_PATH>
+$ make gen-chectl-tmpl TEMPLATES=<SOME_PATH>
 ```
 
 Execute chectl:

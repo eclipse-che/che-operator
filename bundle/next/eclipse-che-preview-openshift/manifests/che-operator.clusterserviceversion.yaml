@@ -76,7 +76,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.52.0-644.next
+  name: eclipse-che-preview-openshift.v7.52.0-647.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1138,8 +1138,6 @@ spec:
                         value: "1"
                       - name: ADD_COMPONENT_READINESS_INIT_CONTAINERS
                         value: "false"
-                      - name: NO_OPT_DWO
-                        value: 'true'
                     image: quay.io/eclipse/che-operator:next
                     imagePullPolicy: Always
                     livenessProbe:
@@ -1391,7 +1389,7 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.52.0-644.next
+  version: 7.52.0-647.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1

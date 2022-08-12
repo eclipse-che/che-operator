@@ -20,6 +20,7 @@ if [ -z "${OPERATOR_REPO}" ]; then
   OPERATOR_REPO=$(dirname "$(dirname "$SCRIPT")")
 fi
 source "${OPERATOR_REPO}/.github/bin/common.sh"
+source "${OPERATOR_REPO}/.ci/oci-common.sh"
 
 init() {
   FORCE="false"
@@ -42,7 +43,7 @@ init() {
 
   if [[ ! ${CHANNEL} ]] || [[ ! ${CATALOG_IMAGE} ]]; then usage; exit 1; fi
 
-  BUNDLE_DIR=$(getBundlePath "${CHANNEL}")
+  BUNDLE_DIR=$(make bundle-path CHANNEL="${CHANNEL}")
   OPM_BUNDLE_MANIFESTS_DIR="${BUNDLE_DIR}/manifests"
   CSV="${OPM_BUNDLE_MANIFESTS_DIR}/che-operator.clusterserviceversion.yaml"
   CSV_NAME=$(yq -r ".metadata.name" "${CSV}")

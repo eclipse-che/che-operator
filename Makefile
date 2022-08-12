@@ -258,91 +258,56 @@ gen-deployment: manifests download-kustomize _kustomize-operator-image ## Genera
 
 gen-chectl-tmpl: SHELL := /bin/bash
 gen-chectl-tmpl: ## Generate Eclipse Che k8s deployment resources used by chectl
-	[[ -z "$(TARGET)" ]] && { echo [ERROR] TARGET not defined; exit 1; }
-	[[ -z "$(SOURCE)" ]] && src=$(PROJECT_DIR) || src=$(SOURCE)
+	[[ -z "$(TEMPLATES)" ]] && { echo [ERROR] TARGET not defined; exit 1; }
+	[[ -z "$(SOURCE_PROJECT)" ]] && src=$(PROJECT_DIR) || src=$(SOURCE_PROJECT)
 
-	dst=$(TARGET)/che-operator && rm -rf $${dst}
+	dst="$(TEMPLATES)/che-operator/kubernetes" && rm -rf $${dst}
 
-	if [[ -d "$${src}/deploy/deployment" ]]; then
-  		# CheCluster API v2
-		src="$${src}/deploy/deployment"
+	src="$${src}/deploy/deployment/kubernetes/objects"
+	mkdir -p "$${dst}/crds"
 
-		for TARGET_PLATFORM in kubernetes openshift; do
-			mkdir -p "$${dst}/$${TARGET_PLATFORM}/crds"
+	cp $${src}/che-operator.Deployment.yaml $${dst}/operator.yaml
+	cp $${src}/checlusters.org.eclipse.che.CustomResourceDefinition.yaml $${dst}/crds/org.eclipse.che_checlusters.yaml
+	cp $${src}/../org_v2_checluster.yaml $${dst}/crds/org_checluster_cr.yaml
+	cp $${src}/che-operator.ServiceAccount.yaml $${dst}/service_account.yaml
+	cp $${src}/che-operator.ClusterRoleBinding.yaml $${dst}/cluster_rolebinding.yaml
+	cp $${src}/che-operator.ClusterRole.yaml $${dst}/cluster_role.yaml
+	cp $${src}/che-operator.RoleBinding.yaml $${dst}/role_binding.yaml
+	cp $${src}/che-operator.Role.yaml $${dst}/role.yaml
+	cp $${src}/che-operator-service.Service.yaml $${dst}/webhook-service.yaml
+	cp $${src}/che-operator-serving-cert.Certificate.yaml $${dst}/serving-cert.yaml
+	cp $${src}/che-operator-selfsigned-issuer.Issuer.yaml $${dst}/selfsigned-issuer.yaml
 
-			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.Deployment.yaml $${dst}/$${TARGET_PLATFORM}/operator.yaml
-
-			cp $${src}/$${TARGET_PLATFORM}/objects/checlusters.org.eclipse.che.CustomResourceDefinition.yaml $${dst}/$${TARGET_PLATFORM}/crds/org.eclipse.che_checlusters.yaml
-			cp $${src}/$${TARGET_PLATFORM}/org_v2_checluster.yaml $${dst}/$${TARGET_PLATFORM}/crds/org_checluster_cr.yaml
-
-			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.ServiceAccount.yaml $${dst}/$${TARGET_PLATFORM}/service_account.yaml
-			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.ClusterRoleBinding.yaml $${dst}/$${TARGET_PLATFORM}/cluster_rolebinding.yaml
-			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.ClusterRole.yaml $${dst}/$${TARGET_PLATFORM}/cluster_role.yaml
-			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.RoleBinding.yaml $${dst}/$${TARGET_PLATFORM}/role_binding.yaml
-			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.Role.yaml $${dst}/$${TARGET_PLATFORM}/role.yaml
-
-			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator-service.Service.yaml $${dst}/$${TARGET_PLATFORM}/webhook-service.yaml
-
-			if [[ $${TARGET_PLATFORM} == "kubernetes" ]]; then
-				cp $${src}/$${TARGET_PLATFORM}/objects/che-operator-serving-cert.Certificate.yaml $${dst}/$${TARGET_PLATFORM}/serving-cert.yaml
-				cp $${src}/$${TARGET_PLATFORM}/objects/che-operator-selfsigned-issuer.Issuer.yaml $${dst}/$${TARGET_PLATFORM}/selfsigned-issuer.yaml
-			fi
-		done
-	else
-		# CheCluster API v1
-		mkdir -p $${dst}/crds
-
-		cp -f $${src}/config/manager/manager.yaml $${dst}/operator.yaml
-
-		cp -f $${src}/config/crd/bases/org_v1_che_crd.yaml $${dst}/crds
-		cp -f $${src}/config/samples/org.eclipse.che_v1_checluster.yaml $${dst}/crds/org_v1_che_cr.yaml
-
-		cp -f $${src}/config/rbac/role.yaml $${dst}
-		cp -f $${src}/config/rbac/role_binding.yaml $${dst}
-		cp -f $${src}/config/rbac/cluster_role.yaml $${dst}
-		cp -f $${src}/config/rbac/cluster_rolebinding.yaml $${dst}
-		cp -f $${src}/config/rbac/service_account.yaml $${dst}
-	fi
-
-	echo "[INFO] Generated chectl templates into $${dst}"
+	echo "[INFO] Generated chectl templates into $(TEMPLATES)"
 
 build: generate ## Build Eclipse Che operator binary
 	go build -o bin/manager main.go
 
 run: SHELL := /bin/bash
-run: generate manifests download-kustomize genenerate-env download-devworkspace-resources  ## Run Eclipse Che operator
-	echo "[INFO] Running on $(PLATFORM)"
-	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
-
-	$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
-	$(MAKE) wait-pod-running COMPONENT=che-operator NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)
-
-	$(K8S_CLI) scale deploy che-operator -n $(ECLIPSE_CHE_NAMESPACE) --replicas=0
-	$(MAKE) store_tls_cert
-	$(MAKE) create-checluster-cr
-
+run: _install-che-operands  ## Run Eclipse Che operator
 	source $(BASH_ENV_FILE)
-
 	go run ./main.go
 
 debug: SHELL := /bin/bash
-debug: generate manifests download-kustomize genenerate-env download-devworkspace-resources ## Run and debug Eclipse Che operator
-	echo "[INFO] Running on $(PLATFORM)"
-	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
-
-	$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
-	$(MAKE) wait-pod-running COMPONENT=che-operator NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)
-
-	$(K8S_CLI) scale deploy che-operator -n $(ECLIPSE_CHE_NAMESPACE) --replicas=0
-	$(MAKE) store_tls_cert
-	$(MAKE) create-checluster-cr
-
+debug: _install-che-operands ## Run and debug Eclipse Che operator
 	source $(BASH_ENV_FILE)
-
 	# dlv has an issue with 'Ctrl-C' termination, that's why we're doing trick with detach.
 	dlv debug --listen=:2345 --headless=true --api-version=2 ./main.go -- &
 	DLV_PID=$!
 	wait $${DLV_PID}
+
+_install-che-operands: SHELL := /bin/bash
+_install-che-operands: generate manifests download-kustomize genenerate-env download-devworkspace-resources
+	echo "[INFO] Running on $(PLATFORM)"
+	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
+	[[ $(PLATFORM) == "openshift" ]] && $(MAKE) install-devworkspace CHANNEL=next
+
+	$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
+	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/component=che-operator" NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)
+
+	$(K8S_CLI) scale deploy che-operator -n $(ECLIPSE_CHE_NAMESPACE) --replicas=0
+	$(MAKE) store_tls_cert
+	$(MAKE) create-checluster-cr
 
 docker-build: ## Build Eclipse Che operator image
 	if [ "$(SKIP_TESTS)" = true ]; then
@@ -426,9 +391,25 @@ genenerate-env: ## Generates environment files to use by bash and vscode
 install-certmgr: SHELL := /bin/bash
 install-certmgr: ## Install Cert Manager v1.7.1
 	$(K8S_CLI) apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.7.1/cert-manager.yaml
-	$(MAKE) wait-pod-running COMPONENT=controller NAMESPACE=cert-manager
-	$(MAKE) wait-pod-running COMPONENT=cainjector NAMESPACE=cert-manager
-	$(MAKE) wait-pod-running COMPONENT=webhook NAMESPACE=cert-manager
+	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/component=controller" NAMESPACE=cert-manager
+	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/component=controller" NAMESPACE=cert-manager
+	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/component=webhook" NAMESPACE=cert-manager
+
+install-devworkspace: SHELL := /bin/bash
+install-devworkspace: ## Install Dev Workspace operator, supported channels: next and fast
+	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
+
+	if [[ $(CHANNEL) == "fast" ]]; then
+		IMAGE="quay.io/devfile/devworkspace-operator-index:release"
+	else
+		IMAGE="quay.io/devfile/devworkspace-operator-index:next"
+	fi
+
+	$(MAKE) create-catalogsource IMAGE="$${IMAGE}" NAME="devworkspace-operator"
+	$(MAKE) create-subscription NAME="devworkspace-operator" PACKAGE_NAME="devworkspace-operator" CHANNEL="$(CHANNEL)" SOURCE="devworkspace-operator" INSTALL_PLAN_APPROVAL="Auto"
+
+	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/name=devworkspace-controller,app.kubernetes.io/part-of=devworkspace-operator" NAMESPACE="openshift-operators"
+	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/name=devworkspace-webhook-server,app.kubernetes.io/part-of=devworkspace-operator" NAMESPACE="openshift-operators"
 
 download-devworkspace-resources: ## Downloads Dev Workspace resources
 	DEVWORKSPACE_RESOURCES=/tmp/devworkspace-operator/templates
@@ -451,9 +432,6 @@ download-devworkspace-resources: ## Downloads Dev Workspace resources
 	echo "[INFO] Gateway resources downloaded into  $${GATEWAY_RESOURCES}"
 
 setup-checluster: create-namespace create-checluster-crd create-checluster-cr ## Setup CheCluster (creates namespace, CRD and CheCluster CR)
-
-create-namespace: ## Creates eclipse-che namespace
-	$(K8S_CLI) create namespace ${ECLIPSE_CHE_NAMESPACE} || true
 
 create-checluster-crd: SHELL := /bin/bash
 create-checluster-crd: ## Creates CheCluster Custom Resource Definition
@@ -482,39 +460,12 @@ create-checluster-cr: ## Creates CheCluster Custom Resource V2
 		$(K8S_CLI) apply -f $${CHECLUSTER_CR_2_APPLY} -n $(ECLIPSE_CHE_NAMESPACE)
 	fi
 
-wait-pod-running: SHELL := /bin/bash
-wait-pod-running: ## Wait until pod is up and running
-	[[ -z "$(COMPONENT)" ]] && { echo [ERROR] COMPONENT not defined; exit 1; }
-	[[ -z "$(NAMESPACE)" ]] && { echo [ERROR] NAMESPACE not defined; exit 1; }
-
-	while [ $$($(K8S_CLI) get pod -l app.kubernetes.io/component=$(COMPONENT) -n $(NAMESPACE) -o go-template='{{len .items}}') -eq 0 ]; do
-		sleep 10s
-	done
-	$(K8S_CLI) wait --for=condition=ready pod -l app.kubernetes.io/component=$(COMPONENT) -n $(NAMESPACE) --timeout=120s
-
 store_tls_cert: ## Store `che-operator-webhook-server-cert` secret locally
 	mkdir -p /tmp/k8s-webhook-server/serving-certs/
 	$(K8S_CLI) get secret che-operator-webhook-server-cert -n $(ECLIPSE_CHE_NAMESPACE) -o json | jq -r '.data["tls.crt"]' | base64 -d > /tmp/k8s-webhook-server/serving-certs/tls.crt
 	$(K8S_CLI) get secret che-operator-webhook-server-cert -n $(ECLIPSE_CHE_NAMESPACE) -o json | jq -r '.data["tls.key"]' | base64 -d > /tmp/k8s-webhook-server/serving-certs/tls.key
 
 ##@ Deployment
-install: SHELL := /bin/bash
-install: manifests download-kustomize _kustomize-operator-image ## Install Eclipse Che
-	echo "[INFO] Running on $(PLATFORM)"
-	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
-
-	$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
-	$(MAKE) wait-pod-running COMPONENT=che-operator NAMESPACE=${ECLIPSE_CHE_NAMESPACE}
-	$(MAKE) create-checluster-cr
-
-	# Printing logs
-	echo "[INFO] Waiting for Eclipse Che"
-	$(K8S_CLI) logs $$($(K8S_CLI) get pods -o json -n ${ECLIPSE_CHE_NAMESPACE} | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name') -n ${ECLIPSE_CHE_NAMESPACE} --all-containers -f
-
-uninstall: ## Uninstall Eclipse Che
-	$(K8S_CLI) patch checluster eclipse-che -n ${ECLIPSE_CHE_NAMESPACE} --type json  -p='[{"op": "remove", "path": "/metadata/finalizers"}]'
-	$(K8S_CLI) delete checluster eclipse-che -n ${ECLIPSE_CHE_NAMESPACE}
-	$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) delete -f -
 
 .PHONY: bundle
 bundle: SHELL := /bin/bash
@@ -582,9 +533,6 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 	# Update image
 	yq -riY '.metadata.annotations.containerImage = "'$(IMG)'"' $${CSV_PATH}
 	yq -riY '.spec.install.spec.deployments[0].spec.template.spec.containers[0].image = "'$(IMG)'"' $${CSV_PATH}
-
-	# Add No Opt DWO environment variable
-	yq -riY '.spec.install.spec.deployments[0].spec.template.spec.containers[0].env += [{"name": "NO_OPT_DWO", "value": "true"}]' "$${CSV_PATH}"
 
 	# Format file
 	yq -riY "." "$${BUNDLE_PATH}/manifests/org.eclipse.che_checlusters.yaml"
@@ -732,3 +680,86 @@ _increment-bundle-version:
 	yq -riY "(.spec.version) = \"$${NEW_NEXT_BUNDLE_VERSION}\" | (.metadata.name) = \"$(ECLIPSE_CHE_PACKAGE_NAME).v$${NEW_NEXT_BUNDLE_VERSION}\"" $${NEXT_CSV_PATH}
 
 	echo "[INFO] New next version: $${NEW_NEXT_BUNDLE_VERSION}"
+
+##@ Kubernetes tools
+
+create-catalogsource: SHELL := /bin/bash
+create-catalogsource: ## Creates catalog source
+	[[ -z "$(NAME)" ]] && { echo [ERROR] NAME not defined; exit 1; }
+	[[ -z "$(IMAGE)" ]] && { echo [ERROR] IMAGE not defined; exit 1; }
+
+	echo '{
+	  "apiVersion": "operators.coreos.com/v1alpha1",
+	  "kind": "CatalogSource",
+	  "metadata": {
+		"name": "$(NAME)",
+		"namespace": "openshift-marketplace"
+	  },
+	  "spec": {
+		"sourceType": "grpc",
+		"publisher": "$(PUBLISHER)",
+		"displayName": "$(DISPLAY_NAME)",
+		"image": "$(IMAGE)",
+		"updateStrategy": {
+		  "registryPoll": {
+			"interval": "15m"
+		  }
+		}
+	  }
+	}' | $(K8S_CLI) apply -f -
+
+	sleep 20s
+	$(K8S_CLI) wait --for=condition=ready pod -l "olm.catalogSource=$(NAME)" -n openshift-marketplace --timeout=240s
+
+create-subscription: SHELL := /bin/bash
+create-subscription: ## Creates subscription
+	[[ -z "$(NAME)" ]] && { echo [ERROR] NAME not defined; exit 1; }
+	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
+	[[ -z "$(INSTALL_PLAN_APPROVAL)" ]] && { echo [ERROR] INSTALL_PLAN_APPROVAL not defined; exit 1; }
+	[[ -z "$(PACKAGE_NAME)" ]] && { echo [ERROR] PACKAGE_NAME not defined; exit 1; }
+	[[ -z "$(SOURCE)" ]] && { echo [ERROR] SOURCE not defined; exit 1; }
+	[[ -z "$(SOURCE_NAMESPACE)" ]] && DEFINED_SOURCE_NAMESPACE="openshift-marketplace" || DEFINED_SOURCE_NAMESPACE=$(SOURCE_NAMESPACE)
+
+	echo '{
+		"apiVersion": "operators.coreos.com/v1alpha1",
+		"kind": "Subscription",
+		"metadata": {
+		  "name": "$(NAME)",
+		  "namespace": "openshift-operators"
+		},
+		"spec": {
+		  "channel": "$(CHANNEL)",
+		  "installPlanApproval": "$(INSTALL_PLAN_APPROVAL)",
+		  "name": "$(PACKAGE_NAME)",
+		  "source": "$(SOURCE)",
+		  "sourceNamespace": "'$${DEFINED_SOURCE_NAMESPACE}'",
+		  "startingCSV": "$(STARTING_CSV)"
+		}
+	  }' | $(K8S_CLI) apply -f -
+
+	if [[ ${INSTALL_PLAN_APPROVAL} == "Manual" ]]; then
+		$(K8S_CLI) wait subscription $(NAME) -n openshift-operators --for=condition=InstallPlanPending --timeout=60s
+	fi
+
+approve-installplan: SHELL := /bin/bash
+approve-installplan: ## Approves install plan
+	[[ -z "$(SUBSCRIPTION_NAME)" ]] && { echo [ERROR] SUBSCRIPTION_NAME not defined; exit 1; }
+
+	INSTALL_PLAN_NAME=$$($(K8S_CLI) get subscription/$(SUBSCRIPTION_NAME) -n openshift-operators -o jsonpath='{.status.installplan.name}')
+	$(K8S_CLI) patch installplan $${INSTALL_PLAN_NAME} -n openshift-operators --type=merge -p '{"spec":{"approved":true}}'
+	$(K8S_CLI) wait installplan $${INSTALL_PLAN_NAME} -n openshift-operators --for=condition=Installed --timeout=240s
+
+create-namespace: SHELL := /bin/bash
+create-namespace: ## Creates namespace
+	[[ -z "$(NAMESPACE)" ]] && DEFINED_NAMESPACE=$(ECLIPSE_CHE_NAMESPACE) || DEFINED_NAMESPACE=$(NAMESPACE)
+	$(K8S_CLI) create namespace $${DEFINED_NAMESPACE} || true
+
+wait-pod-running: SHELL := /bin/bash
+wait-pod-running: ## Wait until pod is up and running
+	[[ -z "$(SELECTOR)" ]] && { echo [ERROR] SELECTOR not defined; exit 1; }
+	[[ -z "$(NAMESPACE)" ]] && { echo [ERROR] NAMESPACE not defined; exit 1; }
+
+	while [ $$($(K8S_CLI) get pod -l $(SELECTOR) -n $(NAMESPACE) -o go-template='{{len .items}}') -eq 0 ]; do
+		sleep 10s
+	done
+	$(K8S_CLI) wait --for=condition=ready pod -l $(SELECTOR) -n $(NAMESPACE) --timeout=120s

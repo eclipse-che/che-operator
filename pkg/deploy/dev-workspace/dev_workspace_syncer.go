@@ -15,7 +15,6 @@ import (
 	"context"
 	"strings"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -33,8 +32,7 @@ import (
 )
 
 const (
-	OpenshiftDevWorkspaceTemplatesPath  = "/tmp/devworkspace-operator/templates/deployment/openshift/objects"
-	KubernetesDevWorkspaceTemplatesPath = "/tmp/devworkspace-operator/templates/deployment/kubernetes/objects"
+	kubernetesDevWorkspaceTemplatesPath = "/tmp/devworkspace-operator/templates/deployment/kubernetes/objects"
 )
 
 var (
@@ -62,115 +60,109 @@ var (
 )
 
 func syncDwServiceAccount(deployContext *chetypes.DeployContext) (bool, error) {
-	path := devWorkspaceTemplatesPath() + "/devworkspace-controller-serviceaccount.ServiceAccount.yaml"
+	path := kubernetesDevWorkspaceTemplatesPath + "/devworkspace-controller-serviceaccount.ServiceAccount.yaml"
 	return readAndSyncObject(deployContext, path, &corev1.ServiceAccount{}, DevWorkspaceNamespace)
 }
 
 func syncDwService(deployContext *chetypes.DeployContext) (bool, error) {
-	path := devWorkspaceTemplatesPath() + "/devworkspace-controller-manager-service.Service.yaml"
+	path := kubernetesDevWorkspaceTemplatesPath + "/devworkspace-controller-manager-service.Service.yaml"
 	return readAndSyncObject(deployContext, path, &corev1.Service{}, DevWorkspaceNamespace)
 }
 
 func syncDwMetricService(deployContext *chetypes.DeployContext) (bool, error) {
-	filePath := devWorkspaceTemplatesPath() + "/devworkspace-controller-metrics.Service.yaml"
+	filePath := kubernetesDevWorkspaceTemplatesPath + "/devworkspace-controller-metrics.Service.yaml"
 	return readAndSyncObject(deployContext, filePath, &corev1.Service{}, DevWorkspaceNamespace)
 }
 
 func syncDwRole(deployContext *chetypes.DeployContext) (bool, error) {
-	path := devWorkspaceTemplatesPath() + "/devworkspace-controller-leader-election-role.Role.yaml"
+	path := kubernetesDevWorkspaceTemplatesPath + "/devworkspace-controller-leader-election-role.Role.yaml"
 	return readAndSyncObject(deployContext, path, &rbacv1.Role{}, DevWorkspaceNamespace)
 }
 
 func syncDwRoleBinding(deployContext *chetypes.DeployContext) (bool, error) {
-	path := devWorkspaceTemplatesPath() + "/devworkspace-controller-leader-election-rolebinding.RoleBinding.yaml"
+	path := kubernetesDevWorkspaceTemplatesPath + "/devworkspace-controller-leader-election-rolebinding.RoleBinding.yaml"
 	return readAndSyncObject(deployContext, path, &rbacv1.RoleBinding{}, DevWorkspaceNamespace)
 }
 
 func syncDwClusterRoleBinding(deployContext *chetypes.DeployContext) (bool, error) {
-	path := devWorkspaceTemplatesPath() + "/devworkspace-controller-rolebinding.ClusterRoleBinding.yaml"
+	path := kubernetesDevWorkspaceTemplatesPath + "/devworkspace-controller-rolebinding.ClusterRoleBinding.yaml"
 	return readAndSyncObject(deployContext, path, &rbacv1.ClusterRoleBinding{}, "")
 }
 
 func syncDwProxyClusterRoleBinding(deployContext *chetypes.DeployContext) (bool, error) {
-	path := devWorkspaceTemplatesPath() + "/devworkspace-controller-proxy-rolebinding.ClusterRoleBinding.yaml"
+	path := kubernetesDevWorkspaceTemplatesPath + "/devworkspace-controller-proxy-rolebinding.ClusterRoleBinding.yaml"
 	return readAndSyncObject(deployContext, path, &rbacv1.ClusterRoleBinding{}, "")
 }
 
 func syncDwClusterRole(deployContext *chetypes.DeployContext) (bool, error) {
-	path := devWorkspaceTemplatesPath() + "/devworkspace-controller-role.ClusterRole.yaml"
+	path := kubernetesDevWorkspaceTemplatesPath + "/devworkspace-controller-role.ClusterRole.yaml"
 	return readAndSyncObject(deployContext, path, &rbacv1.ClusterRole{}, "")
 }
 
 func syncDwMetricsClusterRole(deployContext *chetypes.DeployContext) (bool, error) {
-	path := devWorkspaceTemplatesPath() + "/devworkspace-controller-metrics-reader.ClusterRole.yaml"
+	path := kubernetesDevWorkspaceTemplatesPath + "/devworkspace-controller-metrics-reader.ClusterRole.yaml"
 	return readAndSyncObject(deployContext, path, &rbacv1.ClusterRole{}, "")
 }
 
 func syncDwProxyClusterRole(deployContext *chetypes.DeployContext) (bool, error) {
-	path := devWorkspaceTemplatesPath() + "/devworkspace-controller-proxy-role.ClusterRole.yaml"
+	path := kubernetesDevWorkspaceTemplatesPath + "/devworkspace-controller-proxy-role.ClusterRole.yaml"
 	return readAndSyncObject(deployContext, path, &rbacv1.ClusterRole{}, "")
 }
 
 func syncDwViewWorkspacesClusterRole(deployContext *chetypes.DeployContext) (bool, error) {
-	path := devWorkspaceTemplatesPath() + "/devworkspace-controller-view-workspaces.ClusterRole.yaml"
+	path := kubernetesDevWorkspaceTemplatesPath + "/devworkspace-controller-view-workspaces.ClusterRole.yaml"
 	return readAndSyncObject(deployContext, path, &rbacv1.ClusterRole{}, "")
 }
 
 func syncDwEditWorkspacesClusterRole(deployContext *chetypes.DeployContext) (bool, error) {
-	path := devWorkspaceTemplatesPath() + "/devworkspace-controller-edit-workspaces.ClusterRole.yaml"
+	path := kubernetesDevWorkspaceTemplatesPath + "/devworkspace-controller-edit-workspaces.ClusterRole.yaml"
 	return readAndSyncObject(deployContext, path, &rbacv1.ClusterRole{}, "")
 }
 
 func syncDwWorkspaceRoutingCRD(deployContext *chetypes.DeployContext) (bool, error) {
-	path := devWorkspaceTemplatesPath() + "/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml"
+	path := kubernetesDevWorkspaceTemplatesPath + "/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml"
 	return readAndSyncObject(deployContext, path, &apiextensionsv1.CustomResourceDefinition{}, "")
 }
 
 func syncDwTemplatesCRD(deployContext *chetypes.DeployContext) (bool, error) {
-	path := devWorkspaceTemplatesPath() + "/devworkspacetemplates.workspace.devfile.io.CustomResourceDefinition.yaml"
+	path := kubernetesDevWorkspaceTemplatesPath + "/devworkspacetemplates.workspace.devfile.io.CustomResourceDefinition.yaml"
 	return readAndSyncObject(deployContext, path, &apiextensionsv1.CustomResourceDefinition{}, "")
 }
 
 func syncDwCRD(deployContext *chetypes.DeployContext) (bool, error) {
-	path := devWorkspaceTemplatesPath() + "/devworkspaces.workspace.devfile.io.CustomResourceDefinition.yaml"
+	path := kubernetesDevWorkspaceTemplatesPath + "/devworkspaces.workspace.devfile.io.CustomResourceDefinition.yaml"
 	return readAndSyncObject(deployContext, path, &apiextensionsv1.CustomResourceDefinition{}, "")
 }
 
 func syncDwConfigCRD(deployContext *chetypes.DeployContext) (bool, error) {
-	path := devWorkspaceTemplatesPath() + "/devworkspaceoperatorconfigs.controller.devfile.io.CustomResourceDefinition.yaml"
+	path := kubernetesDevWorkspaceTemplatesPath + "/devworkspaceoperatorconfigs.controller.devfile.io.CustomResourceDefinition.yaml"
 	return readAndSyncObject(deployContext, path, &apiextensionsv1.CustomResourceDefinition{}, "")
 }
 
 func syncDwIssuer(deployContext *chetypes.DeployContext) (bool, error) {
-	if !infrastructure.IsOpenShift() {
-		// We're using unstructured to not require a direct dependency on the cert-manager
-		// This will cause a failure if cert-manager is not installed, which we're ok with
-		// Also, our Sync functionality requires the scheme to have the type we want to persist registered.
-		// In case of cert-manager objects, we don't want that because we would have to depend
-		// on cert manager, which would require us to also update operator-sdk version because cert-manager
-		// uses extension/v1 objects. So, we have to go the unstructured way here...
-		path := devWorkspaceTemplatesPath() + "/devworkspace-controller-selfsigned-issuer.Issuer.yaml"
-		return readAndSyncUnstructured(deployContext, path)
-	}
-	return true, nil
+	// We're using unstructured to not require a direct dependency on the cert-manager
+	// This will cause a failure if cert-manager is not installed, which we're ok with
+	// Also, our Sync functionality requires the scheme to have the type we want to persist registered.
+	// In case of cert-manager objects, we don't want that because we would have to depend
+	// on cert manager, which would require us to also update operator-sdk version because cert-manager
+	// uses extension/v1 objects. So, we have to go the unstructured way here...
+	path := kubernetesDevWorkspaceTemplatesPath + "/devworkspace-controller-selfsigned-issuer.Issuer.yaml"
+	return readAndSyncUnstructured(deployContext, path)
 }
 
 func syncDwCertificate(deployContext *chetypes.DeployContext) (bool, error) {
-	if !infrastructure.IsOpenShift() {
-		// We're using unstructured to not require a direct dependency on the cert-manager
-		// This will cause a failure if cert-manager is not installed, which we're ok with
-		// Also, our Sync functionality requires the scheme to have the type we want to persist registered.
-		// In case of cert-manager objects, we don't want that because we would have to depend
-		// on cert manager, which would require us to also update operator-sdk version because cert-manager
-		// uses extension/v1 objects. So, we have to go the unstructured way here...
-		path := devWorkspaceTemplatesPath() + "/devworkspace-controller-serving-cert.Certificate.yaml"
-		return readAndSyncUnstructured(deployContext, path)
-	}
-	return true, nil
+	// We're using unstructured to not require a direct dependency on the cert-manager
+	// This will cause a failure if cert-manager is not installed, which we're ok with
+	// Also, our Sync functionality requires the scheme to have the type we want to persist registered.
+	// In case of cert-manager objects, we don't want that because we would have to depend
+	// on cert manager, which would require us to also update operator-sdk version because cert-manager
+	// uses extension/v1 objects. So, we have to go the unstructured way here...
+	path := kubernetesDevWorkspaceTemplatesPath + "/devworkspace-controller-serving-cert.Certificate.yaml"
+	return readAndSyncUnstructured(deployContext, path)
 }
 
 func syncDwDeployment(deployContext *chetypes.DeployContext) (bool, error) {
-	path := devWorkspaceTemplatesPath() + "/devworkspace-controller-manager.Deployment.yaml"
+	path := kubernetesDevWorkspaceTemplatesPath + "/devworkspace-controller-manager.Deployment.yaml"
 	deployment := &appsv1.Deployment{}
 	err := readK8SObject(path, deployment)
 	if err != nil {
@@ -273,11 +265,4 @@ func syncObject(deployContext *chetypes.DeployContext, obj2sync client.Object, n
 	}
 
 	return true, nil
-}
-
-func devWorkspaceTemplatesPath() string {
-	if infrastructure.IsOpenShift() {
-		return OpenshiftDevWorkspaceTemplatesPath
-	}
-	return KubernetesDevWorkspaceTemplatesPath
 }
