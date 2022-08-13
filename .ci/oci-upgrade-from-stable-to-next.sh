@@ -33,7 +33,7 @@ deleteEclipseCheNextSubscription() {
   ECLIPSE_CHE_NEXT_SUBSCRIPTION_SPEC_SOURCE=$(oc get subscription ${ECLIPSE_CHE_SUBSCRIPTION_NAME} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE} -o "jsonpath={.spec.source}")
   ECLIPSE_CHE_NEXT_SUBSCRIPTION_SPEC_SOURCE_NAMESPACE=$(oc get subscription ${ECLIPSE_CHE_SUBSCRIPTION_NAME} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE} -o "jsonpath={.spec.sourceNamespace}")
 
-  oc delete csv ${ECLIPSE_CHE_NEXT_INSTALLED_CSV} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE}
+  oc delete csv ${ECLIPSE_CHE_INSTALLED_CSV} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE}
   oc delete subscription ${ECLIPSE_CHE_SUBSCRIPTION_NAME} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE}
 }
 
@@ -56,21 +56,28 @@ createEclipseCheNextSubscription() {
 deleteEclipseCheStableSubscription() {
   findEclipseCheSubscription
 
-  oc delete csv ${ECLIPSE_CHE_NEXT_INSTALLED_CSV} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE}
+  oc delete csv ${ECLIPSE_CHE_INSTALLED_CSV} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE}
   oc delete subscription ${ECLIPSE_CHE_SUBSCRIPTION_NAME} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE}
 }
 
 runTests() {
   deleteEclipseCheNextSubscription
+  sleep 1m
 
   # Deploy stable version
   chectl server:deploy --platform openshift --olm-channel stable
 
   # Delete Eclipse Che stable version operator
   deleteEclipseCheStableSubscription
+  sleep 1m
+
+  # Hack, since we completely reinstall operator by removing the deployment
+  # Webhook won't be available for a while
+  oc patch crd checlusters.org.eclipse.che --patch '{"spec": {"conversion": null}}' --type=merge
 
   # Install Eclipse Che next version operator
   createEclipseCheNextSubscription
+  sleep 1m
 
   # CI_CHE_OPERATOR_IMAGE it is che operator image built in openshift CI job workflow.
   # More info about how works image dependencies in ci:https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates
