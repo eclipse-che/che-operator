@@ -25,24 +25,34 @@ source "${OPERATOR_REPO}/.ci/oci-common.sh"
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
-# Uninstall Eclipse Che next version operator by removing subscription
-deleteEclipseCheNextSubscription() {
-  findEclipseCheSubscription
+unset OPERATOR_TEST_NAMESPACE
 
-  # save .spec to recreate subscription later
-  ECLIPSE_CHE_NEXT_SUBSCRIPTION_SPEC_SOURCE=$(oc get subscription ${ECLIPSE_CHE_SUBSCRIPTION_NAME} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE} -o "jsonpath={.spec.source}")
-  ECLIPSE_CHE_NEXT_SUBSCRIPTION_SPEC_SOURCE_NAMESPACE=$(oc get subscription ${ECLIPSE_CHE_SUBSCRIPTION_NAME} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE} -o "jsonpath={.spec.sourceNamespace}")
-
-  oc delete csv ${ECLIPSE_CHE_INSTALLED_CSV} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE}
-  oc delete subscription ${ECLIPSE_CHE_SUBSCRIPTION_NAME} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE}
+# Discover test namespace
+# Eclipse Che subscription is pre-created by OpenShift CI
+discoverOperatorTestNamespace() {
+  discoverEclipseCheSubscription
+  OPERATOR_TEST_NAMESPACE=${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE}
 }
 
-# Install Eclipse Che next version operator by recreating subscription
-createEclipseCheNextSubscription() {
+# Delete Eclipse Che next version operator by deleting its subscription
+deleteEclipseCheNextVersionSubscription() {
+  discoverEclipseCheSubscription
+
+  # save .spec to recreate subscription later
+  ECLIPSE_CHE_NEXT_SUBSCRIPTION_SPEC_SOURCE=$(oc get subscription ${ECLIPSE_CHE_SUBSCRIPTION_NAME} -n ${OPERATOR_TEST_NAMESPACE} -o "jsonpath={.spec.source}")
+  ECLIPSE_CHE_NEXT_SUBSCRIPTION_SPEC_SOURCE_NAMESPACE=$(oc get subscription ${ECLIPSE_CHE_SUBSCRIPTION_NAME} -n ${OPERATOR_TEST_NAMESPACE} -o "jsonpath={.spec.sourceNamespace}")
+
+  oc delete csv ${ECLIPSE_CHE_INSTALLED_CSV} -n ${OPERATOR_TEST_NAMESPACE}
+  oc delete subscription ${ECLIPSE_CHE_SUBSCRIPTION_NAME} -n ${OPERATOR_TEST_NAMESPACE}
+}
+
+# Install Eclipse Che next version operator by creating its subscription
+createEclipseCheNextVersionSubscription() {
   pushd "${OPERATOR_REPO}" || exit 1
 
   make create-subscription \
     NAME=${ECLIPSE_CHE_SUBSCRIPTION_NAME} \
+    NAMESPACE=${OPERATOR_TEST_NAMESPACE} \
     SOURCE=${ECLIPSE_CHE_NEXT_SUBSCRIPTION_SPEC_SOURCE} \
     SOURCE_NAMESPACE=${ECLIPSE_CHE_NEXT_SUBSCRIPTION_SPEC_SOURCE_NAMESPACE} \
     PACKAGE_NAME=${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME} \
@@ -52,38 +62,62 @@ createEclipseCheNextSubscription() {
   popd
 }
 
-# Uninstall Eclipse Che stable version operator by removing subscription
-deleteEclipseCheStableSubscription() {
-  findEclipseCheSubscription
+# Install Eclipse Che stable version operator by creating its subscription
+createEclipseCheStableVersionSubscription() {
+  pushd "${OPERATOR_REPO}" || exit 1
 
-  oc delete csv ${ECLIPSE_CHE_INSTALLED_CSV} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE}
-  oc delete subscription ${ECLIPSE_CHE_SUBSCRIPTION_NAME} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE}
+  make create-subscription \
+    NAME=${ECLIPSE_CHE_SUBSCRIPTION_NAME} \
+    NAMESPACE=${OPERATOR_TEST_NAMESPACE} \
+    SOURCE="community-operators" \
+    SOURCE_NAMESPACE="openshift-marketplace" \
+    PACKAGE_NAME=${ECLIPSE_CHE_STABLE_PACKAGE_NAME} \
+    CHANNEL="stable" \
+    INSTALL_PLAN_APPROVAL="Auto"
+
+  popd
+}
+
+# Uninstall Eclipse Che stable version operator by deleting its subscription
+deleteEclipseCheStableVersionSubscription() {
+  discoverEclipseCheSubscription
+
+  oc delete csv ${ECLIPSE_CHE_INSTALLED_CSV} -n ${OPERATOR_TEST_NAMESPACE}
+  oc delete subscription ${ECLIPSE_CHE_SUBSCRIPTION_NAME} -n ${OPERATOR_TEST_NAMESPACE}
 }
 
 runTests() {
-  deleteEclipseCheNextSubscription
-  sleep 1m
+  # Uninstall pre-created Eclipse Che next version operator (operands don't exist)
+  deleteEclipseCheNextVersionSubscription
+  waitForRemovedEclipseCheSubscription
 
   # Deploy stable version
-  chectl server:deploy --platform openshift --olm-channel stable
+  createEclipseCheStableVersionSubscription
+  waitForInstalledEclipseCheCSV
+  getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
 
-  # Delete Eclipse Che stable version operator
-  deleteEclipseCheStableSubscription
-  sleep 1m
+  pushd ${OPERATOR_REPO}
+    make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE}
+  popd
 
-  # Hack, since we completely reinstall operator by removing the deployment
-  # Webhook won't be available for a while
+  # Delete Eclipse Che stable version (just operator)
+  deleteEclipseCheStableVersionSubscription
+  waitForRemovedEclipseCheSubscription
+  # Hack, since we remove operator pod, webhook won't work.
+  # We have to disable it for a while.
   oc patch crd checlusters.org.eclipse.che --patch '{"spec": {"conversion": null}}' --type=merge
 
-  # Install Eclipse Che next version operator
-  createEclipseCheNextSubscription
-  sleep 1m
-
+  # Install Eclipse Che next version
+  createEclipseCheNextVersionSubscription
+  waitForInstalledEclipseCheCSV
   # CI_CHE_OPERATOR_IMAGE it is che operator image built in openshift CI job workflow.
   # More info about how works image dependencies in ci:https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates
   useCustomOperatorImageInCSV "${CI_CHE_OPERATOR_IMAGE}"
-  waitEclipseCheDeployed "next"
+  pushd ${OPERATOR_REPO}
+    make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE}
+  popd
 }
 
 initDefaults
+discoverOperatorTestNamespace
 runTests

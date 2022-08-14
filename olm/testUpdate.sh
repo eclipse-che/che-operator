@@ -68,7 +68,7 @@ run() {
     make create-catalogsource NAME="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" IMAGE="${CATALOG_IMAGE}"
   popd
 
-  local bundles=$(getCatalogSourceBundles "${ECLIPSE_CHE_CATALOG_SOURCE_NAME}")
+  local bundles=$(discoverCatalogSourceBundles "${ECLIPSE_CHE_CATALOG_SOURCE_NAME}")
   fetchPreviousCSVInfo "${CHANNEL}" "${bundles}"
   fetchLatestCSVInfo "${CHANNEL}" "${bundles}"
 
@@ -95,14 +95,13 @@ run() {
 
   sleep 10s
 
-  getCheClusterCRFromCSV | oc apply -n "${NAMESPACE}" -f -
-  waitEclipseCheDeployed "$(getCheVersionFromCSV)"
+  getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
 
   pushd ${OPERATOR_REPO} || exit 1
+    make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE}
     make approve-installplan SUBSCRIPTION_NAME="${ECLIPSE_CHE_SUBSCRIPTION_NAME}"
+    make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE}
   popd
-
-  waitEclipseCheDeployed "$(getCheVersionFromCSV)"
 }
 
 init "$@"

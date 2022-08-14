@@ -396,7 +396,7 @@ install-certmgr: ## Install Cert Manager v1.7.1
 	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/component=webhook" NAMESPACE=cert-manager
 
 install-devworkspace: SHELL := /bin/bash
-install-devworkspace: ## Install Dev Workspace operator, supported channels: next and fast
+install-devworkspace: ## Install Dev Workspace operator, available channels: next, fast
 	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
 
 	if [[ $(CHANNEL) == "fast" ]]; then
@@ -407,9 +407,38 @@ install-devworkspace: ## Install Dev Workspace operator, supported channels: nex
 
 	$(MAKE) create-catalogsource IMAGE="$${IMAGE}" NAME="devworkspace-operator"
 	$(MAKE) create-subscription NAME="devworkspace-operator" PACKAGE_NAME="devworkspace-operator" CHANNEL="$(CHANNEL)" SOURCE="devworkspace-operator" INSTALL_PLAN_APPROVAL="Auto"
+	$(MAKE) wait-devworkspace-running NAMESPACE="openshift-operators"
 
-	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/name=devworkspace-controller,app.kubernetes.io/part-of=devworkspace-operator" NAMESPACE="openshift-operators"
-	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/name=devworkspace-webhook-server,app.kubernetes.io/part-of=devworkspace-operator" NAMESPACE="openshift-operators"
+wait-devworkspace-running: SHELL := /bin/bash
+wait-devworkspace-running: ## Wait until Dev Workspace operator is up and running
+	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/name=devworkspace-controller,app.kubernetes.io/part-of=devworkspace-operator"
+	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/name=devworkspace-webhook-server,app.kubernetes.io/part-of=devworkspace-operator"
+
+wait-eclipseche-version: SHELL := /bin/bash
+wait-eclipseche-version: ## Wait until Eclipse Che given version is up and running
+	echo "[INFO] Wait for Eclipse Che '$(VERSION)' version"
+
+	[[ -z "$(VERSION)" ]] && { echo [ERROR] VERSION not defined; exit 1; }
+	[[ -z "$(NAMESPACE)" ]] && { echo [ERROR] NAMESPACE not defined; exit 1; }
+
+	n=0
+	while [[ $$n -le 500 ]]
+	do
+		$(K8S_CLI) get pods -n  $(NAMESPACE)
+		ACTUAL_VERSION=$$($(K8S_CLI) get checluster eclipse-che -n $(NAMESPACE) -o "jsonpath={.status.cheVersion}")
+		if [[ $${ACTUAL_VERSION} == $(VERSION) ]]; then
+			echo "[INFO] Eclipse Che $(VERSION) has been successfully deployed"
+			break
+		fi
+
+		sleep 5
+		n=$$(( n+1 ))
+	done
+
+	if [[ $$n -gt 500 ]]; then
+		echo "[ERROR] Failed to deploy Eclipse Che '${version}' version"
+		exit 1
+	fi
 
 download-devworkspace-resources: ## Downloads Dev Workspace resources
 	DEVWORKSPACE_RESOURCES=/tmp/devworkspace-operator/templates
@@ -465,7 +494,7 @@ store_tls_cert: ## Store `che-operator-webhook-server-cert` secret locally
 	$(K8S_CLI) get secret che-operator-webhook-server-cert -n $(ECLIPSE_CHE_NAMESPACE) -o json | jq -r '.data["tls.crt"]' | base64 -d > /tmp/k8s-webhook-server/serving-certs/tls.crt
 	$(K8S_CLI) get secret che-operator-webhook-server-cert -n $(ECLIPSE_CHE_NAMESPACE) -o json | jq -r '.data["tls.key"]' | base64 -d > /tmp/k8s-webhook-server/serving-certs/tls.key
 
-##@ Deployment
+##@ OLM catalog
 
 .PHONY: bundle
 bundle: SHELL := /bin/bash
@@ -714,6 +743,7 @@ create-catalogsource: ## Creates catalog source
 create-subscription: SHELL := /bin/bash
 create-subscription: ## Creates subscription
 	[[ -z "$(NAME)" ]] && { echo [ERROR] NAME not defined; exit 1; }
+	[[ -z "$(NAMESPACE)" ]] && DEFINED_NAMESPACE="openshift-operators" || DEFINED_NAMESPACE=$(NAMESPACE)
 	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
 	[[ -z "$(INSTALL_PLAN_APPROVAL)" ]] && { echo [ERROR] INSTALL_PLAN_APPROVAL not defined; exit 1; }
 	[[ -z "$(PACKAGE_NAME)" ]] && { echo [ERROR] PACKAGE_NAME not defined; exit 1; }
@@ -725,7 +755,7 @@ create-subscription: ## Creates subscription
 		"kind": "Subscription",
 		"metadata": {
 		  "name": "$(NAME)",
-		  "namespace": "openshift-operators"
+		  "namespace": "'$${DEFINED_NAMESPACE}'"
 		},
 		"spec": {
 		  "channel": "$(CHANNEL)",
@@ -738,16 +768,17 @@ create-subscription: ## Creates subscription
 	  }' | $(K8S_CLI) apply -f -
 
 	if [[ ${INSTALL_PLAN_APPROVAL} == "Manual" ]]; then
-		$(K8S_CLI) wait subscription $(NAME) -n openshift-operators --for=condition=InstallPlanPending --timeout=60s
+		$(K8S_CLI) wait subscription $(NAME) -n $${DEFINED_NAMESPACE} --for=condition=InstallPlanPending --timeout=60s
 	fi
 
 approve-installplan: SHELL := /bin/bash
 approve-installplan: ## Approves install plan
 	[[ -z "$(SUBSCRIPTION_NAME)" ]] && { echo [ERROR] SUBSCRIPTION_NAME not defined; exit 1; }
+	[[ -z "$(NAMESPACE)" ]] && DEFINED_NAMESPACE="openshift-operators" || DEFINED_NAMESPACE=$(NAMESPACE)
 
-	INSTALL_PLAN_NAME=$$($(K8S_CLI) get subscription/$(SUBSCRIPTION_NAME) -n openshift-operators -o jsonpath='{.status.installplan.name}')
-	$(K8S_CLI) patch installplan $${INSTALL_PLAN_NAME} -n openshift-operators --type=merge -p '{"spec":{"approved":true}}'
-	$(K8S_CLI) wait installplan $${INSTALL_PLAN_NAME} -n openshift-operators --for=condition=Installed --timeout=240s
+	INSTALL_PLAN_NAME=$$($(K8S_CLI) get subscription $(SUBSCRIPTION_NAME) -n $${DEFINED_NAMESPACE} -o jsonpath='{.status.installplan.name}')
+	$(K8S_CLI) patch installplan $${INSTALL_PLAN_NAME} -n $${DEFINED_NAMESPACE} --type=merge -p '{"spec":{"approved":true}}'
+	$(K8S_CLI) wait installplan $${INSTALL_PLAN_NAME} -n $${DEFINED_NAMESPACE} --for=condition=Installed --timeout=240s
 
 create-namespace: SHELL := /bin/bash
 create-namespace: ## Creates namespace

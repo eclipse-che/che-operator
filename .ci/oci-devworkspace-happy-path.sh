@@ -28,8 +28,8 @@ runTests() {
   useCustomOperatorImageInCSV "${CI_CHE_OPERATOR_IMAGE}"
 
   make create-namespace NAMESPACE="eclipse-che"
-  getCheClusterCRFromCSV | oc apply -n "${NAMESPACE}" -f -
-  waitEclipseCheDeployed "$(getCheVersionFromCSV)"
+  getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
+  make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE}
 
   bash <(curl -s https://raw.githubusercontent.com/eclipse/che/${CHE_REPO_BRANCH}/tests/devworkspace-happy-path/remote-launch.sh)
 }

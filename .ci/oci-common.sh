@@ -16,32 +16,46 @@ export ECLIPSE_CHE_PREVIEW_PACKAGE_NAME="eclipse-che-preview-openshift"
 export ECLIPSE_CHE_CATALOG_SOURCE_NAME="eclipse-che-custom-catalog-source"
 export ECLIPSE_CHE_SUBSCRIPTION_NAME="eclipse-che-subscription"
 
+waitForInstalledEclipseCheCSV() {
+  unset ECLIPSE_CHE_INSTALLED_CSV
+  while [[ -z ${ECLIPSE_CHE_INSTALLED_CSV} ]] || [[ ${ECLIPSE_CHE_INSTALLED_CSV} == "null" ]]; do
+      sleep 5s
+      discoverEclipseCheSubscription
+  done
+}
+
+waitForRemovedEclipseCheSubscription() {
+  while [[ $(oc get subscription -A -o json | jq -r '.items | .[] | select(.spec.name == "'${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME}'" or .spec.name == "'${ECLIPSE_CHE_STABLE_PACKAGE_NAME}'")') != "" ]]; do
+      sleep 5s
+  done
+}
+
 useCustomOperatorImageInCSV() {
   local OPERATOR_IMAGE=$1
-  findEclipseCheSubscription
+  discoverEclipseCheSubscription
   oc patch csv ${ECLIPSE_CHE_INSTALLED_CSV} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE} --type=json -p '[{"op": "replace", "path": "/spec/install/spec/deployments/0/spec/template/spec/containers/0/image", "value": "'${OPERATOR_IMAGE}'"}]'
 }
 
-getCheClusterCRFromCSV() {
-  findEclipseCheSubscription
+getCheClusterCRFromInstalledCSV() {
+  discoverEclipseCheSubscription
   oc get csv ${ECLIPSE_CHE_INSTALLED_CSV} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE} -o yaml | yq -r '.metadata.annotations["alm-examples"] | fromjson | .[] | select(.apiVersion == "org.eclipse.che/v2")'
 }
 
-getCheVersionFromCSV() {
-  findEclipseCheSubscription
+getCheVersionFromInstalledCSV() {
+  discoverEclipseCheSubscription
   oc get csv ${ECLIPSE_CHE_INSTALLED_CSV} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE} -o yaml | yq -r '.spec.install.spec.deployments[0].spec.template.spec.containers[0].env[] | select(.name == "CHE_VERSION") | .value'
 }
 
-findEclipseCheSubscription() {
+discoverEclipseCheSubscription() {
   ECLIPSE_CHE_SUBSCRIPTION_RECORD=$(oc get subscription -A -o json | jq -r '.items | .[] | select(.spec.name == "'${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME}'" or .spec.name == "'${ECLIPSE_CHE_STABLE_PACKAGE_NAME}'")')
   ECLIPSE_CHE_SUBSCRIPTION_NAME=$(echo ${ECLIPSE_CHE_SUBSCRIPTION_RECORD} | jq -r '.metadata.name')
   ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE=$(echo ${ECLIPSE_CHE_SUBSCRIPTION_RECORD} | jq -r '.metadata.namespace')
   ECLIPSE_CHE_INSTALLED_CSV=$(echo ${ECLIPSE_CHE_SUBSCRIPTION_RECORD} | jq -r '.status.installedCSV')
 }
 
-getCatalogSourceBundles() {
+discoverCatalogSourceBundles() {
   local name=${1}
-  local catalogService=$(kubectl get service "${name}" -n openshift-marketplace -o yaml)
+  local catalogService=$(oc get service "${name}" -n openshift-marketplace -o yaml)
   local catalogIP=$(echo "${catalogService}" | yq -r ".spec.clusterIP")
   local catalogPort=$(echo "${catalogService}" | yq -r ".spec.ports[0].targetPort")
 
