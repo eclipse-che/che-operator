@@ -227,7 +227,7 @@ deployEclipseCheWithHelm() {
 
   local cheVersion=$(yq -r '.spec.template.spec.containers[0].env[] | select(.name == "CHE_VERSION") | .value' < "${OPERATOR_DEPLOYMENT}")
   pushd ${OPERATOR_REPO}
-    make wait-eclipseche-version VERSION="$(cheVersion)" NAMESPACE=${NAMESPACE}
+    make wait-eclipseche-version VERSION="${cheVersion}" NAMESPACE=${NAMESPACE}
     make wait-devworkspace-running NAMESPACE="devworkspace-controller"
   popd
 }
@@ -283,7 +283,7 @@ updateEclipseChe() {
   local cheVersion=$(cat "${configManagerPath}" | yq -r '.spec.template.spec.containers[0].env[] | select(.name == "CHE_VERSION") | .value')
 
   pushd ${OPERATOR_REPO}
-    make wait-eclipseche-version VERSION="$(cheVersion)" NAMESPACE=${NAMESPACE}
+    make wait-eclipseche-version VERSION="${cheVersion}" NAMESPACE=${NAMESPACE}
     make wait-devworkspace-running NAMESPACE="devworkspace-controller"
   popd
 }
