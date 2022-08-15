@@ -69,7 +69,7 @@ run() {
     make create-catalogsource NAME="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" IMAGE="${CATALOG_IMAGE}"
   popd
 
-  local bundles=$(getCatalogSourceBundles "${ECLIPSE_CHE_CATALOG_SOURCE_NAME}")
+  local bundles=$(discoverCatalogSourceBundles "${ECLIPSE_CHE_CATALOG_SOURCE_NAME}")
   fetchLatestCSVInfo "${CHANNEL}" "${bundles}"
   forcePullingOlmImages "${LATEST_CSV_BUNDLE_IMAGE}"
 
@@ -80,14 +80,15 @@ run() {
       CHANNEL="${CHANNEL}" \
       SOURCE="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" \
       SOURCE_NAMESPACE="openshift-marketplace" \
-      INSTALL_PLAN_APPROVAL="Manual"
-    make approve-installplan SUBSCRIPTION_NAME="${ECLIPSE_CHE_SUBSCRIPTION_NAME}"
+      INSTALL_PLAN_APPROVAL="Auto"
   popd
 
-  sleep 10s
+  waitForInstalledEclipseCheCSV
+  getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
 
-  getCheClusterCRFromCSV | oc apply -n "${NAMESPACE}" -f -
-  waitEclipseCheDeployed "$(getCheVersionFromCSV)"
+  pushd ${OPERATOR_REPO}
+    make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE}
+  popd
 }
 
 init "$@"

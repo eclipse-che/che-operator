@@ -11,8 +11,6 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-export DEV_WORKSPACE_CATALOG_SOURCE_NAME="custom-devworkspace-operator-catalog"
-
 catchFinish() {
   result=$?
 
@@ -180,11 +178,9 @@ collectClusterScopeResources() {
   done
 }
 
-buildCheOperatorImage() {
-  docker build -t "${OPERATOR_IMAGE}" -f Dockerfile --build-arg SKIP_TESTS=true . && docker save "${OPERATOR_IMAGE}" > /tmp/operator.tar
-}
-
-copyCheOperatorImageToMinikube() {
+buildAndCopyCheOperatorImageToMinikube() {
+  docker build -t "${OPERATOR_IMAGE}" -f Dockerfile --build-arg SKIP_TESTS=true .
+  docker save "${OPERATOR_IMAGE}" > /tmp/operator.tar
   eval $(minikube docker-env) && docker load -i  /tmp/operator.tar && rm  /tmp/operator.tar
 }
 
@@ -215,7 +211,7 @@ deployEclipseCheWithHelm() {
 
   if [[ ${customimage} == "true"  ]]; then
     yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' "${OPERATOR_DEPLOYMENT}"
-    yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' "${OPERATOR_DEPLOYMENT}"
+    yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "Never"' "${OPERATOR_DEPLOYMENT}"
   fi
 
   # Deploy Eclipse Che with Helm
@@ -230,9 +226,10 @@ deployEclipseCheWithHelm() {
   popd
 
   local cheVersion=$(yq -r '.spec.template.spec.containers[0].env[] | select(.name == "CHE_VERSION") | .value' < "${OPERATOR_DEPLOYMENT}")
-  waitEclipseCheDeployed "${cheVersion}"
-
-  waitDevWorkspaceControllerStarted
+  pushd ${OPERATOR_REPO}
+    make wait-eclipseche-version VERSION="${cheVersion}" NAMESPACE=${NAMESPACE}
+    make wait-devworkspace-running NAMESPACE="devworkspace-controller"
+  popd
 }
 
 deployEclipseCheWithOperator() {
@@ -247,8 +244,7 @@ deployEclipseCheWithOperator() {
     yq -riY '.spec.networking.tlsSecretName = "che-tls"' ${checluster}
 
     if [[ ${customimage} == "true" ]]; then
-      buildCheOperatorImage
-      copyCheOperatorImageToMinikube
+      buildAndCopyCheOperatorImageToMinikube
       yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' "${templates}"/che-operator/kubernetes/operator.yaml
       yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' "${templates}"/che-operator/kubernetes/operator.yaml
     fi
@@ -260,7 +256,9 @@ deployEclipseCheWithOperator() {
     --installer operator \
     --templates ${templates}
 
-  waitDevWorkspaceControllerStarted
+  pushd ${OPERATOR_REPO}
+    make wait-devworkspace-running NAMESPACE="devworkspace-controller"
+  popd
 }
 
 updateEclipseChe() {
@@ -271,13 +269,9 @@ updateEclipseChe() {
 
   if [[ ${customimage} == "true"  ]]; then
     if [[ ${platform} == "minikube" ]]; then
-      buildCheOperatorImage
-      copyCheOperatorImageToMinikube
+      buildAndCopyCheOperatorImageToMinikube
       yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' ${templates}/che-operator/kubernetes/operator.yaml
-      yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' ${templates}/che-operator/kubernetes/operator.yaml
-    else
-      yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' ${templates}/che-operator/openshift/operator.yaml
-      yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' ${templates}/che-operator/openshift/operator.yaml
+      yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "Never"' ${templates}/che-operator/kubernetes/operator.yaml
     fi
   fi
 
@@ -287,55 +281,11 @@ updateEclipseChe() {
 
   local configManagerPath="${templates}/che-operator/kubernetes/operator.yaml"
   local cheVersion=$(cat "${configManagerPath}" | yq -r '.spec.template.spec.containers[0].env[] | select(.name == "CHE_VERSION") | .value')
-  waitEclipseCheDeployed ${cheVersion}
 
-  waitDevWorkspaceControllerStarted
-}
-
-waitEclipseCheDeployed() {
-  local version=$1
-  echo "[INFO] Wait for Eclipse Che '${version}' version"
-
-  export n=0
-  while [ $n -le 500 ]
-  do
-    cheVersion=$(oc get checluster/eclipse-che -n "${NAMESPACE}" -o "jsonpath={.status.cheVersion}")
-    chePhase=$(oc get checluster/eclipse-che -n "${NAMESPACE}" -o "jsonpath={.status.chePhase}" )
-    oc get pods -n ${NAMESPACE}
-    if [[ "${cheVersion}" == "${version}" ]]
-    then
-      echo "[INFO] Eclipse Che '${version}' version has been successfully deployed"
-      break
-    fi
-    sleep 6
-    n=$(( n+1 ))
-  done
-
-  if [ $n -gt 360 ]
-  then
-    echo "[ERROR] Failed to deploy Eclipse Che '${version}' verion"
-    exit 1
-  fi
-}
-
-waitDevWorkspaceControllerStarted() {
-  echo "[INFO] Wait for Dev Workspace controller started"
-
-  n=0
-  while [ $n -le 24 ]
-  do
-    webhooks=$(oc get mutatingWebhookConfiguration --all-namespaces)
-    if [[ $webhooks =~ .*controller.devfile.io.* ]]; then
-      echo "[INFO] Dev Workspace controller has been deployed"
-      return
-    fi
-
-    sleep 5
-    n=$(( n+1 ))
-  done
-
-  echo "[ERROR] Failed to deploy Dev Workspace controller"
-  exit 1
+  pushd ${OPERATOR_REPO}
+    make wait-eclipseche-version VERSION="${cheVersion}" NAMESPACE=${NAMESPACE}
+    make wait-devworkspace-running NAMESPACE="devworkspace-controller"
+  popd
 }
 
 installchectl() {

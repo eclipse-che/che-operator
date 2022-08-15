@@ -26,8 +26,8 @@ runTests() {
   useCustomOperatorImageInCSV "${CI_CHE_OPERATOR_IMAGE}"
 
   make create-namespace NAMESPACE="eclipse-che"
-  getCheClusterCRFromCSV | oc apply -n "${NAMESPACE}" -f -
-  waitEclipseCheDeployed "$(getCheVersionFromCSV)"
+  getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
+  make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE}
 }
 
 initDefaults
