@@ -13,14 +13,9 @@
 
 set -e
 
-export OPERATOR_REPO="${GITHUB_WORKSPACE}"
-
-if [ -z "${OPERATOR_REPO}" ]; then
-  SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
-  OPERATOR_REPO=$(dirname "$(dirname "$SCRIPT")")
-fi
-source "${OPERATOR_REPO}/.github/bin/common.sh"
-source "${OPERATOR_REPO}/.ci/oci-common.sh"
+OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
+source "${OPERATOR_REPO}/build/scripts/common.sh"
+source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 
 init() {
   NAMESPACE="eclipse-che"
@@ -37,21 +32,22 @@ init() {
     shift 1
   done
 
-  if [[ ! ${CHANNEL} ]] || [[ ! ${CATALOG_IMAGE} ]]; then usage; exit 1; fi
+  if [[ ! ${CHANNEL} ]]  || [[ ! ${CATALOG_IMAGE} ]]; then usage; exit 1; fi
 }
 
 usage () {
-  echo "Deploy and update Eclipse Che from a custom catalog."
+  echo "Deploy Eclipse Che from a custom catalog."
   echo
 	echo "Usage:"
 	echo -e "\t$0 -i CATALOG_IMAGE [-c CHANNEL] [-n NAMESPACE]"
   echo
   echo "OPTIONS:"
   echo -e "\t-i,--catalog-image       Catalog image"
-  echo -e "\t-c,--channel             [default: next] Olm channel to deploy Eclipse Che from"
-  echo -e "\t-n,--namespace           [default: eclipse-che] Kubernetes namepsace to deploy Eclipse Che into"
+  echo -e "\t-c,--channel=next|stable [default: next] Olm channel to deploy Eclipse Che from"
+  echo -e "\t-n,--namespace           [default: eclipse-che] Kubernetes namespace to deploy Eclipse Che into"
   echo
 	echo "Example:"
+	echo -e "\t$0 -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:next"
 	echo -e "\t$0 -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:next -c next"
 	echo -e "\t$0 -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -c stable"
 }
@@ -69,16 +65,7 @@ run() {
   popd
 
   local bundles=$(discoverCatalogSourceBundles "${ECLIPSE_CHE_CATALOG_SOURCE_NAME}")
-  fetchPreviousCSVInfo "${CHANNEL}" "${bundles}"
   fetchLatestCSVInfo "${CHANNEL}" "${bundles}"
-
-  if [ "${PREVIOUS_CSV_BUNDLE_IMAGE}" == "${LATEST_CSV_BUNDLE_IMAGE}" ]; then
-    echo "[ERROR] Nothing to update. OLM channel '${CHANNEL}' contains only one bundle '${LATEST_CSV_BUNDLE_IMAGE}'"
-    exit 1
-  fi
-
-  echo "[INFO] Test update from version: ${PREVIOUS_CSV_BUNDLE_IMAGE} to: ${LATEST_CSV_BUNDLE_IMAGE}"
-  forcePullingOlmImages "${PREVIOUS_CSV_BUNDLE_IMAGE}"
   forcePullingOlmImages "${LATEST_CSV_BUNDLE_IMAGE}"
 
   pushd ${OPERATOR_REPO} || exit 1
@@ -88,18 +75,13 @@ run() {
       CHANNEL="${CHANNEL}" \
       SOURCE="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" \
       SOURCE_NAMESPACE="openshift-marketplace" \
-      INSTALL_PLAN_APPROVAL="Manual" \
-      STARTING_CSV="${PREVIOUS_CSV_NAME}"
-    make approve-installplan SUBSCRIPTION_NAME="${ECLIPSE_CHE_SUBSCRIPTION_NAME}"
+      INSTALL_PLAN_APPROVAL="Auto"
   popd
 
-  sleep 10s
-
+  waitForInstalledEclipseCheCSV
   getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
 
-  pushd ${OPERATOR_REPO} || exit 1
-    make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE}
-    make approve-installplan SUBSCRIPTION_NAME="${ECLIPSE_CHE_SUBSCRIPTION_NAME}"
+  pushd ${OPERATOR_REPO}
     make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE}
   popd
 }
@@ -108,3 +90,4 @@ init "$@"
 run
 
 echo "[INFO] Done"
+

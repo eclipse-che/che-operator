@@ -112,8 +112,7 @@ tags
 !.vscode/extensions.json
 .history
 
-build/
-olm/generated
+build/scripts/release/generated
 bundle/next/eclipse-che-preview-openshift/generated
 bundle/stable/eclipse-che-preview-openshift/generated
 

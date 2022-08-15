@@ -59,7 +59,7 @@ jobs:
           export QUAY_PASSWORD_K8S=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_KUBERNETES_PASSWORD }}
           export QUAY_USERNAME_OS=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_OPENSHIFT_USERNAME }}
           export QUAY_PASSWORD_OS=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_OPENSHIFT_PASSWORD }}
-          ./make-release.sh --prepare-community-operators-update ${{ github.event.inputs.forceflag }}
+          build/scripts/release/make-release.sh --prepare-community-operators-update ${{ github.event.inputs.forceflag }}
       - name: Create failure MM message
         if: ${{ failure() }}
         run: |

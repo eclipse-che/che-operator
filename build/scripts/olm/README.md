@@ -39,12 +39,10 @@ quay.io/eclipse/eclipse-che-openshift-opm-bundles:7.19.0-5.next
 ### Build custom next/stable OLM images
 
 For test purpose you can build your own "next" or "stable" CatalogSource and bundle images
-with your latest development changes and use it in the test scripts. To build these images you can use script `olm/buildCatalog.sh`:
+with your latest development changes and use it in the test scripts. To build these images you can use script `buildCatalog.sh`:
 
 ```bash
-$ olm/buildCatalog.sh \
-    -c (next|stable) \
-    -i <CATALOG_IMAGE>
+$ build/scripts/olm/buildCatalog.sh -c (next|stable) -i <CATALOG_IMAGE>
 ```
 
 ### Testing custom CatalogSource and bundle images on the Openshift
@@ -52,13 +50,13 @@ $ olm/buildCatalog.sh \
 To test the latest custom "next" bundle:
 
 ```bash
-$ ./testCatalog.sh -c next -i <CATALOG_IMAGE> -n eclipse-che
+$ build/scripts/olm/testCatalog.sh -c next -i <CATALOG_IMAGE> -n eclipse-che
 ```
 
 If your CatalogSource image contains few bundles, you can test migration from previous bundle to the latest:
 
 ```bash
-$ ./testUpdate.sh -c next -i <CATALOG_IMAGE> -n eclipse-che
+$ build/scripts/olm/testUpdate.sh -c next -i <CATALOG_IMAGE> -n eclipse-che
 ```
 
 # Install Eclipse Che from `stable` channel using testing catalog source image

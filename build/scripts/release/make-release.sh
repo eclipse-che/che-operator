@@ -201,10 +201,10 @@ releaseDeploymentFiles() {
 
 releaseOlmFiles() {
   echo "[INFO] releaseOlmFiles :: Release OLM files"
-  echo "[INFO] releaseOlmFiles :: Launch 'olm/release-olm-files.sh' script"
+  echo "[INFO] releaseOlmFiles :: Launch 'build/scripts/release/release-olm-files.sh' script"
   for channel in "${STABLE_CHANNELS[@]}"
   do
-    cd $RELEASE_DIR/olm
+    cd $RELEASE_DIR/build/scripts/release
     . release-olm-files.sh --release-version $RELEASE --channel $channel
     cd $RELEASE_DIR
     local openshift=$RELEASE_DIR/bundle/$channel/eclipse-che-preview-openshift/manifests
@@ -273,15 +273,13 @@ createPRToMainBranch() {
 }
 
 prepareCommunityOperatorsUpdate() {
-  export BASE_DIR=${RELEASE_DIR}/olm
-  . "${BASE_DIR}/prepare-community-operators-update.sh" $FORCE_UPDATE
-  unset BASE_DIR
+  . "${RELEASE_DIR}/build/script/release/prepare-community-operators-update.sh" $FORCE_UPDATE
 }
 
 run() {
   if [[ $CHECK_RESOURCES == "true" ]]; then
     echo "[INFO] Check if resources are up to date"
-    . ${RELEASE_DIR}/.github/bin/check-resources.sh
+    . ${RELEASE_DIR}/build/scripts/check-resources.sh
   fi
 
   checkoutToReleaseBranch

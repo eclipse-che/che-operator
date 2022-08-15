@@ -11,15 +11,15 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
+# ---------------------------------------------------------------#
+# This scripts check if all development resources are up to date #
+#----------------------------------------------------------------#
+
 set -e
 
-ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
-if [ -z "${ROOT_PROJECT_DIR}" ]; then
-  SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
-  ROOT_PROJECT_DIR=$(dirname $(dirname $(dirname "${SCRIPT}")))
-fi
+OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")
 
-pushd "${ROOT_PROJECT_DIR}" || true
+pushd "${OPERATOR_REPO}"
 
 # Update resources
 make update-dev-resources INCREMENT_BUNDLE_VERSION=false
@@ -35,5 +35,5 @@ else
   echo "[INFO] Done."
 fi
 
-popd || true
+popd
 

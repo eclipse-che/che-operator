@@ -100,8 +100,8 @@ forcePullingOlmImages() {
 
   echo "[INFO] Pulling image '${image}'"
 
-  yq -r "(.spec.template.spec.containers[0].image) = \"${image}\"" "${OPERATOR_REPO}/olm/force-pulling-olm-images-job.yaml" | kubectl apply -f - -n openshift-marketplace
+  yq -r "(.spec.template.spec.containers[0].image) = \"${image}\"" "${OPERATOR_REPO}/build/scripts/olm/force-pulling-images-job.yaml" | kubectl apply -f - -n openshift-marketplace
 
-  kubectl wait --for=condition=complete --timeout=30s job/force-pulling-olm-images-job -n openshift-marketplace
-  kubectl delete job/force-pulling-olm-images-job -n openshift-marketplace
+  kubectl wait --for=condition=complete --timeout=30s job/force-pulling-images-job -n openshift-marketplace
+  kubectl delete job/force-pulling-images-job -n openshift-marketplace
 }

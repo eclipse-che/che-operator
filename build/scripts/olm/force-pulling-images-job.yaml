@@ -13,14 +13,14 @@
 kind: Job
 apiVersion: batch/v1
 metadata:
-  name: force-pulling-olm-images-job
+  name: force-pulling-images-job
 spec:
   parallelism: 1
   completions: 1
   backoffLimit: 6
   template:
     metadata:
-      name: force-pulling-olm-images-job
+      name: force-pulling-images-job
     spec:
       imagePullSecrets:
         - name: 'myregistrykey'

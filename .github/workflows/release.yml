@@ -96,10 +96,10 @@ jobs:
           export QUAY_ECLIPSE_CHE_PASSWORD=${{ secrets.QUAY_PASSWORD }}
 
           if [[ ${CHE_VERSION} == *".0" ]]; then
-            ./make-release.sh ${CHE_VERSION} --release --check-resources --release-olm-files
+            build/scripts/release/make-release.sh ${CHE_VERSION} --release --check-resources --release-olm-files
           else
             git checkout ${BRANCH}
-            ./make-release.sh ${CHE_VERSION} --release --release-olm-files
+            build/scripts/release/make-release.sh ${CHE_VERSION} --release --release-olm-files
           fi
 
           # default robot account on quay does not have permissions for application repos
@@ -113,14 +113,14 @@ jobs:
           # echo "[DEBUG] QUAY_USERNAME_OS = ${QUAY_USERNAME_OS}"
 
           git checkout ${CHE_VERSION}-release
-          ./make-release.sh ${CHE_VERSION} --push-olm-bundles
+          build/scripts/release/make-release.sh ${CHE_VERSION} --push-olm-bundles
 
           # perform extra checkouts to ensure branches exist locally
           git checkout ${BRANCH}
           git checkout ${CHE_VERSION}-release
           force_update=""
           if [[ ${{ github.event.inputs.forceRecreateTags }} == "true" ]]; then force_update="--force"; fi
-          ./make-release.sh ${CHE_VERSION} --push-git-changes --pull-requests ${force_update}
+          build/scripts/release/make-release.sh ${CHE_VERSION} --push-git-changes --pull-requests ${force_update}
       - name: Create failure MM message
         if: ${{ failure() }}
         run: |

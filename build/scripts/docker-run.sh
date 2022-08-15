@@ -17,9 +17,6 @@ GIT_ROOT_DIRECTORY=$(git rev-parse --show-toplevel)
 # Container image
 IMAGE_NAME="eclipse/che-operator-olm-build"
 
-# Operator SDK
-OPERATOR_SDK_VERSION=$(yq -r ".\"operator-sdk\"" "${GIT_ROOT_DIRECTORY}/REQUIREMENTS")
-
 init() {
   BLUE='\033[1;34m'
   GREEN='\033[0;32m'
@@ -43,12 +40,11 @@ check() {
 # Build image
 build() {
   printf "%bBuilding image %b${IMAGE_NAME}${NC}..." "${BOLD}" "${BLUE}"
-  if docker build --build-arg OPERATOR_SDK_VERSION=${OPERATOR_SDK_VERSION} -t ${IMAGE_NAME} > docker-build-log 2>&1 -<<EOF
+  if docker build -t ${IMAGE_NAME} > docker-build-log 2>&1 -<<EOF
   FROM golang:1.16-alpine
   ARG OPERATOR_SDK_VERSION
   RUN apk add --no-cache --update curl bash py-pip jq skopeo && pip install yq
-  RUN curl -JL https://github.com/operator-framework/operator-sdk/releases/download/${OPERATOR_SDK_VERSION}/operator-sdk_linux_amd64 -o /bin/operator-sdk && chmod u+x /bin/operator-sdk
-  WORKDIR /che-operator/olm
+  WORKDIR /che-operator
 EOF
 then
   printf "%b[OK]%b\n" "${GREEN}" "${NC}"

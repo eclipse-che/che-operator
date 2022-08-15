@@ -13,7 +13,7 @@
 
 set -ex
 
-export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
+OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
 source "${OPERATOR_REPO}/build/scripts/common.sh"
 source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 
