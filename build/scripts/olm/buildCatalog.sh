@@ -13,14 +13,8 @@
 
 set -e
 
-export OPERATOR_REPO="${GITHUB_WORKSPACE}"
-
-if [ -z "${OPERATOR_REPO}" ]; then
-  SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
-  OPERATOR_REPO=$(dirname "$(dirname "$SCRIPT")")
-fi
-source "${OPERATOR_REPO}/.github/bin/common.sh"
-source "${OPERATOR_REPO}/.ci/oci-common.sh"
+OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
+source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 
 init() {
   FORCE="false"

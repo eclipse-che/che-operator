@@ -25,7 +25,7 @@ init() {
   RELEASE_OLM_FILES=false
   CHECK_RESOURCES=false
   PREPARE_COMMUNITY_OPERATORS_UPDATE=false
-  RELEASE_DIR=$(cd "$(dirname "$0")"; pwd)
+  OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
   FORCE_UPDATE=""
   BUILDX_PLATFORMS="linux/amd64,linux/ppc64le"
   STABLE_CHANNELS=("stable")
@@ -50,7 +50,7 @@ init() {
   [ -z "$QUAY_ECLIPSE_CHE_PASSWORD" ] && echo "[ERROR] QUAY_ECLIPSE_CHE_PASSWORD is not set" && exit 1
   command -v operator-sdk >/dev/null 2>&1 || { echo "[ERROR] operator-sdk is not installed. Abort."; exit 1; }
   command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] skopeo is not installed. Abort."; exit 1; }
-  REQUIRED_OPERATOR_SDK=$(yq -r ".\"operator-sdk\"" "${RELEASE_DIR}/REQUIREMENTS")
+  REQUIRED_OPERATOR_SDK=$(yq -r ".\"operator-sdk\"" "${OPERATOR_REPO}/REQUIREMENTS")
   [[ $(operator-sdk version) =~ .*${REQUIRED_OPERATOR_SDK}.* ]] || { echo "[ERROR] operator-sdk ${REQUIRED_OPERATOR_SDK} is required. Abort."; exit 1; }
 }
 
@@ -127,7 +127,7 @@ releaseOperatorCode() {
   echo "[INFO] releaseOperatorCode :: Replacing tags"
   replaceImagesTags
 
-  local operatorYaml=$RELEASE_DIR/config/manager/manager.yaml
+  local operatorYaml=${OPERATOR_REPO}/config/manager/manager.yaml
   echo "[INFO] releaseOperatorCode :: Validate changes for $operatorYaml"
   checkImageReferences $operatorYaml
 
@@ -144,7 +144,7 @@ releaseOperatorCode() {
 }
 
 replaceImagesTags() {
-  OPERATOR_YAML="${RELEASE_DIR}/config/manager/manager.yaml"
+  OPERATOR_YAML="${OPERATOR_REPO}/config/manager/manager.yaml"
 
   lastDefaultCheServerImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_che_server\") | .value" "${OPERATOR_YAML}")
   lastDefaultDashboardImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_dashboard\") | .value" "${OPERATOR_YAML}")
@@ -185,7 +185,7 @@ updateVersionFile() {
 
 releaseHelmPackage() {
   echo "[INFO] releaseHelmPackage :: release Helm package"
-  yq -rYi ".version=\"${RELEASE}\"" "$RELEASE_DIR/helmcharts/stable/Chart.yaml"
+  yq -rYi ".version=\"${RELEASE}\"" "${OPERATOR_REPO}/helmcharts/stable/Chart.yaml"
   make update-helmcharts CHANNEL=stable
   git add -A helmcharts/stable
   git commit -m "ci: Update Helm Charts to $RELEASE" --signoff
@@ -201,13 +201,13 @@ releaseDeploymentFiles() {
 
 releaseOlmFiles() {
   echo "[INFO] releaseOlmFiles :: Release OLM files"
-  echo "[INFO] releaseOlmFiles :: Launch 'olm/release-olm-files.sh' script"
+  echo "[INFO] releaseOlmFiles :: Launch 'build/scripts/release/release-olm-files.sh' script"
   for channel in "${STABLE_CHANNELS[@]}"
   do
-    cd $RELEASE_DIR/olm
+    pushd ${OPERATOR_REPO}/build/scripts/release
     . release-olm-files.sh --release-version $RELEASE --channel $channel
-    cd $RELEASE_DIR
-    local openshift=$RELEASE_DIR/bundle/$channel/eclipse-che-preview-openshift/manifests
+    popd ${OPERATOR_REPO}
+    local openshift=${OPERATOR_REPO}/bundle/$channel/eclipse-che-preview-openshift/manifests
 
     echo "[INFO] releaseOlmFiles :: Validate changes"
     grep -q "version: "$RELEASE $openshift/che-operator.clusterserviceversion.yaml
@@ -225,7 +225,7 @@ pushOlmBundlesToQuayIo() {
   docker login quay.io -u "${QUAY_ECLIPSE_CHE_USERNAME}" -p "${QUAY_ECLIPSE_CHE_PASSWORD}"
   echo "[INFO] Push OLM bundles to quay.io"
 
-  . ${RELEASE_DIR}/olm/buildCatalog.sh -c stable -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -f
+  . ${OPERATOR_REPO}/build/scripts/olm/buildCatalog.sh -c stable -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -f
 }
 
 pushGitChanges() {
@@ -273,15 +273,13 @@ createPRToMainBranch() {
 }
 
 prepareCommunityOperatorsUpdate() {
-  export BASE_DIR=${RELEASE_DIR}/olm
-  . "${BASE_DIR}/prepare-community-operators-update.sh" $FORCE_UPDATE
-  unset BASE_DIR
+  . "${OPERATOR_REPO}/build/script/release/prepare-community-operators-update.sh" $FORCE_UPDATE
 }
 
 run() {
   if [[ $CHECK_RESOURCES == "true" ]]; then
     echo "[INFO] Check if resources are up to date"
-    . ${RELEASE_DIR}/.github/bin/check-resources.sh
+    . ${OPERATOR_REPO}/build/scripts/check-resources.sh
   fi
 
   checkoutToReleaseBranch

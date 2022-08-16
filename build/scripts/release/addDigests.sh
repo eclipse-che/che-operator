@@ -14,9 +14,8 @@
 set +x
 set -e
 
-SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
-SCRIPTS_DIR=$(dirname ${SCRIPT})
-BASE_DIR="$(pwd)"
+OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
+SCRIPTS_DIR=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))
 QUIET=""
 
 PODMAN=$(command -v podman || true)
@@ -31,14 +30,13 @@ command -v yq >/dev/null 2>&1 || { echo "yq is not installed. Aborting."; exit 1
 
 usage () {
 	echo "Usage:   $0 [-w WORKDIR] [-s CSV_FILE_PATH] [-o OPERATOR_DEPLOYMENT_FILE_PATH] [-t IMAGE_TAG] "
-	echo "Example: ./olm/addDigests.sh -w . -s bundle/stable/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml -o config/manager/manager.yaml -t 7.32.0"
+	echo "Example: build/scripts/release/addDigests.sh -w . -s bundle/stable/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml -o config/manager/manager.yaml -t 7.32.0"
 }
 
 if [[ $# -lt 1 ]]; then usage; exit; fi
 
 while [[ "$#" -gt 0 ]]; do
   case $1 in
-    '-w') BASE_DIR="$2"; shift 1;;
     '-s') CSV_FILE="$2"; shift 1;;
     '-o') OPERATOR_FILE="$2"; shift 1;;
     '-t') IMAGE_TAG="$2"; shift 1;;
@@ -74,14 +72,14 @@ fi
 RELATED_IMAGE_PREFIX="RELATED_IMAGE_"
 
 # shellcheck source=buildDigestMap.sh
-source "${SCRIPTS_DIR}/buildDigestMap.sh" -w "${BASE_DIR}" -t "${IMAGE_TAG}" -c "${CSV_FILE}" ${QUIET}
+source "${SCRIPTS_DIR}/buildDigestMap.sh" -t "${IMAGE_TAG}" -c "${CSV_FILE}" ${QUIET}
 
-if [[ ! "${QUIET}" ]]; then cat "${BASE_DIR}"/generated/digests-mapping.txt; fi
+if [[ ! "${QUIET}" ]]; then cat "${SCRIPTS_DIR}"/generated/digests-mapping.txt; fi
 
 echo "[INFO] Generate digest update for CSV file ${CSV_FILE}"
 RELATED_IMAGES=""
 RELATED_IMAGES_ENV=""
-for mapping in $(cat "${BASE_DIR}/generated/digests-mapping.txt")
+for mapping in $(cat "${SCRIPTS_DIR}/generated/digests-mapping.txt")
 do
   source=$(echo "${mapping}" | sed -e 's;\(.*\)=.*=.*;\1;')
   # Image with digest.

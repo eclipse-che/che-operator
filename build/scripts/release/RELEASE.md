@@ -13,8 +13,8 @@ Export environment variables:
 ```
 
 ```
-Usage:   ./make-release.sh [RELEASE_VERSION] --release --release-olm-files --push-olm-bundles --push-git-changes --pull-requests
-        --release: to release
+Usage:   build/scripts/release/make-release.sh [RELEASE_VERSION] --release --release-olm-files --push-olm-bundles --push-git-changes --pull-requests
+        --release: to release operator code
         --release-olm-files: to release olm files
         --push-olm-bundles: to push OLM bundle images to quay.io. This flag should be omitted
                 if already a greater version released. For instance, we are releasing 7.9.3 version but
@@ -23,27 +23,18 @@ Usage:   ./make-release.sh [RELEASE_VERSION] --release --release-olm-files --pus
         --pull-requests: to create pull requests.
 ```
 
-## 2. Testing release on openshift
+## 2. Testing release
 
 This part now runs automatically as part of the PR check for release PRs. See PROW CI checks in release PRs.
 Alternatively, use these manual steps to verify operator update on Openshift.
 
 Start a cluster using `cluster-bot` application.
 
-To be able to test update it is needed to created some user before. Login as `kubeadmin`. Click `Update the cluster OAuth configuration` at the middle of the dashboard, then `Identity providers` -> `Add` -> `HTPassword` and upload a htpassword file (can be created with HTPassword utility). Logout and login using HTPassword, then logout and login as `kubeadmin`. Go to `kube:admin` -> `Copy Login Command` -> `Display Token` and launch showing command in the terminal. Now it is possible to test update:
+To be able to test update it is needed to create some user before. Login as `kubeadmin`. Click `Update the cluster OAuth configuration` at the middle of the dashboard, then `Identity providers` -> `Add` -> `HTPassword` and upload a htpassword file (can be created with HTPassword utility). Logout and login using HTPassword, then logout and login as `kubeadmin`. Go to `kube:admin` -> `Copy Login Command` -> `Display Token` and launch showing command in the terminal. Now it is possible to test update:
 
 ```bash
-cd olm
-./testUpdate.sh -c stable -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -n eclipse-che
+build/scripts/olm/testUpdate.sh -c stable -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -n eclipse-che
 ```
-
-Open Eclipse Che dashboard in an anonymous tab:
-
-```bash
-echo http://$(oc get route -n eclipse-che-preview-test | grep ^che | awk -F ' ' '{ print $2 }')
-```
-
-Login using HTPassword then allow selected permissions. Validate that the release version is installed and workspace can be created:
 
 ## 3. Merge pull requests
 
@@ -55,6 +46,5 @@ See `release-community-operator-PRs.yml` workflow, which will be triggered autom
 Alternatively, it can be run manually:
 
 ```bash
-cd olm
 ./prepare-community-operators-update.sh
 ```

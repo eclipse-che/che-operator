@@ -18,11 +18,13 @@
 
 set -ex
 
-export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
+export OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
 source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
+
+unset OPERATOR_TEST_NAMESPACE
 
 # Discover test namespace
 # Eclipse Che subscription is pre-created by OpenShift CI

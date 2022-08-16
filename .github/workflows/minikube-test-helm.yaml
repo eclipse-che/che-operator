@@ -23,14 +23,12 @@ jobs:
       uses: che-incubator/setup-minikube-action@next
       with:
         minikube-version: v1.23.2
-    - name: Enable Private registry
-      run: /bin/bash olm/minikube-registry-addon.sh &
     - name: Install yq
       run: sudo pip install yq
     - name: Install chectl
       run: bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=next
     - name: Run tests
-      run: /bin/bash .github/bin/minikube/test-helm.sh
+      run: /bin/bash build/scripts/minikube-tests/test-helm.sh
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}
       with:

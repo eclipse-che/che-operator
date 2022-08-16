@@ -20,17 +20,22 @@ if [ -z "${OPERATOR_REPO}" ]; then
   OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
 fi
 
-source "${OPERATOR_REPO}/.github/bin/common.sh"
+source "${OPERATOR_REPO}/build/scripts/minikube-tests/common.sh"
 
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
 runTest() {
-  deployEclipseCheWithOperator "/tmp/chectl-${PREVIOUS_PACKAGE_VERSION}/chectl/bin/run" "minikube" ${PREVIOUS_OPERATOR_VERSION_TEMPLATE_PATH} "false"
-  updateEclipseChe "chectl" "minikube" ${LAST_OPERATOR_VERSION_TEMPLATE_PATH} "false"
+  chectl server:deploy --platform minikube --templates ${PREVIOUS_OPERATOR_VERSION_TEMPLATE_PATH} --batch
+  chectl server:update --templates ${LAST_OPERATOR_VERSION_TEMPLATE_PATH} --batch
+
+  # Wait until Eclipse Che is deployed
+  pushd ${OPERATOR_REPO}
+    make wait-devworkspace-running NAMESPACE="devworkspace-controller"
+    make wait-eclipseche-version VERSION="${LAST_PACKAGE_VERSION}" NAMESPACE=${NAMESPACE}
+  popd
 }
 
 initDefaults
 initTemplates
-installchectl ${PREVIOUS_PACKAGE_VERSION}
 runTest

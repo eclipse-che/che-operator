@@ -13,9 +13,8 @@
 
 set -e
 
-SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
-SCRIPTS_DIR=$(dirname ${SCRIPT})
-BASE_DIR="$1"
+OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
+SCRIPTS_DIR=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))
 QUIET=""
 
 PODMAN=$(command -v podman || true)
@@ -29,57 +28,62 @@ fi
 command -v yq >/dev/null 2>&1 || { echo "yq is not installed. Aborting."; exit 1; }
 command -v skopeo > /dev/null 2>&1 || { echo "skopeo is not installed. Aborting."; exit 1; }
 
+excludedImages=(
+                "quay.io/eclipse/che-theia:next"
+                "quay.io/eclipse/che-theia-dev:next"
+                "quay.io/eclipse/che-theia-endpoint-runtime-binary:next"
+                "quay.io/eclipse/che-sidecar-workspace-data-sync:latest"
+                "quay.io/eclipse/che-machine-exec:nightly"
+                "quay.io/eclipse/che-machine-exec:next"
+               )
+
 usage () {
 	echo "Usage:   $0 [-w WORKDIR] -c [/path/to/csv.yaml] -t [IMAGE_TAG]"
 	echo "Example: $0 -w $(pwd) -c $(pwd)/bundle/next/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml -t 7.26.0"
 }
 
-if [[ $# -lt 1 ]]; then usage; exit; fi
+setImagesFromDeploymentEnv() {
+    REQUIRED_IMAGES=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | select(.value) | select(.name | test("RELATED_IMAGE_.*"; "g")) | .value' "${CSV}" | sort | uniq)
+}
 
-while [[ "$#" -gt 0 ]]; do
-  case $1 in
-    '-w') BASE_DIR="$2"; shift 1;;
-    '-c') CSV="$2";shift 1;;
-    '-t') IMAGE_TAG="$2"; shift 1;;
-    '-q') QUIET="-q"; shift 0;;
-    '--help'|'-h') usage; exit;;
-  esac
-  shift 1
-done
+setOperatorImage() {
+    OPERATOR_IMAGE=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[0].image' "${CSV}")
+}
 
-if [[ ! $CSV ]] || [[ ! $IMAGE_TAG ]]; then usage; exit 1; fi
+setPluginRegistryList() {
+    registry=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | select(.name | test("RELATED_IMAGE_.*plugin_registry"; "g")) | .value' "${CSV}")
+    setRegistryImages "${registry}"
 
-mkdir -p "${BASE_DIR}/generated"
+    PLUGIN_REGISTRY_LIST=${registryImages}
+}
 
-echo "[INFO] Get images from CSV: ${CSV}"
+setDevfileRegistryList() {
+    registry=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | select(.name | test("RELATED_IMAGE_.*devfile_registry"; "g")) | .value' "${CSV}")
 
-# shellcheck source=images.sh
-. "${SCRIPTS_DIR}"/images.sh
+    setRegistryImages "${registry}"
+    DEVFILE_REGISTRY_LIST=${registryImages}
+}
 
-# todo create init method
-setImagesFromDeploymentEnv
+setRegistryImages() {
+    registry="${1}"
+    registry="${registry/\@sha256:*/:${IMAGE_TAG}}" # remove possible existing @sha256:... and use current tag instead
 
-setOperatorImage
-echo "${OPERATOR_IMAGE}"
+    echo -n "[INFO] Pull container ${registry} ..."
+    ${PODMAN} pull ${registry} ${QUIET}
 
-setPluginRegistryList
-echo "${PLUGIN_REGISTRY_LIST}"
-
-setDevfileRegistryList
-echo "${DEVFILE_REGISTRY_LIST}"
+    registryImages="$(${PODMAN} run --rm  --entrypoint /bin/sh "${registry}" -c "cat /var/www/html/*/external_images.txt")"
+    echo "[INFO] Found $(echo "${registryImages}" | wc -l) images in registry"
+}
 
 writeDigest() {
   image=$1
 
-  # Check exclude image list
-  excludeFile="${SCRIPTS_DIR}/digestExcludeList"
-  if [ -f "${excludeFile}"  ]; then
-    IFS=$'\n' read -d '' -r -a excludedImages < "${excludeFile}" || true
-    if [[ " ${excludedImages[*]} " =~ ${image} ]]; then
+  for i in "${excludedImages[@]}"; do
+    if [[ ${i} =~ ${image} ]]; then
         echo "[INFO] Image '${image}' was excluded"
         return
     fi
-  fi
+  done
 
   imageType=$2
   digest=""
@@ -123,7 +127,36 @@ writeDigest() {
   fi
 }
 
-DIGEST_FILE=${BASE_DIR}/generated/digests-mapping.txt
+if [[ $# -lt 1 ]]; then usage; exit; fi
+
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+    '-c') CSV="$2";shift 1;;
+    '-t') IMAGE_TAG="$2"; shift 1;;
+    '-q') QUIET="-q"; shift 0;;
+    '--help'|'-h') usage; exit;;
+  esac
+  shift 1
+done
+
+if [[ ! $CSV ]] || [[ ! $IMAGE_TAG ]]; then usage; exit 1; fi
+
+mkdir -p "${SCRIPTS_DIR}/generated"
+
+echo "[INFO] Get images from CSV: ${CSV}"
+
+setImagesFromDeploymentEnv
+
+setOperatorImage
+echo "${OPERATOR_IMAGE}"
+
+setPluginRegistryList
+echo "${PLUGIN_REGISTRY_LIST}"
+
+setDevfileRegistryList
+echo "${DEVFILE_REGISTRY_LIST}"
+
+DIGEST_FILE=${SCRIPTS_DIR}/generated/digests-mapping.txt
 rm -Rf "${DIGEST_FILE}"
 touch "${DIGEST_FILE}"
 

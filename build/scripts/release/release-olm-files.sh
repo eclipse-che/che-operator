@@ -21,10 +21,7 @@ while [[ "$#" -gt 0 ]]; do
   shift 1
 done
 
-OPERATOR_REPO=$(dirname $(dirname $(readlink -f "${BASH_SOURCE[0]}")))
-source "${OPERATOR_REPO}/.github/bin/common.sh"
-
-BASE_DIR="${OPERATOR_REPO}/olm"
+OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
 
 export LAST_RELEASE_VERSION
 
@@ -101,7 +98,7 @@ sed \
 -i "${BUNDLE_DOCKERFILE}"
 
 pushd "${CURRENT_DIR}" || exit 1
-source ${BASE_DIR}/addDigests.sh -w ${BASE_DIR} \
+source ${OPERATOR_REPO}/build/release/scripts/addDigests.sh \
               -t "${RELEASE}" \
               -s "${RELEASE_CSV}" \
               -o "${MANAGER_YAML}"

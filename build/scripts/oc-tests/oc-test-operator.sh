@@ -11,14 +11,9 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-################################ !!!   IMPORTANT   !!! ################################
-########### THIS JOB USE openshift ci operators workflows to run  #####################
-##########  More info about how it is configured can be found here: https://docs.ci.openshift.org/docs/how-tos/testing-operator-sdk-operators #############
-#######################################################################################################################################################
-
 set -ex
 
-export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
+export OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
 source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 
 #Stop execution on any error

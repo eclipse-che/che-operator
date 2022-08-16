@@ -14,8 +14,7 @@
 set -ex
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
-source "${OPERATOR_REPO}/.github/bin/common.sh"
-source "${OPERATOR_REPO}/.ci/oci-common.sh"
+source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
@@ -30,5 +29,4 @@ runTests() {
   make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE}
 }
 
-initDefaults
 runTests

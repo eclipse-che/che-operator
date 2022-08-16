@@ -13,11 +13,7 @@
 
 set -e
 
-ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
-if [ -z "${ROOT_PROJECT_DIR}" ]; then
-  BASE_DIR=$(cd "$(dirname "$0")"; pwd)
-  ROOT_PROJECT_DIR=$(dirname "$(dirname "${BASE_DIR}")")
-fi
+OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")
 
 CSV_OPENSHIFT_NEXT_NEW="bundle/next/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
 CSV_OPENSHIFT_NEXT_CURRENT=https://raw.githubusercontent.com/eclipse-che/che-operator/main/bundle/next/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml
@@ -36,9 +32,9 @@ compareBundleVersions() {
     echo "[INFO] Changed file: $file"
 
     if [[ "${file}" == "${CSV_OPENSHIFT_NEXT_NEW}" ]]; then
-      compareVersions ${ROOT_PROJECT_DIR}/$CSV_OPENSHIFT_NEXT_NEW $CSV_OPENSHIFT_NEXT_CURRENT
+      compareVersions ${OPERATOR_REPO}/$CSV_OPENSHIFT_NEXT_NEW $CSV_OPENSHIFT_NEXT_CURRENT
     elif [[ "${file}" == "${CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_NEW}" ]]; then
-      compareVersions ${ROOT_PROJECT_DIR}/$CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_NEW $CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_CURRENT
+      compareVersions ${OPERATOR_REPO}/$CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_NEW $CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_CURRENT
     fi
   done
 }
@@ -62,7 +58,7 @@ compareVersions() {
 
 convertVersionToNumber() {
   version=$1                                    # 7.28.1-130.next
-  versionWithoutNext="${version%.next*}"         # 7.28.1-130
+  versionWithoutNext="${version%.next*}"        # 7.28.1-130
   version="${versionWithoutNext%-*}"            # 7.28.1
   incrementPart="${versionWithoutNext#*-}"      # 130
   major=$(echo $version | cut  -d '.' -f 1)     # 7

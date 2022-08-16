@@ -32,8 +32,6 @@ initDefaults() {
   export ARTIFACTS_DIR=${ARTIFACT_DIR:-"/tmp/artifacts-che"}
   export CHECTL_TEMPLATES_BASE_DIR=/tmp/chectl-templates
   export OPERATOR_IMAGE="test/che-operator:test"
-  export IS_OPENSHIFT=$(kubectl api-resources --api-group="route.openshift.io" --no-headers=true | head -n1 | wc -l)
-  export IS_KUBERNETES=$(if [[ $IS_OPENSHIFT == 0 ]]; then echo 1; else echo 0; fi)
 
   # turn off telemetry
   mkdir -p ${HOME}/.config/chectl
@@ -76,10 +74,8 @@ collectLogs() {
   mkdir -p ${ARTIFACTS_DIR}
 
   set +ex
-  if [[ $IS_KUBERNETES == 1 ]]; then
-    # Collect logs only for k8s cluster since OpenShift CI already dump all resources
-    collectClusterResources
-  fi
+  # Collect logs only for k8s cluster since OpenShift CI already dump all resources
+  collectClusterResources
 
   # additionally grab server logs for fast access
   chectl server:logs -n $NAMESPACE -d $ARTIFACTS_DIR
@@ -184,114 +180,3 @@ buildAndCopyCheOperatorImageToMinikube() {
   eval $(minikube docker-env) && docker load -i  /tmp/operator.tar && rm  /tmp/operator.tar
 }
 
-deployEclipseCheWithHelm() {
-  local chectlbin=$1
-  local platform=$2
-  local templates=$3
-  local customimage=$4
-  local channel="next"
-
-  # Deploy Eclipse Che to have Cert Manager and Dex installed
-  deployEclipseCheWithOperator "${chectlbin}" "${platform}" "${templates}" "${customimage}"
-
-  # Get configuration
-  local identityProvider=$(kubectl get checluster/eclipse-che -n ${NAMESPACE} -o jsonpath='{.spec.networking.auth.identityProviderURL}')
-  local oAuthSecret=$(kubectl get checluster/eclipse-che -n ${NAMESPACE} -o jsonpath='{.spec.networking.auth.oAuthSecret}')
-  local oAuthClientName=$(kubectl get checluster/eclipse-che -n ${NAMESPACE} -o jsonpath='{.spec.networking.auth.oAuthClientName}')
-  local domain=$(kubectl get checluster/eclipse-che -n ${NAMESPACE} -o jsonpath='{.spec.networking.domain}')
-
-  # Delete Eclipse Che (Cert Manager and Dex are still there)
-  ${chectlbin} server:delete -y -n ${NAMESPACE}
-
-  # Prepare HelmCharts
-  HELMCHART_DIR=/tmp/chectl-helmcharts
-  OPERATOR_DEPLOYMENT="${HELMCHART_DIR}"/templates/che-operator.Deployment.yaml
-
-  rm -rf "${HELMCHART_DIR}" && cp -r "${OPERATOR_REPO}/helmcharts/${channel}" "${HELMCHART_DIR}"
-
-  if [[ ${customimage} == "true"  ]]; then
-    yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' "${OPERATOR_DEPLOYMENT}"
-    yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "Never"' "${OPERATOR_DEPLOYMENT}"
-  fi
-
-  # Deploy Eclipse Che with Helm
-  pushd "${HELMCHART_DIR}" || exit 1
-  helm install che \
-    --create-namespace \
-    --namespace eclipse-che \
-    --set networking.domain="${domain}" \
-    --set networking.auth.oAuthSecret="${oAuthSecret}" \
-    --set networking.auth.oAuthClientName="${oAuthClientName}" \
-    --set networking.auth.identityProviderURL="${identityProvider}" .
-  popd
-
-  local cheVersion=$(yq -r '.spec.template.spec.containers[0].env[] | select(.name == "CHE_VERSION") | .value' < "${OPERATOR_DEPLOYMENT}")
-  pushd ${OPERATOR_REPO}
-    make wait-eclipseche-version VERSION="${cheVersion}" NAMESPACE=${NAMESPACE}
-    make wait-devworkspace-running NAMESPACE="devworkspace-controller"
-  popd
-}
-
-deployEclipseCheWithOperator() {
-  local chectlbin=$1
-  local platform=$2
-  local templates=$3
-  local customimage=$4
-
-  if [[ ${platform} == "minikube" ]]; then
-    checluster=$(grep -rlx "kind: CheCluster" /tmp/chectl-templates/che-operator/)
-    yq -riY '.spec.networking.domain = "'$(minikube ip).nip.io'"' ${checluster}
-    yq -riY '.spec.networking.tlsSecretName = "che-tls"' ${checluster}
-
-    if [[ ${customimage} == "true" ]]; then
-      buildAndCopyCheOperatorImageToMinikube
-      yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' "${templates}"/che-operator/kubernetes/operator.yaml
-      yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' "${templates}"/che-operator/kubernetes/operator.yaml
-    fi
-  fi
-
-  ${chectlbin} server:deploy \
-    --batch \
-    --platform ${platform} \
-    --installer operator \
-    --templates ${templates}
-
-  pushd ${OPERATOR_REPO}
-    make wait-devworkspace-running NAMESPACE="devworkspace-controller"
-  popd
-}
-
-updateEclipseChe() {
-  local chectlbin=$1
-  local platform=$2
-  local templates=$3
-  local customimage=$4
-
-  if [[ ${customimage} == "true"  ]]; then
-    if [[ ${platform} == "minikube" ]]; then
-      buildAndCopyCheOperatorImageToMinikube
-      yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' ${templates}/che-operator/kubernetes/operator.yaml
-      yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "Never"' ${templates}/che-operator/kubernetes/operator.yaml
-    fi
-  fi
-
-  ${chectlbin} server:update \
-    --batch \
-    --templates ${templates}
-
-  local configManagerPath="${templates}/che-operator/kubernetes/operator.yaml"
-  local cheVersion=$(cat "${configManagerPath}" | yq -r '.spec.template.spec.containers[0].env[] | select(.name == "CHE_VERSION") | .value')
-
-  pushd ${OPERATOR_REPO}
-    make wait-eclipseche-version VERSION="${cheVersion}" NAMESPACE=${NAMESPACE}
-    make wait-devworkspace-running NAMESPACE="devworkspace-controller"
-  popd
-}
-
-installchectl() {
-  local version=$1
-  curl -L https://github.com/che-incubator/chectl/releases/download/${version}/chectl-linux-x64.tar.gz -o /tmp/chectl-${version}.tar.gz
-  rm -rf /tmp/chectl-${version}
-  mkdir /tmp/chectl-${version}
-  tar -xvzf /tmp/chectl-${version}.tar.gz -C /tmp/chectl-${version}
-}

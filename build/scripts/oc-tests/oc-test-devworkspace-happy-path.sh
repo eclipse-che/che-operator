@@ -11,15 +11,12 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-################################ !!!   IMPORTANT   !!! ################################
-########### THIS JOB USE openshift ci operators workflows to run  #####################
-##########  More info about how it is configured can be found here: https://docs.ci.openshift.org/docs/how-tos/testing-operator-sdk-operators #############
-#######################################################################################################################################################
-
 set -ex
 
-export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
+export CHE_REPO_BRANCH="main"
+export OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
 source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
+source <(curl -s https://raw.githubusercontent.com/eclipse/che/${CHE_REPO_BRANCH}/tests/devworkspace-happy-path/common.sh)
 
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
@@ -32,6 +29,8 @@ runTests() {
   make create-namespace NAMESPACE="eclipse-che"
   getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
   make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE}
+
+  bash <(curl -s https://raw.githubusercontent.com/eclipse/che/${CHE_REPO_BRANCH}/tests/devworkspace-happy-path/remote-launch.sh)
 }
 
 runTests

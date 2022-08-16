@@ -15,8 +15,7 @@ set -ex
 
 export CHE_REPO_BRANCH="main"
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
-source "${OPERATOR_REPO}/.github/bin/common.sh"
-source "${OPERATOR_REPO}/.ci/oci-common.sh"
+source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 source <(curl -s https://raw.githubusercontent.com/eclipse/che/${CHE_REPO_BRANCH}/tests/devworkspace-happy-path/common.sh)
 
 #Stop execution on any error
@@ -34,5 +33,4 @@ runTests() {
   bash <(curl -s https://raw.githubusercontent.com/eclipse/che/${CHE_REPO_BRANCH}/tests/devworkspace-happy-path/remote-launch.sh)
 }
 
-initDefaults
 runTests
