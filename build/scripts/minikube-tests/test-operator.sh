@@ -20,13 +20,21 @@ if [ -z "${OPERATOR_REPO}" ]; then
   OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
 fi
 
-source "${OPERATOR_REPO}/build/scripts/common.sh"
+source "${OPERATOR_REPO}/build/scripts/minikube-tests/common.sh"
 
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
 runTest() {
-  deployEclipseCheWithOperator "chectl" "minikube" ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH} "true"
+  buildAndCopyCheOperatorImageToMinikube
+  yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' "${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH}/che-operator/kubernetes/operator.yaml"
+  yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' "${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH}/che-operator/kubernetes/operator.yaml"
+  chectl server:deploy --batch --platform minikube --templates "${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH}"
+
+  pushd ${OPERATOR_REPO}
+    make wait-eclipseche-version VERSION="next" NAMESPACE=${NAMESPACE}
+    make wait-devworkspace-running NAMESPACE="devworkspace-controller"
+  popd
 }
 
 initDefaults

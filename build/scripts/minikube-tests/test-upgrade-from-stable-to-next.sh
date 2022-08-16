@@ -20,17 +20,29 @@ if [ -z "${OPERATOR_REPO}" ]; then
   OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
 fi
 
-source "${OPERATOR_REPO}/build/scripts/common.sh"
+source "${OPERATOR_REPO}/build/scripts/minikube-tests/common.sh"
 
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
 runTest() {
-  deployEclipseCheWithOperator "/tmp/chectl-${LAST_PACKAGE_VERSION}/chectl/bin/run" "minikube" "${LAST_OPERATOR_VERSION_TEMPLATE_PATH}" "false"
-  updateEclipseChe "chectl" "minikube" "${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH}" "true"
+  # Deploy stable version
+  chectl server:deploy --platform minikube --batch --templates ${LAST_OPERATOR_VERSION_TEMPLATE_PATH}
+
+  # Update to next version
+  buildAndCopyCheOperatorImageToMinikube
+  yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH}/che-operator/kubernetes/operator.yaml
+  yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "Never"' ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH}/che-operator/kubernetes/operator.yaml
+  chectl server:update --batch --templates ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH}
+
+  # Wait until Eclipse Che is deployed
+  pushd ${OPERATOR_REPO}
+    make wait-devworkspace-running NAMESPACE="devworkspace-controller"
+    make wait-eclipseche-version VERSION="next" NAMESPACE=${NAMESPACE}
+  popd
 }
 
 initDefaults
 initTemplates
-installchectl "${LAST_PACKAGE_VERSION}"
 runTest
+

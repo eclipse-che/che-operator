@@ -21,7 +21,6 @@ set -u
 CURRENT_DIR=$(pwd)
 STABLE_CHANNELS=("stable")
 OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
-source "${OPERATOR_REPO}/build/scripts/common.sh"
 
 base_branch="main"
 GITHUB_USER="che-bot"

@@ -14,7 +14,6 @@
 set -ex
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
-source "${OPERATOR_REPO}/build/scripts/common.sh"
 source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 
 #Stop execution on any error
