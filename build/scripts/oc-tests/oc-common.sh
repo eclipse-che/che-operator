@@ -11,10 +11,24 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
+export NAMESPACE="eclipse-che"
+export ARTIFACTS_DIR=${ARTIFACT_DIR:-"/tmp/artifacts-che"}
 export ECLIPSE_CHE_STABLE_PACKAGE_NAME="eclipse-che"
 export ECLIPSE_CHE_PREVIEW_PACKAGE_NAME="eclipse-che-preview-openshift"
 export ECLIPSE_CHE_CATALOG_SOURCE_NAME="eclipse-che-custom-catalog-source"
 export ECLIPSE_CHE_SUBSCRIPTION_NAME="eclipse-che-subscription"
+
+catchFinish() {
+  local RESULT=$?
+
+  # Collect all Eclipse Che logs
+  set +e && chectl server:logs -n $NAMESPACE -d $ARTIFACTS_DIR && set -e
+
+  [[ "${RESULT}" != "0" ]] && echo "[ERROR] Job failed." || echo "[INFO] Job completed successfully."
+  rm -rf ${OPERATOR_REPO}/tmp
+
+  exit ${RESULT}
+}
 
 waitForInstalledEclipseCheCSV() {
   unset ECLIPSE_CHE_INSTALLED_CSV
@@ -65,7 +79,8 @@ discoverCatalogSourceBundles() {
   --attach=true \
   --image=docker.io/fullstorydev/grpcurl:v1.7.0 \
   --  -plaintext "${catalogIP}:${catalogPort}" api.Registry.ListBundles
-  )
+
+}  )
 
   echo "${LIST_BUNDLES}" | head -n -1
 }

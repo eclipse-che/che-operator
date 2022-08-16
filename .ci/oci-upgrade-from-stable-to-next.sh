@@ -24,8 +24,6 @@ source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
-unset OPERATOR_TEST_NAMESPACE
-
 # Discover test namespace
 # Eclipse Che subscription is pre-created by OpenShift CI
 discoverOperatorTestNamespace() {
@@ -86,6 +84,8 @@ deleteEclipseCheStableVersionSubscription() {
 }
 
 runTests() {
+  discoverOperatorTestNamespace
+
   # Uninstall pre-created Eclipse Che next version operator (operands don't exist)
   deleteEclipseCheNextVersionSubscription
   waitForRemovedEclipseCheSubscription
@@ -117,6 +117,4 @@ runTests() {
   popd
 }
 
-initDefaults
-discoverOperatorTestNamespace
 runTests

@@ -29,5 +29,4 @@ runTests() {
   make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE}
 }
 
-initDefaults
 runTests

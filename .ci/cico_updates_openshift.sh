@@ -23,5 +23,4 @@ runTests() {
   . "${OPERATOR_REPO}"/build/scripts/olm/testUpdate.sh -c stable -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -n ${NAMESPACE}
 }
 
-initDefaults
 runTests

@@ -86,6 +86,8 @@ deleteEclipseCheStableVersionSubscription() {
 }
 
 runTests() {
+  discoverOperatorTestNamespace
+
   # Uninstall pre-created Eclipse Che next version operator (operands don't exist)
   deleteEclipseCheNextVersionSubscription
   waitForRemovedEclipseCheSubscription
@@ -117,6 +119,4 @@ runTests() {
   popd
 }
 
-initDefaults
-discoverOperatorTestNamespace
 runTests
