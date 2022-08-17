@@ -22,7 +22,7 @@ import (
 
 const (
 	v7520             = "v7.52.0"
-	openVSXDefaultUrl = "https://openvsx.org"
+	openVSXDefaultUrl = "https://open-vsx.org"
 )
 
 type OpenVSXUrlReconciler struct {
@@ -34,8 +34,8 @@ func NewOpenVSXUrlReconciler() *OpenVSXUrlReconciler {
 }
 
 // https://github.com/eclipse/che/issues/21637
-// When installing Che, the default CheCluster should have pluginRegistry.openVSXURL set to https://openvsx.org.
-// When updating Che v7.51 or earlier, if `openVSXURL` is NOT set then we should set it to https://openvsx.org.
+// When installing Che, the default CheCluster should have pluginRegistry.openVSXURL set to https://open-vsx.org.
+// When updating Che v7.51 or earlier, if `openVSXURL` is NOT set then we should set it to https://open-vsx.org.
 // When updating Che v7.52 or later, if `openVSXURL` is NOT set then we should not modify it.
 
 func (r *OpenVSXUrlReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
