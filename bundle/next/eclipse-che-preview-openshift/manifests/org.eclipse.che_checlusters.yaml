@@ -3901,6 +3901,9 @@ spec:
                     or RH-SSO, has been configured to integrate with the OpenShift
                     OAuth.
                   type: boolean
+                openVSXURL:
+                  description: Open VSX registry URL.
+                  type: string
                 pluginRegistryURL:
                   description: Public URL to the plugin registry.
                   type: string
@@ -7525,6 +7528,9 @@ spec:
                 message:
                   description: A human readable message indicating details about why
                     the Che deployment is in the current phase.
+                  type: string
+                openVSXURL:
+                  description: Open VSX registry URL.
                   type: string
                 pluginRegistryURL:
                   description: The public URL of the internal plug-in registry.

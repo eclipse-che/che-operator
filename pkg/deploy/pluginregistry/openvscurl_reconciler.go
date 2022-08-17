@@ -13,6 +13,7 @@ package pluginregistry
 
 import (
 	"fmt"
+
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"golang.org/x/mod/semver"
