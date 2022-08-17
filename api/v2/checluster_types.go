@@ -609,7 +609,6 @@ type CheClusterStatus struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="OpenVSX URL"
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors="urn:alm:descriptor:org.w3:link"
-	// +optional
 	OpenVSXURL string `json:"openVSXURL,omitempty"`
 	// A human readable message indicating details about why the Che deployment is in the current phase.
 	// +optional
