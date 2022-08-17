@@ -36,7 +36,7 @@ func (p *PluginRegistryReconciler) getConfigMapData(ctx *chetypes.DeployContext)
 		CheSidecarContainersRegistryOrganization: ctx.CheCluster.Spec.ContainerRegistry.Organization,
 		ChePluginRegistryURL:                     ctx.CheCluster.Status.PluginRegistryURL,
 		ChePluginRegistryInternalURL:             fmt.Sprintf("http://%s.%s.svc:8080", constants.PluginRegistryName, ctx.CheCluster.Namespace),
-		StartOpenVSX:                             strconv.FormatBool(ctx.CheCluster.Status.OpenVSXURL == ""),
+		StartOpenVSX:                             strconv.FormatBool(ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL == ""),
 	}
 
 	out, err := json.Marshal(data)

@@ -151,7 +151,7 @@ func TestOpenVSXUrlReconciler(t *testing.T) {
 			_, _, err := openVSXUrlReconciler.Reconcile(ctx)
 
 			assert.Nil(t, err)
-			assert.Equal(t, testCase.expectedOpenVSXUrl, ctx.CheCluster.Status.OpenVSXURL)
+			assert.Equal(t, testCase.expectedOpenVSXUrl, ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL)
 		})
 	}
 }

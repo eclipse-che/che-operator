@@ -387,7 +387,6 @@ func (dst *CheCluster) convertFrom_Status(src *chev2.CheCluster) error {
 	dst.Status.CheVersion = src.Status.CheVersion
 	dst.Status.DevfileRegistryURL = src.Status.DevfileRegistryURL
 	dst.Status.PluginRegistryURL = src.Status.PluginRegistryURL
-	dst.Status.OpenVSXURL = src.Status.OpenVSXURL
 	dst.Status.Message = src.Status.Message
 	dst.Status.Reason = src.Status.Reason
 	dst.Status.DevworkspaceStatus.GatewayPhase = GatewayPhase(src.Status.GatewayPhase)

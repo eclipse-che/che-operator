@@ -117,11 +117,6 @@ spec:
         path: message
         x-descriptors:
         - urn:alm:descriptor:text
-      - description: Open VSX registry URL.
-        displayName: OpenVSX URL
-        path: openVSXURL
-        x-descriptors:
-        - urn:alm:descriptor:org.w3:link
       - description: The public URL of the internal plug-in registry.
         displayName: Plugin registry URL
         path: pluginRegistryURL
@@ -316,11 +311,6 @@ spec:
         path: openShiftOAuthUserCredentialsSecret
         x-descriptors:
         - urn:alm:descriptor:text
-      - description: Open VSX registry URL.
-        displayName: OpenVSX URL
-        path: openVSXURL
-        x-descriptors:
-        - urn:alm:descriptor:org.w3:link
       - description: Public URL to the plugin registry.
         displayName: Plugin registry URL
         path: pluginRegistryURL

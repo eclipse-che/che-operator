@@ -882,12 +882,6 @@ type CheClusterStatus struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Plugin registry URL"
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors="urn:alm:descriptor:org.w3:link"
 	PluginRegistryURL string `json:"pluginRegistryURL"`
-	// Open VSX registry URL.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=status
-	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="OpenVSX URL"
-	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors="urn:alm:descriptor:org.w3:link"
-	OpenVSXURL string `json:"openVSXURL,omitempty"`
 	// A human readable message indicating details about why the Pod is in this condition.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status

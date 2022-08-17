@@ -52,16 +52,10 @@ func (r *OpenVSXUrlReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 }
 
 func (r *OpenVSXUrlReconciler) syncOpenVSXUrl(ctx *chetypes.DeployContext) (bool, error) {
-	if ctx.CheCluster.Status.OpenVSXURL != ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL {
-		if done, err := setOpenVSXUrl(ctx, ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL); !done {
-			return false, err
-		}
-	}
-
-	if ctx.CheCluster.Status.OpenVSXURL == "" {
+	if ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL == "" {
 		if ctx.CheCluster.Status.CheVersion == "" {
 			// installing Eclipse Che, set a default openVSX URL
-			return setOpenVSXUrl(ctx, openVSXDefaultUrl)
+			return setOpenVSXDefaultUrl(ctx)
 		} else if ctx.CheCluster.Status.CheVersion == "next" {
 			// do nothing for `next` version, because it considers as greater than 7.52.0
 			return true, nil
@@ -69,16 +63,16 @@ func (r *OpenVSXUrlReconciler) syncOpenVSXUrl(ctx *chetypes.DeployContext) (bool
 
 		if semver.Compare(fmt.Sprintf("v%s", ctx.CheCluster.Status.CheVersion), v7520) == -1 {
 			// updating Eclipse Che, version is less than 7.52.0
-			return setOpenVSXUrl(ctx, openVSXDefaultUrl)
+			return setOpenVSXDefaultUrl(ctx)
 		}
 	}
 
 	return true, nil
 }
 
-func setOpenVSXUrl(ctx *chetypes.DeployContext, openVSXURL string) (bool, error) {
-	ctx.CheCluster.Status.OpenVSXURL = openVSXURL
-	if err := deploy.UpdateCheCRStatus(ctx, "openVSXURL", openVSXURL); err != nil {
+func setOpenVSXDefaultUrl(ctx *chetypes.DeployContext) (bool, error) {
+	ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL = openVSXDefaultUrl
+	if err := deploy.UpdateCheCRSpec(ctx, "openVSXURL", openVSXDefaultUrl); err != nil {
 		return false, err
 	}
 
