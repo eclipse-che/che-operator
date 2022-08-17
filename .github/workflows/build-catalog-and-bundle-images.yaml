@@ -38,6 +38,6 @@ jobs:
         password: ${{ secrets.QUAY_PASSWORD }}
     - name: Build and push images to quay.io
       run: |
-        ${GITHUB_WORKSPACE}/olm/buildCatalog.sh \
+        ${GITHUB_WORKSPACE}/build/scripts/olm/buildCatalog.sh \
           --channel 'next' \
           --catalog-image quay.io/eclipse/eclipse-che-openshift-opm-catalog:next
