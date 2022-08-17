@@ -181,6 +181,7 @@ golang.org/x/crypto/pkcs12/internal/rc2
 golang.org/x/lint
 golang.org/x/lint/golint
 # golang.org/x/mod v0.4.2
+## explicit
 golang.org/x/mod/semver
 # golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
 ## explicit

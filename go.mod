@@ -16,6 +16,7 @@ require (
 	github.com/sirupsen/logrus v1.7.0
 	github.com/stretchr/testify v1.7.0
 	go.uber.org/zap v1.18.1
+	golang.org/x/mod v0.4.2
 	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
 	golang.org/x/tools v0.1.5 // indirect
 	k8s.io/api v0.21.3
