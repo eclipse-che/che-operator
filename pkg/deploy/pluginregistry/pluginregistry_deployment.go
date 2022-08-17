@@ -41,6 +41,11 @@ func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(ctx *chetypes
 		},
 	}
 
+	if ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL == "" {
+		resources.Requests[corev1.ResourceMemory] = resource.MustParse(constants.DefaultPluginRegistryMemoryRequestEmbeddedOpenVSXRegistry)
+		resources.Limits[corev1.ResourceMemory] = resource.MustParse(constants.DefaultPluginRegistryMemoryLimitEmbeddedOpenVSXRegistry)
+	}
+
 	deployment := registry.GetSpecRegistryDeployment(
 		ctx,
 		registryType,
