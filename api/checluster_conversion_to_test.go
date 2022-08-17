@@ -355,6 +355,7 @@ func TestConvertTo(t *testing.T) {
 			HelpLink:           "HelpLink",
 			DevfileRegistryURL: "DevfileRegistryURL",
 			PluginRegistryURL:  "PluginRegistryURL",
+			OpenVSXURL:         "open-vsx-url",
 		},
 	}
 
@@ -508,6 +509,7 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Status.Message, "Message")
 	assert.Equal(t, checlusterv2.Status.ChePhase, chev2.CheClusterPhase("Active"))
 	assert.Equal(t, checlusterv2.Status.PluginRegistryURL, "PluginRegistryURL")
+	assert.Equal(t, checlusterv2.Status.OpenVSXURL, "open-vsx-url")
 	assert.Equal(t, checlusterv2.Status.Reason, "Reason")
 	assert.Equal(t, checlusterv2.Status.PostgresVersion, "PostgresVersion")
 }

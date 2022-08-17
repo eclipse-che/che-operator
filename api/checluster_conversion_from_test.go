@@ -420,6 +420,7 @@ func TestConvertFrom(t *testing.T) {
 			CheURL:             "CheURL",
 			DevfileRegistryURL: "DevfileRegistryURL",
 			PluginRegistryURL:  "PluginRegistryURL",
+			OpenVSXURL:         "open-vsx-url",
 			ChePhase:           "Active",
 			Message:            "Message",
 			Reason:             "Reason",
@@ -440,6 +441,7 @@ func TestConvertFrom(t *testing.T) {
 	assert.Equal(t, checlusterv1.Status.DevfileRegistryURL, "DevfileRegistryURL")
 	assert.Equal(t, checlusterv1.Status.Message, "Message")
 	assert.Equal(t, checlusterv1.Status.PluginRegistryURL, "PluginRegistryURL")
+	assert.Equal(t, checlusterv1.Status.OpenVSXURL, "open-vsx-url")
 	assert.Equal(t, checlusterv1.Status.Reason, "Reason")
 	assert.Equal(t, checlusterv1.Status.GitServerTLSCertificateConfigMapName, "che-git-self-signed-cert")
 
