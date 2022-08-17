@@ -36,7 +36,21 @@ func TestGetPluginRegistryDeploymentSpec(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name:          "Test default limits",
+			name:          "Test default limits for embedded OpenVSX registry",
+			initObjects:   []runtime.Object{},
+			memoryLimit:   constants.DefaultPluginRegistryMemoryLimitEmbeddedOpenVSXRegistry,
+			memoryRequest: constants.DefaultPluginRegistryMemoryRequestEmbeddedOpenVSXRegistry,
+			cpuLimit:      constants.DefaultPluginRegistryCpuLimit,
+			cpuRequest:    constants.DefaultPluginRegistryCpuRequest,
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+			},
+		},
+		{
+			name:          "Test default limits for external openVSX registry",
 			initObjects:   []runtime.Object{},
 			memoryLimit:   constants.DefaultPluginRegistryMemoryLimit,
 			memoryRequest: constants.DefaultPluginRegistryMemoryRequest,
@@ -46,6 +60,13 @@ func TestGetPluginRegistryDeploymentSpec(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						PluginRegistry: chev2.PluginRegistry{
+							OpenVSXURL: "open-vsx-url",
+						},
+					},
 				},
 			},
 		},

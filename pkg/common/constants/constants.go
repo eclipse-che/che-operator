@@ -33,10 +33,12 @@ const (
 	DefaultDashboardCpuRequest    = "100m"
 
 	// PluginRegistry
-	DefaultPluginRegistryMemoryLimit   = "1536Mi"
-	DefaultPluginRegistryMemoryRequest = "32Mi"
-	DefaultPluginRegistryCpuLimit      = "500m"
-	DefaultPluginRegistryCpuRequest    = "100m"
+	DefaultPluginRegistryMemoryLimit                          = "256Mi"
+	DefaultPluginRegistryMemoryLimitEmbeddedOpenVSXRegistry   = "2Gi"
+	DefaultPluginRegistryMemoryRequest                        = "32Mi"
+	DefaultPluginRegistryMemoryRequestEmbeddedOpenVSXRegistry = "512Mi"
+	DefaultPluginRegistryCpuLimit                             = "500m"
+	DefaultPluginRegistryCpuRequest                           = "100m"
 
 	// DevfileRegistry
 	DefaultDevfileRegistryMemoryLimit   = "256Mi"
