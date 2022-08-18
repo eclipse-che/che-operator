@@ -236,7 +236,7 @@ update-helmcharts: ## Update Helm Charts based on deployment resources
 
 gen-chectl-tmpl: SHELL := /bin/bash
 gen-chectl-tmpl: ## Generate Eclipse Che k8s deployment resources used by chectl
-	[[ -z "$(TEMPLATES)" ]] && { echo [ERROR] TARGET not defined; exit 1; }
+	[[ -z "$(TEMPLATES)" ]] && { echo [ERROR] TEMPLATES not defined; exit 1; }
 	[[ -z "$(SOURCE_PROJECT)" ]] && src=$(PROJECT_DIR) || src=$(SOURCE_PROJECT)
 
 	dst="$(TEMPLATES)/che-operator/kubernetes" && rm -rf $${dst}
@@ -292,7 +292,7 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
-test: download-devworkspace-resources ## Run tests.
+test: download-devworkspace-resources download-gateway-resources ## Run tests.
 	export MOCK_API=true; go test -mod=vendor ./... -coverprofile cover.out
 
 license: ## Add license to the files
@@ -327,9 +327,10 @@ genenerate-env:
 	cat $(BASH_ENV_FILE)
 
 install-che-operands: SHELL := /bin/bash
-install-che-operands: generate manifests download-kustomize download-devworkspace-resources
+install-che-operands: generate manifests download-kustomize download-gateway-resources
 	echo "[INFO] Running on $(PLATFORM)"
 	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
+	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) download-devworkspace-resources
 	[[ $(PLATFORM) == "openshift" ]] && $(MAKE) install-devworkspace CHANNEL=next
 
 	$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
@@ -342,7 +343,6 @@ install-che-operands: generate manifests download-kustomize download-devworkspac
 # Downloads Dev Workspace resources
 download-devworkspace-resources:
 	DEVWORKSPACE_RESOURCES=/tmp/devworkspace-operator/templates
-	GATEWAY_RESOURCES=/tmp/header-rewrite-traefik-plugin
 
 	rm -rf /tmp/devworkspace-operator.zip /tmp/devfile-devworkspace-operator-* $${DEVWORKSPACE_RESOURCES}
 	mkdir -p $${DEVWORKSPACE_RESOURCES}
@@ -351,6 +351,10 @@ download-devworkspace-resources:
 	cp -rf /tmp/devfile-devworkspace-operator*/deploy/* $${DEVWORKSPACE_RESOURCES}
 
 	echo "[INFO] DevWorkspace resources downloaded into $${DEVWORKSPACE_RESOURCES}"
+
+# Downloads Gateway resources
+download-gateway-resources:
+	GATEWAY_RESOURCES=/tmp/header-rewrite-traefik-plugin
 
 	rm -rf /tmp/asset-header-rewrite-traefik-plugin.zip /tmp/*-header-rewrite-traefik-plugin-*/ $${GATEWAY_RESOURCES}
 	mkdir -p $${GATEWAY_RESOURCES}
@@ -597,7 +601,7 @@ validate-requirements:
 	command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] skopeo is not installed."; exit 1; }
 
 # Set a new operator image for kustomize
-kustomize-operator-image:
+kustomize-operator-image: download-kustomize
 	cd config/manager
 	$(KUSTOMIZE) edit set image quay.io/eclipse/che-operator:next=$(IMG)
 	cd ../..
