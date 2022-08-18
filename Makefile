@@ -327,9 +327,10 @@ genenerate-env:
 	cat $(BASH_ENV_FILE)
 
 install-che-operands: SHELL := /bin/bash
-install-che-operands: generate manifests download-kustomize download-devworkspace-resources
+install-che-operands: generate manifests download-kustomize
 	echo "[INFO] Running on $(PLATFORM)"
 	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
+	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) download-devworkspace-resources
 	[[ $(PLATFORM) == "openshift" ]] && $(MAKE) install-devworkspace CHANNEL=next
 
 	$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
@@ -597,7 +598,7 @@ validate-requirements:
 	command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] skopeo is not installed."; exit 1; }
 
 # Set a new operator image for kustomize
-kustomize-operator-image:
+kustomize-operator-image: download-kustomize
 	cd config/manager
 	$(KUSTOMIZE) edit set image quay.io/eclipse/che-operator:next=$(IMG)
 	cd ../..
