@@ -15,7 +15,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: eclipse-che/che-operator-serving-cert
-    controller-gen.kubebuilder.io/version: v0.4.1
+    controller-gen.kubebuilder.io/version: v0.7.0
   labels:
     app.kubernetes.io/instance: che
     app.kubernetes.io/name: che
@@ -1452,13 +1452,9 @@ spec:
                     items:
                       properties:
                         attributes:
-                          additionalProperties:
-                            x-kubernetes-preserve-unknown-fields: true
-                          allOf:
-                          - x-kubernetes-preserve-unknown-fields: true
-                          - x-kubernetes-preserve-unknown-fields: true
                           description: Map of implementation-dependant free-form YAML attributes.
                           type: object
+                          x-kubernetes-preserve-unknown-fields: true
                         componentType:
                           description: Type of component
                           enum:
@@ -1513,13 +1509,9 @@ spec:
                                     description: Annotations to be added to Kubernetes Ingress or Openshift Route
                                     type: object
                                   attributes:
-                                    additionalProperties:
-                                      x-kubernetes-preserve-unknown-fields: true
-                                    allOf:
-                                    - x-kubernetes-preserve-unknown-fields: true
-                                    - x-kubernetes-preserve-unknown-fields: true
                                     description: "Map of implementation-dependant string-based free-form attributes. \n Examples of Che-specific attributes: \n - cookiesAuthEnabled: \"true\" / \"false\", \n - type: \"terminal\" / \"ide\" / \"ide-dev\","
                                     type: object
+                                    x-kubernetes-preserve-unknown-fields: true
                                   exposure:
                                     default: public
                                     description: "Describes how the endpoint should be exposed on the network. \n - `public` means that the endpoint will be exposed on the public network, typically through a K8S ingress or an OpenShift route. \n - `internal` means that the endpoint will be exposed internally outside of the main devworkspace POD, typically by K8S services, to be consumed by other elements running on the same cloud internal network. \n - `none` means that the endpoint will not be exposed and will only be accessible inside the main devworkspace POD, on a local address. \n Default value is `public`"
@@ -1711,13 +1703,9 @@ spec:
                                     description: Annotations to be added to Kubernetes Ingress or Openshift Route
                                     type: object
                                   attributes:
-                                    additionalProperties:
-                                      x-kubernetes-preserve-unknown-fields: true
-                                    allOf:
-                                    - x-kubernetes-preserve-unknown-fields: true
-                                    - x-kubernetes-preserve-unknown-fields: true
                                     description: "Map of implementation-dependant string-based free-form attributes. \n Examples of Che-specific attributes: \n - cookiesAuthEnabled: \"true\" / \"false\", \n - type: \"terminal\" / \"ide\" / \"ide-dev\","
                                     type: object
+                                    x-kubernetes-preserve-unknown-fields: true
                                   exposure:
                                     default: public
                                     description: "Describes how the endpoint should be exposed on the network. \n - `public` means that the endpoint will be exposed on the public network, typically through a K8S ingress or an OpenShift route. \n - `internal` means that the endpoint will be exposed internally outside of the main devworkspace POD, typically by K8S services, to be consumed by other elements running on the same cloud internal network. \n - `none` means that the endpoint will not be exposed and will only be accessible inside the main devworkspace POD, on a local address. \n Default value is `public`"
@@ -1788,13 +1776,9 @@ spec:
                                     description: Annotations to be added to Kubernetes Ingress or Openshift Route
                                     type: object
                                   attributes:
-                                    additionalProperties:
-                                      x-kubernetes-preserve-unknown-fields: true
-                                    allOf:
-                                    - x-kubernetes-preserve-unknown-fields: true
-                                    - x-kubernetes-preserve-unknown-fields: true
                                     description: "Map of implementation-dependant string-based free-form attributes. \n Examples of Che-specific attributes: \n - cookiesAuthEnabled: \"true\" / \"false\", \n - type: \"terminal\" / \"ide\" / \"ide-dev\","
                                     type: object
+                                    x-kubernetes-preserve-unknown-fields: true
                                   exposure:
                                     default: public
                                     description: "Describes how the endpoint should be exposed on the network. \n - `public` means that the endpoint will be exposed on the public network, typically through a K8S ingress or an OpenShift route. \n - `internal` means that the endpoint will be exposed internally outside of the main devworkspace POD, typically by K8S services, to be consumed by other elements running on the same cloud internal network. \n - `none` means that the endpoint will not be exposed and will only be accessible inside the main devworkspace POD, on a local address. \n Default value is `public`"
@@ -1879,13 +1863,9 @@ spec:
                                         type: string
                                     type: object
                                   attributes:
-                                    additionalProperties:
-                                      x-kubernetes-preserve-unknown-fields: true
-                                    allOf:
-                                    - x-kubernetes-preserve-unknown-fields: true
-                                    - x-kubernetes-preserve-unknown-fields: true
                                     description: Map of implementation-dependant free-form YAML attributes.
                                     type: object
+                                    x-kubernetes-preserve-unknown-fields: true
                                   commandType:
                                     description: Type of devworkspace command
                                     enum:
@@ -1985,13 +1965,9 @@ spec:
                               items:
                                 properties:
                                   attributes:
-                                    additionalProperties:
-                                      x-kubernetes-preserve-unknown-fields: true
-                                    allOf:
-                                    - x-kubernetes-preserve-unknown-fields: true
-                                    - x-kubernetes-preserve-unknown-fields: true
                                     description: Map of implementation-dependant free-form YAML attributes.
                                     type: object
+                                    x-kubernetes-preserve-unknown-fields: true
                                   componentType:
                                     description: Type of component
                                     enum:
@@ -2044,13 +2020,9 @@ spec:
                                               description: Annotations to be added to Kubernetes Ingress or Openshift Route
                                               type: object
                                             attributes:
-                                              additionalProperties:
-                                                x-kubernetes-preserve-unknown-fields: true
-                                              allOf:
-                                              - x-kubernetes-preserve-unknown-fields: true
-                                              - x-kubernetes-preserve-unknown-fields: true
                                               description: "Map of implementation-dependant string-based free-form attributes. \n Examples of Che-specific attributes: \n - cookiesAuthEnabled: \"true\" / \"false\", \n - type: \"terminal\" / \"ide\" / \"ide-dev\","
                                               type: object
+                                              x-kubernetes-preserve-unknown-fields: true
                                             exposure:
                                               description: "Describes how the endpoint should be exposed on the network. \n - `public` means that the endpoint will be exposed on the public network, typically through a K8S ingress or an OpenShift route. \n - `internal` means that the endpoint will be exposed internally outside of the main devworkspace POD, typically by K8S services, to be consumed by other elements running on the same cloud internal network. \n - `none` means that the endpoint will not be exposed and will only be accessible inside the main devworkspace POD, on a local address. \n Default value is `public`"
                                               enum:
@@ -2215,13 +2187,9 @@ spec:
                                               description: Annotations to be added to Kubernetes Ingress or Openshift Route
                                               type: object
                                             attributes:
-                                              additionalProperties:
-                                                x-kubernetes-preserve-unknown-fields: true
-                                              allOf:
-                                              - x-kubernetes-preserve-unknown-fields: true
-                                              - x-kubernetes-preserve-unknown-fields: true
                                               description: "Map of implementation-dependant string-based free-form attributes. \n Examples of Che-specific attributes: \n - cookiesAuthEnabled: \"true\" / \"false\", \n - type: \"terminal\" / \"ide\" / \"ide-dev\","
                                               type: object
+                                              x-kubernetes-preserve-unknown-fields: true
                                             exposure:
                                               description: "Describes how the endpoint should be exposed on the network. \n - `public` means that the endpoint will be exposed on the public network, typically through a K8S ingress or an OpenShift route. \n - `internal` means that the endpoint will be exposed internally outside of the main devworkspace POD, typically by K8S services, to be consumed by other elements running on the same cloud internal network. \n - `none` means that the endpoint will not be exposed and will only be accessible inside the main devworkspace POD, on a local address. \n Default value is `public`"
                                               enum:
@@ -2289,13 +2257,9 @@ spec:
                                               description: Annotations to be added to Kubernetes Ingress or Openshift Route
                                               type: object
                                             attributes:
-                                              additionalProperties:
-                                                x-kubernetes-preserve-unknown-fields: true
-                                              allOf:
-                                              - x-kubernetes-preserve-unknown-fields: true
-                                              - x-kubernetes-preserve-unknown-fields: true
                                               description: "Map of implementation-dependant string-based free-form attributes. \n Examples of Che-specific attributes: \n - cookiesAuthEnabled: \"true\" / \"false\", \n - type: \"terminal\" / \"ide\" / \"ide-dev\","
                                               type: object
+                                              x-kubernetes-preserve-unknown-fields: true
                                             exposure:
                                               description: "Describes how the endpoint should be exposed on the network. \n - `public` means that the endpoint will be exposed on the public network, typically through a K8S ingress or an OpenShift route. \n - `internal` means that the endpoint will be exposed internally outside of the main devworkspace POD, typically by K8S services, to be consumed by other elements running on the same cloud internal network. \n - `none` means that the endpoint will not be exposed and will only be accessible inside the main devworkspace POD, on a local address. \n Default value is `public`"
                                               enum:
@@ -3747,13 +3711,9 @@ spec:
                     items:
                       properties:
                         attributes:
-                          additionalProperties:
-                            x-kubernetes-preserve-unknown-fields: true
-                          allOf:
-                          - x-kubernetes-preserve-unknown-fields: true
-                          - x-kubernetes-preserve-unknown-fields: true
                           description: Map of implementation-dependant free-form YAML attributes.
                           type: object
+                          x-kubernetes-preserve-unknown-fields: true
                         componentType:
                           description: Type of component
                           enum:
@@ -3808,13 +3768,9 @@ spec:
                                     description: Annotations to be added to Kubernetes Ingress or Openshift Route
                                     type: object
                                   attributes:
-                                    additionalProperties:
-                                      x-kubernetes-preserve-unknown-fields: true
-                                    allOf:
-                                    - x-kubernetes-preserve-unknown-fields: true
-                                    - x-kubernetes-preserve-unknown-fields: true
                                     description: "Map of implementation-dependant string-based free-form attributes. \n Examples of Che-specific attributes: \n - cookiesAuthEnabled: \"true\" / \"false\", \n - type: \"terminal\" / \"ide\" / \"ide-dev\","
                                     type: object
+                                    x-kubernetes-preserve-unknown-fields: true
                                   exposure:
                                     default: public
                                     description: "Describes how the endpoint should be exposed on the network. \n - `public` means that the endpoint will be exposed on the public network, typically through a K8S ingress or an OpenShift route. \n - `internal` means that the endpoint will be exposed internally outside of the main devworkspace POD, typically by K8S services, to be consumed by other elements running on the same cloud internal network. \n - `none` means that the endpoint will not be exposed and will only be accessible inside the main devworkspace POD, on a local address. \n Default value is `public`"
@@ -4006,13 +3962,9 @@ spec:
                                     description: Annotations to be added to Kubernetes Ingress or Openshift Route
                                     type: object
                                   attributes:
-                                    additionalProperties:
-                                      x-kubernetes-preserve-unknown-fields: true
-                                    allOf:
-                                    - x-kubernetes-preserve-unknown-fields: true
-                                    - x-kubernetes-preserve-unknown-fields: true
                                     description: "Map of implementation-dependant string-based free-form attributes. \n Examples of Che-specific attributes: \n - cookiesAuthEnabled: \"true\" / \"false\", \n - type: \"terminal\" / \"ide\" / \"ide-dev\","
                                     type: object
+                                    x-kubernetes-preserve-unknown-fields: true
                                   exposure:
                                     default: public
                                     description: "Describes how the endpoint should be exposed on the network. \n - `public` means that the endpoint will be exposed on the public network, typically through a K8S ingress or an OpenShift route. \n - `internal` means that the endpoint will be exposed internally outside of the main devworkspace POD, typically by K8S services, to be consumed by other elements running on the same cloud internal network. \n - `none` means that the endpoint will not be exposed and will only be accessible inside the main devworkspace POD, on a local address. \n Default value is `public`"
@@ -4083,13 +4035,9 @@ spec:
                                     description: Annotations to be added to Kubernetes Ingress or Openshift Route
                                     type: object
                                   attributes:
-                                    additionalProperties:
-                                      x-kubernetes-preserve-unknown-fields: true
-                                    allOf:
-                                    - x-kubernetes-preserve-unknown-fields: true
-                                    - x-kubernetes-preserve-unknown-fields: true
                                     description: "Map of implementation-dependant string-based free-form attributes. \n Examples of Che-specific attributes: \n - cookiesAuthEnabled: \"true\" / \"false\", \n - type: \"terminal\" / \"ide\" / \"ide-dev\","
                                     type: object
+                                    x-kubernetes-preserve-unknown-fields: true
                                   exposure:
                                     default: public
                                     description: "Describes how the endpoint should be exposed on the network. \n - `public` means that the endpoint will be exposed on the public network, typically through a K8S ingress or an OpenShift route. \n - `internal` means that the endpoint will be exposed internally outside of the main devworkspace POD, typically by K8S services, to be consumed by other elements running on the same cloud internal network. \n - `none` means that the endpoint will not be exposed and will only be accessible inside the main devworkspace POD, on a local address. \n Default value is `public`"
@@ -4174,13 +4122,9 @@ spec:
                                         type: string
                                     type: object
                                   attributes:
-                                    additionalProperties:
-                                      x-kubernetes-preserve-unknown-fields: true
-                                    allOf:
-                                    - x-kubernetes-preserve-unknown-fields: true
-                                    - x-kubernetes-preserve-unknown-fields: true
                                     description: Map of implementation-dependant free-form YAML attributes.
                                     type: object
+                                    x-kubernetes-preserve-unknown-fields: true
                                   commandType:
                                     description: Type of devworkspace command
                                     enum:
@@ -4280,13 +4224,9 @@ spec:
                               items:
                                 properties:
                                   attributes:
-                                    additionalProperties:
-                                      x-kubernetes-preserve-unknown-fields: true
-                                    allOf:
-                                    - x-kubernetes-preserve-unknown-fields: true
-                                    - x-kubernetes-preserve-unknown-fields: true
                                     description: Map of implementation-dependant free-form YAML attributes.
                                     type: object
+                                    x-kubernetes-preserve-unknown-fields: true
                                   componentType:
                                     description: Type of component
                                     enum:
@@ -4339,13 +4279,9 @@ spec:
                                               description: Annotations to be added to Kubernetes Ingress or Openshift Route
                                               type: object
                                             attributes:
-                                              additionalProperties:
-                                                x-kubernetes-preserve-unknown-fields: true
-                                              allOf:
-                                              - x-kubernetes-preserve-unknown-fields: true
-                                              - x-kubernetes-preserve-unknown-fields: true
                                               description: "Map of implementation-dependant string-based free-form attributes. \n Examples of Che-specific attributes: \n - cookiesAuthEnabled: \"true\" / \"false\", \n - type: \"terminal\" / \"ide\" / \"ide-dev\","
                                               type: object
+                                              x-kubernetes-preserve-unknown-fields: true
                                             exposure:
                                               description: "Describes how the endpoint should be exposed on the network. \n - `public` means that the endpoint will be exposed on the public network, typically through a K8S ingress or an OpenShift route. \n - `internal` means that the endpoint will be exposed internally outside of the main devworkspace POD, typically by K8S services, to be consumed by other elements running on the same cloud internal network. \n - `none` means that the endpoint will not be exposed and will only be accessible inside the main devworkspace POD, on a local address. \n Default value is `public`"
                                               enum:
@@ -4510,13 +4446,9 @@ spec:
                                               description: Annotations to be added to Kubernetes Ingress or Openshift Route
                                               type: object
                                             attributes:
-                                              additionalProperties:
-                                                x-kubernetes-preserve-unknown-fields: true
-                                              allOf:
-                                              - x-kubernetes-preserve-unknown-fields: true
-                                              - x-kubernetes-preserve-unknown-fields: true
                                               description: "Map of implementation-dependant string-based free-form attributes. \n Examples of Che-specific attributes: \n - cookiesAuthEnabled: \"true\" / \"false\", \n - type: \"terminal\" / \"ide\" / \"ide-dev\","
                                               type: object
+                                              x-kubernetes-preserve-unknown-fields: true
                                             exposure:
                                               description: "Describes how the endpoint should be exposed on the network. \n - `public` means that the endpoint will be exposed on the public network, typically through a K8S ingress or an OpenShift route. \n - `internal` means that the endpoint will be exposed internally outside of the main devworkspace POD, typically by K8S services, to be consumed by other elements running on the same cloud internal network. \n - `none` means that the endpoint will not be exposed and will only be accessible inside the main devworkspace POD, on a local address. \n Default value is `public`"
                                               enum:
@@ -4584,13 +4516,9 @@ spec:
                                               description: Annotations to be added to Kubernetes Ingress or Openshift Route
                                               type: object
                                             attributes:
-                                              additionalProperties:
-                                                x-kubernetes-preserve-unknown-fields: true
-                                              allOf:
-                                              - x-kubernetes-preserve-unknown-fields: true
-                                              - x-kubernetes-preserve-unknown-fields: true
                                               description: "Map of implementation-dependant string-based free-form attributes. \n Examples of Che-specific attributes: \n - cookiesAuthEnabled: \"true\" / \"false\", \n - type: \"terminal\" / \"ide\" / \"ide-dev\","
                                               type: object
+                                              x-kubernetes-preserve-unknown-fields: true
                                             exposure:
                                               description: "Describes how the endpoint should be exposed on the network. \n - `public` means that the endpoint will be exposed on the public network, typically through a K8S ingress or an OpenShift route. \n - `internal` means that the endpoint will be exposed internally outside of the main devworkspace POD, typically by K8S services, to be consumed by other elements running on the same cloud internal network. \n - `none` means that the endpoint will not be exposed and will only be accessible inside the main devworkspace POD, on a local address. \n Default value is `public`"
                                               enum:
