@@ -314,10 +314,12 @@ func TestConvertTo(t *testing.T) {
 				},
 			},
 			Storage: chev1.CheClusterSpecStorage{
-				PvcStrategy:                  "PvcStrategy",
-				PvcClaimSize:                 "WorkspacePvcClaimSize",
-				PostgresPVCStorageClassName:  "PostgresPVCStorageClassName",
-				WorkspacePVCStorageClassName: "WorkspacePVCStorageClassName",
+				PvcStrategy:                             "PvcStrategy",
+				PvcClaimSize:                            "WorkspacePvcClaimSize",
+				PostgresPVCStorageClassName:             "PostgresPVCStorageClassName",
+				WorkspacePVCStorageClassName:            "WorkspacePVCStorageClassName",
+				PerWorkspaceStrategyPVCStorageClassName: "PerWorkspaceStrategyPVCStorageClassName",
+				PerWorkspaceStrategyPvcClaimSize:        "PerWorkspaceStrategyPvcClaimSize",
 			},
 			Metrics: chev1.CheClusterSpecMetrics{
 				Enable: true,
@@ -498,6 +500,8 @@ func TestConvertTo(t *testing.T) {
 
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.ClaimSize, "WorkspacePvcClaimSize")
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.StorageClass, "WorkspacePVCStorageClassName")
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.ClaimSize, "PerWorkspaceStrategyPvcClaimSize")
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.StorageClass, "PerWorkspaceStrategyPVCStorageClassName")
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Storage.PvcStrategy, "PvcStrategy")
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling, pointer.Int32Ptr(1800))
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.SecondsOfRunBeforeIdling, pointer.Int32Ptr(-1))

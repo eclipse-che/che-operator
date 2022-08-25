@@ -368,9 +368,12 @@ type TrustedCerts struct {
 
 // Configuration settings related to the workspaces persistent storage.
 type WorkspaceStorage struct {
-	// PVC settings when using the "per-user" PVC strategy.
+	// PVC settings when using the `per-user` PVC strategy.
 	// +optional
 	PerUserStrategyPvcConfig *PVC `json:"perUserStrategyPvcConfig,omitempty"`
+	// PVC settings when using the `per-workspace` PVC strategy.
+	// +optional
+	PerWorkspaceStrategyPvcConfig *PVC `json:"perWorkspaceStrategyPvcConfig,omitempty"`
 	// Persistent volume claim strategy for the Che server.
 	// The supported strategies are: `per-user` (all workspaces PVCs in one volume)
 	// and 'per-workspace' (each workspace is given its own individual PVC).

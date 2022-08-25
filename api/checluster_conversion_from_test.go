@@ -386,6 +386,10 @@ func TestConvertFrom(t *testing.T) {
 						ClaimSize:    "StorageClaimSize",
 						StorageClass: "StorageClass",
 					},
+					PerWorkspaceStrategyPvcConfig: &chev2.PVC{
+						ClaimSize:    "PerWorkspaceStorageClaimSize",
+						StorageClass: "PerWorkspaceStorageClass",
+					},
 					PvcStrategy: "PvcStrategy",
 				},
 				DefaultPlugins: []chev2.WorkspaceDefaultPlugins{
@@ -554,8 +558,10 @@ func TestConvertFrom(t *testing.T) {
 	})
 	assert.Equal(t, checlusterv1.Spec.Server.WorkspacesDefaultPlugins, []chev1.WorkspacesDefaultPlugins{{Editor: "Editor", Plugins: []string{"Plugins_1", "Plugins_2"}}})
 
+	assert.Equal(t, checlusterv1.Spec.Storage.PvcStrategy, "PvcStrategy")
 	assert.Equal(t, checlusterv1.Spec.Storage.PostgresPVCStorageClassName, "DatabaseStorageClass")
 	assert.Equal(t, checlusterv1.Spec.Storage.PvcClaimSize, "StorageClaimSize")
-	assert.Equal(t, checlusterv1.Spec.Storage.PvcStrategy, "PvcStrategy")
 	assert.Equal(t, checlusterv1.Spec.Storage.WorkspacePVCStorageClassName, "StorageClass")
+	assert.Equal(t, checlusterv1.Spec.Storage.PerWorkspaceStrategyPvcClaimSize, "PerWorkspaceStorageClaimSize")
+	assert.Equal(t, checlusterv1.Spec.Storage.PerWorkspaceStrategyPVCStorageClassName, "PerWorkspaceStorageClass")
 }

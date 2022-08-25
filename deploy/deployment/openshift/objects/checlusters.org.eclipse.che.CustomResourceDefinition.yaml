@@ -2419,6 +2419,12 @@ spec:
               storage:
                 description: Configuration settings related to the persistent storage used by the Che installation.
                 properties:
+                  perWorkspaceStrategyPVCStorageClassName:
+                    description: Storage class for the Persistent Volume Claims dedicated to the Che workspaces. When omitted or left blank, a default storage class is used.
+                    type: string
+                  perWorkspaceStrategyPvcClaimSize:
+                    description: Size of the persistent volume claim for workspaces.
+                    type: string
                   postgresPVCStorageClassName:
                     description: Storage class for the Persistent Volume Claim dedicated to the PostgreSQL database. When omitted or left blank, a default storage class is used.
                     type: string
@@ -4675,7 +4681,17 @@ spec:
                     description: Workspaces persistent storage.
                     properties:
                       perUserStrategyPvcConfig:
-                        description: PVC settings when using the "per-user" PVC strategy.
+                        description: PVC settings when using the `per-user` PVC strategy.
+                        properties:
+                          claimSize:
+                            description: Persistent Volume Claim size. To update the claim size, the storage class that provisions it must support resizing.
+                            type: string
+                          storageClass:
+                            description: Storage class for the Persistent Volume Claim. When omitted or left blank, a default storage class is used.
+                            type: string
+                        type: object
+                      perWorkspaceStrategyPvcConfig:
+                        description: PVC settings when using the `per-workspace` PVC strategy.
                         properties:
                           claimSize:
                             description: Persistent Volume Claim size. To update the claim size, the storage class that provisions it must support resizing.
