@@ -1449,6 +1449,10 @@ spec:
                     description: Deprecated in favor of `disableInternalClusterSVCNames`.
                     type: boolean
                   workspaceDefaultComponents:
+                    default:
+                    - container:
+                        image: quay.io/devfile/universal-developer-image:ubi8-38da5c2
+                      name: universal-developer-image
                     description: Default components applied to DevWorkspaces. These default components are meant to be used when a Devfile does not contain any components.
                     items:
                       properties:
@@ -2368,6 +2372,7 @@ spec:
                       type: object
                     type: array
                   workspaceDefaultEditor:
+                    default: eclipse/che-theia/latest
                     description: The default editor to workspace create with. It could be a plugin ID or a URI. The plugin ID must have `publisher/plugin/version`. The URI must start from `http`.
                     type: string
                   workspaceNamespaceDefault:
@@ -3689,6 +3694,11 @@ spec:
                 type: object
               devEnvironments:
                 default:
+                  defaultComponents:
+                  - container:
+                      image: quay.io/devfile/universal-developer-image:ubi8-38da5c2
+                    name: universal-developer-image
+                  defaultEditor: eclipse/che-theia/latest
                   defaultNamespace:
                     template: <username>-che
                   secondsOfInactivityBeforeIdling: 1800
@@ -3698,6 +3708,10 @@ spec:
                 description: Development environment default configuration options.
                 properties:
                   defaultComponents:
+                    default:
+                    - container:
+                        image: quay.io/devfile/universal-developer-image:ubi8-38da5c2
+                      name: universal-developer-image
                     description: Default components applied to DevWorkspaces. These default components are meant to be used when a Devfile, that does not contain any components.
                     items:
                       properties:
@@ -4617,6 +4631,7 @@ spec:
                       type: object
                     type: array
                   defaultEditor:
+                    default: eclipse/che-theia/latest
                     description: The default editor to workspace create with. It could be a plugin ID or a URI. The plugin ID must have `publisher/plugin/version` format. The URI must start from `http://` or `https://`.
                     type: string
                   defaultNamespace:

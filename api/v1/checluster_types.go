@@ -361,10 +361,12 @@ type CheClusterSpecServer struct {
 	// The plugin ID must have `publisher/plugin/version`.
 	// The URI must start from `http`.
 	// +optional
+	// +kubebuilder:default:=eclipse/che-theia/latest
 	WorkspaceDefaultEditor string `json:"workspaceDefaultEditor,omitempty"`
 	// Default components applied to DevWorkspaces.
 	// These default components are meant to be used when a Devfile does not contain any components.
 	// +optional
+	// +kubebuilder:default:={{name: universal-developer-image, container: {image: "quay.io/devfile/universal-developer-image:ubi8-38da5c2"}}}
 	WorkspaceDefaultComponents []devfile.Component `json:"workspaceDefaultComponents,omitempty"`
 	// List of environment variables to set in the Che server container.
 	// +optional
