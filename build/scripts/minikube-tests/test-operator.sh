@@ -29,7 +29,12 @@ runTest() {
   buildAndCopyCheOperatorImageToMinikube
   yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' "${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH}/che-operator/kubernetes/operator.yaml"
   yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' "${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH}/che-operator/kubernetes/operator.yaml"
-  chectl server:deploy --batch --platform minikube --templates "${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH}"
+
+  chectl server:deploy \
+    --batch \
+    --platform minikube \
+    --templates "${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH}" \
+    --che-operator-cr-patch-yaml "${OPERATOR_REPO}/build/scripts/minikube-tests/minikube-checluster-patch.yaml"
 
   pushd ${OPERATOR_REPO}
     make wait-eclipseche-version VERSION="next" NAMESPACE=${NAMESPACE}

@@ -27,7 +27,10 @@ trap "catchFinish" EXIT SIGINT
 
 runTest() {
   # Deploy Eclipse Che to have Cert Manager and Dex installed
-  chectl server:deploy --batch --platform minikube
+  chectl server:deploy \
+    --batch \
+    --platform minikube \
+    --che-operator-cr-patch-yaml "${OPERATOR_REPO}/build/scripts/minikube-tests/minikube-checluster-patch.yaml"
 
   # Read OIDC configuration
   local IDENTITY_PROVIDER_URL=$(kubectl get checluster/eclipse-che -n ${NAMESPACE} -o jsonpath='{.spec.networking.auth.identityProviderURL}')
@@ -41,13 +44,27 @@ runTest() {
 
   # Prepare HelmCharts
   HELMCHART_DIR=/tmp/chectl-helmcharts
-  OPERATOR_DEPLOYMENT="${HELMCHART_DIR}"/templates/che-operator.Deployment.yaml
   rm -rf "${HELMCHART_DIR}"
   cp -r "${OPERATOR_REPO}/helmcharts/next" "${HELMCHART_DIR}"
 
+  # Set custom image
+  OPERATOR_DEPLOYMENT="${HELMCHART_DIR}"/templates/che-operator.Deployment.yaml
   buildAndCopyCheOperatorImageToMinikube
   yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' "${OPERATOR_DEPLOYMENT}"
   yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "Never"' "${OPERATOR_DEPLOYMENT}"
+
+  # Patch CheCluster CR to limit resources (see minikube-checluster-patch.yaml)
+  CHECLUSTER_CR="${HELMCHART_DIR}"/templates/org_v2_checluster.yaml
+  yq -riY '.spec.components = null' ${CHECLUSTER_CR}
+  yq -riY '.spec.components.pluginRegistry.openVSXURL = "https://open-vsx.org"' ${CHECLUSTER_CR}
+  for component in pluginRegistry devfileRegistry database dashboard; do
+    yq -riY '.spec.components.'${component}'.deployment.containers[0].resources = {limits: {cpu: "50m"}, request: {cpu: "50m"}}' ${CHECLUSTER_CR}
+  done
+  yq -riY '.spec.components.cheServer.deployment.containers[0].resources.limits.cpu = "500m"' ${CHECLUSTER_CR}
+  gatewayComponent=(kube-rbac-proxy oauth-proxy configbump gateway)
+  for i in {0..3}; do
+    yq -riY '.spec.networking.auth.gateway.deployment.containers['$i'] = {name: "'${gatewayComponent[$i]}'", resources: {limits: {cpu: "50m"}, request: {cpu: "50m"}}}' ${CHECLUSTER_CR}
+  done
 
   # Deploy Eclipse Che with Helm
   pushd "${HELMCHART_DIR}"

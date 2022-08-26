@@ -27,7 +27,11 @@ trap "catchFinish" EXIT SIGINT
 
 runTest() {
   # Deploy stable version
-  chectl server:deploy --platform minikube --batch --templates ${LAST_OPERATOR_VERSION_TEMPLATE_PATH}
+  chectl server:deploy \
+    --batch \
+    --platform minikube \
+    --templates ${LAST_OPERATOR_VERSION_TEMPLATE_PATH} \
+    --che-operator-cr-patch-yaml "${OPERATOR_REPO}/build/scripts/minikube-tests/minikube-checluster-patch.yaml"
 
   # Update to next version
   buildAndCopyCheOperatorImageToMinikube
