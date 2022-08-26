@@ -26,7 +26,12 @@ source "${OPERATOR_REPO}/build/scripts/minikube-tests/common.sh"
 trap "catchFinish" EXIT SIGINT
 
 runTest() {
-  chectl server:deploy --platform minikube --templates ${PREVIOUS_OPERATOR_VERSION_TEMPLATE_PATH} --batch
+  chectl server:deploy \
+    --batch \
+    --platform minikube  \
+    --templates ${PREVIOUS_OPERATOR_VERSION_TEMPLATE_PATH} \
+    --che-operator-cr-patch-yaml "${OPERATOR_REPO}/build/scripts/minikube-tests/minikube-checluster-patch.yaml"
+
   chectl server:update --templates ${LAST_OPERATOR_VERSION_TEMPLATE_PATH} --batch
 
   # Wait until Eclipse Che is deployed
