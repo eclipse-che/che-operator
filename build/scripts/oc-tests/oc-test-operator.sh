@@ -19,6 +19,8 @@ source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
+[[ -z "${CI_CHE_OPERATOR_IMAGE}" ]] && { echo [ERROR] CI_CHE_OPERATOR_IMAGE not defined; exit 1; }
+
 runTests() {
   # CI_CHE_OPERATOR_IMAGE it is che operator image built in openshift CI job workflow.
   # More info about how works image dependencies in ci:https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates

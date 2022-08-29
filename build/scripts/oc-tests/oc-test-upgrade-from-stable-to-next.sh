@@ -26,6 +26,8 @@ trap "catchFinish" EXIT SIGINT
 
 unset OPERATOR_TEST_NAMESPACE
 
+[[ -z "${CI_CHE_OPERATOR_IMAGE}" ]] && { echo [ERROR] CI_CHE_OPERATOR_IMAGE not defined; exit 1; }
+
 # Discover test namespace
 # Eclipse Che subscription is pre-created by OpenShift CI
 discoverOperatorTestNamespace() {

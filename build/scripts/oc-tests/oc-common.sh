@@ -22,7 +22,7 @@ catchFinish() {
   local RESULT=$?
 
   # Collect all Eclipse Che logs
-  set +e && chectl server:logs -n $NAMESPACE -d $ARTIFACTS_DIR && set -e
+  set +e && chectl server:logs -n $NAMESPACE -d $ARTIFACTS_DIR --telemetry off && set -e
 
   [[ "${RESULT}" != "0" ]] && echo "[ERROR] Job failed." || echo "[INFO] Job completed successfully."
   rm -rf ${OPERATOR_REPO}/tmp
