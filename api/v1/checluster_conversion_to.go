@@ -139,7 +139,8 @@ func (src *CheCluster) convertTo_DevEnvironments(dst *chev2.CheCluster) error {
 }
 
 func (src *CheCluster) convertTo_Workspaces_Storage(dst *chev2.CheCluster) error {
-	dst.Spec.DevEnvironments.Storage.Pvc = toCheV2Pvc(src.Spec.Storage.PvcClaimSize, src.Spec.Storage.WorkspacePVCStorageClassName)
+	dst.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig = toCheV2Pvc(src.Spec.Storage.PvcClaimSize, src.Spec.Storage.WorkspacePVCStorageClassName)
+	dst.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig = toCheV2Pvc(src.Spec.Storage.PerWorkspaceStrategyPvcClaimSize, src.Spec.Storage.PerWorkspaceStrategyPVCStorageClassName)
 	dst.Spec.DevEnvironments.Storage.PvcStrategy = src.Spec.Storage.PvcStrategy
 	return nil
 }

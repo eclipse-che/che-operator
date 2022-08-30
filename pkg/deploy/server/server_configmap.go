@@ -135,9 +135,9 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 	pvcStrategy := utils.GetValue(ctx.CheCluster.Spec.DevEnvironments.Storage.PvcStrategy, constants.DefaultPvcStrategy)
 	workspacePvcStorageClassName := ""
 	pvcClaimSize := constants.DefaultPvcClaimSize
-	if ctx.CheCluster.Spec.DevEnvironments.Storage.Pvc != nil {
-		pvcClaimSize = ctx.CheCluster.Spec.DevEnvironments.Storage.Pvc.ClaimSize
-		workspacePvcStorageClassName = ctx.CheCluster.Spec.DevEnvironments.Storage.Pvc.StorageClass
+	if ctx.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig != nil {
+		pvcClaimSize = ctx.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.ClaimSize
+		workspacePvcStorageClassName = ctx.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.StorageClass
 	}
 
 	chePostgresHostName := utils.GetValue(ctx.CheCluster.Spec.Components.Database.PostgresHostName, constants.DefaultPostgresHostName)
