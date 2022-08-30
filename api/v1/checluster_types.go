@@ -676,6 +676,12 @@ type CheClusterSpecStorage struct {
 	// Storage class for the Persistent Volume Claims dedicated to the Che workspaces. When omitted or left blank, a default storage class is used.
 	// +optional
 	WorkspacePVCStorageClassName string `json:"workspacePVCStorageClassName,omitempty"`
+	// Size of the persistent volume claim for workspaces.
+	// +optional
+	PerWorkspaceStrategyPvcClaimSize string `json:"perWorkspaceStrategyPvcClaimSize,omitempty"`
+	// Storage class for the Persistent Volume Claims dedicated to the Che workspaces. When omitted or left blank, a default storage class is used.
+	// +optional
+	PerWorkspaceStrategyPVCStorageClassName string `json:"perWorkspaceStrategyPVCStorageClassName,omitempty"`
 }
 
 // +k8s:openapi-gen=true
