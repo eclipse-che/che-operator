@@ -37,7 +37,7 @@ type CheClusterSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Development environments"
-	// +kubebuilder:default:={defaultComponents: {{name: universal-developer-image, container: {image: "quay.io/devfile/universal-developer-image:ubi8-38da5c2"}}}, defaultEditor: eclipse/che-theia/latest, storage: {pvcStrategy: common}, defaultNamespace: {template: <username>-che}, secondsOfInactivityBeforeIdling:1800, secondsOfRunBeforeIdling:-1}
+	// +kubebuilder:default:={defaultComponents: {{name: universal-developer-image, container: {image: "quay.io/devfile/universal-developer-image:ubi8-38da5c2"}}}, defaultEditor: eclipse/che-theia/latest, storage: {pvcStrategy: per-user}, defaultNamespace: {template: <username>-che}, secondsOfInactivityBeforeIdling:1800, secondsOfRunBeforeIdling:-1}
 	DevEnvironments CheClusterDevEnvironments `json:"devEnvironments"`
 	// Che components configuration.
 	// +optional
@@ -63,7 +63,7 @@ type CheClusterSpec struct {
 type CheClusterDevEnvironments struct {
 	// Workspaces persistent storage.
 	// +optional
-	// +kubebuilder:default:={pvcStrategy: common}
+	// +kubebuilder:default:={pvcStrategy: per-user}
 	Storage WorkspaceStorage `json:"storage,omitempty"`
 	// Default plug-ins applied to DevWorkspaces.
 	// +optional
@@ -368,15 +368,19 @@ type TrustedCerts struct {
 
 // Configuration settings related to the workspaces persistent storage.
 type WorkspaceStorage struct {
-	// PVC settings.
+	// PVC settings when using the `per-user` PVC strategy.
 	// +optional
-	Pvc *PVC `json:"pvc,omitempty"`
+	PerUserStrategyPvcConfig *PVC `json:"perUserStrategyPvcConfig,omitempty"`
+	// PVC settings when using the `per-workspace` PVC strategy.
+	// +optional
+	PerWorkspaceStrategyPvcConfig *PVC `json:"perWorkspaceStrategyPvcConfig,omitempty"`
 	// Persistent volume claim strategy for the Che server.
-	// Only the `common` strategy (all workspaces PVCs in one volume) is supported .
+	// The supported strategies are: `per-user` (all workspaces PVCs in one volume)
+	// and 'per-workspace' (each workspace is given its own individual PVC).
 	// For details, see https://github.com/eclipse/che/issues/21185.
 	// +optional
-	// +kubebuilder:default:="common"
-	// +kubebuilder:validation:Enum=common;per-workspace
+	// +kubebuilder:default:="per-user"
+	// +kubebuilder:validation:Enum=common;per-user;per-workspace
 	PvcStrategy string `json:"pvcStrategy,omitempty"`
 }
 

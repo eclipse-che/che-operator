@@ -418,9 +418,14 @@ func (dst *CheCluster) convertFrom_Storage(src *chev2.CheCluster) error {
 	}
 
 	dst.Spec.Storage.PvcStrategy = src.Spec.DevEnvironments.Storage.PvcStrategy
-	if src.Spec.DevEnvironments.Storage.Pvc != nil {
-		dst.Spec.Storage.PvcClaimSize = src.Spec.DevEnvironments.Storage.Pvc.ClaimSize
-		dst.Spec.Storage.WorkspacePVCStorageClassName = src.Spec.DevEnvironments.Storage.Pvc.StorageClass
+	if src.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig != nil {
+		dst.Spec.Storage.PvcClaimSize = src.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.ClaimSize
+		dst.Spec.Storage.WorkspacePVCStorageClassName = src.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.StorageClass
+	}
+
+	if src.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig != nil {
+		dst.Spec.Storage.PerWorkspaceStrategyPvcClaimSize = src.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.ClaimSize
+		dst.Spec.Storage.PerWorkspaceStrategyPVCStorageClassName = src.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.StorageClass
 	}
 
 	return nil

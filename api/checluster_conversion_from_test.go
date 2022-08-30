@@ -382,9 +382,13 @@ func TestConvertFrom(t *testing.T) {
 					GitTrustedCertsConfigMapName: "che-git-self-signed-cert",
 				},
 				Storage: chev2.WorkspaceStorage{
-					Pvc: &chev2.PVC{
+					PerUserStrategyPvcConfig: &chev2.PVC{
 						ClaimSize:    "StorageClaimSize",
 						StorageClass: "StorageClass",
+					},
+					PerWorkspaceStrategyPvcConfig: &chev2.PVC{
+						ClaimSize:    "PerWorkspaceStorageClaimSize",
+						StorageClass: "PerWorkspaceStorageClass",
 					},
 					PvcStrategy: "PvcStrategy",
 				},
@@ -554,8 +558,10 @@ func TestConvertFrom(t *testing.T) {
 	})
 	assert.Equal(t, checlusterv1.Spec.Server.WorkspacesDefaultPlugins, []chev1.WorkspacesDefaultPlugins{{Editor: "Editor", Plugins: []string{"Plugins_1", "Plugins_2"}}})
 
+	assert.Equal(t, checlusterv1.Spec.Storage.PvcStrategy, "PvcStrategy")
 	assert.Equal(t, checlusterv1.Spec.Storage.PostgresPVCStorageClassName, "DatabaseStorageClass")
 	assert.Equal(t, checlusterv1.Spec.Storage.PvcClaimSize, "StorageClaimSize")
-	assert.Equal(t, checlusterv1.Spec.Storage.PvcStrategy, "PvcStrategy")
 	assert.Equal(t, checlusterv1.Spec.Storage.WorkspacePVCStorageClassName, "StorageClass")
+	assert.Equal(t, checlusterv1.Spec.Storage.PerWorkspaceStrategyPvcClaimSize, "PerWorkspaceStorageClaimSize")
+	assert.Equal(t, checlusterv1.Spec.Storage.PerWorkspaceStrategyPVCStorageClassName, "PerWorkspaceStorageClass")
 }
