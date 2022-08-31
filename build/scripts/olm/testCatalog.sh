@@ -63,7 +63,7 @@ run() {
     make create-catalogsource NAME="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" IMAGE="${CATALOG_IMAGE}"
   popd
 
-  local bundles=$(discoverCatalogSourceBundles "${ECLIPSE_CHE_CATALOG_SOURCE_NAME}")
+  local bundles=$(listCatalogSourceBundles "${ECLIPSE_CHE_CATALOG_SOURCE_NAME}")
   fetchLatestCSVInfo "${CHANNEL}" "${bundles}"
   forcePullingOlmImages "${LATEST_CSV_BUNDLE_IMAGE}"
 

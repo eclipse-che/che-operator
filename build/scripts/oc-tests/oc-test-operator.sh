@@ -22,13 +22,9 @@ trap "catchFinish" EXIT SIGINT
 [[ -z "${CI_CHE_OPERATOR_IMAGE}" ]] && { echo [ERROR] CI_CHE_OPERATOR_IMAGE not defined; exit 1; }
 
 runTests() {
-  # CI_CHE_OPERATOR_IMAGE it is che operator image built in openshift CI job workflow.
-  # More info about how works image dependencies in ci:https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates
-  useCustomOperatorImageInCSV "${CI_CHE_OPERATOR_IMAGE}"
-
-  make create-namespace NAMESPACE="eclipse-che"
-  getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
-  make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE}
+  deployEclipseCheFromSources
 }
 
 runTests
+
+
