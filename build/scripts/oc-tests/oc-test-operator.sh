@@ -22,7 +22,7 @@ trap "catchFinish" EXIT SIGINT
 [[ -z "${CI_CHE_OPERATOR_IMAGE}" ]] && { echo [ERROR] CI_CHE_OPERATOR_IMAGE not defined; exit 1; }
 
 runTests() {
-  . ${OPERATOR_REPO}/build/scripts/olm/testCatalogFromSources -o ${CI_CHE_OPERATOR_IMAGE}
+  . ${OPERATOR_REPO}/build/scripts/olm/testCatalogFromSources.sh -o ${CI_CHE_OPERATOR_IMAGE}
 }
 
 runTests
