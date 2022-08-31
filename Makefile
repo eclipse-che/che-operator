@@ -666,6 +666,21 @@ create-catalogsource: ## Creates catalog source
 	sleep 20s
 	$(K8S_CLI) wait --for=condition=ready pod -l "olm.catalogSource=$(NAME)" -n openshift-marketplace --timeout=240s
 
+create-operatorgroup: SHELL := /bin/bash
+create-operatorgroup: ## Creates operator group
+	[[ -z "$(NAME)" ]] && { echo [ERROR] NAME not defined; exit 1; }
+	[[ -z "$(NAMESPACE)" ]] && { echo [ERROR] NAMESPACE not defined; exit 1; }
+
+	echo '{
+		"apiVersion": "operators.coreos.com/v1",
+		"kind": "OperatorGroup",
+		"metadata": {
+		  "name": "$(NAME)",
+		  "namespace": "'$${NAMESPACE}'"
+		},
+		"spec": {}
+	  }' | $(K8S_CLI) apply -f -
+
 create-subscription: SHELL := /bin/bash
 create-subscription: ## Creates subscription
 	[[ -z "$(NAME)" ]] && { echo [ERROR] NAME not defined; exit 1; }
