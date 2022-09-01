@@ -9,24 +9,23 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package devworkspaceConfig
+package devworkspaceconfig
 
 import (
-	"context"
-
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/types"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const DwocName string = "devworkspace-config"
-const perUserStorageStrategy string = "per-user"
-const commonStorageStrategy string = "common"
-const perWorkspaceStorageStrategy string = "per-workspace"
+const (
+	devWorkspaceConfigName = "devworkspace-config"
+)
 
 type DevWorkspaceConfigReconciler struct {
 	deploy.Reconcilable
@@ -37,35 +36,32 @@ func NewDevWorkspaceConfigReconciler() *DevWorkspaceConfigReconciler {
 }
 
 func (d *DevWorkspaceConfigReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	// Get the che-operator-owned DWOC, if it exists. Otherwise, create it.
-	namespace := ctx.CheCluster.Namespace
-	dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
-	namespacedName := types.NamespacedName{Name: DwocName, Namespace: namespace}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), namespacedName, dwoc)
-	if err != nil {
-		if k8sErrors.IsNotFound(err) {
-			return reconcile.Result{}, false, createDWOC(dwoc, ctx, namespace)
-		}
+	dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      devWorkspaceConfigName,
+			Namespace: ctx.CheCluster.Namespace,
+		},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "DevWorkspaceOperatorConfig",
+			APIVersion: controllerv1alpha1.GroupVersion.String(),
+		},
+	}
+
+	if _, err := deploy.GetNamespacedObject(ctx, devWorkspaceConfigName, dwoc); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
-	// Now that we have the DWOC, modify it accordingly
-	updatedConfig, err := updateDWOC(ctx, dwoc)
-
+	if dwoc.Config == nil {
+		dwoc.Config = &controllerv1alpha1.OperatorConfiguration{}
+	}
+	err := updateOperatorConfig(ctx.CheCluster.Spec.DevEnvironments.Storage, dwoc.Config)
 	if err != nil {
 		return reconcile.Result{}, false, err
 	}
 
-	if updatedConfig {
-		// Now sync the updated config with the cluster
-		didSync, err := deploy.Sync(ctx, dwoc)
-		if err != nil {
-			return reconcile.Result{}, false, err
-		}
-
-		if !didSync {
-			return reconcile.Result{Requeue: true}, false, nil
-		}
+	done, err := deploy.Sync(ctx, dwoc)
+	if !done {
+		return reconcile.Result{}, false, err
 	}
 
 	return reconcile.Result{}, true, nil
@@ -75,138 +71,52 @@ func (d *DevWorkspaceConfigReconciler) Finalize(ctx *chetypes.DeployContext) boo
 	return true
 }
 
-func updateDWOC(ctx *chetypes.DeployContext, dwoc *controllerv1alpha1.DevWorkspaceOperatorConfig) (bool, error) {
-	updatedConfig := false
+func updateOperatorConfig(storage chev2.WorkspaceStorage, operatorConfig *controllerv1alpha1.OperatorConfiguration) error {
+	var pvc *chev2.PVC
 
-	if dwoc.Config == nil {
-		dwoc.Config = &controllerv1alpha1.OperatorConfiguration{}
-		updatedConfig = true
-	}
-
-	if dwoc.Config.Workspace == nil {
-		dwoc.Config.Workspace = &controllerv1alpha1.WorkspaceConfig{}
-		updatedConfig = true
-	}
-
-	// Setting the storage class name requires that a PVC strategy be selected
-	if ctx.CheCluster.Spec.DevEnvironments.Storage.PvcStrategy != "" {
-
-		switch ctx.CheCluster.Spec.DevEnvironments.Storage.PvcStrategy {
-		case commonStorageStrategy:
-			fallthrough
-		case perUserStorageStrategy:
-
-			if ctx.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig != nil &&
-				ctx.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.StorageClass != "" {
-
-				if dwoc.Config.Workspace.StorageClassName == nil ||
-					ctx.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.StorageClass != *dwoc.Config.Workspace.StorageClassName {
-					dwoc.Config.Workspace.StorageClassName = &ctx.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.StorageClass
-					updatedConfig = true
-				}
-			}
-		case perWorkspaceStorageStrategy:
-			if ctx.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig != nil &&
-				ctx.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.StorageClass != "" {
-
-				if dwoc.Config.Workspace.StorageClassName == nil ||
-					ctx.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.StorageClass != *dwoc.Config.Workspace.StorageClassName {
-					dwoc.Config.Workspace.StorageClassName = &ctx.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.StorageClass
-					updatedConfig = true
-				}
-
-			}
+	pvcStrategy := utils.GetValue(storage.PvcStrategy, constants.DefaultPvcStorageStrategy)
+	switch pvcStrategy {
+	case constants.CommonPVCStorageStrategy:
+		fallthrough
+	case constants.PerUserPVCStorageStrategy:
+		if storage.PerUserStrategyPvcConfig != nil {
+			pvc = storage.PerUserStrategyPvcConfig
+		}
+	case constants.PerWorkspacePVCStorageStrategy:
+		if storage.PerWorkspaceStrategyPvcConfig != nil {
+			pvc = storage.PerWorkspaceStrategyPvcConfig
 		}
 	}
 
-	if ctx.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig != nil &&
-		ctx.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.ClaimSize != "" {
-
-		if dwoc.Config.Workspace.DefaultStorageSize == nil {
-			dwoc.Config.Workspace.DefaultStorageSize = &controllerv1alpha1.StorageSizes{}
-			updatedConfig = true
+	if pvc != nil {
+		if operatorConfig.Workspace == nil {
+			operatorConfig.Workspace = &controllerv1alpha1.WorkspaceConfig{}
 		}
-
-		if dwoc.Config.Workspace.DefaultStorageSize.Common == nil ||
-			dwoc.Config.Workspace.DefaultStorageSize.Common.String() != ctx.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.ClaimSize {
-
-			pvcSize, err := resource.ParseQuantity(ctx.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.ClaimSize)
-			if err != nil {
-				return updatedConfig, err
-			}
-			dwoc.Config.Workspace.DefaultStorageSize.Common = &pvcSize
-			updatedConfig = true
-		}
-
+		return updateWorkspaceConfig(pvc, pvcStrategy == constants.PerWorkspacePVCStorageStrategy, operatorConfig.Workspace)
 	}
-
-	if ctx.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig != nil &&
-		ctx.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.ClaimSize != "" {
-
-		if dwoc.Config.Workspace.DefaultStorageSize == nil {
-			dwoc.Config.Workspace.DefaultStorageSize = &controllerv1alpha1.StorageSizes{}
-			updatedConfig = true
-		}
-
-		if dwoc.Config.Workspace.DefaultStorageSize.PerWorkspace == nil ||
-			dwoc.Config.Workspace.DefaultStorageSize.PerWorkspace.String() != ctx.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.ClaimSize {
-
-			pvcSize, err := resource.ParseQuantity(ctx.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.ClaimSize)
-			if err != nil {
-				return updatedConfig, err
-			}
-			dwoc.Config.Workspace.DefaultStorageSize.PerWorkspace = &pvcSize
-			updatedConfig = true
-		}
-
-	}
-
-	return updatedConfig, nil
+	return nil
 }
 
-func createDWOC(dwoc *controllerv1alpha1.DevWorkspaceOperatorConfig, ctx *chetypes.DeployContext, namespace string) error {
-	dwoc.ObjectMeta.Namespace = namespace
-	dwoc.ObjectMeta.Name = DwocName
-	dwoc.Config = &controllerv1alpha1.OperatorConfiguration{}
-	dwoc.Config.Workspace = &controllerv1alpha1.WorkspaceConfig{}
-
-	// Setting the storage class name requires that a PVC strategy be selected
-	if ctx.CheCluster.Spec.DevEnvironments.Storage.PvcStrategy != "" {
-		switch ctx.CheCluster.Spec.DevEnvironments.Storage.PvcStrategy {
-		case commonStorageStrategy:
-			fallthrough
-		case perUserStorageStrategy:
-			if ctx.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig != nil && ctx.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.StorageClass != "" {
-				dwoc.Config.Workspace.StorageClassName = &ctx.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.StorageClass
-			}
-		case perWorkspaceStorageStrategy:
-			if ctx.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig != nil && ctx.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.StorageClass != "" {
-				dwoc.Config.Workspace.StorageClassName = &ctx.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.StorageClass
-			}
-		}
+func updateWorkspaceConfig(pvc *chev2.PVC, isPerWorkspacePVCStorageStrategy bool, workspaceConfig *controllerv1alpha1.WorkspaceConfig) error {
+	if pvc.StorageClass != "" {
+		workspaceConfig.StorageClassName = &pvc.StorageClass
 	}
 
-	if ctx.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig != nil && ctx.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.ClaimSize != "" {
-		pvcSize, err := resource.ParseQuantity(ctx.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.ClaimSize)
+	if pvc.ClaimSize != "" {
+		if workspaceConfig.DefaultStorageSize == nil {
+			workspaceConfig.DefaultStorageSize = &controllerv1alpha1.StorageSizes{}
+		}
+
+		pvcSize, err := resource.ParseQuantity(pvc.ClaimSize)
 		if err != nil {
 			return err
 		}
 
-		dwoc.Config.Workspace.DefaultStorageSize = &controllerv1alpha1.StorageSizes{}
-		dwoc.Config.Workspace.DefaultStorageSize.Common = &pvcSize
-	}
-
-	if ctx.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig != nil && ctx.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.ClaimSize != "" {
-		pvcSize, err := resource.ParseQuantity(ctx.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.ClaimSize)
-		if err != nil {
-			return err
+		if isPerWorkspacePVCStorageStrategy {
+			workspaceConfig.DefaultStorageSize.PerWorkspace = &pvcSize
+		} else {
+			workspaceConfig.DefaultStorageSize.Common = &pvcSize
 		}
-
-		if dwoc.Config.Workspace.DefaultStorageSize == nil {
-			dwoc.Config.Workspace.DefaultStorageSize = &controllerv1alpha1.StorageSizes{}
-		}
-		dwoc.Config.Workspace.DefaultStorageSize.PerWorkspace = &pvcSize
 	}
-
-	return ctx.ClusterAPI.Client.Create(context.TODO(), dwoc)
+	return nil
 }

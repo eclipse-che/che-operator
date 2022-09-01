@@ -14,8 +14,6 @@ package che
 
 import (
 	"context"
-
-	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
@@ -24,7 +22,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy/consolelink"
 	"github.com/eclipse-che/che-operator/pkg/deploy/dashboard"
 	devworkspace "github.com/eclipse-che/che-operator/pkg/deploy/dev-workspace"
-	devworkspaceConfig "github.com/eclipse-che/che-operator/pkg/deploy/dev-workspace-config"
+	devworkspaceconfig "github.com/eclipse-che/che-operator/pkg/deploy/dev-workspace-config"
 	"github.com/eclipse-che/che-operator/pkg/deploy/devfileregistry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	identityprovider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
@@ -43,7 +41,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -51,7 +48,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -101,7 +97,7 @@ func NewReconciler(
 	reconcileManager.RegisterReconciler(tls.NewCertificatesReconciler())
 	reconcileManager.RegisterReconciler(tls.NewTlsSecretReconciler())
 	reconcileManager.RegisterReconciler(devworkspace.NewDevWorkspaceReconciler())
-	reconcileManager.RegisterReconciler(devworkspaceConfig.NewDevWorkspaceConfigReconciler())
+	reconcileManager.RegisterReconciler(devworkspaceconfig.NewDevWorkspaceConfigReconciler())
 	reconcileManager.RegisterReconciler(rbac.NewCheServerPermissionsReconciler())
 	reconcileManager.RegisterReconciler(rbac.NewGatewayPermissionsReconciler())
 	reconcileManager.RegisterReconciler(rbac.NewWorkspacePermissionsReconciler())
@@ -169,40 +165,6 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return []ctrl.Request{}
 	}
 
-	// TODO: Just added the part-of label and use toEclipseCheRelatedObjRequestMapper?
-	var dwocRequestMapper = func(obj client.Object) []reconcile.Request {
-
-		if obj.GetName() != devworkspaceConfig.DwocName {
-			// We're looking for a DWOC created by the Che-Operator
-			return []ctrl.Request{}
-		}
-
-		if obj.GetNamespace() == "" {
-			// ignore cluster scope objects
-			return []ctrl.Request{}
-		}
-
-		checluster, num, _ := deploy.FindCheClusterCRInNamespace(r.nonCachedClient, r.namespace)
-		if num != 1 {
-			if num > 1 {
-				logrus.Warn("More than one checluster Custom Resource found.")
-			}
-			return []ctrl.Request{}
-		}
-
-		if checluster.Namespace != obj.GetNamespace() {
-			// ignore object in another namespace
-			return []ctrl.Request{}
-		}
-
-		// TODO: Should we make a request for the che cluster object or DWOC object?
-		return []ctrl.Request{{NamespacedName: types.NamespacedName{
-			Namespace: checluster.Namespace,
-			Name:      checluster.Name,
-		}}}
-
-	}
-
 	controllerBuilder := ctrl.NewControllerManagedBy(mgr).
 		// Watch for changes to primary resource CheCluster
 		Watches(&source.Kind{Type: &chev2.CheCluster{}}, &handler.EnqueueRequestForObject{}).
@@ -239,8 +201,6 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			IsController: true,
 			OwnerType:    &chev2.CheCluster{},
 		}).
-		//TODO: Not sure if handler is correct
-		Watches(&source.Kind{Type: &controllerv1alpha1.DevWorkspaceOperatorConfig{}}, handler.EnqueueRequestsFromMapFunc(dwocRequestMapper)).
 		Watches(&source.Kind{Type: &corev1.ConfigMap{}},
 			handler.EnqueueRequestsFromMapFunc(toTrustedBundleConfigMapRequestMapper),
 			builder.WithPredicates(onAllExceptGenericEventsPredicate),

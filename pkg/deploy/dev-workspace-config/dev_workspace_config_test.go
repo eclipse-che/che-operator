@@ -9,10 +9,13 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package devworkspaceConfig
+package devworkspaceconfig
 
 import (
-	"os"
+	"regexp"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/utils/pointer"
 	"testing"
 
 	"context"
@@ -22,292 +25,323 @@ import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-type testCase struct {
-	name           string
-	infrastructure infrastructure.Type
-	cheCluster     *chev2.CheCluster
-}
+func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
+	type testCase struct {
+		name                   string
+		cheCluster             *chev2.CheCluster
+		existedObjects         []runtime.Object
+		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
+	}
 
-var testCases = []testCase{
-	{
-		name: "Reconcile DevWorkspace Configuration on OpenShift",
-		cheCluster: &chev2.CheCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "eclipse-che",
-			},
-		},
-		infrastructure: infrastructure.OpenShiftv4,
-	},
-	{
-		name: "Reconcile DevWorkspace Configuration on K8S",
-		cheCluster: &chev2.CheCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "eclipse-che",
-			},
-			Spec: chev2.CheClusterSpec{
-				Components: chev2.CheClusterComponents{
-					CheServer: chev2.CheServer{
-						ExtraProperties: map[string]string{"CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S": "true"},
+	type errorTestCase struct {
+		name                 string
+		cheCluster           *chev2.CheCluster
+		existedObjects       []runtime.Object
+		expectedErrorMessage string
+	}
+
+	var quantity15Gi = resource.MustParse("15Gi")
+	var quantity10Gi = resource.MustParse("10Gi")
+
+	var expectedErrorTestCases = []errorTestCase{
+		{
+			name: "Invalid claim size string",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						Storage: chev2.WorkspaceStorage{
+							PvcStrategy: constants.PerUserPVCStorageStrategy,
+							PerUserStrategyPvcConfig: &chev2.PVC{
+								StorageClass: "test-storage",
+								ClaimSize:    "invalid-ClaimSize",
+							},
+						},
 					},
 				},
-				Networking: chev2.CheClusterSpecNetworking{
-					Domain: "che.domain",
+			},
+			expectedErrorMessage: "quantities must match the regular expression",
+		},
+	}
+
+	var testCases = []testCase{
+		{
+			name: "Create DevWorkspaceOperatorConfig",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{},
+		},
+		{
+			name: "Create DevWorkspaceOperatorConfig with StorageClassName only",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						Storage: chev2.WorkspaceStorage{
+							PvcStrategy: constants.PerUserPVCStorageStrategy,
+							PerUserStrategyPvcConfig: &chev2.PVC{
+								StorageClass: "test-storage",
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					StorageClassName: pointer.StringPtr("test-storage"),
 				},
 			},
 		},
-		infrastructure: infrastructure.Kubernetes,
-	},
-}
+		{
+			name: "Create DevWorkspaceOperatorConfig with per-user strategy",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						Storage: chev2.WorkspaceStorage{
+							PvcStrategy: constants.PerUserPVCStorageStrategy,
+							PerUserStrategyPvcConfig: &chev2.PVC{
+								StorageClass: "test-storage",
+								ClaimSize:    "15Gi",
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					StorageClassName: pointer.StringPtr("test-storage"),
+					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
+						Common: &quantity15Gi,
+					},
+				},
+			},
+		},
+		{
+			name: "Create DevWorkspaceOperatorConfig with per-workspace strategy",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						Storage: chev2.WorkspaceStorage{
+							PvcStrategy: constants.PerWorkspacePVCStorageStrategy,
+							PerWorkspaceStrategyPvcConfig: &chev2.PVC{
+								StorageClass: "test-storage",
+								ClaimSize:    "15Gi",
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					StorageClassName: pointer.StringPtr("test-storage"),
+					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
+						PerWorkspace: &quantity15Gi,
+					},
+				},
+			},
+		},
+		{
+			name: "Update DevWorkspaceOperatorConfig with per-workspace strategy",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						Storage: chev2.WorkspaceStorage{
+							PvcStrategy: constants.PerWorkspacePVCStorageStrategy,
+							PerWorkspaceStrategyPvcConfig: &chev2.PVC{
+								StorageClass: "test-storage",
+								ClaimSize:    "15Gi",
+							},
+						},
+					},
+				},
+			},
+			existedObjects: []runtime.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							StorageClassName: pointer.StringPtr("default-storage-class"),
+							DefaultStorageSize: &controllerv1alpha1.StorageSizes{
+								PerWorkspace: &quantity10Gi,
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					StorageClassName: pointer.StringPtr("test-storage"),
+					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
+						PerWorkspace: &quantity15Gi,
+					},
+				},
+			},
+		},
+		{
+			name: "Update DevWorkspaceOperatorConfig with per-user strategy",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						Storage: chev2.WorkspaceStorage{
+							PvcStrategy: constants.PerUserPVCStorageStrategy,
+							PerUserStrategyPvcConfig: &chev2.PVC{
+								StorageClass: "test-storage",
+								ClaimSize:    "15Gi",
+							},
+						},
+					},
+				},
+			},
+			existedObjects: []runtime.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							StorageClassName: pointer.StringPtr("default-storage-class"),
+							DefaultStorageSize: &controllerv1alpha1.StorageSizes{
+								Common: &quantity10Gi,
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					StorageClassName: pointer.StringPtr("test-storage"),
+					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
+						Common: &quantity15Gi,
+					},
+				},
+			},
+		},
+		{
+			name: "Update populated DevWorkspaceOperatorConfig",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						Storage: chev2.WorkspaceStorage{
+							PvcStrategy: constants.PerUserPVCStorageStrategy,
+							PerUserStrategyPvcConfig: &chev2.PVC{
+								StorageClass: "test-storage",
+								ClaimSize:    "15Gi",
+							},
+						},
+					},
+				},
+			},
+			existedObjects: []runtime.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Routing: &controllerv1alpha1.RoutingConfig{
+							DefaultRoutingClass: "routing-class",
+						},
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							ProgressTimeout: "10s",
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Routing: &controllerv1alpha1.RoutingConfig{
+					DefaultRoutingClass: "routing-class",
+				},
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					ProgressTimeout:  "10s",
+					StorageClassName: pointer.StringPtr("test-storage"),
+					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
+						Common: &quantity15Gi,
+					},
+				},
+			},
+		},
+	}
 
-func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.cheCluster.DeepCopy(), []runtime.Object{})
-			deployContext.ClusterAPI.Scheme.AddKnownTypes(controllerv1alpha1.SchemeBuilder.GroupVersion, &controllerv1alpha1.DevWorkspaceOperatorConfig{})
-
-			dwoc := controllerv1alpha1.DevWorkspaceOperatorConfig{}
-			namespace := deployContext.CheCluster.Namespace
-
-			deployContext.CheCluster.Spec.DevEnvironments.Storage.PvcStrategy = perUserStorageStrategy
-			deployContext.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig = &chev2.PVC{}
-
-			deployContext.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.StorageClass = "testStorageClass"
-			deployContext.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.ClaimSize = "15Gi"
-
-			infrastructure.InitializeForTesting(testCase.infrastructure)
-
-			err := os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
-			assert.NoError(t, err)
+			deployContext := test.GetDeployContext(testCase.cheCluster, testCase.existedObjects)
+			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			_, _, err = devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err, "Reconcile failed")
-			_, done, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err, "Reconcile failed")
-			assert.True(t, done, "Dev Workspace configuration has not been provisioned")
+			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
+			assert.NoError(t, err)
 
-			// A DWOC should have now been created
-			namespacedName := types.NamespacedName{Name: DwocName, Namespace: namespace}
-			deployContext.ClusterAPI.Client.Get(context.TODO(), namespacedName, &dwoc)
-			assert.Equal(t, deployContext.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.StorageClass, *dwoc.Config.Workspace.StorageClassName)
-			assert.Equal(t, deployContext.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.ClaimSize, dwoc.Config.Workspace.DefaultStorageSize.Common.String())
+			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
+			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			assert.NoError(t, err)
+
+			assert.Equal(t, testCase.expectedOperatorConfig, dwoc.Config)
 		})
 	}
-}
 
-func TestReconcileDevWorkspaceConfigPerWorkspaceStorage(t *testing.T) {
-	for _, testCase := range testCases {
+	for _, testCase := range expectedErrorTestCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.cheCluster.DeepCopy(), []runtime.Object{})
-			deployContext.ClusterAPI.Scheme.AddKnownTypes(controllerv1alpha1.SchemeBuilder.GroupVersion, &controllerv1alpha1.DevWorkspaceOperatorConfig{})
-
-			dwoc := controllerv1alpha1.DevWorkspaceOperatorConfig{}
-			namespace := deployContext.CheCluster.Namespace
-
-			deployContext.CheCluster.Spec.DevEnvironments.Storage.PvcStrategy = perWorkspaceStorageStrategy
-			deployContext.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig = &chev2.PVC{}
-
-			deployContext.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.StorageClass = "testStorageClass"
-			deployContext.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.ClaimSize = "15Gi"
-
-			infrastructure.InitializeForTesting(testCase.infrastructure)
-
-			err := os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
-			assert.NoError(t, err)
+			deployContext := test.GetDeployContext(testCase.cheCluster, testCase.existedObjects)
+			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			_, _, err = devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err, "Reconcile failed")
-			_, done, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err, "Reconcile failed")
-			assert.True(t, done, "Dev Workspace configuration has not been provisioned")
-
-			// A DWOC should have now been created
-			namespacedName := types.NamespacedName{Name: DwocName, Namespace: namespace}
-			deployContext.ClusterAPI.Client.Get(context.TODO(), namespacedName, &dwoc)
-			assert.Equal(t, deployContext.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.StorageClass, *dwoc.Config.Workspace.StorageClassName)
-			assert.Equal(t, deployContext.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.ClaimSize, dwoc.Config.Workspace.DefaultStorageSize.PerWorkspace.String())
-		})
-	}
-}
-
-func TestUpdateExistingEmptyDevWorkspaceConfigPerWorkspaceStorage(t *testing.T) {
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.cheCluster.DeepCopy(), []runtime.Object{})
-			deployContext.ClusterAPI.Scheme.AddKnownTypes(controllerv1alpha1.SchemeBuilder.GroupVersion, &controllerv1alpha1.DevWorkspaceOperatorConfig{})
-
-			// Create DWOC which will be updated during reconcile
-			dwoc := controllerv1alpha1.DevWorkspaceOperatorConfig{}
-			namespace := deployContext.CheCluster.Namespace
-
-			dwoc.ObjectMeta.Name = DwocName
-			dwoc.ObjectMeta.Namespace = namespace
-			deployContext.ClusterAPI.Client.Create(context.TODO(), &dwoc)
-
-			deployContext.CheCluster.Spec.DevEnvironments.Storage.PvcStrategy = perWorkspaceStorageStrategy
-			deployContext.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig = &chev2.PVC{}
-			deployContext.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.StorageClass = "testStorageClass"
-			deployContext.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.ClaimSize = "15Gi"
-
-			infrastructure.InitializeForTesting(testCase.infrastructure)
-
-			err := os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
-			assert.NoError(t, err)
-
-			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			_, _, err = devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err, "Reconcile failed")
-			_, done, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err, "Reconcile failed")
-			assert.True(t, done, "Dev Workspace configuration has not been provisioned")
-
-			namespacedName := types.NamespacedName{Name: DwocName, Namespace: namespace}
-			deployContext.ClusterAPI.Client.Get(context.TODO(), namespacedName, &dwoc)
-			assert.Equal(t, deployContext.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.StorageClass, *dwoc.Config.Workspace.StorageClassName)
-			assert.Equal(t, deployContext.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.ClaimSize, dwoc.Config.Workspace.DefaultStorageSize.PerWorkspace.String())
-		})
-	}
-}
-
-func TestUpdateExistingEmptyDevWorkspaceConfigPerUserStorage(t *testing.T) {
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.cheCluster.DeepCopy(), []runtime.Object{})
-			deployContext.ClusterAPI.Scheme.AddKnownTypes(controllerv1alpha1.SchemeBuilder.GroupVersion, &controllerv1alpha1.DevWorkspaceOperatorConfig{})
-
-			// Create DWOC which will be updated during reconcile
-			dwoc := controllerv1alpha1.DevWorkspaceOperatorConfig{}
-			namespace := deployContext.CheCluster.Namespace
-
-			dwoc.ObjectMeta.Name = DwocName
-			dwoc.ObjectMeta.Namespace = namespace
-			deployContext.ClusterAPI.Client.Create(context.TODO(), &dwoc)
-
-			deployContext.CheCluster.Spec.DevEnvironments.Storage.PvcStrategy = perUserStorageStrategy
-			deployContext.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig = &chev2.PVC{}
-			deployContext.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.StorageClass = "testStorageClass"
-			deployContext.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.ClaimSize = "15Gi"
-
-			infrastructure.InitializeForTesting(testCase.infrastructure)
-
-			err := os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
-			assert.NoError(t, err)
-
-			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			_, _, err = devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err, "Reconcile failed")
-			_, done, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err, "Reconcile failed")
-			assert.True(t, done, "Dev Workspace configuration has not been provisioned")
-
-			namespacedName := types.NamespacedName{Name: DwocName, Namespace: namespace}
-			deployContext.ClusterAPI.Client.Get(context.TODO(), namespacedName, &dwoc)
-			assert.Equal(t, deployContext.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.StorageClass, *dwoc.Config.Workspace.StorageClassName)
-			assert.Equal(t, deployContext.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.ClaimSize, dwoc.Config.Workspace.DefaultStorageSize.Common.String())
-		})
-	}
-}
-
-func TestUpdateExistingPopulatedDevWorkspaceConfig(t *testing.T) {
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.cheCluster.DeepCopy(), []runtime.Object{})
-			deployContext.ClusterAPI.Scheme.AddKnownTypes(controllerv1alpha1.SchemeBuilder.GroupVersion, &controllerv1alpha1.DevWorkspaceOperatorConfig{})
-
-			// Create DWOC which will be updated during reconcile
-			dwoc := controllerv1alpha1.DevWorkspaceOperatorConfig{}
-			namespace := deployContext.CheCluster.Namespace
-
-			dwoc.ObjectMeta.Name = DwocName
-			dwoc.ObjectMeta.Namespace = namespace
-			dwoc.Config = &controllerv1alpha1.OperatorConfiguration{}
-			dwoc.Config.Workspace = &controllerv1alpha1.WorkspaceConfig{}
-
-			storageClass := "oldStorageClass"
-			dwoc.Config.Workspace.StorageClassName = &storageClass
-
-			commonStorageSize := resource.MustParse("12Gi")
-			perWorkspaceStorageSize := resource.MustParse("13Gi")
-			dwoc.Config.Workspace.DefaultStorageSize = &controllerv1alpha1.StorageSizes{
-				Common:       &commonStorageSize,
-				PerWorkspace: &perWorkspaceStorageSize,
-			}
-
-			deployContext.ClusterAPI.Client.Create(context.TODO(), &dwoc)
-
-			deployContext.CheCluster.Spec.DevEnvironments.Storage.PvcStrategy = commonStorageStrategy
-			deployContext.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig = &chev2.PVC{
-				ClaimSize:    "15Gi",
-				StorageClass: "testStorageClass",
-			}
-			deployContext.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig = &chev2.PVC{
-				ClaimSize: "15Gi",
-			}
-			infrastructure.InitializeForTesting(testCase.infrastructure)
-
-			err := os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
-			assert.NoError(t, err)
-
-			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			_, _, err = devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err, "Reconcile failed")
-			_, done, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err, "Reconcile failed")
-			assert.True(t, done, "Dev Workspace configuration has not been provisioned")
-
-			namespacedName := types.NamespacedName{Name: DwocName, Namespace: namespace}
-			deployContext.ClusterAPI.Client.Get(context.TODO(), namespacedName, &dwoc)
-			assert.Equal(t, deployContext.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.StorageClass, *dwoc.Config.Workspace.StorageClassName)
-			assert.Equal(t, deployContext.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.ClaimSize, dwoc.Config.Workspace.DefaultStorageSize.Common.String())
-			assert.Equal(t, deployContext.CheCluster.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.ClaimSize, dwoc.Config.Workspace.DefaultStorageSize.PerWorkspace.String())
-		})
-	}
-}
-
-func TestNoDevWorkspaceConfigUpdateNecessary(t *testing.T) {
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.cheCluster.DeepCopy(), []runtime.Object{})
-			deployContext.ClusterAPI.Scheme.AddKnownTypes(controllerv1alpha1.SchemeBuilder.GroupVersion, &controllerv1alpha1.DevWorkspaceOperatorConfig{})
-
-			// Create DWOC that will already be up to date on the cluster
-			dwoc := controllerv1alpha1.DevWorkspaceOperatorConfig{}
-			namespace := deployContext.CheCluster.Namespace
-
-			dwoc.ObjectMeta.Name = DwocName
-			dwoc.ObjectMeta.Namespace = namespace
-			dwoc.Config = &controllerv1alpha1.OperatorConfiguration{}
-			dwoc.Config.Workspace = &controllerv1alpha1.WorkspaceConfig{}
-			storageClass := "testStorageClass"
-			storageSize := resource.MustParse("9Gi")
-			dwoc.Config.Workspace.StorageClassName = &storageClass
-			dwoc.Config.Workspace.DefaultStorageSize = &controllerv1alpha1.StorageSizes{
-				Common: &storageSize,
-			}
-			deployContext.ClusterAPI.Client.Create(context.TODO(), &dwoc)
-
-			deployContext.CheCluster.Spec.DevEnvironments.Storage.PvcStrategy = perUserStorageStrategy
-			deployContext.CheCluster.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig = &chev2.PVC{
-				ClaimSize:    storageSize.String(),
-				StorageClass: "testStorageClass",
-			}
-
-			infrastructure.InitializeForTesting(testCase.infrastructure)
-
-			err := os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
-			assert.NoError(t, err)
-
-			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			_, done, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err, "Reconcile failed")
-			assert.True(t, done, "Dev Workspace configuration has not been provisioned")
+			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
+			assert.Error(t, err)
+			assert.Regexp(t, regexp.MustCompile(testCase.expectedErrorMessage), err.Error(), "error message must match")
 		})
 	}
 }
