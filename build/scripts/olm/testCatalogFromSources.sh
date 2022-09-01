@@ -83,9 +83,15 @@ spec:
 EOF
   fi
 
-  cp "${HOME}/.kube/config" /tmp/${IMAGE_REGISTRY_VIEWER_USER_NAME}.kubeconfig
-  timeout 240 bash -c "until oc login --kubeconfig=/tmp/${IMAGE_REGISTRY_VIEWER_USER_NAME}.kubeconfig  --username=${IMAGE_REGISTRY_VIEWER_USER_NAME} --password=${IMAGE_REGISTRY_VIEWER_USER_PASSWORD} >/dev/null 2>&1; do printf '.'; sleep 1; done"
-  IMAGE_REGISTRY_VIEWER_USER_TOKEN=$(oc --kubeconfig=/tmp/${IMAGE_REGISTRY_VIEWER_USER_NAME}.kubeconfig whoami -t)
+  IMAGE_REGISTRY_VIEWER_USER_KUBECONFIG=/tmp/${IMAGE_REGISTRY_VIEWER_USER_NAME}.kubeconfig
+  if [[ -f "${HOME}/.kube/config" ]]; then
+    cp "${HOME}/.kube/config" ${IMAGE_REGISTRY_VIEWER_USER_KUBECONFIG}
+  else
+    cp "${KUBECONFIG}" ${IMAGE_REGISTRY_VIEWER_USER_KUBECONFIG}
+  fi
+
+  timeout 300 bash -c "until oc login --kubeconfig=${IMAGE_REGISTRY_VIEWER_USER_KUBECONFIG}  --username=${IMAGE_REGISTRY_VIEWER_USER_NAME} --password=${IMAGE_REGISTRY_VIEWER_USER_PASSWORD} >/dev/null 2>&1; do printf '.'; sleep 1; done"
+  IMAGE_REGISTRY_VIEWER_USER_TOKEN=$(oc --kubeconfig=${IMAGE_REGISTRY_VIEWER_USER_KUBECONFIG} whoami -t)
 
   oc policy add-role-to-user registry-viewer ${IMAGE_REGISTRY_VIEWER_USER_NAME} -n ${NAMESPACE}
 }
@@ -157,7 +163,7 @@ EOF
 
 run() {
   pushd ${OPERATOR_REPO}
-    make create-namespace
+    make create-namespace NAMESPACE=${NAMESPACE}
     if [[ $(oc get operatorgroup -n eclipse-che --no-headers | wc -l) == 0 ]]; then
       make create-operatorgroup NAME=eclipse-che NAMESPACE=${NAMESPACE}
     fi
@@ -171,7 +177,9 @@ run() {
       INSTALL_PLAN_APPROVAL=Auto \
       CHANNEL=next
     waitForInstalledEclipseCheCSV
-    getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
+    if [[ $(oc get checluster -n eclipse-che --no-headers | wc -l) == 0 ]]; then
+      getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
+    fi
     make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE}
   popd
 }
