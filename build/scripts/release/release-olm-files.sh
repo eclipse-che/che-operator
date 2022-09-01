@@ -102,12 +102,10 @@ sed \
 -e 's/LABEL operators.operatorframework.io.bundle.channel.default.v1=.*/LABEL operators.operatorframework.io.bundle.channel.default.v1='$CHANNEL'/' \
 -i "${BUNDLE_DOCKERFILE}"
 
-pushd "${CURRENT_DIR}" || exit 1
-source ${OPERATOR_REPO}/build/release/scripts/addDigests.sh \
+source ${OPERATOR_REPO}/build/scripts/release/addDigests.sh \
               -t "${RELEASE}" \
               -s "${RELEASE_CSV}" \
               -o "${MANAGER_YAML}"
-popd || exit 1
 
 pushd "${OPERATOR_REPO}" || exit 1
 make download-addlicense
