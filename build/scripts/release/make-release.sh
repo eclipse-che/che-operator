@@ -206,7 +206,7 @@ releaseOlmFiles() {
   do
     pushd ${OPERATOR_REPO}/build/scripts/release
     . release-olm-files.sh --release-version $RELEASE --channel $channel
-    popd ${OPERATOR_REPO}
+    popd
     local openshift=${OPERATOR_REPO}/bundle/$channel/eclipse-che-preview-openshift/manifests
 
     echo "[INFO] releaseOlmFiles :: Validate changes"
