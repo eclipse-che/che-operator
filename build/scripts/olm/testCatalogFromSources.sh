@@ -98,44 +98,40 @@ EOF
 
 createOLMRegistry() {
   oc apply -f - <<EOF
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: v1
+kind: Pod
 metadata:
   name: che-registry
   namespace: ${NAMESPACE}
+  labels:
+    app: che-registry
+  annotations:
+    openshift.io/scc: anyuid
 spec:
-  selector:
-    matchLabels:
-      app: che-registry
-  template:
-    metadata:
-      labels:
-        app: che-registry
-    spec:
-      containers:
-      - name: registry
-        image: quay.io/openshift-knative/index
-        ports:
-        - containerPort: 50051
-          name: grpc
-          protocol: TCP
-        livenessProbe:
-          exec:
-            command:
-            - grpc_health_probe
-            - -addr=localhost:50051
-        readinessProbe:
-          exec:
-            command:
-            - grpc_health_probe
-            - -addr=localhost:50051
+  containers:
+  - name: registry
+    image: quay.io/openshift-knative/index
+    ports:
+    - containerPort: 50051
+      name: grpc
+      protocol: TCP
+    livenessProbe:
+      exec:
         command:
-        - /bin/sh
-        - -c
-        - |-
-          podman login -u ${IMAGE_REGISTRY_VIEWER_USER_NAME} -p ${IMAGE_REGISTRY_VIEWER_USER_TOKEN} image-registry.openshift-image-registry.svc:5000
-          /bin/opm registry add --container-tool=podman -d index.db --mode=semver -b image-registry.openshift-image-registry.svc:5000/${NAMESPACE}/${BUNDLE_NAME}
-          /bin/opm registry serve -d index.db -p 50051
+        - grpc_health_probe
+        - -addr=localhost:50051
+    readinessProbe:
+      exec:
+        command:
+        - grpc_health_probe
+        - -addr=localhost:50051
+    command:
+    - /bin/sh
+    - -c
+    - |-
+      podman login -u ${IMAGE_REGISTRY_VIEWER_USER_NAME} -p ${IMAGE_REGISTRY_VIEWER_USER_TOKEN} image-registry.openshift-image-registry.svc:5000
+      /bin/opm registry add --container-tool=podman -d index.db --mode=semver -b image-registry.openshift-image-registry.svc:5000/${NAMESPACE}/${BUNDLE_NAME}
+      /bin/opm registry serve -d index.db -p 50051
 EOF
 
   oc wait --for=condition=ready "pods" -l app=che-registry --timeout=60s -n "${NAMESPACE}"
