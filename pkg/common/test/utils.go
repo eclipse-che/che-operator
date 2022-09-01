@@ -13,11 +13,12 @@ package test
 
 import (
 	"context"
-	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
-	routev1 "github.com/openshift/api/route/v1"
 	"os"
 	"strings"
 	"testing"
+
+	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
+	routev1 "github.com/openshift/api/route/v1"
 
 	"github.com/stretchr/testify/assert"
 	"k8s.io/utils/pointer"
