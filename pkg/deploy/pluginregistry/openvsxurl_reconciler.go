@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	v7520             = "v7.52.0"
+	v7530             = "v7.53.0"
 	openVSXDefaultUrl = "https://open-vsx.org"
 )
 
@@ -61,8 +61,8 @@ func (r *OpenVSXUrlReconciler) syncOpenVSXUrl(ctx *chetypes.DeployContext) (bool
 			return true, nil
 		}
 
-		if semver.Compare(fmt.Sprintf("v%s", ctx.CheCluster.Status.CheVersion), v7520) == -1 {
-			// updating Eclipse Che, version is less than 7.52.0
+		if semver.Compare(fmt.Sprintf("v%s", ctx.CheCluster.Status.CheVersion), v7530) == -1 {
+			// updating Eclipse Che, version is less than 7.53.0
 			return setOpenVSXDefaultUrl(ctx)
 		}
 	}

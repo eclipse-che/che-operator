@@ -109,20 +109,20 @@ func TestOpenVSXUrlReconciler(t *testing.T) {
 			expectedOpenVSXUrl: "open-vsx-url",
 		},
 		{
-			name: "Should not update default openVSXURL if Eclipse Che version is greater or equal to 7.52.0 #1",
+			name: "Should not update default openVSXURL if Eclipse Che version is greater or equal to 7.53.0 #1",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
 					Namespace: "eclipse-che",
 				},
 				Status: chev2.CheClusterStatus{
-					CheVersion: "7.52.0",
+					CheVersion: "7.53.0",
 				},
 			},
 			expectedOpenVSXUrl: "",
 		},
 		{
-			name: "Should not update default openVSXURL if Eclipse Che version is greater or equal to 7.52.0 #2",
+			name: "Should not update default openVSXURL if Eclipse Che version is greater or equal to 7.53.0 #2",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
@@ -136,7 +136,7 @@ func TestOpenVSXUrlReconciler(t *testing.T) {
 					},
 				},
 				Status: chev2.CheClusterStatus{
-					CheVersion: "7.52.0",
+					CheVersion: "7.53.0",
 				},
 			},
 			expectedOpenVSXUrl: "open-vsx-url",
