@@ -55,6 +55,7 @@ type CheConfigMap struct {
 	CheInfraKubernetesServiceAccountName   string `json:"CHE_INFRA_KUBERNETES_SERVICE__ACCOUNT__NAME"`
 	CheInfraKubernetesUserClusterRoles     string `json:"CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"`
 	DefaultTargetNamespace                 string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"`
+	NamespaceCreationAllowed               string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_CREATION__ALLOWED"`
 	PvcStrategy                            string `json:"CHE_INFRA_KUBERNETES_PVC_STRATEGY"`
 	PvcClaimSize                           string `json:"CHE_INFRA_KUBERNETES_PVC_QUANTITY"`
 	WorkspacePvcStorageClassName           string `json:"CHE_INFRA_KUBERNETES_PVC_STORAGE__CLASS__NAME"`
@@ -171,6 +172,10 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 
 	}
 	workspaceNamespaceDefault := ctx.CheCluster.GetDefaultNamespace()
+	namespaceCreationAllowed := "true"
+	if ctx.CheCluster.Spec.DevEnvironments.DefaultNamespace.AutoProvision != nil {
+		namespaceCreationAllowed = strconv.FormatBool(*ctx.CheCluster.Spec.DevEnvironments.DefaultNamespace.AutoProvision)
+	}
 
 	cheAPI := "https://" + ctx.CheHost + "/api"
 	var pluginRegistryInternalURL, devfileRegistryInternalURL string
@@ -203,6 +208,10 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 		CheInfraKubernetesServiceAccountName:   cheWorkspaceServiceAccount,
 		CheInfraKubernetesUserClusterRoles:     cheUserClusterRoleNames,
 		DefaultTargetNamespace:                 workspaceNamespaceDefault,
+		NamespaceCreationAllowed:               namespaceCreationAllowed,
+		PvcStrategy:                            pvcStrategy,
+		PvcClaimSize:                           pvcClaimSize,
+		WorkspacePvcStorageClassName:           workspacePvcStorageClassName,
 		TlsSupport:                             "true",
 		K8STrustCerts:                          "true",
 		CheLogLevel:                            cheLogLevel,

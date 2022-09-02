@@ -89,6 +89,7 @@ func (dst *CheCluster) convertFrom_Server(src *chev2.CheCluster) error {
 		dst.Spec.Server.NonProxyHosts = strings.Join(src.Spec.Components.CheServer.Proxy.NonProxyHosts, "|")
 		dst.Spec.Server.ProxySecret = src.Spec.Components.CheServer.Proxy.CredentialsSecretName
 	}
+	dst.Spec.Server.AllowAutoProvisionUserNamespace = src.Spec.DevEnvironments.DefaultNamespace.AutoProvision
 	dst.Spec.Server.WorkspaceNamespaceDefault = src.Spec.DevEnvironments.DefaultNamespace.Template
 	dst.Spec.Server.WorkspacePodNodeSelector = utils.CloneMap(src.Spec.DevEnvironments.NodeSelector)
 
