@@ -17,12 +17,14 @@ OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_
 source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 
 init() {
+  VERBOSE=0
   unset OPERATOR_IMAGE
 
   while [[ "$#" -gt 0 ]]; do
     case $1 in
       '--help'|'-h') usage; exit;;
       '--operator-image'|'-o') OPERATOR_IMAGE="$2"; shift 1;;
+      '--verbose'|'-v') VERBOSE=1;;
     esac
     shift 1
   done
@@ -37,7 +39,8 @@ usage () {
 	echo -e "\t$0 -o OPERATOR_IMAGE"
   echo
   echo "OPTIONS:"
-  echo -e "\t-o,--operator-image      Operator image to include into bundle"
+  echo -e "\t-o,--operator-image      Operator image to include into a bundle"
+  echo -e "\t-n,--verbose             Verbose mode"
   echo
 	echo "Example:"
 	echo -e "\t$0 -o quay.io/eclipse/che-operator:next"
@@ -67,20 +70,16 @@ createImageRegistryViewerUser() {
 registry-viewer:{SHA}4xV+Nga1JF5YDx0fB1LdYbyaVvQ=
 EOF
     oc create secret generic registry-viewer-htpasswd --from-file=htpasswd=/tmp/htpasswd.conf -n openshift-config
-    oc apply -f - <<EOF
-apiVersion: config.openshift.io/v1
-kind: OAuth
-metadata:
-  name: cluster
+    oc patch oauths cluster --type merge -p '
 spec:
   identityProviders:
-  - name: registry-viewer
-    mappingMethod: claim
-    type: HTPasswd
-    htpasswd:
-      fileData:
-        name: registry-viewer-htpasswd
-EOF
+    - name: registry-viewer
+      mappingMethod: claim
+      type: HTPasswd
+      htpasswd:
+        fileData:
+          name: registry-viewer-htpasswd
+'
   fi
 
   IMAGE_REGISTRY_VIEWER_USER_KUBECONFIG=/tmp/${IMAGE_REGISTRY_VIEWER_USER_NAME}.kubeconfig
@@ -158,28 +157,31 @@ EOF
 }
 
 run() {
-  pushd ${OPERATOR_REPO}
-    make create-namespace NAMESPACE=${NAMESPACE}
-    if [[ $(oc get operatorgroup -n eclipse-che --no-headers | wc -l) == 0 ]]; then
-      make create-operatorgroup NAME=eclipse-che NAMESPACE=${NAMESPACE}
-    fi
-    createEclipseCheCatalogSource
-    make create-subscription \
-      NAME=eclipse-che-subscription \
-      NAMESPACE=eclipse-che \
-      PACKAGE_NAME=${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME} \
-      SOURCE=eclipse-che \
-      SOURCE_NAMESPACE=eclipse-che \
-      INSTALL_PLAN_APPROVAL=Auto \
-      CHANNEL=next
-    waitForInstalledEclipseCheCSV
-    if [[ $(oc get checluster -n eclipse-che --no-headers | wc -l) == 0 ]]; then
-      getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
-    fi
-    make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE}
-  popd
+  make create-namespace NAMESPACE=${NAMESPACE} VERBOSE=${VERBOSE}
+  if [[ $(oc get operatorgroup -n eclipse-che --no-headers | wc -l) == 0 ]]; then
+    make create-operatorgroup NAME=eclipse-che NAMESPACE=${NAMESPACE} VERBOSE=${VERBOSE}
+  fi
+  createEclipseCheCatalogSource
+  make create-subscription \
+    NAME=eclipse-che-subscription \
+    NAMESPACE=eclipse-che \
+    PACKAGE_NAME=${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME} \
+    SOURCE=eclipse-che \
+    SOURCE_NAMESPACE=eclipse-che \
+    INSTALL_PLAN_APPROVAL=Auto \
+    CHANNEL=next \
+    VERBOSE=${VERBOSE}
+  waitForInstalledEclipseCheCSV
+  if [[ $(oc get checluster -n eclipse-che --no-headers | wc -l) == 0 ]]; then
+    getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
+  fi
+  make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE} VERBOSE=${VERBOSE}
 }
 
 init "$@"
+[[ ${VERBOSE} == 1 ]] && set -x
+
+pushd ${OPERATOR_REPO} >/dev/null
 run
+popd >/dev/null
 
