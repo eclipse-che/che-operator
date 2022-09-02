@@ -684,42 +684,42 @@ create-operatorgroup: ## Creates operator group
 create-subscription: SHELL := /bin/bash
 create-subscription: ## Creates subscription
 	[[ -z "$(NAME)" ]] && { echo [ERROR] NAME not defined; exit 1; }
-	[[ -z "$(NAMESPACE)" ]] && DEFINED_NAMESPACE="openshift-operators" || DEFINED_NAMESPACE=$(NAMESPACE)
+	[[ -z "$(NAMESPACE)" ]] && { echo [ERROR] NAMESPACE not defined; exit 1; }
 	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
 	[[ -z "$(INSTALL_PLAN_APPROVAL)" ]] && { echo [ERROR] INSTALL_PLAN_APPROVAL not defined; exit 1; }
 	[[ -z "$(PACKAGE_NAME)" ]] && { echo [ERROR] PACKAGE_NAME not defined; exit 1; }
 	[[ -z "$(SOURCE)" ]] && { echo [ERROR] SOURCE not defined; exit 1; }
-	[[ -z "$(SOURCE_NAMESPACE)" ]] && DEFINED_SOURCE_NAMESPACE="openshift-marketplace" || DEFINED_SOURCE_NAMESPACE=$(SOURCE_NAMESPACE)
+	[[ -z "$(SOURCE_NAMESPACE)" ]] && { echo [ERROR] SOURCE_NAMESPACE not defined; exit 1; }
 
 	echo '{
 		"apiVersion": "operators.coreos.com/v1alpha1",
 		"kind": "Subscription",
 		"metadata": {
 		  "name": "$(NAME)",
-		  "namespace": "'$${DEFINED_NAMESPACE}'"
+		  "namespace": "$(NAMESPACE)"
 		},
 		"spec": {
 		  "channel": "$(CHANNEL)",
 		  "installPlanApproval": "$(INSTALL_PLAN_APPROVAL)",
 		  "name": "$(PACKAGE_NAME)",
 		  "source": "$(SOURCE)",
-		  "sourceNamespace": "'$${DEFINED_SOURCE_NAMESPACE}'",
+		  "sourceNamespace": "$(SOURCE_NAMESPACE)",
 		  "startingCSV": "$(STARTING_CSV)"
 		}
 	  }' | $(K8S_CLI) apply -f -
 
 	if [[ ${INSTALL_PLAN_APPROVAL} == "Manual" ]]; then
-		$(K8S_CLI) wait subscription $(NAME) -n $${DEFINED_NAMESPACE} --for=condition=InstallPlanPending --timeout=60s
+		$(K8S_CLI) wait subscription $(NAME) -n $(NAMESPACE) --for=condition=InstallPlanPending --timeout=60s
 	fi
 
 approve-installplan: SHELL := /bin/bash
 approve-installplan: ## Approves install plan
 	[[ -z "$(SUBSCRIPTION_NAME)" ]] && { echo [ERROR] SUBSCRIPTION_NAME not defined; exit 1; }
-	[[ -z "$(NAMESPACE)" ]] && DEFINED_NAMESPACE="openshift-operators" || DEFINED_NAMESPACE=$(NAMESPACE)
+	[[ -z "$(NAMESPACE)" ]] && { echo [ERROR] NAMESPACE not defined; exit 1; }
 
-	INSTALL_PLAN_NAME=$$($(K8S_CLI) get subscription $(SUBSCRIPTION_NAME) -n $${DEFINED_NAMESPACE} -o jsonpath='{.status.installplan.name}')
-	$(K8S_CLI) patch installplan $${INSTALL_PLAN_NAME} -n $${DEFINED_NAMESPACE} --type=merge -p '{"spec":{"approved":true}}'
-	$(K8S_CLI) wait installplan $${INSTALL_PLAN_NAME} -n $${DEFINED_NAMESPACE} --for=condition=Installed --timeout=240s
+	INSTALL_PLAN_NAME=$$($(K8S_CLI) get subscription $(SUBSCRIPTION_NAME) -n $(NAMESPACE) -o jsonpath='{.status.installplan.name}')
+	$(K8S_CLI) patch installplan $${INSTALL_PLAN_NAME} -n $(NAMESPACE) --type=merge -p '{"spec":{"approved":true}}'
+	$(K8S_CLI) wait installplan $${INSTALL_PLAN_NAME} -n $(NAMESPACE) --for=condition=Installed --timeout=240s
 
 create-namespace: SHELL := /bin/bash
 create-namespace: ## Creates namespace
