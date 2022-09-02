@@ -96,10 +96,12 @@ const (
 	CheEclipseOrgHash256                  = "che.eclipse.org/hash256"
 	CheEclipseOrgManagedAnnotationsDigest = "che.eclipse.org/managed-annotations-digest"
 
-	// Workspaces
-	DefaultPvcStrategy       = "common"
-	DefaultPvcClaimSize      = "10Gi"
-	DefaultWorkspaceJavaOpts = "-XX:MaxRAM=150m -XX:MaxRAMFraction=2 -XX:+UseParallelGC " +
+	// DevEnvironments
+	PerUserPVCStorageStrategy      = "per-user"
+	DefaultPvcStorageStrategy      = "per-user"
+	PerWorkspacePVCStorageStrategy = "per-workspace"
+	CommonPVCStorageStrategy       = "common"
+	DefaultWorkspaceJavaOpts       = "-XX:MaxRAM=150m -XX:MaxRAMFraction=2 -XX:+UseParallelGC " +
 		"-XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 " +
 		"-Dsun.zip.disableMemoryMapping=true " +
 		"-Xms20m -Djava.security.egd=file:/dev/./urandom"
