@@ -321,7 +321,7 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name: "Test devfile registry urls #1",
+			name: "Test #1",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -331,19 +331,19 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 						DevfileRegistry: chev2.DevfileRegistry{
 							DisableInternalRegistry: true,
 							ExternalDevfileRegistries: []chev2.ExternalDevfileRegistry{
-								{Url: "http://devfile-registry.external.1"},
+								{Url: "external-plugin-registry"},
 							},
 						},
 					},
 				},
 			},
 			expectedData: map[string]string{
-				"CHE_WORKSPACE_DEVFILE__REGISTRY__URL":           "http://devfile-registry.external.1",
+				"CHE_WORKSPACE_DEVFILE__REGISTRY__URL":           "external-plugin-registry",
 				"CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL": "",
 			},
 		},
 		{
-			name: "Test devfile registry urls #2",
+			name: "Test #2",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -352,17 +352,17 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 					Components: chev2.CheClusterComponents{
 						DevfileRegistry: chev2.DevfileRegistry{
 							ExternalDevfileRegistries: []chev2.ExternalDevfileRegistry{
-								{Url: "http://devfile-registry.external.2"},
+								{Url: "external-plugin-registry"},
 							},
 						},
 					},
 				},
 				Status: chev2.CheClusterStatus{
-					DevfileRegistryURL: "http://devfile-registry.internal.1",
+					DevfileRegistryURL: "internal-plugin-registry",
 				},
 			},
 			expectedData: map[string]string{
-				"CHE_WORKSPACE_DEVFILE__REGISTRY__URL":           "http://devfile-registry.internal.1 http://devfile-registry.external.2",
+				"CHE_WORKSPACE_DEVFILE__REGISTRY__URL":           "internal-plugin-registry external-plugin-registry",
 				"CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL": "http://devfile-registry.eclipse-che.svc:8080",
 			},
 		},
@@ -373,12 +373,12 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 				Status: chev2.CheClusterStatus{
-					DevfileRegistryURL: "http://devfile-registry.internal",
+					DevfileRegistryURL: "internal-plugin-registry",
 				},
 			},
 			expectedData: map[string]string{
 				"CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL": "http://devfile-registry.eclipse-che.svc:8080",
-				"CHE_WORKSPACE_DEVFILE__REGISTRY__URL":           "http://devfile-registry.internal",
+				"CHE_WORKSPACE_DEVFILE__REGISTRY__URL":           "internal-plugin-registry",
 			},
 		},
 	}
@@ -395,7 +395,7 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 	}
 }
 
-func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
+func TestShouldSetUpCorrectlyPluginRegistryURL(t *testing.T) {
 	type testCase struct {
 		name         string
 		initObjects  []runtime.Object
@@ -405,7 +405,7 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name: "Test CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL #1",
+			name: "Test #1",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -414,15 +414,16 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 					Components: chev2.CheClusterComponents{
 						PluginRegistry: chev2.PluginRegistry{
 							DisableInternalRegistry: true,
+							ExternalPluginRegistries: []chev2.ExternalPluginRegistry{
+								{Url: "external-plugin-registry"},
+							},
 						},
 					},
-				},
-				Status: chev2.CheClusterStatus{
-					PluginRegistryURL: "http://external-plugin-registry",
 				},
 			},
 			expectedData: map[string]string{
 				"CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL": "",
+				"CHE_WORKSPACE_PLUGIN__REGISTRY__URL":           "external-plugin-registry",
 			},
 		},
 		{
@@ -432,11 +433,12 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 				Status: chev2.CheClusterStatus{
-					PluginRegistryURL: "http://external-plugin-registry",
+					PluginRegistryURL: "internal-plugin-registry",
 				},
 			},
 			expectedData: map[string]string{
 				"CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL": "http://plugin-registry.eclipse-che.svc:8080/v3",
+				"CHE_WORKSPACE_PLUGIN__REGISTRY__URL":           "internal-plugin-registry",
 			},
 		},
 	}
