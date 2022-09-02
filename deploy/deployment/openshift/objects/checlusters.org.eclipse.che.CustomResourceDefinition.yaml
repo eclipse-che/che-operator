@@ -836,6 +836,9 @@ spec:
                   airGapContainerRegistryOrganization:
                     description: Optional repository name of an alternate container registry to pull images from. This value overrides the container registry organization defined in all the default container images involved in a Che deployment. This is particularly useful to install Eclipse Che in a restricted environment.
                     type: string
+                  allowAutoProvisionUserNamespace:
+                    description: Indicates if is allowed to create a Kubernetes namespace, or an OpenShift project.
+                    type: boolean
                   allowUserDefinedWorkspaceNamespaces:
                     description: Deprecated. The value of this flag is ignored. Defines that a user is allowed to specify a Kubernetes namespace, or an OpenShift project, which differs from the default. It's NOT RECOMMENDED to set to `true` without OpenShift OAuth configured. The OpenShift infrastructure also uses this property.
                     type: boolean
@@ -4640,6 +4643,9 @@ spec:
                       template: <username>-che
                     description: User's default namespace.
                     properties:
+                      autoProvision:
+                        description: Indicates if is allowed to create a Kubernetes namespace, or an OpenShift project.
+                        type: boolean
                       template:
                         default: <username>-che
                         description: If you don't create the user namespaces in advance, this field defines the Kubernetes namespace created when you start your first workspace. You can use `<username>` and `<userid>` placeholders, such as che-workspace-<username>.
