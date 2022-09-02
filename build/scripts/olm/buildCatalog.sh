@@ -133,9 +133,9 @@ buildCatalogImage() {
 
 init "$@"
 
-pushd "${ROOT_DIR}" || exit
+pushd "${OPERATOR_REPO}" >/dev/null
 buildBundle
 buildCatalog
-popd || exit
+popd >/dev/null
 
 echo "[INFO] Done"

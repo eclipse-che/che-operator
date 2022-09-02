@@ -14,15 +14,16 @@
 set -ex
 
 export OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
+source <(curl -s ${DEVWORKSPACE_HAPPY_PATH}/common.sh)
+
+export DEVWORKSPACE_HAPPY_PATH="https://raw.githubusercontent.com/eclipse/che/main/tests/devworkspace-happy-path"
 source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 
-# Stop execution on any error
+#Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
-[[ -z "${CI_CHE_OPERATOR_IMAGE}" ]] && { echo [ERROR] CI_CHE_OPERATOR_IMAGE not defined; exit 1; }
-
 runTests() {
-  . ${OPERATOR_REPO}/build/scripts/olm/testCatalogFromSources.sh -o ${CI_CHE_OPERATOR_IMAGE} --verbose
+  bash <(curl -s ${DEVWORKSPACE_HAPPY_PATH}/remote-launch.sh)
 }
 
 runTests

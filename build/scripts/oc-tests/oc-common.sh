@@ -80,8 +80,7 @@ listCatalogSourceBundles() {
   --attach=true \
   --image=docker.io/fullstorydev/grpcurl:v1.7.0 \
   --  -plaintext "${REGISTRY_IP}:${CATALOG_PORT}" api.Registry.ListBundles
-
-}  )
+  )
 
   echo "${LIST_BUNDLES}" | head -n -1
 }
@@ -117,6 +116,6 @@ forcePullingOlmImages() {
   echo "[INFO] Pulling image '${image}'"
 
   yq -r "(.spec.template.spec.containers[0].image) = \"${image}\"" "${OPERATOR_REPO}/build/scripts/olm/force-pulling-images-job.yaml" | oc apply -f - -n ${NAMESPACE}
-  oc wait --for=condition=complete --timeout=30s job/force-pulling-images-job -n ${NAMESPACE}
-  oc delete job/force-pulling-images-job -n ${NAMESPACE}
+  oc wait --for=condition=complete --timeout=30s job/pull-image -n ${NAMESPACE}
+  oc delete job/pull-image -n ${NAMESPACE}
 }
