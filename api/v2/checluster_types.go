@@ -347,7 +347,8 @@ type DefaultNamespace struct {
 	// +kubebuilder:default:=<username>-che
 	// +kubebuilder:validation:Pattern=<username>|<userid>
 	Template string `json:"template,omitempty"`
-	// Indicates if is allowed to create a Kubernetes namespace, or an OpenShift project.
+	// Indicates if is allowed to automatically create a user namespace.
+	// If it set to false, then user namespace must be pre-created by a cluster administrator.
 	// +optional
 	AutoProvision *bool `json:"autoProvision,omitempty"`
 }

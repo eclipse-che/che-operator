@@ -6875,8 +6875,9 @@ spec:
                     description: User's default namespace.
                     properties:
                       autoProvision:
-                        description: Indicates if is allowed to create a Kubernetes
-                          namespace, or an OpenShift project.
+                        description: Indicates if is allowed to automatically create
+                          a user namespace. If it set to false, then user namespace
+                          must be pre-created by a cluster administrator.
                         type: boolean
                       template:
                         default: <username>-che
