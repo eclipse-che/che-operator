@@ -92,9 +92,9 @@ run() {
 
   getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
 
-  make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE} VERBOSE=${VERBOSE}
+  make wait-eclipseche-version VERSION="${PREVIOUS_CSV_NAME#${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME}.v}" NAMESPACE=${NAMESPACE} VERBOSE=${VERBOSE}
   make approve-installplan SUBSCRIPTION_NAME="${ECLIPSE_CHE_SUBSCRIPTION_NAME}" NAMESPACE="openshift-operators" VERBOSE=${VERBOSE}
-  make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE} VERBOSE=${VERBOSE}
+  make wait-eclipseche-version VERSION="${LAST_CSV_NAME#${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME}.v}" NAMESPACE=${NAMESPACE} VERBOSE=${VERBOSE}
 }
 
 init "$@"
