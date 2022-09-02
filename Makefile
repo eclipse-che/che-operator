@@ -754,13 +754,13 @@ install-devworkspace: ## Install Dev Workspace operator, available channels: nex
 	fi
 
 	$(MAKE) create-catalogsource IMAGE="$${IMAGE}" NAME="devworkspace-operator"
-	$(MAKE) create-subscription NAME="devworkspace-operator" PACKAGE_NAME="devworkspace-operator" CHANNEL="$(CHANNEL)" SOURCE="devworkspace-operator" INSTALL_PLAN_APPROVAL="Auto"
+	$(MAKE) create-subscription NAME="devworkspace-operator" NAMESPACE="openshift-operators" PACKAGE_NAME="devworkspace-operator" CHANNEL="$(CHANNEL)" SOURCE="devworkspace-operator" SOURCE_NAMESPACE="openshift-marketplace" INSTALL_PLAN_APPROVAL="Auto"
 	$(MAKE) wait-devworkspace-running NAMESPACE="openshift-operators"
 
 wait-devworkspace-running: SHELL := /bin/bash
 wait-devworkspace-running: ## Wait until Dev Workspace operator is up and running
-	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/name=devworkspace-controller,app.kubernetes.io/part-of=devworkspace-operator"
-	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/name=devworkspace-webhook-server,app.kubernetes.io/part-of=devworkspace-operator"
+	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/name=devworkspace-controller,app.kubernetes.io/part-of=devworkspace-operator" NAMESPACE=$(NAMESPACE)
+	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/name=devworkspace-webhook-server,app.kubernetes.io/part-of=devworkspace-operator" NAMESPACE=$(NAMESPACE)
 
 setup-checluster: create-namespace create-checluster-crd create-checluster-cr ## Setup CheCluster (creates namespace, CRD and CheCluster CR)
 
