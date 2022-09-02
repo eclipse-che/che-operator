@@ -156,6 +156,13 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 	devfileRegistryURL = strings.TrimSpace(devfileRegistryURL)
 
 	pluginRegistryURL := ctx.CheCluster.Status.PluginRegistryURL
+	for _, r := range ctx.CheCluster.Spec.Components.PluginRegistry.ExternalPluginRegistries {
+		if strings.Index(pluginRegistryURL, r.Url) == -1 {
+			pluginRegistryURL += " " + r.Url
+		}
+	}
+	pluginRegistryURL = strings.TrimSpace(pluginRegistryURL)
+
 	cheLogLevel := utils.GetValue(ctx.CheCluster.Spec.Components.CheServer.LogLevel, constants.DefaultServerLogLevel)
 	cheDebug := "false"
 	if ctx.CheCluster.Spec.Components.CheServer.Debug != nil {
