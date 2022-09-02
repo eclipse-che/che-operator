@@ -70,6 +70,7 @@ run() {
   pushd ${OPERATOR_REPO} || exit 1
     make create-subscription \
       NAME="${ECLIPSE_CHE_SUBSCRIPTION_NAME}" \
+      NAMESPACE="openshift-operators"
       PACKAGE_NAME="${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME}" \
       CHANNEL="${CHANNEL}" \
       SOURCE="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" \

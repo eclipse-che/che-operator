@@ -37,7 +37,6 @@ runTest() {
     --che-operator-cr-patch-yaml "${OPERATOR_REPO}/build/scripts/minikube-tests/minikube-checluster-patch.yaml"
 
   pushd ${OPERATOR_REPO}
-    make wait-eclipseche-version VERSION="next" NAMESPACE=${NAMESPACE}
     make wait-devworkspace-running NAMESPACE="devworkspace-controller"
   popd
 }

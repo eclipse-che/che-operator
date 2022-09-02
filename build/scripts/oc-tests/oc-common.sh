@@ -80,9 +80,7 @@ listCatalogSourceBundles() {
   --attach=true \
   --image=docker.io/fullstorydev/grpcurl:v1.7.0 \
   --  -plaintext "${REGISTRY_IP}:${CATALOG_PORT}" api.Registry.ListBundles
-
-}  )
-
+  )
   echo "${LIST_BUNDLES}" | head -n -1
 }
 

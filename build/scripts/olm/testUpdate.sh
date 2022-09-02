@@ -78,13 +78,14 @@ run() {
   pushd ${OPERATOR_REPO} || exit 1
     make create-subscription \
       NAME="${ECLIPSE_CHE_SUBSCRIPTION_NAME}" \
+      NAMESPACE="openshift-operators" \
       PACKAGE_NAME="${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME}" \
       CHANNEL="${CHANNEL}" \
       SOURCE="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" \
       SOURCE_NAMESPACE="openshift-marketplace" \
       INSTALL_PLAN_APPROVAL="Manual" \
       STARTING_CSV="${PREVIOUS_CSV_NAME}"
-    make approve-installplan SUBSCRIPTION_NAME="${ECLIPSE_CHE_SUBSCRIPTION_NAME}"
+    make approve-installplan SUBSCRIPTION_NAME="${ECLIPSE_CHE_SUBSCRIPTION_NAME}" NAMESPACE="openshift-operators"
   popd
 
   sleep 10s
@@ -92,9 +93,9 @@ run() {
   getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
 
   pushd ${OPERATOR_REPO} || exit 1
-    make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE}
-    make approve-installplan SUBSCRIPTION_NAME="${ECLIPSE_CHE_SUBSCRIPTION_NAME}"
-    make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE}
+    make wait-eclipseche-version VERSION="${PREVIOUS_CSV_NAME#${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME}.v}" NAMESPACE=${NAMESPACE}
+    make approve-installplan SUBSCRIPTION_NAME="${ECLIPSE_CHE_SUBSCRIPTION_NAME}" NAMESPACE="openshift-operators"
+    make wait-eclipseche-version VERSION="${LATEST_CSV_NAME#${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME}.v}" NAMESPACE=${NAMESPACE}
   popd
 }
 
