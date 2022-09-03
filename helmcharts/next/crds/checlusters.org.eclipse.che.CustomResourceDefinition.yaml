@@ -837,7 +837,7 @@ spec:
                     description: Optional repository name of an alternate container registry to pull images from. This value overrides the container registry organization defined in all the default container images involved in a Che deployment. This is particularly useful to install Eclipse Che in a restricted environment.
                     type: string
                   allowAutoProvisionUserNamespace:
-                    description: Indicates if is allowed to create a Kubernetes namespace, or an OpenShift project.
+                    description: Indicates if is allowed to automatically create a user namespace. If it set to false, then user namespace must be pre-created by a cluster administrator.
                     type: boolean
                   allowUserDefinedWorkspaceNamespaces:
                     description: Deprecated. The value of this flag is ignored. Defines that a user is allowed to specify a Kubernetes namespace, or an OpenShift project, which differs from the default. It's NOT RECOMMENDED to set to `true` without OpenShift OAuth configured. The OpenShift infrastructure also uses this property.
