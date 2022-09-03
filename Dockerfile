@@ -51,7 +51,7 @@ RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH=
     CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} GO111MODULE=on go build -mod=vendor -a -o che-operator main.go
 
 # https://registry.access.redhat.com/ubi8-minimal
-FROM registry.access.redhat.com/ubi8-minimal:8.6-902
+FROM registry.access.redhat.com/ubi8-minimal:8.6-902.1661794353
 
 COPY --from=builder /tmp/devworkspace-operator/templates /tmp/devworkspace-operator/templates
 COPY --from=builder /tmp/header-rewrite-traefik-plugin /tmp/header-rewrite-traefik-plugin
