@@ -136,7 +136,8 @@ type CheClusterSpecServer struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:com.tectonic.ui:hidden"
 	AllowUserDefinedWorkspaceNamespaces bool `json:"allowUserDefinedWorkspaceNamespaces"`
-	// Indicates if is allowed to create a Kubernetes namespace, or an OpenShift project.
+	// Indicates if is allowed to automatically create a user namespace.
+	// If it set to false, then user namespace must be pre-created by a cluster administrator.
 	// +optional
 	AllowAutoProvisionUserNamespace *bool `json:"allowAutoProvisionUserNamespace,omitempty"`
 	// Deprecated. The value of this flag is ignored.
