@@ -273,7 +273,7 @@ createPRToMainBranch() {
 }
 
 prepareCommunityOperatorsUpdate() {
-  . "${OPERATOR_REPO}/build/script/release/prepare-community-operators-update.sh" $FORCE_UPDATE
+  . "${OPERATOR_REPO}/build/scripts/release/prepare-community-operators-update.sh" $FORCE_UPDATE
 }
 
 run() {
