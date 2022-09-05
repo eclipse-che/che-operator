@@ -163,6 +163,7 @@ func TestConvertTo(t *testing.T) {
 				CheClusterRoles:                     "CheClusterRoles_1,CheClusterRoles_2",
 				CheWorkspaceClusterRole:             "CheWorkspaceClusterRole",
 				WorkspaceNamespaceDefault:           "WorkspaceNamespaceDefault",
+				AllowAutoProvisionUserNamespace:     pointer.BoolPtr(true),
 				WorkspaceDefaultEditor:              "WorkspaceDefaultEditor",
 				WorkspaceDefaultComponents: []devfile.Component{
 					{
@@ -414,6 +415,7 @@ func TestConvertTo(t *testing.T) {
 
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName, "che-git-self-signed-cert")
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.DefaultNamespace.Template, "WorkspaceNamespaceDefault")
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.DefaultNamespace.AutoProvision, pointer.BoolPtr(true))
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.DefaultEditor, "WorkspaceDefaultEditor")
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.DefaultComponents, []devfile.Component{{Name: "universal-developer-image"}})
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.NodeSelector, map[string]string{"a": "b", "c": "d"})

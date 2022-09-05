@@ -136,6 +136,10 @@ type CheClusterSpecServer struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:com.tectonic.ui:hidden"
 	AllowUserDefinedWorkspaceNamespaces bool `json:"allowUserDefinedWorkspaceNamespaces"`
+	// Indicates if is allowed to automatically create a user namespace.
+	// If it set to false, then user namespace must be pre-created by a cluster administrator.
+	// +optional
+	AllowAutoProvisionUserNamespace *bool `json:"allowAutoProvisionUserNamespace,omitempty"`
 	// Deprecated. The value of this flag is ignored.
 	// The Che Operator will automatically detect whether the router certificate is self-signed and propagate it to other components, such as the Che server.
 	// +optional

@@ -1225,6 +1225,11 @@ spec:
                       involved in a Che deployment. This is particularly useful to
                       install Eclipse Che in a restricted environment.
                     type: string
+                  allowAutoProvisionUserNamespace:
+                    description: Indicates if is allowed to automatically create a
+                      user namespace. If it set to false, then user namespace must
+                      be pre-created by a cluster administrator.
+                    type: boolean
                   allowUserDefinedWorkspaceNamespaces:
                     description: Deprecated. The value of this flag is ignored. Defines
                       that a user is allowed to specify a Kubernetes namespace, or
@@ -5397,6 +5402,7 @@ spec:
                     name: universal-developer-image
                   defaultEditor: eclipse/che-theia/latest
                   defaultNamespace:
+                    autoProvision: true
                     template: <username>-che
                   secondsOfInactivityBeforeIdling: 1800
                   secondsOfRunBeforeIdling: -1
@@ -6867,9 +6873,16 @@ spec:
                     type: string
                   defaultNamespace:
                     default:
+                      autoProvision: true
                       template: <username>-che
                     description: User's default namespace.
                     properties:
+                      autoProvision:
+                        default: true
+                        description: Indicates if is allowed to automatically create
+                          a user namespace. If it set to false, then user namespace
+                          must be pre-created by a cluster administrator.
+                        type: boolean
                       template:
                         default: <username>-che
                         description: If you don't create the user namespaces in advance,

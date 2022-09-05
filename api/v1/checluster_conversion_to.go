@@ -112,6 +112,7 @@ func (src *CheCluster) convertTo_DevEnvironments(dst *chev2.CheCluster) error {
 	}
 
 	dst.Spec.DevEnvironments.DefaultNamespace.Template = src.Spec.Server.WorkspaceNamespaceDefault
+	dst.Spec.DevEnvironments.DefaultNamespace.AutoProvision = src.Spec.Server.AllowAutoProvisionUserNamespace
 	dst.Spec.DevEnvironments.NodeSelector = utils.CloneMap(src.Spec.Server.WorkspacePodNodeSelector)
 
 	for _, v := range src.Spec.Server.WorkspacePodTolerations {

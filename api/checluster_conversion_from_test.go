@@ -376,7 +376,8 @@ func TestConvertFrom(t *testing.T) {
 			},
 			DevEnvironments: chev2.CheClusterDevEnvironments{
 				DefaultNamespace: chev2.DefaultNamespace{
-					Template: "WorkspaceNamespaceName",
+					Template:      "WorkspaceNamespaceName",
+					AutoProvision: pointer.BoolPtr(true),
 				},
 				TrustedCerts: &chev2.TrustedCerts{
 					GitTrustedCertsConfigMapName: "che-git-self-signed-cert",
@@ -545,6 +546,7 @@ func TestConvertFrom(t *testing.T) {
 	assert.Equal(t, checlusterv1.Spec.Server.SingleHostGatewayConfigSidecarImage, "ConfigSidecarImage")
 	assert.Equal(t, checlusterv1.Spec.Server.SingleHostGatewayImage, "GatewayImage")
 	assert.Equal(t, checlusterv1.Spec.Server.WorkspaceNamespaceDefault, "WorkspaceNamespaceName")
+	assert.Equal(t, checlusterv1.Spec.Server.AllowAutoProvisionUserNamespace, pointer.BoolPtr(true))
 	assert.Equal(t, checlusterv1.Spec.Server.WorkspaceDefaultEditor, "DefaultEditor")
 	assert.Equal(t, checlusterv1.Spec.Server.WorkspaceDefaultComponents, []devfile.Component{{Name: "universal-developer-image"}})
 	assert.Equal(t, checlusterv1.Spec.Server.WorkspacePodNodeSelector, map[string]string{"a": "b", "c": "d"})
