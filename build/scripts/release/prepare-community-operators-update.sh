@@ -18,9 +18,9 @@ set -o pipefail
 # error on unset variables
 set -u
 
-CURRENT_DIR=$(pwd)
 STABLE_CHANNELS=("stable")
 OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
+source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 
 base_branch="main"
 GITHUB_USER="che-bot"
@@ -153,7 +153,6 @@ ${GIT_REMOTE_FORK_CLEAN}/pull/new/${branch}
   fi
 
 done
-cd "${CURRENT_DIR}"
 
 echo
 echo "Generated pull request:
