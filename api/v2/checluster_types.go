@@ -37,7 +37,7 @@ type CheClusterSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Development environments"
-	// +kubebuilder:default:={defaultComponents: {{name: universal-developer-image, container: {image: "quay.io/devfile/universal-developer-image:ubi8-38da5c2"}}}, defaultEditor: eclipse/che-theia/latest, storage: {pvcStrategy: per-user}, defaultNamespace: {template: <username>-che}, secondsOfInactivityBeforeIdling:1800, secondsOfRunBeforeIdling:-1}
+	// +kubebuilder:default:={defaultComponents: {{name: universal-developer-image, container: {image: "quay.io/devfile/universal-developer-image:ubi8-38da5c2"}}}, defaultEditor: eclipse/che-theia/latest, storage: {pvcStrategy: per-user}, defaultNamespace: {template: <username>-che, autoProvision: true}, secondsOfInactivityBeforeIdling:1800, secondsOfRunBeforeIdling:-1}
 	DevEnvironments CheClusterDevEnvironments `json:"devEnvironments"`
 	// Che components configuration.
 	// +optional
@@ -76,7 +76,7 @@ type CheClusterDevEnvironments struct {
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 	// User's default namespace.
 	// +optional
-	// +kubebuilder:default:={template: <username>-che}
+	// +kubebuilder:default:={template: <username>-che, autoProvision: true}
 	DefaultNamespace DefaultNamespace `json:"defaultNamespace,omitempty"`
 	// Trusted certificate settings.
 	// +optional
@@ -350,6 +350,7 @@ type DefaultNamespace struct {
 	// Indicates if is allowed to automatically create a user namespace.
 	// If it set to false, then user namespace must be pre-created by a cluster administrator.
 	// +optional
+	// +kubebuilder:default:=true
 	AutoProvision *bool `json:"autoProvision,omitempty"`
 }
 

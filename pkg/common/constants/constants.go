@@ -101,6 +101,7 @@ const (
 	DefaultPvcStorageStrategy      = "per-user"
 	PerWorkspacePVCStorageStrategy = "per-workspace"
 	CommonPVCStorageStrategy       = "common"
+	DefaultAutoProvision           = true
 	DefaultWorkspaceJavaOpts       = "-XX:MaxRAM=150m -XX:MaxRAMFraction=2 -XX:+UseParallelGC " +
 		"-XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 " +
 		"-Dsun.zip.disableMemoryMapping=true " +

@@ -172,7 +172,7 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 
 	}
 	workspaceNamespaceDefault := ctx.CheCluster.GetDefaultNamespace()
-	namespaceCreationAllowed := "true"
+	namespaceCreationAllowed := strconv.FormatBool(constants.DefaultAutoProvision)
 	if ctx.CheCluster.Spec.DevEnvironments.DefaultNamespace.AutoProvision != nil {
 		namespaceCreationAllowed = strconv.FormatBool(*ctx.CheCluster.Spec.DevEnvironments.DefaultNamespace.AutoProvision)
 	}
