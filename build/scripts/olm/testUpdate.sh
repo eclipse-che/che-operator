@@ -19,7 +19,7 @@ source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 init() {
   NAMESPACE="eclipse-che"
   CHANNEL="next"
-  VERBOSE=0
+  unset VERBOSE
   unset CATALOG_IMAGE
 
   while [[ "$#" -gt 0 ]]; do

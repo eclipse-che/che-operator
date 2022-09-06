@@ -1175,6 +1175,10 @@ spec:
                         description: GitHubService enables users to work with repositories
                           hosted on GitHub (GitHub.com or GitHub Enterprise).
                         properties:
+                          endpoint:
+                            default: https://github.com
+                            description: GitHub server endpoint URL.
+                            type: string
                           secretName:
                             description: 'Kubernetes secret, that contains Base64-encoded
                               GitHub OAuth Client id and GitHub OAuth Client secret,
@@ -1182,6 +1186,7 @@ spec:
                               See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
                             type: string
                         required:
+                          - endpoint
                           - secretName
                         type: object
                       type: array
@@ -7329,6 +7334,10 @@ spec:
                         description: GitHubService enables users to work with repositories
                           hosted on GitHub (GitHub.com or GitHub Enterprise).
                         properties:
+                          endpoint:
+                            default: https://github.com
+                            description: GitHub server endpoint URL.
+                            type: string
                           secretName:
                             description: 'Kubernetes secret, that contains Base64-encoded
                               GitHub OAuth Client id and GitHub OAuth Client secret,
@@ -7336,6 +7345,7 @@ spec:
                               See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
                             type: string
                         required:
+                          - endpoint
                           - secretName
                         type: object
                       type: array

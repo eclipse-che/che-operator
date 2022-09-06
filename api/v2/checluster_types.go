@@ -586,6 +586,10 @@ type GitHubService struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:io.kubernetes:Secret"
 	SecretName string `json:"secretName"`
+	// GitHub server endpoint URL.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:default:="https://github.com"
+	Endpoint string `json:"endpoint"`
 }
 
 // GitLabService enables users to work with repositories hosted on GitLab (gitlab.com or self-hosted).

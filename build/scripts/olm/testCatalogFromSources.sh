@@ -17,7 +17,7 @@ OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_
 source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 
 init() {
-  VERBOSE=0
+  unset VERBOSE
   unset OPERATOR_IMAGE
 
   while [[ "$#" -gt 0 ]]; do
@@ -172,6 +172,7 @@ run() {
     CHANNEL=next \
     VERBOSE=${VERBOSE}
   waitForInstalledEclipseCheCSV
+  make wait-pod-running NAMESPACE=${NAMESPACE} SELECTOR="app.kubernetes.io/component=che-operator"
   if [[ $(oc get checluster -n eclipse-che --no-headers | wc -l) == 0 ]]; then
     getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
   fi

@@ -15,6 +15,7 @@ package v2
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"k8s.io/apimachinery/pkg/types"
@@ -86,7 +87,7 @@ func validateGitHubOAuthSecret(github GitHubService, namespace string) error {
 	if err := validateSecretKeys(keys2validate, github.SecretName, namespace); err != nil {
 		return err
 	}
-	if err := ensureScmLabelsAndAnnotations("github", "", github.SecretName, namespace); err != nil {
+	if err := ensureScmLabelsAndAnnotations("github", github.Endpoint, github.SecretName, namespace); err != nil {
 		return err
 	}
 	return nil
@@ -113,13 +114,12 @@ func validateBitBucketOAuthSecret(bitbucket BitBucketService, namespace string) 
 	}
 
 	oauth1Keys2validate := []string{constants.BitBucketOAuthConfigPrivateKeyFileName, constants.BitBucketOAuthConfigConsumerKeyFileName}
+	errOauth1Keys := validateSecretKeys(oauth1Keys2validate, bitbucket.SecretName, namespace)
 	oauth2Keys2validate := []string{constants.BitBucketOAuthConfigClientIdFileName, constants.BitBucketOAuthConfigClientSecretFileName}
-	errOauth1Keys1 := validateSecretKeys(oauth1Keys2validate, bitbucket.SecretName, namespace)
-	errOauth2Keys1 := validateSecretKeys(oauth2Keys2validate, bitbucket.SecretName, namespace)
-	if errOauth1Keys1 != nil && errOauth2Keys1 != nil {
-		return fmt.Errorf("either %s or %s", errOauth2Keys1.Error(), errOauth2Keys1.Error())
+	errOauth2Keys := validateSecretKeys(oauth2Keys2validate, bitbucket.SecretName, namespace)
+	if errOauth1Keys != nil && errOauth2Keys != nil {
+		return fmt.Errorf("secret must contain either [%s] or [%s] keys", strings.Join(oauth1Keys2validate, ", "), strings.Join(oauth2Keys2validate, ", "))
 	}
-
 	if err := ensureScmLabelsAndAnnotations("bitbucket", bitbucket.Endpoint, bitbucket.SecretName, namespace); err != nil {
 		return err
 	}
@@ -157,17 +157,9 @@ func validateSecretKeys(keys []string, secretName string, namespace string) erro
 	}
 
 	for _, key := range keys {
-		if err := validateSecretKey(secret, key); err != nil {
-			return err
+		if len(secret.Data[key]) == 0 {
+			return fmt.Errorf("secret must contain [%s] keys", strings.Join(keys, ", "))
 		}
-	}
-
-	return nil
-}
-
-func validateSecretKey(secret *corev1.Secret, key string) error {
-	if len(secret.Data[key]) == 0 {
-		return fmt.Errorf("key '%s' missed in the secret", key)
 	}
 
 	return nil
