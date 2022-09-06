@@ -84,6 +84,7 @@ func (dst *CheCluster) convertFrom_GitServices(src *chev2.CheCluster) error {
 			dst.Spec.GitServices.GitHub,
 			GitHubService{
 				SecretName: github.SecretName,
+				Endpoint:   github.Endpoint,
 			})
 	}
 

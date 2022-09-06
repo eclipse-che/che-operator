@@ -352,6 +352,7 @@ func TestConvertTo(t *testing.T) {
 				GitHub: []chev1.GitHubService{
 					{
 						SecretName: "github-secret-name",
+						Endpoint:   "github-endpoint",
 					},
 				},
 				GitLab: []chev1.GitLabService{
@@ -536,6 +537,7 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Status.PostgresVersion, "PostgresVersion")
 
 	assert.Equal(t, checlusterv2.Spec.GitServices.GitHub[0].SecretName, "github-secret-name")
+	assert.Equal(t, checlusterv2.Spec.GitServices.GitHub[0].Endpoint, "github-endpoint")
 	assert.Equal(t, checlusterv2.Spec.GitServices.GitLab[0].SecretName, "gitlab-secret-name")
 	assert.Equal(t, checlusterv2.Spec.GitServices.GitLab[0].Endpoint, "gitlab-endpoint")
 	assert.Equal(t, checlusterv2.Spec.GitServices.BitBucket[0].SecretName, "bitbucket-secret-name")

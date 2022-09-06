@@ -423,6 +423,7 @@ func TestConvertFrom(t *testing.T) {
 				GitHub: []chev2.GitHubService{
 					{
 						SecretName: "github-secret-name",
+						Endpoint:   "github-endpoint",
 					},
 				},
 				GitLab: []chev2.GitLabService{
@@ -587,6 +588,7 @@ func TestConvertFrom(t *testing.T) {
 	assert.Equal(t, checlusterv1.Spec.Storage.PerWorkspaceStrategyPVCStorageClassName, "PerWorkspaceStorageClass")
 
 	assert.Equal(t, checlusterv1.Spec.GitServices.GitHub[0].SecretName, "github-secret-name")
+	assert.Equal(t, checlusterv1.Spec.GitServices.GitHub[0].Endpoint, "github-endpoint")
 	assert.Equal(t, checlusterv1.Spec.GitServices.GitLab[0].SecretName, "gitlab-secret-name")
 	assert.Equal(t, checlusterv1.Spec.GitServices.GitLab[0].Endpoint, "gitlab-endpoint")
 	assert.Equal(t, checlusterv1.Spec.GitServices.BitBucket[0].SecretName, "bitbucket-secret-name")
