@@ -77,7 +77,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.53.0-670.next
+  name: eclipse-che-preview-openshift.v7.54.0-672.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -149,10 +149,10 @@ spec:
               OAuth 1.0 or OAuth 2.0 data. For OAuth 1.0: private key, Bitbucket Application
               link consumer key and Bitbucket Application link shared secret must
               be stored in `private.key`, `consumer.key` and `shared_secret` keys
-              of the Kubernetes secret respectively. For OAuth 2.0: Bitbucket OAuth
-              consumer key and Bitbucket OAuth consumer secret must be stored in `id`
-              and `secret` keys of the Kubernetes secret respectively. See the following
-              page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-bitbucket/.'
+              respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/.
+              For OAuth 2.0: Bitbucket OAuth consumer key and Bitbucket OAuth consumer
+              secret must be stored in `id` and `secret` keys respectively. See the
+              following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-the-bitbucket-cloud/.'
             displayName: Secret Name
             path: gitServices.bitbucket[0].secretName
             x-descriptors:
@@ -162,9 +162,8 @@ spec:
             displayName: GitHub
             path: gitServices.github
           - description: 'Kubernetes secret, that contains Base64-encoded GitHub OAuth
-              Client id and GitHub OAuth Client secret data. The GitHub OAuth data
-              must be stored in the Kubernetes secret in `id` and `secret` keys respectively.
-              See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
+              Client id and GitHub OAuth Client secret, that stored in `id` and `secret`
+              keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
             displayName: Secret Name
             path: gitServices.github[0].secretName
             x-descriptors:
@@ -174,9 +173,8 @@ spec:
             displayName: GitLab
             path: gitServices.gitlab
           - description: 'Kubernetes secret, that contains Base64-encoded GitHub Application
-              id and GitLab Application Client secret data. The GitLab Application
-              data must be stored in `id` and `secret` keys of the Kubernetes secret
-              respectively.
+              id and GitLab Application Client secret, that stored in `id` and `secret`
+              keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
             displayName: Secret Name
             path: gitServices.gitlab[0].secretName
             x-descriptors:
@@ -315,10 +313,10 @@ spec:
               OAuth 1.0 or OAuth 2.0 data. For OAuth 1.0: private key, Bitbucket Application
               link consumer key and Bitbucket Application link shared secret must
               be stored in `private.key`, `consumer.key` and `shared_secret` keys
-              of the Kubernetes secret respectively. For OAuth 2.0: Bitbucket OAuth
-              consumer key and Bitbucket OAuth consumer secret must be stored in `id`
-              and `secret` keys of the Kubernetes secret respectively. See the following
-              page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-bitbucket/.'
+              respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/.
+              For OAuth 2.0: Bitbucket OAuth consumer key and Bitbucket OAuth consumer
+              secret must be stored in `id` and `secret` keys respectively. See the
+              following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-the-bitbucket-cloud/.'
             displayName: Secret Name
             path: gitServices.bitbucket[0].secretName
             x-descriptors:
@@ -328,9 +326,8 @@ spec:
             displayName: GitHub
             path: gitServices.github
           - description: 'Kubernetes secret, that contains Base64-encoded GitHub OAuth
-              Client id and GitHub OAuth Client secret data. The GitHub OAuth data
-              must be stored in the Kubernetes secret in `id` and `secret` keys respectively.
-              See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
+              Client id and GitHub OAuth Client secret, that stored in `id` and `secret`
+              keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
             displayName: Secret Name
             path: gitServices.github[0].secretName
             x-descriptors:
@@ -340,9 +337,8 @@ spec:
             displayName: GitLab
             path: gitServices.gitlab
           - description: 'Kubernetes secret, that contains Base64-encoded GitHub Application
-              id and GitLab Application Client secret data. The GitLab Application
-              data must be stored in `id` and `secret` keys of the Kubernetes secret
-              respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
+              id and GitLab Application Client secret, that stored in `id` and `secret`
+              keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
             displayName: Secret Name
             path: gitServices.gitlab[0].secretName
             x-descriptors:
@@ -1478,7 +1474,7 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.53.0-670.next
+  version: 7.54.0-672.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1

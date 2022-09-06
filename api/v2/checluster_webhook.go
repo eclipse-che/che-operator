@@ -28,6 +28,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
+var (
+	logger = ctrl.Log.WithName("webhook")
+)
+
 func (r *CheCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
@@ -109,10 +113,13 @@ func validateBitBucketOAuthSecret(bitbucket BitBucketService, namespace string) 
 	}
 
 	oauth1Keys2validate := []string{constants.BitBucketOAuthConfigPrivateKeyFileName, constants.BitBucketOAuthConfigConsumerKeyFileName}
-	//oauth2Keys2validate := []string{constants.BitBucketOAuthConfigPrivateKeyFileName, constants.BitBucketOAuthConfigConsumerKeyFileName}
-	if err := validateSecretKeys(oauth1Keys2validate, bitbucket.SecretName, namespace); err != nil {
-		return err
+	oauth2Keys2validate := []string{constants.BitBucketOAuthConfigClientIdFileName, constants.BitBucketOAuthConfigClientSecretFileName}
+	errOauth1Keys1 := validateSecretKeys(oauth1Keys2validate, bitbucket.SecretName, namespace)
+	errOauth2Keys1 := validateSecretKeys(oauth2Keys2validate, bitbucket.SecretName, namespace)
+	if errOauth1Keys1 != nil && errOauth2Keys1 != nil {
+		return fmt.Errorf("either %s or %s", errOauth2Keys1.Error(), errOauth2Keys1.Error())
 	}
+
 	if err := ensureScmLabelsAndAnnotations("bitbucket", bitbucket.Endpoint, bitbucket.SecretName, namespace); err != nil {
 		return err
 	}
@@ -123,16 +130,14 @@ func ensureScmLabelsAndAnnotations(scmProvider string, endpointUrl string, secre
 	patch := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
-				constants.CheEclipseOrgOAuthScmServer: scmProvider,
+				constants.CheEclipseOrgOAuthScmServer:    scmProvider,
+				constants.CheEclipseOrgScmServerEndpoint: endpointUrl,
 			},
 			Labels: map[string]string{
 				constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
 				constants.KubernetesComponentLabelKey: constants.OAuthScmConfiguration,
 			},
 		},
-	}
-	if endpointUrl != "" {
-		patch.ObjectMeta.Annotations[constants.CheEclipseOrgScmServerEndpoint] = endpointUrl
 	}
 	patchData, _ := json.Marshal(patch)
 

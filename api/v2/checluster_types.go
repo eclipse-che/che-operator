@@ -580,8 +580,8 @@ type CheClusterGitServices struct {
 
 // GitHubService enables users to work with repositories hosted on GitHub (GitHub.com or GitHub Enterprise).
 type GitHubService struct {
-	// Kubernetes secret, that contains Base64-encoded GitHub OAuth Client id and GitHub OAuth Client secret data.
-	// The GitHub OAuth data must be stored in the Kubernetes secret in `id` and `secret` keys respectively.
+	// Kubernetes secret, that contains Base64-encoded GitHub OAuth Client id and GitHub OAuth Client secret,
+	// that stored in `id` and `secret` keys respectively.
 	// See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:io.kubernetes:Secret"
@@ -590,8 +590,8 @@ type GitHubService struct {
 
 // GitLabService enables users to work with repositories hosted on GitLab (gitlab.com or self-hosted).
 type GitLabService struct {
-	// Kubernetes secret, that contains Base64-encoded GitHub Application id and GitLab Application Client secret data.
-	// The GitLab Application data must be stored in `id` and `secret` keys of the Kubernetes secret respectively.
+	// Kubernetes secret, that contains Base64-encoded GitHub Application id and GitLab Application Client secret,
+	// that stored in `id` and `secret` keys respectively.
 	// See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:io.kubernetes:Secret"
@@ -606,10 +606,11 @@ type GitLabService struct {
 type BitBucketService struct {
 	// Kubernetes secret, that contains Base64-encoded Bitbucket OAuth 1.0 or OAuth 2.0 data.
 	// For OAuth 1.0: private key, Bitbucket Application link consumer key and Bitbucket Application link shared secret must be stored
-	// in `private.key`, `consumer.key` and `shared_secret` keys of the Kubernetes secret respectively.
+	// in `private.key`, `consumer.key` and `shared_secret` keys respectively.
+	// See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/.
 	// For OAuth 2.0: Bitbucket OAuth consumer key and Bitbucket OAuth consumer secret must be stored
-	// in `id` and `secret` keys of the Kubernetes secret respectively.
-	// See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-bitbucket/.
+	// in `id` and `secret` keys respectively.
+	// See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-the-bitbucket-cloud/.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:io.kubernetes:Secret"
 	SecretName string `json:"secretName"`
