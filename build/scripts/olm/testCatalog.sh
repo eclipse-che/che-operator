@@ -46,7 +46,7 @@ usage () {
   echo -e "\t-i,--catalog-image       Catalog image"
   echo -e "\t-c,--channel=next|stable [default: next] Olm channel to deploy Eclipse Che from"
   echo -e "\t-n,--namespace           [default: eclipse-che] Kubernetes namespace to deploy Eclipse Che into"
-  echo -e "\t-n,--verbose             Verbose mode"
+  echo -e "\t-v,--verbose             Verbose mode"
   echo
 	echo "Example:"
 	echo -e "\t$0 -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:next"
@@ -77,8 +77,6 @@ run() {
     SOURCE_NAMESPACE="openshift-marketplace" \
     INSTALL_PLAN_APPROVAL="Auto" \
     VERBOSE=${VERBOSE}
-
-  waitForInstalledEclipseCheCSV
   make wait-pod-running NAMESPACE="openshift-operators" SELECTOR="app.kubernetes.io/component=che-operator"
   getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
   make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE} VERBOSE=${VERBOSE}

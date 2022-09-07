@@ -31,14 +31,6 @@ catchFinish() {
   exit ${RESULT}
 }
 
-waitForInstalledEclipseCheCSV() {
-  unset ECLIPSE_CHE_INSTALLED_CSV
-  while [[ -z ${ECLIPSE_CHE_INSTALLED_CSV} ]] || [[ ${ECLIPSE_CHE_INSTALLED_CSV} == "null" ]]; do
-      sleep 5s
-      discoverEclipseCheSubscription
-  done
-}
-
 waitForRemovedEclipseCheSubscription() {
   while [[ $(oc get subscription -A -o json | jq -r '.items | .[] | select(.spec.name == "'${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME}'" or .spec.name == "'${ECLIPSE_CHE_STABLE_PACKAGE_NAME}'")') != "" ]]; do
       sleep 5s
@@ -68,43 +60,38 @@ discoverEclipseCheSubscription() {
   ECLIPSE_CHE_INSTALLED_CSV=$(echo ${ECLIPSE_CHE_SUBSCRIPTION_RECORD} | jq -r '.status.installedCSV')
 }
 
-listCatalogSourceBundles() {
-  local name=${1}
-  local CATALOG_SERVICE=$(oc get service "${name}" -n openshift-marketplace -o yaml)
+discoverEclipseCheBundles() {
+  local CHANNEL=$1
+  local CATALOG_SERVICE=$(oc get service ${ECLIPSE_CHE_CATALOG_SOURCE_NAME} -n openshift-marketplace -o yaml)
   local REGISTRY_IP=$(echo "${CATALOG_SERVICE}" | yq -r ".spec.clusterIP")
   local CATALOG_PORT=$(echo "${CATALOG_SERVICE}" | yq -r ".spec.ports[0].targetPort")
 
-  LIST_BUNDLES=$(oc run grpcurl-query -n openshift-marketplace \
+  local xFlag="+x"; [[ $- =~ x ]] && xFlag="-x"
+  set +x # suppress output
+  local BUNDLES=$(oc run grpcurl-query -n openshift-marketplace \
   --rm=true \
   --restart=Never \
   --attach=true \
   --image=docker.io/fullstorydev/grpcurl:v1.7.0 \
-  --  -plaintext "${REGISTRY_IP}:${CATALOG_PORT}" api.Registry.ListBundles
-  )
+  --  -plaintext "${REGISTRY_IP}:${CATALOG_PORT}" api.Registry.ListBundles | head -n -1)
 
-  echo "${LIST_BUNDLES}" | head -n -1
-}
+  local LATEST_BUNDLE=$(echo "${BUNDLES}" | jq -s '.' | jq ". | map(. | select(.channelName == \"${CHANNEL}\"))" | yq -r '. |=sort_by(.csvName) | .[length - 1]')
+  local PREVIOUS_BUNDLE=$(echo "${BUNDLES}" | jq -s '.' | jq ". | map(. | select(.channelName == \"${CHANNEL}\"))" | yq -r '. |=sort_by(.csvName) | .[length - 2]')
 
-fetchPreviousCSVInfo() {
-  local channel="${1}"
-  local bundles="${2}"
+  export LATEST_CSV_NAME=$(echo "${LATEST_BUNDLE}" | yq -r ".csvName")
+  export LATEST_CSV_BUNDLE_IMAGE=$(echo "${LATEST_BUNDLE}" | yq -r ".bundlePath")
+  export LATEST_VERSION=${LATEST_CSV_NAME#${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME}.v}
 
-  previousBundle=$(echo "${bundles}" | jq -s '.' | jq ". | map(. | select(.channelName == \"${channel}\"))" | yq -r '. |=sort_by(.csvName) | .[length - 2]')
-  export PREVIOUS_CSV_NAME=$(echo "${previousBundle}" | yq -r ".csvName")
-  if [ "${PREVIOUS_CSV_NAME}" == "null" ]; then
-    echo "[ERROR] Catalog source image hasn't got previous bundle."
-    exit 1
-  fi
-  export PREVIOUS_CSV_BUNDLE_IMAGE=$(echo "${previousBundle}" | yq -r ".bundlePath")
-}
-
-fetchLatestCSVInfo() {
-  local channel="${1}"
-  local bundles="${2}"
-
-  latestBundle=$(echo "${bundles}" | jq -s '.' | jq ". | map(. | select(.channelName == \"${channel}\"))" | yq -r '. |=sort_by(.csvName) | .[length - 1]')
-  export LATEST_CSV_NAME=$(echo "${latestBundle}" | yq -r ".csvName")
-  export LATEST_CSV_BUNDLE_IMAGE=$(echo "${latestBundle}" | yq -r ".bundlePath")
+  export PREVIOUS_CSV_NAME=$(echo "${PREVIOUS_BUNDLE}" | yq -r ".csvName")
+  export PREVIOUS_CSV_BUNDLE_IMAGE=$(echo "${PREVIOUS_BUNDLE}" | yq -r ".bundlePath")
+  export PREVIOUS_VERSION=${PREVIOUS_CSV_NAME#${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME}.v}
+  echo "[INFO] PREVIOUS_CSV_NAME:         ${PREVIOUS_CSV_NAME}"
+  echo "[INFO] PREVIOUS_CSV_BUNDLE_IMAGE: ${PREVIOUS_CSV_BUNDLE_IMAGE}"
+  echo "[INFO] PREVIOUS_VERSION:          ${PREVIOUS_VERSION}"
+  echo "[INFO] LATEST_CSV_NAME:           ${LATEST_CSV_NAME}"
+  echo "[INFO] LATEST_CSV_BUNDLE_IMAGE:   ${LATEST_CSV_BUNDLE_IMAGE}"
+  echo "[INFO] LATEST_VERSION:            ${LATEST_VERSION}"
+  set ${xFlag}
 }
 
 # HACK. Unfortunately catalog source image bundle job has image pull policy "IfNotPresent".

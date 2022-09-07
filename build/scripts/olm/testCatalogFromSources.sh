@@ -40,7 +40,7 @@ usage () {
   echo
   echo "OPTIONS:"
   echo -e "\t-o,--operator-image      Operator image to include into a bundle"
-  echo -e "\t-n,--verbose             Verbose mode"
+  echo -e "\t-v,--verbose             Verbose mode"
   echo
 	echo "Example:"
 	echo -e "\t$0 -o quay.io/eclipse/che-operator:next"
@@ -158,20 +158,19 @@ EOF
 
 run() {
   make create-namespace NAMESPACE=${NAMESPACE} VERBOSE=${VERBOSE}
-  if [[ $(oc get operatorgroup -n eclipse-che --no-headers | wc -l) == 0 ]]; then
+  if [[ $(oc get operatorgroup -n ${NAMESPACE} --no-headers | wc -l) == 0 ]]; then
     make create-operatorgroup NAME=eclipse-che NAMESPACE=${NAMESPACE} VERBOSE=${VERBOSE}
   fi
   createEclipseCheCatalogSource
   make create-subscription \
     NAME=eclipse-che-subscription \
-    NAMESPACE=eclipse-che \
+    NAMESPACE=${NAMESPACE} \
     PACKAGE_NAME=${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME} \
     SOURCE=eclipse-che \
-    SOURCE_NAMESPACE=eclipse-che \
+    SOURCE_NAMESPACE=${NAMESPACE} \
     INSTALL_PLAN_APPROVAL=Auto \
     CHANNEL=next \
     VERBOSE=${VERBOSE}
-  waitForInstalledEclipseCheCSV
   make wait-pod-running NAMESPACE=${NAMESPACE} SELECTOR="app.kubernetes.io/component=che-operator"
   if [[ $(oc get checluster -n eclipse-che --no-headers | wc -l) == 0 ]]; then
     getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
