@@ -13,8 +13,9 @@
 package dashboard
 
 import (
-	fakeDiscovery "k8s.io/client-go/discovery/fake"
 	"os"
+
+	fakeDiscovery "k8s.io/client-go/discovery/fake"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 
@@ -267,7 +268,7 @@ func TestDashboardDeploymentVolumes(t *testing.T) {
 	}
 	testCases := []resourcesTestCase{
 		{
-			name: "Test provisioning Custom CAs only",
+			name:        "Test provisioning Custom CAs only",
 			initObjects: []runtime.Object{
 				// no deploy.CheTLSSelfSignedCertificateSecretName is created
 			},
