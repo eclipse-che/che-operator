@@ -79,30 +79,14 @@ discoverEclipseCheBundles() {
   local PREVIOUS_BUNDLE=$(echo "${BUNDLES}" | jq -s '.' | jq ". | map(. | select(.channelName == \"${CHANNEL}\"))" | yq -r '. |=sort_by(.csvName) | .[length - 2]')
 
   export LATEST_CSV_NAME=$(echo "${LATEST_BUNDLE}" | yq -r ".csvName")
-  export LATEST_CSV_BUNDLE_IMAGE=$(echo "${LATEST_BUNDLE}" | yq -r ".bundlePath")
   export LATEST_VERSION=${LATEST_CSV_NAME#${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME}.v}
 
   export PREVIOUS_CSV_NAME=$(echo "${PREVIOUS_BUNDLE}" | yq -r ".csvName")
-  export PREVIOUS_CSV_BUNDLE_IMAGE=$(echo "${PREVIOUS_BUNDLE}" | yq -r ".bundlePath")
   export PREVIOUS_VERSION=${PREVIOUS_CSV_NAME#${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME}.v}
+
   echo "[INFO] PREVIOUS_CSV_NAME:         ${PREVIOUS_CSV_NAME}"
-  echo "[INFO] PREVIOUS_CSV_BUNDLE_IMAGE: ${PREVIOUS_CSV_BUNDLE_IMAGE}"
   echo "[INFO] PREVIOUS_VERSION:          ${PREVIOUS_VERSION}"
   echo "[INFO] LATEST_CSV_NAME:           ${LATEST_CSV_NAME}"
-  echo "[INFO] LATEST_CSV_BUNDLE_IMAGE:   ${LATEST_CSV_BUNDLE_IMAGE}"
   echo "[INFO] LATEST_VERSION:            ${LATEST_VERSION}"
   set ${xFlag}
-}
-
-# HACK. Unfortunately catalog source image bundle job has image pull policy "IfNotPresent".
-# It makes troubles for test scripts, because image bundle could be outdated with
-# such pull policy. That's why we launch job to force image bundle pulling before Che installation.
-forcePullingOlmImages() {
-  image="${1}"
-
-  echo "[INFO] Pulling image '${image}'"
-
-  yq -r "(.spec.template.spec.containers[0].image) = \"${image}\"" "${OPERATOR_REPO}/build/scripts/olm/force-pulling-images-job.yaml" | oc apply -f - -n ${NAMESPACE}
-  oc wait --for=condition=complete --timeout=30s job/pull-image -n ${NAMESPACE}
-  oc delete job/pull-image -n ${NAMESPACE}
 }

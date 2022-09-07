@@ -56,25 +56,23 @@ usage () {
 run() {
   make create-namespace NAMESPACE="eclipse-che" VERBOSE=${VERBOSE}
   make create-catalogsource NAME="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" IMAGE="${CATALOG_IMAGE}" VERBOSE=${VERBOSE}
+
   discoverEclipseCheBundles ${CHANNEL}
 
-  if [[ "${PREVIOUS_CSV_BUNDLE_IMAGE}" == "${LATEST_CSV_BUNDLE_IMAGE}" ]]; then
-    echo "[ERROR] Nothing to update. OLM channel '${CHANNEL}' contains only one bundle '${LATEST_CSV_BUNDLE_IMAGE}'"
+  if [[ "${PREVIOUS_VERSION}" == "${LATEST_VERSION}" ]]; then
+    echo "[ERROR] Nothing to update. OLM channel '${CHANNEL}' contains only one bundle '${LATEST_CSV_NAME}'"
     exit 1
   fi
 
-  if [[ "${LATEST_CSV_BUNDLE_IMAGE}" == "null" ]]; then
+  if [[ "${LATEST_VERSION}" == "null" ]]; then
     echo "[ERROR] CatalogSource does not contain any bundles."
     exit 1
   fi
 
-  if [[ "${PREVIOUS_CSV_BUNDLE_IMAGE}" == "null" ]]; then
+  if [[ "${PREVIOUS_VERSION}" == "null" ]]; then
     echo "[ERROR] CatalogSource contains only one bundle."
     exit 1
   fi
-
-  forcePullingOlmImages "${PREVIOUS_CSV_BUNDLE_IMAGE}"
-  forcePullingOlmImages "${LATEST_CSV_BUNDLE_IMAGE}"
 
   if [[ ${CHANNEL} == "next" ]]; then
     make install-devworkspace CHANNEL=next VERBOSE=${VERBOSE}
@@ -100,7 +98,7 @@ run() {
   make wait-eclipseche-version VERSION=${PREVIOUS_VERSION} NAMESPACE=${NAMESPACE} VERBOSE=${VERBOSE}
 
   make approve-installplan SUBSCRIPTION_NAME="${ECLIPSE_CHE_SUBSCRIPTION_NAME}" NAMESPACE="openshift-operators" VERBOSE=${VERBOSE}
-  make wait-eclipseche-version VERSION=${LASTEST_VERSION} NAMESPACE=${NAMESPACE} VERBOSE=${VERBOSE}
+  make wait-eclipseche-version VERSION=${LATEST_VERSION} NAMESPACE=${NAMESPACE} VERBOSE=${VERBOSE}
 }
 
 init "$@"

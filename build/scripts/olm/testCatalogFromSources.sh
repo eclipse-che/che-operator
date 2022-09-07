@@ -158,6 +158,7 @@ EOF
 
 run() {
   make create-namespace NAMESPACE=${NAMESPACE} VERBOSE=${VERBOSE}
+
   if [[ $(oc get operatorgroup -n ${NAMESPACE} --no-headers | wc -l) == 0 ]]; then
     make create-operatorgroup NAME=eclipse-che NAMESPACE=${NAMESPACE} VERBOSE=${VERBOSE}
   fi
@@ -172,6 +173,7 @@ run() {
     CHANNEL=next \
     VERBOSE=${VERBOSE}
   make wait-pod-running NAMESPACE=${NAMESPACE} SELECTOR="app.kubernetes.io/component=che-operator"
+
   if [[ $(oc get checluster -n eclipse-che --no-headers | wc -l) == 0 ]]; then
     getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
   fi

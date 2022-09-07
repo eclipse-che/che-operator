@@ -55,18 +55,21 @@ usage () {
 }
 
 run() {
+  make create-namespace NAMESPACE="eclipse-che" VERBOSE=${VERBOSE}
+  make create-catalogsource NAME="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" IMAGE="${CATALOG_IMAGE}" VERBOSE=${VERBOSE}
+
+  discoverEclipseCheBundles ${CHANNEL}
+
+  if [[ "${LATEST_VERSION}" == "null" ]]; then
+    echo "[ERROR] CatalogSource does not contain any bundles."
+    exit 1
+  fi
+
   if [[ ${CHANNEL} == "next" ]]; then
     make install-devworkspace CHANNEL=next VERBOSE=${VERBOSE}
   else
     make install-devworkspace CHANNEL=fast VERBOSE=${VERBOSE}
   fi
-
-  make create-namespace NAMESPACE="eclipse-che" VERBOSE=${VERBOSE}
-  make create-catalogsource NAME="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" IMAGE="${CATALOG_IMAGE}" VERBOSE=${VERBOSE}
-
-  local bundles=$(listCatalogSourceBundles "${ECLIPSE_CHE_CATALOG_SOURCE_NAME}")
-  fetchLatestCSVInfo "${CHANNEL}" "${bundles}"
-  forcePullingOlmImages "${LATEST_CSV_BUNDLE_IMAGE}"
 
   make create-subscription \
     NAME="${ECLIPSE_CHE_SUBSCRIPTION_NAME}" \
@@ -81,7 +84,6 @@ run() {
   getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
   make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE} VERBOSE=${VERBOSE}
 }
-
 
 init "$@"
 [[ ${VERBOSE} == 1 ]] && set -x
