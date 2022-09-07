@@ -15,6 +15,8 @@ package dashboard
 import (
 	"os"
 
+	fakeDiscovery "k8s.io/client-go/discovery/fake"
+
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
@@ -236,6 +238,13 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 			ctx := test.GetDeployContext(testCase.cheCluster, testCase.initObjects)
+			ctx.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
+				{
+					APIResources: []metav1.APIResource{
+						{Name: ConsoleLinksResourceName},
+					},
+				},
+			}
 
 			dashboard := NewDashboardReconciler()
 			deployment, err := dashboard.getDashboardDeploymentSpec(ctx)
