@@ -13,6 +13,7 @@
 package dashboard
 
 import (
+	fakeDiscovery "k8s.io/client-go/discovery/fake"
 	"os"
 
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -236,6 +237,13 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 			ctx := test.GetDeployContext(testCase.cheCluster, testCase.initObjects)
+			ctx.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
+				{
+					APIResources: []metav1.APIResource{
+						{Name: ConsoleLinksResourceName},
+					},
+				},
+			}
 
 			dashboard := NewDashboardReconciler()
 			deployment, err := dashboard.getDashboardDeploymentSpec(ctx)
@@ -259,7 +267,7 @@ func TestDashboardDeploymentVolumes(t *testing.T) {
 	}
 	testCases := []resourcesTestCase{
 		{
-			name:        "Test provisioning Custom CAs only",
+			name: "Test provisioning Custom CAs only",
 			initObjects: []runtime.Object{
 				// no deploy.CheTLSSelfSignedCertificateSecretName is created
 			},

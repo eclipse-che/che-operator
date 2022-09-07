@@ -16,7 +16,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -32,8 +31,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-const CHE_SELF_SIGNED_MOUNT_PATH = "/public-certs/che-self-signed"
-const CHE_CUSTOM_CERTS_MOUNT_PATH = "/public-certs/custom"
+const (
+	CHE_SELF_SIGNED_MOUNT_PATH  = "/public-certs/che-self-signed"
+	CHE_CUSTOM_CERTS_MOUNT_PATH = "/public-certs/custom"
+	ConsoleLinksResourceName    = "consolelinks"
+)
 
 func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
 	var volumes []corev1.Volume
@@ -73,7 +75,7 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployCon
 			Value: fmt.Sprintf("http://%s.%s.svc:8080/api", deploy.CheServiceName, ctx.CheCluster.Namespace)},
 	)
 
-	if infrastructure.IsOpenShift() {
+	if utils.IsK8SResourceServed(ctx.ClusterAPI.DiscoveryClient, ConsoleLinksResourceName) {
 		envVars = append(envVars,
 			corev1.EnvVar{
 				Name:  "OPENSHIFT_CONSOLE_URL",

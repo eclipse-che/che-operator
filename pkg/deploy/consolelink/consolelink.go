@@ -14,7 +14,6 @@ package consolelink
 import (
 	"fmt"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
@@ -46,7 +45,7 @@ func NewConsoleLinkReconciler() *ConsoleLinkReconciler {
 }
 
 func (c *ConsoleLinkReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if !infrastructure.IsOpenShift() || !utils.IsK8SResourceServed(ctx.ClusterAPI.DiscoveryClient, ConsoleLinksResourceName) {
+	if !utils.IsK8SResourceServed(ctx.ClusterAPI.DiscoveryClient, ConsoleLinksResourceName) {
 		logrus.Debug("Console link won't be created. ConsoleLinks is not supported by kubernetes cluster.")
 		return reconcile.Result{}, true, nil
 	}
