@@ -79,7 +79,7 @@ run() {
     VERBOSE=${VERBOSE}
 
   waitForInstalledEclipseCheCSV
-  make wait-pod-running NAMESPACE=${NAMESPACE} SELECTOR="app.kubernetes.io/component=che-operator"
+  make wait-pod-running NAMESPACE="openshift-operators" SELECTOR="app.kubernetes.io/component=che-operator"
   getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
   make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE} VERBOSE=${VERBOSE}
 }
