@@ -761,6 +761,60 @@ spec:
                 required:
                 - enable
                 type: object
+              gitServices:
+                description: A configuration that allows users to work with remote Git repositories.
+                properties:
+                  bitbucket:
+                    description: Enables users to work with repositories hosted on Bitbucket (bitbucket.org or self-hosted).
+                    items:
+                      description: BitBucketService enables users to work with repositories hosted on Bitbucket (bitbucket.org or self-hosted).
+                      properties:
+                        endpoint:
+                          default: https://bitbucket.org
+                          description: Bitbucket server endpoint URL.
+                          type: string
+                        secretName:
+                          description: 'Kubernetes secret, that contains Base64-encoded Bitbucket OAuth 1.0 or OAuth 2.0 data. For OAuth 1.0: private key, Bitbucket Application link consumer key and Bitbucket Application link shared secret must be stored in `private.key`, `consumer.key` and `shared_secret` keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/. For OAuth 2.0: Bitbucket OAuth consumer key and Bitbucket OAuth consumer secret must be stored in `id` and `secret` keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-the-bitbucket-cloud/.'
+                          type: string
+                      required:
+                      - secretName
+                      type: object
+                    type: array
+                  github:
+                    description: Enables users to work with repositories hosted on GitHub (github.com or GitHub Enterprise).
+                    items:
+                      description: GitHubService enables users to work with repositories hosted on GitHub (GitHub.com or GitHub Enterprise).
+                      properties:
+                        endpoint:
+                          default: https://github.com
+                          description: GitHub server endpoint URL.
+                          type: string
+                        secretName:
+                          description: 'Kubernetes secret, that contains Base64-encoded GitHub OAuth Client id and GitHub OAuth Client secret, that stored in `id` and `secret` keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
+                          type: string
+                      required:
+                      - endpoint
+                      - secretName
+                      type: object
+                    type: array
+                  gitlab:
+                    description: Enables users to work with repositories hosted on GitLab (gitlab.com or self-hosted).
+                    items:
+                      description: GitLabService enables users to work with repositories hosted on GitLab (gitlab.com or self-hosted).
+                      properties:
+                        endpoint:
+                          default: https://gitlab.com
+                          description: GitLab server endpoint URL.
+                          type: string
+                        secretName:
+                          description: 'Kubernetes secret, that contains Base64-encoded GitHub Application id and GitLab Application Client secret, that stored in `id` and `secret` keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
+                          type: string
+                      required:
+                      - endpoint
+                      - secretName
+                      type: object
+                    type: array
+                type: object
               imagePuller:
                 description: Kubernetes Image Puller configuration
                 properties:
@@ -2749,7 +2803,7 @@ spec:
                             description: The secret name that contains `user` and `password` for a proxy server. The secret must have a `app.kubernetes.io/part-of=che.eclipse.org` label.
                             type: string
                           nonProxyHosts:
-                            description: 'A list of hosts that can be reached directly, bypassing the proxy. Specify wild card domain use the following form `.<DOMAIN>`, for example:    - localhost    - my.host.com    - 123.42.12.32 Use only when a proxy configuration is required. The Operator respects OpenShift cluster-wide proxy configuration, defining `nonProxyHosts` in a custom resource leads to merging non-proxy hosts lists from the cluster proxy configuration, and the ones defined in the custom resources. See the following page: https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html. See also the `proxyURL` fields.'
+                            description: 'A list of hosts that can be reached directly, bypassing the proxy. Specify wild card domain use the following form `.<DOMAIN>`, for example:    - localhost    - my.host.com    - 123.42.12.32 Use only when a proxy configuration is required. The Operator respects OpenShift cluster-wide proxy configuration, defining `nonProxyHosts` in a custom resource leads to merging non-proxy hosts lists from the cluster proxy configuration, and the ones defined in the custom resources. See the following page: https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html.'
                             items:
                               type: string
                             type: array
@@ -2757,7 +2811,7 @@ spec:
                             description: Proxy server port.
                             type: string
                           url:
-                            description: 'URL (protocol+hostname) of the proxy server. Use only when a proxy configuration is required. The Operator respects OpenShift cluster-wide proxy configuration, defining `url` in a custom resource leads to overriding the cluster proxy configuration. See the following page: https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html. See also the `proxyPort` and `nonProxyHosts` fields.'
+                            description: 'URL (protocol+hostname) of the proxy server. Use only when a proxy configuration is required. The Operator respects OpenShift cluster-wide proxy configuration, defining `url` in a custom resource leads to overriding the cluster proxy configuration. See the following page: https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html.'
                             type: string
                         type: object
                     type: object
@@ -4754,6 +4808,60 @@ spec:
                         type: string
                     type: object
                 type: object
+              gitServices:
+                description: A configuration that allows users to work with remote Git repositories.
+                properties:
+                  bitbucket:
+                    description: Enables users to work with repositories hosted on Bitbucket (bitbucket.org or self-hosted).
+                    items:
+                      description: BitBucketService enables users to work with repositories hosted on Bitbucket (bitbucket.org or self-hosted).
+                      properties:
+                        endpoint:
+                          default: https://bitbucket.org
+                          description: Bitbucket server endpoint URL.
+                          type: string
+                        secretName:
+                          description: 'Kubernetes secret, that contains Base64-encoded Bitbucket OAuth 1.0 or OAuth 2.0 data. For OAuth 1.0: private key, Bitbucket Application link consumer key and Bitbucket Application link shared secret must be stored in `private.key`, `consumer.key` and `shared_secret` keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/. For OAuth 2.0: Bitbucket OAuth consumer key and Bitbucket OAuth consumer secret must be stored in `id` and `secret` keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-the-bitbucket-cloud/.'
+                          type: string
+                      required:
+                      - secretName
+                      type: object
+                    type: array
+                  github:
+                    description: Enables users to work with repositories hosted on GitHub (github.com or GitHub Enterprise).
+                    items:
+                      description: GitHubService enables users to work with repositories hosted on GitHub (GitHub.com or GitHub Enterprise).
+                      properties:
+                        endpoint:
+                          default: https://github.com
+                          description: GitHub server endpoint URL.
+                          type: string
+                        secretName:
+                          description: 'Kubernetes secret, that contains Base64-encoded GitHub OAuth Client id and GitHub OAuth Client secret, that stored in `id` and `secret` keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
+                          type: string
+                      required:
+                      - endpoint
+                      - secretName
+                      type: object
+                    type: array
+                  gitlab:
+                    description: Enables users to work with repositories hosted on GitLab (gitlab.com or self-hosted).
+                    items:
+                      description: GitLabService enables users to work with repositories hosted on GitLab (gitlab.com or self-hosted).
+                      properties:
+                        endpoint:
+                          default: https://gitlab.com
+                          description: GitLab server endpoint URL.
+                          type: string
+                        secretName:
+                          description: 'Kubernetes secret, that contains Base64-encoded GitHub Application id and GitLab Application Client secret, that stored in `id` and `secret` keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
+                          type: string
+                      required:
+                      - endpoint
+                      - secretName
+                      type: object
+                    type: array
+                type: object
               networking:
                 default:
                   auth:
@@ -6114,3 +6222,37 @@ metadata:
   namespace: eclipse-che
 spec:
   selfSigned: {}
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: eclipse-che/che-operator-serving-cert
+  labels:
+    app.kubernetes.io/component: che-operator
+    app.kubernetes.io/instance: che
+    app.kubernetes.io/name: che
+    app.kubernetes.io/part-of: che.eclipse.org
+  name: org.eclipse.che
+webhooks:
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: che-operator-service
+      namespace: eclipse-che
+      path: /validate-org-eclipse-che-v2-checluster
+  failurePolicy: Fail
+  name: vchecluster.kb.io
+  rules:
+  - apiGroups:
+    - org.eclipse.che
+    apiVersions:
+    - v2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - checlusters
+  sideEffects: None

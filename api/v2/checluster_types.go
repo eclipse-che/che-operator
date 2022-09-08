@@ -45,15 +45,20 @@ type CheClusterSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Components"
 	// +kubebuilder:default:={cheServer: {logLevel: INFO, debug: false}, metrics: {enable: true}, database: {externalDb: false, credentialsSecretName: postgres-credentials, postgresHostName: postgres, postgresPort: "5432", postgresDb: dbche, pvc: {claimSize: "1Gi"}}}
 	Components CheClusterComponents `json:"components"`
-	// Networking, Che authentication, and TLS configuration.
+	// A configuration that allows users to work with remote Git repositories.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=3
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Git Services"
+	GitServices CheClusterGitServices `json:"gitServices"`
+	// Networking, Che authentication, and TLS configuration.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=4
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Networking"
 	// +kubebuilder:default:={auth: {gateway: {configLabels: {app: che, component: che-gateway-config}}}}
 	Networking CheClusterSpecNetworking `json:"networking"`
 	// Configuration of an alternative registry that stores Che images.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=4
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=5
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Container registry"
 	ContainerRegistry CheClusterContainerRegistry `json:"containerRegistry"`
 }
@@ -452,7 +457,7 @@ type Proxy struct {
 	// URL (protocol+hostname) of the proxy server.
 	// Use only when a proxy configuration is required. The Operator respects OpenShift cluster-wide proxy configuration,
 	// defining `url` in a custom resource leads to overriding the cluster proxy configuration.
-	// See the following page: https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html. See also the `proxyPort` and `nonProxyHosts` fields.
+	// See the following page: https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html.
 	// +optional
 	Url string `json:"url,omitempty"`
 	// Proxy server port.
@@ -465,7 +470,7 @@ type Proxy struct {
 	//    - 123.42.12.32
 	// Use only when a proxy configuration is required. The Operator respects OpenShift cluster-wide proxy configuration,
 	// defining `nonProxyHosts` in a custom resource leads to merging non-proxy hosts lists from the cluster proxy configuration, and the ones defined in the custom resources.
-	// See the following page: https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html. See also the `proxyURL` fields.
+	// See the following page: https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html.
 	// +optional
 	NonProxyHosts []string `json:"nonProxyHosts,omitempty"`
 	// The secret name that contains `user` and `password` for a proxy server.
@@ -556,6 +561,67 @@ type PodSecurityContext struct {
 	// A special supplemental group that applies to all containers in a pod. The default value is `1724`.
 	// +optional
 	FsGroup *int64 `json:"fsGroup,omitempty"`
+}
+
+type CheClusterGitServices struct {
+	// Enables users to work with repositories hosted on GitHub (github.com or GitHub Enterprise).
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="GitHub"
+	GitHub []GitHubService `json:"github,omitempty"`
+	// Enables users to work with repositories hosted on GitLab (gitlab.com or self-hosted).
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="GitLab"
+	GitLab []GitLabService `json:"gitlab,omitempty"`
+	// Enables users to work with repositories hosted on Bitbucket (bitbucket.org or self-hosted).
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Bitbucket"
+	BitBucket []BitBucketService `json:"bitbucket,omitempty"`
+}
+
+// GitHubService enables users to work with repositories hosted on GitHub (GitHub.com or GitHub Enterprise).
+type GitHubService struct {
+	// Kubernetes secret, that contains Base64-encoded GitHub OAuth Client id and GitHub OAuth Client secret,
+	// that stored in `id` and `secret` keys respectively.
+	// See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:io.kubernetes:Secret"
+	SecretName string `json:"secretName"`
+	// GitHub server endpoint URL.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:default:="https://github.com"
+	Endpoint string `json:"endpoint"`
+}
+
+// GitLabService enables users to work with repositories hosted on GitLab (gitlab.com or self-hosted).
+type GitLabService struct {
+	// Kubernetes secret, that contains Base64-encoded GitHub Application id and GitLab Application Client secret,
+	// that stored in `id` and `secret` keys respectively.
+	// See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:io.kubernetes:Secret"
+	SecretName string `json:"secretName"`
+	// GitLab server endpoint URL.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:default:="https://gitlab.com"
+	Endpoint string `json:"endpoint"`
+}
+
+// BitBucketService enables users to work with repositories hosted on Bitbucket (bitbucket.org or self-hosted).
+type BitBucketService struct {
+	// Kubernetes secret, that contains Base64-encoded Bitbucket OAuth 1.0 or OAuth 2.0 data.
+	// For OAuth 1.0: private key, Bitbucket Application link consumer key and Bitbucket Application link shared secret must be stored
+	// in `private.key`, `consumer.key` and `shared_secret` keys respectively.
+	// See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/.
+	// For OAuth 2.0: Bitbucket OAuth consumer key and Bitbucket OAuth consumer secret must be stored
+	// in `id` and `secret` keys respectively.
+	// See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-the-bitbucket-cloud/.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:io.kubernetes:Secret"
+	SecretName string `json:"secretName"`
+	// Bitbucket server endpoint URL.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:default:="https://bitbucket.org"
+	Endpoint string `json:"endpoint,omitempty"`
 }
 
 // GatewayPhase describes the different phases of the Che gateway lifecycle.

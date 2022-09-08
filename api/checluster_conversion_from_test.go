@@ -419,6 +419,26 @@ func TestConvertFrom(t *testing.T) {
 				Hostname:     "AirGapContainerRegistryHostname",
 				Organization: "AirGapContainerRegistryOrganization",
 			},
+			GitServices: chev2.CheClusterGitServices{
+				GitHub: []chev2.GitHubService{
+					{
+						SecretName: "github-secret-name",
+						Endpoint:   "github-endpoint",
+					},
+				},
+				GitLab: []chev2.GitLabService{
+					{
+						SecretName: "gitlab-secret-name",
+						Endpoint:   "gitlab-endpoint",
+					},
+				},
+				BitBucket: []chev2.BitBucketService{
+					{
+						SecretName: "bitbucket-secret-name",
+						Endpoint:   "bitbucket-endpoint",
+					},
+				},
+			},
 		},
 		Status: chev2.CheClusterStatus{
 			CheVersion:         "CheVersion",
@@ -566,4 +586,11 @@ func TestConvertFrom(t *testing.T) {
 	assert.Equal(t, checlusterv1.Spec.Storage.WorkspacePVCStorageClassName, "StorageClass")
 	assert.Equal(t, checlusterv1.Spec.Storage.PerWorkspaceStrategyPvcClaimSize, "PerWorkspaceStorageClaimSize")
 	assert.Equal(t, checlusterv1.Spec.Storage.PerWorkspaceStrategyPVCStorageClassName, "PerWorkspaceStorageClass")
+
+	assert.Equal(t, checlusterv1.Spec.GitServices.GitHub[0].SecretName, "github-secret-name")
+	assert.Equal(t, checlusterv1.Spec.GitServices.GitHub[0].Endpoint, "github-endpoint")
+	assert.Equal(t, checlusterv1.Spec.GitServices.GitLab[0].SecretName, "gitlab-secret-name")
+	assert.Equal(t, checlusterv1.Spec.GitServices.GitLab[0].Endpoint, "gitlab-endpoint")
+	assert.Equal(t, checlusterv1.Spec.GitServices.BitBucket[0].SecretName, "bitbucket-secret-name")
+	assert.Equal(t, checlusterv1.Spec.GitServices.BitBucket[0].Endpoint, "bitbucket-endpoint")
 }

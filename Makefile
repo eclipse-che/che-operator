@@ -253,6 +253,9 @@ gen-chectl-tmpl: ## Generate Eclipse Che k8s deployment resources used by chectl
 	cp $${src}/che-operator.RoleBinding.yaml $${dst}/role_binding.yaml
 	cp $${src}/che-operator.Role.yaml $${dst}/role.yaml
 	cp $${src}/che-operator-service.Service.yaml $${dst}/webhook-service.yaml
+	if [[ -f $${src}/org.eclipse.che.ValidatingWebhookConfiguration.yaml ]]; then
+	  cp $${src}/org.eclipse.che.ValidatingWebhookConfiguration.yaml $${dst}/org.eclipse.che.ValidatingWebhookConfiguration.yaml
+	fi
 	cp $${src}/che-operator-serving-cert.Certificate.yaml $${dst}/serving-cert.yaml
 	cp $${src}/che-operator-selfsigned-issuer.Issuer.yaml $${dst}/selfsigned-issuer.yaml
 
