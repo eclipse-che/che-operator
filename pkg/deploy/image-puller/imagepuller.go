@@ -475,14 +475,12 @@ func GetDefaultImages() []ImageAndName {
 	images := []ImageAndName{}
 	imagePatterns := [...]string{
 		"^RELATED_IMAGE_.*_theia.*",
+		"^RELATED_IMAGE_.*_code.*",
+		"^RELATED_IMAGE_.*_idea.*",
 		"^RELATED_IMAGE_.*_machine(_)?exec(_.*)?_plugin_registry_image.*",
 		"^RELATED_IMAGE_.*_kubernetes(_.*)?_plugin_registry_image.*",
 		"^RELATED_IMAGE_.*_openshift(_.*)?_plugin_registry_image.*",
-		"^RELATED_IMAGE_.*_cpp(_.*)?_devfile_registry_image.*",
-		"^RELATED_IMAGE_.*_dotnet(_.*)?_devfile_registry_image.*",
-		"^RELATED_IMAGE_.*_golang(_.*)?_devfile_registry_image.*",
-		"^RELATED_IMAGE_.*_php(_.*)?_devfile_registry_image.*",
-		"^RELATED_IMAGE_.*_java.{1,2}(_maven)?_devfile_registry_image.*",
+		"^RELATED_IMAGE_universal(_)?developer(_)?image(_.*)?_devfile_registry_image.*",
 	}
 	for _, pattern := range imagePatterns {
 		matches := utils.GetEnvsByRegExp(pattern)
