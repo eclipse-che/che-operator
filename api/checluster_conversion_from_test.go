@@ -594,3 +594,43 @@ func TestConvertFrom(t *testing.T) {
 	assert.Equal(t, checlusterv1.Spec.GitServices.BitBucket[0].SecretName, "bitbucket-secret-name")
 	assert.Equal(t, checlusterv1.Spec.GitServices.BitBucket[0].Endpoint, "bitbucket-endpoint")
 }
+
+func TestShouldConvertFromWhenOnlyMemoryResourceSpecified(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+	checlusterv2 := &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+		Spec: chev2.CheClusterSpec{
+			Components: chev2.CheClusterComponents{
+				CheServer: chev2.CheServer{
+					Deployment: &chev2.Deployment{
+						Containers: []chev2.Container{
+							{
+								Resources: &chev2.ResourceRequirements{
+									Requests: &chev2.ResourceList{
+										Memory: resource.MustParse("128Mi"),
+									},
+									Limits: &chev2.ResourceList{
+										Memory: resource.MustParse("228Mi"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	checlusterv1 := &chev1.CheCluster{}
+	err := checlusterv1.ConvertFrom(checlusterv2)
+	assert.Nil(t, err)
+
+	assert.Empty(t, checlusterv1.Spec.Server.ServerCpuLimit)
+	assert.Empty(t, checlusterv1.Spec.Server.ServerCpuRequest)
+	assert.Equal(t, checlusterv1.Spec.Server.ServerMemoryLimit, "228Mi")
+	assert.Equal(t, checlusterv1.Spec.Server.ServerMemoryRequest, "128Mi")
+}

@@ -14,6 +14,7 @@ package v1
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"strconv"
 	"strings"
 
@@ -153,12 +154,12 @@ func (dst *CheCluster) convertFrom_Server(src *chev2.CheCluster) error {
 
 			if src.Spec.Components.CheServer.Deployment.Containers[0].Resources != nil {
 				if src.Spec.Components.CheServer.Deployment.Containers[0].Resources.Requests != nil {
-					dst.Spec.Server.ServerMemoryRequest = src.Spec.Components.CheServer.Deployment.Containers[0].Resources.Requests.Memory.String()
-					dst.Spec.Server.ServerCpuRequest = src.Spec.Components.CheServer.Deployment.Containers[0].Resources.Requests.Cpu.String()
+					dst.Spec.Server.ServerMemoryRequest = resource2String(src.Spec.Components.CheServer.Deployment.Containers[0].Resources.Requests.Memory)
+					dst.Spec.Server.ServerCpuRequest = resource2String(src.Spec.Components.CheServer.Deployment.Containers[0].Resources.Requests.Cpu)
 				}
 				if src.Spec.Components.CheServer.Deployment.Containers[0].Resources.Limits != nil {
-					dst.Spec.Server.ServerMemoryLimit = src.Spec.Components.CheServer.Deployment.Containers[0].Resources.Limits.Memory.String()
-					dst.Spec.Server.ServerCpuLimit = src.Spec.Components.CheServer.Deployment.Containers[0].Resources.Limits.Cpu.String()
+					dst.Spec.Server.ServerMemoryLimit = resource2String(src.Spec.Components.CheServer.Deployment.Containers[0].Resources.Limits.Memory)
+					dst.Spec.Server.ServerCpuLimit = resource2String(src.Spec.Components.CheServer.Deployment.Containers[0].Resources.Limits.Cpu)
 				}
 			}
 		}
@@ -234,12 +235,12 @@ func (dst *CheCluster) convertFrom_Server_PluginRegistry(src *chev2.CheCluster) 
 
 			if src.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources != nil {
 				if src.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Requests != nil {
-					dst.Spec.Server.PluginRegistryMemoryRequest = src.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Requests.Memory.String()
-					dst.Spec.Server.PluginRegistryCpuRequest = src.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Requests.Cpu.String()
+					dst.Spec.Server.PluginRegistryMemoryRequest = resource2String(src.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Requests.Memory)
+					dst.Spec.Server.PluginRegistryCpuRequest = resource2String(src.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Requests.Cpu)
 				}
 				if src.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Limits != nil {
-					dst.Spec.Server.PluginRegistryMemoryLimit = src.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Limits.Memory.String()
-					dst.Spec.Server.PluginRegistryCpuLimit = src.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Limits.Cpu.String()
+					dst.Spec.Server.PluginRegistryMemoryLimit = resource2String(src.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Limits.Memory)
+					dst.Spec.Server.PluginRegistryCpuLimit = resource2String(src.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Limits.Cpu)
 				}
 			}
 		}
@@ -266,12 +267,12 @@ func (dst *CheCluster) convertFrom_Server_DevfileRegistry(src *chev2.CheCluster)
 
 			if src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources != nil {
 				if src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Requests != nil {
-					dst.Spec.Server.DevfileRegistryMemoryRequest = src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Requests.Memory.String()
-					dst.Spec.Server.DevfileRegistryCpuRequest = src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Requests.Cpu.String()
+					dst.Spec.Server.DevfileRegistryMemoryRequest = resource2String(src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Requests.Memory)
+					dst.Spec.Server.DevfileRegistryCpuRequest = resource2String(src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Requests.Cpu)
 				}
 				if src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Limits != nil {
-					dst.Spec.Server.DevfileRegistryMemoryLimit = src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Limits.Memory.String()
-					dst.Spec.Server.DevfileRegistryCpuLimit = src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Limits.Cpu.String()
+					dst.Spec.Server.DevfileRegistryMemoryLimit = resource2String(src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Limits.Memory)
+					dst.Spec.Server.DevfileRegistryCpuLimit = resource2String(src.Spec.Components.DevfileRegistry.Deployment.Containers[0].Resources.Limits.Cpu)
 				}
 			}
 		}
@@ -288,12 +289,12 @@ func (dst *CheCluster) convertFrom_Server_Dashboard(src *chev2.CheCluster) error
 			dst.Spec.Server.DashboardImagePullPolicy = string(src.Spec.Components.Dashboard.Deployment.Containers[0].ImagePullPolicy)
 			if src.Spec.Components.Dashboard.Deployment.Containers[0].Resources != nil {
 				if src.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Requests != nil {
-					dst.Spec.Server.DashboardMemoryRequest = src.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Requests.Memory.String()
-					dst.Spec.Server.DashboardCpuRequest = src.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Requests.Cpu.String()
+					dst.Spec.Server.DashboardMemoryRequest = resource2String(src.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Requests.Memory)
+					dst.Spec.Server.DashboardCpuRequest = resource2String(src.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Requests.Cpu)
 				}
 				if src.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Limits != nil {
-					dst.Spec.Server.DashboardMemoryLimit = src.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Limits.Memory.String()
-					dst.Spec.Server.DashboardCpuLimit = src.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Limits.Cpu.String()
+					dst.Spec.Server.DashboardMemoryLimit = resource2String(src.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Limits.Memory)
+					dst.Spec.Server.DashboardCpuLimit = resource2String(src.Spec.Components.Dashboard.Deployment.Containers[0].Resources.Limits.Cpu)
 				}
 			}
 		}
@@ -368,12 +369,12 @@ func (dst *CheCluster) convertFrom_Database(src *chev2.CheCluster) error {
 			dst.Spec.Database.PostgresImagePullPolicy = src.Spec.Components.Database.Deployment.Containers[0].ImagePullPolicy
 			if src.Spec.Components.Database.Deployment.Containers[0].Resources != nil {
 				if src.Spec.Components.Database.Deployment.Containers[0].Resources.Requests != nil {
-					dst.Spec.Database.ChePostgresContainerResources.Requests.Memory = src.Spec.Components.Database.Deployment.Containers[0].Resources.Requests.Memory.String()
-					dst.Spec.Database.ChePostgresContainerResources.Requests.Cpu = src.Spec.Components.Database.Deployment.Containers[0].Resources.Requests.Cpu.String()
+					dst.Spec.Database.ChePostgresContainerResources.Requests.Memory = resource2String(src.Spec.Components.Database.Deployment.Containers[0].Resources.Requests.Memory)
+					dst.Spec.Database.ChePostgresContainerResources.Requests.Cpu = resource2String(src.Spec.Components.Database.Deployment.Containers[0].Resources.Requests.Cpu)
 				}
 				if src.Spec.Components.Database.Deployment.Containers[0].Resources.Limits != nil {
-					dst.Spec.Database.ChePostgresContainerResources.Limits.Memory = src.Spec.Components.Database.Deployment.Containers[0].Resources.Limits.Memory.String()
-					dst.Spec.Database.ChePostgresContainerResources.Limits.Cpu = src.Spec.Components.Database.Deployment.Containers[0].Resources.Limits.Cpu.String()
+					dst.Spec.Database.ChePostgresContainerResources.Limits.Memory = resource2String(src.Spec.Components.Database.Deployment.Containers[0].Resources.Limits.Memory)
+					dst.Spec.Database.ChePostgresContainerResources.Limits.Cpu = resource2String(src.Spec.Components.Database.Deployment.Containers[0].Resources.Limits.Cpu)
 				}
 			}
 		}
@@ -478,4 +479,11 @@ func findTrustStoreConfigMap(namespace string) (string, error) {
 	}
 
 	return "", nil
+}
+
+func resource2String(resource resource.Quantity) string {
+	if resource.IsZero() {
+		return ""
+	}
+	return resource.String()
 }
