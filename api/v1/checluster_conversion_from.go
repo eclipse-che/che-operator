@@ -14,9 +14,10 @@ package v1
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"strconv"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 
