@@ -633,11 +633,16 @@ func toCheV2Deployment(
 	}
 
 	if memoryRequest != "" || cpuRequest != "" {
-		resources = &chev2.ResourceRequirements{
-			Requests: &chev2.ResourceList{
-				Memory: resource.MustParse(memoryRequest),
-				Cpu:    resource.MustParse(cpuRequest),
-			},
+		if resources == nil {
+			resources = &chev2.ResourceRequirements{}
+		}
+		resources.Requests = &chev2.ResourceList{}
+
+		if memoryRequest != "" {
+			resources.Requests.Memory = resource.MustParse(memoryRequest)
+		}
+		if cpuRequest != "" {
+			resources.Requests.Cpu = resource.MustParse(cpuRequest)
 		}
 	}
 
@@ -645,10 +650,13 @@ func toCheV2Deployment(
 		if resources == nil {
 			resources = &chev2.ResourceRequirements{}
 		}
+		resources.Limits = &chev2.ResourceList{}
 
-		resources.Limits = &chev2.ResourceList{
-			Memory: resource.MustParse(memoryLimit),
-			Cpu:    resource.MustParse(cpuLimit),
+		if memoryLimit != "" {
+			resources.Limits.Memory = resource.MustParse(memoryLimit)
+		}
+		if cpuLimit != "" {
+			resources.Limits.Cpu = resource.MustParse(cpuLimit)
 		}
 	}
 

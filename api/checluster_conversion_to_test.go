@@ -515,3 +515,29 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Status.Reason, "Reason")
 	assert.Equal(t, checlusterv2.Status.PostgresVersion, "PostgresVersion")
 }
+
+func TestShouldConvertToWhenOnlyMemoryResourceSpecified(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
+	checlusterv1 := &chev1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+		Spec: chev1.CheClusterSpec{
+			Server: chev1.CheClusterSpecServer{
+				ServerMemoryLimit:   "10Gi",
+				ServerMemoryRequest: "5Gi",
+			},
+		},
+	}
+
+	checlusterv2 := &chev2.CheCluster{}
+	err := checlusterv1.ConvertTo(checlusterv2)
+	assert.Nil(t, err)
+
+	assert.True(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].Resources.Limits.Cpu.IsZero())
+	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].Resources.Limits.Memory, resource.MustParse("10Gi"))
+	assert.True(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].Resources.Requests.Cpu.IsZero())
+	assert.Equal(t, checlusterv2.Spec.Components.CheServer.Deployment.Containers[0].Resources.Requests.Memory, resource.MustParse("5Gi"))
+}
