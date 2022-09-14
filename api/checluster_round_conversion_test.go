@@ -366,7 +366,7 @@ func TestRoundConvertCheClusterV1(t *testing.T) {
 		}
 
 		k8sHelper := k8shelper.New()
-		_, err := k8sHelper.GetClientset().CoreV1().ConfigMaps("eclipse-che").Create(context.TODO(), truststoreConfigMap, metav1.CreateOptions{})
+		_, err := k8sHelper.GetClientSet().CoreV1().ConfigMaps("eclipse-che").Create(context.TODO(), truststoreConfigMap, metav1.CreateOptions{})
 
 		checlusterv1Orignal := &chev1.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{

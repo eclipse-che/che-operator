@@ -17,13 +17,10 @@ import (
 	"fmt"
 	"strings"
 
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
-
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/json"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
 	corev1 "k8s.io/api/core/v1"
@@ -64,20 +61,11 @@ func (r *CheCluster) ValidateDelete() error {
 }
 
 func ensureSingletonCheCluster() error {
-	cfg, err := config.GetConfig()
-	if err != nil {
-		logger.Error(err, "Failed to get Kubernetes config.")
-	}
-
-	scheme := runtime.NewScheme()
-	utilruntime.Must(AddToScheme(scheme))
-	cl, err := client.New(cfg, client.Options{Scheme: scheme})
-	if err != nil {
-		logger.Error(err, "Failed to create a Kubernetes client.")
-	}
+	client := k8shelper.New().GetKubernetesClient()
+	utilruntime.Must(AddToScheme(client.Scheme()))
 
 	che := &CheClusterList{}
-	err = cl.List(context.TODO(), che)
+	err := client.List(context.TODO(), che)
 	if err != nil {
 		logger.Error(err, "Failed to list CheCluster Custom Resources.")
 	}
@@ -175,7 +163,7 @@ func ensureScmLabelsAndAnnotations(scmProvider string, endpointUrl string, secre
 	patchData, _ := json.Marshal(patch)
 
 	k8sHelper := k8shelper.New()
-	if _, err := k8sHelper.GetClientset().CoreV1().Secrets(namespace).Patch(context.TODO(), secretName, types.MergePatchType, patchData, metav1.PatchOptions{}); err != nil {
+	if _, err := k8sHelper.GetClientSet().CoreV1().Secrets(namespace).Patch(context.TODO(), secretName, types.MergePatchType, patchData, metav1.PatchOptions{}); err != nil {
 		return err
 	}
 
@@ -184,7 +172,7 @@ func ensureScmLabelsAndAnnotations(scmProvider string, endpointUrl string, secre
 
 func validateSecretKeys(keys []string, secretName string, namespace string) error {
 	k8sHelper := k8shelper.New()
-	secret, err := k8sHelper.GetClientset().CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+	secret, err := k8sHelper.GetClientSet().CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}

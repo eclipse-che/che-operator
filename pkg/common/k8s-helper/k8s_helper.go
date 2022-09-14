@@ -16,7 +16,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"k8s.io/apimachinery/pkg/runtime"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"k8s.io/client-go/kubernetes/fake"
 
@@ -30,7 +33,8 @@ import (
 )
 
 type K8sHelper struct {
-	clientset kubernetes.Interface
+	clientSet kubernetes.Interface
+	client    client.Client
 }
 
 var (
@@ -49,8 +53,12 @@ func New() *K8sHelper {
 	return initialize()
 }
 
-func (cl *K8sHelper) GetClientset() kubernetes.Interface {
-	return cl.clientset
+func (cl *K8sHelper) GetClientSet() kubernetes.Interface {
+	return cl.clientSet
+}
+
+func (cl *K8sHelper) GetKubernetesClient() client.Client {
+	return cl.client
 }
 
 func (cl *K8sHelper) ExecIntoPod(
@@ -94,7 +102,7 @@ func (cl *K8sHelper) DoExecIntoPodWithStdin(namespace string, podName string, co
 
 //GetDeploymentPod queries all pods is a selected namespace by LabelSelector
 func (cl *K8sHelper) GetDeploymentPod(name string, ns string) (podName string, err error) {
-	api := cl.clientset.CoreV1()
+	api := cl.clientSet.CoreV1()
 	listOptions := metav1.ListOptions{
 		LabelSelector: "component=" + name,
 	}
@@ -112,7 +120,7 @@ func (cl *K8sHelper) GetDeploymentPod(name string, ns string) (podName string, e
 
 func (cl *K8sHelper) GetPodsByComponent(name string, ns string) []string {
 	names := []string{}
-	api := cl.clientset.CoreV1()
+	api := cl.clientSet.CoreV1()
 	listOptions := metav1.ListOptions{
 		LabelSelector: "component=" + name,
 	}
@@ -125,7 +133,7 @@ func (cl *K8sHelper) GetPodsByComponent(name string, ns string) []string {
 }
 
 func (cl *K8sHelper) RunExec(command []string, podName, namespace string, stdin io.Reader) (string, string, error) {
-	req := cl.clientset.CoreV1().RESTClient().Post().
+	req := cl.clientSet.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Name(podName).
 		Namespace(namespace).
@@ -158,7 +166,8 @@ func (cl *K8sHelper) RunExec(command []string, podName, namespace string, stdin 
 
 func initializeForTesting() *K8sHelper {
 	k8sHelper = &K8sHelper{
-		clientset: fake.NewSimpleClientset(),
+		clientSet: fake.NewSimpleClientset(),
+		client:    fakeclient.NewClientBuilder().Build(),
 	}
 
 	return k8sHelper
@@ -175,8 +184,14 @@ func initialize() *K8sHelper {
 		logrus.Fatalf("Failed to initialized Kubernetes client: %v", err)
 	}
 
+	client, err := client.New(cfg, client.Options{Scheme: runtime.NewScheme()})
+	if err != nil {
+		logrus.Fatalf("Failed to initialized Kubernetes client: %v", err)
+	}
+
 	k8sHelper = &K8sHelper{
-		clientset: clientSet,
+		clientSet: clientSet,
+		client:    client,
 	}
 
 	return k8sHelper
