@@ -15,6 +15,9 @@ package v2
 import (
 	"context"
 	"fmt"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -43,6 +46,9 @@ var _ webhook.Validator = &CheCluster{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *CheCluster) ValidateCreate() error {
+	if err := ensureSingletonCheCluster(); err != nil {
+		return err
+	}
 	return validate(r)
 }
 
@@ -53,6 +59,32 @@ func (r *CheCluster) ValidateUpdate(old runtime.Object) error {
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *CheCluster) ValidateDelete() error {
+	return nil
+}
+
+func ensureSingletonCheCluster() error {
+	cfg, err := config.GetConfig()
+	if err != nil {
+		logger.Error(err, "Failed to get Kubernetes config.")
+	}
+
+	scheme := runtime.NewScheme()
+	utilruntime.Must(AddToScheme(scheme))
+	cl, err := client.New(cfg, client.Options{Scheme: scheme})
+	if err != nil {
+		logger.Error(err, "Failed to create a Kubernetes client.")
+	}
+
+	che := &CheClusterList{}
+	err = cl.List(context.TODO(), che)
+	if err != nil {
+		logger.Error(err, "Failed to list CheCluster Custom Resources.")
+	}
+
+	if len(che.Items) != 0 {
+		return fmt.Errorf("only one CheCluster is allowed")
+	}
+
 	return nil
 }
 
