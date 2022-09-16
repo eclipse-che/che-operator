@@ -20,6 +20,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/json"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
 	corev1 "k8s.io/api/core/v1"
@@ -43,6 +44,9 @@ var _ webhook.Validator = &CheCluster{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *CheCluster) ValidateCreate() error {
+	if err := ensureSingletonCheCluster(); err != nil {
+		return err
+	}
 	return validate(r)
 }
 
@@ -53,6 +57,23 @@ func (r *CheCluster) ValidateUpdate(old runtime.Object) error {
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *CheCluster) ValidateDelete() error {
+	return nil
+}
+
+func ensureSingletonCheCluster() error {
+	client := k8shelper.New().GetClient()
+	utilruntime.Must(AddToScheme(client.Scheme()))
+
+	che := &CheClusterList{}
+	err := client.List(context.TODO(), che)
+	if err != nil {
+		logger.Error(err, "Failed to list CheCluster Custom Resources.")
+	}
+
+	if len(che.Items) != 0 {
+		return fmt.Errorf("only one CheCluster is allowed")
+	}
+
 	return nil
 }
 
