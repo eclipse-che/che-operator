@@ -61,7 +61,7 @@ func (r *CheCluster) ValidateDelete() error {
 }
 
 func ensureSingletonCheCluster() error {
-	client := k8shelper.New().GetKubernetesClient()
+	client := k8shelper.New().GetClient()
 	utilruntime.Must(AddToScheme(client.Scheme()))
 
 	che := &CheClusterList{}
@@ -163,7 +163,7 @@ func ensureScmLabelsAndAnnotations(scmProvider string, endpointUrl string, secre
 	patchData, _ := json.Marshal(patch)
 
 	k8sHelper := k8shelper.New()
-	if _, err := k8sHelper.GetClientSet().CoreV1().Secrets(namespace).Patch(context.TODO(), secretName, types.MergePatchType, patchData, metav1.PatchOptions{}); err != nil {
+	if _, err := k8sHelper.GetClientset().CoreV1().Secrets(namespace).Patch(context.TODO(), secretName, types.MergePatchType, patchData, metav1.PatchOptions{}); err != nil {
 		return err
 	}
 
@@ -172,7 +172,7 @@ func ensureScmLabelsAndAnnotations(scmProvider string, endpointUrl string, secre
 
 func validateSecretKeys(keys []string, secretName string, namespace string) error {
 	k8sHelper := k8shelper.New()
-	secret, err := k8sHelper.GetClientSet().CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+	secret, err := k8sHelper.GetClientset().CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}

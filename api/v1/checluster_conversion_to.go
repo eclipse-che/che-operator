@@ -533,7 +533,7 @@ func parseSecurityContext(cheClusterV1 *CheCluster) (*int64, *int64, error) {
 func createCredentialsSecret(username string, password string, secretName string, namespace string) error {
 	k8sHelper := k8shelper.New()
 
-	_, err := k8sHelper.GetClientSet().CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+	_, err := k8sHelper.GetClientset().CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 	if err == nil {
 		// Credentials secret already exists, we can't proceed
 		return fmt.Errorf("secret %s already exists", secretName)
@@ -553,7 +553,7 @@ func createCredentialsSecret(username string, password string, secretName string
 		},
 	}
 
-	if _, err := k8sHelper.GetClientSet().CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{}); err != nil {
+	if _, err := k8sHelper.GetClientset().CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 
@@ -572,13 +572,13 @@ func renameTrustStoreConfigMapToDefault(trustStoreConfigMapName string, namespac
 
 	k8sHelper := k8shelper.New()
 
-	_, err := k8sHelper.GetClientSet().CoreV1().ConfigMaps(namespace).Get(context.TODO(), constants.DefaultServerTrustStoreConfigMapName, metav1.GetOptions{})
+	_, err := k8sHelper.GetClientset().CoreV1().ConfigMaps(namespace).Get(context.TODO(), constants.DefaultServerTrustStoreConfigMapName, metav1.GetOptions{})
 	if err == nil {
 		// ConfigMap with a default name already exists, we can't proceed
 		return fmt.Errorf("TrustStore ConfigMap %s already exists", constants.DefaultServerTrustStoreConfigMapName)
 	}
 
-	existedTrustStoreConfigMap, err := k8sHelper.GetClientSet().CoreV1().ConfigMaps(namespace).Get(context.TODO(), trustStoreConfigMapName, metav1.GetOptions{})
+	existedTrustStoreConfigMap, err := k8sHelper.GetClientset().CoreV1().ConfigMaps(namespace).Get(context.TODO(), trustStoreConfigMapName, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// ConfigMap not found, nothing to rename
@@ -607,12 +607,12 @@ func renameTrustStoreConfigMapToDefault(trustStoreConfigMapName string, namespac
 	}
 
 	// Create TrustStore ConfigMap with a default name
-	if _, err = k8sHelper.GetClientSet().CoreV1().ConfigMaps(namespace).Create(context.TODO(), newTrustStoreConfigMap, metav1.CreateOptions{}); err != nil {
+	if _, err = k8sHelper.GetClientset().CoreV1().ConfigMaps(namespace).Create(context.TODO(), newTrustStoreConfigMap, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 
 	// Delete legacy TrustStore ConfigMap
-	if err = k8sHelper.GetClientSet().CoreV1().ConfigMaps(namespace).Delete(context.TODO(), trustStoreConfigMapName, metav1.DeleteOptions{}); err != nil {
+	if err = k8sHelper.GetClientset().CoreV1().ConfigMaps(namespace).Delete(context.TODO(), trustStoreConfigMapName, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 

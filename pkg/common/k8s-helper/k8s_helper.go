@@ -34,7 +34,7 @@ import (
 )
 
 type K8sHelper struct {
-	clientSet kubernetes.Interface
+	clientset kubernetes.Interface
 	client    client.Client
 }
 
@@ -54,11 +54,11 @@ func New() *K8sHelper {
 	return initialize()
 }
 
-func (cl *K8sHelper) GetClientSet() kubernetes.Interface {
-	return cl.clientSet
+func (cl *K8sHelper) GetClientset() kubernetes.Interface {
+	return cl.clientset
 }
 
-func (cl *K8sHelper) GetKubernetesClient() client.Client {
+func (cl *K8sHelper) GetClient() client.Client {
 	return cl.client
 }
 
@@ -103,7 +103,7 @@ func (cl *K8sHelper) DoExecIntoPodWithStdin(namespace string, podName string, co
 
 //GetDeploymentPod queries all pods is a selected namespace by LabelSelector
 func (cl *K8sHelper) GetDeploymentPod(name string, ns string) (podName string, err error) {
-	api := cl.clientSet.CoreV1()
+	api := cl.clientset.CoreV1()
 	listOptions := metav1.ListOptions{
 		LabelSelector: "component=" + name,
 	}
@@ -121,7 +121,7 @@ func (cl *K8sHelper) GetDeploymentPod(name string, ns string) (podName string, e
 
 func (cl *K8sHelper) GetPodsByComponent(name string, ns string) []string {
 	names := []string{}
-	api := cl.clientSet.CoreV1()
+	api := cl.clientset.CoreV1()
 	listOptions := metav1.ListOptions{
 		LabelSelector: "component=" + name,
 	}
@@ -134,7 +134,7 @@ func (cl *K8sHelper) GetPodsByComponent(name string, ns string) []string {
 }
 
 func (cl *K8sHelper) RunExec(command []string, podName, namespace string, stdin io.Reader) (string, string, error) {
-	req := cl.clientSet.CoreV1().RESTClient().Post().
+	req := cl.clientset.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Name(podName).
 		Namespace(namespace).
@@ -167,7 +167,7 @@ func (cl *K8sHelper) RunExec(command []string, podName, namespace string, stdin 
 
 func initializeForTesting() *K8sHelper {
 	k8sHelper = &K8sHelper{
-		clientSet: fake.NewSimpleClientset(),
+		clientset: fake.NewSimpleClientset(),
 		client:    fakeclient.NewClientBuilder().Build(),
 	}
 
@@ -191,7 +191,7 @@ func initialize() *K8sHelper {
 	}
 
 	k8sHelper = &K8sHelper{
-		clientSet: clientSet,
+		clientset: clientSet,
 		client:    client,
 	}
 
