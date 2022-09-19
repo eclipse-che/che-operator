@@ -18,6 +18,9 @@ import (
 	"io"
 	"os"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/sirupsen/logrus"
@@ -27,10 +30,12 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 type K8sHelper struct {
 	clientset kubernetes.Interface
+	client    client.Client
 }
 
 var (
@@ -51,6 +56,10 @@ func New() *K8sHelper {
 
 func (cl *K8sHelper) GetClientset() kubernetes.Interface {
 	return cl.clientset
+}
+
+func (cl *K8sHelper) GetClient() client.Client {
+	return cl.client
 }
 
 func (cl *K8sHelper) ExecIntoPod(
@@ -159,6 +168,7 @@ func (cl *K8sHelper) RunExec(command []string, podName, namespace string, stdin 
 func initializeForTesting() *K8sHelper {
 	k8sHelper = &K8sHelper{
 		clientset: fake.NewSimpleClientset(),
+		client:    fakeclient.NewClientBuilder().Build(),
 	}
 
 	return k8sHelper
@@ -175,8 +185,14 @@ func initialize() *K8sHelper {
 		logrus.Fatalf("Failed to initialized Kubernetes client: %v", err)
 	}
 
+	client, err := client.New(cfg, client.Options{Scheme: runtime.NewScheme()})
+	if err != nil {
+		logrus.Fatalf("Failed to initialized Kubernetes client: %v", err)
+	}
+
 	k8sHelper = &K8sHelper{
 		clientset: clientSet,
+		client:    client,
 	}
 
 	return k8sHelper

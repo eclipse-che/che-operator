@@ -11,6 +11,7 @@
 #
 
 resources:
+- webhooks.yaml
 - service.yaml
 
 configurations:

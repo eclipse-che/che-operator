@@ -13,12 +13,20 @@
 package v2
 
 import (
+	"context"
+	"fmt"
+
+	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 // log is for logging in this package.
-var checlusterlog = logf.Log.WithName("checluster-resource")
+var (
+	logger = ctrl.Log.WithName("webhook")
+)
 
 func (r *CheCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -26,4 +34,36 @@ func (r *CheCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
+var _ webhook.Validator = &CheCluster{}
+
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+func (r *CheCluster) ValidateCreate() error {
+	return ensureSingletonCheCluster()
+}
+
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+func (r *CheCluster) ValidateUpdate(old runtime.Object) error {
+	return nil
+}
+
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+func (r *CheCluster) ValidateDelete() error {
+	return nil
+}
+
+func ensureSingletonCheCluster() error {
+	client := k8shelper.New().GetClient()
+	utilruntime.Must(AddToScheme(client.Scheme()))
+
+	che := &CheClusterList{}
+	err := client.List(context.TODO(), che)
+	if err != nil {
+		logger.Error(err, "Failed to list CheCluster Custom Resources.")
+	}
+
+	if len(che.Items) != 0 {
+		return fmt.Errorf("only one CheCluster is allowed")
+	}
+
+	return nil
+}

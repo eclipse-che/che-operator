@@ -1395,6 +1395,27 @@ spec:
   webhookdefinitions:
     - admissionReviewVersions:
         - v1
+        - v1beta1
+      containerPort: 443
+      deploymentName: che-operator
+      failurePolicy: Fail
+      generateName: vchecluster.kb.io
+      rules:
+        - apiGroups:
+            - org.eclipse.che
+          apiVersions:
+            - v2
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - checlusters
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-org-eclipse-che-v2-checluster
+    - admissionReviewVersions:
+        - v1
         - v2
       containerPort: 443
       conversionCRDs:
