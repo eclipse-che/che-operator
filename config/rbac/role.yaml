@@ -20,7 +20,6 @@ metadata:
     app.kubernetes.io/name: che
   name: che-operator
 rules:
-### CHE-OPERATOR ROLES ONLY: BEGIN
 - apiGroups:
   - extensions
   resources:
@@ -183,5 +182,3 @@ rules:
   - patch
   - update
   - watch
-
-### CHE-OPERATOR ROLES ONLY: END

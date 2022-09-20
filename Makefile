@@ -79,7 +79,6 @@ ECLIPSE_CHE_PACKAGE_NAME="eclipse-che-preview-openshift"
 CHECLUSTER_CR_PATH="$(PROJECT_DIR)/config/samples/org_v2_checluster.yaml"
 CHECLUSTER_CRD_PATH="$(PROJECT_DIR)/config/crd/bases/org.eclipse.che_checlusters.yaml"
 
-DEV_WORKSPACE_CONTROLLER_VERSION="v0.15.2"
 DEV_HEADER_REWRITE_TRAEFIK_PLUGIN="main"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
@@ -152,7 +151,6 @@ update-dev-resources: validate-requirements ## Update development resources
 	# Dockerfile
 	sed -i 's|registry.access.redhat.com/ubi8-minimal:[^\s]* |'$${UBI8_MINIMAL_IMAGE}' |g' $(PROJECT_DIR)/Dockerfile
 
-	$(MAKE) update-rbac
 	$(MAKE) bundle CHANNEL=next
 	$(MAKE) gen-deployment
 	$(MAKE) update-helmcharts CHANNEL=next
@@ -295,7 +293,7 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
-test: download-devworkspace-resources download-gateway-resources ## Run tests.
+test: download-gateway-resources ## Run tests.
 	export MOCK_API=true; go test -mod=vendor ./... -coverprofile cover.out
 
 license: ## Add license to the files
@@ -333,7 +331,6 @@ install-che-operands: SHELL := /bin/bash
 install-che-operands: generate manifests download-kustomize download-gateway-resources
 	echo "[INFO] Running on $(PLATFORM)"
 	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
-	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) download-devworkspace-resources
 	[[ $(PLATFORM) == "openshift" ]] && $(MAKE) install-devworkspace CHANNEL=next
 
 	$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
@@ -342,18 +339,6 @@ install-che-operands: generate manifests download-kustomize download-gateway-res
 	$(K8S_CLI) scale deploy che-operator -n $(ECLIPSE_CHE_NAMESPACE) --replicas=0
 	$(MAKE) store_tls_cert
 	$(MAKE) create-checluster-cr
-
-# Downloads Dev Workspace resources
-download-devworkspace-resources:
-	DEVWORKSPACE_RESOURCES=/tmp/devworkspace-operator/templates
-
-	rm -rf /tmp/devworkspace-operator.zip /tmp/devfile-devworkspace-operator-* $${DEVWORKSPACE_RESOURCES}
-	mkdir -p $${DEVWORKSPACE_RESOURCES}
-	curl -sL https://api.github.com/repos/devfile/devworkspace-operator/zipball/${DEV_WORKSPACE_CONTROLLER_VERSION} > /tmp/devworkspace-operator.zip
-	unzip -q /tmp/devworkspace-operator.zip '*/deploy/deployment/*' -d /tmp
-	cp -rf /tmp/devfile-devworkspace-operator*/deploy/* $${DEVWORKSPACE_RESOURCES}
-
-	echo "[INFO] DevWorkspace resources downloaded into $${DEVWORKSPACE_RESOURCES}"
 
 # Downloads Gateway resources
 download-gateway-resources:
@@ -372,54 +357,6 @@ store_tls_cert:
 	mkdir -p /tmp/k8s-webhook-server/serving-certs/
 	$(K8S_CLI) get secret che-operator-webhook-server-cert -n $(ECLIPSE_CHE_NAMESPACE) -o json | jq -r '.data["tls.crt"]' | base64 -d > /tmp/k8s-webhook-server/serving-certs/tls.crt
 	$(K8S_CLI) get secret che-operator-webhook-server-cert -n $(ECLIPSE_CHE_NAMESPACE) -o json | jq -r '.data["tls.key"]' | base64 -d > /tmp/k8s-webhook-server/serving-certs/tls.key
-
-update-rbac: SHELL := /bin/bash
-update-rbac:
-	CLUSTER_ROLES=(
-		https://raw.githubusercontent.com/devfile/devworkspace-operator/${DEV_WORKSPACE_CONTROLLER_VERSION}/deploy/deployment/openshift/objects/devworkspace-controller-view-workspaces.ClusterRole.yaml
-		https://raw.githubusercontent.com/devfile/devworkspace-operator/${DEV_WORKSPACE_CONTROLLER_VERSION}/deploy/deployment/openshift/objects/devworkspace-controller-edit-workspaces.ClusterRole.yaml
-		https://raw.githubusercontent.com/devfile/devworkspace-operator/${DEV_WORKSPACE_CONTROLLER_VERSION}/deploy/deployment/openshift/objects/devworkspace-controller-leader-election-role.Role.yaml
-		https://raw.githubusercontent.com/devfile/devworkspace-operator/${DEV_WORKSPACE_CONTROLLER_VERSION}/deploy/deployment/openshift/objects/devworkspace-controller-proxy-role.ClusterRole.yaml
-		https://raw.githubusercontent.com/devfile/devworkspace-operator/${DEV_WORKSPACE_CONTROLLER_VERSION}/deploy/deployment/openshift/objects/devworkspace-controller-role.ClusterRole.yaml
-		https://raw.githubusercontent.com/devfile/devworkspace-operator/${DEV_WORKSPACE_CONTROLLER_VERSION}/deploy/deployment/openshift/objects/devworkspace-controller-metrics-reader.ClusterRole.yaml
-	)
-
-	# Updates cluster_role.yaml based on DW roles
-	## Removes old cluster roles
-	cat config/rbac/cluster_role.yaml | sed '/CHE-OPERATOR ROLES ONLY: END/q0' > config/rbac/cluster_role.yaml.tmp
-	mv config/rbac/cluster_role.yaml.tmp config/rbac/cluster_role.yaml
-
-	# Copy new cluster roles
-	for roles in "$${CLUSTER_ROLES[@]}"; do
-		echo "  # "$$(basename $$roles) >> config/rbac/cluster_role.yaml
-
-		CONTENT=$$(curl -sL $$roles | sed '1,/rules:/d')
-		while IFS= read -r line; do
-			echo "  $$line" >> config/rbac/cluster_role.yaml
-		done <<< "$$CONTENT"
-	done
-
-	ROLES=(
-		# currently, there are no other roles we need to incorporate
-	)
-
-	# Updates role.yaml
-	## Removes old roles
-	cat config/rbac/role.yaml | sed '/CHE-OPERATOR ROLES ONLY: END/q0' > config/rbac/role.yaml.tmp
-	mv config/rbac/role.yaml.tmp config/rbac/role.yaml
-
-	## Copy new roles
-	for roles in "$${ROLES[@]}"; do
-		echo "# "$$(basename $$roles) >> config/rbac/role.yaml
-
-		CONTENT=$$(curl -sL $$roles | sed '1,/rules:/d')
-		while IFS= read -r line; do
-			echo "$$line" >> config/rbac/role.yaml
-		done <<< "$$CONTENT"
-	done
-
-	echo "[INFO] Updated config/rbac/role.yaml"
-	echo "[INFO] Updated config/rbac/cluster_role.yam"
 
 ##@ OLM catalog
 

@@ -22,7 +22,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/consolelink"
 	"github.com/eclipse-che/che-operator/pkg/deploy/dashboard"
-	devworkspace "github.com/eclipse-che/che-operator/pkg/deploy/dev-workspace"
 	devworkspaceconfig "github.com/eclipse-che/che-operator/pkg/deploy/dev-workspace-config"
 	"github.com/eclipse-che/che-operator/pkg/deploy/devfileregistry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
@@ -97,7 +96,6 @@ func NewReconciler(
 
 	reconcileManager.RegisterReconciler(tls.NewCertificatesReconciler())
 	reconcileManager.RegisterReconciler(tls.NewTlsSecretReconciler())
-	reconcileManager.RegisterReconciler(devworkspace.NewDevWorkspaceReconciler())
 	reconcileManager.RegisterReconciler(devworkspaceconfig.NewDevWorkspaceConfigReconciler())
 	reconcileManager.RegisterReconciler(rbac.NewCheServerPermissionsReconciler())
 	reconcileManager.RegisterReconciler(rbac.NewGatewayPermissionsReconciler())

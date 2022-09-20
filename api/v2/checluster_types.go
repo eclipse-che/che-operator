@@ -337,9 +337,6 @@ type ImagePuller struct {
 // See https://github.com/devfile/devworkspace-operator
 // +k8s:openapi-gen=true
 type DevWorkspace struct {
-	// Deployment override options.
-	// +optional
-	Deployment *Deployment `json:"deployment,omitempty"`
 	// The maximum number of running workspaces per user.
 	// +optional
 	RunningLimit string `json:"runningLimit,omitempty"`
