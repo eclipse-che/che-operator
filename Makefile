@@ -236,26 +236,30 @@ gen-chectl-tmpl: SHELL := /bin/bash
 gen-chectl-tmpl: ## Generate Eclipse Che k8s deployment resources used by chectl
 	[[ -z "$(TEMPLATES)" ]] && { echo [ERROR] TEMPLATES not defined; exit 1; }
 	[[ -z "$(SOURCE_PROJECT)" ]] && src=$(PROJECT_DIR) || src=$(SOURCE_PROJECT)
+	[[ -z "$(DWO_VERSION)" ]] && DEFINED_DWO_VERSION="main" || DEFINED_DWO_VERSION=$(DWO_VERSION)
 
-	dst="$(TEMPLATES)/che-operator/kubernetes" && rm -rf $${dst}
+	cheOperatorDst="$(TEMPLATES)/che-operator/kubernetes" && rm -rf $${cheOperatorDst}
+	devWorkspaceOperatorDst="$(TEMPLATES)/devworkspace-operator/kubernetes" && rm -rf $${devWorkspaceOperatorDst}
 
 	src="$${src}/deploy/deployment/kubernetes/objects"
-	mkdir -p "$${dst}/crds"
+	mkdir -p "$${cheOperatorDst}/crds" "$${devWorkspaceOperatorDst}"
 
-	cp $${src}/che-operator.Deployment.yaml $${dst}/operator.yaml
-	cp $${src}/checlusters.org.eclipse.che.CustomResourceDefinition.yaml $${dst}/crds/org.eclipse.che_checlusters.yaml
-	cp $${src}/../org_v2_checluster.yaml $${dst}/crds/org_checluster_cr.yaml
-	cp $${src}/che-operator.ServiceAccount.yaml $${dst}/service_account.yaml
-	cp $${src}/che-operator.ClusterRoleBinding.yaml $${dst}/cluster_rolebinding.yaml
-	cp $${src}/che-operator.ClusterRole.yaml $${dst}/cluster_role.yaml
-	cp $${src}/che-operator.RoleBinding.yaml $${dst}/role_binding.yaml
-	cp $${src}/che-operator.Role.yaml $${dst}/role.yaml
-	cp $${src}/che-operator-service.Service.yaml $${dst}/webhook-service.yaml
+	cp $${src}/che-operator.Deployment.yaml $${cheOperatorDst}/operator.yaml
+	cp $${src}/checlusters.org.eclipse.che.CustomResourceDefinition.yaml $${cheOperatorDst}/crds/org.eclipse.che_checlusters.yaml
+	cp $${src}/../org_v2_checluster.yaml $${cheOperatorDst}/crds/org_checluster_cr.yaml
+	cp $${src}/che-operator.ServiceAccount.yaml $${cheOperatorDst}/service_account.yaml
+	cp $${src}/che-operator.ClusterRoleBinding.yaml $${cheOperatorDst}/cluster_rolebinding.yaml
+	cp $${src}/che-operator.ClusterRole.yaml $${cheOperatorDst}/cluster_role.yaml
+	cp $${src}/che-operator.RoleBinding.yaml $${cheOperatorDst}/role_binding.yaml
+	cp $${src}/che-operator.Role.yaml $${cheOperatorDst}/role.yaml
+	cp $${src}/che-operator-service.Service.yaml $${cheOperatorDst}/webhook-service.yaml
 	if [[ -f $${src}/org.eclipse.che.ValidatingWebhookConfiguration.yaml ]]; then
-	  cp $${src}/org.eclipse.che.ValidatingWebhookConfiguration.yaml $${dst}/org.eclipse.che.ValidatingWebhookConfiguration.yaml
+	  cp $${src}/org.eclipse.che.ValidatingWebhookConfiguration.yaml $${cheOperatorDst}/org.eclipse.che.ValidatingWebhookConfiguration.yaml
 	fi
-	cp $${src}/che-operator-serving-cert.Certificate.yaml $${dst}/serving-cert.yaml
-	cp $${src}/che-operator-selfsigned-issuer.Issuer.yaml $${dst}/selfsigned-issuer.yaml
+	cp $${src}/che-operator-serving-cert.Certificate.yaml $${cheOperatorDst}/serving-cert.yaml
+	cp $${src}/che-operator-selfsigned-issuer.Issuer.yaml $${cheOperatorDst}/selfsigned-issuer.yaml
+
+	curl -s https://raw.githubusercontent.com/devfile/devworkspace-operator/$${DEFINED_DWO_VERSION}/deploy/deployment/kubernetes/combined.yaml -o $${devWorkspaceOperatorDst}/combined.yaml
 
 	echo "[INFO] Generated chectl templates into $(TEMPLATES)"
 
