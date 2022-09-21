@@ -86,22 +86,14 @@ rules:
     resources:
       - clusterrolebindings
       - clusterroles
+      - roles
+      - rolebindings
     verbs:
       - list
       - create
       - watch
       - update
       - get
-      - delete
-  - apiGroups:
-      - rbac.authorization.k8s.io
-    resources:
-      - roles
-      - rolebindings
-    verbs:
-      - get
-      - create
-      - update
       - delete
   - apiGroups:
       - authorization.openshift.io
@@ -286,84 +278,117 @@ rules:
       - list
       - update
   - apiGroups:
-    - ''
+      - ''
     resources:
-    - configmaps
-    - persistentvolumeclaims
-    - pods
-    - secrets
-    - serviceaccounts
-    - services
+      - configmaps
+      - persistentvolumeclaims
+      - pods
+      - secrets
+      - serviceaccounts
+      - services
     verbs:
-    - '*'
+      - '*'
   - apiGroups:
-    - apps
+      - apps
     resourceNames:
-    - che-operator
+      - che-operator
     resources:
-    - deployments/finalizers
+      - deployments/finalizers
     verbs:
-    - update
+      - update
   - apiGroups:
-    - batch
+      - batch
     resources:
-    - jobs
+      - jobs
     verbs:
-    - create
-    - delete
-    - get
-    - update
-    - watch
+      - create
+      - delete
+      - get
+      - update
+      - watch
+      - list
   - apiGroups:
-    - controller.devfile.io
+      - monitoring.coreos.com
     resources:
-    - devworkspaceroutings
+      - servicemonitors
     verbs:
-    - '*'
-  - apiGroups:
-    - controller.devfile.io
-    resources:
-    - devworkspaceroutings/finalizers
-    verbs:
-    - update
-  - apiGroups:
-    - controller.devfile.io
-    resources:
-    - devworkspaceroutings/status
-    verbs:
-    - get
-    - patch
-    - update
-  - apiGroups:
-    - monitoring.coreos.com
-    resources:
-    - servicemonitors
-    verbs:
-    - create
-    - get
+      - create
+      - get
   - nonResourceURLs:
-    - /metrics
+      - /metrics
     verbs:
-    - get
+      - get
   - apiGroups:
-    - che.eclipse.org
+      - che.eclipse.org
     resources:
-    - kubernetesimagepullers
+      - kubernetesimagepullers
     verbs:
-    - '*'
+      - '*'
   - apiGroups:
-    - config.openshift.io
+      - config.openshift.io
     resources:
-    - consoles
+      - consoles
     resourceNames:
-    - cluster
+      - cluster
     verbs:
-    - get
+      - get
   - apiGroups:
-    - ''
+      - ''
     resources:
-    - pods/log
+      - pods/log
     verbs:
-    - get
-    - list
-    - watch
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - workspace.devfile.io
+    resources:
+      - devworkspaces
+      - devworkspacetemplates
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+      - patch
+      - update
+  - apiGroups:
+     - controller.devfile.io
+    resources:
+      - devworkspaceroutings
+      - devworkspaceoperatorconfigs
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+      - patch
+      - update
+  - apiGroups:
+      - controller.devfile.io
+    resources:
+      - devworkspaceroutings/finalizers
+    verbs:
+      - update
+  - apiGroups:
+      - controller.devfile.io
+    resources:
+      - devworkspaceroutings/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - authentication.k8s.io
+    resources:
+      - tokenreviews
+    verbs:
+      - create
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - subjectaccessreviews
+    verbs:
+      - create

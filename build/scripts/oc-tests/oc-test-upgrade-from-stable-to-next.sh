@@ -26,7 +26,7 @@ trap "catchFinish" EXIT SIGINT
 
 unset OPERATOR_TEST_NAMESPACE
 
-[[ -z "${CI_CHE_OPERATOR_IMAGE}" ]] && { echo [ERROR] CI_CHE_OPERATOR_IMAGE not defined; exit 1; }
+[[ -z "${CI_CHE_OPERATOR_IMAGE}" ]] && { echo "[ERROR] CI_CHE_OPERATOR_IMAGE not defined"; exit 1; }
 
 # Uninstall Eclipse Che stable version operator by deleting its subscription
 deleteEclipseCheStableVersionOperator() {

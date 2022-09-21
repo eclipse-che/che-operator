@@ -86,22 +86,14 @@ rules:
   resources:
   - clusterrolebindings
   - clusterroles
+  - roles
+  - rolebindings
   verbs:
   - list
   - create
   - watch
   - update
   - get
-  - delete
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
-  - roles
-  - rolebindings
-  verbs:
-  - get
-  - create
-  - update
   - delete
 - apiGroups:
   - authorization.openshift.io
@@ -314,26 +306,7 @@ rules:
   - get
   - update
   - watch
-- apiGroups:
-  - controller.devfile.io
-  resources:
-  - devworkspaceroutings
-  verbs:
-  - '*'
-- apiGroups:
-  - controller.devfile.io
-  resources:
-  - devworkspaceroutings/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - controller.devfile.io
-  resources:
-  - devworkspaceroutings/status
-  verbs:
-  - get
-  - patch
-  - update
+  - list
 - apiGroups:
   - monitoring.coreos.com
   resources:
@@ -367,3 +340,55 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - workspace.devfile.io
+  resources:
+  - devworkspaces
+  - devworkspacetemplates
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - controller.devfile.io
+  resources:
+  - devworkspaceroutings
+  - devworkspaceoperatorconfigs
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - controller.devfile.io
+  resources:
+  - devworkspaceroutings/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - controller.devfile.io
+  resources:
+  - devworkspaceroutings/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create

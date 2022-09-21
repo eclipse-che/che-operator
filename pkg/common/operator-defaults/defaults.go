@@ -28,7 +28,6 @@ var (
 	defaultCheFlavor                              string
 	defaultCheServerImage                         string
 	defaultDashboardImage                         string
-	defaultDevworkspaceControllerImage            string
 	defaultPluginRegistryImage                    string
 	defaultDevfileRegistryImage                   string
 	defaultCheTLSSecretsCreationJobImage          string
@@ -78,7 +77,6 @@ func InitializeFromFile(operatorDeploymentFilePath string) {
 
 	defaultCheServerImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_che_server"), containers[0].Env)
 	defaultDashboardImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_dashboard"), containers[0].Env)
-	defaultDevworkspaceControllerImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_devworkspace_controller"), containers[0].Env)
 	defaultPluginRegistryImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_plugin_registry"), containers[0].Env)
 	defaultDevfileRegistryImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_devfile_registry"), containers[0].Env)
 	defaultPostgresImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_postgres"), containers[0].Env)
@@ -108,7 +106,6 @@ func InitializeFromEnv() {
 
 	defaultCheServerImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_che_server"))
 	defaultDashboardImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_dashboard"))
-	defaultDevworkspaceControllerImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_devworkspace_controller"))
 	defaultPluginRegistryImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_plugin_registry"))
 	defaultDevfileRegistryImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_devfile_registry"))
 	defaultPostgresImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_postgres"))
@@ -187,14 +184,6 @@ func GetDashboardImage(checluster *chev2.CheCluster) string {
 	}
 
 	return PatchDefaultImageName(checluster, defaultDashboardImage)
-}
-
-func GetDevworkspaceControllerImage(checluster *chev2.CheCluster) string {
-	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
-	}
-
-	return PatchDefaultImageName(checluster, defaultDevworkspaceControllerImage)
 }
 
 func GetPluginRegistryImage(checluster *chev2.CheCluster) string {

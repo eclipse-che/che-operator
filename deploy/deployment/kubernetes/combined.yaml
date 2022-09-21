@@ -5009,6 +5009,7 @@ metadata:
     app.kubernetes.io/name: che
     app.kubernetes.io/part-of: che.eclipse.org
   name: che-operator
+  namespace: eclipse-che
 rules:
 - apiGroups:
   - extensions
@@ -5027,7 +5028,12 @@ rules:
   resources:
   - jobs
   verbs:
-  - '*'
+  - create
+  - delete
+  - get
+  - update
+  - watch
+  - list
 - apiGroups:
   - route.openshift.io
   resources:
@@ -5040,15 +5046,15 @@ rules:
   resources:
   - roles
   - rolebindings
-  verbs:
-  - '*'
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
   - clusterroles
   - clusterrolebindings
   verbs:
-  - '*'
+  - list
+  - create
+  - watch
+  - update
+  - get
+  - delete
 - apiGroups:
   - ""
   resources:
@@ -5174,6 +5180,49 @@ rules:
   - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/component: che-operator
+    app.kubernetes.io/instance: che
+    app.kubernetes.io/name: che
+    app.kubernetes.io/part-of: che.eclipse.org
+  name: che-operator-leader-election
+  namespace: eclipse-che
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
@@ -5249,22 +5298,14 @@ rules:
   resources:
   - clusterrolebindings
   - clusterroles
+  - roles
+  - rolebindings
   verbs:
   - list
   - create
   - watch
   - update
   - get
-  - delete
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
-  - roles
-  - rolebindings
-  verbs:
-  - get
-  - create
-  - update
   - delete
 - apiGroups:
   - authorization.openshift.io
@@ -5477,26 +5518,7 @@ rules:
   - get
   - update
   - watch
-- apiGroups:
-  - controller.devfile.io
-  resources:
-  - devworkspaceroutings
-  verbs:
-  - '*'
-- apiGroups:
-  - controller.devfile.io
-  resources:
-  - devworkspaceroutings/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - controller.devfile.io
-  resources:
-  - devworkspaceroutings/status
-  verbs:
-  - get
-  - patch
-  - update
+  - list
 - apiGroups:
   - monitoring.coreos.com
   resources:
@@ -5530,6 +5552,58 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - workspace.devfile.io
+  resources:
+  - devworkspaces
+  - devworkspacetemplates
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - controller.devfile.io
+  resources:
+  - devworkspaceroutings
+  - devworkspaceoperatorconfigs
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - controller.devfile.io
+  resources:
+  - devworkspaceroutings/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - controller.devfile.io
+  resources:
+  - devworkspaceroutings/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -5540,6 +5614,7 @@ metadata:
     app.kubernetes.io/name: che
     app.kubernetes.io/part-of: che.eclipse.org
   name: che-operator
+  namespace: eclipse-che
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -5547,6 +5622,26 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: che-operator
+  namespace: eclipse-che
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/component: che-operator
+    app.kubernetes.io/instance: che
+    app.kubernetes.io/name: che
+    app.kubernetes.io/part-of: che.eclipse.org
+  name: che-operator-leader-election
+  namespace: eclipse-che
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: che-operator-leader-election
+subjects:
+- kind: ServiceAccount
+  name: che-operator
+  namespace: eclipse-che
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

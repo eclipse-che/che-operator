@@ -248,10 +248,16 @@ gen-chectl-tmpl: ## Generate Eclipse Che k8s deployment resources used by chectl
 	cp $${src}/checlusters.org.eclipse.che.CustomResourceDefinition.yaml $${cheOperatorDst}/crds/org.eclipse.che_checlusters.yaml
 	cp $${src}/../org_v2_checluster.yaml $${cheOperatorDst}/crds/org_checluster_cr.yaml
 	cp $${src}/che-operator.ServiceAccount.yaml $${cheOperatorDst}/service_account.yaml
-	cp $${src}/che-operator.ClusterRoleBinding.yaml $${cheOperatorDst}/cluster_rolebinding.yaml
 	cp $${src}/che-operator.ClusterRole.yaml $${cheOperatorDst}/cluster_role.yaml
-	cp $${src}/che-operator.RoleBinding.yaml $${cheOperatorDst}/role_binding.yaml
+	cp $${src}/che-operator.ClusterRoleBinding.yaml $${cheOperatorDst}/cluster_rolebinding.yaml
 	cp $${src}/che-operator.Role.yaml $${cheOperatorDst}/role.yaml
+	cp $${src}/che-operator.RoleBinding.yaml $${cheOperatorDst}/role_binding.yaml
+	if [[ -f $${src}/che-operator-leader-election.Role.yaml ]]; then
+		cp $${src}/che-operator-leader-election.Role.yaml $${cheOperatorDst}/leader-election-role.yaml
+	fi
+	if [[ -f $${src}/che-operator-leader-election.RoleBinding.yaml ]]; then
+		cp $${src}/che-operator-leader-election.RoleBinding.yaml $${cheOperatorDst}/leader-election-cluster_rolebinding.yaml
+	fi
 	cp $${src}/che-operator-service.Service.yaml $${cheOperatorDst}/webhook-service.yaml
 	if [[ -f $${src}/org.eclipse.che.ValidatingWebhookConfiguration.yaml ]]; then
 	  cp $${src}/org.eclipse.che.ValidatingWebhookConfiguration.yaml $${cheOperatorDst}/org.eclipse.che.ValidatingWebhookConfiguration.yaml
@@ -334,11 +340,13 @@ genenerate-env:
 install-che-operands: SHELL := /bin/bash
 install-che-operands: generate manifests download-kustomize download-gateway-resources
 	echo "[INFO] Running on $(PLATFORM)"
-	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
-	[[ $(PLATFORM) == "openshift" ]] && $(MAKE) install-devworkspace CHANNEL=next
+	if [[ ! $(SKIP_CHE_OPERANDS_INSTALLATION) == "true" ]]; then
+		[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
+		[[ $(PLATFORM) == "openshift" ]] && $(MAKE) install-devworkspace CHANNEL=next
 
-	$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
-	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/component=che-operator" NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)
+		$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
+		$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/component=che-operator" NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)
+	fi
 
 	$(K8S_CLI) scale deploy che-operator -n $(ECLIPSE_CHE_NAMESPACE) --replicas=0
 	$(MAKE) store_tls_cert

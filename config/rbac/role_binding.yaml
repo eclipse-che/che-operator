@@ -14,6 +14,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: che-operator
+  namespace: eclipse-che
   labels:
     app.kubernetes.io/name: che
     app.kubernetes.io/instance: che
