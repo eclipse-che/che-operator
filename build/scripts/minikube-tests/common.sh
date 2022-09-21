@@ -50,8 +50,10 @@ initTemplates() {
   LAST_OPERATOR_VERSION_CLONE_PATH=${OPERATOR_REPO}/tmp/${LAST_PACKAGE_VERSION}
   git clone --depth 1 --branch ${LAST_PACKAGE_VERSION} https://github.com/eclipse-che/che-operator/ ${LAST_OPERATOR_VERSION_CLONE_PATH}
 
-  git clone https://github.com/devfile/devworkspace-operator /tmp/dwo && cd /tmp/dwo
+  git clone https://github.com/devfile/devworkspace-operator /tmp/dwo
+  pushd /tmp/dwo
   DWO_STABLE_VERSION=$(git describe --tags $(git rev-list --tags) | sort --version-sort | tail -1)
+  popd
 
   export CURRENT_OPERATOR_VERSION_TEMPLATE_PATH=${CHECTL_TEMPLATES_BASE_DIR}
   export PREVIOUS_OPERATOR_VERSION_TEMPLATE_PATH=${CHECTL_TEMPLATES_BASE_DIR}/${PREVIOUS_PACKAGE_VERSION}
