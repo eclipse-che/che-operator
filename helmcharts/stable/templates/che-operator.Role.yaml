@@ -19,6 +19,7 @@ metadata:
     app.kubernetes.io/name: che
     app.kubernetes.io/part-of: che.eclipse.org
   name: che-operator
+  namespace: eclipse-che
 rules:
 - apiGroups:
   - extensions
@@ -37,7 +38,12 @@ rules:
   resources:
   - jobs
   verbs:
-  - '*'
+  - create
+  - delete
+  - get
+  - update
+  - watch
+  - list
 - apiGroups:
   - route.openshift.io
   resources:
@@ -50,15 +56,15 @@ rules:
   resources:
   - roles
   - rolebindings
-  verbs:
-  - '*'
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
   - clusterroles
   - clusterrolebindings
   verbs:
-  - '*'
+  - list
+  - create
+  - watch
+  - update
+  - get
+  - delete
 - apiGroups:
   - ""
   resources:

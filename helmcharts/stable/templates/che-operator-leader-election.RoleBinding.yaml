@@ -18,12 +18,12 @@ metadata:
     app.kubernetes.io/instance: che
     app.kubernetes.io/name: che
     app.kubernetes.io/part-of: che.eclipse.org
-  name: che-operator
+  name: che-operator-leader-election
   namespace: eclipse-che
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: che-operator
+  name: che-operator-leader-election
 subjects:
 - kind: ServiceAccount
   name: che-operator
