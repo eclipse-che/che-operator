@@ -13,12 +13,9 @@
 package org
 
 import (
-	"context"
 	"testing"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
-	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -240,14 +237,6 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 						},
 					},
 					DevWorkspace: chev2.DevWorkspace{
-						Deployment: &chev2.Deployment{
-							Containers: []chev2.Container{
-								{
-									Name:  "devworkspace-controller",
-									Image: "DevWorkspaceImage",
-								},
-							},
-						},
 						RunningLimit: "RunningLimit",
 					},
 				},
@@ -348,188 +337,6 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 
 		assert.Equal(t, checlusterv2Original, checlusterv2)
 	}
-	onKubernetes(f)
-	onOpenShift(f)
-}
-
-func TestRoundConvertCheClusterV1(t *testing.T) {
-	f := func() {
-		truststoreConfigMap := &corev1.ConfigMap{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "ConfigMap",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      constants.DefaultServerTrustStoreConfigMapName,
-				Namespace: "eclipse-che",
-			},
-		}
-
-		k8sHelper := k8shelper.New()
-		_, err := k8sHelper.GetClientset().CoreV1().ConfigMaps("eclipse-che").Create(context.TODO(), truststoreConfigMap, metav1.CreateOptions{})
-
-		checlusterv1Orignal := &chev1.CheCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "eclipse-che",
-				Namespace: "eclipse-che",
-			},
-			Spec: chev1.CheClusterSpec{
-				Server: chev1.CheClusterSpecServer{
-					AirGapContainerRegistryHostname:     "AirGapContainerRegistryHostname",
-					AirGapContainerRegistryOrganization: "AirGapContainerRegistryOrganization",
-					CheImage:                            "CheImage",
-					CheImageTag:                         "CheImageTag",
-					CheImagePullPolicy:                  "Always",
-					CheLogLevel:                         "CheLogLevel",
-					CheDebug:                            "true",
-					CheClusterRoles:                     "CheClusterRoles_1,CheClusterRoles_2",
-					WorkspaceNamespaceDefault:           "WorkspaceNamespaceDefault",
-					ServerTrustStoreConfigMapName:       constants.DefaultServerTrustStoreConfigMapName,
-					GitSelfSignedCert:                   true,
-					DashboardImage:                      "DashboardImage",
-					DashboardImagePullPolicy:            "Always",
-					DashboardMemoryLimit:                "200Mi",
-					DashboardMemoryRequest:              "100Mi",
-					DashboardCpuLimit:                   "2",
-					DashboardCpuRequest:                 "1",
-					DevfileRegistryImage:                "DevfileRegistryImage",
-					DevfileRegistryPullPolicy:           "Always",
-					DevfileRegistryMemoryLimit:          "200Mi",
-					DevfileRegistryMemoryRequest:        "100Mi",
-					DevfileRegistryCpuLimit:             "2",
-					DevfileRegistryCpuRequest:           "1",
-					ExternalDevfileRegistry:             true,
-					ExternalDevfileRegistries: []chev1.ExternalDevfileRegistries{
-						{
-							Url: "ExternalDevfileRegistries_1",
-						},
-						{
-							Url: "ExternalDevfileRegistries_2",
-						},
-					},
-					PluginRegistryUrl:                   "PluginRegistryUrl",
-					PluginRegistryImage:                 "PluginRegistryImage",
-					PluginRegistryPullPolicy:            "Always",
-					PluginRegistryMemoryLimit:           "200Mi",
-					PluginRegistryMemoryRequest:         "100Mi",
-					PluginRegistryCpuLimit:              "2",
-					PluginRegistryCpuRequest:            "1",
-					ExternalPluginRegistry:              true,
-					CustomCheProperties:                 map[string]string{"a": "b", "c": "d"},
-					ProxyURL:                            "ProxyURL",
-					ProxyPort:                           "ProxyPort",
-					ProxySecret:                         "ProxySecret",
-					NonProxyHosts:                       "NonProxyHosts_1|NonProxyHosts_2",
-					ServerMemoryRequest:                 "100Mi",
-					ServerMemoryLimit:                   "200Mi",
-					ServerCpuLimit:                      "2",
-					ServerCpuRequest:                    "1",
-					SingleHostGatewayImage:              "SingleHostGatewayImage",
-					SingleHostGatewayConfigSidecarImage: "SingleHostGatewayConfigSidecarImage",
-					SingleHostGatewayConfigMapLabels:    map[string]string{"a": "b", "c": "d"},
-					WorkspacesDefaultPlugins: []chev1.WorkspacesDefaultPlugins{
-						{
-							Editor:  "Editor",
-							Plugins: []string{"Plugin_1,Plugin_2"},
-						},
-					},
-					WorkspacePodNodeSelector: map[string]string{"a": "b", "c": "d"},
-					WorkspacePodTolerations: []corev1.Toleration{
-						{
-							Key:      "Key",
-							Operator: "Operator",
-							Value:    "Value",
-							Effect:   "Effect",
-						},
-					},
-				},
-				Database: chev1.CheClusterSpecDB{
-					ExternalDb:              true,
-					ChePostgresHostName:     "ChePostgresHostName",
-					ChePostgresPort:         "ChePostgresPort",
-					ChePostgresDb:           "ChePostgresDb",
-					ChePostgresSecret:       "ChePostgresSecret",
-					PostgresImage:           "PostgresImage",
-					PostgresVersion:         "PostgresVersion",
-					PostgresImagePullPolicy: "Always",
-					PvcClaimSize:            "DatabasePvcClaimSize",
-					ChePostgresContainerResources: chev1.ResourcesCustomSettings{
-						Requests: chev1.Resources{
-							Memory: "100Mi",
-							Cpu:    "1",
-						},
-						Limits: chev1.Resources{
-							Memory: "200Mi",
-							Cpu:    "2",
-						},
-					},
-				},
-				Auth: chev1.CheClusterSpecAuth{
-					IdentityProviderURL:               "IdentityProviderURL",
-					OAuthClientName:                   "OAuthClientName",
-					OAuthSecret:                       "OAuthSecret",
-					OAuthScope:                        "OAuthScope",
-					IdentityToken:                     "IdentityToken",
-					GatewayAuthenticationSidecarImage: "GatewayAuthenticationSidecarImage",
-					GatewayAuthorizationSidecarImage:  "GatewayAuthorizationSidecarImage",
-				},
-				Storage: chev1.CheClusterSpecStorage{
-					PvcStrategy:                  "PvcStrategy",
-					PvcClaimSize:                 "WorkspacePvcClaimSize",
-					PostgresPVCStorageClassName:  "PostgresPVCStorageClassName",
-					WorkspacePVCStorageClassName: "WorkspacePVCStorageClassName",
-				},
-				Metrics: chev1.CheClusterSpecMetrics{
-					Enable: true,
-				},
-				K8s: chev1.CheClusterSpecK8SOnly{
-					SecurityContextFsGroup:   "64",
-					SecurityContextRunAsUser: "65",
-				},
-				ImagePuller: chev1.CheClusterSpecImagePuller{
-					Enable: true,
-				},
-				DevWorkspace: chev1.CheClusterSpecDevWorkspace{
-					Enable:          true,
-					ControllerImage: "ControllerImage",
-					RunningLimit:    "RunningLimit",
-				},
-				Dashboard: chev1.CheClusterSpecDashboard{
-					Warning: "DashboardWarning",
-				},
-			},
-			Status: chev1.CheClusterStatus{
-				CheClusterRunning:                    "Available",
-				CheVersion:                           "CheVersion",
-				CheURL:                               "CheURL",
-				Message:                              "Message",
-				Reason:                               "Reason",
-				DevfileRegistryURL:                   "DevfileRegistryURL",
-				PluginRegistryURL:                    "PluginRegistryURL",
-				GitServerTLSCertificateConfigMapName: "che-git-self-signed-cert",
-				DevworkspaceStatus: chev1.LegacyDevworkspaceStatus{
-					GatewayHost:         "CheURL",
-					Message:             "Message",
-					Reason:              "Reason",
-					Phase:               chev1.ClusterPhaseActive,
-					GatewayPhase:        chev1.GatewayPhaseEstablished,
-					WorkspaceBaseDomain: "Domain",
-				},
-			},
-		}
-
-		checlusterv1 := &chev1.CheCluster{}
-		checlusterv2 := &chev2.CheCluster{}
-
-		err = checlusterv1Orignal.ConvertTo(checlusterv2)
-		assert.Nil(t, err)
-
-		err = checlusterv1.ConvertFrom(checlusterv2)
-		assert.Nil(t, err)
-
-		assert.Equal(t, checlusterv1Orignal, checlusterv1)
-	}
-
 	onKubernetes(f)
 	onOpenShift(f)
 }

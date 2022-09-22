@@ -13,14 +13,14 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  name: che-operator
+  namespace: eclipse-che
   labels:
     app.kubernetes.io/component: che-operator
     app.kubernetes.io/instance: che
     app.kubernetes.io/part-of: che.eclipse.org
     app.kubernetes.io/name: che
-  name: che-operator
 rules:
-### CHE-OPERATOR ROLES ONLY: BEGIN
 - apiGroups:
   - extensions
   resources:
@@ -38,7 +38,12 @@ rules:
   resources:
   - jobs
   verbs:
-  - '*'
+  - create
+  - delete
+  - get
+  - update
+  - watch
+  - list
 - apiGroups:
   - route.openshift.io
   resources:
@@ -51,15 +56,15 @@ rules:
   resources:
   - roles
   - rolebindings
-  verbs:
-  - '*'
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
   - clusterroles
   - clusterrolebindings
   verbs:
-  - '*'
+    - list
+    - create
+    - watch
+    - update
+    - get
+    - delete
 - apiGroups:
   - ""
   resources:
@@ -183,5 +188,3 @@ rules:
   - patch
   - update
   - watch
-
-### CHE-OPERATOR ROLES ONLY: END

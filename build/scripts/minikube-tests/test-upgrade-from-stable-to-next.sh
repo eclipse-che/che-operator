@@ -33,6 +33,9 @@ runTest() {
     --templates ${LAST_OPERATOR_VERSION_TEMPLATE_PATH} \
     --che-operator-cr-patch-yaml "${OPERATOR_REPO}/build/scripts/minikube-tests/minikube-checluster-patch.yaml"
 
+  # Free up some cpu resources
+  kubectl scale deployment che --replicas=0 -n eclipse-che
+
   # Update to next version
   buildAndCopyCheOperatorImageToMinikube
   yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH}/che-operator/kubernetes/operator.yaml

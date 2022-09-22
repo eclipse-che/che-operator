@@ -19,6 +19,7 @@ metadata:
     app.kubernetes.io/name: che
     app.kubernetes.io/part-of: che.eclipse.org
   name: che-operator
+  namespace: eclipse-che
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -26,3 +27,4 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: che-operator
+  namespace: eclipse-che

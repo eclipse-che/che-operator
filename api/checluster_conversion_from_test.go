@@ -302,19 +302,6 @@ func TestConvertFrom(t *testing.T) {
 					},
 				},
 				DevWorkspace: chev2.DevWorkspace{
-					Deployment: &chev2.Deployment{
-						Containers: []chev2.Container{
-							{
-								Image: "DevWorkspaceImage",
-								Env: []corev1.EnvVar{
-									{
-										Name:  "dev-workspace-name",
-										Value: "dev-workspace-value",
-									},
-								},
-							},
-						},
-					},
 					RunningLimit: "RunningLimit",
 				},
 			},
@@ -500,13 +487,10 @@ func TestConvertFrom(t *testing.T) {
 	assert.Equal(t, checlusterv1.Spec.Database.PostgresEnv[0].Name, "database-name")
 	assert.Equal(t, checlusterv1.Spec.Database.PostgresEnv[0].Value, "database-value")
 
-	assert.Equal(t, checlusterv1.Spec.DevWorkspace.ControllerImage, "DevWorkspaceImage")
 	assert.Equal(t, checlusterv1.Spec.DevWorkspace.RunningLimit, "RunningLimit")
 	assert.Equal(t, checlusterv1.Spec.DevWorkspace.SecondsOfInactivityBeforeIdling, pointer.Int32Ptr(1800))
 	assert.Equal(t, checlusterv1.Spec.DevWorkspace.SecondsOfRunBeforeIdling, pointer.Int32Ptr(-1))
 	assert.True(t, checlusterv1.Spec.DevWorkspace.Enable)
-	assert.Equal(t, checlusterv1.Spec.DevWorkspace.Env[0].Name, "dev-workspace-name")
-	assert.Equal(t, checlusterv1.Spec.DevWorkspace.Env[0].Value, "dev-workspace-value")
 
 	assert.Equal(t, checlusterv1.Spec.Dashboard.Warning, "DashboardWarning")
 

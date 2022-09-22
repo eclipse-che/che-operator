@@ -334,16 +334,9 @@ func TestConvertTo(t *testing.T) {
 			},
 			DevWorkspace: chev1.CheClusterSpecDevWorkspace{
 				Enable:                          true,
-				ControllerImage:                 "ControllerImage",
 				RunningLimit:                    "RunningLimit",
 				SecondsOfInactivityBeforeIdling: pointer.Int32Ptr(1800),
 				SecondsOfRunBeforeIdling:        pointer.Int32Ptr(-1),
-				Env: []corev1.EnvVar{
-					{
-						Name:  "dev-workspace-name",
-						Value: "dev-workspace-value",
-					},
-				},
 			},
 			Dashboard: chev1.CheClusterSpecDashboard{
 				Warning: "DashboardWarning",
@@ -480,9 +473,6 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.Components.Database.Pvc.ClaimSize, "DatabasePvcClaimSize")
 	assert.Equal(t, checlusterv2.Spec.Components.Database.Pvc.StorageClass, "PostgresPVCStorageClassName")
 
-	assert.Equal(t, checlusterv2.Spec.Components.DevWorkspace.Deployment.Containers[0].Image, "ControllerImage")
-	assert.Equal(t, checlusterv2.Spec.Components.DevWorkspace.Deployment.Containers[0].Env[0].Name, "dev-workspace-name")
-	assert.Equal(t, checlusterv2.Spec.Components.DevWorkspace.Deployment.Containers[0].Env[0].Value, "dev-workspace-value")
 	assert.Equal(t, checlusterv2.Spec.Components.DevWorkspace.RunningLimit, "RunningLimit")
 
 	assert.Equal(t, checlusterv2.Spec.Components.ImagePuller.Enable, true)

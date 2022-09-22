@@ -79,8 +79,6 @@ spec:
               value: quay.io/eclipse/che--traefik:v2.8.1-4e52a5e2495484f5e19a49edfd2f652b0bce7b3603fa0df545ed90168ffae1c3
             - name: RELATED_IMAGE_single_host_gateway_config_sidecar
               value: quay.io/che-incubator/configbump:0.1.4
-            - name: RELATED_IMAGE_devworkspace_controller
-              value: quay.io/devfile/devworkspace-controller:v0.15.2
             - name: RELATED_IMAGE_gateway_authentication_sidecar
               value: quay.io/openshift/origin-oauth-proxy:4.9
             - name: RELATED_IMAGE_gateway_authorization_sidecar

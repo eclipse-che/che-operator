@@ -290,14 +290,6 @@ func (src *CheCluster) convertTo_Components(dst *chev2.CheCluster) error {
 }
 
 func (src *CheCluster) convertTo_Components_DevWorkspace(dst *chev2.CheCluster) error {
-	container := toCheV2ContainerWithImageAndEnv(
-		constants.DevWorkspaceController,
-		src.Spec.DevWorkspace.ControllerImage,
-		src.Spec.DevWorkspace.Env)
-	if container != nil {
-		dst.Spec.Components.DevWorkspace.Deployment = &chev2.Deployment{Containers: []chev2.Container{*container}}
-	}
-
 	dst.Spec.Components.DevWorkspace.RunningLimit = src.Spec.DevWorkspace.RunningLimit
 	return nil
 }

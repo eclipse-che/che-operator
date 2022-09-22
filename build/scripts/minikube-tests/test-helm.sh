@@ -38,8 +38,8 @@ runTest() {
   local OAUTH_CLIENT_NAME=$(kubectl get checluster/eclipse-che -n ${NAMESPACE} -o jsonpath='{.spec.networking.auth.oAuthClientName}')
   local DOMAIN=$(kubectl get checluster/eclipse-che -n ${NAMESPACE} -o jsonpath='{.spec.networking.domain}')
 
-  # Delete Eclipse Che (Cert Manager and Dex are still there)
-  chectl server:delete -y --delete-all -n ${NAMESPACE}
+  # Delete Eclipse Che (Cert Manager, Dev Workspace and Dex are still there)
+  chectl server:delete --batch -n ${NAMESPACE}
   sleep 30s
 
   # Prepare HelmCharts

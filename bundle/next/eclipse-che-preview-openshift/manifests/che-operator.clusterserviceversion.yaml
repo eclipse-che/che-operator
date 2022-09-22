@@ -77,7 +77,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.54.0-673.next
+  name: eclipse-che-preview-openshift.v7.54.0-685.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -557,22 +557,14 @@ spec:
               resources:
                 - clusterrolebindings
                 - clusterroles
+                - roles
+                - rolebindings
               verbs:
                 - list
                 - create
                 - watch
                 - update
                 - get
-                - delete
-            - apiGroups:
-                - rbac.authorization.k8s.io
-              resources:
-                - roles
-                - rolebindings
-              verbs:
-                - get
-                - create
-                - update
                 - delete
             - apiGroups:
                 - authorization.openshift.io
@@ -785,26 +777,7 @@ spec:
                 - get
                 - update
                 - watch
-            - apiGroups:
-                - controller.devfile.io
-              resources:
-                - devworkspaceroutings
-              verbs:
-                - '*'
-            - apiGroups:
-                - controller.devfile.io
-              resources:
-                - devworkspaceroutings/finalizers
-              verbs:
-                - update
-            - apiGroups:
-                - controller.devfile.io
-              resources:
-                - devworkspaceroutings/status
-              verbs:
-                - get
-                - patch
-                - update
+                - list
             - apiGroups:
                 - monitoring.coreos.com
               resources:
@@ -847,64 +820,37 @@ spec:
                 - get
                 - list
                 - watch
-            - apiGroups:
-                - controller.devfile.io
-              resources:
-                - devworkspaceroutings
-                - components
-              verbs:
-                - get
-                - list
-                - watch
-            - apiGroups:
-                - workspace.devfile.io
-              resources:
-                - devworkspaces
-                - devworkspacetemplates
-              verbs:
                 - create
                 - delete
-                - deletecollection
                 - patch
                 - update
             - apiGroups:
                 - controller.devfile.io
               resources:
                 - devworkspaceroutings
-                - components
-              verbs:
-                - create
-                - delete
-                - deletecollection
-                - patch
-                - update
-            - apiGroups:
-                - ""
-              resources:
-                - configmaps
+                - devworkspaceoperatorconfigs
               verbs:
                 - get
                 - list
                 - watch
                 - create
-                - update
-                - patch
                 - delete
+                - patch
+                - update
             - apiGroups:
-                - ""
+                - controller.devfile.io
               resources:
-                - configmaps/status
+                - devworkspaceroutings/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - controller.devfile.io
+              resources:
+                - devworkspaceroutings/status
               verbs:
                 - get
+                - patch
                 - update
-                - patch
-            - apiGroups:
-                - ""
-              resources:
-                - events
-              verbs:
-                - create
-                - patch
             - apiGroups:
                 - authentication.k8s.io
               resources:
@@ -917,230 +863,6 @@ spec:
                 - subjectaccessreviews
               verbs:
                 - create
-            - apiGroups:
-                - ""
-              resourceNames:
-                - workspace-preferences-configmap
-              resources:
-                - configmaps
-              verbs:
-                - create
-                - delete
-                - get
-                - patch
-            - apiGroups:
-                - ""
-              resources:
-                - configmaps
-                - persistentvolumeclaims
-                - pods
-                - secrets
-                - serviceaccounts
-              verbs:
-                - '*'
-            - apiGroups:
-                - ""
-              resources:
-                - events
-                - namespaces
-              verbs:
-                - get
-                - list
-                - watch
-            - apiGroups:
-                - ""
-              resources:
-                - pods/exec
-              verbs:
-                - create
-            - apiGroups:
-                - ""
-              resourceNames:
-                - workspace-credentials-secret
-              resources:
-                - secrets
-              verbs:
-                - create
-                - delete
-                - get
-                - patch
-            - apiGroups:
-                - ""
-              resources:
-                - services
-              verbs:
-                - '*'
-            - apiGroups:
-                - admissionregistration.k8s.io
-              resources:
-                - mutatingwebhookconfigurations
-                - validatingwebhookconfigurations
-              verbs:
-                - create
-                - delete
-                - get
-                - list
-                - patch
-                - update
-                - watch
-            - apiGroups:
-                - apps
-              resourceNames:
-                - devworkspace-controller
-              resources:
-                - deployments/finalizers
-              verbs:
-                - update
-            - apiGroups:
-                - apps
-                - extensions
-              resources:
-                - deployments
-              verbs:
-                - get
-                - list
-                - watch
-            - apiGroups:
-                - apps
-                - extensions
-              resources:
-                - deployments
-                - replicasets
-              verbs:
-                - '*'
-            - apiGroups:
-                - apps
-                - extensions
-              resources:
-                - replicasets
-              verbs:
-                - get
-                - list
-                - watch
-            - apiGroups:
-                - authorization.k8s.io
-              resources:
-                - localsubjectaccessreviews
-                - subjectaccessreviews
-              verbs:
-                - create
-            - apiGroups:
-                - batch
-              resources:
-                - jobs
-              verbs:
-                - create
-                - delete
-                - get
-                - list
-                - patch
-                - update
-                - watch
-            - apiGroups:
-                - config.openshift.io
-              resourceNames:
-                - cluster
-              resources:
-                - proxies
-              verbs:
-                - get
-            - apiGroups:
-                - controller.devfile.io
-              resources:
-                - '*'
-              verbs:
-                - '*'
-            - apiGroups:
-                - controller.devfile.io
-              resources:
-                - devworkspaceroutings
-              verbs:
-                - '*'
-            - apiGroups:
-                - controller.devfile.io
-              resources:
-                - devworkspaceroutings/status
-              verbs:
-                - get
-                - patch
-                - update
-            - apiGroups:
-                - coordination.k8s.io
-              resources:
-                - leases
-              verbs:
-                - create
-                - get
-                - update
-            - apiGroups:
-                - metrics.k8s.io
-              resources:
-                - pods
-              verbs:
-                - get
-                - list
-                - watch
-            - apiGroups:
-                - monitoring.coreos.com
-              resources:
-                - servicemonitors
-              verbs:
-                - create
-                - get
-            - apiGroups:
-                - networking.k8s.io
-              resources:
-                - ingresses
-              verbs:
-                - '*'
-            - apiGroups:
-                - oauth.openshift.io
-              resources:
-                - oauthclients
-              verbs:
-                - create
-                - delete
-                - deletecollection
-                - get
-                - list
-                - patch
-                - update
-                - watch
-            - apiGroups:
-                - rbac.authorization.k8s.io
-              resources:
-                - clusterrolebindings
-                - clusterroles
-                - rolebindings
-                - roles
-              verbs:
-                - create
-                - get
-                - list
-                - update
-                - watch
-            - apiGroups:
-                - route.openshift.io
-              resources:
-                - routes
-              verbs:
-                - '*'
-            - apiGroups:
-                - route.openshift.io
-              resources:
-                - routes/custom-host
-              verbs:
-                - create
-            - apiGroups:
-                - workspace.devfile.io
-              resources:
-                - '*'
-              verbs:
-                - '*'
-            - nonResourceURLs:
-                - /metrics
-              verbs:
-                - get
           serviceAccountName: che-operator
       deployments:
         - name: che-operator
@@ -1197,8 +919,6 @@ spec:
                         value: quay.io/eclipse/che--traefik:v2.8.1-4e52a5e2495484f5e19a49edfd2f652b0bce7b3603fa0df545ed90168ffae1c3
                       - name: RELATED_IMAGE_single_host_gateway_config_sidecar
                         value: quay.io/che-incubator/configbump:0.1.4
-                      - name: RELATED_IMAGE_devworkspace_controller
-                        value: quay.io/devfile/devworkspace-controller:v0.15.2
                       - name: RELATED_IMAGE_gateway_authentication_sidecar
                         value: quay.io/openshift/origin-oauth-proxy:4.9
                       - name: RELATED_IMAGE_gateway_authorization_sidecar
@@ -1298,7 +1018,12 @@ spec:
               resources:
                 - jobs
               verbs:
-                - '*'
+                - create
+                - delete
+                - get
+                - update
+                - watch
+                - list
             - apiGroups:
                 - route.openshift.io
               resources:
@@ -1311,15 +1036,15 @@ spec:
               resources:
                 - roles
                 - rolebindings
-              verbs:
-                - '*'
-            - apiGroups:
-                - rbac.authorization.k8s.io
-              resources:
                 - clusterroles
                 - clusterrolebindings
               verbs:
-                - '*'
+                - list
+                - create
+                - watch
+                - update
+                - get
+                - delete
             - apiGroups:
                 - ""
               resources:
@@ -1443,6 +1168,37 @@ spec:
                 - patch
                 - update
                 - watch
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - coordination.k8s.io
+              resources:
+                - leases
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
           serviceAccountName: che-operator
     strategy: deployment
   installModes:
@@ -1474,7 +1230,7 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.54.0-673.next
+  version: 7.54.0-685.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1

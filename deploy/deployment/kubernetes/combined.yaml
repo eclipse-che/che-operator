@@ -3188,162 +3188,6 @@ spec:
                   devWorkspace:
                     description: DevWorkspace Operator configuration.
                     properties:
-                      deployment:
-                        description: Deployment override options.
-                        properties:
-                          containers:
-                            description: List of containers belonging to the pod.
-                            items:
-                              description: Container custom settings.
-                              properties:
-                                env:
-                                  description: List of environment variables to set in the container.
-                                  items:
-                                    description: EnvVar represents an environment variable present in a Container.
-                                    properties:
-                                      name:
-                                        description: Name of the environment variable. Must be a C_IDENTIFIER.
-                                        type: string
-                                      value:
-                                        description: 'Variable references $(VAR_NAME) are expanded using the previous defined environment variables in the container and any service environment variables. If a variable cannot be resolved, the reference in the input string will be unchanged. The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not. Defaults to "".'
-                                        type: string
-                                      valueFrom:
-                                        description: Source for the environment variable's value. Cannot be used if value is not empty.
-                                        properties:
-                                          configMapKeyRef:
-                                            description: Selects a key of a ConfigMap.
-                                            properties:
-                                              key:
-                                                description: The key to select.
-                                                type: string
-                                              name:
-                                                description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
-                                                type: string
-                                              optional:
-                                                description: Specify whether the ConfigMap or its key must be defined
-                                                type: boolean
-                                            required:
-                                            - key
-                                            type: object
-                                          fieldRef:
-                                            description: 'Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels[''<KEY>'']`, `metadata.annotations[''<KEY>'']`, spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.'
-                                            properties:
-                                              apiVersion:
-                                                description: Version of the schema the FieldPath is written in terms of, defaults to "v1".
-                                                type: string
-                                              fieldPath:
-                                                description: Path of the field to select in the specified API version.
-                                                type: string
-                                            required:
-                                            - fieldPath
-                                            type: object
-                                          resourceFieldRef:
-                                            description: 'Selects a resource of the container: only resources limits and requests (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.'
-                                            properties:
-                                              containerName:
-                                                description: 'Container name: required for volumes, optional for env vars'
-                                                type: string
-                                              divisor:
-                                                anyOf:
-                                                - type: integer
-                                                - type: string
-                                                description: Specifies the output format of the exposed resources, defaults to "1"
-                                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                                                x-kubernetes-int-or-string: true
-                                              resource:
-                                                description: 'Required: resource to select'
-                                                type: string
-                                            required:
-                                            - resource
-                                            type: object
-                                          secretKeyRef:
-                                            description: Selects a key of a secret in the pod's namespace
-                                            properties:
-                                              key:
-                                                description: The key of the secret to select from.  Must be a valid secret key.
-                                                type: string
-                                              name:
-                                                description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
-                                                type: string
-                                              optional:
-                                                description: Specify whether the Secret or its key must be defined
-                                                type: boolean
-                                            required:
-                                            - key
-                                            type: object
-                                        type: object
-                                    required:
-                                    - name
-                                    type: object
-                                  type: array
-                                image:
-                                  description: Container image. Omit it or leave it empty to use the default container image provided by the Operator.
-                                  type: string
-                                imagePullPolicy:
-                                  description: Image pull policy. Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
-                                  enum:
-                                  - Always
-                                  - IfNotPresent
-                                  - Never
-                                  type: string
-                                name:
-                                  description: Container name.
-                                  type: string
-                                resources:
-                                  description: Compute resources required by this container.
-                                  properties:
-                                    limits:
-                                      description: Describes the maximum amount of compute resources allowed.
-                                      properties:
-                                        cpu:
-                                          anyOf:
-                                          - type: integer
-                                          - type: string
-                                          description: CPU, in cores. (500m = .5 cores)
-                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                                          x-kubernetes-int-or-string: true
-                                        memory:
-                                          anyOf:
-                                          - type: integer
-                                          - type: string
-                                          description: Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
-                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                                          x-kubernetes-int-or-string: true
-                                      type: object
-                                    request:
-                                      description: Describes the minimum amount of compute resources required.
-                                      properties:
-                                        cpu:
-                                          anyOf:
-                                          - type: integer
-                                          - type: string
-                                          description: CPU, in cores. (500m = .5 cores)
-                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                                          x-kubernetes-int-or-string: true
-                                        memory:
-                                          anyOf:
-                                          - type: integer
-                                          - type: string
-                                          description: Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
-                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                                          x-kubernetes-int-or-string: true
-                                      type: object
-                                  type: object
-                              type: object
-                            type: array
-                          securityContext:
-                            description: Security options the pod should run with.
-                            properties:
-                              fsGroup:
-                                description: A special supplemental group that applies to all containers in a pod. The default value is `1724`.
-                                format: int64
-                                type: integer
-                              runAsUser:
-                                description: The UID to run the entrypoint of the container process. The default value is `1724`.
-                                format: int64
-                                type: integer
-                            type: object
-                        type: object
                       runningLimit:
                         description: The maximum number of running workspaces per user.
                         type: string
@@ -5165,6 +5009,7 @@ metadata:
     app.kubernetes.io/name: che
     app.kubernetes.io/part-of: che.eclipse.org
   name: che-operator
+  namespace: eclipse-che
 rules:
 - apiGroups:
   - extensions
@@ -5183,7 +5028,12 @@ rules:
   resources:
   - jobs
   verbs:
-  - '*'
+  - create
+  - delete
+  - get
+  - update
+  - watch
+  - list
 - apiGroups:
   - route.openshift.io
   resources:
@@ -5196,15 +5046,15 @@ rules:
   resources:
   - roles
   - rolebindings
-  verbs:
-  - '*'
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
   - clusterroles
   - clusterrolebindings
   verbs:
-  - '*'
+  - list
+  - create
+  - watch
+  - update
+  - get
+  - delete
 - apiGroups:
   - ""
   resources:
@@ -5330,6 +5180,49 @@ rules:
   - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/component: che-operator
+    app.kubernetes.io/instance: che
+    app.kubernetes.io/name: che
+    app.kubernetes.io/part-of: che.eclipse.org
+  name: che-operator-leader-election
+  namespace: eclipse-che
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
@@ -5405,22 +5298,14 @@ rules:
   resources:
   - clusterrolebindings
   - clusterroles
+  - roles
+  - rolebindings
   verbs:
   - list
   - create
   - watch
   - update
   - get
-  - delete
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
-  - roles
-  - rolebindings
-  verbs:
-  - get
-  - create
-  - update
   - delete
 - apiGroups:
   - authorization.openshift.io
@@ -5633,26 +5518,7 @@ rules:
   - get
   - update
   - watch
-- apiGroups:
-  - controller.devfile.io
-  resources:
-  - devworkspaceroutings
-  verbs:
-  - '*'
-- apiGroups:
-  - controller.devfile.io
-  resources:
-  - devworkspaceroutings/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - controller.devfile.io
-  resources:
-  - devworkspaceroutings/status
-  verbs:
-  - get
-  - patch
-  - update
+  - list
 - apiGroups:
   - monitoring.coreos.com
   resources:
@@ -5695,64 +5561,37 @@ rules:
   - get
   - list
   - watch
-- apiGroups:
-  - controller.devfile.io
-  resources:
-  - devworkspaceroutings
-  - components
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - workspace.devfile.io
-  resources:
-  - devworkspaces
-  - devworkspacetemplates
-  verbs:
   - create
   - delete
-  - deletecollection
   - patch
   - update
 - apiGroups:
   - controller.devfile.io
   resources:
   - devworkspaceroutings
-  - components
-  verbs:
-  - create
-  - delete
-  - deletecollection
-  - patch
-  - update
-- apiGroups:
-  - ""
-  resources:
-  - configmaps
+  - devworkspaceoperatorconfigs
   verbs:
   - get
   - list
   - watch
   - create
-  - update
-  - patch
   - delete
+  - patch
+  - update
 - apiGroups:
-  - ""
+  - controller.devfile.io
   resources:
-  - configmaps/status
+  - devworkspaceroutings/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - controller.devfile.io
+  resources:
+  - devworkspaceroutings/status
   verbs:
   - get
+  - patch
   - update
-  - patch
-- apiGroups:
-  - ""
-  resources:
-  - events
-  verbs:
-  - create
-  - patch
 - apiGroups:
   - authentication.k8s.io
   resources:
@@ -5765,230 +5604,6 @@ rules:
   - subjectaccessreviews
   verbs:
   - create
-- apiGroups:
-  - ""
-  resourceNames:
-  - workspace-preferences-configmap
-  resources:
-  - configmaps
-  verbs:
-  - create
-  - delete
-  - get
-  - patch
-- apiGroups:
-  - ""
-  resources:
-  - configmaps
-  - persistentvolumeclaims
-  - pods
-  - secrets
-  - serviceaccounts
-  verbs:
-  - '*'
-- apiGroups:
-  - ""
-  resources:
-  - events
-  - namespaces
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - pods/exec
-  verbs:
-  - create
-- apiGroups:
-  - ""
-  resourceNames:
-  - workspace-credentials-secret
-  resources:
-  - secrets
-  verbs:
-  - create
-  - delete
-  - get
-  - patch
-- apiGroups:
-  - ""
-  resources:
-  - services
-  verbs:
-  - '*'
-- apiGroups:
-  - admissionregistration.k8s.io
-  resources:
-  - mutatingwebhookconfigurations
-  - validatingwebhookconfigurations
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - apps
-  resourceNames:
-  - devworkspace-controller
-  resources:
-  - deployments/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - apps
-  - extensions
-  resources:
-  - deployments
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - apps
-  - extensions
-  resources:
-  - deployments
-  - replicasets
-  verbs:
-  - '*'
-- apiGroups:
-  - apps
-  - extensions
-  resources:
-  - replicasets
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - authorization.k8s.io
-  resources:
-  - localsubjectaccessreviews
-  - subjectaccessreviews
-  verbs:
-  - create
-- apiGroups:
-  - batch
-  resources:
-  - jobs
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - config.openshift.io
-  resourceNames:
-  - cluster
-  resources:
-  - proxies
-  verbs:
-  - get
-- apiGroups:
-  - controller.devfile.io
-  resources:
-  - '*'
-  verbs:
-  - '*'
-- apiGroups:
-  - controller.devfile.io
-  resources:
-  - devworkspaceroutings
-  verbs:
-  - '*'
-- apiGroups:
-  - controller.devfile.io
-  resources:
-  - devworkspaceroutings/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - coordination.k8s.io
-  resources:
-  - leases
-  verbs:
-  - create
-  - get
-  - update
-- apiGroups:
-  - metrics.k8s.io
-  resources:
-  - pods
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - monitoring.coreos.com
-  resources:
-  - servicemonitors
-  verbs:
-  - create
-  - get
-- apiGroups:
-  - networking.k8s.io
-  resources:
-  - ingresses
-  verbs:
-  - '*'
-- apiGroups:
-  - oauth.openshift.io
-  resources:
-  - oauthclients
-  verbs:
-  - create
-  - delete
-  - deletecollection
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
-  - clusterrolebindings
-  - clusterroles
-  - rolebindings
-  - roles
-  verbs:
-  - create
-  - get
-  - list
-  - update
-  - watch
-- apiGroups:
-  - route.openshift.io
-  resources:
-  - routes
-  verbs:
-  - '*'
-- apiGroups:
-  - route.openshift.io
-  resources:
-  - routes/custom-host
-  verbs:
-  - create
-- apiGroups:
-  - workspace.devfile.io
-  resources:
-  - '*'
-  verbs:
-  - '*'
-- nonResourceURLs:
-  - /metrics
-  verbs:
-  - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -5999,6 +5614,7 @@ metadata:
     app.kubernetes.io/name: che
     app.kubernetes.io/part-of: che.eclipse.org
   name: che-operator
+  namespace: eclipse-che
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -6006,6 +5622,26 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: che-operator
+  namespace: eclipse-che
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/component: che-operator
+    app.kubernetes.io/instance: che
+    app.kubernetes.io/name: che
+    app.kubernetes.io/part-of: che.eclipse.org
+  name: che-operator-leader-election
+  namespace: eclipse-che
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: che-operator-leader-election
+subjects:
+- kind: ServiceAccount
+  name: che-operator
+  namespace: eclipse-che
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -6105,8 +5741,6 @@ spec:
           value: quay.io/eclipse/che--traefik:v2.8.1-4e52a5e2495484f5e19a49edfd2f652b0bce7b3603fa0df545ed90168ffae1c3
         - name: RELATED_IMAGE_single_host_gateway_config_sidecar
           value: quay.io/che-incubator/configbump:0.1.4
-        - name: RELATED_IMAGE_devworkspace_controller
-          value: quay.io/devfile/devworkspace-controller:v0.15.2
         - name: RELATED_IMAGE_gateway_authentication_sidecar
           value: quay.io/openshift/origin-oauth-proxy:4.9
         - name: RELATED_IMAGE_gateway_authorization_sidecar
