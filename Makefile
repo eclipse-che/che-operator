@@ -340,10 +340,9 @@ genenerate-env:
 install-che-operands: SHELL := /bin/bash
 install-che-operands: generate manifests download-kustomize download-gateway-resources
 	echo "[INFO] Running on $(PLATFORM)"
-	if [[ ! $(SKIP_CHE_OPERANDS_INSTALLATION) == "true" ]]; then
+	if [[ ! "$(SKIP_CHE_OPERANDS_INSTALLATION)" == "true" ]]; then
 		[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
-		[[ $(PLATFORM) == "openshift" ]] && $(MAKE) install-devworkspace CHANNEL=next
-
+		$(MAKE) install-devworkspace CHANNEL="next"
 		$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
 		$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/component=che-operator" NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)
 	fi
@@ -699,27 +698,43 @@ install-devworkspace: SHELL := /bin/bash
 install-devworkspace: ## Install Dev Workspace operator, available channels: next, fast
 	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
 
-	if [[ $(CHANNEL) == "fast" ]]; then
-		IMAGE="quay.io/devfile/devworkspace-operator-index:release"
-	else
-		IMAGE="quay.io/devfile/devworkspace-operator-index:next"
-	fi
+	if [[ $(PLATFORM) == "kubernetes" ]]; then
+		$(MAKE) create-namespace NAMESPACE="devworkspace-controller"
+		if [[ $(CHANNEL) == "fast" ]]; then
+			rm -rf /tmp/dwo
+			git clone --quiet https://github.com/devfile/devworkspace-operator ${OPERATOR_REPO}/tmp/dwo
+			pushd ${OPERATOR_REPO}/tmp/dwo
+			DWO_STABLE_VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
+			popd
 
-	$(MAKE) create-catalogsource IMAGE="$${IMAGE}" NAME="devworkspace-operator"
-	$(MAKE) create-subscription \
-		NAME="devworkspace-operator" \
- 		NAMESPACE="openshift-operators" \
- 		PACKAGE_NAME="devworkspace-operator" \
- 		CHANNEL="$(CHANNEL)" \
- 		SOURCE="devworkspace-operator" \
- 		SOURCE_NAMESPACE="openshift-marketplace" \
- 		INSTALL_PLAN_APPROVAL="Auto"
-	$(MAKE) wait-devworkspace-running NAMESPACE="openshift-operators"
+			$(K8S_CLI) apply -f https://raw.githubusercontent.com/devfile/devworkspace-operator/$${DWO_STABLE_VERSION}/deploy/deployment/kubernetes/combined.yaml
+	  	else
+			$(K8S_CLI) apply -f https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/kubernetes/combined.yaml
+	  	fi
+		$(MAKE) wait-devworkspace-running NAMESPACE="devworkspace-controller"
+	else
+		if [[ $(CHANNEL) == "fast" ]]; then
+			IMAGE="quay.io/devfile/devworkspace-operator-index:release"
+		else
+			IMAGE="quay.io/devfile/devworkspace-operator-index:next"
+		fi
+
+		$(MAKE) create-catalogsource IMAGE="$${IMAGE}" NAME="devworkspace-operator"
+		$(MAKE) create-subscription \
+			NAME="devworkspace-operator" \
+			NAMESPACE="openshift-operators" \
+			PACKAGE_NAME="devworkspace-operator" \
+			CHANNEL="$(CHANNEL)" \
+			SOURCE="devworkspace-operator" \
+			SOURCE_NAMESPACE="openshift-marketplace" \
+			INSTALL_PLAN_APPROVAL="Auto"
+		$(MAKE) wait-devworkspace-running NAMESPACE="openshift-operators"
+	fi
 
 wait-devworkspace-running: SHELL := /bin/bash
 wait-devworkspace-running: ## Wait until Dev Workspace operator is up and running
-	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/name=devworkspace-controller,app.kubernetes.io/part-of=devworkspace-operator"
-	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/name=devworkspace-webhook-server,app.kubernetes.io/part-of=devworkspace-operator"
+	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/name=devworkspace-controller"
+	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/name=devworkspace-webhook-server"
 
 setup-checluster: create-namespace create-checluster-crd create-checluster-cr ## Setup CheCluster (creates namespace, CRD and CheCluster CR)
 
