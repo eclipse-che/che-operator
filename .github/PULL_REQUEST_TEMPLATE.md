@@ -22,7 +22,7 @@ che-operator Development Guide: https://github.com/eclipse-che/che-operator/#dev
  -->
 
 ```bash
-cat EOF << > /tmp/patch.yaml
+cat > /tmp/patch.yaml <<EOF
 <PATCH_CONTENT>
 EOF
 
