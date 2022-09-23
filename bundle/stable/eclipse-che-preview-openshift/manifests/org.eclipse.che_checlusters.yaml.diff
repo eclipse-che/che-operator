@@ -1,121 +1,443 @@
---- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/generated/openshift/org.eclipse.che_checlusters.yaml	2022-09-02 08:44:51.945214027 +0000
-+++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/manifests/org.eclipse.che_checlusters.yaml	2022-09-02 08:44:51.953214136 +0000
-@@ -2199,6 +2199,10 @@
-                       description: Deprecated in favor of `disableInternalClusterSVCNames`.
-                       type: boolean
-                     workspaceDefaultComponents:
-+                      default:
-+                        - container:
-+                            image: quay.io/devfile/universal-developer-image:ubi8-38da5c2
-+                          name: universal-developer-image
-                       description: Default components applied to DevWorkspaces. These
-                         default components are meant to be used when a Devfile does
-                         not contain any components.
-@@ -3700,6 +3704,7 @@
-                         type: object
-                       type: array
-                     workspaceDefaultEditor:
-+                      default: eclipse/che-theia/latest
-                       description: The default editor to workspace create with. It
-                         could be a plugin ID or a URI. The plugin ID must have `publisher/plugin/version`.
-                         The URI must start from `http`.
-@@ -3780,6 +3785,14 @@
-                   description: Configuration settings related to the persistent storage
-                     used by the Che installation.
-                   properties:
-+                    perWorkspaceStrategyPVCStorageClassName:
-+                      description: Storage class for the Persistent Volume Claims
-+                        dedicated to the Che workspaces. When omitted or left blank,
-+                        a default storage class is used.
-+                      type: string
-+                    perWorkspaceStrategyPvcClaimSize:
-+                      description: Size of the persistent volume claim for workspaces.
-+                      type: string
-                     postgresPVCStorageClassName:
-                       description: Storage class for the Persistent Volume Claim dedicated
-                         to the PostgreSQL database. When omitted or left blank, a
-@@ -5521,15 +5534,24 @@
+--- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/generated/openshift/org.eclipse.che_checlusters.yaml	2022-09-22 20:03:34.712796204 +0000
++++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/manifests/org.eclipse.che_checlusters.yaml	2022-09-22 20:03:34.720796215 +0000
+@@ -1138,6 +1138,81 @@
+                   required:
+                     - enable
                    type: object
-                 devEnvironments:
-                   default:
-+                    defaultComponents:
-+                      - container:
-+                          image: quay.io/devfile/universal-developer-image:ubi8-38da5c2
-+                        name: universal-developer-image
-+                    defaultEditor: eclipse/che-theia/latest
++                gitServices:
++                  description: A configuration that allows users to work with remote
++                    Git repositories.
++                  properties:
++                    bitbucket:
++                      description: Enables users to work with repositories hosted
++                        on Bitbucket (bitbucket.org or self-hosted).
++                      items:
++                        description: BitBucketService enables users to work with repositories
++                          hosted on Bitbucket (bitbucket.org or self-hosted).
++                        properties:
++                          endpoint:
++                            default: https://bitbucket.org
++                            description: Bitbucket server endpoint URL.
++                            type: string
++                          secretName:
++                            description: 'Kubernetes secret, that contains Base64-encoded
++                              Bitbucket OAuth 1.0 or OAuth 2.0 data. For OAuth 1.0:
++                              private key, Bitbucket Application link consumer key
++                              and Bitbucket Application link shared secret must be
++                              stored in `private.key`, `consumer.key` and `shared_secret`
++                              keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/.
++                              For OAuth 2.0: Bitbucket OAuth consumer key and Bitbucket
++                              OAuth consumer secret must be stored in `id` and `secret`
++                              keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-the-bitbucket-cloud/.'
++                            type: string
++                        required:
++                          - secretName
++                        type: object
++                      type: array
++                    github:
++                      description: Enables users to work with repositories hosted
++                        on GitHub (github.com or GitHub Enterprise).
++                      items:
++                        description: GitHubService enables users to work with repositories
++                          hosted on GitHub (GitHub.com or GitHub Enterprise).
++                        properties:
++                          endpoint:
++                            default: https://github.com
++                            description: GitHub server endpoint URL.
++                            type: string
++                          secretName:
++                            description: 'Kubernetes secret, that contains Base64-encoded
++                              GitHub OAuth Client id and GitHub OAuth Client secret,
++                              that stored in `id` and `secret` keys respectively.
++                              See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
++                            type: string
++                        required:
++                          - endpoint
++                          - secretName
++                        type: object
++                      type: array
++                    gitlab:
++                      description: Enables users to work with repositories hosted
++                        on GitLab (gitlab.com or self-hosted).
++                      items:
++                        description: GitLabService enables users to work with repositories
++                          hosted on GitLab (gitlab.com or self-hosted).
++                        properties:
++                          endpoint:
++                            default: https://gitlab.com
++                            description: GitLab server endpoint URL.
++                            type: string
++                          secretName:
++                            description: 'Kubernetes secret, that contains Base64-encoded
++                              GitHub Application id and GitLab Application Client
++                              secret, that stored in `id` and `secret` keys respectively.
++                              See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
++                            type: string
++                        required:
++                          - endpoint
++                          - secretName
++                        type: object
++                      type: array
++                  type: object
+                 imagePuller:
+                   description: Kubernetes Image Puller configuration
+                   properties:
+@@ -1266,6 +1341,11 @@
+                         images involved in a Che deployment. This is particularly
+                         useful to install Eclipse Che in a restricted environment.
+                       type: string
++                    allowAutoProvisionUserNamespace:
++                      description: Indicates if is allowed to automatically create
++                        a user namespace. If it set to false, then user namespace
++                        must be pre-created by a cluster administrator.
++                      type: boolean
+                     allowUserDefinedWorkspaceNamespaces:
+                       description: Deprecated. The value of this flag is ignored.
+                         Defines that a user is allowed to specify a Kubernetes namespace,
+@@ -4242,8 +4322,7 @@
+                                 defining `nonProxyHosts` in a custom resource leads
+                                 to merging non-proxy hosts lists from the cluster
+                                 proxy configuration, and the ones defined in the custom
+-                                resources. See the following page: https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html.
+-                                See also the `proxyURL` fields.'
++                                resources. See the following page: https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html.'
+                               items:
+                                 type: string
+                               type: array
+@@ -4256,8 +4335,7 @@
+                                 Operator respects OpenShift cluster-wide proxy configuration,
+                                 defining `url` in a custom resource leads to overriding
+                                 the cluster proxy configuration. See the following
+-                                page: https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html.
+-                                See also the `proxyPort` and `nonProxyHosts` fields.'
++                                page: https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html.'
+                               type: string
+                           type: object
+                       type: object
+@@ -4767,219 +4845,6 @@
+                     devWorkspace:
+                       description: DevWorkspace Operator configuration.
+                       properties:
+-                        deployment:
+-                          description: Deployment override options.
+-                          properties:
+-                            containers:
+-                              description: List of containers belonging to the pod.
+-                              items:
+-                                description: Container custom settings.
+-                                properties:
+-                                  env:
+-                                    description: List of environment variables to
+-                                      set in the container.
+-                                    items:
+-                                      description: EnvVar represents an environment
+-                                        variable present in a Container.
+-                                      properties:
+-                                        name:
+-                                          description: Name of the environment variable.
+-                                            Must be a C_IDENTIFIER.
+-                                          type: string
+-                                        value:
+-                                          description: 'Variable references $(VAR_NAME)
+-                                            are expanded using the previous defined
+-                                            environment variables in the container
+-                                            and any service environment variables.
+-                                            If a variable cannot be resolved, the
+-                                            reference in the input string will be
+-                                            unchanged. The $(VAR_NAME) syntax can
+-                                            be escaped with a double $$, ie: $$(VAR_NAME).
+-                                            Escaped references will never be expanded,
+-                                            regardless of whether the variable exists
+-                                            or not. Defaults to "".'
+-                                          type: string
+-                                        valueFrom:
+-                                          description: Source for the environment
+-                                            variable's value. Cannot be used if value
+-                                            is not empty.
+-                                          properties:
+-                                            configMapKeyRef:
+-                                              description: Selects a key of a ConfigMap.
+-                                              properties:
+-                                                key:
+-                                                  description: The key to select.
+-                                                  type: string
+-                                                name:
+-                                                  description: 'Name of the referent.
+-                                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+-                                                    TODO: Add other useful fields.
+-                                                    apiVersion, kind, uid?'
+-                                                  type: string
+-                                                optional:
+-                                                  description: Specify whether the
+-                                                    ConfigMap or its key must be defined
+-                                                  type: boolean
+-                                              required:
+-                                                - key
+-                                              type: object
+-                                            fieldRef:
+-                                              description: 'Selects a field of the
+-                                                pod: supports metadata.name, metadata.namespace,
+-                                                `metadata.labels[''<KEY>'']`, `metadata.annotations[''<KEY>'']`,
+-                                                spec.nodeName, spec.serviceAccountName,
+-                                                status.hostIP, status.podIP, status.podIPs.'
+-                                              properties:
+-                                                apiVersion:
+-                                                  description: Version of the schema
+-                                                    the FieldPath is written in terms
+-                                                    of, defaults to "v1".
+-                                                  type: string
+-                                                fieldPath:
+-                                                  description: Path of the field to
+-                                                    select in the specified API version.
+-                                                  type: string
+-                                              required:
+-                                                - fieldPath
+-                                              type: object
+-                                            resourceFieldRef:
+-                                              description: 'Selects a resource of
+-                                                the container: only resources limits
+-                                                and requests (limits.cpu, limits.memory,
+-                                                limits.ephemeral-storage, requests.cpu,
+-                                                requests.memory and requests.ephemeral-storage)
+-                                                are currently supported.'
+-                                              properties:
+-                                                containerName:
+-                                                  description: 'Container name: required
+-                                                    for volumes, optional for env
+-                                                    vars'
+-                                                  type: string
+-                                                divisor:
+-                                                  anyOf:
+-                                                    - type: integer
+-                                                    - type: string
+-                                                  description: Specifies the output
+-                                                    format of the exposed resources,
+-                                                    defaults to "1"
+-                                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+-                                                  x-kubernetes-int-or-string: true
+-                                                resource:
+-                                                  description: 'Required: resource
+-                                                    to select'
+-                                                  type: string
+-                                              required:
+-                                                - resource
+-                                              type: object
+-                                            secretKeyRef:
+-                                              description: Selects a key of a secret
+-                                                in the pod's namespace
+-                                              properties:
+-                                                key:
+-                                                  description: The key of the secret
+-                                                    to select from.  Must be a valid
+-                                                    secret key.
+-                                                  type: string
+-                                                name:
+-                                                  description: 'Name of the referent.
+-                                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+-                                                    TODO: Add other useful fields.
+-                                                    apiVersion, kind, uid?'
+-                                                  type: string
+-                                                optional:
+-                                                  description: Specify whether the
+-                                                    Secret or its key must be defined
+-                                                  type: boolean
+-                                              required:
+-                                                - key
+-                                              type: object
+-                                          type: object
+-                                      required:
+-                                        - name
+-                                      type: object
+-                                    type: array
+-                                  image:
+-                                    description: Container image. Omit it or leave
+-                                      it empty to use the default container image
+-                                      provided by the Operator.
+-                                    type: string
+-                                  imagePullPolicy:
+-                                    description: Image pull policy. Default value
+-                                      is `Always` for `nightly`, `next` or `latest`
+-                                      images, and `IfNotPresent` in other cases.
+-                                    enum:
+-                                      - Always
+-                                      - IfNotPresent
+-                                      - Never
+-                                    type: string
+-                                  name:
+-                                    description: Container name.
+-                                    type: string
+-                                  resources:
+-                                    description: Compute resources required by this
+-                                      container.
+-                                    properties:
+-                                      limits:
+-                                        description: Describes the maximum amount
+-                                          of compute resources allowed.
+-                                        properties:
+-                                          cpu:
+-                                            anyOf:
+-                                              - type: integer
+-                                              - type: string
+-                                            description: CPU, in cores. (500m = .5
+-                                              cores)
+-                                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+-                                            x-kubernetes-int-or-string: true
+-                                          memory:
+-                                            anyOf:
+-                                              - type: integer
+-                                              - type: string
+-                                            description: Memory, in bytes. (500Gi
+-                                              = 500GiB = 500 * 1024 * 1024 * 1024)
+-                                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+-                                            x-kubernetes-int-or-string: true
+-                                        type: object
+-                                      request:
+-                                        description: Describes the minimum amount
+-                                          of compute resources required.
+-                                        properties:
+-                                          cpu:
+-                                            anyOf:
+-                                              - type: integer
+-                                              - type: string
+-                                            description: CPU, in cores. (500m = .5
+-                                              cores)
+-                                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+-                                            x-kubernetes-int-or-string: true
+-                                          memory:
+-                                            anyOf:
+-                                              - type: integer
+-                                              - type: string
+-                                            description: Memory, in bytes. (500Gi
+-                                              = 500GiB = 500 * 1024 * 1024 * 1024)
+-                                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+-                                            x-kubernetes-int-or-string: true
+-                                        type: object
+-                                    type: object
+-                                type: object
+-                              type: array
+-                            securityContext:
+-                              description: Security options the pod should run with.
+-                              properties:
+-                                fsGroup:
+-                                  description: A special supplemental group that applies
+-                                    to all containers in a pod. The default value
+-                                    is `1724`.
+-                                  format: int64
+-                                  type: integer
+-                                runAsUser:
+-                                  description: The UID to run the entrypoint of the
+-                                    container process. The default value is `1724`.
+-                                  format: int64
+-                                  type: integer
+-                              type: object
+-                          type: object
+                         runningLimit:
+                           description: The maximum number of running workspaces per
+                             user.
+@@ -5540,6 +5405,7 @@
+                         name: universal-developer-image
+                     defaultEditor: eclipse/che-theia/latest
                      defaultNamespace:
++                      autoProvision: true
                        template: <username>-che
                      secondsOfInactivityBeforeIdling: 1800
                      secondsOfRunBeforeIdling: -1
-                     storage:
--                      pvcStrategy: common
-+                      pvcStrategy: per-user
-                   description: Development environment default configuration options.
-                   properties:
-                     defaultComponents:
-+                      default:
-+                        - container:
-+                            image: quay.io/devfile/universal-developer-image:ubi8-38da5c2
-+                          name: universal-developer-image
-                       description: Default components applied to DevWorkspaces. These
-                         default components are meant to be used when a Devfile, that
-                         does not contain any components.
-@@ -7031,6 +7053,7 @@
-                         type: object
-                       type: array
-                     defaultEditor:
-+                      default: eclipse/che-theia/latest
-                       description: The default editor to workspace create with. It
-                         could be a plugin ID or a URI. The plugin ID must have `publisher/plugin/version`
-                         format. The URI must start from `http://` or `https://`.
-@@ -7087,11 +7110,27 @@
-                       type: integer
-                     storage:
+@@ -7060,9 +6926,16 @@
+                       type: string
+                     defaultNamespace:
                        default:
--                        pvcStrategy: common
-+                        pvcStrategy: per-user
-                       description: Workspaces persistent storage.
++                        autoProvision: true
+                         template: <username>-che
+                       description: User's default namespace.
                        properties:
--                        pvc:
--                          description: PVC settings.
-+                        perUserStrategyPvcConfig:
-+                          description: PVC settings when using the `per-user` PVC
-+                            strategy.
-+                          properties:
-+                            claimSize:
-+                              description: Persistent Volume Claim size. To update
-+                                the claim size, the storage class that provisions
-+                                it must support resizing.
-+                              type: string
-+                            storageClass:
-+                              description: Storage class for the Persistent Volume
-+                                Claim. When omitted or left blank, a default storage
-+                                class is used.
-+                              type: string
-+                          type: object
-+                        perWorkspaceStrategyPvcConfig:
-+                          description: PVC settings when using the `per-workspace`
-+                            PVC strategy.
-                           properties:
-                             claimSize:
-                               description: Persistent Volume Claim size. To update
-@@ -7105,12 +7144,15 @@
-                               type: string
-                           type: object
-                         pvcStrategy:
--                          default: common
--                          description: Persistent volume claim strategy for the Che
--                            server. Only the `common` strategy (all workspaces PVCs
--                            in one volume) is supported . For details, see https://github.com/eclipse/che/issues/21185.
-+                          default: per-user
-+                          description: 'Persistent volume claim strategy for the Che
-+                            server. The supported strategies are: `per-user` (all
-+                            workspaces PVCs in one volume) and ''per-workspace'' (each
-+                            workspace is given its own individual PVC). For details,
-+                            see https://github.com/eclipse/che/issues/21185.'
-                           enum:
-                             - common
-+                            - per-user
-                             - per-workspace
++                        autoProvision:
++                          default: true
++                          description: Indicates if is allowed to automatically create
++                            a user namespace. If it set to false, then user namespace
++                            must be pre-created by a cluster administrator.
++                          type: boolean
+                         template:
+                           default: <username>-che
+                           description: If you don't create the user namespaces in
+@@ -7211,6 +7084,81 @@
                            type: string
                        type: object
+                   type: object
++                gitServices:
++                  description: A configuration that allows users to work with remote
++                    Git repositories.
++                  properties:
++                    bitbucket:
++                      description: Enables users to work with repositories hosted
++                        on Bitbucket (bitbucket.org or self-hosted).
++                      items:
++                        description: BitBucketService enables users to work with repositories
++                          hosted on Bitbucket (bitbucket.org or self-hosted).
++                        properties:
++                          endpoint:
++                            default: https://bitbucket.org
++                            description: Bitbucket server endpoint URL.
++                            type: string
++                          secretName:
++                            description: 'Kubernetes secret, that contains Base64-encoded
++                              Bitbucket OAuth 1.0 or OAuth 2.0 data. For OAuth 1.0:
++                              private key, Bitbucket Application link consumer key
++                              and Bitbucket Application link shared secret must be
++                              stored in `private.key`, `consumer.key` and `shared_secret`
++                              keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/.
++                              For OAuth 2.0: Bitbucket OAuth consumer key and Bitbucket
++                              OAuth consumer secret must be stored in `id` and `secret`
++                              keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-the-bitbucket-cloud/.'
++                            type: string
++                        required:
++                          - secretName
++                        type: object
++                      type: array
++                    github:
++                      description: Enables users to work with repositories hosted
++                        on GitHub (github.com or GitHub Enterprise).
++                      items:
++                        description: GitHubService enables users to work with repositories
++                          hosted on GitHub (GitHub.com or GitHub Enterprise).
++                        properties:
++                          endpoint:
++                            default: https://github.com
++                            description: GitHub server endpoint URL.
++                            type: string
++                          secretName:
++                            description: 'Kubernetes secret, that contains Base64-encoded
++                              GitHub OAuth Client id and GitHub OAuth Client secret,
++                              that stored in `id` and `secret` keys respectively.
++                              See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
++                            type: string
++                        required:
++                          - endpoint
++                          - secretName
++                        type: object
++                      type: array
++                    gitlab:
++                      description: Enables users to work with repositories hosted
++                        on GitLab (gitlab.com or self-hosted).
++                      items:
++                        description: GitLabService enables users to work with repositories
++                          hosted on GitLab (gitlab.com or self-hosted).
++                        properties:
++                          endpoint:
++                            default: https://gitlab.com
++                            description: GitLab server endpoint URL.
++                            type: string
++                          secretName:
++                            description: 'Kubernetes secret, that contains Base64-encoded
++                              GitHub Application id and GitLab Application Client
++                              secret, that stored in `id` and `secret` keys respectively.
++                              See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
++                            type: string
++                        required:
++                          - endpoint
++                          - secretName
++                        type: object
++                      type: array
++                  type: object
+                 networking:
+                   default:
+                     auth:
