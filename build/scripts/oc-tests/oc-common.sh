@@ -79,10 +79,14 @@ discoverEclipseCheBundles() {
   local PREVIOUS_BUNDLE=$(echo "${BUNDLES}" | jq -s '.' | jq ". | map(. | select(.channelName == \"${CHANNEL}\"))" | yq -r '. |=sort_by(.csvName) | .[length - 2]')
 
   export LATEST_CSV_NAME=$(echo "${LATEST_BUNDLE}" | yq -r ".csvName")
-  export LATEST_VERSION=${LATEST_CSV_NAME#${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME}.v}
-
   export PREVIOUS_CSV_NAME=$(echo "${PREVIOUS_BUNDLE}" | yq -r ".csvName")
-  export PREVIOUS_VERSION=${PREVIOUS_CSV_NAME#${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME}.v}
+  if [[ ${CHANNEL} == "next" ]]; then
+    export LATEST_VERSION="next"
+    export PREVIOUS_VERSION="next"
+  else
+    export LATEST_VERSION=${LATEST_CSV_NAME#${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME}.v}
+    export PREVIOUS_VERSION=${PREVIOUS_CSV_NAME#${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME}.v}
+  fi
 
   echo "[INFO] PREVIOUS_CSV_NAME:         ${PREVIOUS_CSV_NAME}"
   echo "[INFO] PREVIOUS_VERSION:          ${PREVIOUS_VERSION}"
