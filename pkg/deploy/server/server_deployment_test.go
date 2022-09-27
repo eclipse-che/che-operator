@@ -221,19 +221,18 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 
 func TestMountGitHubOAuthEnvVar(t *testing.T) {
 	type testCase struct {
-		name                              string
-		initObjects                       []runtime.Object
-		expectedIdKeyPath                 string
-		expectedSecretKeyPath             string
-		expectedOAuthEndpoint             string
-		expectedDisableSubdomainIsolation string
-		expectedVolume                    corev1.Volume
-		expectedVolumeMount               corev1.VolumeMount
+		name                  string
+		initObjects           []runtime.Object
+		expectedIdKeyPath     string
+		expectedSecretKeyPath string
+		expectedOAuthEndpoint string
+		expectedVolume        corev1.Volume
+		expectedVolumeMount   corev1.VolumeMount
 	}
 
 	testCases := []testCase{
 		{
-			name: "Test #1",
+			name: "Test",
 			initObjects: []runtime.Object{
 				&corev1.Secret{
 					TypeMeta: metav1.TypeMeta{
@@ -258,10 +257,9 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 					},
 				},
 			},
-			expectedIdKeyPath:                 "/che-conf/oauth/github/id",
-			expectedSecretKeyPath:             "/che-conf/oauth/github/secret",
-			expectedOAuthEndpoint:             "endpoint_1",
-			expectedDisableSubdomainIsolation: "true",
+			expectedIdKeyPath:     "/che-conf/oauth/github/id",
+			expectedSecretKeyPath: "/che-conf/oauth/github/secret",
+			expectedOAuthEndpoint: "endpoint_1",
 			expectedVolume: corev1.Volume{
 				Name: "github-oauth-config",
 				VolumeSource: corev1.VolumeSource{
