@@ -321,7 +321,9 @@ func MountBitBucketOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1.D
 	if secret.Data["id"] != nil {
 		mountEnv(deployment, "CHE_OAUTH2_BITBUCKET_CLIENTID__FILEPATH", constants.BitBucketOAuthConfigMountPath+"/"+constants.BitBucketOAuthConfigClientIdFileName)
 	}
-	mountEnv(deployment, "CHE_OAUTH2_BITBUCKET_CLIENTSECRET__FILEPATH", constants.BitBucketOAuthConfigMountPath+"/"+constants.BitBucketOAuthConfigClientSecretFileName)
+	if secret.Data["secret"] != nil {
+		mountEnv(deployment, "CHE_OAUTH2_BITBUCKET_CLIENTSECRET__FILEPATH", constants.BitBucketOAuthConfigMountPath+"/"+constants.BitBucketOAuthConfigClientSecretFileName)
+	}
 
 	oauthEndpoint := secret.Annotations[constants.CheEclipseOrgScmServerEndpoint]
 	if oauthEndpoint != "" {
