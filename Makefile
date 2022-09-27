@@ -397,9 +397,6 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 	--channels $(CHANNEL) \
 	--default-channel $(CHANNEL)
 
-	# Remove service from the bundle since OLM create that itself
-	rm $${BUNDLE_PATH}/manifests/che-operator-service_v1_service.yaml
-
 	# Rename clusterserviceversion file
 	mv $${BUNDLE_PATH}/manifests/$(ECLIPSE_CHE_PACKAGE_NAME).clusterserviceversion.yaml $${CSV_PATH}
 
