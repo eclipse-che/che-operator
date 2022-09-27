@@ -321,7 +321,7 @@ func MountBitBucketOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1.D
 	if secret.Data["id"] != "" {
 		mountEnv(deployment, "CHE_OAUTH2_BITBUCKET_CLIENTID__FILEPATH", constants.BitBucketOAuthConfigMountPath+"/"+constants.BitBucketOAuthConfigClientIdFileName)
 	}
-	if secret.Data["secret"] != nil {
+	if secret.Data["secret"] != "" {
 		mountEnv(deployment, "CHE_OAUTH2_BITBUCKET_CLIENTSECRET__FILEPATH", constants.BitBucketOAuthConfigMountPath+"/"+constants.BitBucketOAuthConfigClientSecretFileName)
 	}
 
