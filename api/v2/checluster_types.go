@@ -587,6 +587,9 @@ type GitHubService struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:default:="https://github.com"
 	Endpoint string `json:"endpoint"`
+	// Disables subdomain isolation.
+	// +optional
+	DisableSubdomainIsolation *bool `json:"disableSubdomainIsolation,omitempty"`
 }
 
 // GitLabService enables users to work with repositories hosted on GitLab (gitlab.com or self-hosted).
