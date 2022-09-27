@@ -517,7 +517,7 @@ func TestMountGitHubDisableSubdomainIsolationEnvVar(t *testing.T) {
 			expectedDisableSubdomainIsolation: "",
 		},
 		{
-			name: "Test #3",
+			name: "Test #4",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
