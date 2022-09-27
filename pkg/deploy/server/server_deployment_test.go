@@ -222,7 +222,6 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 func TestMountGitHubOAuthEnvVar(t *testing.T) {
 	type testCase struct {
 		name                              string
-		cheCluster                        *chev2.CheCluster
 		initObjects                       []runtime.Object
 		expectedIdKeyPath                 string
 		expectedSecretKeyPath             string
@@ -235,23 +234,6 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "Test #1",
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "eclipse-che",
-					Namespace: "eclipse-che",
-				},
-				Spec: chev2.CheClusterSpec{
-					GitServices: chev2.CheClusterGitServices{
-						GitHub: []chev2.GitHubService{
-							{
-								DisableSubdomainIsolation: pointer.BoolPtr(true),
-								Endpoint:                  "endpoint_1",
-								SecretName:                "github-oauth-config",
-							},
-						},
-					},
-				},
-			},
 			initObjects: []runtime.Object{
 				&corev1.Secret{
 					TypeMeta: metav1.TypeMeta{
@@ -297,7 +279,7 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.GetDeployContext(testCase.cheCluster, testCase.initObjects)
+			ctx := test.GetDeployContext(nil, testCase.initObjects)
 
 			server := NewCheServerReconciler()
 			deployment, err := server.getDeploymentSpec(ctx)
