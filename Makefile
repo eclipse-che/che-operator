@@ -348,6 +348,11 @@ install-che-operands: generate manifests download-kustomize download-gateway-res
 	fi
 
 	$(K8S_CLI) scale deploy che-operator -n $(ECLIPSE_CHE_NAMESPACE) --replicas=0
+
+	# Disable Webhooks since che operator pod is scaled down
+	$(K8S_CLI) delete validatingwebhookconfiguration org.eclipse.che
+	$(K8S_CLI) patch crd checlusters.org.eclipse.che --patch '{"spec": {"conversion": null}}' --type=merge
+
 	$(MAKE) store_tls_cert
 	$(MAKE) create-checluster-cr
 
@@ -396,9 +401,6 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 	--output-dir $${BUNDLE_PATH} \
 	--channels $(CHANNEL) \
 	--default-channel $(CHANNEL)
-
-	# Remove service from the bundle since OLM create that itself
-	rm $${BUNDLE_PATH}/manifests/che-operator-service_v1_service.yaml
 
 	# Rename clusterserviceversion file
 	mv $${BUNDLE_PATH}/manifests/$(ECLIPSE_CHE_PACKAGE_NAME).clusterserviceversion.yaml $${CSV_PATH}

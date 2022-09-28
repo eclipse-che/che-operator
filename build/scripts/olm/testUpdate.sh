@@ -59,7 +59,7 @@ run() {
 
   discoverEclipseCheBundles ${CHANNEL}
 
-  if [[ "${PREVIOUS_VERSION}" == "${LATEST_VERSION}" ]]; then
+  if [[ "${PREVIOUS_CSV_NAME}" == "${LATEST_CSV_NAME}" ]]; then
     echo "[ERROR] Nothing to update. OLM channel '${CHANNEL}' contains only one bundle '${LATEST_CSV_NAME}'"
     exit 1
   fi
