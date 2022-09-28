@@ -4676,6 +4676,9 @@ spec:
                     items:
                       description: GitHubService enables users to work with repositories hosted on GitHub (GitHub.com or GitHub Enterprise).
                       properties:
+                        disableSubdomainIsolation:
+                          description: Disables subdomain isolation.
+                          type: boolean
                         endpoint:
                           default: https://github.com
                           description: GitHub server endpoint URL.
