@@ -278,18 +278,13 @@ func (c *WorkspacePermissionsReconciler) getWorkspacesPolicies() []rbacv1.Policy
 		},
 		{
 			APIGroups: []string{""},
-			Resources: []string{"persistentvolumeclaims", "configmaps"},
-			Verbs:     []string{"list"},
-		},
-		{
-			APIGroups: []string{""},
 			Resources: []string{"secrets"},
 			Verbs:     []string{"get", "patch", "list", "update", "create", "delete"},
 		},
 		{
 			APIGroups: []string{""},
 			Resources: []string{"persistentvolumeclaims"},
-			Verbs:     []string{"get", "create", "watch", "delete"},
+			Verbs:     []string{"get", "list", "create", "watch", "delete"},
 		},
 		{
 			APIGroups: []string{""},
@@ -299,7 +294,7 @@ func (c *WorkspacePermissionsReconciler) getWorkspacesPolicies() []rbacv1.Policy
 		{
 			APIGroups: []string{""},
 			Resources: []string{"services"},
-			Verbs:     []string{"create", "list", "delete"},
+			Verbs:     []string{"get", "create", "list", "delete"},
 		},
 		{
 			APIGroups: []string{""},
@@ -351,6 +346,11 @@ func (c *WorkspacePermissionsReconciler) getWorkspacesPolicies() []rbacv1.Policy
 			Resources: []string{"pods", "nodes"},
 			Verbs:     []string{"get", "list", "watch"},
 		},
+		{
+			APIGroups: []string{""},
+			Resources: []string{"namespaces"},
+			Verbs:     []string{"get"},
+		},
 	}
 	openshiftPolicies := []rbacv1.PolicyRule{
 		{
@@ -367,6 +367,11 @@ func (c *WorkspacePermissionsReconciler) getWorkspacesPolicies() []rbacv1.Policy
 			APIGroups: []string{"authorization.openshift.io"},
 			Resources: []string{"rolebindings"},
 			Verbs:     []string{"get", "update", "create"},
+		},
+		{
+			APIGroups: []string{"project.openshift.io"},
+			Resources: []string{"projects"},
+			Verbs:     []string{"get"},
 		},
 	}
 
