@@ -264,7 +264,7 @@ func (c *WorkspacePermissionsReconciler) getWorkspacesPolicies() []rbacv1.Policy
 		{
 			APIGroups: []string{""},
 			Resources: []string{"serviceaccounts"},
-			Verbs:     []string{"get", "create", "watch"},
+			Verbs:     []string{"get", "watch", "create"},
 		},
 		{
 			APIGroups: []string{""},
@@ -278,33 +278,28 @@ func (c *WorkspacePermissionsReconciler) getWorkspacesPolicies() []rbacv1.Policy
 		},
 		{
 			APIGroups: []string{""},
-			Resources: []string{"persistentvolumeclaims", "configmaps"},
-			Verbs:     []string{"list"},
-		},
-		{
-			APIGroups: []string{""},
 			Resources: []string{"secrets"},
-			Verbs:     []string{"get", "patch", "list", "update", "create", "delete"},
+			Verbs:     []string{"get", "list", "create", "update", "patch", "delete"},
 		},
 		{
 			APIGroups: []string{""},
 			Resources: []string{"persistentvolumeclaims"},
-			Verbs:     []string{"get", "create", "watch", "delete"},
+			Verbs:     []string{"get", "list", "watch", "create", "delete"},
 		},
 		{
 			APIGroups: []string{""},
 			Resources: []string{"pods"},
-			Verbs:     []string{"get", "create", "list", "watch", "delete"},
+			Verbs:     []string{"get", "list", "watch", "create", "delete"},
 		},
 		{
 			APIGroups: []string{""},
 			Resources: []string{"services"},
-			Verbs:     []string{"create", "list", "delete"},
+			Verbs:     []string{"get", "list", "create", "delete"},
 		},
 		{
 			APIGroups: []string{""},
 			Resources: []string{"configmaps"},
-			Verbs:     []string{"get", "patch", "list", "update", "create", "delete"},
+			Verbs:     []string{"get", "list", "create", "update", "patch", "delete"},
 		},
 		{
 			APIGroups: []string{""},
@@ -319,37 +314,42 @@ func (c *WorkspacePermissionsReconciler) getWorkspacesPolicies() []rbacv1.Policy
 		{
 			APIGroups: []string{"apps"},
 			Resources: []string{"deployments"},
-			Verbs:     []string{"get", "create", "list", "watch", "patch", "delete"},
+			Verbs:     []string{"get", "list", "watch", "create", "patch", "delete"},
 		},
 		{
 			APIGroups: []string{"apps"},
 			Resources: []string{"replicasets"},
-			Verbs:     []string{"list", "get", "patch", "delete"},
+			Verbs:     []string{"get", "list", "patch", "delete"},
 		},
 		{
 			APIGroups: []string{"extensions"},
 			Resources: []string{"ingresses"},
-			Verbs:     []string{"list", "create", "watch", "get", "delete"},
+			Verbs:     []string{"get", "list", "watch", "create", "delete"},
 		},
 		{
 			APIGroups: []string{"networking.k8s.io"},
 			Resources: []string{"ingresses"},
-			Verbs:     []string{"list", "create", "watch", "get", "delete"},
+			Verbs:     []string{"get", "list", "watch", "create", "delete"},
 		},
 		{
 			APIGroups: []string{"rbac.authorization.k8s.io"},
 			Resources: []string{"roles"},
-			Verbs:     []string{"get", "update", "create"},
+			Verbs:     []string{"get", "create", "update"},
 		},
 		{
 			APIGroups: []string{"rbac.authorization.k8s.io"},
 			Resources: []string{"rolebindings"},
-			Verbs:     []string{"get", "update", "create"},
+			Verbs:     []string{"get", "create", "update"},
 		},
 		{
 			APIGroups: []string{"metrics.k8s.io"},
 			Resources: []string{"pods", "nodes"},
 			Verbs:     []string{"get", "list", "watch"},
+		},
+		{
+			APIGroups: []string{""},
+			Resources: []string{"namespaces"},
+			Verbs:     []string{"get", "list"},
 		},
 	}
 	openshiftPolicies := []rbacv1.PolicyRule{
@@ -361,12 +361,17 @@ func (c *WorkspacePermissionsReconciler) getWorkspacesPolicies() []rbacv1.Policy
 		{
 			APIGroups: []string{"authorization.openshift.io"},
 			Resources: []string{"roles"},
-			Verbs:     []string{"get", "update", "create"},
+			Verbs:     []string{"get", "create", "update"},
 		},
 		{
 			APIGroups: []string{"authorization.openshift.io"},
 			Resources: []string{"rolebindings"},
-			Verbs:     []string{"get", "update", "create"},
+			Verbs:     []string{"get", "create", "update"},
+		},
+		{
+			APIGroups: []string{"project.openshift.io"},
+			Resources: []string{"projects"},
+			Verbs:     []string{"get"},
 		},
 	}
 
