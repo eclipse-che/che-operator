@@ -163,6 +163,22 @@ func (c *CertificatesReconciler) syncAdditionalCACertsConfigMapToCluster(ctx *ch
 		revisions += cm.ObjectMeta.Name + labelEqualSign + cm.ObjectMeta.ResourceVersion
 	}
 
+	// Add SelfSigned certificate for a git repository to the bundle
+	if ctx.CheCluster.Spec.DevEnvironments.TrustedCerts != nil && ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName != "" {
+		gitTrustedCertsConfig := &corev1.ConfigMap{}
+		exists, err := deploy.GetNamespacedObject(ctx, ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName, gitTrustedCertsConfig)
+		if err != nil {
+			return false, err
+		} else if exists && gitTrustedCertsConfig.Data["ca.crt"] != "" {
+			if revisions != "" {
+				revisions += labelCommaSign
+			}
+			revisions += gitTrustedCertsConfig.Name + labelEqualSign + gitTrustedCertsConfig.ResourceVersion
+
+			data[gitTrustedCertsConfig.Name+".ca.crt"] = gitTrustedCertsConfig.Data["ca.crt"]
+		}
+	}
+
 	mergedCAConfigMapSpec := deploy.GetConfigMapSpec(ctx, CheAllCACertsConfigMapName, data, defaults.GetCheFlavor())
 	mergedCAConfigMapSpec.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
 	mergedCAConfigMapSpec.ObjectMeta.Annotations[CheMergedCAConfigMapRevisionsAnnotationKey] = revisions
