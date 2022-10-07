@@ -128,3 +128,54 @@ func TestSyncAdditionalCACertsConfigMapToCluster(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, cacertMerged.ObjectMeta.Annotations["che.eclipse.org/included-configmaps"], "cert1-1.cert2-1")
 }
+
+func TestSyncGitSelfSignedCertificate(t *testing.T) {
+	cert := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "cert",
+			Namespace:       "eclipse-che",
+			ResourceVersion: "1",
+			Labels: map[string]string{
+				"app.kubernetes.io/component": "ca-bundle",
+				"app.kubernetes.io/part-of":   "che.eclipse.org"},
+		},
+		Data: map[string]string{"certifcate.crt": "che-certificate"},
+	}
+	gitTrustedCertsConfig := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "git-selfsigned-certificate",
+			Namespace:       "eclipse-che",
+			ResourceVersion: "1",
+			Labels: map[string]string{
+				"app.kubernetes.io/part-of": "che.eclipse.org",
+			},
+		},
+		Data: map[string]string{"ca.crt": "git-certificate"},
+	}
+	checluster := &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
+			Name:      "eclipse-che",
+		},
+		Spec: chev2.CheClusterSpec{
+			DevEnvironments: chev2.CheClusterDevEnvironments{
+				TrustedCerts: &chev2.TrustedCerts{
+					GitTrustedCertsConfigMapName: "git-selfsigned-certificate",
+				},
+			},
+		},
+	}
+	ctx := test.GetDeployContext(checluster, []runtime.Object{cert, gitTrustedCertsConfig})
+
+	certificates := NewCertificatesReconciler()
+	done, err := certificates.syncAdditionalCACertsConfigMapToCluster(ctx)
+	assert.Nil(t, err)
+	assert.True(t, done)
+
+	cacertMerged := &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheAllCACertsConfigMapName, Namespace: "eclipse-che"}, cacertMerged)
+	assert.Nil(t, err)
+	assert.Equal(t, "cert-1.git-selfsigned-certificate-1", cacertMerged.ObjectMeta.Annotations["che.eclipse.org/included-configmaps"])
+	assert.Equal(t, "git-certificate", cacertMerged.Data["git-selfsigned-certificate.ca.crt"])
+	assert.Equal(t, "che-certificate", cacertMerged.Data["cert.certifcate.crt"])
+}
