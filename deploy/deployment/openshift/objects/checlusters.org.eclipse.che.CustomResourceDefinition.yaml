@@ -4568,6 +4568,7 @@ spec:
                       type: object
                     type: array
                   disableContainerBuildCapabilities:
+                    default: false
                     description: Disables the container build capabilities.
                     type: boolean
                   nodeSelector:
