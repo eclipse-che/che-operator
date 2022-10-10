@@ -6893,8 +6893,6 @@ spec:
                           label.'
                         type: string
                     type: object
-                required:
-                - disableContainerBuildCapabilities
                 type: object
               gitServices:
                 description: A configuration that allows users to work with remote

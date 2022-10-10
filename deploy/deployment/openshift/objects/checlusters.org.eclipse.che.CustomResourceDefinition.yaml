@@ -4649,8 +4649,6 @@ spec:
                         description: 'The ConfigMap contains certificates to propagate to the Che components and to provide a particular configuration for Git. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/deploying-che-with-support-for-git-repositories-with-self-signed-certificates/ The ConfigMap must have a `app.kubernetes.io/part-of=che.eclipse.org` label.'
                         type: string
                     type: object
-                required:
-                - disableContainerBuildCapabilities
                 type: object
               gitServices:
                 description: A configuration that allows users to work with remote Git repositories.
