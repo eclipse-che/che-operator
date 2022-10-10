@@ -107,6 +107,8 @@ type CheClusterDevEnvironments struct {
 	// To disable workspace run timeout, set this value to -1.
 	// +kubebuilder:default:=-1
 	SecondsOfRunBeforeIdling *int32 `json:"secondsOfRunBeforeIdling,omitempty"`
+	// Disables the container build capabilities.
+	DisableContainerBuildCapabilities bool `json:"disableContainerBuildCapabilities"`
 }
 
 // Che components configuration.

@@ -6960,6 +6960,9 @@ spec:
                             type: array
                         type: object
                       type: array
+                    disableContainerBuildCapabilities:
+                      description: Disables the container build capabilities.
+                      type: boolean
                     nodeSelector:
                       additionalProperties:
                         type: string
@@ -7083,6 +7086,8 @@ spec:
                             label.'
                           type: string
                       type: object
+                  required:
+                    - disableContainerBuildCapabilities
                   type: object
                 gitServices:
                   description: A configuration that allows users to work with remote
