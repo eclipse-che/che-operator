@@ -520,6 +520,10 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 		return delConfigMap()
 	}
 
+	if gitCert.Data["ca.crt"] == "" {
+		return delConfigMap()
+	}
+
 	target := corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
@@ -535,9 +539,12 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 			}),
 		},
 		Data: map[string]string{
-			"host":        gitCert.Data["githost"],
 			"certificate": gitCert.Data["ca.crt"],
 		},
+	}
+
+	if gitCert.Data["githost"] != "" {
+		target.Data["host"] = gitCert.Data["githost"]
 	}
 
 	_, err := deploy.DoSync(deployContext, &target, deploy.ConfigMapDiffOpts)
