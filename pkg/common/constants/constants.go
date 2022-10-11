@@ -34,7 +34,7 @@ const (
 
 	// PluginRegistry
 	DefaultPluginRegistryMemoryLimit                          = "256Mi"
-	DefaultPluginRegistryMemoryLimitEmbeddedOpenVSXRegistry   = "2Gi"
+	DefaultPluginRegistryMemoryLimitEmbeddedOpenVSXRegistry   = "4Gi"
 	DefaultPluginRegistryMemoryRequest                        = "32Mi"
 	DefaultPluginRegistryMemoryRequestEmbeddedOpenVSXRegistry = "512Mi"
 	DefaultPluginRegistryCpuLimit                             = "500m"
