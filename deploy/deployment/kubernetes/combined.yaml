@@ -3609,6 +3609,7 @@ spec:
                   defaultNamespace:
                     autoProvision: true
                     template: <username>-che
+                  disableContainerBuildCapabilities: true
                   secondsOfInactivityBeforeIdling: 1800
                   secondsOfRunBeforeIdling: -1
                   storage:
@@ -4573,7 +4574,7 @@ spec:
                       type: object
                     type: array
                   disableContainerBuildCapabilities:
-                    default: false
+                    default: true
                     description: Disables the container build capabilities.
                     type: boolean
                   nodeSelector:
