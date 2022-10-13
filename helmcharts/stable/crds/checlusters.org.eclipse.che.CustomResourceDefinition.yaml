@@ -3604,6 +3604,7 @@ spec:
                   defaultNamespace:
                     autoProvision: true
                     template: <username>-che
+                  disableContainerBuildCapabilities: true
                   secondsOfInactivityBeforeIdling: 1800
                   secondsOfRunBeforeIdling: -1
                   storage:
@@ -4567,6 +4568,10 @@ spec:
                           type: array
                       type: object
                     type: array
+                  disableContainerBuildCapabilities:
+                    default: true
+                    description: Disables the container build capabilities.
+                    type: boolean
                   nodeSelector:
                     additionalProperties:
                       type: string
@@ -4671,6 +4676,9 @@ spec:
                     items:
                       description: GitHubService enables users to work with repositories hosted on GitHub (GitHub.com or GitHub Enterprise).
                       properties:
+                        disableSubdomainIsolation:
+                          description: Disables subdomain isolation.
+                          type: boolean
                         endpoint:
                           default: https://github.com
                           description: GitHub server endpoint URL.
