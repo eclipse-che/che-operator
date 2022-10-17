@@ -14,9 +14,10 @@ package main
 
 import (
 	"flag"
-	securityv1 "github.com/openshift/api/security/v1"
 	"os"
 	"time"
+
+	securityv1 "github.com/openshift/api/security/v1"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	devworkspaceinfra "github.com/devfile/devworkspace-operator/pkg/infrastructure"
