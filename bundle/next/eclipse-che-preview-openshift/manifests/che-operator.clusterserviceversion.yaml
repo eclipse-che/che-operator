@@ -77,7 +77,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.55.0-699.next
+  name: eclipse-che-preview-openshift.v7.56.0-703.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -141,6 +141,11 @@ spec:
               images.
             displayName: Container registry
             path: containerRegistry
+          - description: OpenShift security context constraint to build containers.
+            displayName: Open Shift Security Context Constraint
+            path: devEnvironments.containerBuildConfiguration.openShiftSecurityContextConstraint
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes:SecurityContextConstraint
           - description: Enables users to work with repositories hosted on Bitbucket
               (bitbucket.org or self-hosted).
             displayName: Bitbucket
@@ -1230,7 +1235,7 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.55.0-699.next
+  version: 7.56.0-703.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1
@@ -1253,6 +1258,27 @@ spec:
       targetPort: 9443
       type: ValidatingAdmissionWebhook
       webhookPath: /validate-org-eclipse-che-v2-checluster
+    - admissionReviewVersions:
+        - v1
+        - v1beta1
+      containerPort: 443
+      deploymentName: che-operator
+      failurePolicy: Fail
+      generateName: mchecluster.kb.io
+      rules:
+        - apiGroups:
+            - org.eclipse.che
+          apiVersions:
+            - v2
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - checlusters
+      sideEffects: None
+      targetPort: 9443
+      type: MutatingAdmissionWebhook
+      webhookPath: /mutate-org-eclipse-che-v2-checluster
     - admissionReviewVersions:
         - v1
         - v2

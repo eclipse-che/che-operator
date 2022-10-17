@@ -17,6 +17,8 @@ import (
 	"strings"
 	"testing"
 
+	securityv1 "github.com/openshift/api/security/v1"
+
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	routev1 "github.com/openshift/api/route/v1"
 
@@ -182,6 +184,7 @@ func GetDeployContext(cheCluster *chev2.CheCluster, initObjs []runtime.Object) *
 	scheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.Secret{})
 	scheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.Secret{})
 	scheme.AddKnownTypes(console.GroupVersion, &console.ConsoleLink{})
+	securityv1.Install(scheme)
 
 	initObjs = append(initObjs, cheCluster)
 	cli := fake.NewFakeClientWithScheme(scheme, initObjs...)

@@ -92,7 +92,6 @@ const (
 	CheEclipseOrgNamespace                = "che.eclipse.org/namespace"
 	CheEclipseOrgOAuthScmServer           = "che.eclipse.org/oauth-scm-server"
 	CheEclipseOrgScmServerEndpoint        = "che.eclipse.org/scm-server-endpoint"
-	CheEclipseOrgHash256                  = "che.eclipse.org/hash256"
 	CheEclipseOrgManagedAnnotationsDigest = "che.eclipse.org/managed-annotations-digest"
 
 	// DevEnvironments
@@ -118,7 +117,6 @@ const (
 	DevfileRegistryName                = "devfile-registry"
 	PluginRegistryName                 = "plugin-registry"
 	PostgresName                       = "postgres"
-	DevWorkspaceController             = "devworkspace-controller"
 	GatewayContainerName               = "gateway"
 	GatewayConfigSideCarContainerName  = "configbump"
 	GatewayAuthenticationContainerName = "oauth-proxy"
@@ -126,8 +124,10 @@ const (
 
 	// common
 	CheEclipseOrg         = "che.eclipse.org"
-	DevWorkspaceOperator  = "devworkspace-operator"
 	InstallOrUpdateFailed = "InstallOrUpdateFailed"
+
+	// DevWorkspace
+	DevWorkspaceServiceAccountName = "devworkspace-controller-serviceaccount"
 )
 
 var (

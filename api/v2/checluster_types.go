@@ -111,6 +111,9 @@ type CheClusterDevEnvironments struct {
 	// +optional
 	// +kubebuilder:default:=true
 	DisableContainerBuildCapabilities *bool `json:"disableContainerBuildCapabilities,omitempty"`
+	// Container build configuration.
+	// +optional
+	ContainerBuildConfiguration *ContainerBuildConfiguration `json:"containerBuildConfiguration,omitempty"`
 }
 
 // Che components configuration.
@@ -628,6 +631,15 @@ type BitBucketService struct {
 	Endpoint string `json:"endpoint,omitempty"`
 }
 
+// Container build configuration.
+type ContainerBuildConfiguration struct {
+	// OpenShift security context constraint to build containers.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:default:=container-build
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:io.kubernetes:SecurityContextConstraint"
+	OpenShiftSecurityContextConstraint string `json:"openShiftSecurityContextConstraint,omitempty"`
+}
+
 // GatewayPhase describes the different phases of the Che gateway lifecycle.
 type GatewayPhase string
 
@@ -796,4 +808,12 @@ func (c *CheCluster) GetIdentityToken() string {
 
 func (c *CheCluster) IsAccessTokenConfigured() bool {
 	return c.GetIdentityToken() == constants.AccessToken
+}
+
+func (c *CheCluster) IsContainerBuildCapabilitiesEnabled() bool {
+	return c.Spec.DevEnvironments.DisableContainerBuildCapabilities != nil && !*c.Spec.DevEnvironments.DisableContainerBuildCapabilities
+}
+
+func (c *CheCluster) IsOpenShiftSecurityContextConstraintSet() bool {
+	return c.Spec.DevEnvironments.ContainerBuildConfiguration != nil && c.Spec.DevEnvironments.ContainerBuildConfiguration.OpenShiftSecurityContextConstraint != ""
 }

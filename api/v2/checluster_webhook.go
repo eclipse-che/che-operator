@@ -40,6 +40,15 @@ func (r *CheCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
+var _ webhook.Defaulter = &CheCluster{}
+
+// Default implements webhook.Defaulter so a webhook will be registered for the type
+func (r *CheCluster) Default() {
+	if r.IsContainerBuildCapabilitiesEnabled() && r.Spec.DevEnvironments.ContainerBuildConfiguration == nil {
+		r.Spec.DevEnvironments.ContainerBuildConfiguration = &ContainerBuildConfiguration{}
+	}
+}
+
 var _ webhook.Validator = &CheCluster{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type

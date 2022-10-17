@@ -118,6 +118,7 @@ github.com/openshift/api/console/v1
 github.com/openshift/api/oauth/v1
 github.com/openshift/api/project/v1
 github.com/openshift/api/route/v1
+github.com/openshift/api/security/v1
 github.com/openshift/api/user/v1
 # github.com/operator-framework/api v0.10.0 => github.com/operator-framework/api v0.10.0
 ## explicit
