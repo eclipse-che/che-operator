@@ -88,11 +88,6 @@ spec:
       - description: Configuration of an alternative registry that stores Che images.
         displayName: Container registry
         path: containerRegistry
-      - description: OpenShift security context constraint to build containers.
-        displayName: Open Shift Security Context Constraint
-        path: devEnvironments.containerBuildConfiguration.openShiftSecurityContextConstraint
-        x-descriptors:
-        - urn:alm:descriptor:io.kubernetes:SecurityContextConstraint
       - description: Enables users to work with repositories hosted on Bitbucket (bitbucket.org
           or self-hosted).
         displayName: Bitbucket

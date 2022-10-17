@@ -636,7 +636,6 @@ type ContainerBuildConfiguration struct {
 	// OpenShift security context constraint to build containers.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:default:=container-build
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:io.kubernetes:SecurityContextConstraint"
 	OpenShiftSecurityContextConstraint string `json:"openShiftSecurityContextConstraint,omitempty"`
 }
 
