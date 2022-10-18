@@ -262,6 +262,9 @@ gen-chectl-tmpl: ## Generate Eclipse Che k8s deployment resources used by chectl
 	if [[ -f $${src}/org.eclipse.che.ValidatingWebhookConfiguration.yaml ]]; then
 	  cp $${src}/org.eclipse.che.ValidatingWebhookConfiguration.yaml $${cheOperatorDst}/org.eclipse.che.ValidatingWebhookConfiguration.yaml
 	fi
+	if [[ -f $${src}/org.eclipse.che.MutatingWebhookConfiguration.yaml ]]; then
+	  cp $${src}/org.eclipse.che.MutatingWebhookConfiguration.yaml $${cheOperatorDst}/org.eclipse.che.MutatingWebhookConfiguration.yaml
+	fi
 	cp $${src}/che-operator-serving-cert.Certificate.yaml $${cheOperatorDst}/serving-cert.yaml
 	cp $${src}/che-operator-selfsigned-issuer.Issuer.yaml $${cheOperatorDst}/selfsigned-issuer.yaml
 
@@ -351,6 +354,7 @@ install-che-operands: generate manifests download-kustomize download-gateway-res
 
 	# Disable Webhooks since che operator pod is scaled down
 	$(K8S_CLI) delete validatingwebhookconfiguration org.eclipse.che
+	$(K8S_CLI) delete mutatingwebhookconfiguration org.eclipse.che
 	$(K8S_CLI) patch crd checlusters.org.eclipse.che --patch '{"spec": {"conversion": null}}' --type=merge
 
 	$(MAKE) store_tls_cert

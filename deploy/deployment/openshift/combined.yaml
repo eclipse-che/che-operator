@@ -3616,6 +3616,14 @@ spec:
                     pvcStrategy: per-user
                 description: Development environment default configuration options.
                 properties:
+                  containerBuildConfiguration:
+                    description: Container build configuration.
+                    properties:
+                      openShiftSecurityContextConstraint:
+                        default: container-build
+                        description: OpenShift security context constraint to build containers.
+                        type: string
+                    type: object
                   defaultComponents:
                     default:
                     - container:
@@ -5612,6 +5620,15 @@ rules:
   - subjectaccessreviews
   verbs:
   - create
+- apiGroups:
+  - security.openshift.io
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - get
+  - create
+  - delete
+  - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -5831,6 +5848,38 @@ spec:
         secret:
           defaultMode: 420
           secretName: che-operator-webhook-server-cert
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  labels:
+    app.kubernetes.io/component: che-operator
+    app.kubernetes.io/instance: che
+    app.kubernetes.io/name: che
+    app.kubernetes.io/part-of: che.eclipse.org
+  name: org.eclipse.che
+webhooks:
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: che-operator-service
+      namespace: eclipse-che
+      path: /mutate-org-eclipse-che-v2-checluster
+  failurePolicy: Fail
+  name: mchecluster.kb.io
+  rules:
+  - apiGroups:
+    - org.eclipse.che
+    apiVersions:
+    - v2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - checlusters
+  sideEffects: None
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration

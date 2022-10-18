@@ -3611,6 +3611,14 @@ spec:
                     pvcStrategy: per-user
                 description: Development environment default configuration options.
                 properties:
+                  containerBuildConfiguration:
+                    description: Container build configuration.
+                    properties:
+                      openShiftSecurityContextConstraint:
+                        default: container-build
+                        description: OpenShift security context constraint to build containers.
+                        type: string
+                    type: object
                   defaultComponents:
                     default:
                     - container:

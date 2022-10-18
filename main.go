@@ -17,6 +17,8 @@ import (
 	"os"
 	"time"
 
+	securityv1 "github.com/openshift/api/security/v1"
+
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	devworkspaceinfra "github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -149,6 +151,7 @@ func init() {
 		utilruntime.Must(corev1.AddToScheme(scheme))
 		utilruntime.Must(consolev1.AddToScheme(scheme))
 		utilruntime.Must(projectv1.AddToScheme(scheme))
+		utilruntime.Must(securityv1.Install(scheme))
 	}
 }
 

@@ -34,7 +34,18 @@ func SyncClusterRoleBindingToCluster(
 	serviceAccountName string,
 	clusterRoleName string) (bool, error) {
 
-	crbSpec := getClusterRoleBindingSpec(deployContext, name, serviceAccountName, clusterRoleName)
+	crbSpec := getClusterRoleBindingSpec(deployContext, name, serviceAccountName, deployContext.CheCluster.Namespace, clusterRoleName)
+	return Sync(deployContext, crbSpec, crbDiffOpts)
+}
+
+func SyncClusterRoleBindingToClusterInGivenNamespace(
+	deployContext *chetypes.DeployContext,
+	name string,
+	serviceAccountName string,
+	serviceAccountNamespace string,
+	clusterRoleName string) (bool, error) {
+
+	crbSpec := getClusterRoleBindingSpec(deployContext, name, serviceAccountName, serviceAccountNamespace, clusterRoleName)
 	return Sync(deployContext, crbSpec, crbDiffOpts)
 }
 
@@ -45,7 +56,7 @@ func SyncClusterRoleBindingAndAddFinalizerToCluster(
 	clusterRoleName string) (bool, error) {
 
 	finalizer := GetFinalizerName(strings.ToLower(name) + ".crb")
-	crbSpec := getClusterRoleBindingSpec(deployContext, name, serviceAccountName, clusterRoleName)
+	crbSpec := getClusterRoleBindingSpec(deployContext, name, serviceAccountName, deployContext.CheCluster.Namespace, clusterRoleName)
 	return SyncAndAddFinalizer(deployContext, crbSpec, crbDiffOpts, finalizer)
 }
 
@@ -75,7 +86,8 @@ func getClusterRoleBindingSpec(
 	deployContext *chetypes.DeployContext,
 	name string,
 	serviceAccountName string,
-	roleName string) *rbac.ClusterRoleBinding {
+	serviceAccountNamespace string,
+	clusterRoleName string) *rbac.ClusterRoleBinding {
 
 	labels := GetLabels(defaults.GetCheFlavor())
 	clusterRoleBinding := &rbac.ClusterRoleBinding{
@@ -94,11 +106,11 @@ func getClusterRoleBindingSpec(
 			{
 				Kind:      rbac.ServiceAccountKind,
 				Name:      serviceAccountName,
-				Namespace: deployContext.CheCluster.Namespace,
+				Namespace: serviceAccountNamespace,
 			},
 		},
 		RoleRef: rbac.RoleRef{
-			Name:     roleName,
+			Name:     clusterRoleName,
 			APIGroup: "rbac.authorization.k8s.io",
 			Kind:     "ClusterRole",
 		},

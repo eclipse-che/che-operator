@@ -23,7 +23,6 @@ import (
 
 var crDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(rbac.ClusterRole{}, "TypeMeta", "ObjectMeta"),
-	cmpopts.IgnoreFields(rbac.PolicyRule{}, "ResourceNames", "NonResourceURLs"),
 }
 
 func SyncClusterRoleToCluster(
