@@ -615,8 +615,6 @@ func (r *CheUserNamespaceReconciler) reconcileSCCPrivileges(username string, tar
 	}
 
 	if username == "" {
-		// TODO ??
-		// TODO check user object ??
 		return fmt.Errorf("unknow user for %s namespace", targetNs)
 	}
 
