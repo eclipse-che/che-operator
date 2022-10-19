@@ -629,6 +629,12 @@ func (r *CheUserNamespaceReconciler) reconcileSCCPrivileges(username string, tar
 		return err
 	}
 
+	for _, subject := range userSccClusterRoleBinding.Subjects {
+		if subject.Name == username {
+			return nil
+		}
+	}
+
 	userSccClusterRoleBinding.Subjects = append(userSccClusterRoleBinding.Subjects, rbacv1.Subject{
 		Kind:     rbacv1.UserKind,
 		APIGroup: "rbac.authorization.k8s.io",

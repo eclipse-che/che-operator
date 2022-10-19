@@ -536,6 +536,14 @@ func TestUpdateSccClusterRoleBinding(t *testing.T) {
 	assert.Equal(t, 2, len(actualCrb.Subjects))
 	assert.Equal(t, "user_1", actualCrb.Subjects[0].Name)
 	assert.Equal(t, "user_2", actualCrb.Subjects[1].Name)
+
+	_, err = usernamespaceReconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: ns1.GetName()}})
+	assert.Nil(t, err)
+
+	actualCrb = &rbacv1.ClusterRoleBinding{}
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: containerbuild.GetUserSccRbacResourcesName()}, actualCrb)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(actualCrb.Subjects))
 }
 
 func TestWatchRulesForSecretsInSameNamespace(t *testing.T) {
