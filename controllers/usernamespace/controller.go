@@ -15,7 +15,11 @@ package usernamespace
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
+
+	containerbuild "github.com/eclipse-che/che-operator/pkg/deploy/container-build"
+	rbacv1 "k8s.io/api/rbac/v1"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -246,6 +250,11 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	if err = r.reconcileNodeSelectorAndTolerations(ctx, req.Name, checluster, deployContext); err != nil {
 		logrus.Errorf("Failed to reconcile the workspace pod node selector and tolerations in namespace '%s': %v", req.Name, err)
+		return ctrl.Result{}, err
+	}
+
+	if err = r.reconcileSCCPrivileges(info.Username, req.Name, checluster, deployContext); err != nil {
+		logrus.Errorf("Failed to reconcile the SCC privileges in namespace '%s': %v", req.Name, err)
 		return ctrl.Result{}, err
 	}
 
@@ -598,6 +607,43 @@ func (r *CheUserNamespaceReconciler) reconcileNodeSelectorAndTolerations(ctx con
 	ns.SetAnnotations(annos)
 
 	return r.client.Update(ctx, ns)
+}
+
+func (r *CheUserNamespaceReconciler) reconcileSCCPrivileges(username string, targetNs string, checluster *chev2.CheCluster, deployContext *chetypes.DeployContext) error {
+	if !checluster.IsOpenShiftSecurityContextConstraintSet() {
+		return nil
+	}
+
+	if username == "" {
+		// TODO ??
+		// TODO check user object ??
+		return fmt.Errorf("unknow user for %s namespace", targetNs)
+	}
+
+	userSccClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
+	if exists, err := deploy.Get(
+		deployContext,
+		types.NamespacedName{Name: containerbuild.GetUserSccRbacResourcesName()},
+		userSccClusterRoleBinding,
+	); !exists {
+		return err
+	}
+
+	userSccClusterRoleBinding.Subjects = append(userSccClusterRoleBinding.Subjects, rbacv1.Subject{
+		Kind:     rbacv1.UserKind,
+		APIGroup: "rbac.authorization.k8s.io",
+		Name:     username,
+	})
+
+	if _, err := deploy.Sync(
+		deployContext,
+		userSccClusterRoleBinding,
+		deploy.ClusterRoleBindingDiffOpts,
+	); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func prefixedName(name string) string {

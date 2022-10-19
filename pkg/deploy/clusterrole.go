@@ -21,7 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var crDiffOpts = cmp.Options{
+var ClusterRoleDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(rbac.ClusterRole{}, "TypeMeta", "ObjectMeta"),
 }
 
@@ -31,7 +31,7 @@ func SyncClusterRoleToCluster(
 	policyRule []rbac.PolicyRule) (bool, error) {
 
 	crSpec := getClusterRoleSpec(deployContext, name, policyRule)
-	return Sync(deployContext, crSpec, crDiffOpts)
+	return Sync(deployContext, crSpec, ClusterRoleDiffOpts)
 }
 
 func getClusterRoleSpec(deployContext *chetypes.DeployContext, name string, policyRule []rbac.PolicyRule) *rbac.ClusterRole {

@@ -18,6 +18,9 @@ import (
 	"sync"
 	"testing"
 
+	containerbuild "github.com/eclipse-che/che-operator/pkg/deploy/container-build"
+	rbacv1 "k8s.io/api/rbac/v1"
+
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	devworkspaceinfra "github.com/devfile/devworkspace-operator/pkg/infrastructure"
@@ -429,6 +432,110 @@ func TestCreatesDataInNamespace(t *testing.T) {
 				},
 			})
 	})
+}
+
+func TestUpdateSccClusterRoleBinding(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+	crb := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: containerbuild.GetUserSccRbacResourcesName(),
+		},
+	}
+
+	pr1 := &projectv1.Project{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "ns1",
+			Labels: map[string]string{
+				workspaceNamespaceOwnerUidLabel: "uid_1",
+			},
+			Annotations: map[string]string{
+				cheUsernameAnnotation: "user_1",
+			},
+		},
+	}
+
+	ns1 := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "ns1",
+			Labels: map[string]string{
+				workspaceNamespaceOwnerUidLabel: "uid_1",
+			},
+			Annotations: map[string]string{
+				cheUsernameAnnotation: "user_1",
+			},
+		},
+	}
+
+	pr2 := &projectv1.Project{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "ns2",
+			Labels: map[string]string{
+				workspaceNamespaceOwnerUidLabel: "uid_2",
+			},
+			Annotations: map[string]string{
+				cheUsernameAnnotation: "user_2",
+			},
+		},
+	}
+
+	ns2 := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "ns2",
+			Labels: map[string]string{
+				workspaceNamespaceOwnerUidLabel: "uid_2",
+			},
+			Annotations: map[string]string{
+				cheUsernameAnnotation: "user_2",
+			},
+		},
+	}
+
+	cheCluster := &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+		Spec: chev2.CheClusterSpec{
+			DevEnvironments: chev2.CheClusterDevEnvironments{
+				DisableContainerBuildCapabilities: pointer.BoolPtr(false),
+				ContainerBuildConfiguration: &chev2.ContainerBuildConfiguration{
+					OpenShiftSecurityContextConstraint: "container-build",
+				},
+			},
+			Networking: chev2.CheClusterSpecNetworking{
+				Domain: "root-domain",
+			},
+		},
+		Status: chev2.CheClusterStatus{
+			CheURL: "https://che-host",
+		},
+	}
+
+	allObjs := []runtime.Object{ns1, ns2, pr1, pr2, crb, cheCluster}
+	scheme, cl, usernamespaceReconciler := setup(infrastructure.OpenShiftv4, allObjs...)
+
+	// the reconciliation needs to run twice for it to be truly finished - we're setting up finalizers etc...
+	devworkspaceReconciler := devworkspace.New(cl, scheme)
+	if _, err := devworkspaceReconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := devworkspaceReconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"}}); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := usernamespaceReconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: ns1.GetName()}})
+	assert.Nil(t, err)
+
+	_, err = usernamespaceReconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: ns2.GetName()}})
+	assert.Nil(t, err)
+
+	actualCrb := &rbacv1.ClusterRoleBinding{}
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: containerbuild.GetUserSccRbacResourcesName()}, actualCrb)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(actualCrb.Subjects))
+	assert.Equal(t, "user_1", actualCrb.Subjects[0].Name)
+	assert.Equal(t, "user_2", actualCrb.Subjects[1].Name)
 }
 
 func TestWatchRulesForSecretsInSameNamespace(t *testing.T) {

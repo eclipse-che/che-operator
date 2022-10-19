@@ -24,7 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var crbDiffOpts = cmp.Options{
+var ClusterRoleBindingDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(rbac.ClusterRoleBinding{}, "TypeMeta", "ObjectMeta"),
 }
 
@@ -35,18 +35,7 @@ func SyncClusterRoleBindingToCluster(
 	clusterRoleName string) (bool, error) {
 
 	crbSpec := getClusterRoleBindingSpec(deployContext, name, serviceAccountName, deployContext.CheCluster.Namespace, clusterRoleName)
-	return Sync(deployContext, crbSpec, crbDiffOpts)
-}
-
-func SyncClusterRoleBindingToClusterInGivenNamespace(
-	deployContext *chetypes.DeployContext,
-	name string,
-	serviceAccountName string,
-	serviceAccountNamespace string,
-	clusterRoleName string) (bool, error) {
-
-	crbSpec := getClusterRoleBindingSpec(deployContext, name, serviceAccountName, serviceAccountNamespace, clusterRoleName)
-	return Sync(deployContext, crbSpec, crbDiffOpts)
+	return Sync(deployContext, crbSpec, ClusterRoleBindingDiffOpts)
 }
 
 func SyncClusterRoleBindingAndAddFinalizerToCluster(
@@ -57,7 +46,7 @@ func SyncClusterRoleBindingAndAddFinalizerToCluster(
 
 	finalizer := GetFinalizerName(strings.ToLower(name) + ".crb")
 	crbSpec := getClusterRoleBindingSpec(deployContext, name, serviceAccountName, deployContext.CheCluster.Namespace, clusterRoleName)
-	return SyncAndAddFinalizer(deployContext, crbSpec, crbDiffOpts, finalizer)
+	return SyncAndAddFinalizer(deployContext, crbSpec, ClusterRoleBindingDiffOpts, finalizer)
 }
 
 func ReconcileClusterRoleBindingFinalizer(deployContext *chetypes.DeployContext, name string) error {

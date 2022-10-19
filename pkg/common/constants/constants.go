@@ -128,6 +128,7 @@ const (
 
 	// DevWorkspace
 	DevWorkspaceServiceAccountName = "devworkspace-controller-serviceaccount"
+	DefaultContainerBuildSccName   = "container-build"
 )
 
 var (

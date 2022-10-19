@@ -401,3 +401,4 @@ rules:
       - create
       - delete
       - update
+      - use
