@@ -437,12 +437,6 @@ func TestCreatesDataInNamespace(t *testing.T) {
 func TestUpdateSccClusterRoleBinding(t *testing.T) {
 	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 
-	crb := &rbacv1.ClusterRoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: containerbuild.GetUserSccRbacResourcesName(),
-		},
-	}
-
 	pr1 := &projectv1.Project{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "ns1",
@@ -463,30 +457,6 @@ func TestUpdateSccClusterRoleBinding(t *testing.T) {
 			},
 			Annotations: map[string]string{
 				cheUsernameAnnotation: "user_1",
-			},
-		},
-	}
-
-	pr2 := &projectv1.Project{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "ns2",
-			Labels: map[string]string{
-				workspaceNamespaceOwnerUidLabel: "uid_2",
-			},
-			Annotations: map[string]string{
-				cheUsernameAnnotation: "user_2",
-			},
-		},
-	}
-
-	ns2 := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "ns2",
-			Labels: map[string]string{
-				workspaceNamespaceOwnerUidLabel: "uid_2",
-			},
-			Annotations: map[string]string{
-				cheUsernameAnnotation: "user_2",
 			},
 		},
 	}
@@ -512,7 +482,7 @@ func TestUpdateSccClusterRoleBinding(t *testing.T) {
 		},
 	}
 
-	allObjs := []runtime.Object{ns1, ns2, pr1, pr2, crb, cheCluster}
+	allObjs := []runtime.Object{ns1, pr1, cheCluster}
 	scheme, cl, usernamespaceReconciler := setup(infrastructure.OpenShiftv4, allObjs...)
 
 	// the reconciliation needs to run twice for it to be truly finished - we're setting up finalizers etc...
@@ -527,23 +497,10 @@ func TestUpdateSccClusterRoleBinding(t *testing.T) {
 	_, err := usernamespaceReconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: ns1.GetName()}})
 	assert.Nil(t, err)
 
-	_, err = usernamespaceReconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: ns2.GetName()}})
+	rb := &rbacv1.RoleBinding{}
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: containerbuild.GetUserSccRbacResourcesName(), Namespace: "ns1"}, rb)
 	assert.Nil(t, err)
-
-	actualCrb := &rbacv1.ClusterRoleBinding{}
-	err = cl.Get(context.TODO(), types.NamespacedName{Name: containerbuild.GetUserSccRbacResourcesName()}, actualCrb)
-	assert.Nil(t, err)
-	assert.Equal(t, 2, len(actualCrb.Subjects))
-	assert.Equal(t, "user_1", actualCrb.Subjects[0].Name)
-	assert.Equal(t, "user_2", actualCrb.Subjects[1].Name)
-
-	_, err = usernamespaceReconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: ns1.GetName()}})
-	assert.Nil(t, err)
-
-	actualCrb = &rbacv1.ClusterRoleBinding{}
-	err = cl.Get(context.TODO(), types.NamespacedName{Name: containerbuild.GetUserSccRbacResourcesName()}, actualCrb)
-	assert.Nil(t, err)
-	assert.Equal(t, 2, len(actualCrb.Subjects))
+	assert.Equal(t, "user_1", rb.Subjects[0].Name)
 }
 
 func TestWatchRulesForSecretsInSameNamespace(t *testing.T) {

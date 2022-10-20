@@ -610,40 +610,48 @@ func (r *CheUserNamespaceReconciler) reconcileNodeSelectorAndTolerations(ctx con
 }
 
 func (r *CheUserNamespaceReconciler) reconcileSCCPrivileges(username string, targetNs string, checluster *chev2.CheCluster, deployContext *chetypes.DeployContext) error {
-	if !checluster.IsOpenShiftSecurityContextConstraintSet() {
-		return nil
-	}
-
-	if username == "" {
-		return fmt.Errorf("unknow user for %s namespace", targetNs)
-	}
-
-	userSccClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
-	if exists, err := deploy.Get(
-		deployContext,
-		types.NamespacedName{Name: containerbuild.GetUserSccRbacResourcesName()},
-		userSccClusterRoleBinding,
-	); !exists {
+	delRoleBinding := func() error {
+		_, err := deploy.Delete(
+			deployContext,
+			types.NamespacedName{Name: containerbuild.GetUserSccRbacResourcesName(), Namespace: targetNs},
+			&rbacv1.RoleBinding{})
 		return err
 	}
 
-	for _, subject := range userSccClusterRoleBinding.Subjects {
-		if subject.Name == username {
-			return nil
-		}
+	if !checluster.IsContainerBuildCapabilitiesEnabled() {
+		return delRoleBinding()
 	}
 
-	userSccClusterRoleBinding.Subjects = append(userSccClusterRoleBinding.Subjects, rbacv1.Subject{
-		Kind:     rbacv1.UserKind,
-		APIGroup: "rbac.authorization.k8s.io",
-		Name:     username,
-	})
+	if username == "" {
+		_ = delRoleBinding()
+		return fmt.Errorf("unknown user for %s namespace", targetNs)
+	}
 
-	if _, err := deploy.Sync(
-		deployContext,
-		userSccClusterRoleBinding,
-		deploy.ClusterRoleBindingDiffOpts,
-	); err != nil {
+	rb := &rbacv1.RoleBinding{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "RoleBinding",
+			APIVersion: rbacv1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      containerbuild.GetUserSccRbacResourcesName(),
+			Namespace: targetNs,
+			Labels:    map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg},
+		},
+		RoleRef: rbacv1.RoleRef{
+			Name:     containerbuild.GetUserSccRbacResourcesName(),
+			Kind:     "ClusterRole",
+			APIGroup: "rbac.authorization.k8s.io",
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:     rbacv1.UserKind,
+				APIGroup: "rbac.authorization.k8s.io",
+				Name:     username,
+			},
+		},
+	}
+
+	if _, err := deploy.Sync(deployContext, rb, deploy.RollBindingDiffOpts); err != nil {
 		return err
 	}
 

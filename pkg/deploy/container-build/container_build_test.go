@@ -60,7 +60,6 @@ func TestContainerBuildReconciler(t *testing.T) {
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: GetDevWorkspaceSccRbacResourcesName()}, &rbacv1.ClusterRole{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: GetDevWorkspaceSccRbacResourcesName()}, &rbacv1.ClusterRoleBinding{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: GetUserSccRbacResourcesName()}, &rbacv1.ClusterRole{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: GetUserSccRbacResourcesName()}, &rbacv1.ClusterRoleBinding{}))
 	assert.True(t, utils.Contains(ctx.CheCluster.Finalizers, containerBuildReconciler.getFinalizerName()))
 
 	// Disable Container build capabilities
@@ -74,7 +73,6 @@ func TestContainerBuildReconciler(t *testing.T) {
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: GetDevWorkspaceSccRbacResourcesName()}, &rbacv1.ClusterRole{}))
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: GetDevWorkspaceSccRbacResourcesName()}, &rbacv1.ClusterRoleBinding{}))
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: GetUserSccRbacResourcesName()}, &rbacv1.ClusterRole{}))
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: GetUserSccRbacResourcesName()}, &rbacv1.ClusterRoleBinding{}))
 	assert.False(t, utils.Contains(ctx.CheCluster.Finalizers, containerBuildReconciler.getFinalizerName()))
 }
 
@@ -102,7 +100,6 @@ func TestSyncAndRemoveRBAC(t *testing.T) {
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: GetDevWorkspaceSccRbacResourcesName()}, &rbacv1.ClusterRole{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: GetDevWorkspaceSccRbacResourcesName()}, &rbacv1.ClusterRoleBinding{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: GetUserSccRbacResourcesName()}, &rbacv1.ClusterRole{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: GetUserSccRbacResourcesName()}, &rbacv1.ClusterRoleBinding{}))
 
 	done, err = containerBuildReconciler.removeRBAC(ctx)
 	assert.True(t, done)
@@ -111,7 +108,6 @@ func TestSyncAndRemoveRBAC(t *testing.T) {
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: GetDevWorkspaceSccRbacResourcesName()}, &rbacv1.ClusterRole{}))
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: GetDevWorkspaceSccRbacResourcesName()}, &rbacv1.ClusterRoleBinding{}))
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: GetUserSccRbacResourcesName()}, &rbacv1.ClusterRole{}))
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: GetUserSccRbacResourcesName()}, &rbacv1.ClusterRoleBinding{}))
 }
 
 func TestSyncAndRemoveSCC(t *testing.T) {

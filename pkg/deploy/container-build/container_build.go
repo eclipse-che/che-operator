@@ -123,10 +123,6 @@ func (cb *ContainerBuildReconciler) syncRBAC(ctx *chetypes.DeployContext) (bool,
 		return false, err
 	}
 
-	if _, err := deploy.CreateIfNotExists(ctx, cb.getUserSccClusterRoleBindingSpec()); err != nil {
-		return false, err
-	}
-
 	return true, nil
 }
 
@@ -159,10 +155,6 @@ func (cb *ContainerBuildReconciler) removeRBAC(ctx *chetypes.DeployContext) (boo
 	}
 
 	if done, err := deploy.DeleteClusterObject(ctx, GetUserSccRbacResourcesName(), &rbacv1.ClusterRole{}); !done {
-		return false, err
-	}
-
-	if done, err := deploy.DeleteClusterObject(ctx, GetUserSccRbacResourcesName(), &rbacv1.ClusterRoleBinding{}); !done {
 		return false, err
 	}
 
@@ -247,24 +239,6 @@ func (cb *ContainerBuildReconciler) getUserSccPolicyRules(ctx *chetypes.DeployCo
 	}
 }
 
-func (cb *ContainerBuildReconciler) getUserSccClusterRoleBindingSpec() *rbacv1.ClusterRoleBinding {
-	return &rbacv1.ClusterRoleBinding{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ClusterRoleBinding",
-			APIVersion: rbacv1.SchemeGroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   GetUserSccRbacResourcesName(),
-			Labels: deploy.GetLabels(defaults.GetCheFlavor()),
-		},
-		RoleRef: rbacv1.RoleRef{
-			Name:     GetUserSccRbacResourcesName(),
-			Kind:     "ClusterRole",
-			APIGroup: "rbac.authorization.k8s.io",
-		},
-	}
-}
-
 func (cb *ContainerBuildReconciler) getSccSpec(ctx *chetypes.DeployContext) *securityv1.SecurityContextConstraints {
 	return &securityv1.SecurityContextConstraints{
 		TypeMeta: metav1.TypeMeta{
@@ -306,9 +280,9 @@ func (cb *ContainerBuildReconciler) getSccSpec(ctx *chetypes.DeployContext) *sec
 }
 
 func GetUserSccRbacResourcesName() string {
-	return defaults.GetCheFlavor() + "-user-container-build-scc"
+	return defaults.GetCheFlavor() + "-user-container-build"
 }
 
 func GetDevWorkspaceSccRbacResourcesName() string {
-	return "dev-workspace-container-build-scc"
+	return "dev-workspace-container-build"
 }
