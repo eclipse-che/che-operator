@@ -33,6 +33,7 @@ const (
 	chePartOfLabelValue             string = "che.eclipse.org"
 	cheComponentLabel               string = "app.kubernetes.io/component"
 	cheComponentLabelValue          string = "workspaces-namespace"
+	cheUsernameAnnotation           string = "che.eclipse.org/username"
 )
 
 type namespaceCache struct {
@@ -43,6 +44,7 @@ type namespaceCache struct {
 
 type namespaceInfo struct {
 	IsWorkspaceNamespace bool
+	Username             string
 	CheCluster           *types.NamespacedName
 }
 
@@ -120,6 +122,11 @@ func (c *namespaceCache) examineNamespaceUnsafe(ctx context.Context, ns string) 
 		labels = map[string]string{}
 	}
 
+	annotations := namespace.GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+
 	// ownerUid is the legacy label that we used to use. Let's not break the existing workspace namespaces and still
 	// recognize it
 	ownerUid := labels[workspaceNamespaceOwnerUidLabel]
@@ -127,9 +134,11 @@ func (c *namespaceCache) examineNamespaceUnsafe(ctx context.Context, ns string) 
 	cheNamespace := labels[cheNamespaceLabel]
 	partOfLabel := labels[chePartOfLabel]
 	componentLabel := labels[cheComponentLabel]
+	username := annotations[cheUsernameAnnotation]
 
 	ret := namespaceInfo{
 		IsWorkspaceNamespace: ownerUid != "" || (partOfLabel == chePartOfLabelValue && componentLabel == cheComponentLabelValue),
+		Username:             username,
 		CheCluster: &types.NamespacedName{
 			Name:      cheName,
 			Namespace: cheNamespace,

@@ -39,6 +39,9 @@ func NewContainerBuildReconciler() *ContainerBuildReconciler {
 
 func (cb *ContainerBuildReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	if ctx.CheCluster.IsContainerBuildCapabilitiesEnabled() {
+		// If container build capabilities are enabled, then container build configuration is supposed to be set
+		// with default values, see `api/v2/checluster_webhook.go` and `api/v2/checluster_types.go` (for default values).
+		// The check below to avoid NPE while CheCluster is not updated with defaults.
 		if ctx.CheCluster.IsOpenShiftSecurityContextConstraintSet() {
 			if done, err := cb.syncSCC(ctx); !done {
 				return reconcile.Result{}, false, err
@@ -91,40 +94,121 @@ func (cb *ContainerBuildReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 }
 
 func (cb *ContainerBuildReconciler) syncSCC(ctx *chetypes.DeployContext) (bool, error) {
-	if exists, err := deploy.GetClusterObject(
-		ctx,
-		ctx.CheCluster.Spec.DevEnvironments.ContainerBuildConfiguration.OpenShiftSecurityContextConstraint,
-		&securityv1.SecurityContextConstraints{},
-	); err != nil {
-		return false, nil
-	} else if exists {
-		// Don't override existed SCC
-		return true, nil
-	}
-
-	return deploy.Sync(ctx, cb.getSCCSpec(ctx))
+	_, err := deploy.CreateIfNotExists(ctx, cb.getSccSpec(ctx))
+	return err == nil, err
 }
 
 func (cb *ContainerBuildReconciler) syncRBAC(ctx *chetypes.DeployContext) (bool, error) {
-	if done, err := deploy.SyncClusterRoleToCluster(ctx, cb.getClusterRoleName(), cb.getPolicyRules(ctx)); !done {
+	if done, err := deploy.SyncClusterRoleToCluster(
+		ctx,
+		GetDevWorkspaceSccRbacResourcesName(),
+		cb.getDevWorkspaceSccPolicyRules(ctx),
+	); !done {
 		return false, err
 	}
 
-	if devWorkspaceServiceAccountNamespace, err := cb.getDevWorkspaceServiceAccountNamespace(ctx); devWorkspaceServiceAccountNamespace == "" {
+	if crb, err := cb.getDevWorkspaceSccClusterRoleBindingSpec(ctx); err != nil {
 		return false, err
 	} else {
-		return deploy.SyncClusterRoleBindingToClusterInGivenNamespace(
-			ctx,
-			cb.getClusterRoleBindingName(),
-			constants.DevWorkspaceServiceAccountName,
-			devWorkspaceServiceAccountNamespace,
-			cb.getClusterRoleName())
+		if done, err := deploy.Sync(ctx, crb, deploy.ClusterRoleBindingDiffOpts); !done {
+			return false, err
+		}
 	}
+
+	if done, err := deploy.SyncClusterRoleToCluster(
+		ctx,
+		GetUserSccRbacResourcesName(),
+		cb.getUserSccPolicyRules(ctx),
+	); !done {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (cb *ContainerBuildReconciler) removeSCC(ctx *chetypes.DeployContext) (bool, error) {
+	sccName := constants.DefaultContainerBuildSccName
+	if ctx.CheCluster.IsOpenShiftSecurityContextConstraintSet() {
+		sccName = ctx.CheCluster.Spec.DevEnvironments.ContainerBuildConfiguration.OpenShiftSecurityContextConstraint
+	}
+
+	scc := &securityv1.SecurityContextConstraints{}
+	if exists, err := deploy.GetClusterObject(ctx, sccName, scc); !exists {
+		return err == nil, err
+	}
+
+	if scc.Labels[constants.KubernetesManagedByLabelKey] == deploy.GetManagedByLabel() {
+		// Removes only if it is managed by operator
+		return deploy.DeleteClusterObject(ctx, sccName, &securityv1.SecurityContextConstraints{})
+	}
+
+	return true, nil
+}
+
+func (cb *ContainerBuildReconciler) removeRBAC(ctx *chetypes.DeployContext) (bool, error) {
+	if done, err := deploy.DeleteClusterObject(ctx, GetDevWorkspaceSccRbacResourcesName(), &rbacv1.ClusterRole{}); !done {
+		return false, err
+	}
+
+	if done, err := deploy.DeleteClusterObject(ctx, GetDevWorkspaceSccRbacResourcesName(), &rbacv1.ClusterRoleBinding{}); !done {
+		return false, err
+	}
+
+	if done, err := deploy.DeleteClusterObject(ctx, GetUserSccRbacResourcesName(), &rbacv1.ClusterRole{}); !done {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (cb *ContainerBuildReconciler) getFinalizerName() string {
+	return "container-build.finalizers.che.eclipse.org"
+}
+
+func (cb *ContainerBuildReconciler) getDevWorkspaceSccPolicyRules(ctx *chetypes.DeployContext) []rbacv1.PolicyRule {
+	return []rbacv1.PolicyRule{
+		{
+			APIGroups:     []string{"security.openshift.io"},
+			Resources:     []string{"securitycontextconstraints"},
+			Verbs:         []string{"get", "update"},
+			ResourceNames: []string{ctx.CheCluster.Spec.DevEnvironments.ContainerBuildConfiguration.OpenShiftSecurityContextConstraint},
+		},
+	}
+}
+
+func (cb *ContainerBuildReconciler) getDevWorkspaceSccClusterRoleBindingSpec(ctx *chetypes.DeployContext) (*rbacv1.ClusterRoleBinding, error) {
+	devWorkspaceServiceAccountNamespace, err := cb.getDevWorkspaceServiceAccountNamespace(ctx)
+	if devWorkspaceServiceAccountNamespace == "" {
+		return nil, err
+	}
+
+	return &rbacv1.ClusterRoleBinding{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ClusterRoleBinding",
+			APIVersion: rbacv1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   GetDevWorkspaceSccRbacResourcesName(),
+			Labels: deploy.GetLabels(defaults.GetCheFlavor()),
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      rbacv1.ServiceAccountKind,
+				Name:      constants.DevWorkspaceServiceAccountName,
+				Namespace: devWorkspaceServiceAccountNamespace,
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			Name:     GetDevWorkspaceSccRbacResourcesName(),
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+		},
+	}, nil
 }
 
 func (cb *ContainerBuildReconciler) getDevWorkspaceServiceAccountNamespace(ctx *chetypes.DeployContext) (string, error) {
 	crb := &rbacv1.ClusterRoleBinding{}
-	if exists, err := deploy.GetClusterObject(ctx, cb.getClusterRoleBindingName(), crb); err != nil {
+	if exists, err := deploy.GetClusterObject(ctx, GetDevWorkspaceSccRbacResourcesName(), crb); err != nil {
 		return "", err
 	} else if exists {
 		return crb.Subjects[0].Namespace, nil
@@ -144,62 +228,18 @@ func (cb *ContainerBuildReconciler) getDevWorkspaceServiceAccountNamespace(ctx *
 	return "", fmt.Errorf("ServiceAccount %s not found", constants.DevWorkspaceServiceAccountName)
 }
 
-func (cb *ContainerBuildReconciler) removeSCC(ctx *chetypes.DeployContext) (bool, error) {
-	if ctx.CheCluster.Spec.DevEnvironments.ContainerBuildConfiguration == nil {
-		return true, nil
-	}
-
-	sccName := ctx.CheCluster.Spec.DevEnvironments.ContainerBuildConfiguration.OpenShiftSecurityContextConstraint
-	if sccName != "" {
-		scc := &securityv1.SecurityContextConstraints{}
-		if exists, err := deploy.GetClusterObject(ctx, sccName, scc); !exists {
-			return err == nil, err
-		}
-
-		if scc.Labels[constants.KubernetesManagedByLabelKey] == deploy.GetManagedByLabel() {
-			// Removes only if it is managed by operator
-			return deploy.DeleteClusterObject(ctx, sccName, &securityv1.SecurityContextConstraints{})
-		}
-	}
-
-	return true, nil
-}
-
-func (cb *ContainerBuildReconciler) removeRBAC(ctx *chetypes.DeployContext) (bool, error) {
-	if done, err := deploy.DeleteClusterObject(ctx, cb.getClusterRoleName(), &rbacv1.ClusterRole{}); !done {
-		return false, err
-	}
-
-	if done, err := deploy.DeleteClusterObject(ctx, cb.getClusterRoleBindingName(), &rbacv1.ClusterRoleBinding{}); !done {
-		return false, err
-	}
-
-	return true, nil
-}
-
-func (cb *ContainerBuildReconciler) getClusterRoleName() string {
-	return defaults.GetCheFlavor() + "-container-build-scc"
-}
-func (cb *ContainerBuildReconciler) getClusterRoleBindingName() string {
-	return defaults.GetCheFlavor() + "-container-build-scc"
-}
-
-func (cb *ContainerBuildReconciler) getFinalizerName() string {
-	return "container-build.finalizers.che.eclipse.org"
-}
-
-func (cb *ContainerBuildReconciler) getPolicyRules(ctx *chetypes.DeployContext) []rbacv1.PolicyRule {
+func (cb *ContainerBuildReconciler) getUserSccPolicyRules(ctx *chetypes.DeployContext) []rbacv1.PolicyRule {
 	return []rbacv1.PolicyRule{
 		{
 			APIGroups:     []string{"security.openshift.io"},
 			Resources:     []string{"securitycontextconstraints"},
+			Verbs:         []string{"use"},
 			ResourceNames: []string{ctx.CheCluster.Spec.DevEnvironments.ContainerBuildConfiguration.OpenShiftSecurityContextConstraint},
-			Verbs:         []string{"get", "update"},
 		},
 	}
 }
 
-func (cb *ContainerBuildReconciler) getSCCSpec(ctx *chetypes.DeployContext) *securityv1.SecurityContextConstraints {
+func (cb *ContainerBuildReconciler) getSccSpec(ctx *chetypes.DeployContext) *securityv1.SecurityContextConstraints {
 	return &securityv1.SecurityContextConstraints{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "SecurityContextConstraints",
@@ -237,4 +277,12 @@ func (cb *ContainerBuildReconciler) getSCCSpec(ctx *chetypes.DeployContext) *sec
 			securityv1.FSTypeSecret,
 		},
 	}
+}
+
+func GetUserSccRbacResourcesName() string {
+	return defaults.GetCheFlavor() + "-user-container-build"
+}
+
+func GetDevWorkspaceSccRbacResourcesName() string {
+	return "dev-workspace-container-build"
 }

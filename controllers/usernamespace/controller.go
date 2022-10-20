@@ -15,7 +15,11 @@ package usernamespace
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
+
+	containerbuild "github.com/eclipse-che/che-operator/pkg/deploy/container-build"
+	rbacv1 "k8s.io/api/rbac/v1"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -246,6 +250,11 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	if err = r.reconcileNodeSelectorAndTolerations(ctx, req.Name, checluster, deployContext); err != nil {
 		logrus.Errorf("Failed to reconcile the workspace pod node selector and tolerations in namespace '%s': %v", req.Name, err)
+		return ctrl.Result{}, err
+	}
+
+	if err = r.reconcileSCCPrivileges(info.Username, req.Name, checluster, deployContext); err != nil {
+		logrus.Errorf("Failed to reconcile the SCC privileges in namespace '%s': %v", req.Name, err)
 		return ctrl.Result{}, err
 	}
 
@@ -598,6 +607,55 @@ func (r *CheUserNamespaceReconciler) reconcileNodeSelectorAndTolerations(ctx con
 	ns.SetAnnotations(annos)
 
 	return r.client.Update(ctx, ns)
+}
+
+func (r *CheUserNamespaceReconciler) reconcileSCCPrivileges(username string, targetNs string, checluster *chev2.CheCluster, deployContext *chetypes.DeployContext) error {
+	delRoleBinding := func() error {
+		_, err := deploy.Delete(
+			deployContext,
+			types.NamespacedName{Name: containerbuild.GetUserSccRbacResourcesName(), Namespace: targetNs},
+			&rbacv1.RoleBinding{})
+		return err
+	}
+
+	if !checluster.IsContainerBuildCapabilitiesEnabled() {
+		return delRoleBinding()
+	}
+
+	if username == "" {
+		_ = delRoleBinding()
+		return fmt.Errorf("unknown user for %s namespace", targetNs)
+	}
+
+	rb := &rbacv1.RoleBinding{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "RoleBinding",
+			APIVersion: rbacv1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      containerbuild.GetUserSccRbacResourcesName(),
+			Namespace: targetNs,
+			Labels:    map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg},
+		},
+		RoleRef: rbacv1.RoleRef{
+			Name:     containerbuild.GetUserSccRbacResourcesName(),
+			Kind:     "ClusterRole",
+			APIGroup: "rbac.authorization.k8s.io",
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:     rbacv1.UserKind,
+				APIGroup: "rbac.authorization.k8s.io",
+				Name:     username,
+			},
+		},
+	}
+
+	if _, err := deploy.Sync(deployContext, rb, deploy.RollBindingDiffOpts); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func prefixedName(name string) string {
