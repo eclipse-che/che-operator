@@ -17,6 +17,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -339,6 +340,144 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					StorageClassName: pointer.StringPtr("test-storage"),
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						Common: &quantity15Gi,
+					},
+				},
+			},
+		},
+		{
+			name: "Create DevWorkspaceOperatorConfig without Pod Security Context if container build disabled",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{},
+			},
+		},
+		{
+			name: "Create DevWorkspaceOperatorConfig with Pod and Container Security Context if container build enabled",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.BoolPtr(false),
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					ContainerSecurityContext: &corev1.SecurityContext{
+						Capabilities: &corev1.Capabilities{
+							Add: []corev1.Capability{
+								"SETGID",
+								"SETUID",
+							},
+						},
+						AllowPrivilegeEscalation: pointer.BoolPtr(false),
+					},
+				},
+			},
+		},
+		{
+			name: "Update existing DevWorkspaceOperatorConfig by adding Pod and Container Security Context",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.BoolPtr(false),
+					},
+				},
+			},
+			existedObjects: []runtime.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							StorageClassName: pointer.StringPtr("default-storage-class"),
+							DefaultStorageSize: &controllerv1alpha1.StorageSizes{
+								Common: &quantity10Gi,
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					StorageClassName: pointer.StringPtr("default-storage-class"),
+					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
+						Common: &quantity10Gi,
+					},
+					ContainerSecurityContext: &corev1.SecurityContext{
+						Capabilities: &corev1.Capabilities{
+							Add: []corev1.Capability{
+								"SETGID",
+								"SETUID",
+							},
+						},
+						AllowPrivilegeEscalation: pointer.BoolPtr(false),
+					},
+				},
+			},
+		},
+		{
+			name: "Update existing DevWorkspaceOperatorConfig by removing Pod and Container Security Context",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
+					},
+				},
+			},
+			existedObjects: []runtime.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							StorageClassName: pointer.StringPtr("default-storage-class"),
+							DefaultStorageSize: &controllerv1alpha1.StorageSizes{
+								Common: &quantity10Gi,
+							},
+							ContainerSecurityContext: &corev1.SecurityContext{},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					StorageClassName: pointer.StringPtr("default-storage-class"),
+					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
+						Common: &quantity10Gi,
 					},
 				},
 			},
