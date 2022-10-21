@@ -54,7 +54,7 @@ func (d *DevWorkspaceConfigReconciler) Reconcile(ctx *chetypes.DeployContext) (r
 	if dwoc.Config == nil {
 		dwoc.Config = &controllerv1alpha1.OperatorConfiguration{}
 	}
-	err := updateOperatorConfig(ctx.CheCluster.Spec.DevEnvironments.Storage, dwoc.Config)
+	err := updateOperatorConfig(ctx.CheCluster, dwoc.Config)
 	if err != nil {
 		return reconcile.Result{}, false, err
 	}
@@ -71,8 +71,9 @@ func (d *DevWorkspaceConfigReconciler) Finalize(ctx *chetypes.DeployContext) boo
 	return true
 }
 
-func updateOperatorConfig(storage chev2.WorkspaceStorage, operatorConfig *controllerv1alpha1.OperatorConfiguration) error {
+func updateOperatorConfig(cheCluster *chev2.CheCluster, operatorConfig *controllerv1alpha1.OperatorConfiguration) error {
 	var pvc *chev2.PVC
+	storage := cheCluster.Spec.DevEnvironments.Storage
 
 	pvcStrategy := utils.GetValue(storage.PvcStrategy, constants.DefaultPvcStorageStrategy)
 	switch pvcStrategy {
@@ -88,35 +89,41 @@ func updateOperatorConfig(storage chev2.WorkspaceStorage, operatorConfig *contro
 		}
 	}
 
-	if pvc != nil {
-		if operatorConfig.Workspace == nil {
-			operatorConfig.Workspace = &controllerv1alpha1.WorkspaceConfig{}
-		}
-		return updateWorkspaceConfig(pvc, pvcStrategy == constants.PerWorkspacePVCStorageStrategy, operatorConfig.Workspace)
+	if operatorConfig.Workspace == nil {
+		operatorConfig.Workspace = &controllerv1alpha1.WorkspaceConfig{}
 	}
-	return nil
+
+	return updateWorkspaceConfig(pvc, pvcStrategy == constants.PerWorkspacePVCStorageStrategy, cheCluster.IsContainerBuildCapabilitiesEnabled(), operatorConfig.Workspace)
 }
 
-func updateWorkspaceConfig(pvc *chev2.PVC, isPerWorkspacePVCStorageStrategy bool, workspaceConfig *controllerv1alpha1.WorkspaceConfig) error {
-	if pvc.StorageClass != "" {
-		workspaceConfig.StorageClassName = &pvc.StorageClass
+func updateWorkspaceConfig(pvc *chev2.PVC, isPerWorkspacePVCStorageStrategy bool, enabledContainerBuildCapabilities bool, workspaceConfig *controllerv1alpha1.WorkspaceConfig) error {
+	if pvc != nil {
+		if pvc.StorageClass != "" {
+			workspaceConfig.StorageClassName = &pvc.StorageClass
+		}
+
+		if pvc.ClaimSize != "" {
+			if workspaceConfig.DefaultStorageSize == nil {
+				workspaceConfig.DefaultStorageSize = &controllerv1alpha1.StorageSizes{}
+			}
+
+			pvcSize, err := resource.ParseQuantity(pvc.ClaimSize)
+			if err != nil {
+				return err
+			}
+
+			if isPerWorkspacePVCStorageStrategy {
+				workspaceConfig.DefaultStorageSize.PerWorkspace = &pvcSize
+			} else {
+				workspaceConfig.DefaultStorageSize.Common = &pvcSize
+			}
+		}
 	}
 
-	if pvc.ClaimSize != "" {
-		if workspaceConfig.DefaultStorageSize == nil {
-			workspaceConfig.DefaultStorageSize = &controllerv1alpha1.StorageSizes{}
-		}
-
-		pvcSize, err := resource.ParseQuantity(pvc.ClaimSize)
-		if err != nil {
-			return err
-		}
-
-		if isPerWorkspacePVCStorageStrategy {
-			workspaceConfig.DefaultStorageSize.PerWorkspace = &pvcSize
-		} else {
-			workspaceConfig.DefaultStorageSize.Common = &pvcSize
-		}
+	workspaceConfig.ContainerSecurityContext = nil
+	if enabledContainerBuildCapabilities {
+		workspaceConfig.ContainerSecurityContext = constants.DefaultWorkspaceContainerSecurityContext.DeepCopy()
 	}
+
 	return nil
 }
