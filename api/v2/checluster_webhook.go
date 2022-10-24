@@ -15,6 +15,7 @@ package v2
 import (
 	"context"
 	"fmt"
+	"golang.org/x/mod/semver"
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -28,6 +29,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+)
+
+const (
+	v7530             = "v7.53.0"
+	openVSXDefaultUrl = "https://open-vsx.org"
 )
 
 var (
@@ -44,8 +50,41 @@ var _ webhook.Defaulter = &CheCluster{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *CheCluster) Default() {
-	if r.IsContainerBuildCapabilitiesEnabled() && r.Spec.DevEnvironments.ContainerBuildConfiguration == nil {
-		r.Spec.DevEnvironments.ContainerBuildConfiguration = &ContainerBuildConfiguration{}
+	setContainerBuildConfiguration(r)
+	setOpenVSXUrl(r)
+}
+
+// Sets ContainerBuildConfiguration if container build capabilities is enabled.
+func setContainerBuildConfiguration(cheCluster *CheCluster) {
+	if cheCluster.IsContainerBuildCapabilitiesEnabled() && cheCluster.Spec.DevEnvironments.ContainerBuildConfiguration == nil {
+		cheCluster.Spec.DevEnvironments.ContainerBuildConfiguration = &ContainerBuildConfiguration{}
+	}
+}
+
+// https://github.com/eclipse/che/issues/21637
+// When installing Che, the default CheCluster should have pluginRegistry.openVSXURL set to https://open-vsx.org.
+// When updating Che v7.52 or earlier, if `openVSXURL` is NOT set then we should set it to https://open-vsx.org.
+// When updating Che v7.53 or later, if `openVSXURL` is NOT set then we should not modify it.
+func setOpenVSXUrl(cheCluster *CheCluster) {
+	if cheCluster.Spec.Components.PluginRegistry.OpenVSXURL == "" {
+		if cheCluster.IsAirGapMode() {
+			return
+		}
+
+		if cheCluster.Status.CheVersion == "next" {
+			// do nothing for `next` version, because it considers as greater than 7.52.0
+			return
+		}
+
+		if cheCluster.Status.CheVersion == "" {
+			// installing Eclipse Che, set a default openVSX URL
+			cheCluster.Spec.Components.PluginRegistry.OpenVSXURL = openVSXDefaultUrl
+		}
+
+		if semver.Compare(fmt.Sprintf("v%s", cheCluster.Status.CheVersion), v7530) == -1 {
+			// updating Eclipse Che, version is less than 7.53.0
+			cheCluster.Spec.Components.PluginRegistry.OpenVSXURL = openVSXDefaultUrl
+		}
 	}
 }
 

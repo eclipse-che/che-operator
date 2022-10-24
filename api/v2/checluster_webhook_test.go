@@ -9,47 +9,62 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package pluginregistry
+package v2
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 
-	chev2 "github.com/eclipse-che/che-operator/api/v2"
-	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func TestOpenVSXUrlReconciler(t *testing.T) {
+func TestSetVSXUrl(t *testing.T) {
 	type testCase struct {
 		name               string
-		cheCluster         *chev2.CheCluster
+		cheCluster         *CheCluster
 		expectedOpenVSXUrl string
 	}
 
 	testCases := []testCase{
 		{
 			name: "Should set default openVSXURL when deploying Eclipse Che",
-			cheCluster: &chev2.CheCluster{
+			cheCluster: &CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
 					Namespace: "eclipse-che",
 				},
-				Status: chev2.CheClusterStatus{
+				Status: CheClusterStatus{
 					CheVersion: "",
 				},
 			},
 			expectedOpenVSXUrl: openVSXDefaultUrl,
 		},
 		{
-			name: "Should not update openVSXURL for next version #1",
-			cheCluster: &chev2.CheCluster{
+			name: "Should not set default openVSXURL when deploying Eclipse Che in AirGap environment",
+			cheCluster: &CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
 					Namespace: "eclipse-che",
 				},
-				Status: chev2.CheClusterStatus{
+				Spec: CheClusterSpec{
+					ContainerRegistry: CheClusterContainerRegistry{
+						Hostname: "hostname",
+					},
+				},
+				Status: CheClusterStatus{
+					CheVersion: "",
+				},
+			},
+			expectedOpenVSXUrl: "",
+		},
+		{
+			name: "Should not update openVSXURL for next version #1",
+			cheCluster: &CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Status: CheClusterStatus{
 					CheVersion: "next",
 				},
 			},
@@ -57,19 +72,19 @@ func TestOpenVSXUrlReconciler(t *testing.T) {
 		},
 		{
 			name: "Should not update openVSXURL for next version #2",
-			cheCluster: &chev2.CheCluster{
+			cheCluster: &CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
 					Namespace: "eclipse-che",
 				},
-				Spec: chev2.CheClusterSpec{
-					Components: chev2.CheClusterComponents{
-						PluginRegistry: chev2.PluginRegistry{
+				Spec: CheClusterSpec{
+					Components: CheClusterComponents{
+						PluginRegistry: PluginRegistry{
 							OpenVSXURL: "open-vsx-url",
 						},
 					},
 				},
-				Status: chev2.CheClusterStatus{
+				Status: CheClusterStatus{
 					CheVersion: "next",
 				},
 			},
@@ -77,12 +92,12 @@ func TestOpenVSXUrlReconciler(t *testing.T) {
 		},
 		{
 			name: "Should set default openVSXURL if Eclipse Che version is less then 7.53.0",
-			cheCluster: &chev2.CheCluster{
+			cheCluster: &CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
 					Namespace: "eclipse-che",
 				},
-				Status: chev2.CheClusterStatus{
+				Status: CheClusterStatus{
 					CheVersion: "7.52.2",
 				},
 			},
@@ -90,19 +105,19 @@ func TestOpenVSXUrlReconciler(t *testing.T) {
 		},
 		{
 			name: "Should not update openVSXURL if Eclipse Che version is less then 7.53.0",
-			cheCluster: &chev2.CheCluster{
+			cheCluster: &CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
 					Namespace: "eclipse-che",
 				},
-				Spec: chev2.CheClusterSpec{
-					Components: chev2.CheClusterComponents{
-						PluginRegistry: chev2.PluginRegistry{
+				Spec: CheClusterSpec{
+					Components: CheClusterComponents{
+						PluginRegistry: PluginRegistry{
 							OpenVSXURL: "open-vsx-url",
 						},
 					},
 				},
-				Status: chev2.CheClusterStatus{
+				Status: CheClusterStatus{
 					CheVersion: "7.52.2",
 				},
 			},
@@ -110,12 +125,12 @@ func TestOpenVSXUrlReconciler(t *testing.T) {
 		},
 		{
 			name: "Should not update default openVSXURL if Eclipse Che version is greater or equal to 7.53.0 #1",
-			cheCluster: &chev2.CheCluster{
+			cheCluster: &CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
 					Namespace: "eclipse-che",
 				},
-				Status: chev2.CheClusterStatus{
+				Status: CheClusterStatus{
 					CheVersion: "7.53.0",
 				},
 			},
@@ -123,19 +138,19 @@ func TestOpenVSXUrlReconciler(t *testing.T) {
 		},
 		{
 			name: "Should not update default openVSXURL if Eclipse Che version is greater or equal to 7.53.0 #2",
-			cheCluster: &chev2.CheCluster{
+			cheCluster: &CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
 					Namespace: "eclipse-che",
 				},
-				Spec: chev2.CheClusterSpec{
-					Components: chev2.CheClusterComponents{
-						PluginRegistry: chev2.PluginRegistry{
+				Spec: CheClusterSpec{
+					Components: CheClusterComponents{
+						PluginRegistry: PluginRegistry{
 							OpenVSXURL: "open-vsx-url",
 						},
 					},
 				},
-				Status: chev2.CheClusterStatus{
+				Status: CheClusterStatus{
 					CheVersion: "7.53.0",
 				},
 			},
@@ -145,13 +160,8 @@ func TestOpenVSXUrlReconciler(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
-
-			openVSXUrlReconciler := NewOpenVSXUrlReconciler()
-			_, _, err := openVSXUrlReconciler.Reconcile(ctx)
-
-			assert.Nil(t, err)
-			assert.Equal(t, testCase.expectedOpenVSXUrl, ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL)
+			setOpenVSXUrl(testCase.cheCluster)
+			assert.Equal(t, testCase.expectedOpenVSXUrl, testCase.cheCluster.Spec.Components.PluginRegistry.OpenVSXURL)
 		})
 	}
 }
