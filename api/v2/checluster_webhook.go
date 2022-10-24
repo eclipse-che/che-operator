@@ -15,8 +15,9 @@ package v2
 import (
 	"context"
 	"fmt"
-	"golang.org/x/mod/semver"
 	"strings"
+
+	"golang.org/x/mod/semver"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"k8s.io/apimachinery/pkg/types"
