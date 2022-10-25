@@ -74,16 +74,15 @@ func setDefaultOpenVSXURL(cheCluster *CheCluster) {
 			cheCluster.Spec.Components.PluginRegistry.OpenVSXURL = pointer.StringPtr(constants.DefaultOpenVSXUrl)
 			return
 		}
-	}
 
-	if cheCluster.IsOpenVSXURLEmpty() &&
-		cheCluster.IsCheFlavor() &&
-		cheCluster.Status.CheVersion != "" &&
-		cheCluster.Status.CheVersion != "next" &&
-		semver.Compare(fmt.Sprintf("v%s", cheCluster.Status.CheVersion), "v7.53.0") == -1 {
-		// Eclipse Che is being updated from version < 7.53.0
-		cheCluster.Spec.Components.PluginRegistry.OpenVSXURL = pointer.StringPtr(constants.DefaultOpenVSXUrl)
-		return
+		if cheCluster.IsCheFlavor() &&
+			cheCluster.Status.CheVersion != "" &&
+			cheCluster.Status.CheVersion != "next" &&
+			semver.Compare(fmt.Sprintf("v%s", cheCluster.Status.CheVersion), "v7.53.0") == -1 {
+			// Eclipse Che is being updated from version < 7.53.0
+			cheCluster.Spec.Components.PluginRegistry.OpenVSXURL = pointer.StringPtr(constants.DefaultOpenVSXUrl)
+			return
+		}
 	}
 }
 
