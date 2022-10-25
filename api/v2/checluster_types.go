@@ -43,7 +43,7 @@ type CheClusterSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=2
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Components"
-	// +kubebuilder:default:={cheServer: {logLevel: INFO, debug: false}, metrics: {enable: true}, database: {externalDb: false, credentialsSecretName: postgres-credentials, postgresHostName: postgres, postgresPort: "5432", postgresDb: dbche, pvc: {claimSize: "1Gi"}}}
+	// +kubebuilder:default:={cheServer: {logLevel: INFO, debug: false}, metrics: {enable: true}, database: {externalDb: false, credentialsSecretName: postgres-credentials, postgresHostName: postgres, postgresPort: "5432", postgresDb: dbche, pvc: {claimSize: "1Gi"}}, pluginRegistry: {openVSXURL: "https://open-vsx.org"}}
 	Components CheClusterComponents `json:"components"`
 	// A configuration that allows users to work with remote Git repositories.
 	// +optional
@@ -128,6 +128,7 @@ type CheClusterComponents struct {
 	CheServer CheServer `json:"cheServer"`
 	// Configuration settings related to the plug-in registry used by the Che installation.
 	// +optional
+	// +kubebuilder:default:={openVSXURL: "https://open-vsx.org"}
 	PluginRegistry PluginRegistry `json:"pluginRegistry"`
 	// Configuration settings related to the devfile registry used by the Che installation.
 	// +optional
@@ -258,6 +259,7 @@ type PluginRegistry struct {
 	ExternalPluginRegistries []ExternalPluginRegistry `json:"externalPluginRegistries,omitempty"`
 	// Open VSX registry URL. If omitted an embedded instance will be used.
 	// +optional
+	// +kubebuilder:default:="https://open-vsx.org"
 	OpenVSXURL string `json:"openVSXURL,omitempty"`
 }
 

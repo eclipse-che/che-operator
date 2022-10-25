@@ -32,11 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
-const (
-	v7530             = "v7.53.0"
-	openVSXDefaultUrl = "https://open-vsx.org"
-)
-
 var (
 	logger = ctrl.Log.WithName("webhook")
 )
@@ -68,7 +63,8 @@ func setContainerBuildConfiguration(cheCluster *CheCluster) {
 // When updating Che v7.53 or later, if `openVSXURL` is NOT set then we should not modify it.
 func setOpenVSXUrl(cheCluster *CheCluster) {
 	if cheCluster.Spec.Components.PluginRegistry.OpenVSXURL == "" {
-		if cheCluster.IsAirGapMode() {
+		if cheCluster.Status.CheVersion == "" {
+			// Eclipse Che is being installed, the default value is used, see `checluster_types.go`
 			return
 		}
 
@@ -77,14 +73,12 @@ func setOpenVSXUrl(cheCluster *CheCluster) {
 			return
 		}
 
-		if cheCluster.Status.CheVersion == "" {
-			// installing Eclipse Che, set a default openVSX URL
-			cheCluster.Spec.Components.PluginRegistry.OpenVSXURL = openVSXDefaultUrl
-		}
-
-		if semver.Compare(fmt.Sprintf("v%s", cheCluster.Status.CheVersion), v7530) == -1 {
-			// updating Eclipse Che, version is less than 7.53.0
-			cheCluster.Spec.Components.PluginRegistry.OpenVSXURL = openVSXDefaultUrl
+		if semver.Compare(fmt.Sprintf("v%s", cheCluster.Status.CheVersion), "v7.53.0") == -1 {
+			if !cheCluster.IsAirGapMode() {
+				// Eclipse Che is being updated from version < 7.53.0
+				logger.Info("Set default OpenVSXURL")
+				cheCluster.Spec.Components.PluginRegistry.OpenVSXURL = constants.DefaultOpenVSXUrl
+			}
 		}
 	}
 }

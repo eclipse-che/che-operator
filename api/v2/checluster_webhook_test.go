@@ -14,6 +14,8 @@ package v2
 import (
 	"testing"
 
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/stretchr/testify/assert"
@@ -27,37 +29,6 @@ func TestSetVSXUrl(t *testing.T) {
 	}
 
 	testCases := []testCase{
-		{
-			name: "Should set default openVSXURL when deploying Eclipse Che",
-			cheCluster: &CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "eclipse-che",
-					Namespace: "eclipse-che",
-				},
-				Status: CheClusterStatus{
-					CheVersion: "",
-				},
-			},
-			expectedOpenVSXUrl: openVSXDefaultUrl,
-		},
-		{
-			name: "Should not set default openVSXURL when deploying Eclipse Che in AirGap environment",
-			cheCluster: &CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "eclipse-che",
-					Namespace: "eclipse-che",
-				},
-				Spec: CheClusterSpec{
-					ContainerRegistry: CheClusterContainerRegistry{
-						Hostname: "hostname",
-					},
-				},
-				Status: CheClusterStatus{
-					CheVersion: "",
-				},
-			},
-			expectedOpenVSXUrl: "",
-		},
 		{
 			name: "Should not update openVSXURL for next version #1",
 			cheCluster: &CheCluster{
@@ -102,7 +73,26 @@ func TestSetVSXUrl(t *testing.T) {
 					CheVersion: "7.52.2",
 				},
 			},
-			expectedOpenVSXUrl: openVSXDefaultUrl,
+			expectedOpenVSXUrl: constants.DefaultOpenVSXUrl,
+		},
+		{
+			name: "Should not set default openVSXURL if Eclipse Che version is less then 7.53.0 in AirGap",
+			cheCluster: &CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: CheClusterSpec{
+					ContainerRegistry: CheClusterContainerRegistry{
+						Hostname: "hostname",
+					},
+				},
+
+				Status: CheClusterStatus{
+					CheVersion: "7.52.2",
+				},
+			},
+			expectedOpenVSXUrl: "",
 		},
 		{
 			name: "Should not update openVSXURL if Eclipse Che version is less then 7.53.0",

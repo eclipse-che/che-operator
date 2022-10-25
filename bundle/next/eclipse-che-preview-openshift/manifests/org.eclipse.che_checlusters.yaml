@@ -4048,6 +4048,8 @@ spec:
                         claimSize: 1Gi
                     metrics:
                       enable: true
+                    pluginRegistry:
+                      openVSXURL: https://open-vsx.org
                   description: Che components configuration.
                   properties:
                     cheServer:
@@ -5143,6 +5145,8 @@ spec:
                           type: boolean
                       type: object
                     pluginRegistry:
+                      default:
+                        openVSXURL: https://open-vsx.org
                       description: Configuration settings related to the plug-in registry
                         used by the Che installation.
                       properties:
@@ -5373,6 +5377,7 @@ spec:
                             type: object
                           type: array
                         openVSXURL:
+                          default: https://open-vsx.org
                           description: Open VSX registry URL. If omitted an embedded
                             instance will be used.
                           type: string
