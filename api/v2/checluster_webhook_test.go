@@ -14,6 +14,8 @@ package v2
 import (
 	"testing"
 
+	"k8s.io/utils/pointer"
+
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,6 +31,16 @@ func TestSetVSXUrl(t *testing.T) {
 	}
 
 	testCases := []testCase{
+		{
+			name: "Should set openVSXURL",
+			cheCluster: &CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+			},
+			expectedOpenVSXUrl: constants.DefaultOpenVSXUrl,
+		},
 		{
 			name: "Should not update openVSXURL for next version #1",
 			cheCluster: &CheCluster{
@@ -52,7 +64,7 @@ func TestSetVSXUrl(t *testing.T) {
 				Spec: CheClusterSpec{
 					Components: CheClusterComponents{
 						PluginRegistry: PluginRegistry{
-							OpenVSXURL: "open-vsx-url",
+							OpenVSXURL: pointer.StringPtr("open-vsx-url"),
 						},
 					},
 				},
@@ -104,7 +116,7 @@ func TestSetVSXUrl(t *testing.T) {
 				Spec: CheClusterSpec{
 					Components: CheClusterComponents{
 						PluginRegistry: PluginRegistry{
-							OpenVSXURL: "open-vsx-url",
+							OpenVSXURL: pointer.StringPtr("open-vsx-url"),
 						},
 					},
 				},
@@ -137,7 +149,7 @@ func TestSetVSXUrl(t *testing.T) {
 				Spec: CheClusterSpec{
 					Components: CheClusterComponents{
 						PluginRegistry: PluginRegistry{
-							OpenVSXURL: "open-vsx-url",
+							OpenVSXURL: pointer.StringPtr("open-vsx-url"),
 						},
 					},
 				},
@@ -152,7 +164,11 @@ func TestSetVSXUrl(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			setOpenVSXUrl(testCase.cheCluster)
-			assert.Equal(t, testCase.expectedOpenVSXUrl, testCase.cheCluster.Spec.Components.PluginRegistry.OpenVSXURL)
+			if testCase.expectedOpenVSXUrl == "" {
+				assert.Nil(t, testCase.cheCluster.Spec.Components.PluginRegistry.OpenVSXURL)
+			} else {
+				assert.Equal(t, testCase.expectedOpenVSXUrl, *testCase.cheCluster.Spec.Components.PluginRegistry.OpenVSXURL)
+			}
 		})
 	}
 }

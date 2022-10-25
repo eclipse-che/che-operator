@@ -17,6 +17,8 @@ import (
 	"fmt"
 	"strings"
 
+	"k8s.io/utils/pointer"
+
 	"golang.org/x/mod/semver"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -62,23 +64,25 @@ func setContainerBuildConfiguration(cheCluster *CheCluster) {
 // When updating Che v7.52 or earlier, if `openVSXURL` is NOT set then we should set it to https://open-vsx.org.
 // When updating Che v7.53 or later, if `openVSXURL` is NOT set then we should not modify it.
 func setOpenVSXUrl(cheCluster *CheCluster) {
-	if cheCluster.Spec.Components.PluginRegistry.OpenVSXURL == "" {
-		if cheCluster.Status.CheVersion == "" {
-			// Eclipse Che is being installed, the default value is used, see `checluster_types.go`
-			return
-		}
-
+	if cheCluster.IsOpenVSXURLEmpty() {
 		if cheCluster.Status.CheVersion == "next" {
 			// do nothing for `next` version, because it considers as greater than 7.52.0
 			return
 		}
 
+		if cheCluster.IsAirGapMode() {
+			return
+		}
+
+		if cheCluster.Status.CheVersion == "" {
+			// Eclipse Che is being installed, the default value is set, see `checluster_types.go`
+			return
+		}
+
 		if semver.Compare(fmt.Sprintf("v%s", cheCluster.Status.CheVersion), "v7.53.0") == -1 {
-			if !cheCluster.IsAirGapMode() {
-				// Eclipse Che is being updated from version < 7.53.0
-				logger.Info("Set default OpenVSXURL")
-				cheCluster.Spec.Components.PluginRegistry.OpenVSXURL = constants.DefaultOpenVSXUrl
-			}
+			// Eclipse Che is being updated from version < 7.53.0
+			cheCluster.Spec.Components.PluginRegistry.OpenVSXURL = pointer.StringPtr(constants.DefaultOpenVSXUrl)
+			return
 		}
 	}
 }
