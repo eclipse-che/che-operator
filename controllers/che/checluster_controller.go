@@ -116,9 +116,9 @@ func NewReconciler(
 	reconcileManager.RegisterReconciler(dashboard.NewDashboardReconciler())
 	reconcileManager.RegisterReconciler(gateway.NewGatewayReconciler())
 	reconcileManager.RegisterReconciler(server.NewCheServerReconciler())
-	reconcileManager.RegisterReconciler(containerbuild.NewContainerBuildReconciler())
 
 	if infrastructure.IsOpenShift() {
+		reconcileManager.RegisterReconciler(containerbuild.NewContainerBuildReconciler())
 		reconcileManager.RegisterReconciler(consolelink.NewConsoleLinkReconciler())
 	}
 
