@@ -48,55 +48,24 @@ var (
 	initialized = false
 )
 
-func Initialize(operatorDeploymentFilePath string) {
-	if operatorDeploymentFilePath == "" {
-		InitializeFromEnv()
-	} else {
-		InitializeFromFile(operatorDeploymentFilePath)
-	}
-
-}
-
-func InitializeFromFile(operatorDeploymentFilePath string) {
+func InitializeForTesting(operatorDeploymentFilePath string) {
 	operatorDeployment := &appsv1.Deployment{}
 	if err := util.ReadObjectInto(operatorDeploymentFilePath, operatorDeployment); err != nil {
 		logrus.Fatalf("Failed to read operator deployment from '%s', cause: %v", operatorDeploymentFilePath, err)
 	}
 
-	containers := operatorDeployment.Spec.Template.Spec.Containers
-	if len(containers) == 0 {
-		logrus.Fatalf("Containers not found in operator deployment '%s'", operatorDeploymentFilePath)
+	for _, container := range operatorDeployment.Spec.Template.Spec.Containers {
+		for _, env := range container.Env {
+			if env.Value != "" {
+				os.Setenv(env.Name, env.Value)
+			}
+		}
 	}
 
-	defaultCheVersion = util.GetEnvByName("CHE_VERSION", containers[0].Env)
-	defaultCheFlavor = util.GetEnvByName("CHE_FLAVOR", containers[0].Env)
-	defaultConsoleLinkDisplayName = util.GetEnvByName("CONSOLE_LINK_DISPLAY_NAME", containers[0].Env)
-	defaultConsoleLinkName = util.GetEnvByName("CONSOLE_LINK_NAME", containers[0].Env)
-	defaultConsoleLinkSection = util.GetEnvByName("CONSOLE_LINK_SECTION", containers[0].Env)
-	defaultsConsoleLinkImage = util.GetEnvByName("CONSOLE_LINK_IMAGE", containers[0].Env)
-
-	defaultCheServerImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_che_server"), containers[0].Env)
-	defaultDashboardImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_dashboard"), containers[0].Env)
-	defaultPluginRegistryImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_plugin_registry"), containers[0].Env)
-	defaultDevfileRegistryImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_devfile_registry"), containers[0].Env)
-	defaultPostgresImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_postgres"), containers[0].Env)
-	defaultPostgres13Image = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_postgres_13_3"), containers[0].Env)
-	defaultSingleHostGatewayImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_single_host_gateway"), containers[0].Env)
-	defaultSingleHostGatewayConfigSidecarImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_single_host_gateway_config_sidecar"), containers[0].Env)
-	defaultGatewayAuthenticationSidecarImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authentication_sidecar"), containers[0].Env)
-	defaultGatewayAuthorizationSidecarImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authorization_sidecar"), containers[0].Env)
-
-	// Don't get some k8s specific env
-	if !infrastructure.IsOpenShift() {
-		defaultCheTLSSecretsCreationJobImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_che_tls_secrets_creation_job"), containers[0].Env)
-		defaultGatewayAuthenticationSidecarImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authentication_sidecar_k8s"), containers[0].Env)
-		defaultGatewayAuthorizationSidecarImage = util.GetEnvByName(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authorization_sidecar_k8s"), containers[0].Env)
-	}
-
-	initialized = true
+	Initialize()
 }
 
-func InitializeFromEnv() {
+func Initialize() {
 	defaultCheVersion = ensureEnv("CHE_VERSION")
 	defaultCheFlavor = ensureEnv("CHE_FLAVOR")
 	defaultConsoleLinkDisplayName = ensureEnv("CONSOLE_LINK_DISPLAY_NAME")

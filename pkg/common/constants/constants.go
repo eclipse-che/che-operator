@@ -124,6 +124,7 @@ const (
 	GatewayAuthorizationContainerName  = "kube-rbac-proxy"
 
 	// common
+	CheFlavor             = "che"
 	CheEclipseOrg         = "che.eclipse.org"
 	InstallOrUpdateFailed = "InstallOrUpdateFailed"
 
