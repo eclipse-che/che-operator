@@ -22,5 +22,5 @@ func init() {
 	test.EnableTestMode()
 
 	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-	defaults.Initialize("../../../config/manager/manager.yaml")
+	defaults.InitializeForTesting("../../../config/manager/manager.yaml")
 }

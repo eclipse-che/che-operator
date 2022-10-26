@@ -252,7 +252,7 @@ func TestConvertTo(t *testing.T) {
 						Value: "dashboard-value",
 					},
 				},
-				OpenVSXRegistryURL: "open-vsx-registry",
+				OpenVSXRegistryURL: pointer.StringPtr("open-vsx-registry"),
 			},
 			Database: chev1.CheClusterSpecDB{
 				ExternalDb:              true,
@@ -506,7 +506,7 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Requests.Cpu, resource.MustParse("1"))
 	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.Deployment.Containers[0].Resources.Requests.Memory, resource.MustParse("100Mi"))
 	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.DisableInternalRegistry, true)
-	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.OpenVSXURL, "open-vsx-registry")
+	assert.Equal(t, *checlusterv2.Spec.Components.PluginRegistry.OpenVSXURL, "open-vsx-registry")
 	assert.Equal(t, checlusterv2.Spec.Components.PluginRegistry.ExternalPluginRegistries, []chev2.ExternalPluginRegistry{{Url: "PluginRegistryUrl"}})
 
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Storage.PerUserStrategyPvcConfig.ClaimSize, "WorkspacePvcClaimSize")

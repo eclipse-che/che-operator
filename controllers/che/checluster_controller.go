@@ -111,7 +111,6 @@ func NewReconciler(
 		reconcileManager.RegisterReconciler(identityprovider.NewIdentityProviderReconciler())
 	}
 	reconcileManager.RegisterReconciler(devfileregistry.NewDevfileRegistryReconciler())
-	reconcileManager.RegisterReconciler(pluginregistry.NewOpenVSXUrlReconciler())
 	reconcileManager.RegisterReconciler(pluginregistry.NewPluginRegistryReconciler())
 	reconcileManager.RegisterReconciler(dashboard.NewDashboardReconciler())
 	reconcileManager.RegisterReconciler(gateway.NewGatewayReconciler())

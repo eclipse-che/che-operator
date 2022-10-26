@@ -258,7 +258,7 @@ type PluginRegistry struct {
 	ExternalPluginRegistries []ExternalPluginRegistry `json:"externalPluginRegistries,omitempty"`
 	// Open VSX registry URL. If omitted an embedded instance will be used.
 	// +optional
-	OpenVSXURL string `json:"openVSXURL,omitempty"`
+	OpenVSXURL *string `json:"openVSXURL,omitempty"`
 }
 
 // Configuration settings related to the devfile registry used by the Che installation.
@@ -815,4 +815,12 @@ func (c *CheCluster) IsContainerBuildCapabilitiesEnabled() bool {
 
 func (c *CheCluster) IsOpenShiftSecurityContextConstraintSet() bool {
 	return c.Spec.DevEnvironments.ContainerBuildConfiguration != nil && c.Spec.DevEnvironments.ContainerBuildConfiguration.OpenShiftSecurityContextConstraint != ""
+}
+
+func (c *CheCluster) IsCheFlavor() bool {
+	return os.Getenv("CHE_FLAVOR") == constants.CheFlavor
+}
+
+func (c *CheCluster) IsOpenVSXURLEmpty() bool {
+	return c.Spec.Components.PluginRegistry.OpenVSXURL == nil || *c.Spec.Components.PluginRegistry.OpenVSXURL == ""
 }

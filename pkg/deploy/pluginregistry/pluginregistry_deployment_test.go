@@ -15,6 +15,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/utils/pointer"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -64,7 +65,7 @@ func TestGetPluginRegistryDeploymentSpec(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
 						PluginRegistry: chev2.PluginRegistry{
-							OpenVSXURL: "open-vsx-url",
+							OpenVSXURL: pointer.StringPtr("open-vsx-url"),
 						},
 					},
 				},

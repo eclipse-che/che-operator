@@ -39,6 +39,7 @@ const (
 	DefaultPluginRegistryMemoryRequestEmbeddedOpenVSXRegistry = "512Mi"
 	DefaultPluginRegistryCpuLimit                             = "500m"
 	DefaultPluginRegistryCpuRequest                           = "100m"
+	DefaultOpenVSXUrl                                         = "https://open-vsx.org"
 
 	// DevfileRegistry
 	DefaultDevfileRegistryMemoryLimit   = "256Mi"
@@ -123,6 +124,7 @@ const (
 	GatewayAuthorizationContainerName  = "kube-rbac-proxy"
 
 	// common
+	CheFlavor             = "che"
 	CheEclipseOrg         = "che.eclipse.org"
 	InstallOrUpdateFailed = "InstallOrUpdateFailed"
 

@@ -16,6 +16,8 @@ import (
 	"context"
 	"testing"
 
+	"k8s.io/utils/pointer"
+
 	v2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
@@ -23,6 +25,112 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+func TestSetVSXUrl(t *testing.T) {
+	type testCase struct {
+		name               string
+		cheCluster         *v2.CheCluster
+		expectedOpenVSXUrl string
+	}
+
+	testCases := []testCase{
+		{
+			name: "Should set openVSXURL",
+			cheCluster: &v2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+			},
+			expectedOpenVSXUrl: constants.DefaultOpenVSXUrl,
+		},
+		{
+			name: "Should not set openVSXURL in disconnected environment",
+			cheCluster: &v2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: v2.CheClusterSpec{
+					ContainerRegistry: v2.CheClusterContainerRegistry{
+						Hostname: "hostname",
+					},
+				},
+			},
+			expectedOpenVSXUrl: "",
+		},
+		{
+			name: "Should not update openVSXURL for next version",
+			cheCluster: &v2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Status: v2.CheClusterStatus{
+					CheVersion: "next",
+				},
+			},
+			expectedOpenVSXUrl: "",
+		},
+		{
+			name: "Should set default openVSXURL if Eclipse Che version is less then 7.53.0",
+			cheCluster: &v2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Status: v2.CheClusterStatus{
+					CheVersion: "7.52.2",
+				},
+			},
+			expectedOpenVSXUrl: constants.DefaultOpenVSXUrl,
+		},
+		{
+			name: "Should not update openVSXURL if Eclipse Che version is less then 7.53.0",
+			cheCluster: &v2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: v2.CheClusterSpec{
+					Components: v2.CheClusterComponents{
+						PluginRegistry: v2.PluginRegistry{
+							OpenVSXURL: pointer.StringPtr("open-vsx-url"),
+						},
+					},
+				},
+				Status: v2.CheClusterStatus{
+					CheVersion: "7.52.2",
+				},
+			},
+			expectedOpenVSXUrl: "open-vsx-url",
+		},
+		{
+			name: "Should not update default openVSXURL if Eclipse Che version is greater or equal to 7.53.0",
+			cheCluster: &v2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Status: v2.CheClusterStatus{
+					CheVersion: "7.53.0",
+				},
+			},
+			expectedOpenVSXUrl: "",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			testCase.cheCluster.Default()
+			if testCase.expectedOpenVSXUrl == "" {
+				assert.True(t, testCase.cheCluster.IsOpenVSXURLEmpty())
+			} else {
+				assert.Equal(t, testCase.expectedOpenVSXUrl, *testCase.cheCluster.Spec.Components.PluginRegistry.OpenVSXURL)
+			}
+		})
+	}
+}
 
 func TestValidateScmSecrets(t *testing.T) {
 	k8sHelper := k8shelper.New()
