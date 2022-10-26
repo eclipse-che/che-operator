@@ -271,16 +271,6 @@ func DeleteImagePullerFinalizer(ctx *chetypes.DeployContext) (err error) {
 	return nil
 }
 
-// Returns true if the expected and actual Subscription specs have the same fields during Image Puller
-// installation
-func SubscriptionsAreEqual(expected *operatorsv1alpha1.Subscription, actual *operatorsv1alpha1.Subscription) bool {
-	return expected.Spec.CatalogSource == actual.Spec.CatalogSource &&
-		expected.Spec.CatalogSourceNamespace == actual.Spec.CatalogSourceNamespace &&
-		expected.Spec.Channel == actual.Spec.Channel &&
-		expected.Spec.InstallPlanApproval == actual.Spec.InstallPlanApproval &&
-		expected.Spec.Package == actual.Spec.Package
-}
-
 // Check if the API server can discover the API groups for packages.operators.coreos.com,
 // operators.coreos.com, and che.eclipse.org.
 // Returns:
@@ -344,9 +334,7 @@ func CreateOperatorGroupIfNotFound(ctx *chetypes.DeployContext) (bool, error) {
 				},
 			},
 			Spec: operatorsv1.OperatorGroupSpec{
-				TargetNamespaces: []string{
-					ctx.CheCluster.Namespace,
-				},
+				TargetNamespaces: []string{},
 			},
 		}
 		logrus.Infof("Creating kubernetes image puller OperatorGroup")
@@ -395,15 +383,6 @@ func GetExpectedSubscription(ctx *chetypes.DeployContext, packageManifest *packa
 			Package:                "kubernetes-imagepuller-operator",
 		},
 	}
-}
-
-func GetActualSubscription(ctx *chetypes.DeployContext) (*operatorsv1alpha1.Subscription, error) {
-	actual := &operatorsv1alpha1.Subscription{}
-	err := ctx.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: "kubernetes-imagepuller-operator"}, actual)
-	if err != nil {
-		return nil, err
-	}
-	return actual, nil
 }
 
 // Update the CheCluster ImagePuller spec if the default values are not set
