@@ -18,6 +18,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/stretchr/testify/assert"
+
 	"reflect"
 	"time"
 
@@ -296,9 +298,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 				if err != nil {
 					t.Errorf("Error getting OperatorGroup: %v", err)
 				}
-				if !reflect.DeepEqual(testCase.expectedOperatorGroup.Spec.TargetNamespaces, gotOperatorGroup.Spec.TargetNamespaces) {
-					t.Errorf("Error expected target namespace %v but got %v", testCase.expectedOperatorGroup.Spec.TargetNamespaces, gotOperatorGroup.Spec.TargetNamespaces)
-				}
+				assert.Empty(t, gotOperatorGroup.Spec.TargetNamespaces)
 			}
 			if testCase.expectedSubscription != nil {
 				gotSubscription := &operatorsv1alpha1.Subscription{}
@@ -744,9 +744,7 @@ func getOperatorGroup() *operatorsv1.OperatorGroup {
 			Namespace: namespace,
 		},
 		Spec: operatorsv1.OperatorGroupSpec{
-			TargetNamespaces: []string{
-				namespace,
-			},
+			TargetNamespaces: []string{},
 		},
 	}
 }
