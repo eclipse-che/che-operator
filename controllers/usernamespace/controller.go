@@ -334,7 +334,7 @@ func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context
 		Immutable: cheCert.Immutable,
 	}
 
-	_, err := deploy.DoSync(deployContext, targetCert, deploy.SecretDiffOpts)
+	_, err := deploy.Sync(deployContext, targetCert, deploy.SecretDiffOpts)
 	return err
 }
 
@@ -378,7 +378,7 @@ func (r *CheUserNamespaceReconciler) reconcileTrustedCerts(ctx context.Context, 
 		Data: sourceMap.Data,
 	}
 
-	_, err := deploy.DoSync(deployContext, targetMap, deploy.ConfigMapDiffOpts)
+	_, err := deploy.Sync(deployContext, targetMap, deploy.ConfigMapDiffOpts)
 	return err
 }
 
@@ -459,7 +459,7 @@ func (r *CheUserNamespaceReconciler) reconcileProxySettings(ctx context.Context,
 		Data: proxySettings,
 	}
 
-	_, err = deploy.DoSync(deployContext, cfg, deploy.ConfigMapDiffOpts)
+	_, err = deploy.Sync(deployContext, cfg, deploy.ConfigMapDiffOpts)
 	return err
 }
 
@@ -502,7 +502,7 @@ func (r *CheUserNamespaceReconciler) reconcileIdleSettings(ctx context.Context, 
 		},
 		Data: data,
 	}
-	_, err := deploy.DoSync(deployContext, cfg, deploy.ConfigMapDiffOpts)
+	_, err := deploy.Sync(deployContext, cfg, deploy.ConfigMapDiffOpts)
 	return err
 }
 
@@ -556,7 +556,7 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 		target.Data["host"] = gitCert.Data["githost"]
 	}
 
-	_, err := deploy.DoSync(deployContext, &target, deploy.ConfigMapDiffOpts)
+	_, err := deploy.Sync(deployContext, &target, deploy.ConfigMapDiffOpts)
 	return err
 }
 

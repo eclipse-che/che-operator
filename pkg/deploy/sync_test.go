@@ -152,7 +152,7 @@ func TestUpdate(t *testing.T) {
 		t.Fatalf("Failed to get object: %v", err)
 	}
 
-	_, err = Update(deployContext, actual, testObjLabeled.DeepCopy(), cmp.Options{})
+	_, err = DoUpdateWithClient(cli, deployContext, actual, testObjLabeled.DeepCopy(), cmp.Options{})
 	if err != nil {
 		t.Fatalf("Failed to update object: %v", err)
 	}
