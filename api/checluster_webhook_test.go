@@ -122,6 +122,11 @@ func TestSetVSXUrl(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
+			if !testCase.cheCluster.IsCheFlavor() && testCase.cheCluster.Status.CheVersion != "" {
+				// Ignore upgrade usecases for downstream
+				return
+			}
+
 			testCase.cheCluster.Default()
 			if testCase.expectedOpenVSXUrl == "" {
 				assert.True(t, testCase.cheCluster.IsOpenVSXURLEmpty())
