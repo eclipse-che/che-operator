@@ -116,7 +116,7 @@ func (ip *ImagePuller) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result,
 			return reconcile.Result{}, false, err
 		}
 	} else {
-		if done, err := ip.uninstallImagePullerOperator(ctx); done {
+		if done, err := ip.uninstallImagePullerOperator(ctx); !done {
 			return reconcile.Result{}, false, err
 		}
 	}

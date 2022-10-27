@@ -56,10 +56,10 @@ func SyncWithClient(cli client.Client, deployContext *chetypes.DeployContext, bl
 	// set GroupVersionKind (it might be empty)
 	actual.GetObjectKind().SetGroupVersionKind(runtimeObject.GetObjectKind().GroupVersionKind())
 	if !exists {
-		return DoCreateWithClient(cli, deployContext, blueprint, false)
+		return CreateWithClient(cli, deployContext, blueprint, false)
 	}
 
-	return DoUpdateWithClient(cli, deployContext, actual.(client.Object), blueprint, diffOpts...)
+	return UpdateWithClient(cli, deployContext, actual.(client.Object), blueprint, diffOpts...)
 }
 
 func SyncAndAddFinalizer(
@@ -121,14 +121,14 @@ func CreateIfNotExistsWithClient(cli client.Client, deployContext *chetypes.Depl
 		return false, err
 	}
 
-	return DoCreateWithClient(cli, deployContext, blueprint, false)
+	return CreateWithClient(cli, deployContext, blueprint, false)
 }
 
 // Creates object.
 // Return true if a new object is created otherwise returns false.
 func Create(deployContext *chetypes.DeployContext, blueprint client.Object) (bool, error) {
 	client := getClientForObject(blueprint.GetNamespace(), deployContext)
-	return DoCreateWithClient(client, deployContext, blueprint, false)
+	return CreateWithClient(client, deployContext, blueprint, false)
 }
 
 // Deletes object.
@@ -152,7 +152,7 @@ func DeleteClusterObject(deployContext *chetypes.DeployContext, name string, obj
 
 // Updates object.
 // Returns true if object is up to date otherwiser return false
-func DoUpdateWithClient(client client.Client, deployContext *chetypes.DeployContext, actual client.Object, blueprint client.Object, diffOpts ...cmp.Option) (bool, error) {
+func UpdateWithClient(client client.Client, deployContext *chetypes.DeployContext, actual client.Object, blueprint client.Object, diffOpts ...cmp.Option) (bool, error) {
 	actualMeta, ok := actual.(metav1.Object)
 	if !ok {
 		return false, fmt.Errorf("object %T is not a metav1.Object. Cannot sync it", actualMeta)
@@ -186,11 +186,11 @@ func DoUpdateWithClient(client client.Client, deployContext *chetypes.DeployCont
 		blueprint.SetLabels(targetLabels)
 
 		if isUpdateUsingDeleteCreate(actual.GetObjectKind().GroupVersionKind().Kind) {
-			done, err := DoDeleteWithClient(client, actual)
+			done, err := DeleteWithClient(client, actual)
 			if !done {
 				return false, err
 			}
-			return DoCreateWithClient(client, deployContext, blueprint, false)
+			return CreateWithClient(client, deployContext, blueprint, false)
 		} else {
 			logrus.Infof("Updating existing object: %s, name: %s", GetObjectType(actualMeta), actualMeta.GetName())
 			err := setOwnerReferenceIfNeeded(deployContext, blueprint)
@@ -207,7 +207,7 @@ func DoUpdateWithClient(client client.Client, deployContext *chetypes.DeployCont
 	return true, nil
 }
 
-func DoCreateWithClient(client client.Client, deployContext *chetypes.DeployContext, blueprint client.Object, returnTrueIfAlreadyExists bool) (bool, error) {
+func CreateWithClient(client client.Client, deployContext *chetypes.DeployContext, blueprint client.Object, returnTrueIfAlreadyExists bool) (bool, error) {
 	logrus.Infof("Creating a new object: %s, name: %s", GetObjectType(blueprint), blueprint.GetName())
 
 	err := setOwnerReferenceIfNeeded(deployContext, blueprint)
@@ -239,10 +239,10 @@ func DeleteByKeyWithClient(cli client.Client, key client.ObjectKey, objectMeta c
 		return false, err
 	}
 
-	return DoDeleteWithClient(cli, actual)
+	return DeleteWithClient(cli, actual)
 }
 
-func DoDeleteWithClient(client client.Client, actual client.Object) (bool, error) {
+func DeleteWithClient(client client.Client, actual client.Object) (bool, error) {
 	logrus.Infof("Deleting object: %s, name: %s", GetObjectType(actual), actual.GetName())
 
 	err := client.Delete(context.TODO(), actual)
