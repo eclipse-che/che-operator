@@ -19,7 +19,7 @@ Che operator is implemented using [operator framework](https://github.com/operat
 
 ## CheCluster custom resource
 
-Che operator deploys Eclipse Che using configuration stored in the Kubernetes custom resource(CR). CR object structure defined in the code using `api/v2/checluster_types.go` file. Field name defined using the serialization tag `json`. Che operator default CR sample is stored in the `config/samples/org_v2_checluster.yaml`. This file should be directly modified if you want to apply new fields with default values, or in case of changing default values for existing fields. Also, you can apply in the field comments Openshift UI annotations: to display some interactive information about these fields on the Openshift UI.
+Che operator deploys Eclipse Che using configuration stored in the Kubernetes custom resource(CR). CR object structure defined in the code using `api/v2/checluster_types.go` file. Field name defined using the serialization tag `json`. Che operator default CR sample is stored in the `config/samples/org_v2_checluster.yaml`. These files should be directly modified if you want to apply new fields with default values, or in case of changing default values for existing fields. Also, you can apply in the field comments Openshift UI annotations: to display some interactive information about these fields on the Openshift UI.
 For example:
 
 ```go
