@@ -15,12 +15,13 @@ import (
 	"context"
 	goerror "errors"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sirupsen/logrus"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"strings"
-	"time"
 
 	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
