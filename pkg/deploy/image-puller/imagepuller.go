@@ -15,11 +15,13 @@ import (
 	"context"
 	goerror "errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+
+	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -49,8 +51,8 @@ var (
 		"^RELATED_IMAGE_.*_openshift(_.*)?_plugin_registry_image.*",
 		"^RELATED_IMAGE_universal(_)?developer(_)?image(_.*)?_devfile_registry_image.*",
 	}
-	diffOpts = cmp.Options{
-		cmpopts.IgnoreFields(chev1alpha1.KubernetesImagePuller{}, "TypeMeta", "ObjectMeta"),
+	kubernetesImagePullerDiffOpts = cmp.Options{
+		cmpopts.IgnoreFields(chev1alpha1.KubernetesImagePuller{}, "TypeMeta", "ObjectMeta", "Status"),
 	}
 )
 
@@ -59,16 +61,13 @@ const (
 	operatorGroupName        = "kubernetes-imagepuller-operator"
 	packageName              = "kubernetes-imagepuller-operator"
 	componentName            = "kubernetes-image-puller"
+	imagePullerFinalizerName = "kubernetesimagepullers.finalizers.che.eclipse.org"
 	defaultConfigMapName     = "k8s-image-puller"
 	defaultDeploymentName    = "kubernetes-image-puller"
-	imagePullerFinalizerName = "kubernetesimagepullers.finalizers.che.eclipse.org"
+	defaultImagePullerImage  = "quay.io/eclipse/kubernetes-image-puller:next"
 )
 
-// ImageAndName represents an image coupled with an image name.
-type ImageAndName struct {
-	Name  string // image name (ex. my-image)
-	Image string // image (ex. quay.io/test/abc)
-}
+type Images2Pull = map[string]string
 
 type ImagePuller struct {
 	deploy.Reconcilable
@@ -88,6 +87,10 @@ func (ip *ImagePuller) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result,
 			return reconcile.Result{RequeueAfter: time.Second}, false, fmt.Errorf(errorMsg)
 		}
 
+		if err := deploy.AppendFinalizer(ctx, imagePullerFinalizerName); err != nil {
+			return reconcile.Result{}, false, err
+		}
+
 		if done, err := ip.syncOperatorGroup(ctx); !done {
 			return reconcile.Result{}, false, err
 		}
@@ -97,10 +100,6 @@ func (ip *ImagePuller) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result,
 		}
 
 		if done, err := ip.syncDefaultImages(ctx); !done {
-			return reconcile.Result{}, false, err
-		}
-
-		if err := deploy.AppendFinalizer(ctx, imagePullerFinalizerName); err != nil {
 			return reconcile.Result{}, false, err
 		}
 
@@ -153,16 +152,17 @@ func (ip *ImagePuller) uninstallImagePullerOperator(ctx *chetypes.DeployContext)
 	if foundOperatorsAPI {
 		// Delete the Subscription and ClusterServiceVersion
 		subscription := &operatorsv1alpha1.Subscription{}
-		if exists, err := deploy.GetWithClient(ctx.ClusterAPI.NonCachingClient, types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: subscriptionName}, subscription); err != nil {
+		if exists, err := deploy.GetWithClient(
+			ctx.ClusterAPI.NonCachingClient,
+			types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: subscriptionName},
+			subscription,
+		); err != nil {
 			return false, err
 		} else if exists {
 			if subscription.Status.InstalledCSV != "" {
 				if done, err := deploy.DeleteByKeyWithClient(
 					ctx.ClusterAPI.NonCachingClient,
-					types.NamespacedName{
-						Namespace: ctx.CheCluster.Namespace,
-						Name:      subscription.Status.InstalledCSV,
-					},
+					types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: subscription.Status.InstalledCSV},
 					&operatorsv1alpha1.ClusterServiceVersion{}); !done {
 					return false, err
 				}
@@ -170,10 +170,7 @@ func (ip *ImagePuller) uninstallImagePullerOperator(ctx *chetypes.DeployContext)
 
 			if done, err := deploy.DeleteByKeyWithClient(
 				ctx.ClusterAPI.NonCachingClient,
-				types.NamespacedName{
-					Namespace: ctx.CheCluster.Namespace,
-					Name:      subscriptionName,
-				},
+				types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: subscriptionName},
 				&operatorsv1alpha1.Subscription{}); !done {
 				return false, err
 			}
@@ -232,61 +229,28 @@ func (ip *ImagePuller) discoverImagePullerApis(ctx *chetypes.DeployContext) (boo
 
 func (ip *ImagePuller) syncDefaultImages(ctx *chetypes.DeployContext) (bool, error) {
 	defaultImages := getDefaultImages()
-	specImages := stringToImageSlice(ctx.CheCluster.Spec.Components.ImagePuller.Spec.Images)
+	specImages := stringToImages(ctx.CheCluster.Spec.Components.ImagePuller.Spec.Images)
 
 	if len(specImages) == 0 {
-		if len(defaultImages) != 0 {
-			err := setImages(ctx, defaultImages)
-			return err == nil, err
-		}
+		specImages = defaultImages
 	} else {
-		if updateSpecImages(specImages, defaultImages) {
-			err := setImages(ctx, specImages)
-			return err == nil, err
-		}
-	}
-
-	return true, nil
-}
-
-// UpdateSpecImages returns true if the default images from `spec.images` were updated
-// with new defaults.
-func updateSpecImages(specImages []ImageAndName, defaultImages []ImageAndName) bool {
-	updated := false
-	for i, specImage := range specImages {
-		specImageName, specImageTag := utils.GetImageNameAndTag(specImage.Image)
-		for _, defaultImage := range defaultImages {
-			defaultImageName, defaultImageTag := utils.GetImageNameAndTag(defaultImage.Image)
-			// if the image tags are different for this image, then update
-			if defaultImageName == specImageName && defaultImageTag != specImageTag {
-				updated = true
-				specImages[i].Image = defaultImage.Image
-				break
+		for specImageName, specImage := range specImages {
+			for defaultImageName, defaultImage := range defaultImages {
+				if specImageName == defaultImageName && specImage != defaultImage {
+					specImages[specImageName] = defaultImage
+				}
 			}
 		}
 	}
 
-	return updated
-}
-
-// SetImages sets the provided images to the imagePuller spec
-func setImages(ctx *chetypes.DeployContext, images []ImageAndName) error {
-	imagesStr := imageSliceToString(images)
-	ctx.CheCluster.Spec.Components.ImagePuller.Spec.Images = imagesStr
-	return deploy.UpdateCheCRSpec(ctx, "Kubernetes Image Puller images", imagesStr)
-}
-
-// GetDefaultImages returns the current default images from the environment variables
-func getDefaultImages() []ImageAndName {
-	images := []ImageAndName{}
-	for _, pattern := range defaultImagePatterns {
-		matches := utils.GetEnvsByRegExp(pattern)
-		for _, match := range matches {
-			match.Name = match.Name[len("RELATED_IMAGE_"):]
-			images = append(images, ImageAndName{Name: match.Name, Image: match.Value})
-		}
+	specImagesAsString := imagesToString(specImages)
+	if ctx.CheCluster.Spec.Components.ImagePuller.Spec.Images != specImagesAsString {
+		ctx.CheCluster.Spec.Components.ImagePuller.Spec.Images = specImagesAsString
+		err := deploy.UpdateCheCRSpec(ctx, "components.imagePuller.spec.images ", specImagesAsString)
+		return err == nil, err
 	}
-	return images
+
+	return true, nil
 }
 
 func (ip *ImagePuller) syncOperatorGroup(ctx *chetypes.DeployContext) (bool, error) {
@@ -310,6 +274,7 @@ func (ip *ImagePuller) syncOperatorGroup(ctx *chetypes.DeployContext) (bool, err
 			Labels: map[string]string{
 				constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
 				constants.KubernetesComponentLabelKey: componentName,
+				constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel(),
 			},
 		},
 		Spec: operatorsv1.OperatorGroupSpec{
@@ -341,6 +306,7 @@ func (ip *ImagePuller) syncSubscription(ctx *chetypes.DeployContext) (bool, erro
 			Labels: map[string]string{
 				constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
 				constants.KubernetesComponentLabelKey: componentName,
+				constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel(),
 			},
 		},
 		Spec: &operatorsv1alpha1.SubscriptionSpec{
@@ -356,73 +322,6 @@ func (ip *ImagePuller) syncSubscription(ctx *chetypes.DeployContext) (bool, erro
 	return err == nil, err
 }
 
-// imageSliceToString returns a string representation of the provided image slice, suitable for the
-// imagePuller.spec.images field
-func imageSliceToString(imageSlice []ImageAndName) string {
-	var err error
-	imagesString := ""
-	for _, image := range imageSlice {
-		image.Name, err = ConvertToRFC1123(image.Name)
-		if err != nil {
-			continue
-		}
-		imagesString += image.Name + "=" + image.Image + ";"
-	}
-	return imagesString
-}
-
-// StringToImageSlice returns a slice of ImageAndName structs from the provided semi-colon seperated string
-// of key value pairs
-func stringToImageSlice(imagesString string) []ImageAndName {
-	currentImages := strings.Split(imagesString, ";")
-	for i, image := range currentImages {
-		currentImages[i] = strings.TrimSpace(image)
-	}
-	// Remove the last element, if empty
-	if currentImages[len(currentImages)-1] == "" {
-		currentImages = currentImages[:len(currentImages)-1]
-	}
-
-	images := []ImageAndName{}
-	for _, image := range currentImages {
-		nameAndImage := strings.Split(image, "=")
-		if len(nameAndImage) != 2 {
-			logrus.Warnf("Malformed image name/tag: %s. Ignoring.", image)
-			continue
-		}
-		images = append(images, ImageAndName{Name: nameAndImage[0], Image: nameAndImage[1]})
-	}
-
-	return images
-}
-
-// ConvertToRFC1123 converts input string to RFC 1123 format ([a-z0-9]([-a-z0-9]*[a-z0-9])?) max 63 characters, if possible
-func ConvertToRFC1123(str string) (string, error) {
-	result := strings.ToLower(str)
-	if len(str) > validation.DNS1123LabelMaxLength {
-		result = result[:validation.DNS1123LabelMaxLength]
-	}
-
-	// Remove illegal trailing characters
-	i := len(result) - 1
-	for i >= 0 && !IsRFC1123Char(result[i]) {
-		i -= 1
-	}
-	result = result[:i+1]
-
-	result = strings.ReplaceAll(result, "_", "-")
-
-	if errs := validation.IsDNS1123Label(result); len(errs) > 0 {
-		return "", goerror.New("Cannot convert the following string to RFC 1123 format: " + str)
-	}
-	return result, nil
-}
-
-func IsRFC1123Char(ch byte) bool {
-	errs := validation.IsDNS1123Label(string(ch))
-	return len(errs) == 0
-}
-
 func (ip *ImagePuller) syncKubernetesImagePuller(ctx *chetypes.DeployContext) (bool, error) {
 	imagePuller := &chev1alpha1.KubernetesImagePuller{
 		TypeMeta: metav1.TypeMeta{
@@ -435,16 +334,107 @@ func (ip *ImagePuller) syncKubernetesImagePuller(ctx *chetypes.DeployContext) (b
 			Labels: map[string]string{
 				constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
 				constants.KubernetesComponentLabelKey: componentName,
+				constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel(),
 			},
 		},
 		Spec: ctx.CheCluster.Spec.Components.ImagePuller.Spec,
 	}
+
+	// Set default values to avoid syncing object on every loop
+	// See https://github.com/che-incubator/kubernetes-image-puller-operator/blob/main/controllers/kubernetesimagepuller_controller.go
 	imagePuller.Spec.ConfigMapName = utils.GetValue(imagePuller.Spec.ConfigMapName, defaultConfigMapName)
 	imagePuller.Spec.DeploymentName = utils.GetValue(imagePuller.Spec.DeploymentName, defaultDeploymentName)
+	imagePuller.Spec.ImagePullerImage = utils.GetValue(imagePuller.Spec.ImagePullerImage, defaultImagePullerImage)
 
-	return deploy.SyncWithClient(ctx.ClusterAPI.NonCachingClient, ctx, imagePuller, diffOpts)
+	return deploy.SyncWithClient(ctx.ClusterAPI.NonCachingClient, ctx, imagePuller, kubernetesImagePullerDiffOpts)
 }
 
 func getImagePullerOperatorName(ctx *chetypes.DeployContext) string {
 	return ctx.CheCluster.Name + "-image-puller"
+}
+
+// imagesToString returns a string representation of the provided image slice,
+// suitable for the imagePuller.spec.images field
+func imagesToString(images Images2Pull) string {
+	imageNames := make([]string, 0, len(images))
+	for k := range images {
+		imageNames = append(imageNames, k)
+	}
+	sort.Strings(imageNames)
+
+	imagesAsString := ""
+	for _, imageName := range imageNames {
+		if name, err := convertToRFC1123(imageName); err == nil {
+			imagesAsString += name + "=" + images[imageName] + ";"
+		}
+	}
+	return imagesAsString
+}
+
+// stringToImages returns a slice of ImageAndName structs from the provided semi-colon seperated string
+// of key value pairs
+func stringToImages(imagesString string) Images2Pull {
+	currentImages := strings.Split(imagesString, ";")
+	for i, image := range currentImages {
+		currentImages[i] = strings.TrimSpace(image)
+	}
+	// Remove the last element, if empty
+	if currentImages[len(currentImages)-1] == "" {
+		currentImages = currentImages[:len(currentImages)-1]
+	}
+
+	images := map[string]string{}
+	for _, image := range currentImages {
+		nameAndImage := strings.Split(image, "=")
+		if len(nameAndImage) != 2 {
+			logrus.Warnf("Malformed image name/tag: %s. Ignoring.", image)
+			continue
+		}
+		images[nameAndImage[0]] = nameAndImage[1]
+	}
+
+	return images
+}
+
+// convertToRFC1123 converts input string to RFC 1123 format ([a-z0-9]([-a-z0-9]*[a-z0-9])?) max 63 characters, if possible
+func convertToRFC1123(str string) (string, error) {
+	result := strings.ToLower(str)
+	if len(str) > validation.DNS1123LabelMaxLength {
+		result = result[:validation.DNS1123LabelMaxLength]
+	}
+
+	// Remove illegal trailing characters
+	i := len(result) - 1
+	for i >= 0 && !isRFC1123Char(result[i]) {
+		i -= 1
+	}
+	result = result[:i+1]
+
+	result = strings.ReplaceAll(result, "_", "-")
+
+	if errs := validation.IsDNS1123Label(result); len(errs) > 0 {
+		return "", goerror.New("Cannot convert the following string to RFC 1123 format: " + str)
+	}
+	return result, nil
+}
+
+func isRFC1123Char(ch byte) bool {
+	errs := validation.IsDNS1123Label(string(ch))
+	return len(errs) == 0
+}
+
+// GetDefaultImages returns the current default images from the environment variables
+func getDefaultImages() Images2Pull {
+	images := map[string]string{}
+	for _, pattern := range defaultImagePatterns {
+		matches := utils.GetEnvsByRegExp(pattern)
+		sort.SliceStable(matches, func(i, j int) bool {
+			return strings.Compare(matches[i].Name, matches[j].Name) < 0
+		})
+
+		for _, match := range matches {
+			images[match.Name[len("RELATED_IMAGE_"):]] = match.Value
+		}
+	}
+	return images
 }

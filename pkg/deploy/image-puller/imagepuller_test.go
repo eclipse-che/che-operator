@@ -14,7 +14,6 @@ package imagepuller
 import (
 	"context"
 	"os"
-	"sort"
 	"strings"
 	"unicode/utf8"
 
@@ -119,13 +118,13 @@ func TestImagePullerConfiguration(t *testing.T) {
 		},
 		{
 			name:   "image puller enabled, user images set, subscription exists, should create a KubernetesImagePuller with user images",
-			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("image=image_url"),
+			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("image=image_url;"),
 			initObjects: []runtime.Object{
 				getPackageManifest(),
 				getOperatorGroup(),
 				getSubscription(),
 			},
-			expectedImagePuller: InitImagePuller(ImagePullerOptions{SpecImages: "image=image_url", ObjectMetaResourceVersion: "1"}),
+			expectedImagePuller: InitImagePuller(ImagePullerOptions{SpecImages: "image=image_url;", ObjectMetaResourceVersion: "1"}),
 		},
 		{
 			name:   "image puller enabled, latest default images set, subscription exists, should not update KubernetesImagePuller default images",
@@ -178,8 +177,9 @@ func TestImagePullerConfiguration(t *testing.T) {
 					},
 				},
 				Spec: chev1alpha1.KubernetesImagePullerSpec{
-					ConfigMapName:  "k8s-image-puller-trigger-update",
-					DeploymentName: "kubernetes-image-puller-trigger-update",
+					ConfigMapName:    "k8s-image-puller-trigger-update",
+					DeploymentName:   "kubernetes-image-puller-trigger-update",
+					ImagePullerImage: "quay.io/eclipse/kubernetes-image-puller:next",
 				},
 			},
 		},
@@ -361,11 +361,54 @@ func TestImagePullerConfiguration(t *testing.T) {
 	}
 }
 
+func TestSyncImages(t *testing.T) {
+	type testcase struct {
+		name                   string
+		env                    map[string]string
+		expectedImagesAsString string
+	}
+
+	testCases := []testcase{
+		{
+			name: "detect devfile registry images",
+			env: map[string]string{
+				"RELATED_IMAGE_universal_developer_image_devfile_registry_image_1": "quay.io/devfile/universal-developer-image@sha256:test1",
+				"RELATED_IMAGE_universal_developer_image_devfile_registry_image_2": "quay.io/devfile/universal-developer-image@sha256:test2",
+			},
+			expectedImagesAsString: "universal-developer-image-devfile-registry-image-1=quay.io/devfile/universal-developer-image@sha256:test1;universal-developer-image-devfile-registry-image-2=quay.io/devfile/universal-developer-image@sha256:test2;",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			ctx := test.GetDeployContext(nil, []runtime.Object{})
+
+			for k, v := range testCase.env {
+				os.Setenv(k, v)
+				defer os.Unsetenv(k)
+			}
+
+			ip := NewImagePuller()
+			done, err := ip.syncDefaultImages(ctx)
+			assert.Nil(t, err)
+			assert.True(t, done)
+			assert.Equal(t, testCase.expectedImagesAsString, ctx.CheCluster.Spec.Components.ImagePuller.Spec.Images)
+
+			// sync twice to ensure images are the same
+			done, err = ip.syncDefaultImages(ctx)
+			assert.Nil(t, err)
+			assert.True(t, done)
+			assert.Equal(t, testCase.expectedImagesAsString, ctx.CheCluster.Spec.Components.ImagePuller.Spec.Images)
+		})
+	}
+}
+
 func TestEnvVars(t *testing.T) {
 	type testcase struct {
-		name     string
-		env      map[string]string
-		expected []ImageAndName
+		name                   string
+		env                    map[string]string
+		expected               Images2Pull
+		expectedImagesAsString string
 	}
 
 	// unset RELATED_IMAGE environment variables, set them back
@@ -385,9 +428,9 @@ func TestEnvVars(t *testing.T) {
 				"RELATED_IMAGE_che_theia_plugin_registry_image_IBZWQYJ":                         "quay.io/eclipse/che-theia",
 				"RELATED_IMAGE_che_theia_endpoint_runtime_binary_plugin_registry_image_IBZWQYJ": "quay.io/eclipse/che-theia-endpoint-runtime-binary",
 			},
-			expected: []ImageAndName{
-				{Name: "che_theia_plugin_registry_image_IBZWQYJ", Image: "quay.io/eclipse/che-theia"},
-				{Name: "che_theia_endpoint_runtime_binary_plugin_registry_image_IBZWQYJ", Image: "quay.io/eclipse/che-theia-endpoint-runtime-binary"},
+			expected: map[string]string{
+				"che_theia_plugin_registry_image_IBZWQYJ":                         "quay.io/eclipse/che-theia",
+				"che_theia_endpoint_runtime_binary_plugin_registry_image_IBZWQYJ": "quay.io/eclipse/che-theia-endpoint-runtime-binary",
 			},
 		},
 		{
@@ -396,9 +439,9 @@ func TestEnvVars(t *testing.T) {
 				"RELATED_IMAGE_che_machine_exec_plugin_registry_image_IBZWQYJ":                  "quay.io/eclipse/che-machine-exec",
 				"RELATED_IMAGE_codeready_workspaces_machineexec_plugin_registry_image_GIXDCMQK": "registry.redhat.io/codeready-workspaces/machineexec-rhel8",
 			},
-			expected: []ImageAndName{
-				{Name: "che_machine_exec_plugin_registry_image_IBZWQYJ", Image: "quay.io/eclipse/che-machine-exec"},
-				{Name: "codeready_workspaces_machineexec_plugin_registry_image_GIXDCMQK", Image: "registry.redhat.io/codeready-workspaces/machineexec-rhel8"},
+			expected: map[string]string{
+				"che_machine_exec_plugin_registry_image_IBZWQYJ":                  "quay.io/eclipse/che-machine-exec",
+				"codeready_workspaces_machineexec_plugin_registry_image_GIXDCMQK": "registry.redhat.io/codeready-workspaces/machineexec-rhel8",
 			},
 		},
 		{
@@ -407,9 +450,9 @@ func TestEnvVars(t *testing.T) {
 				"RELATED_IMAGE_che_openshift_plugin_registry_image_IBZWQYJ":                          "index.docker.io/dirigiblelabs/dirigible-openshift",
 				"RELATED_IMAGE_codeready_workspaces_plugin_openshift_plugin_registry_image_GIXDCMQK": "registry.redhat.io/codeready-workspaces/plugin-openshift-rhel8",
 			},
-			expected: []ImageAndName{
-				{Name: "che_openshift_plugin_registry_image_IBZWQYJ", Image: "index.docker.io/dirigiblelabs/dirigible-openshift"},
-				{Name: "codeready_workspaces_plugin_openshift_plugin_registry_image_GIXDCMQK", Image: "registry.redhat.io/codeready-workspaces/plugin-openshift-rhel8"},
+			expected: map[string]string{
+				"che_openshift_plugin_registry_image_IBZWQYJ":                          "index.docker.io/dirigiblelabs/dirigible-openshift",
+				"codeready_workspaces_plugin_openshift_plugin_registry_image_GIXDCMQK": "registry.redhat.io/codeready-workspaces/plugin-openshift-rhel8",
 			},
 		},
 		{
@@ -417,8 +460,8 @@ func TestEnvVars(t *testing.T) {
 			env: map[string]string{
 				"RELATED_IMAGE_universal_developer_image_devfile_registry_image_OVRGSOBNGBSTCOBZMQ4Q____": "quay.io/devfile/universal-developer-image:ubi8-38da5c2",
 			},
-			expected: []ImageAndName{
-				{Name: "universal_developer_image_devfile_registry_image_OVRGSOBNGBSTCOBZMQ4Q____", Image: "quay.io/devfile/universal-developer-image:ubi8-38da5c2"},
+			expected: map[string]string{
+				"universal_developer_image_devfile_registry_image_OVRGSOBNGBSTCOBZMQ4Q____": "quay.io/devfile/universal-developer-image:ubi8-38da5c2",
 			},
 		},
 	}
@@ -430,20 +473,11 @@ func TestEnvVars(t *testing.T) {
 				defer os.Unsetenv(k)
 			}
 			actual := getDefaultImages()
-			if d := cmp.Diff(sortImages(c.expected), sortImages(actual)); d != "" {
+			if d := cmp.Diff(c.expected, actual); d != "" {
 				t.Errorf("Error, collected images differ (-want, +got): %v", d)
 			}
 		})
 	}
-}
-
-func sortImages(images []ImageAndName) []ImageAndName {
-	imagesCopy := make([]ImageAndName, len(images))
-	copy(imagesCopy, images)
-	sort.Slice(imagesCopy, func(i, j int) bool {
-		return imagesCopy[i].Name < imagesCopy[j].Name
-	})
-	return imagesCopy
 }
 
 func InitCheCRWithImagePullerEnabled() *chev2.CheCluster {
@@ -653,9 +687,10 @@ func InitImagePuller(options ImagePullerOptions) *chev1alpha1.KubernetesImagePul
 			},
 		},
 		Spec: chev1alpha1.KubernetesImagePullerSpec{
-			DeploymentName: "deployment",
-			ConfigMapName:  "configmap",
-			Images:         options.SpecImages,
+			DeploymentName:   "deployment",
+			ConfigMapName:    "configmap",
+			Images:           options.SpecImages,
+			ImagePullerImage: "quay.io/eclipse/kubernetes-image-puller:next",
 		},
 	}
 }
