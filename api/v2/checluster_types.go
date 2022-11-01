@@ -767,10 +767,6 @@ func (c *CheCluster) IsImagePullerSpecEmpty() bool {
 	return c.Spec.Components.ImagePuller.Spec == (imagepullerv1alpha1.KubernetesImagePullerSpec{})
 }
 
-func (c *CheCluster) IsImagePullerImagesEmpty() bool {
-	return len(c.Spec.Components.ImagePuller.Spec.Images) == 0
-}
-
 func (c *CheCluster) GetCheHost() string {
 	if c.Status.CheURL != "" {
 		return strings.TrimPrefix(c.Status.CheURL, "https://")
