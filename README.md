@@ -12,7 +12,6 @@
   - [Deploy Che operator](#Deploy-Che-operator)
   - [Update Che operator](#Update-Che-operator)
   - [Debug Che operator](#Debug-Che-operator)
-  - [Generate go mocks](#Generate-go-mocks)
   - [Validation licenses for runtime dependencies](#Validation-licenses-for-runtime-dependencies)
 - [Builds](#Builds)
 - [License](#License)
