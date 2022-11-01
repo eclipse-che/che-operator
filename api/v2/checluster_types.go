@@ -37,7 +37,7 @@ type CheClusterSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Development environments"
-	// +kubebuilder:default:={disableContainerBuildCapabilities: true, defaultComponents: {{name: universal-developer-image, container: {image: "quay.io/devfile/universal-developer-image:ubi8-38da5c2"}}}, defaultEditor: eclipse/che-code/insiders, storage: {pvcStrategy: per-user}, defaultNamespace: {template: <username>-che, autoProvision: true}, secondsOfInactivityBeforeIdling:1800, secondsOfRunBeforeIdling:-1}
+	// +kubebuilder:default:={disableContainerBuildCapabilities: true, defaultComponents: {{name: universal-developer-image, container: {image: "quay.io/devfile/universal-developer-image:ubi8-38da5c2"}}}, defaultEditor: che-incubator/che-code/insiders, storage: {pvcStrategy: per-user}, defaultNamespace: {template: <username>-che, autoProvision: true}, secondsOfInactivityBeforeIdling:1800, secondsOfRunBeforeIdling:-1}
 	DevEnvironments CheClusterDevEnvironments `json:"devEnvironments"`
 	// Che components configuration.
 	// +optional
@@ -90,7 +90,7 @@ type CheClusterDevEnvironments struct {
 	// The plugin ID must have `publisher/plugin/version` format.
 	// The URI must start from `http://` or `https://`.
 	// +optional
-	// +kubebuilder:default:=eclipse/che-code/insiders
+	// +kubebuilder:default:=che-incubator/che-code/insiders
 	DefaultEditor string `json:"defaultEditor,omitempty"`
 	// Default components applied to DevWorkspaces.
 	// These default components are meant to be used when a Devfile, that does not contain any components.
