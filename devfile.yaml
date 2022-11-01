@@ -65,4 +65,4 @@ commands:
       commandLine: >
         read -p "ENTER the image registry (for example \"quay.io\"): " IMAGE_REGISTRY_HOST &&
         read -p "ENTER the image organization (for example \"eclipse\"): " IMAGE_REGISTRY_USER_NAME &&
-        build/scripts/olm/buildCatalog.sh -c next -i ${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator-catalog:next --image-tool podman
+        build/scripts/olm/buildCatalog.sh -c next -i ${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-openshift-opm-catalog:next --image-tool podman
