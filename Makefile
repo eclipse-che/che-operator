@@ -75,7 +75,18 @@ VSCODE_ENV_FILE=$(INTERNAL_TMP_DIR)/vscode.env
 
 DEPLOYMENT_DIR=$(PROJECT_DIR)/deploy/deployment
 
-ECLIPSE_CHE_NAMESPACE="eclipse-che"
+ifneq (,$(shell $(K8S_CLI) get checluster -A 2>/dev/null))
+  ECLIPSE_CHE_NAMESPACE := $(shell $(K8S_CLI) get checluster -A -o "jsonpath={.items[0].metadata.namespace}")
+else
+  ECLIPSE_CHE_NAMESPACE ?= "eclipse-che"
+endif
+
+ifneq (,$(shell $(K8S_CLI) get deployment -l app.kubernetes.io/component=che-operator -A 2>/dev/null))
+  OPERATOR_NAMESPACE := $(shell $(K8S_CLI) get deployment -l app.kubernetes.io/component=che-operator -A -o "jsonpath={.items[0].metadata.namespace}")
+else
+  OPERATOR_NAMESPACE ?= "eclipse-che"
+endif
+
 ECLIPSE_CHE_PACKAGE_NAME="eclipse-che-preview-openshift"
 
 CHECLUSTER_CR_PATH="$(PROJECT_DIR)/config/samples/org_v2_checluster.yaml"
@@ -311,6 +322,10 @@ ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
 test: download-gateway-resources ## Run tests.
 	export MOCK_API=true; go test -mod=vendor ./... -coverprofile cover.out
 
+update-go-dependencies: update-go-dependencies ## Update golang dependencies
+	go mod tidy
+	go mod vendor
+
 license: ## Add license to the files
 	FILES=$$(echo $(filter-out $@,$(MAKECMDGOALS)))
 	$(ADD_LICENSE) -f hack/license-header.txt $${FILES}
@@ -345,14 +360,14 @@ genenerate-env:
 install-che-operands: SHELL := /bin/bash
 install-che-operands: generate manifests download-kustomize download-gateway-resources
 	echo "[INFO] Running on $(PLATFORM)"
-	if [[ ! "$(SKIP_CHE_OPERANDS_INSTALLATION)" == "true" ]]; then
+	if [[ ! "$$($(K8S_CLI) get checluster eclipse-che -n $(ECLIPSE_CHE_NAMESPACE) || false )" ]]; then
 		[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
 		$(MAKE) install-devworkspace CHANNEL="next"
 		$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
 		$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/component=che-operator" NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)
 	fi
 
-	$(K8S_CLI) scale deploy che-operator -n $(ECLIPSE_CHE_NAMESPACE) --replicas=0
+	$(K8S_CLI) scale deploy che-operator -n $(OPERATOR_NAMESPACE) --replicas=0
 
 	# Disable Webhooks since che operator pod is scaled down
 	$(K8S_CLI) delete validatingwebhookconfiguration org.eclipse.che

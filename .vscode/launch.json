@@ -34,7 +34,7 @@
       "name": "Launch Main *.go File",
       "type": "go",
       "request": "launch",
-      "program": "${file}",
+      "program": "${file}"
     }
   ]
 }
