@@ -29,10 +29,12 @@ else
 endif
 
 # Detect image tool
+ifeq ($(IMAGE_TOOL),)
 ifneq (,$(shell which docker))
 	IMAGE_TOOL := docker
 else
 	IMAGE_TOOL := podman
+endif
 endif
 
 ifndef VERBOSE
