@@ -4,9 +4,9 @@
 
 - [Description](#Description)
 - [Development](#Development)
-  - [Update golang dependencies](#Update golang dependencies)
-  - [Run unit tests](#Run unit tests)
-  - [Format the code and fix imports](#Format the code and fix imports)
+  - [Update golang dependencies](#Update-golang-dependencies)
+  - [Run unit tests](#Run-unit-tests)
+  - [Format the code and fix imports](#Format-the-code-and-fix-imports)
   - [Update development resources](#Update development resources)
   - [Build Che operator image](#Build-Che-operator-image)
   - [Deploy Che operator](#Deploy-Che-operator)
