@@ -470,20 +470,19 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 
 .PHONY: bundle-build
 bundle-build: SHELL := /bin/bash
-bundle-build: ## Build a bundle image
+bundle-build: download-opm ## Build and validate a bundle image
 	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
 	[[ -z "$(BUNDLE_IMG)" ]] && { echo [ERROR] BUNDLE_IMG not defined; exit 1; }
 
 	BUNDLE_DIR="$(PROJECT_DIR)/bundle/$(CHANNEL)/$(ECLIPSE_CHE_PACKAGE_NAME)"
-	pushd $${BUNDLE_DIR}
-	$(IMAGE_TOOL) build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
-	popd
+	$(IMAGE_TOOL) build -f $${BUNDLE_DIR}/bundle.Dockerfile -t $(BUNDLE_IMG) $${BUNDLE_DIR}
+	$(OPM) alpha bundle validate --tag $(BUNDLE_IMG) --image-builder $(IMAGE_TOOL) --optional-validators operatorhub
 
 .PHONY: bundle-push
 bundle-push: SHELL := /bin/bash
 bundle-push: ## Push a bundle image
 	[[ -z "$(BUNDLE_IMG)" ]] && { echo [ERROR] BUNDLE_IMG not defined; exit 1; }
-	$(MAKE) docker-push IMG=$(BUNDLE_IMG)
+	${IMAGE_TOOL} push $(BUNDLE_IMG)
 
 # Build a catalog image by adding bundle images to an empty catalog using the operator package manager tool, 'opm'.
 # This recipe invokes 'opm' in 'semver' bundle add mode. For more information on add modes, see:
