@@ -30,7 +30,7 @@ command -v yq >/dev/null 2>&1 || { echo "yq is not installed. Aborting."; exit 1
 
 usage () {
 	echo "Usage:   $0 [-w WORKDIR] [-s CSV_FILE_PATH] [-o OPERATOR_DEPLOYMENT_FILE_PATH] [-t IMAGE_TAG] "
-	echo "Example: build/scripts/release/addDigests.sh -w . -s bundle/stable/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml -o config/manager/manager.yaml -t 7.32.0"
+	echo "Example: build/scripts/release/addDigests.sh -w . -s bundle/stable/eclipse-che/manifests/che-operator.clusterserviceversion.yaml -o config/manager/manager.yaml -t 7.32.0"
 }
 
 if [[ $# -lt 1 ]]; then usage; exit; fi

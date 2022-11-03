@@ -87,7 +87,7 @@ else
   OPERATOR_NAMESPACE ?= "eclipse-che"
 endif
 
-ECLIPSE_CHE_PACKAGE_NAME="eclipse-che-preview-openshift"
+ECLIPSE_CHE_PACKAGE_NAME=eclipse-che
 
 CHECLUSTER_CR_PATH="$(PROJECT_DIR)/config/samples/org_v2_checluster.yaml"
 CHECLUSTER_CRD_PATH="$(PROJECT_DIR)/config/crd/bases/org.eclipse.che_checlusters.yaml"
@@ -434,7 +434,7 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 	# Copy bundle.Dockerfile to the bundle dir
  	# Update paths (since it is created in the root of the project) and labels
 	mv bundle.Dockerfile $${BUNDLE_PATH}
-	sed -i 's|$(PROJECT_DIR)/bundle/$(CHANNEL)/eclipse-che-preview-openshift/||' $${BUNDLE_PATH}/bundle.Dockerfile
+	sed -i 's|$(PROJECT_DIR)/bundle/$(CHANNEL)/$(ECLIPSE_CHE_PACKAGE_NAME)/||' $${BUNDLE_PATH}/bundle.Dockerfile
 	printf "\nLABEL com.redhat.openshift.versions=\"v4.8\"" >> $${BUNDLE_PATH}/bundle.Dockerfile
 
 	# Update annotations.yaml correspondingly to bundle.Dockerfile
@@ -466,17 +466,16 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 
 	$(MAKE) license $$(find $${BUNDLE_PATH} -name "*.yaml")
 
-	$(OPERATOR_SDK) bundle validate $${BUNDLE_PATH}
+	$(OPERATOR_SDK) bundle validate $${BUNDLE_PATH} --select-optional name=operatorhub --optional-values=k8s-version=1.19
 
 .PHONY: bundle-build
 bundle-build: SHELL := /bin/bash
-bundle-build: download-opm ## Build and validate a bundle image
+bundle-build: download-opm ## Build a bundle image
 	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
 	[[ -z "$(BUNDLE_IMG)" ]] && { echo [ERROR] BUNDLE_IMG not defined; exit 1; }
 
 	BUNDLE_DIR="$(PROJECT_DIR)/bundle/$(CHANNEL)/$(ECLIPSE_CHE_PACKAGE_NAME)"
 	$(IMAGE_TOOL) build -f $${BUNDLE_DIR}/bundle.Dockerfile -t $(BUNDLE_IMG) $${BUNDLE_DIR}
-	$(OPM) alpha bundle validate --tag $(BUNDLE_IMG) --image-builder $(IMAGE_TOOL) --optional-validators operatorhub
 
 .PHONY: bundle-push
 bundle-push: SHELL := /bin/bash

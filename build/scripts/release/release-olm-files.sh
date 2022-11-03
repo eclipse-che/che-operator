@@ -40,10 +40,17 @@ downloadLatestReleasedBundleCRCRD() {
   PRE_RELEASE_CSV="${STABLE_BUNDLE_PATH}/generated/openshift/che-operator.clusterserviceversion.yaml"
   PRE_RELEASE_CHE_CRD="${STABLE_BUNDLE_PATH}/generated/openshift/org.eclipse.che_checlusters.yaml"
 
-  wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml" \
-      -q -O "${PRE_RELEASE_CSV}"
-  wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-openshift/manifests/org.eclipse.che_checlusters.yaml" \
-      -q -O "${PRE_RELEASE_CHE_CRD}"
+  # discover remote url depending on package name
+  if wget -q --spider "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che/manifests/che-operator.clusterserviceversion.yaml"; then
+    PRE_RELEASE_CSV_URL="https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che/manifests/che-operator.clusterserviceversion.yaml"
+    PRE_RELEASE_CHE_CRD_URL="https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che/manifests/org.eclipse.che_checlusters.yaml"
+  else
+    PRE_RELEASE_CSV_URL="https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
+    PRE_RELEASE_CHE_CRD_URL="https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-openshift/manifests/org.eclipse.che_checlusters.yaml"
+  fi
+
+  wget "${PRE_RELEASE_CSV_URL}" -q -O "${PRE_RELEASE_CSV}"
+  wget "${PRE_RELEASE_CHE_CRD_URL}" -q -O "${PRE_RELEASE_CHE_CRD}"
 }
 
 if [[ -z "$RELEASE" ]] || [[ -z "$CHANNEL" ]]; then

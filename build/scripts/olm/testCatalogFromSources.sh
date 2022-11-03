@@ -166,7 +166,7 @@ run() {
   make create-subscription \
     NAME=eclipse-che-subscription \
     NAMESPACE=${NAMESPACE} \
-    PACKAGE_NAME=${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME} \
+    PACKAGE_NAME=${ECLIPSE_CHE_PACKAGE_NAME} \
     SOURCE=eclipse-che \
     SOURCE_NAMESPACE=${NAMESPACE} \
     INSTALL_PLAN_APPROVAL=Auto \

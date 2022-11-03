@@ -113,8 +113,8 @@ tags
 .history
 
 build/scripts/release/generated
-bundle/next/eclipse-che-preview-openshift/generated
-bundle/stable/eclipse-che-preview-openshift/generated
+bundle/next/eclipse-che/generated
+bundle/stable/eclipse-che/generated
 
 testbin/setup-envtest.sh
 

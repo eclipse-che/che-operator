@@ -55,7 +55,7 @@ Options:
 getLatestStableVersions
 
 INDEX_IMAGE="quay.io/eclipse/eclipse-che-openshift-opm-catalog:test"
-packageName="eclipse-che-preview-openshift"
+packageName="eclipse-che"
 echo
 echo "## Prepare the OperatorHub package to push to the 'community-operators-prod' repository from local package '${packageName}'"
 manifestPackagesDir=$(mktemp -d -t che-openshift-manifest-packages-XXX)
@@ -106,16 +106,15 @@ do
   sed \
   -e "/^  replaces: ${packageName}.v.*/d" \
   -e "s/${packageName}/eclipse-che/" \
-  "${OPERATOR_REPO}/bundle/$channel/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml" \
+  "${OPERATOR_REPO}/bundle/$channel/${packageName}/manifests/che-operator.clusterserviceversion.yaml" \
   > "${folderToUpdate}/${LAST_PACKAGE_VERSION}/manifests/eclipse-che.v${LAST_PACKAGE_VERSION}.clusterserviceversion.yaml"
 
   echo "   - Update the CRD files"
-  cp "${OPERATOR_REPO}/bundle/$channel/eclipse-che-preview-openshift/manifests/org.eclipse.che_checlusters.yaml" "${folderToUpdate}/${LAST_PACKAGE_VERSION}/manifests/org.eclipse.che_checlusters.yaml"
+  cp "${OPERATOR_REPO}/bundle/$channel/${packageName}/manifests/org.eclipse.che_checlusters.yaml" "${folderToUpdate}/${LAST_PACKAGE_VERSION}/manifests/org.eclipse.che_checlusters.yaml"
   echo
 
-  cp ${OPERATOR_REPO}/bundle/$channel/eclipse-che-preview-openshift/metadata/* "${folderToUpdate}/${LAST_PACKAGE_VERSION}/metadata"
+  cp ${OPERATOR_REPO}/bundle/$channel/${packageName}/metadata/* "${folderToUpdate}/${LAST_PACKAGE_VERSION}/metadata"
   sed \
-    -e 's/operators.operatorframework.io.bundle.package.v1: eclipse-che-preview-openshift/operators.operatorframework.io.bundle.package.v1: eclipse-che/' \
     -e '/operators.operatorframework.io.test.config.v1/d' \
     -e '/operators.operatorframework.io.test.mediatype.v1: scorecard+v1/d' \
     -i "${folderToUpdate}/${LAST_PACKAGE_VERSION}/metadata/annotations.yaml"
