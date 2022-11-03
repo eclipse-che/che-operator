@@ -481,30 +481,23 @@ bundle-build: download-opm ## Build a bundle image
 bundle-push: SHELL := /bin/bash
 bundle-push: ## Push a bundle image
 	[[ -z "$(BUNDLE_IMG)" ]] && { echo [ERROR] BUNDLE_IMG not defined; exit 1; }
-	${IMAGE_TOOL} push $(BUNDLE_IMG)
+	$(IMAGE_TOOL) push $(BUNDLE_IMG)
 
 # Build a catalog image by adding bundle images to an empty catalog using the operator package manager tool, 'opm'.
 # This recipe invokes 'opm' in 'semver' bundle add mode. For more information on add modes, see:
 # https://github.com/operator-framework/community-operators/blob/7f1438c/docs/packaging-operator.md#updating-your-existing-operator
-.PHONY: catalog-build
 catalog-build: SHELL := /bin/bash
 catalog-build: download-opm ## Build a catalog image
-	[[ -z "$(BUNDLE_IMG)" ]] && { echo [ERROR] BUNDLE_IMG not defined; exit 1; }
+	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
 	[[ -z "$(CATALOG_IMG)" ]] && { echo [ERROR] CATALOG_IMG not defined; exit 1; }
 
-	$(OPM) index add \
-	--build-tool $(IMAGE_TOOL) \
-	--bundles $(BUNDLE_IMG) \
-	--tag $(CATALOG_IMG) \
-	--pull-tool $(IMAGE_TOOL) \
-	--binary-image=quay.io/operator-framework/upstream-opm-builder:v1.15.2 \
-	--mode semver $(FROM_INDEX_OPT)
+	$(OPM) validate olm-catalog/$(CHANNEL)
+	$(IMAGE_TOOL) build -f olm-catalog/index.Dockerfile -t $(CATALOG_IMG) --build-arg CHANNEL=$(CHANNEL) .
 
-.PHONY: catalog-push
 catalog-push: SHELL := /bin/bash
 catalog-push: ## Push a catalog image
 	[[ -z "$(CATALOG_IMG)" ]] && { echo [ERROR] CATALOG_IMG not defined; exit 1; }
-	$(MAKE) docker-push IMG=$(CATALOG_IMG)
+	$(IMAGE_TOOL) push $(CATALOG_IMG)
 
 bundle-path: SHELL := /bin/bash
 bundle-path: ## Prints path to a bundle directory for a given channel
