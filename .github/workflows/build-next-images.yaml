@@ -19,8 +19,9 @@ on:
       reason:
         description: 'Reason to trigger a build'
         required: false
-  schedule:
-    - cron:  '0 0 * * *'
+  push:
+    branches:
+      - main
 jobs:
   build-images:
     runs-on: ubuntu-20.04
