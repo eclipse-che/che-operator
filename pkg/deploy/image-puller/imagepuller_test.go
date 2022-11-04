@@ -68,6 +68,15 @@ func TestImagePullerConfiguration(t *testing.T) {
 		shouldDelete          bool
 	}
 
+	// unset RELATED_IMAGE environment variables, set them back after tests complete
+	matches := utils.GetEnvsByRegExp("^RELATED_IMAGE_.*")
+	for _, match := range matches {
+		if originalValue, exists := os.LookupEnv(match.Name); exists {
+			os.Unsetenv(match.Name)
+			defer os.Setenv(match.Name, originalValue)
+		}
+	}
+
 	testCases := []testCase{
 		{
 			name:   "image puller enabled, no operatorgroup, should create an operatorgroup",
@@ -368,6 +377,15 @@ func TestSyncImages(t *testing.T) {
 		expectedImagesAsString string
 	}
 
+	// unset RELATED_IMAGE environment variables, set them back after tests complete
+	matches := utils.GetEnvsByRegExp("^RELATED_IMAGE_.*")
+	for _, match := range matches {
+		if originalValue, exists := os.LookupEnv(match.Name); exists {
+			os.Unsetenv(match.Name)
+			defer os.Setenv(match.Name, originalValue)
+		}
+	}
+
 	testCases := []testcase{
 		{
 			name: "detect devfile registry images",
@@ -411,8 +429,7 @@ func TestEnvVars(t *testing.T) {
 		expectedImagesAsString string
 	}
 
-	// unset RELATED_IMAGE environment variables, set them back
-	// after tests complete
+	// unset RELATED_IMAGE environment variables, set them back after tests complete
 	matches := utils.GetEnvsByRegExp("^RELATED_IMAGE_.*")
 	for _, match := range matches {
 		if originalValue, exists := os.LookupEnv(match.Name); exists {
