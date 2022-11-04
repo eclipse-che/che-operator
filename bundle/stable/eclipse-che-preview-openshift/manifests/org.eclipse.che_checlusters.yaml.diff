@@ -1,31 +1,45 @@
---- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/generated/openshift/org.eclipse.che_checlusters.yaml	2022-10-12 19:58:39.328318794 +0000
-+++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/manifests/org.eclipse.che_checlusters.yaml	2022-10-12 19:58:39.340319593 +0000
-@@ -5407,6 +5407,7 @@
+--- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/generated/openshift/org.eclipse.che_checlusters.yaml	2022-11-03 17:44:53.019101414 +0000
++++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/manifests/org.eclipse.che_checlusters.yaml	2022-11-03 17:44:53.031101555 +0000
+@@ -3784,7 +3784,7 @@
+                         type: object
+                       type: array
+                     workspaceDefaultEditor:
+-                      default: eclipse/che-theia/latest
++                      default: che-incubator/che-code/insiders
+                       description: The default editor to workspace create with. It
+                         could be a plugin ID or a URI. The plugin ID must have `publisher/plugin/version`.
+                         The URI must start from `http`.
+@@ -5403,7 +5403,7 @@
+                       - container:
+                           image: quay.io/devfile/universal-developer-image:ubi8-38da5c2
+                         name: universal-developer-image
+-                    defaultEditor: eclipse/che-theia/latest
++                    defaultEditor: che-incubator/che-code/insiders
                      defaultNamespace:
                        autoProvision: true
                        template: <username>-che
-+                    disableContainerBuildCapabilities: true
-                     secondsOfInactivityBeforeIdling: 1800
-                     secondsOfRunBeforeIdling: -1
-                     storage:
-@@ -6960,6 +6961,10 @@
-                             type: array
+@@ -5414,6 +5414,15 @@
+                       pvcStrategy: per-user
+                   description: Development environment default configuration options.
+                   properties:
++                    containerBuildConfiguration:
++                      description: Container build configuration.
++                      properties:
++                        openShiftSecurityContextConstraint:
++                          default: container-build
++                          description: OpenShift security context constraint to build
++                            containers.
++                          type: string
++                      type: object
+                     defaultComponents:
+                       default:
+                         - container:
+@@ -6920,7 +6929,7 @@
                          type: object
                        type: array
-+                    disableContainerBuildCapabilities:
-+                      default: true
-+                      description: Disables the container build capabilities.
-+                      type: boolean
-                     nodeSelector:
-                       additionalProperties:
-                         type: string
-@@ -7121,6 +7126,9 @@
-                         description: GitHubService enables users to work with repositories
-                           hosted on GitHub (GitHub.com or GitHub Enterprise).
-                         properties:
-+                          disableSubdomainIsolation:
-+                            description: Disables subdomain isolation.
-+                            type: boolean
-                           endpoint:
-                             default: https://github.com
-                             description: GitHub server endpoint URL.
+                     defaultEditor:
+-                      default: eclipse/che-theia/latest
++                      default: che-incubator/che-code/insiders
+                       description: The default editor to workspace create with. It
+                         could be a plugin ID or a URI. The plugin ID must have `publisher/plugin/version`
+                         format. The URI must start from `http://` or `https://`.
