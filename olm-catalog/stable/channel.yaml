@@ -15,3 +15,5 @@ package: eclipse-che
 name: stable
 entries:
   - name: eclipse-che.v7.55.0
+  - name: eclipse-che.v7.56.0
+    replaces: eclipse-che.v7.55.0

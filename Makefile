@@ -488,7 +488,7 @@ bundle-render: download-opm ## Add bundle to a catalog
 	[[ -z "$(BUNDLE_IMG)" ]] && { echo [ERROR] BUNDLE_IMG not defined; exit 1; }
 	[[ -z "$(CATALOG_DIR)" ]] && DEFINED_CATALOG_DIR=$$($(MAKE) catalog-path) || DEFINED_CATALOG_DIR=$(CATALOG_DIR)
 
-	$(OPM) render $(BUNDLE_IMG) -o yaml --skip-tls-verify | sed 's|---||g' >> $${DEFINED_CATALOG_DIR}/$(BUNDLE_NAME).bundle.yaml
+	$(OPM) render $(BUNDLE_IMG) -o yaml --skip-tls-verify | sed 's|---||g' > $${DEFINED_CATALOG_DIR}/$(BUNDLE_NAME).bundle.yaml
 
 # Build a catalog image by adding bundle images to an empty catalog using the operator package manager tool, 'opm'.
 # This recipe invokes 'opm' in 'semver' bundle add mode. For more information on add modes, see:

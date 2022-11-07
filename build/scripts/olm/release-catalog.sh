@@ -72,8 +72,10 @@ buildCatalog () {
     echo "[WARN] Bundle ${BUNDLE_NAME} already exists in the catalog"
   else
     echo "[INFO] Add bundle to the catalog"
+
+    LAST_BUNDLE_NAME=$(yq -r '.entries | .[length - 1].name' "${CHANNEL_PATH}")
     make bundle-render CHANNEL="${CHANNEL}" BUNDLE_NAME="${BUNDLE_NAME}" BUNDLE_IMG="${BUNDLE_IMAGE}"
-    yq -riY '(.entries) += [{"name": "'${BUNDLE_NAME}'"}]' "${CHANNEL_PATH}"
+    yq -riY '(.entries) += [{"name": "'${BUNDLE_NAME}'", "replaces": "'${LAST_BUNDLE_NAME}'"}]' "${CHANNEL_PATH}"
   fi
 
   echo "[INFO] Build and push the catalog image"
