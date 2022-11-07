@@ -33,7 +33,7 @@ Start a cluster using `cluster-bot` application.
 To be able to test update it is needed to create some user before. Login as `kubeadmin`. Click `Update the cluster OAuth configuration` at the middle of the dashboard, then `Identity providers` -> `Add` -> `HTPassword` and upload a htpassword file (can be created with HTPassword utility). Logout and login using HTPassword, then logout and login as `kubeadmin`. Go to `kube:admin` -> `Copy Login Command` -> `Display Token` and launch showing command in the terminal. Now it is possible to test update:
 
 ```bash
-build/scripts/olm/testUpdate.sh -c stable -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -n eclipse-che
+build/scripts/olm/test-update.sh -c stable -i quay.io/eclipse/eclipse-che-olm-catalog:stable
 ```
 
 ## 3. Merge pull requests

@@ -468,20 +468,27 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 
 	$(OPERATOR_SDK) bundle validate $${BUNDLE_PATH} --select-optional name=operatorhub --optional-values=k8s-version=1.19
 
-.PHONY: bundle-build
 bundle-build: SHELL := /bin/bash
 bundle-build: download-opm ## Build a bundle image
 	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
 	[[ -z "$(BUNDLE_IMG)" ]] && { echo [ERROR] BUNDLE_IMG not defined; exit 1; }
 
-	BUNDLE_DIR="$(PROJECT_DIR)/bundle/$(CHANNEL)/$(ECLIPSE_CHE_PACKAGE_NAME)"
-	$(IMAGE_TOOL) build -f $${BUNDLE_DIR}/bundle.Dockerfile -t $(BUNDLE_IMG) $${BUNDLE_DIR}
+	BUNDLE_PATH=$$($(MAKE) bundle-path)
+	$(IMAGE_TOOL) build -f $${BUNDLE_PATH}/bundle.Dockerfile -t $(BUNDLE_IMG) $${BUNDLE_PATH}
 
-.PHONY: bundle-push
 bundle-push: SHELL := /bin/bash
 bundle-push: ## Push a bundle image
 	[[ -z "$(BUNDLE_IMG)" ]] && { echo [ERROR] BUNDLE_IMG not defined; exit 1; }
 	$(IMAGE_TOOL) push $(BUNDLE_IMG)
+
+bundle-render: SHELL := /bin/bash
+bundle-render: download-opm ## Add bundle to a catalog
+	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
+	[[ -z "$(BUNDLE_NAME)" ]] && { echo [ERROR] BUNDLE_NAME not defined; exit 1; }
+	[[ -z "$(BUNDLE_IMG)" ]] && { echo [ERROR] BUNDLE_IMG not defined; exit 1; }
+	[[ -z "$(CATALOG_DIR)" ]] && DEFINED_CATALOG_DIR=$$($(MAKE) catalog-path) || DEFINED_CATALOG_DIR=$(CATALOG_DIR)
+
+	$(OPM) render $(BUNDLE_IMG) -o yaml --skip-tls-verify | sed 's|---||g' >> $${DEFINED_CATALOG_DIR}/$(BUNDLE_NAME).bundle.yaml
 
 # Build a catalog image by adding bundle images to an empty catalog using the operator package manager tool, 'opm'.
 # This recipe invokes 'opm' in 'semver' bundle add mode. For more information on add modes, see:
@@ -504,11 +511,27 @@ bundle-path: ## Prints path to a bundle directory for a given channel
 	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
 	echo "$(PROJECT_DIR)/bundle/$(CHANNEL)/$(ECLIPSE_CHE_PACKAGE_NAME)"
 
+catalog-path: SHELL := /bin/bash
+catalog-path: ## Prints path to a catalog directory for a given channel
+	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
+	echo "$(PROJECT_DIR)/olm-catalog/$(CHANNEL)"
+
+channel-path: SHELL := /bin/bash
+channel-path: ## Prints path to a channel.yaml
+	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
+	echo "$(PROJECT_DIR)/olm-catalog/$(CHANNEL)/channel.yaml"
+
 csv-path: SHELL := /bin/bash
 csv-path: ## Prints path to a clusterserviceversion file for a given channel
 	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
 	BUNDLE_PATH=$$($(MAKE) bundle-path)
 	echo "$${BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
+
+bundle-name: SHELL := /bin/bash
+bundle-name: ## Prints a clusterserviceversion name for a given channel
+	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
+	CSV_PATH=$$($(MAKE) csv-path)
+	echo $$(yq -r ".metadata.name" "$${CSV_PATH}")
 
 bundle-version: SHELL := /bin/bash
 bundle-version: ## Prints a bundle version for a given channel
@@ -519,7 +542,9 @@ bundle-version: ## Prints a bundle version for a given channel
 ##@ Utilities
 
 OPM ?= $(shell pwd)/bin/opm
+download-opm: SHELL := /bin/bash
 download-opm: ## Download opm tool
+	[[ -z "$(DEST)" ]] && dest=$(OPM) || dest=$(DEST)/opm
 	command -v $(OPM) >/dev/null 2>&1 && exit
 
 	OS=$(shell go env GOOS)
@@ -528,9 +553,9 @@ download-opm: ## Download opm tool
 
 	echo "[INFO] Downloading opm version: $${OPM_VERSION}"
 
-	mkdir -p $$(dirname "$(OPM)")
-	curl -sL https://github.com/operator-framework/operator-registry/releases/download/$${OPM_VERSION}/$${OS}-$${ARCH}-opm > $(OPM)
-	chmod +x $(OPM)
+	mkdir -p $$(dirname "$${dest}")
+	curl -sL https://github.com/operator-framework/operator-registry/releases/download/$${OPM_VERSION}/$${OS}-$${ARCH}-opm > $${dest}
+	chmod +x $${dest}
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
 download-controller-gen: ## Download controller-gen tool

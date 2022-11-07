@@ -225,7 +225,10 @@ pushOlmBundlesToQuayIo() {
   docker login quay.io -u "${QUAY_ECLIPSE_CHE_USERNAME}" -p "${QUAY_ECLIPSE_CHE_PASSWORD}"
   echo "[INFO] Push OLM bundles to quay.io"
 
-  . ${OPERATOR_REPO}/build/scripts/olm/buildCatalog.sh -c stable -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -f
+  . "${OPERATOR_REPO}/build/scripts/olm/release-catalog.sh" -c stable -i quay.io/eclipse/eclipse-che-olm-catalog:stable
+
+  git add -A olm-catalog/stable
+  git commit -m "ci: Add new bundle to a catalog" --signoff
 }
 
 pushGitChanges() {

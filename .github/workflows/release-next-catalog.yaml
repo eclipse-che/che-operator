@@ -10,7 +10,7 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-name: Build catalog images
+name: Release next catalog
 on:
   # manual trigger if required
   workflow_dispatch:
@@ -22,7 +22,7 @@ on:
     branches:
       - main
 jobs:
-  build-images:
+  release-next-catalog:
     name: Build
     runs-on: ubuntu-20.04
     steps:
@@ -35,8 +35,14 @@ jobs:
         login-server: quay.io
         username: ${{ secrets.QUAY_USERNAME }}
         password: ${{ secrets.QUAY_PASSWORD }}
-    - name: Build and push images to quay.io
+    - name: Release next catalog
       run: |
-        ${GITHUB_WORKSPACE}/build/scripts/olm/buildCatalog.sh \
-          --channel 'next' \
-          --catalog-image quay.io/eclipse/eclipse-che-openshift-opm-catalog:next
+        git config --global user.name "Anatolii Bazko"
+        git config --global user.email "abazko@redhat.com"
+        export GITHUB_TOKEN=${{ secrets.CHE_BOT_GITHUB_TOKEN }}
+
+        ${GITHUB_WORKSPACE}/build/scripts/olm/release-catalog.sh --channel 'next' --catalog-image quay.io/eclipse/eclipse-che-olm-catalog:next
+        
+        git add -A olm-catalog/next
+        git commit -m "chore(catalog): release "
+        git push origin main

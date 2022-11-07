@@ -14,15 +14,12 @@
 set -ex
 
 export OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
-source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
-[[ -z "${CI_CHE_OPERATOR_IMAGE}" ]] && { echo "[ERROR] CI_CHE_OPERATOR_IMAGE not defined"; exit 1; }
-
 runTests() {
-  . ${OPERATOR_REPO}/build/scripts/olm/testCatalogFromSources.sh -o ${CI_CHE_OPERATOR_IMAGE} --verbose
+  . "${OPERATOR_REPO}/build/scripts/olm/test-catalog-from-sources.sh" --verbose
 }
 
 runTests

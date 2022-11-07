@@ -76,7 +76,7 @@ make docker-build docker-push IMG=<YOUR_OPERATOR_IMAGE>
 For OpenShift cluster:
 
 ```bash
-build/scripts/olm/testCatalogFromSources.sh -o <YOUR_OPERATOR_IMAGE>
+build/scripts/olm/test-catalog-from-sources.sh
 ```
 
 For Kubernetes cluster:

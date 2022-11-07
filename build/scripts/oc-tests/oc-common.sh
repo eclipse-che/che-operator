@@ -12,11 +12,10 @@
 #
 
 export NAMESPACE="eclipse-che"
-export BUNDLE_NAME="che-bundle"
 export ARTIFACTS_DIR=${ARTIFACT_DIR:-"/tmp/artifacts-che"}
 export ECLIPSE_CHE_PACKAGE_NAME="eclipse-che"
-export ECLIPSE_CHE_CATALOG_SOURCE_NAME="eclipse-che-custom-catalog-source"
-export ECLIPSE_CHE_SUBSCRIPTION_NAME="eclipse-che-subscription"
+export ECLIPSE_CHE_CATALOG_SOURCE_NAME="eclipse-che"
+export ECLIPSE_CHE_SUBSCRIPTION_NAME="eclipse-che"
 
 catchFinish() {
   local RESULT=$?
@@ -71,6 +70,7 @@ discoverEclipseCheBundles() {
   --rm=true \
   --restart=Never \
   --attach=true \
+  --overrides='{"apiVersion": "v1", "spec": {"securityContext": {"allowPrivilegeEscalation": false, "runAsNonRoot": true, "capabilities": {"drop": ["ALL"]},  "seccompProfile": {"type": "RuntimeDefault"}}}}' \
   --image=docker.io/fullstorydev/grpcurl:v1.7.0 \
   --  -plaintext "${REGISTRY_IP}:${CATALOG_PORT}" api.Registry.ListBundles | head -n -1)
 
