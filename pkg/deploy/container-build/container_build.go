@@ -170,7 +170,7 @@ func (cb *ContainerBuildReconciler) getDevWorkspaceSccPolicyRules(ctx *chetypes.
 		{
 			APIGroups:     []string{"security.openshift.io"},
 			Resources:     []string{"securitycontextconstraints"},
-			Verbs:         []string{"get", "update"},
+			Verbs:         []string{"get", "update", "use"},
 			ResourceNames: []string{ctx.CheCluster.Spec.DevEnvironments.ContainerBuildConfiguration.OpenShiftSecurityContextConstraint},
 		},
 	}
