@@ -706,8 +706,10 @@ k8s.io/kube-openapi v0.0.0-20200923105717-7eba4cbaebdf h1:7RCqblb9HTvcWeOYwrt1SV
 k8s.io/kube-openapi v0.0.0-20200923105717-7eba4cbaebdf/go.mod h1:bfCVj+qXcEaE5SCvzBaqpOySr6tuCcpPKqF6HD8nyCw=
 k8s.io/kubectl v0.0.0-20201218185502-10b66c3fd14b/go.mod h1:2bE0JLYTRDVKDiTREFsjLAx4R2GvUtL/mGYFXfFFMzY=
 k8s.io/metrics v0.20.2/go.mod h1:yTck5nl5wt/lIeLcU6g0b8/AKJf2girwe0PQiaM4Mwk=
-k8s.io/utils v0.0.0-20201110183641-67b214c5f920 h1:CbnUZsM497iRC5QMVkHwyl8s2tB3g7yaSHkYPkpgelw=
 k8s.io/utils v0.0.0-20201110183641-67b214c5f920/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
+k8s.io/utils v0.0.0-20210111153108-fddb29f9d009/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
+k8s.io/utils v0.0.0-20210722164352-7f3ee0f31471 h1:DnzUXII7sVg1FJ/4JX6YDRJfLNAC7idRatPwe07suiI=
+k8s.io/utils v0.0.0-20210722164352-7f3ee0f31471/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
 modernc.org/b v1.0.0/go.mod h1:uZWcZfRj1BpYzfN9JTerzlNUnnPsV9O2ZA8JsRcubNg=
 modernc.org/db v1.0.0/go.mod h1:kYD/cO29L/29RM0hXYl4i3+Q5VojL31kTUVpVJDw0s8=
 modernc.org/file v1.0.0/go.mod h1:uqEokAEn1u6e+J45e54dsEA/pw4o7zLrA2GwyntZzjw=
