@@ -388,7 +388,6 @@ replace (
 	k8s.io/klog/v2 => k8s.io/klog/v2 v2.8.0
 	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.0.0-20180912235703-14b8d2d93fcb
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20200923105717-7eba4cbaebdf
-	k8s.io/utils => k8s.io/utils v0.0.0-20201110183641-67b214c5f920
 	kubernetes/klog => kubernetes/klog v1.0.0
 	modernc.org/b => modernc.org/b v1.0.0
 	modernc.org/db => modernc.org/db v1.0.0
