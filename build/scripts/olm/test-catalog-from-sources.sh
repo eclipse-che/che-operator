@@ -19,6 +19,7 @@ source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 export ECLIPSE_CHE_ROOT_DIR=/tmp/eclipse-che
 export CATALOG_DIR=${ECLIPSE_CHE_ROOT_DIR}/olm-catalog/next
 export BUNDLE_DIR=${ECLIPSE_CHE_ROOT_DIR}/bundle
+export CA_DIR=${ECLIPSE_CHE_ROOT_DIR}/certificates
 export BUNDLE_NAME=$(make bundle-name CHANNEL=next)
 
 # Images names in the OpenShift registry
@@ -45,6 +46,7 @@ init() {
   rm -rf ${ECLIPSE_CHE_ROOT_DIR}
   mkdir -p ${CATALOG_DIR}
   mkdir -p ${BUNDLE_DIR}
+  mkdir -p ${CA_DIR}
 }
 
 usage () {
@@ -73,11 +75,23 @@ exposeOpenShiftRegistry() {
   CATALOG_IMAGE="${REGISTRY_HOST}/${NAMESPACE}/${REGISTRY_CATALOG_IMAGE_NAME}:latest"
   echo "[INFO] Catalog image: ${CATALOG_IMAGE}"
 
+  oc get secret -n openshift-ingress  router-certs-default -o go-template='{{index .data "tls.crt"}}' | base64 -d > ${CA_DIR}/ca.crt
+
+  oc delete configmap openshift-registry --ignore-not-found=true -n openshift-config
+  oc create configmap openshift-registry -n openshift-config --from-file=${REGISTRY_HOST}=${CA_DIR}/ca.crt
+
+  oc patch image.config.openshift.io/cluster --patch '{"spec":{"additionalTrustedCA":{"name":"openshift-registry"}}}' --type=merge
+
   oc policy add-role-to-user system:image-builder system:anonymous -n "${NAMESPACE}"
   oc policy add-role-to-user system:image-builder system:unauthenticated -n "${NAMESPACE}"
+  oc policy add-role-to-user system:image-builder system:anonymous -n "openshift-marketplace"
+  oc policy add-role-to-user system:image-builder system:unauthenticated -n "openshift-marketplace"
 }
 
 buildOperatorFromSources() {
+  oc delete buildconfigs ${REGISTRY_OPERATOR_IMAGE_NAME} --ignore-not-found=true -n "${NAMESPACE}"
+  oc delete imagestreamtag ${REGISTRY_OPERATOR_IMAGE_NAME}:latest --ignore-not-found=true -n "${NAMESPACE}"
+
   oc new-build --binary --strategy docker --name "${REGISTRY_OPERATOR_IMAGE_NAME}" -n "${NAMESPACE}"
   oc start-build "${REGISTRY_OPERATOR_IMAGE_NAME}" --from-dir "${OPERATOR_REPO}" -n "${NAMESPACE}" --wait
 }
@@ -88,6 +102,9 @@ buildBundleFromSources() {
 
   # Set operator image from the registry
   yq -rYi '.spec.install.spec.deployments[0].spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' ${BUNDLE_DIR}/manifests/che-operator.clusterserviceversion.yaml
+
+  oc delete buildconfigs ${REGISTRY_BUNDLE_IMAGE_NAME} --ignore-not-found=true -n "${NAMESPACE}"
+  oc delete imagestreamtag ${REGISTRY_BUNDLE_IMAGE_NAME}:latest --ignore-not-found=true -n "${NAMESPACE}"
 
   oc new-build --binary --strategy docker --name "${REGISTRY_BUNDLE_IMAGE_NAME}" -n "${NAMESPACE}"
   oc start-build "${REGISTRY_BUNDLE_IMAGE_NAME}" --from-dir ${BUNDLE_DIR} -n "${NAMESPACE}" --wait
@@ -110,6 +127,10 @@ EOF
 
   make bundle-render CHANNEL=next BUNDLE_NAME="${BUNDLE_NAME}" CATALOG_DIR="${CATALOG_DIR}" BUNDLE_IMG="${BUNDLE_IMAGE}" VERBOSE=${VERBOSE}
   cp "${OPERATOR_REPO}/olm-catalog/index.Dockerfile" $(dirname "${CATALOG_DIR}")/Dockerfile
+  sed -i 's|ADD olm-catalog/${CHANNEL}|ADD '$(basename ${CATALOG_DIR})'|g' $(dirname "${CATALOG_DIR}")/Dockerfile
+
+  oc delete buildconfigs ${REGISTRY_CATALOG_IMAGE_NAME} --ignore-not-found=true -n "${NAMESPACE}"
+  oc delete imagestreamtag ${REGISTRY_CATALOG_IMAGE_NAME}:latest --ignore-not-found=true -n "${NAMESPACE}"
 
   oc new-build --binary --strategy docker --name "${REGISTRY_CATALOG_IMAGE_NAME}" -n "${NAMESPACE}"
   oc start-build "${REGISTRY_CATALOG_IMAGE_NAME}" --from-dir $(dirname ${CATALOG_DIR}) -n "${NAMESPACE}" --wait
@@ -119,7 +140,7 @@ createEclipseCheCatalogFromSources() {
   buildOperatorFromSources
   buildBundleFromSources
   buildCatalogFromSources
-  make create-catalogsource NAME="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" IMAGE="${CATALOG_IMAGE}" VERBOSE=${VERBOSE}
+  make create-catalogsource NAME="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" NAMESPACE="${NAMESPACE}" IMAGE="${CATALOG_IMAGE}" VERBOSE=${VERBOSE}
 }
 
 run() {
@@ -135,7 +156,7 @@ run() {
     NAME=eclipse-che-subscription \
     NAMESPACE="${NAMESPACE}" \
     PACKAGE_NAME="${ECLIPSE_CHE_PACKAGE_NAME}" \
-    SOURCE=eclipse-che \
+    SOURCE="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" \
     SOURCE_NAMESPACE="${NAMESPACE}" \
     INSTALL_PLAN_APPROVAL=Auto \
     CHANNEL=next \

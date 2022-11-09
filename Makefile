@@ -632,13 +632,17 @@ create-catalogsource: SHELL := /bin/bash
 create-catalogsource: ## Creates catalog source
 	[[ -z "$(NAME)" ]] && { echo [ERROR] NAME not defined; exit 1; }
 	[[ -z "$(IMAGE)" ]] && { echo [ERROR] IMAGE not defined; exit 1; }
+	[[ -z "$(NAMESPACE)" ]] && DEFINED_NAMESPACE="openshift-marketplace" || DEFINED_NAMESPACE=$(NAMESPACE)
 
 	echo '{
 	  "apiVersion": "operators.coreos.com/v1alpha1",
 	  "kind": "CatalogSource",
 	  "metadata": {
 		"name": "$(NAME)",
-		"namespace": "openshift-marketplace"
+		"namespace": "'$${DEFINED_NAMESPACE}'",
+		"labels": {
+		  "app.kubernetes.io/part-of": "che.eclipse.org"
+		}
 	  },
 	  "spec": {
 		"sourceType": "grpc",
@@ -654,7 +658,7 @@ create-catalogsource: ## Creates catalog source
 	}' | $(K8S_CLI) apply -f -
 
 	sleep 20s
-	$(K8S_CLI) wait --for=condition=ready pod -l "olm.catalogSource=$(NAME)" -n openshift-marketplace --timeout=240s
+	$(K8S_CLI) wait --for=condition=ready pod -l "olm.catalogSource=$(NAME)" -n $${DEFINED_NAMESPACE} --timeout=240s
 
 create-operatorgroup: SHELL := /bin/bash
 create-operatorgroup: ## Creates operator group
@@ -666,7 +670,7 @@ create-operatorgroup: ## Creates operator group
 		"kind": "OperatorGroup",
 		"metadata": {
 		  "name": "$(NAME)",
-		  "namespace": "'$${NAMESPACE}'"
+		  "namespace": "$(NAMESPACE)"
 		},
 		"spec": {}
 	  }' | $(K8S_CLI) apply -f -
