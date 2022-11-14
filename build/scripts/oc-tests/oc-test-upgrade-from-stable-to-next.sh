@@ -45,7 +45,7 @@ deleteEclipseCheStableVersionOperator() {
 runTests() {
   . ${OPERATOR_REPO}/build/scripts/olm/test-catalog.sh -i quay.io/eclipse/eclipse-che-olm-catalog:stable -c stable --verbose
   deleteEclipseCheStableVersionOperator
-  . ${OPERATOR_REPO}/build/scripts/olm/test-catalog-from-sourcves.sh --verbose
+  . ${OPERATOR_REPO}/build/scripts/olm/test-catalog-from-sources.sh --verbose
 }
 
 runTests
