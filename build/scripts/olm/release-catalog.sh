@@ -60,19 +60,17 @@ usage () {
 	echo -e "\t$0 -i quay.io/eclipse/eclipse-che-olm-catalog:stable -c stable"
 }
 
-buildBundle() {
-  echo "[INFO] Build and push the new bundle image"
-  make bundle-build bundle-push CHANNEL="${CHANNEL}" BUNDLE_IMG="${BUNDLE_IMAGE}" IMAGE_TOOL="${IMAGE_TOOL}"
-}
-
-buildCatalog () {
+build () {
   CHANNEL_PATH=$(make channel-path CHANNEL="${CHANNEL}")
 
-  if [[ $(yq -r '.entries[] | select(.name == "'${BUNDLE_NAME}'") | length' "${CHANNEL_PATH}") == 1 ]]; then
-    echo "[WARN] Bundle ${BUNDLE_NAME} already exists in the catalog"
+  if [[ $(yq -r '.entries[] | select(.name == "'${BUNDLE_NAME}'")' "${CHANNEL_PATH}") ]]; then
+    echo "[INFO] Bundle ${BUNDLE_NAME} already exists in the catalog"
+    exit 0
   else
-    echo "[INFO] Add bundle to the catalog"
+    echo "[INFO] Build and push the new bundle image"
+    make bundle-build bundle-push CHANNEL="${CHANNEL}" BUNDLE_IMG="${BUNDLE_IMAGE}" IMAGE_TOOL="${IMAGE_TOOL}"
 
+    echo "[INFO] Add bundle to the catalog"
     LAST_BUNDLE_NAME=$(yq -r '.entries | .[length - 1].name' "${CHANNEL_PATH}")
     make bundle-render CHANNEL="${CHANNEL}" BUNDLE_NAME="${BUNDLE_NAME}" BUNDLE_IMG="${BUNDLE_IMAGE}"
     yq -riY '(.entries) += [{"name": "'${BUNDLE_NAME}'", "replaces": "'${LAST_BUNDLE_NAME}'"}]' "${CHANNEL_PATH}"
@@ -87,8 +85,7 @@ buildCatalog () {
 init "$@"
 
 pushd "${OPERATOR_REPO}" >/dev/null
-buildBundle
-buildCatalog
+build
 popd >/dev/null
 
 echo "[INFO] Done"
