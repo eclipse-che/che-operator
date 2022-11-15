@@ -24,10 +24,6 @@ source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
-unset OPERATOR_TEST_NAMESPACE
-
-[[ -z "${CI_CHE_OPERATOR_IMAGE}" ]] && { echo "[ERROR] CI_CHE_OPERATOR_IMAGE not defined"; exit 1; }
-
 # Uninstall Eclipse Che stable version operator by deleting its subscription
 deleteEclipseCheStableVersionOperator() {
   discoverEclipseCheSubscription

@@ -59,6 +59,8 @@ discoverEclipseCheSubscription() {
 }
 
 discoverEclipseCheBundles() {
+  local OPENSHIFT_VERSION=$(oc version -o json | yq -r '.openshiftVersion')
+
   local CHANNEL=$1
   local CATALOG_SERVICE=$(oc get service ${ECLIPSE_CHE_CATALOG_SOURCE_NAME} -n openshift-marketplace -o yaml)
   local REGISTRY_IP=$(echo "${CATALOG_SERVICE}" | yq -r ".spec.clusterIP")
@@ -66,11 +68,15 @@ discoverEclipseCheBundles() {
 
   local xFlag="+x"; [[ $- =~ x ]] && xFlag="-x"
   set +x # suppress output
+
+  local POD_OVERRIDES='{"apiVersion": "v1", "spec": {"securityContext": {"allowPrivilegeEscalation": false, "runAsNonRoot": true, "capabilities": {"drop": ["ALL"]},  "seccompProfile": {"type": "RuntimeDefault"}}}}'
+  [[ ${OPENSHIFT_VERSION} =~ ^4[.]10 ]] && POD_OVERRIDES=''
+
   local BUNDLES=$(oc run grpcurl-query -n openshift-marketplace \
   --rm=true \
   --restart=Never \
   --attach=true \
-  --overrides='{"apiVersion": "v1", "spec": {"securityContext": {"allowPrivilegeEscalation": false, "runAsNonRoot": true, "capabilities": {"drop": ["ALL"]},  "seccompProfile": {"type": "RuntimeDefault"}}}}' \
+  --overrides="${POD_OVERRIDES}" \
   --image=docker.io/fullstorydev/grpcurl:v1.7.0 \
   --  -plaintext "${REGISTRY_IP}:${CATALOG_PORT}" api.Registry.ListBundles | head -n -1)
 
