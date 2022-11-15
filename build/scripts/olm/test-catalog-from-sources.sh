@@ -64,6 +64,7 @@ usage () {
 
 exposeOpenShiftRegistry() {
   oc patch configs.imageregistry.operator.openshift.io/cluster --patch '{"spec":{"defaultRoute":true}}' --type=merge
+  sleep 5s
   REGISTRY_HOST=$(oc get route default-route -n openshift-image-registry --template='{{ .spec.host }}')
 
   BUNDLE_IMAGE="${REGISTRY_HOST}/${NAMESPACE}/${REGISTRY_BUNDLE_IMAGE_NAME}:latest"
