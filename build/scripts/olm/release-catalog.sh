@@ -73,7 +73,11 @@ build () {
     echo "[INFO] Add bundle to the catalog"
     LAST_BUNDLE_NAME=$(yq -r '.entries | .[length - 1].name' "${CHANNEL_PATH}")
     make bundle-render CHANNEL="${CHANNEL}" BUNDLE_NAME="${BUNDLE_NAME}" BUNDLE_IMG="${BUNDLE_IMAGE}"
-    yq -riY '(.entries) += [{"name": "'${BUNDLE_NAME}'", "replaces": "'${LAST_BUNDLE_NAME}'"}]' "${CHANNEL_PATH}"
+    if [[ ${CHANNEL} == "stable" ]]; then
+      yq -riY '(.entries) += [{"name": "'${BUNDLE_NAME}'", "replaces": "'${LAST_BUNDLE_NAME}'"}]' "${CHANNEL_PATH}"
+    else
+      yq -riY '(.entries) = [{"name": "'${BUNDLE_NAME}'", "skipRange": "<'${BUNDLE_VERSION}'"}]' "${CHANNEL_PATH}"
+    fi
   fi
 
   echo "[INFO] Build and push the catalog image"
