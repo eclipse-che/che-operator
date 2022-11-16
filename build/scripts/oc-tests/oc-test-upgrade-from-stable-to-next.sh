@@ -24,10 +24,6 @@ source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
-unset OPERATOR_TEST_NAMESPACE
-
-[[ -z "${CI_CHE_OPERATOR_IMAGE}" ]] && { echo "[ERROR] CI_CHE_OPERATOR_IMAGE not defined"; exit 1; }
-
 # Uninstall Eclipse Che stable version operator by deleting its subscription
 deleteEclipseCheStableVersionOperator() {
   discoverEclipseCheSubscription
@@ -43,9 +39,9 @@ deleteEclipseCheStableVersionOperator() {
 }
 
 runTests() {
-  . ${OPERATOR_REPO}/build/scripts/olm/testCatalog.sh -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -c stable --verbose
+  . ${OPERATOR_REPO}/build/scripts/olm/test-catalog.sh -i quay.io/eclipse/eclipse-che-olm-catalog:stable -c stable --verbose
   deleteEclipseCheStableVersionOperator
-  . ${OPERATOR_REPO}/build/scripts/olm/testCatalogFromSources.sh -o ${CI_CHE_OPERATOR_IMAGE} --verbose
+  . ${OPERATOR_REPO}/build/scripts/olm/test-catalog-from-sources.sh --verbose
 }
 
 runTests

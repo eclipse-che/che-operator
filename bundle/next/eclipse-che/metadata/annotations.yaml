@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2021 Red Hat, Inc.
+# Copyright (c) 2019-2022 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -15,7 +15,7 @@ annotations:
   operators.operatorframework.io.bundle.mediatype.v1: registry+v1
   operators.operatorframework.io.bundle.manifests.v1: manifests/
   operators.operatorframework.io.bundle.metadata.v1: metadata/
-  operators.operatorframework.io.bundle.package.v1: eclipse-che-preview-openshift
+  operators.operatorframework.io.bundle.package.v1: eclipse-che
   operators.operatorframework.io.bundle.channels.v1: next
   operators.operatorframework.io.bundle.channel.default.v1: next
   operators.operatorframework.io.metrics.builder: operator-sdk-v1.9.0+git

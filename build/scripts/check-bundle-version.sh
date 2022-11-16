@@ -15,8 +15,8 @@ set -e
 
 OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")
 
-CSV_OPENSHIFT_NEXT_NEW="bundle/next/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
-CSV_OPENSHIFT_NEXT_CURRENT=https://raw.githubusercontent.com/eclipse-che/che-operator/main/bundle/next/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml
+CSV_OPENSHIFT_NEXT_NEW="bundle/next/eclipse-che/manifests/che-operator.clusterserviceversion.yaml"
+CSV_OPENSHIFT_NEXT_CURRENT=https://raw.githubusercontent.com/eclipse-che/che-operator/main/bundle/next/eclipse-che/manifests/che-operator.clusterserviceversion.yaml
 
 compareBundleVersions() {
   git remote add operator https://github.com/eclipse-che/che-operator.git

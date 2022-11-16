@@ -207,7 +207,7 @@ releaseOlmFiles() {
     pushd ${OPERATOR_REPO}/build/scripts/release
     . release-olm-files.sh --release-version $RELEASE --channel $channel
     popd
-    local openshift=${OPERATOR_REPO}/bundle/$channel/eclipse-che-preview-openshift/manifests
+    local openshift=${OPERATOR_REPO}/bundle/$channel/eclipse-che/manifests
 
     echo "[INFO] releaseOlmFiles :: Validate changes"
     grep -q "version: "$RELEASE $openshift/che-operator.clusterserviceversion.yaml
@@ -225,7 +225,10 @@ pushOlmBundlesToQuayIo() {
   docker login quay.io -u "${QUAY_ECLIPSE_CHE_USERNAME}" -p "${QUAY_ECLIPSE_CHE_PASSWORD}"
   echo "[INFO] Push OLM bundles to quay.io"
 
-  . ${OPERATOR_REPO}/build/scripts/olm/buildCatalog.sh -c stable -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -f
+  . "${OPERATOR_REPO}/build/scripts/olm/release-catalog.sh" -c stable -i quay.io/eclipse/eclipse-che-olm-catalog:stable
+
+  git add -A olm-catalog/stable
+  git commit -m "ci: Add new bundle to a catalog" --signoff
 }
 
 pushGitChanges() {

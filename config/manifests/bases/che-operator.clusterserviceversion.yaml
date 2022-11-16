@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2021 Red Hat, Inc.
+# Copyright (c) 2019-2022 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -27,7 +27,7 @@ metadata:
       "fips"]'
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v0.0.0
+  name: eclipse-che.v0.0.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -464,6 +464,7 @@ spec:
   - email: abazko@redhat.com
     name: Anatolii Bazko
   maturity: stable
+  minKubeVersion: 1.19.0
   provider:
     name: Eclipse Foundation
   version: 0.0.0

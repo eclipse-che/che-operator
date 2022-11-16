@@ -17,10 +17,10 @@ OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_
 source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 
 init() {
-  NAMESPACE="eclipse-che"
-  CHANNEL="next"
+  unset NAMESPACE
   unset VERBOSE
   unset CATALOG_IMAGE
+  unset CHANNEL
 
   while [[ "$#" -gt 0 ]]; do
     case $1 in
@@ -33,44 +33,35 @@ init() {
     shift 1
   done
 
+  [[ ! ${NAMESPACE} ]] && NAMESPACE="eclipse-che"
   if [[ ! ${CHANNEL} ]] || [[ ! ${CATALOG_IMAGE} ]]; then usage; exit 1; fi
 }
 
 usage () {
-  echo "Deploy and update Eclipse Che from a custom catalog."
+  echo "Deploy Eclipse Che from a catalog."
   echo
 	echo "Usage:"
-	echo -e "\t$0 -i CATALOG_IMAGE [-c CHANNEL] [-n NAMESPACE]"
+	echo -e "\t$0 -i CATALOG_IMAGE -c CHANNEL [-n NAMESPACE] [--verbose]"
   echo
   echo "OPTIONS:"
   echo -e "\t-i,--catalog-image       Catalog image"
-  echo -e "\t-c,--channel             [default: next] Olm channel to deploy Eclipse Che from"
-  echo -e "\t-n,--namespace           [default: eclipse-che] Kubernetes namepsace to deploy Eclipse Che into"
+  echo -e "\t-c,--channel=next|stable Olm channel to deploy Eclipse Che from"
+  echo -e "\t-n,--namespace           [default: eclipse-che] Kubernetes namespace to deploy Eclipse Che into"
   echo -e "\t-v,--verbose             Verbose mode"
   echo
 	echo "Example:"
-	echo -e "\t$0 -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:next -c next"
-	echo -e "\t$0 -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -c stable"
+	echo -e "\t$0 -i quay.io/eclipse/eclipse-che-olm-catalog:next -c next"
+	echo -e "\t$0 -i quay.io/eclipse/eclipse-che-olm-catalog:test -c stable"
 }
 
 run() {
-  make create-namespace NAMESPACE="eclipse-che" VERBOSE=${VERBOSE}
+  make create-namespace NAMESPACE="${NAMESPACE}" VERBOSE=${VERBOSE}
   make create-catalogsource NAME="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" IMAGE="${CATALOG_IMAGE}" VERBOSE=${VERBOSE}
 
-  discoverEclipseCheBundles ${CHANNEL}
-
-  if [[ "${PREVIOUS_CSV_NAME}" == "${LATEST_CSV_NAME}" ]]; then
-    echo "[ERROR] Nothing to update. OLM channel '${CHANNEL}' contains only one bundle '${LATEST_CSV_NAME}'"
-    exit 1
-  fi
+  discoverEclipseCheBundles "${CHANNEL}"
 
   if [[ "${LATEST_VERSION}" == "null" ]]; then
     echo "[ERROR] CatalogSource does not contain any bundles."
-    exit 1
-  fi
-
-  if [[ "${PREVIOUS_VERSION}" == "null" ]]; then
-    echo "[ERROR] CatalogSource contains only one bundle."
     exit 1
   fi
 
@@ -80,32 +71,26 @@ run() {
     make install-devworkspace CHANNEL=fast VERBOSE=${VERBOSE}
   fi
 
-  echo "[INFO] Test update from version: ${PREVIOUS_VERSION} to: ${LASTEST_VERSION}"
   make create-subscription \
     NAME="${ECLIPSE_CHE_SUBSCRIPTION_NAME}" \
     NAMESPACE="openshift-operators" \
-    PACKAGE_NAME="${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME}" \
+    PACKAGE_NAME="${ECLIPSE_CHE_PACKAGE_NAME}" \
     CHANNEL="${CHANNEL}" \
     SOURCE="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" \
     SOURCE_NAMESPACE="openshift-marketplace" \
-    INSTALL_PLAN_APPROVAL="Manual" \
-    STARTING_CSV="${PREVIOUS_CSV_NAME}" \
+    INSTALL_PLAN_APPROVAL="Auto" \
     VERBOSE=${VERBOSE}
-  make approve-installplan SUBSCRIPTION_NAME="${ECLIPSE_CHE_SUBSCRIPTION_NAME}" NAMESPACE="openshift-operators"
   make wait-pod-running NAMESPACE="openshift-operators" SELECTOR="app.kubernetes.io/component=che-operator"
-
   getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
-  make wait-eclipseche-version VERSION=${PREVIOUS_VERSION} NAMESPACE=${NAMESPACE} VERBOSE=${VERBOSE}
-
-  make approve-installplan SUBSCRIPTION_NAME="${ECLIPSE_CHE_SUBSCRIPTION_NAME}" NAMESPACE="openshift-operators" VERBOSE=${VERBOSE}
-  make wait-eclipseche-version VERSION=${LATEST_VERSION} NAMESPACE=${NAMESPACE} VERBOSE=${VERBOSE}
+  make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE} VERBOSE=${VERBOSE}
 }
 
 init "$@"
 [[ ${VERBOSE} == 1 ]] && set -x
 
-pushd ${OPERATOR_REPO} >/dev/null
+pushd "${OPERATOR_REPO}" >/dev/null
 run
 popd >/dev/null
 
 echo "[INFO] Done"
+

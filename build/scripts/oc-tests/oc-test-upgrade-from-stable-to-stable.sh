@@ -20,7 +20,7 @@ source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 trap "catchFinish" EXIT SIGINT
 
 runTests() {
-  . ${OPERATOR_REPO}/build/scripts/olm/testUpdate.sh -c stable -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -n ${NAMESPACE} --verbose
+  . "${OPERATOR_REPO}/build/scripts/olm/test-update.sh" -c stable -i quay.io/eclipse/eclipse-che-olm-catalog:stable --verbose
 }
 
 runTests

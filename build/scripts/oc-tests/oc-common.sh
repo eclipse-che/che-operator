@@ -12,12 +12,10 @@
 #
 
 export NAMESPACE="eclipse-che"
-export BUNDLE_NAME="che-bundle"
 export ARTIFACTS_DIR=${ARTIFACT_DIR:-"/tmp/artifacts-che"}
-export ECLIPSE_CHE_STABLE_PACKAGE_NAME="eclipse-che"
-export ECLIPSE_CHE_PREVIEW_PACKAGE_NAME="eclipse-che-preview-openshift"
-export ECLIPSE_CHE_CATALOG_SOURCE_NAME="eclipse-che-custom-catalog-source"
-export ECLIPSE_CHE_SUBSCRIPTION_NAME="eclipse-che-subscription"
+export ECLIPSE_CHE_PACKAGE_NAME="eclipse-che"
+export ECLIPSE_CHE_CATALOG_SOURCE_NAME="eclipse-che"
+export ECLIPSE_CHE_SUBSCRIPTION_NAME="eclipse-che"
 
 catchFinish() {
   local RESULT=$?
@@ -32,7 +30,7 @@ catchFinish() {
 }
 
 waitForRemovedEclipseCheSubscription() {
-  while [[ $(oc get subscription -A -o json | jq -r '.items | .[] | select(.spec.name == "'${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME}'" or .spec.name == "'${ECLIPSE_CHE_STABLE_PACKAGE_NAME}'")') != "" ]]; do
+  while [[ $(oc get subscription -A -o json | jq -r '.items | .[] | select(.spec.name == "'${ECLIPSE_CHE_PACKAGE_NAME}'")') != "" ]]; do
       sleep 5s
   done
 }
@@ -54,13 +52,15 @@ getCheVersionFromInstalledCSV() {
 }
 
 discoverEclipseCheSubscription() {
-  ECLIPSE_CHE_SUBSCRIPTION_RECORD=$(oc get subscription -A -o json | jq -r '.items | .[] | select(.spec.name == "'${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME}'" or .spec.name == "'${ECLIPSE_CHE_STABLE_PACKAGE_NAME}'")')
+  ECLIPSE_CHE_SUBSCRIPTION_RECORD=$(oc get subscription -A -o json | jq -r '.items | .[] | select(.spec.name == "'${ECLIPSE_CHE_PACKAGE_NAME}'")')
   ECLIPSE_CHE_SUBSCRIPTION_NAME=$(echo ${ECLIPSE_CHE_SUBSCRIPTION_RECORD} | jq -r '.metadata.name')
   ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE=$(echo ${ECLIPSE_CHE_SUBSCRIPTION_RECORD} | jq -r '.metadata.namespace')
   ECLIPSE_CHE_INSTALLED_CSV=$(echo ${ECLIPSE_CHE_SUBSCRIPTION_RECORD} | jq -r '.status.installedCSV')
 }
 
 discoverEclipseCheBundles() {
+  local OPENSHIFT_VERSION=$(oc version -o json | yq -r '.openshiftVersion')
+
   local CHANNEL=$1
   local CATALOG_SERVICE=$(oc get service ${ECLIPSE_CHE_CATALOG_SOURCE_NAME} -n openshift-marketplace -o yaml)
   local REGISTRY_IP=$(echo "${CATALOG_SERVICE}" | yq -r ".spec.clusterIP")
@@ -68,10 +68,15 @@ discoverEclipseCheBundles() {
 
   local xFlag="+x"; [[ $- =~ x ]] && xFlag="-x"
   set +x # suppress output
+
+  local POD_OVERRIDES='{"apiVersion": "v1", "spec": {"securityContext": {"allowPrivilegeEscalation": false, "runAsNonRoot": true, "capabilities": {"drop": ["ALL"]},  "seccompProfile": {"type": "RuntimeDefault"}}}}'
+  [[ ${OPENSHIFT_VERSION} =~ ^4[.]10 ]] && POD_OVERRIDES=''
+
   local BUNDLES=$(oc run grpcurl-query -n openshift-marketplace \
   --rm=true \
   --restart=Never \
   --attach=true \
+  --overrides="${POD_OVERRIDES}" \
   --image=docker.io/fullstorydev/grpcurl:v1.7.0 \
   --  -plaintext "${REGISTRY_IP}:${CATALOG_PORT}" api.Registry.ListBundles | head -n -1)
 
@@ -84,8 +89,8 @@ discoverEclipseCheBundles() {
     export LATEST_VERSION="next"
     export PREVIOUS_VERSION="next"
   else
-    export LATEST_VERSION=${LATEST_CSV_NAME#${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME}.v}
-    export PREVIOUS_VERSION=${PREVIOUS_CSV_NAME#${ECLIPSE_CHE_PREVIEW_PACKAGE_NAME}.v}
+    export LATEST_VERSION=${LATEST_CSV_NAME#${ECLIPSE_CHE_PACKAGE_NAME}.v}
+    export PREVIOUS_VERSION=${PREVIOUS_CSV_NAME#${ECLIPSE_CHE_PACKAGE_NAME}.v}
   fi
 
   echo "[INFO] PREVIOUS_CSV_NAME:         ${PREVIOUS_CSV_NAME}"

@@ -87,7 +87,7 @@ else
   OPERATOR_NAMESPACE ?= "eclipse-che"
 endif
 
-ECLIPSE_CHE_PACKAGE_NAME="eclipse-che-preview-openshift"
+ECLIPSE_CHE_PACKAGE_NAME=eclipse-che
 
 CHECLUSTER_CR_PATH="$(PROJECT_DIR)/config/samples/org_v2_checluster.yaml"
 CHECLUSTER_CRD_PATH="$(PROJECT_DIR)/config/crd/bases/org.eclipse.che_checlusters.yaml"
@@ -434,7 +434,7 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 	# Copy bundle.Dockerfile to the bundle dir
  	# Update paths (since it is created in the root of the project) and labels
 	mv bundle.Dockerfile $${BUNDLE_PATH}
-	sed -i 's|$(PROJECT_DIR)/bundle/$(CHANNEL)/eclipse-che-preview-openshift/||' $${BUNDLE_PATH}/bundle.Dockerfile
+	sed -i 's|$(PROJECT_DIR)/bundle/$(CHANNEL)/$(ECLIPSE_CHE_PACKAGE_NAME)/||' $${BUNDLE_PATH}/bundle.Dockerfile
 	printf "\nLABEL com.redhat.openshift.versions=\"v4.8\"" >> $${BUNDLE_PATH}/bundle.Dockerfile
 
 	# Update annotations.yaml correspondingly to bundle.Dockerfile
@@ -466,58 +466,72 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 
 	$(MAKE) license $$(find $${BUNDLE_PATH} -name "*.yaml")
 
-	$(OPERATOR_SDK) bundle validate $${BUNDLE_PATH}
+	$(OPERATOR_SDK) bundle validate $${BUNDLE_PATH} --select-optional name=operatorhub --optional-values=k8s-version=1.19
 
-.PHONY: bundle-build
 bundle-build: SHELL := /bin/bash
-bundle-build: ## Build a bundle image
+bundle-build: download-opm ## Build a bundle image
 	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
 	[[ -z "$(BUNDLE_IMG)" ]] && { echo [ERROR] BUNDLE_IMG not defined; exit 1; }
 
-	BUNDLE_DIR="$(PROJECT_DIR)/bundle/$(CHANNEL)/$(ECLIPSE_CHE_PACKAGE_NAME)"
-	pushd $${BUNDLE_DIR}
-	$(IMAGE_TOOL) build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
-	popd
+	BUNDLE_PATH=$$($(MAKE) bundle-path)
+	$(IMAGE_TOOL) build -f $${BUNDLE_PATH}/bundle.Dockerfile -t $(BUNDLE_IMG) $${BUNDLE_PATH}
 
-.PHONY: bundle-push
 bundle-push: SHELL := /bin/bash
 bundle-push: ## Push a bundle image
 	[[ -z "$(BUNDLE_IMG)" ]] && { echo [ERROR] BUNDLE_IMG not defined; exit 1; }
-	$(MAKE) docker-push IMG=$(BUNDLE_IMG)
+	$(IMAGE_TOOL) push $(BUNDLE_IMG)
+
+bundle-render: SHELL := /bin/bash
+bundle-render: download-opm ## Add bundle to a catalog
+	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
+	[[ -z "$(BUNDLE_NAME)" ]] && { echo [ERROR] BUNDLE_NAME not defined; exit 1; }
+	[[ -z "$(BUNDLE_IMG)" ]] && { echo [ERROR] BUNDLE_IMG not defined; exit 1; }
+	[[ -z "$(CATALOG_DIR)" ]] && DEFINED_CATALOG_DIR=$$($(MAKE) catalog-path) || DEFINED_CATALOG_DIR=$(CATALOG_DIR)
+
+	$(OPM) render $(BUNDLE_IMG) -o yaml --skip-tls-verify | sed 's|---||g' > $${DEFINED_CATALOG_DIR}/$(BUNDLE_NAME).bundle.yaml
 
 # Build a catalog image by adding bundle images to an empty catalog using the operator package manager tool, 'opm'.
 # This recipe invokes 'opm' in 'semver' bundle add mode. For more information on add modes, see:
 # https://github.com/operator-framework/community-operators/blob/7f1438c/docs/packaging-operator.md#updating-your-existing-operator
-.PHONY: catalog-build
 catalog-build: SHELL := /bin/bash
 catalog-build: download-opm ## Build a catalog image
-	[[ -z "$(BUNDLE_IMG)" ]] && { echo [ERROR] BUNDLE_IMG not defined; exit 1; }
+	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
 	[[ -z "$(CATALOG_IMG)" ]] && { echo [ERROR] CATALOG_IMG not defined; exit 1; }
 
-	$(OPM) index add \
-	--build-tool $(IMAGE_TOOL) \
-	--bundles $(BUNDLE_IMG) \
-	--tag $(CATALOG_IMG) \
-	--pull-tool $(IMAGE_TOOL) \
-	--binary-image=quay.io/operator-framework/upstream-opm-builder:v1.15.2 \
-	--mode semver $(FROM_INDEX_OPT)
+	$(OPM) validate olm-catalog/$(CHANNEL)
+	$(IMAGE_TOOL) build -f olm-catalog/index.Dockerfile -t $(CATALOG_IMG) --build-arg CHANNEL=$(CHANNEL) .
 
-.PHONY: catalog-push
 catalog-push: SHELL := /bin/bash
 catalog-push: ## Push a catalog image
 	[[ -z "$(CATALOG_IMG)" ]] && { echo [ERROR] CATALOG_IMG not defined; exit 1; }
-	$(MAKE) docker-push IMG=$(CATALOG_IMG)
+	$(IMAGE_TOOL) push $(CATALOG_IMG)
 
 bundle-path: SHELL := /bin/bash
 bundle-path: ## Prints path to a bundle directory for a given channel
 	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
 	echo "$(PROJECT_DIR)/bundle/$(CHANNEL)/$(ECLIPSE_CHE_PACKAGE_NAME)"
 
+catalog-path: SHELL := /bin/bash
+catalog-path: ## Prints path to a catalog directory for a given channel
+	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
+	echo "$(PROJECT_DIR)/olm-catalog/$(CHANNEL)"
+
+channel-path: SHELL := /bin/bash
+channel-path: ## Prints path to a channel.yaml
+	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
+	echo "$(PROJECT_DIR)/olm-catalog/$(CHANNEL)/channel.yaml"
+
 csv-path: SHELL := /bin/bash
 csv-path: ## Prints path to a clusterserviceversion file for a given channel
 	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
 	BUNDLE_PATH=$$($(MAKE) bundle-path)
 	echo "$${BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
+
+bundle-name: SHELL := /bin/bash
+bundle-name: ## Prints a clusterserviceversion name for a given channel
+	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
+	CSV_PATH=$$($(MAKE) csv-path)
+	echo $$(yq -r ".metadata.name" "$${CSV_PATH}")
 
 bundle-version: SHELL := /bin/bash
 bundle-version: ## Prints a bundle version for a given channel
@@ -528,7 +542,9 @@ bundle-version: ## Prints a bundle version for a given channel
 ##@ Utilities
 
 OPM ?= $(shell pwd)/bin/opm
+download-opm: SHELL := /bin/bash
 download-opm: ## Download opm tool
+	[[ -z "$(DEST)" ]] && dest=$(OPM) || dest=$(DEST)/opm
 	command -v $(OPM) >/dev/null 2>&1 && exit
 
 	OS=$(shell go env GOOS)
@@ -537,9 +553,9 @@ download-opm: ## Download opm tool
 
 	echo "[INFO] Downloading opm version: $${OPM_VERSION}"
 
-	mkdir -p $$(dirname "$(OPM)")
-	curl -sL https://github.com/operator-framework/operator-registry/releases/download/$${OPM_VERSION}/$${OS}-$${ARCH}-opm > $(OPM)
-	chmod +x $(OPM)
+	mkdir -p $$(dirname "$${dest}")
+	curl -sL https://github.com/operator-framework/operator-registry/releases/download/$${OPM_VERSION}/$${OS}-$${ARCH}-opm > $${dest}
+	chmod +x $${dest}
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
 download-controller-gen: ## Download controller-gen tool
@@ -616,13 +632,17 @@ create-catalogsource: SHELL := /bin/bash
 create-catalogsource: ## Creates catalog source
 	[[ -z "$(NAME)" ]] && { echo [ERROR] NAME not defined; exit 1; }
 	[[ -z "$(IMAGE)" ]] && { echo [ERROR] IMAGE not defined; exit 1; }
+	[[ -z "$(NAMESPACE)" ]] && DEFINED_NAMESPACE="openshift-marketplace" || DEFINED_NAMESPACE=$(NAMESPACE)
 
 	echo '{
 	  "apiVersion": "operators.coreos.com/v1alpha1",
 	  "kind": "CatalogSource",
 	  "metadata": {
 		"name": "$(NAME)",
-		"namespace": "openshift-marketplace"
+		"namespace": "'$${DEFINED_NAMESPACE}'",
+		"labels": {
+		  "app.kubernetes.io/part-of": "che.eclipse.org"
+		}
 	  },
 	  "spec": {
 		"sourceType": "grpc",
@@ -638,7 +658,7 @@ create-catalogsource: ## Creates catalog source
 	}' | $(K8S_CLI) apply -f -
 
 	sleep 20s
-	$(K8S_CLI) wait --for=condition=ready pod -l "olm.catalogSource=$(NAME)" -n openshift-marketplace --timeout=240s
+	$(K8S_CLI) wait --for=condition=ready pod -l "olm.catalogSource=$(NAME)" -n $${DEFINED_NAMESPACE} --timeout=240s
 
 create-operatorgroup: SHELL := /bin/bash
 create-operatorgroup: ## Creates operator group
@@ -650,7 +670,7 @@ create-operatorgroup: ## Creates operator group
 		"kind": "OperatorGroup",
 		"metadata": {
 		  "name": "$(NAME)",
-		  "namespace": "'$${NAMESPACE}'"
+		  "namespace": "$(NAMESPACE)"
 		},
 		"spec": {}
 	  }' | $(K8S_CLI) apply -f -

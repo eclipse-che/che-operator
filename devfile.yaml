@@ -58,11 +58,3 @@ commands:
         read -p "ENTER the image registry (for example \"quay.io\"): " IMAGE_REGISTRY_HOST &&
         read -p "ENTER the image organization (for example \"eclipse\"): " IMAGE_REGISTRY_USER_NAME &&
         IMAGE_TOOL=podman make docker-build docker-push IMG="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:next"
-  - id: build-catalog
-    exec:
-      label: 6. Build and push Eclipse Che Operator custom catalog and bundle images.
-      component: tooling-container
-      commandLine: >
-        read -p "ENTER the image registry (for example \"quay.io\"): " IMAGE_REGISTRY_HOST &&
-        read -p "ENTER the image organization (for example \"eclipse\"): " IMAGE_REGISTRY_USER_NAME &&
-        build/scripts/olm/buildCatalog.sh -c next -i ${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-openshift-opm-catalog:next --image-tool podman
