@@ -79,6 +79,7 @@ build () {
   echo "[INFO] Build and push the catalog image"
   make catalog-build catalog-push CHANNEL="${CHANNEL}" CATALOG_IMG="${CATALOG_IMAGE}" IMAGE_TOOL="${IMAGE_TOOL}"
 
+  make download-addlicense
   make license $(make catalog-path CHANNEL="${CHANNEL}")
 }
 
