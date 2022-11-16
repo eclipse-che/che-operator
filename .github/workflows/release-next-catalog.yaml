@@ -36,13 +36,4 @@ jobs:
         username: ${{ secrets.QUAY_USERNAME }}
         password: ${{ secrets.QUAY_PASSWORD }}
     - name: Release next catalog
-      run: |
-        git config --global user.name "Anatolii Bazko"
-        git config --global user.email "abazko@redhat.com"
-        export GITHUB_TOKEN=${{ secrets.CHE_BOT_GITHUB_TOKEN }}
-
-        ${GITHUB_WORKSPACE}/build/scripts/olm/release-catalog.sh --channel 'next' --catalog-image quay.io/eclipse/eclipse-che-olm-catalog:next
-        
-        git add -A olm-catalog/next
-        git commit -m "chore(catalog): release "
-        git push origin main
+      run: ${GITHUB_WORKSPACE}/build/scripts/olm/release-catalog.sh --channel 'next' --catalog-image quay.io/eclipse/eclipse-che-olm-catalog:next
