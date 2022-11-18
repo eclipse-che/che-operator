@@ -114,11 +114,11 @@ github.com/deislabs/oras v0.8.1/go.mod h1:Mx0rMSbBNaNfY9hjpccEnxkOqJL6KGjtxNHPLC
 github.com/denisenkom/go-mssqldb v0.0.0-20190204142019-df6d76eb9289/go.mod h1:xN/JuLBIz4bjkxNmByTiV1IbhfnYb6oo99phBn4Eqhc=
 github.com/devfile/api/v2 v2.0.0-20220928161623-fe7c10eaa530 h1:pZvf4AZrf/ZwV2AwQnTInlUpns+Wj9JYtPRtBDiFHzk=
 github.com/devfile/api/v2 v2.0.0-20220928161623-fe7c10eaa530/go.mod h1:dN7xFrOVG+iPqn4UKGibXLd5oVsdE8XyK9OEb5JL3aI=
-github.com/devfile/devworkspace-operator v0.17.0 h1:Ml8ncEQAVf/d+DTttQ76oe/btnFQpicRG/XncdflOZo=
-github.com/devfile/devworkspace-operator v0.17.0/go.mod h1:xLELAolfebwROqGSvOWhdC0eH7S+V7iVFzHxtm3Jf2A=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:7qlOGliEKZXTDg6OTjfoBKDXWrumCAMpl/TFQ4/5kLM=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/dhui/dktest v0.3.2/go.mod h1:l1/ib23a/CmxAe7yixtrYPc8Iy90Zy2udyaHINM5p58=
+github.com/dkwon17/devworkspace-operator v0.2.1-0.20221114184800-62aa6f1d7c01 h1:qK27w9VKhAXSBXLAvCt0LiS+Du79ijEp5Fs7bvkOU2I=
+github.com/dkwon17/devworkspace-operator v0.2.1-0.20221114184800-62aa6f1d7c01/go.mod h1:xLELAolfebwROqGSvOWhdC0eH7S+V7iVFzHxtm3Jf2A=
 github.com/docker/cli v0.0.0-20200130152716-5d0cf8839492 h1:FwssHbCDJD025h+BchanCwE1Q8fyMgqDr2mOQAWOLGw=
 github.com/docker/cli v0.0.0-20200130152716-5d0cf8839492/go.mod h1:JLrzqnKDaYBop7H2jaqPtU4hHvMKP+vjCwu2uszcLI8=
 github.com/docker/distribution v2.7.1+incompatible h1:a5mlkVzth6W5A4fOsS3D2EO5BUmsJpcB+cRlLU7cSug=

@@ -35,7 +35,7 @@ github.com/davecgh/go-spew/spew
 github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2
 github.com/devfile/api/v2/pkg/attributes
 github.com/devfile/api/v2/pkg/devfile
-# github.com/devfile/devworkspace-operator v0.17.0
+# github.com/devfile/devworkspace-operator v0.17.0 => github.com/dkwon17/devworkspace-operator v0.2.1-0.20221114184800-62aa6f1d7c01
 ## explicit
 github.com/devfile/devworkspace-operator/apis/controller/v1alpha1
 github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting
@@ -1127,3 +1127,4 @@ sigs.k8s.io/yaml
 # sigs.k8s.io/kustomize/api => sigs.k8s.io/kustomize/api v0.8.8
 # sigs.k8s.io/kustomize/kyaml => sigs.k8s.io/kustomize/kyaml v0.10.17
 # github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309
+# github.com/devfile/devworkspace-operator => github.com/dkwon17/devworkspace-operator v0.2.1-0.20221114184800-62aa6f1d7c01

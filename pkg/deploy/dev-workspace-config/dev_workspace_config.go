@@ -93,10 +93,10 @@ func updateOperatorConfig(cheCluster *chev2.CheCluster, operatorConfig *controll
 		operatorConfig.Workspace = &controllerv1alpha1.WorkspaceConfig{}
 	}
 
-	return updateWorkspaceConfig(pvc, pvcStrategy == constants.PerWorkspacePVCStorageStrategy, cheCluster.IsContainerBuildCapabilitiesEnabled(), operatorConfig.Workspace)
+	return updateWorkspaceConfig(pvc, pvcStrategy == constants.PerWorkspacePVCStorageStrategy, cheCluster.IsContainerBuildCapabilitiesEnabled(), cheCluster.Spec.DevEnvironments.PodSchedulerName, operatorConfig.Workspace)
 }
 
-func updateWorkspaceConfig(pvc *chev2.PVC, isPerWorkspacePVCStorageStrategy bool, enabledContainerBuildCapabilities bool, workspaceConfig *controllerv1alpha1.WorkspaceConfig) error {
+func updateWorkspaceConfig(pvc *chev2.PVC, isPerWorkspacePVCStorageStrategy bool, enabledContainerBuildCapabilities bool, podSchedulerName string, workspaceConfig *controllerv1alpha1.WorkspaceConfig) error {
 	if pvc != nil {
 		if pvc.StorageClass != "" {
 			workspaceConfig.StorageClassName = &pvc.StorageClass
@@ -124,6 +124,8 @@ func updateWorkspaceConfig(pvc *chev2.PVC, isPerWorkspacePVCStorageStrategy bool
 	if enabledContainerBuildCapabilities {
 		workspaceConfig.ContainerSecurityContext = constants.DefaultWorkspaceContainerSecurityContext.DeepCopy()
 	}
+
+	workspaceConfig.SchedulerName = podSchedulerName
 
 	return nil
 }

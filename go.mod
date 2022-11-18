@@ -459,3 +459,5 @@ replace (
 )
 
 replace github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309 // Required by Helm
+
+replace github.com/devfile/devworkspace-operator => github.com/dkwon17/devworkspace-operator v0.2.1-0.20221114184800-62aa6f1d7c01

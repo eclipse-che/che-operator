@@ -4590,6 +4590,9 @@ spec:
                       type: string
                     description: The node selector limits the nodes that can run the workspace pods.
                     type: object
+                  podSchedulerName:
+                    description: Pod scheduler for the workspace pods. If not specified, the pod scheduler is set to the default scheduler on the cluster.
+                    type: string
                   secondsOfInactivityBeforeIdling:
                     default: 1800
                     description: Idle timeout for workspaces in seconds. This timeout is the duration after which a workspace will be idled if there is no activity. To disable workspace idling due to inactivity, set this value to -1.
