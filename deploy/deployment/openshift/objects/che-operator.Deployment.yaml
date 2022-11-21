@@ -138,18 +138,9 @@ spec:
             - ALL
           privileged: false
           readOnlyRootFilesystem: false
-        volumeMounts:
-        - mountPath: /tmp/k8s-webhook-server/serving-certs
-          name: webhook-tls-certs
-          readOnly: true
       hostIPC: false
       hostNetwork: false
       hostPID: false
       restartPolicy: Always
       serviceAccountName: che-operator
       terminationGracePeriodSeconds: 20
-      volumes:
-      - name: webhook-tls-certs
-        secret:
-          defaultMode: 420
-          secretName: che-operator-webhook-server-cert

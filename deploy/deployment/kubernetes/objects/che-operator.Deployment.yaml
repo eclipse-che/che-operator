@@ -155,4 +155,4 @@ spec:
       - name: webhook-tls-certs
         secret:
           defaultMode: 420
-          secretName: che-operator-webhook-server-cert
+          secretName: che-operator-service-cert

@@ -27,4 +27,4 @@ spec:
   issuerRef:
     kind: Issuer
     name: che-operator-selfsigned-issuer
-  secretName: che-operator-webhook-server-cert
+  secretName: che-operator-service-cert

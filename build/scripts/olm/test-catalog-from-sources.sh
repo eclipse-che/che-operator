@@ -85,8 +85,6 @@ exposeOpenShiftRegistry() {
 
   oc policy add-role-to-user system:image-builder system:anonymous -n "${NAMESPACE}"
   oc policy add-role-to-user system:image-builder system:unauthenticated -n "${NAMESPACE}"
-  oc policy add-role-to-user system:image-builder system:anonymous -n "openshift-marketplace"
-  oc policy add-role-to-user system:image-builder system:unauthenticated -n "openshift-marketplace"
 }
 
 buildOperatorFromSources() {
@@ -154,7 +152,7 @@ run() {
     make create-operatorgroup NAME=eclipse-che NAMESPACE="${NAMESPACE}" VERBOSE=${VERBOSE}
   fi
   make create-subscription \
-    NAME=eclipse-che-subscription \
+    NAME=eclipse-che \
     NAMESPACE="${NAMESPACE}" \
     PACKAGE_NAME="${ECLIPSE_CHE_PACKAGE_NAME}" \
     SOURCE="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" \

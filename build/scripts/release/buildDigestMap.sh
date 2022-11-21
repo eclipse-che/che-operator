@@ -39,7 +39,7 @@ excludedImages=(
 
 usage () {
 	echo "Usage:   $0 [-w WORKDIR] -c [/path/to/csv.yaml] -t [IMAGE_TAG]"
-	echo "Example: $0 -w $(pwd) -c $(pwd)/bundle/next/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml -t 7.26.0"
+	echo "Example: $0 -w $(pwd) -c $(pwd)/bundle/next/eclipse-che/manifests/che-operator.clusterserviceversion.yaml -t 7.26.0"
 }
 
 setImagesFromDeploymentEnv() {

@@ -16,4 +16,4 @@ metadata:
   name: che-operator-service
   namespace: eclipse-che
   annotations:
-    service.beta.openshift.io/serving-cert-secret-name: che-operator-webhook-server-cert
+    service.beta.openshift.io/serving-cert-secret-name: che-operator-service-cert

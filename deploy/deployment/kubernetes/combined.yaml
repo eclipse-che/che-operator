@@ -5849,7 +5849,7 @@ spec:
       - name: webhook-tls-certs
         secret:
           defaultMode: 420
-          secretName: che-operator-webhook-server-cert
+          secretName: che-operator-service-cert
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -5868,7 +5868,7 @@ spec:
   issuerRef:
     kind: Issuer
     name: che-operator-selfsigned-issuer
-  secretName: che-operator-webhook-server-cert
+  secretName: che-operator-service-cert
 ---
 apiVersion: cert-manager.io/v1
 kind: Issuer
