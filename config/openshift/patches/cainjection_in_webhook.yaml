@@ -9,9 +9,16 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 #
-
+---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
+metadata:
+  name: org.eclipse.che
+  annotations:
+    service.beta.openshift.io/inject-cabundle: "true"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
 metadata:
   name: org.eclipse.che
   annotations:

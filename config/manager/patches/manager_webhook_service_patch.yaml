@@ -24,12 +24,3 @@ spec:
         - containerPort: 9443
           name: webhook-server
           protocol: TCP
-        volumeMounts:
-        - mountPath: /tmp/k8s-webhook-server/serving-certs
-          name: webhook-tls-certs
-          readOnly: true
-      volumes:
-      - name: webhook-tls-certs
-        secret:
-          defaultMode: 420
-          secretName: che-operator-webhook-server-cert

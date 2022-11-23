@@ -44,4 +44,4 @@ spec:
   issuerRef:
     kind: Issuer
     name: che-operator-selfsigned-issuer
-  secretName: che-operator-webhook-server-cert # this secret will not be prefixed, since it's not managed by kustomize
+  secretName: che-operator-service-cert # this secret will not be prefixed, since it's not managed by kustomize

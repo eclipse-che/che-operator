@@ -14,7 +14,7 @@ resources:
 - manager.yaml
 
 patchesStrategicMerge:
-- patches/manager_webhook_patch.yaml
+- patches/manager_webhook_service_patch.yaml
 
 generatorOptions:
   disableNameSuffixHash: true
