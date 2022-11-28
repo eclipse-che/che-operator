@@ -12,6 +12,8 @@
 package devworkspaceconfig
 
 import (
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"regexp"
 	"testing"
 
@@ -85,7 +87,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					DevEnvironments: chev2.CheClusterDevEnvironments{},
 				},
 			},
-			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{Workspace: &controllerv1alpha1.WorkspaceConfig{}},
 		},
 		{
 			name: "Create DevWorkspaceOperatorConfig with StorageClassName only",
@@ -330,7 +332,8 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
 			assert.NoError(t, err)
 
-			assert.Equal(t, testCase.expectedOperatorConfig, dwoc.Config)
+			diff := cmp.Diff(testCase.expectedOperatorConfig, dwoc.Config, cmp.Options{cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount")})
+			assert.Empty(t, diff)
 		})
 	}
 
@@ -343,6 +346,101 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
 			assert.Error(t, err)
 			assert.Regexp(t, regexp.MustCompile(testCase.expectedErrorMessage), err.Error(), "error message must match")
+		})
+	}
+}
+
+func TestReconcileServiceAccountConfig(t *testing.T) {
+	type testCase struct {
+		name                   string
+		cheCluster             *chev2.CheCluster
+		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
+	}
+
+	var testCases = []testCase{
+		{
+			name: "Case #1",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						ServiceAccount: "service-account",
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					ServiceAccount: &controllerv1alpha1.ServiceAccountConfig{
+						ServiceAccountName: "service-account",
+						DisableCreation:    pointer.BoolPtr(false),
+					},
+				},
+			},
+		},
+		{
+			name: "Case #2",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DefaultNamespace: chev2.DefaultNamespace{
+							AutoProvision: pointer.BoolPtr(false),
+						},
+						ServiceAccount: "service-account",
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					ServiceAccount: &controllerv1alpha1.ServiceAccountConfig{
+						ServiceAccountName: "service-account",
+						DisableCreation:    pointer.BoolPtr(true),
+					},
+				},
+			},
+		},
+		{
+			name: "Case #2",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					ServiceAccount: &controllerv1alpha1.ServiceAccountConfig{
+						ServiceAccountName: "",
+						DisableCreation:    pointer.BoolPtr(false),
+					},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			deployContext := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
+			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
+			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
+			assert.NoError(t, err)
+
+			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
+			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			assert.NoError(t, err)
+
+			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.ServiceAccount, dwoc.Config.Workspace.ServiceAccount)
 		})
 	}
 }
