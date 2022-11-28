@@ -4595,6 +4595,11 @@ spec:
                     description: Run timeout for workspaces in seconds. This timeout is the maximum duration a workspace runs. To disable workspace run timeout, set this value to -1.
                     format: int32
                     type: integer
+                  serviceAccount:
+                    description: ServiceAccount to use by the DevWorkspace operator when starting the workspaces.
+                    maxLength: 63
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                    type: string
                   storage:
                     default:
                       pvcStrategy: per-user
