@@ -739,11 +739,11 @@ install-certmgr: ## Install Cert Manager v1.7.1
 
 install-devworkspace: SHELL := /bin/bash
 install-devworkspace: ## Install Dev Workspace operator, available channels: next, fast
-	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
+	[[ -z "$(VERSION_KIND)" ]] && { echo [ERROR] VERSION_KIND not defined; exit 1; }
 
 	if [[ $(PLATFORM) == "kubernetes" ]]; then
 		$(MAKE) create-namespace NAMESPACE="devworkspace-controller"
-		if [[ $(CHANNEL) == "fast" ]]; then
+		if [[ $(VERSION_KIND) == "stable" ]]; then
 			rm -rf /tmp/dwo
 			git clone --quiet https://github.com/devfile/devworkspace-operator ${OPERATOR_REPO}/tmp/dwo
 			pushd ${OPERATOR_REPO}/tmp/dwo
@@ -756,7 +756,7 @@ install-devworkspace: ## Install Dev Workspace operator, available channels: nex
 	  	fi
 		$(MAKE) wait-devworkspace-running NAMESPACE="devworkspace-controller"
 	else
-		if [[ $(CHANNEL) == "fast" ]]; then
+		if [[ $(VERSION_KIND) == "stable" ]]; then
 			IMAGE="quay.io/devfile/devworkspace-operator-index:release"
 		else
 			IMAGE="quay.io/devfile/devworkspace-operator-index:next"
@@ -767,7 +767,7 @@ install-devworkspace: ## Install Dev Workspace operator, available channels: nex
 			NAME="devworkspace-operator" \
 			NAMESPACE="openshift-operators" \
 			PACKAGE_NAME="devworkspace-operator" \
-			CHANNEL="$(CHANNEL)" \
+			CHANNEL="fast" \
 			SOURCE="devworkspace-operator" \
 			SOURCE_NAMESPACE="openshift-marketplace" \
 			INSTALL_PLAN_APPROVAL="Auto"
