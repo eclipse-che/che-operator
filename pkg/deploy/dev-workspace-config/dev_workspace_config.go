@@ -76,14 +76,7 @@ func updateWorkspaceConfig(devEnvironments *chev2.CheClusterDevEnvironments, ope
 		operatorConfig.Workspace = &controllerv1alpha1.WorkspaceConfig{}
 	}
 
-	pvcStrategy := utils.GetValue(devEnvironments.Storage.PvcStrategy, constants.DefaultPvcStorageStrategy)
-	isPerWorkspacePVCStorageStrategy := pvcStrategy == constants.PerWorkspacePVCStorageStrategy
-	pvcConfig := map[bool]*chev2.PVC{
-		true:  devEnvironments.Storage.PerWorkspaceStrategyPvcConfig,
-		false: devEnvironments.Storage.PerUserStrategyPvcConfig,
-	}[isPerWorkspacePVCStorageStrategy]
-
-	if err := updateWorkspaceStorageConfig(pvcConfig, isPerWorkspacePVCStorageStrategy, operatorConfig.Workspace); err != nil {
+	if err := updateWorkspaceStorageConfig(devEnvironments, operatorConfig.Workspace); err != nil {
 		return err
 	}
 
@@ -94,7 +87,14 @@ func updateWorkspaceConfig(devEnvironments *chev2.CheClusterDevEnvironments, ope
 	return nil
 }
 
-func updateWorkspaceStorageConfig(pvc *chev2.PVC, isPerWorkspacePVCStorageStrategy bool, workspaceConfig *controllerv1alpha1.WorkspaceConfig) error {
+func updateWorkspaceStorageConfig(devEnvironments *chev2.CheClusterDevEnvironments, workspaceConfig *controllerv1alpha1.WorkspaceConfig) error {
+	pvcStrategy := utils.GetValue(devEnvironments.Storage.PvcStrategy, constants.DefaultPvcStorageStrategy)
+	isPerWorkspacePVCStorageStrategy := pvcStrategy == constants.PerWorkspacePVCStorageStrategy
+	pvc := map[bool]*chev2.PVC{
+		true:  devEnvironments.Storage.PerWorkspaceStrategyPvcConfig,
+		false: devEnvironments.Storage.PerUserStrategyPvcConfig,
+	}[isPerWorkspacePVCStorageStrategy]
+
 	if pvc != nil {
 		if pvc.StorageClass != "" {
 			workspaceConfig.StorageClassName = &pvc.StorageClass
