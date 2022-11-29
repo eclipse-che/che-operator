@@ -33,6 +33,8 @@ runTest() {
     --k8spodwaittimeout=120000 \
     --k8spodreadytimeout=120000 \
     --templates ${LAST_OPERATOR_VERSION_TEMPLATE_PATH} \
+    --k8spodwaittimeout=120000 \
+    --k8spodreadytimeout=120000 \
     --che-operator-cr-patch-yaml "${OPERATOR_REPO}/build/scripts/minikube-tests/minikube-checluster-patch.yaml"
 
   # Free up some cpu resources
