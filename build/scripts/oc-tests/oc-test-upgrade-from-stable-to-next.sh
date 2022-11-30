@@ -31,16 +31,30 @@ deleteEclipseCheStableVersionOperator() {
   oc delete csv ${ECLIPSE_CHE_INSTALLED_CSV} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE}
   oc delete subscription ${ECLIPSE_CHE_SUBSCRIPTION_NAME} -n ${ECLIPSE_CHE_SUBSCRIPTION_NAMESPACE}
 
-  waitForRemovedEclipseCheSubscription
+  waitForRemovedSubscription ${ECLIPSE_CHE_PACKAGE_NAME}
 
   # Hack, since we remove operator pod, webhook won't work.
   # We have to disable it for a while.
   oc patch crd checlusters.org.eclipse.che --patch '{"spec": {"conversion": null}}' --type=merge
 }
 
+deleteDevWorkspaceStableVersionOperator() {
+  DEV_WORKSPACE_PACKAGE_NAME="devworkspace-operator"
+  DEV_WORKSPACE_SUBSCRIPTION_RECORD=$(oc get subscription -A -o json | jq -r '.items | .[] | select(.spec.name == "'${DEV_WORKSPACE_PACKAGE_NAME}'")')
+  DEV_WORKSPACE_SUBSCRIPTION_NAME=$(echo ${DEV_WORKSPACE_SUBSCRIPTION_RECORD} | jq -r '.metadata.name')
+  DEV_WORKSPACE_SUBSCRIPTION_NAMESPACE=$(echo ${DEV_WORKSPACE_SUBSCRIPTION_RECORD} | jq -r '.metadata.namespace')
+  DEV_WORKSPACE_INSTALLED_CSV=$(echo ${DEV_WORKSPACE_SUBSCRIPTION_RECORD} | jq -r '.status.installedCSV')
+
+  oc delete csv ${DEV_WORKSPACE_INSTALLED_CSV} -n ${DEV_WORKSPACE_SUBSCRIPTION_NAMESPACE}
+  oc delete subscription ${DEV_WORKSPACE_SUBSCRIPTION_NAME} -n ${DEV_WORKSPACE_SUBSCRIPTION_NAMESPACE}
+
+  waitForRemovedSubscription ${DEV_WORKSPACE_PACKAGE_NAME}
+}
+
 runTests() {
   . ${OPERATOR_REPO}/build/scripts/olm/test-catalog.sh -i quay.io/eclipse/eclipse-che-olm-catalog:stable -c stable --verbose
   deleteEclipseCheStableVersionOperator
+  deleteDevWorkspaceStableVersionOperator
   . ${OPERATOR_REPO}/build/scripts/olm/test-catalog-from-sources.sh --verbose
 }
 

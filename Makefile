@@ -762,7 +762,7 @@ install-devworkspace: ## Install Dev Workspace operator, available channels: nex
 			IMAGE="quay.io/devfile/devworkspace-operator-index:next"
 		fi
 
-		$(MAKE) create-catalogsource IMAGE="$${IMAGE}" NAME="devworkspace-operator"
+		$(MAKE) create-catalogsource IMAGE="$${IMAGE}" NAME="devworkspace-operator" NAMESPACE="openshift-marketplace"
 		$(MAKE) create-subscription \
 			NAME="devworkspace-operator" \
 			NAMESPACE="openshift-operators" \
