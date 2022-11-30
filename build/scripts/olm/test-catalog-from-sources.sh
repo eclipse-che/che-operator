@@ -146,7 +146,7 @@ run() {
   make create-namespace NAMESPACE="${NAMESPACE}" VERBOSE=${VERBOSE}
 
   # Install Dev Workspace operator (next version as well)
-  make install-devworkspace VERSION_KIND="next"
+  make install-devworkspace CHANNEL="next"
 
   exposeOpenShiftRegistry
   createEclipseCheCatalogFromSources

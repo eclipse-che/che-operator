@@ -76,9 +76,9 @@ run() {
   fi
 
   if [[ ${CHANNEL} == "next" ]]; then
-    make install-devworkspace VERSION_KIND=next VERBOSE=${VERBOSE}
+    make install-devworkspace CHANNEL=next VERBOSE=${VERBOSE}
   else
-    make install-devworkspace VERSION_KIND=stable VERBOSE=${VERBOSE}
+    make install-devworkspace CHANNEL=fast VERBOSE=${VERBOSE}
   fi
 
   echo "[INFO] Test update from version: ${PREVIOUS_VERSION} to: ${LASTEST_VERSION}"
