@@ -351,6 +351,11 @@ func (c *WorkspacePermissionsReconciler) getWorkspacesPolicies() []rbacv1.Policy
 			Resources: []string{"namespaces"},
 			Verbs:     []string{"get", "list"},
 		},
+		{
+			APIGroups: []string{""},
+			Resources: []string{"events"},
+			Verbs:     []string{"watch", "list"},
+		},
 	}
 	openshiftPolicies := []rbacv1.PolicyRule{
 		{

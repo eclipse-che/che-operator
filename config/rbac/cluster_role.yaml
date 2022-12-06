@@ -210,6 +210,7 @@ rules:
     resources:
       - events
     verbs:
+      - list
       - watch
   - apiGroups:
       - apps
