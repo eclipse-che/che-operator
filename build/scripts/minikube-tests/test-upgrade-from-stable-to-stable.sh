@@ -30,6 +30,8 @@ runTest() {
     --batch \
     --platform minikube  \
     --templates ${PREVIOUS_OPERATOR_VERSION_TEMPLATE_PATH} \
+    --k8spodwaittimeout=120000 \
+    --k8spodreadytimeout=120000 \
     --che-operator-cr-patch-yaml "${OPERATOR_REPO}/build/scripts/minikube-tests/minikube-checluster-patch.yaml"
 
   chectl server:update --templates ${LAST_OPERATOR_VERSION_TEMPLATE_PATH} --batch
