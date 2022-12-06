@@ -407,7 +407,7 @@ func TestReconcileServiceAccountConfig(t *testing.T) {
 			},
 		},
 		{
-			name: "Case #2",
+			name: "Case #3",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -420,8 +420,30 @@ func TestReconcileServiceAccountConfig(t *testing.T) {
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
 					ServiceAccount: &controllerv1alpha1.ServiceAccountConfig{
-						ServiceAccountName: "",
-						DisableCreation:    pointer.BoolPtr(false),
+						DisableCreation: pointer.BoolPtr(false),
+					},
+				},
+			},
+		},
+		{
+			name: "Case #4",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DefaultNamespace: chev2.DefaultNamespace{
+							AutoProvision: pointer.BoolPtr(false),
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					ServiceAccount: &controllerv1alpha1.ServiceAccountConfig{
+						DisableCreation: pointer.BoolPtr(false),
 					},
 				},
 			},
