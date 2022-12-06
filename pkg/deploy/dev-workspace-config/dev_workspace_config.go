@@ -12,6 +12,8 @@
 package devworkspaceconfig
 
 import (
+	"fmt"
+
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
@@ -94,7 +96,17 @@ func updateWorkspaceConfig(cheCluster *chev2.CheCluster, operatorConfig *control
 		operatorConfig.Workspace.ContainerSecurityContext = constants.DefaultWorkspaceContainerSecurityContext.DeepCopy()
 	}
 
+	updateStartTimeout(operatorConfig, devEnvironments.StartTimeoutSeconds)
 	return nil
+}
+
+func updateStartTimeout(operatorConfig *controllerv1alpha1.OperatorConfiguration, startTimeoutSeconds *int32) {
+	if startTimeoutSeconds == nil {
+		// Allow the default start timeout of 5 minutes to be used if devEnvironments.StartTimeoutSeconds is unset
+		operatorConfig.Workspace.ProgressTimeout = ""
+	} else {
+		operatorConfig.Workspace.ProgressTimeout = fmt.Sprintf("%ds", *startTimeoutSeconds)
+	}
 }
 
 func updateWorkspaceStorageConfig(devEnvironments *chev2.CheClusterDevEnvironments, workspaceConfig *controllerv1alpha1.WorkspaceConfig) error {
