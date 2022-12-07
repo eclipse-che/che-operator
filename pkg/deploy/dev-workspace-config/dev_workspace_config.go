@@ -20,6 +20,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -54,13 +55,12 @@ func (d *DevWorkspaceConfigReconciler) Reconcile(ctx *chetypes.DeployContext) (r
 	if dwoc.Config == nil {
 		dwoc.Config = &controllerv1alpha1.OperatorConfiguration{}
 	}
-	err := updateOperatorConfig(ctx.CheCluster.Spec.DevEnvironments.Storage, dwoc.Config)
-	if err != nil {
+
+	if err := updateWorkspaceConfig(&ctx.CheCluster.Spec.DevEnvironments, dwoc.Config); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
-	done, err := deploy.Sync(ctx, dwoc)
-	if !done {
+	if done, err := deploy.Sync(ctx, dwoc); !done {
 		return reconcile.Result{}, false, err
 	}
 
@@ -71,52 +71,62 @@ func (d *DevWorkspaceConfigReconciler) Finalize(ctx *chetypes.DeployContext) boo
 	return true
 }
 
-func updateOperatorConfig(storage chev2.WorkspaceStorage, operatorConfig *controllerv1alpha1.OperatorConfiguration) error {
-	var pvc *chev2.PVC
-
-	pvcStrategy := utils.GetValue(storage.PvcStrategy, constants.DefaultPvcStorageStrategy)
-	switch pvcStrategy {
-	case constants.CommonPVCStorageStrategy:
-		fallthrough
-	case constants.PerUserPVCStorageStrategy:
-		if storage.PerUserStrategyPvcConfig != nil {
-			pvc = storage.PerUserStrategyPvcConfig
-		}
-	case constants.PerWorkspacePVCStorageStrategy:
-		if storage.PerWorkspaceStrategyPvcConfig != nil {
-			pvc = storage.PerWorkspaceStrategyPvcConfig
-		}
+func updateWorkspaceConfig(devEnvironments *chev2.CheClusterDevEnvironments, operatorConfig *controllerv1alpha1.OperatorConfiguration) error {
+	if operatorConfig.Workspace == nil {
+		operatorConfig.Workspace = &controllerv1alpha1.WorkspaceConfig{}
 	}
 
+	if err := updateWorkspaceStorageConfig(devEnvironments, operatorConfig.Workspace); err != nil {
+		return err
+	}
+
+	if err := updateWorkspaceServiceAccountConfig(devEnvironments, operatorConfig.Workspace); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func updateWorkspaceStorageConfig(devEnvironments *chev2.CheClusterDevEnvironments, workspaceConfig *controllerv1alpha1.WorkspaceConfig) error {
+	pvcStrategy := utils.GetValue(devEnvironments.Storage.PvcStrategy, constants.DefaultPvcStorageStrategy)
+	isPerWorkspacePVCStorageStrategy := pvcStrategy == constants.PerWorkspacePVCStorageStrategy
+	pvc := map[bool]*chev2.PVC{
+		true:  devEnvironments.Storage.PerWorkspaceStrategyPvcConfig,
+		false: devEnvironments.Storage.PerUserStrategyPvcConfig,
+	}[isPerWorkspacePVCStorageStrategy]
+
 	if pvc != nil {
-		if operatorConfig.Workspace == nil {
-			operatorConfig.Workspace = &controllerv1alpha1.WorkspaceConfig{}
+		if pvc.StorageClass != "" {
+			workspaceConfig.StorageClassName = &pvc.StorageClass
 		}
-		return updateWorkspaceConfig(pvc, pvcStrategy == constants.PerWorkspacePVCStorageStrategy, operatorConfig.Workspace)
+
+		if pvc.ClaimSize != "" {
+			if workspaceConfig.DefaultStorageSize == nil {
+				workspaceConfig.DefaultStorageSize = &controllerv1alpha1.StorageSizes{}
+			}
+
+			pvcSize, err := resource.ParseQuantity(pvc.ClaimSize)
+			if err != nil {
+				return err
+			}
+
+			if isPerWorkspacePVCStorageStrategy {
+				workspaceConfig.DefaultStorageSize.PerWorkspace = &pvcSize
+			} else {
+				workspaceConfig.DefaultStorageSize.Common = &pvcSize
+			}
+		}
 	}
 	return nil
 }
 
-func updateWorkspaceConfig(pvc *chev2.PVC, isPerWorkspacePVCStorageStrategy bool, workspaceConfig *controllerv1alpha1.WorkspaceConfig) error {
-	if pvc.StorageClass != "" {
-		workspaceConfig.StorageClassName = &pvc.StorageClass
-	}
+func updateWorkspaceServiceAccountConfig(devEnvironments *chev2.CheClusterDevEnvironments, workspaceConfig *controllerv1alpha1.WorkspaceConfig) error {
+	isNamespaceAutoProvisioned := pointer.BoolPtrDerefOr(devEnvironments.DefaultNamespace.AutoProvision, constants.DefaultAutoProvision)
 
-	if pvc.ClaimSize != "" {
-		if workspaceConfig.DefaultStorageSize == nil {
-			workspaceConfig.DefaultStorageSize = &controllerv1alpha1.StorageSizes{}
-		}
-
-		pvcSize, err := resource.ParseQuantity(pvc.ClaimSize)
-		if err != nil {
-			return err
-		}
-
-		if isPerWorkspacePVCStorageStrategy {
-			workspaceConfig.DefaultStorageSize.PerWorkspace = &pvcSize
-		} else {
-			workspaceConfig.DefaultStorageSize.Common = &pvcSize
-		}
+	workspaceConfig.ServiceAccount = &controllerv1alpha1.ServiceAccountConfig{
+		ServiceAccountName: devEnvironments.ServiceAccount,
+		// If user's Namespace is not auto provisioned (is pre-created by admin), then ServiceAccount must be pre-created as well
+		DisableCreation: pointer.BoolPtr(!isNamespaceAutoProvisioned && devEnvironments.ServiceAccount != ""),
 	}
 	return nil
 }

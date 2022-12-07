@@ -322,7 +322,7 @@ ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
 test: download-gateway-resources ## Run tests.
 	export MOCK_API=true; go test -mod=vendor ./... -coverprofile cover.out
 
-update-go-dependencies: update-go-dependencies ## Update golang dependencies
+update-go-dependencies:  ## Update golang dependencies
 	go mod tidy
 	go mod vendor
 
@@ -762,12 +762,12 @@ install-devworkspace: ## Install Dev Workspace operator, available channels: nex
 			IMAGE="quay.io/devfile/devworkspace-operator-index:next"
 		fi
 
-		$(MAKE) create-catalogsource IMAGE="$${IMAGE}" NAME="devworkspace-operator"
+		$(MAKE) create-catalogsource IMAGE="$${IMAGE}" NAME="devworkspace-operator" NAMESPACE="openshift-marketplace"
 		$(MAKE) create-subscription \
 			NAME="devworkspace-operator" \
 			NAMESPACE="openshift-operators" \
 			PACKAGE_NAME="devworkspace-operator" \
-			CHANNEL="$(CHANNEL)" \
+			CHANNEL=$(CHANNEL) \
 			SOURCE="devworkspace-operator" \
 			SOURCE_NAMESPACE="openshift-marketplace" \
 			INSTALL_PLAN_APPROVAL="Auto"

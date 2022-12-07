@@ -19,7 +19,7 @@
 | [github.com/BurntSushi/xgb@27f122750802c950b2c869a5b63dafcf590ced95](https://github.com/BurntSushi/xgb.git) | BSD-3-Clause AND WTFPL | [CQ](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23291) |
 | [sigs.k8s.io/structured-merge-diff/v4@v4.1.0](https://github.com/kubernetes-sigs/structured-merge-diff/releases/tag/v4.1.0.git) | Apache-2.0 | [CQ](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23293) |
 | [sigs.k8s.io/yaml@v1.2.0](https://github.com/kubernetes-sigs/yaml.git) | BSD-3-Clause AND MIT | [CQ](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23295) |
-| [k8s.io/utils@67b214c5f920060488eda08cd2b5c30597f2f1d7](https://github.com/kubernetes/utils.git) | Apache-2.0 | [clearlydefined](https://clearlydefined.io/definitions/git/github/kubernetes/utils/67b214c5f920060488eda08cd2b5c30597f2f1d7) |
+| [k8s.io/utils@7f3ee0f3147123c62f9b8a204651aa38fc772d20](https://github.com/kubernetes/utils.git) | Apache-2.0 | [clearlydefined](https://clearlydefined.io/definitions/go/golang/k8s.io/utils/v0.0.0-20210722164352-7f3ee0f31471) |
 | [k8s.io/gengo@0689ccc1d7d65d9dd1bedcc3b0b1ed7df91ba266](https://github.com/kubernetes/gengo.git) | Apache-2.0 | [clearlydefined](https://clearlydefined.io/definitions/git/github/kubernetes/gengo/0689ccc1d7d65d9dd1bedcc3b0b1ed7df91ba266) |
 | [github.com/PuerkitoBio/urlesc@5bd2802263f21d8788851d5305584c82a5c75d7e](https://github.com/puerkitobio/urlesc.git) | BSD-3-Clause | [clearlydefined](https://clearlydefined.io/definitions/git/github/puerkitobio/urlesc/5bd2802263f21d8788851d5305584c82a5c75d7e) |
 | [github.com/census-instrumentation/opencensus-proto@v0.2.1](https://github.com/census-instrumentation/opencensus-proto.git) | Apache-2.0 | [clearlydefined](https://clearlydefined.io/definitions/git/github/census-instrumentation/opencensus-proto/d89fa54de508111353cb0b06403c00569be780d8) |
@@ -458,6 +458,6 @@
 | [golang.org/x/xerrors@5ec99f83aff198f5fbd629d6c8d8eb38a04218ca](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
 | [golang.org/x/oauth2@bf48bf16ab8d622ce64ec6ce98d2c98f916b6303](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
 | [golang.org/x/mobile@d3739f865fa66d07c1f506505c18aac71a8ead6e](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
-| [github.com/devfile/api/v2@32cae1f8e42c22035138ef6ee93080bc47d751c6](https://github.com/devfile/api.git) | Apache-2.0 | [clearlydefined](https://clearlydefined.io/definitions/git/github/devfile/api/32cae1f8e42c22035138ef6ee93080bc47d751c6) |
+| [github.com/devfile/api/v2@fe7c10eaa530b12b19cfb0e22e221e753391304c](https://github.com/devfile/api.git) | Apache-2.0 | [clearlydefined](https://clearlydefined.io/definitions/git/github/devfile/api/fe7c10eaa530b12b19cfb0e22e221e753391304c) |
 | [github.com/che-incubator/kubernetes-image-puller-operator@0128446f5af78587c0427a35d693bbb8d24036bc](https://github.com/che-incubator/kubernetes-image-puller-operator.git) | EPL-2.0 | todo |
-| [github.com/devfile/devworkspace-operator@0224ca56f4deaaaa342fa0ab4d098303e3ac53e6](https://github.com/devfile/devworkspace-operator.git) | Apache-2.0 | [clearlydefined](https://clearlydefined.io/definitions/git/github/devfile/devworkspace-operator/0224ca56f4deaaaa342fa0ab4d098303e3ac53e6) |
+| [github.com/devfile/devworkspace-operator@bd6bffe44a9cc064688214059dfe05865cdfe491](https://github.com/devfile/devworkspace-operator.git) | Apache-2.0 | [clearlydefined](https://clearlydefined.io/definitions/git/github/devfile/devworkspace-operator/bd6bffe44a9cc064688214059dfe05865cdfe491) |

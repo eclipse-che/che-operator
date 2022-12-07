@@ -29,8 +29,8 @@ catchFinish() {
   exit ${RESULT}
 }
 
-waitForRemovedEclipseCheSubscription() {
-  while [[ $(oc get subscription -A -o json | jq -r '.items | .[] | select(.spec.name == "'${ECLIPSE_CHE_PACKAGE_NAME}'")') != "" ]]; do
+waitForRemovedSubscription() {
+  while [[ $(oc get subscription -A -o json | jq -r '.items | .[] | select(.spec.name == "'$1'")') != "" ]]; do
       sleep 5s
   done
 }

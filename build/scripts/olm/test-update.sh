@@ -56,7 +56,7 @@ usage () {
 
 run() {
   make create-namespace NAMESPACE="${NAMESPACE}" VERBOSE=${VERBOSE}
-  make create-catalogsource NAME="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" IMAGE="${CATALOG_IMAGE}" VERBOSE=${VERBOSE}
+  make create-catalogsource NAME="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" IMAGE="${CATALOG_IMAGE}" VERBOSE=${VERBOSE} NAMESPACE="openshift-marketplace"
 
   discoverEclipseCheBundles "${CHANNEL}"
 

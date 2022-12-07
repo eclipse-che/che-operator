@@ -114,6 +114,11 @@ type CheClusterDevEnvironments struct {
 	// Container build configuration.
 	// +optional
 	ContainerBuildConfiguration *ContainerBuildConfiguration `json:"containerBuildConfiguration,omitempty"`
+	// ServiceAccount to use by the DevWorkspace operator when starting the workspaces.
+	// +optional
+	// +kubebuilder:validation:Pattern=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+	// +kubebuilder:validation:MaxLength=63
+	ServiceAccount string `json:"serviceAccount,omitempty"`
 }
 
 // Che components configuration.

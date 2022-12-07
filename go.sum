@@ -112,10 +112,10 @@ github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/daviddengcn/go-colortext v0.0.0-20160507010035-511bcaf42ccd/go.mod h1:dv4zxwHi5C/8AeI+4gX4dCWOIvNi7I6JCSX0HvlKPgE=
 github.com/deislabs/oras v0.8.1/go.mod h1:Mx0rMSbBNaNfY9hjpccEnxkOqJL6KGjtxNHPLC4G4As=
 github.com/denisenkom/go-mssqldb v0.0.0-20190204142019-df6d76eb9289/go.mod h1:xN/JuLBIz4bjkxNmByTiV1IbhfnYb6oo99phBn4Eqhc=
-github.com/devfile/api/v2 v2.0.0-20220414122024-32cae1f8e42c h1:yyidoxal8ngJWDxRuVZMNh4PBwqDIzOkTeOagtmRiy0=
-github.com/devfile/api/v2 v2.0.0-20220414122024-32cae1f8e42c/go.mod h1:kLX/nW93gigOHXK3NLeJL2fSS/sgEe+OHu8bo3aoOi4=
-github.com/devfile/devworkspace-operator v0.15.2 h1:CcLGHtuBOKdwpeYV8Iy7ZwUSgavcMbjuPA9ejupM7BE=
-github.com/devfile/devworkspace-operator v0.15.2/go.mod h1:fM3/GhPWEL8JZOEImCnpyxTYEf9dN6PsjzJq+ffcD1k=
+github.com/devfile/api/v2 v2.0.0-20220928161623-fe7c10eaa530 h1:pZvf4AZrf/ZwV2AwQnTInlUpns+Wj9JYtPRtBDiFHzk=
+github.com/devfile/api/v2 v2.0.0-20220928161623-fe7c10eaa530/go.mod h1:dN7xFrOVG+iPqn4UKGibXLd5oVsdE8XyK9OEb5JL3aI=
+github.com/devfile/devworkspace-operator v0.17.0 h1:Ml8ncEQAVf/d+DTttQ76oe/btnFQpicRG/XncdflOZo=
+github.com/devfile/devworkspace-operator v0.17.0/go.mod h1:xLELAolfebwROqGSvOWhdC0eH7S+V7iVFzHxtm3Jf2A=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:7qlOGliEKZXTDg6OTjfoBKDXWrumCAMpl/TFQ4/5kLM=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/dhui/dktest v0.3.2/go.mod h1:l1/ib23a/CmxAe7yixtrYPc8Iy90Zy2udyaHINM5p58=
@@ -706,8 +706,10 @@ k8s.io/kube-openapi v0.0.0-20200923105717-7eba4cbaebdf h1:7RCqblb9HTvcWeOYwrt1SV
 k8s.io/kube-openapi v0.0.0-20200923105717-7eba4cbaebdf/go.mod h1:bfCVj+qXcEaE5SCvzBaqpOySr6tuCcpPKqF6HD8nyCw=
 k8s.io/kubectl v0.0.0-20201218185502-10b66c3fd14b/go.mod h1:2bE0JLYTRDVKDiTREFsjLAx4R2GvUtL/mGYFXfFFMzY=
 k8s.io/metrics v0.20.2/go.mod h1:yTck5nl5wt/lIeLcU6g0b8/AKJf2girwe0PQiaM4Mwk=
-k8s.io/utils v0.0.0-20201110183641-67b214c5f920 h1:CbnUZsM497iRC5QMVkHwyl8s2tB3g7yaSHkYPkpgelw=
 k8s.io/utils v0.0.0-20201110183641-67b214c5f920/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
+k8s.io/utils v0.0.0-20210111153108-fddb29f9d009/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
+k8s.io/utils v0.0.0-20210722164352-7f3ee0f31471 h1:DnzUXII7sVg1FJ/4JX6YDRJfLNAC7idRatPwe07suiI=
+k8s.io/utils v0.0.0-20210722164352-7f3ee0f31471/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
 modernc.org/b v1.0.0/go.mod h1:uZWcZfRj1BpYzfN9JTerzlNUnnPsV9O2ZA8JsRcubNg=
 modernc.org/db v1.0.0/go.mod h1:kYD/cO29L/29RM0hXYl4i3+Q5VojL31kTUVpVJDw0s8=
 modernc.org/file v1.0.0/go.mod h1:uqEokAEn1u6e+J45e54dsEA/pw4o7zLrA2GwyntZzjw=

@@ -30,12 +30,12 @@ github.com/cespare/xxhash/v2
 github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1
 # github.com/davecgh/go-spew v1.1.1 => github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/devfile/api/v2 v2.0.0-20220414122024-32cae1f8e42c
+# github.com/devfile/api/v2 v2.0.0-20220928161623-fe7c10eaa530
 ## explicit
 github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2
 github.com/devfile/api/v2/pkg/attributes
 github.com/devfile/api/v2/pkg/devfile
-# github.com/devfile/devworkspace-operator v0.15.2
+# github.com/devfile/devworkspace-operator v0.17.0
 ## explicit
 github.com/devfile/devworkspace-operator/apis/controller/v1alpha1
 github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting
@@ -67,7 +67,7 @@ github.com/golang/groupcache/lru
 # github.com/golang/mock v1.5.0 => github.com/golang/mock v1.5.0
 ## explicit
 github.com/golang/mock/gomock
-# github.com/golang/protobuf v1.4.3 => github.com/golang/protobuf v1.4.3
+# github.com/golang/protobuf v1.5.2 => github.com/golang/protobuf v1.4.3
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
@@ -296,7 +296,7 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.26.0-rc.1 => google.golang.org/protobuf v1.25.0
+# google.golang.org/protobuf v1.26.0 => google.golang.org/protobuf v1.25.0
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire
 google.golang.org/protobuf/internal/descfmt
@@ -648,7 +648,7 @@ k8s.io/component-base/config/v1alpha1
 k8s.io/klog/v2
 # k8s.io/kube-openapi v0.0.0-20210305001622-591a79e4bda7 => k8s.io/kube-openapi v0.0.0-20200923105717-7eba4cbaebdf
 k8s.io/kube-openapi/pkg/util/proto
-# k8s.io/utils v0.0.0-20210722164352-7f3ee0f31471 => k8s.io/utils v0.0.0-20201110183641-67b214c5f920
+# k8s.io/utils v0.0.0-20210722164352-7f3ee0f31471
 ## explicit
 k8s.io/utils/buffer
 k8s.io/utils/integer
@@ -1064,7 +1064,6 @@ sigs.k8s.io/yaml
 # k8s.io/klog/v2 => k8s.io/klog/v2 v2.8.0
 # k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.0.0-20180912235703-14b8d2d93fcb
 # k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20200923105717-7eba4cbaebdf
-# k8s.io/utils => k8s.io/utils v0.0.0-20201110183641-67b214c5f920
 # kubernetes/klog => kubernetes/klog v1.0.0
 # modernc.org/b => modernc.org/b v1.0.0
 # modernc.org/db => modernc.org/db v1.0.0

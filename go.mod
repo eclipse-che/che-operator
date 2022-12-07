@@ -5,8 +5,8 @@ go 1.16
 require (
 	github.com/Shopify/logrus-bugsnag v0.0.0-00010101000000-000000000000 // indirect
 	github.com/che-incubator/kubernetes-image-puller-operator v0.0.0-20210929175054-0128446f5af7
-	github.com/devfile/api/v2 v2.0.0-20220414122024-32cae1f8e42c
-	github.com/devfile/devworkspace-operator v0.15.2
+	github.com/devfile/api/v2 v2.0.0-20220928161623-fe7c10eaa530
+	github.com/devfile/devworkspace-operator v0.17.0
 	github.com/go-logr/logr v0.4.0
 	github.com/golang/mock v1.5.0
 	github.com/google/go-cmp v0.5.6
@@ -388,7 +388,6 @@ replace (
 	k8s.io/klog/v2 => k8s.io/klog/v2 v2.8.0
 	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.0.0-20180912235703-14b8d2d93fcb
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20200923105717-7eba4cbaebdf
-	k8s.io/utils => k8s.io/utils v0.0.0-20201110183641-67b214c5f920
 	kubernetes/klog => kubernetes/klog v1.0.0
 	modernc.org/b => modernc.org/b v1.0.0
 	modernc.org/db => modernc.org/db v1.0.0
