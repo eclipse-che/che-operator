@@ -361,7 +361,7 @@ func (c *WorkspacePermissionsReconciler) getWorkspacesPolicies() []rbacv1.Policy
 		{
 			APIGroups: []string{"route.openshift.io"},
 			Resources: []string{"routes"},
-			Verbs:     []string{"list", "create", "delete"},
+			Verbs:     []string{"get", "list", "create", "delete"},
 		},
 		{
 			APIGroups: []string{"authorization.openshift.io"},
