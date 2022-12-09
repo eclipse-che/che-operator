@@ -17,10 +17,10 @@ on:
      - 7.*
 jobs:
   upgrade-stable-to-stable-on-minikube:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout source code
-      uses: actions/checkout@v2.3.1
+      uses: actions/checkout@v3
     - name: Start minikube cluster
       id: run-minikube
       uses: che-incubator/setup-minikube-action@next
@@ -34,7 +34,7 @@ jobs:
       run: /bin/bash build/scripts/minikube-tests/test-upgrade-from-stable-to-stable.sh
       env:
         "GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       if: ${{ always() }}
       with:
         name: artifacts
