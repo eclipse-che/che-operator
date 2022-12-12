@@ -39,6 +39,7 @@ type TraefikConfigMiddleware struct {
 	ForwardAuth *TraefikConfigForwardAuth `json:"forwardAuth,omitempty"`
 	Errors      *TraefikConfigErrors      `json:"errors,omitempty"`
 	Headers     *TraefikConfigHeaders     `json:"headers,omitempty"`
+	Retry       *TraefikConfigRetry       `json:"retry,omitempty"`
 	Plugin      *TraefikPlugin            `json:"plugin,omitempty"`
 }
 
@@ -73,6 +74,12 @@ type TraefikConfigErrors struct {
 
 type TraefikConfigHeaders struct {
 	CustomResponseHeaders map[string]string `json:"customResponseHeaders,omitempty"`
+}
+
+type TraefikConfigRetry struct {
+	CustomResponseHeaders map[string]string `json:"customResponseHeaders,omitempty"`
+	Attempts              int               `json:"attempts,omitempty"`
+	InitialInterval       string            `json:"initialInterval,omitempty"`
 }
 
 type TraefikPlugin struct {
