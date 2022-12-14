@@ -90,10 +90,11 @@ func updateWorkspaceConfig(devEnvironments *chev2.CheClusterDevEnvironments, ope
 func updateWorkspaceStorageConfig(devEnvironments *chev2.CheClusterDevEnvironments, workspaceConfig *controllerv1alpha1.WorkspaceConfig) error {
 	pvcStrategy := utils.GetValue(devEnvironments.Storage.PvcStrategy, constants.DefaultPvcStorageStrategy)
 	isPerWorkspacePVCStorageStrategy := pvcStrategy == constants.PerWorkspacePVCStorageStrategy
-	pvc := map[bool]*chev2.PVC{
-		true:  devEnvironments.Storage.PerWorkspaceStrategyPvcConfig,
-		false: devEnvironments.Storage.PerUserStrategyPvcConfig,
-	}[isPerWorkspacePVCStorageStrategy]
+	pvc := map[string]*chev2.PVC{
+		constants.PerUserPVCStorageStrategy:      devEnvironments.Storage.PerUserStrategyPvcConfig,
+		constants.CommonPVCStorageStrategy:       devEnvironments.Storage.PerUserStrategyPvcConfig,
+		constants.PerWorkspacePVCStorageStrategy: devEnvironments.Storage.PerWorkspaceStrategyPvcConfig,
+	}[pvcStrategy]
 
 	if pvc != nil {
 		if pvc.StorageClass != "" {
