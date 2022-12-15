@@ -14,10 +14,10 @@
 set -ex
 
 export OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
-source <(curl -s ${DEVWORKSPACE_HAPPY_PATH}/common.sh)
+source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 
 export DEVWORKSPACE_HAPPY_PATH="https://raw.githubusercontent.com/eclipse/che/main/tests/devworkspace-happy-path"
-source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
+source <(curl -s ${DEVWORKSPACE_HAPPY_PATH}/common.sh)
 
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
