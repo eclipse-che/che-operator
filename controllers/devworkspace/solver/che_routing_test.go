@@ -402,7 +402,7 @@ func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 
 		workspaceMainConfig := gateway.TraefikConfig{}
 		assert.NoError(t, yaml.Unmarshal([]byte(traefikMainWorkspaceConfig), &workspaceMainConfig))
-		assert.Len(t, workspaceMainConfig.HTTP.Middlewares, 5)
+		assert.Len(t, workspaceMainConfig.HTTP.Middlewares, 6)
 
 		wsid = "wsid"
 		mwares := []string{
@@ -410,7 +410,8 @@ func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 			wsid + gateway.StripPrefixMiddlewareSuffix,
 			wsid + gateway.HeaderRewriteMiddlewareSuffix,
 			wsid + gateway.HeadersMiddlewareSuffix,
-			wsid + gateway.ErrorsMiddlewareSuffix}
+			wsid + gateway.ErrorsMiddlewareSuffix,
+			wsid + gateway.RetryMiddlewareSuffix}
 		for _, mware := range mwares {
 			assert.Contains(t, workspaceMainConfig.HTTP.Middlewares, mware)
 

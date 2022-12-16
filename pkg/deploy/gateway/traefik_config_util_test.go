@@ -124,6 +124,22 @@ func TestAddResponseHeaders(t *testing.T) {
 	}
 }
 
+func TestAddRetry(t *testing.T) {
+	attempts := 3
+	initialInterval := "100ms"
+
+	cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080", []string{})
+	cfg.AddRetry(testComponentName, attempts, initialInterval)
+
+	assert.Len(t, cfg.HTTP.Routers[testComponentName].Middlewares, 1, *cfg)
+	assert.Len(t, cfg.HTTP.Middlewares, 1, *cfg)
+	middlewareName := cfg.HTTP.Routers[testComponentName].Middlewares[0]
+	if assert.Contains(t, cfg.HTTP.Middlewares, middlewareName, *cfg) && assert.NotNil(t, cfg.HTTP.Middlewares[middlewareName].Retry) {
+		assert.Equal(t, attempts, cfg.HTTP.Middlewares[middlewareName].Retry.Attempts)
+		assert.Equal(t, initialInterval, cfg.HTTP.Middlewares[middlewareName].Retry.InitialInterval)
+	}
+}
+
 func TestMiddlewaresPreserveOrder(t *testing.T) {
 	t.Run("strip-header", func(t *testing.T) {
 		cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080", []string{})

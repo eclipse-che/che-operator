@@ -507,7 +507,9 @@ func provisionMainWorkspaceRoute(cheCluster *chev2.CheCluster, routing *dwo.DevW
 	}
 }
 
-// when accessing workspace url, if 5xx error is returned, redirect to the dashboard service
+// add5XXErrorHandling adds traefik middlewares to the traefik config such that
+// when a connection cannot be established with the workspace service (causing a 5XX error code), traefik
+// routes the request to the dashboard service instead.
 func add5XXErrorHandling(cfg *gateway.TraefikConfig, dwId string) {
 	// revalidate cache to prevent case where redirect to dashboard after trying to restart an idled workspace
 	noCacheHeader := map[string]string{"cache-control": "no-store, max-age=0"}
@@ -518,13 +520,16 @@ func add5XXErrorHandling(cfg *gateway.TraefikConfig, dwId string) {
 	cfg.AddErrors(dwId, "500-599", dashboardServiceName, "/")
 
 	if infrastructure.IsOpenShift() {
-		// On OpenShift, fire errors middleware after 4 seconds of not being able to connect to service
+		// If a connection cannot be established with the workspace service within the `DialTimeout`, traefik
+		// will retry the connection with an exponential backoff
 		cfg.HTTP.ServersTransports = map[string]*gateway.TraefikConfigServersTransport{}
+
 		cfg.HTTP.ServersTransports[dwId] = &gateway.TraefikConfigServersTransport{
 			ForwardingTimeouts: &gateway.TraefikConfigForwardingTimeouts{
-				DialTimeout: "4s",
+				DialTimeout: "2500ms",
 			},
 		}
+		cfg.AddRetry(dwId, 2, "500ms")
 		cfg.HTTP.Services[dwId].LoadBalancer.ServersTransport = dwId
 	}
 }
