@@ -14,7 +14,7 @@ name: PR check
 on: pull_request
 jobs:
   unit-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout source code
       uses: actions/checkout@v3
@@ -25,14 +25,14 @@ jobs:
     - name: Run unit tests
       run: make test
   image-build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout source code
       uses: actions/checkout@v3
     - name: Build image
       run: docker build .
   multiplatform-image-build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout source code
       uses: actions/checkout@v3
@@ -41,13 +41,13 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
     - name: Build images
-      uses: docker/build-push-action@v6
+      uses: docker/build-push-action@v3
       with:
         file: Dockerfile
         platforms: linux/amd64,linux/ppc64le
         tags: quay.io/eclipse/che-operator:next
   source-code-validation:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout source code
       uses: actions/checkout@v3
@@ -101,7 +101,7 @@ jobs:
         LICENSE_TEMPLATE="${GITHUB_WORKSPACE}/hack/license-header.txt"
         check-license-header -f "${LICENSE_TEMPLATE}" ${FILES_TO_CHECK_LICENSE}
   dependencies-md-validation:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout source code
       uses: actions/checkout@v3

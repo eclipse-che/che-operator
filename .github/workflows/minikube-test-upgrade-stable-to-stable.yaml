@@ -17,7 +17,7 @@ on:
      - 7.*
 jobs:
   upgrade-stable-to-stable-on-minikube:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout source code
       uses: actions/checkout@v3
