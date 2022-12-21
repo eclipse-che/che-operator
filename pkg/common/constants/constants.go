@@ -99,6 +99,7 @@ const (
 	PerUserPVCStorageStrategy      = "per-user"
 	DefaultPvcStorageStrategy      = "per-user"
 	PerWorkspacePVCStorageStrategy = "per-workspace"
+	EphemeralPVCStorageStrategy    = "ephemeral"
 	CommonPVCStorageStrategy       = "common"
 	DefaultAutoProvision           = true
 	DefaultWorkspaceJavaOpts       = "-XX:MaxRAM=150m -XX:MaxRAMFraction=2 -XX:+UseParallelGC " +

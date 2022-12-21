@@ -91,6 +91,31 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{Workspace: &controllerv1alpha1.WorkspaceConfig{}},
 		},
 		{
+			name: "Create DevWorkspaceOperatorConfig with ephemeral strategy",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						Storage: chev2.WorkspaceStorage{
+							PvcStrategy: constants.EphemeralPVCStorageStrategy,
+							PerUserStrategyPvcConfig: &chev2.PVC{
+								StorageClass: "test-storage",
+								ClaimSize:    "10Gi",
+							},
+							PerWorkspaceStrategyPvcConfig: &chev2.PVC{
+								StorageClass: "test-storage",
+								ClaimSize:    "10Gi",
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{Workspace: &controllerv1alpha1.WorkspaceConfig{}},
+		},
+		{
 			name: "Create DevWorkspaceOperatorConfig with StorageClassName only",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
