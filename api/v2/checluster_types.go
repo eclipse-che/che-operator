@@ -394,12 +394,13 @@ type WorkspaceStorage struct {
 	// +optional
 	PerWorkspaceStrategyPvcConfig *PVC `json:"perWorkspaceStrategyPvcConfig,omitempty"`
 	// Persistent volume claim strategy for the Che server.
-	// The supported strategies are: `per-user` (all workspaces PVCs in one volume)
-	// and 'per-workspace' (each workspace is given its own individual PVC).
-	// For details, see https://github.com/eclipse/che/issues/21185.
+	// The supported strategies are: `per-user` (all workspaces PVCs in one volume),
+	// `per-workspace` (each workspace is given its own individual PVC)
+	// and `ephemeral` (non-persistent storage where local changes will be lost when
+	// the workspace is stopped.)
 	// +optional
 	// +kubebuilder:default:="per-user"
-	// +kubebuilder:validation:Enum=common;per-user;per-workspace
+	// +kubebuilder:validation:Enum=common;per-user;per-workspace;ephemeral
 	PvcStrategy string `json:"pvcStrategy,omitempty"`
 }
 
