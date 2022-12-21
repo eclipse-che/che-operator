@@ -130,6 +130,10 @@ type CheClusterDevEnvironments struct {
 	// +kubebuilder:validation:Minimum:=1
 	// +kubebuilder:default:=300
 	StartTimeoutSeconds *int32 `json:"startTimeoutSeconds,omitempty"`
+	// Total number of workspaces that a user can keep.
+	// The default value, `-1`, allows users to keep an unlimited number of workspaces.
+	// +kubebuilder:default:=-1
+	WorkspacesLimitPerUser *int32 `json:"workspacesLimitPerUser,omitempty"`
 }
 
 // Che components configuration.
