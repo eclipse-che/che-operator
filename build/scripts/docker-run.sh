@@ -41,7 +41,7 @@ check() {
 build() {
   printf "%bBuilding image %b${IMAGE_NAME}${NC}..." "${BOLD}" "${BLUE}"
   if docker build -t ${IMAGE_NAME} > docker-build-log 2>&1 -<<EOF
-  FROM golang:1.16-alpine
+  FROM golang:1.18-alpine
   ARG OPERATOR_SDK_VERSION
   RUN apk add --no-cache --update curl bash py-pip jq skopeo && pip install yq
   WORKDIR /che-operator

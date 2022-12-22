@@ -67,3 +67,25 @@ type UnrecoverableSyncError struct {
 func (e *UnrecoverableSyncError) Error() string {
 	return e.Cause.Error()
 }
+
+func (e *UnrecoverableSyncError) Unwrap() error {
+	return e.Cause
+}
+
+// WarningError is returned when syncing is successful and can continue but there is a warning
+// regarding the objects synced to the cluster (e.g. they will not be updated)
+type WarningError struct {
+	Message string
+	Err     error
+}
+
+func (e *WarningError) Error() string {
+	if e.Err != nil {
+		return fmt.Sprintf("%s: %s", e.Message, e.Err)
+	}
+	return e.Message
+}
+
+func (e *WarningError) Unwrap() error {
+	return e.Err
+}
