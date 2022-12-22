@@ -53,12 +53,8 @@ PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
 define go-get-tool
 @[ -f $(1) ] || { \
 set -e ;\
-TMP_DIR=$$(mktemp -d) ;\
-cd $$TMP_DIR ;\
-go mod init tmp ;\
 echo "[INFO] Downloading $(2)" ;\
 GOBIN=$(PROJECT_DIR)/bin go install $(2) ;\
-rm -rf $$TMP_DIR ;\
 }
 endef
 
@@ -564,7 +560,7 @@ download-controller-gen: ## Download controller-gen tool
 
 KUSTOMIZE = $(shell pwd)/bin/kustomize
 download-kustomize: ## Download kustomize tool
-	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
+	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v4@v4.5.7)
 
 ADD_LICENSE = $(shell pwd)/bin/addlicense
 download-addlicense: ## Download addlicense tool
