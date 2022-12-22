@@ -78,7 +78,7 @@ jobs:
     - name: Check format
       run: |
         go get -u golang.org/x/tools/cmd/goimports
-        go get -u github.com/che-incubator/check-license-header@379ba18fdb906d341ae451ea155cc34f1c4b4f1a
+        go install github.com/che-incubator/check-license-header@379ba18fdb906d341ae451ea155cc34f1c4b4f1a
         git reset HEAD --hard
         echo "[INFO] Check code format and imports."
         make fmt
