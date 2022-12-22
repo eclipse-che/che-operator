@@ -84,6 +84,10 @@ func updateWorkspaceConfig(devEnvironments *chev2.CheClusterDevEnvironments, ope
 		return err
 	}
 
+	if err := updateWorkspacePodSchedulerNameConfig(devEnvironments, operatorConfig.Workspace); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -129,5 +133,10 @@ func updateWorkspaceServiceAccountConfig(devEnvironments *chev2.CheClusterDevEnv
 		// If user's Namespace is not auto provisioned (is pre-created by admin), then ServiceAccount must be pre-created as well
 		DisableCreation: pointer.BoolPtr(!isNamespaceAutoProvisioned && devEnvironments.ServiceAccount != ""),
 	}
+	return nil
+}
+
+func updateWorkspacePodSchedulerNameConfig(devEnvironments *chev2.CheClusterDevEnvironments, workspaceConfig *controllerv1alpha1.WorkspaceConfig) error {
+	workspaceConfig.SchedulerName = devEnvironments.PodSchedulerName
 	return nil
 }
