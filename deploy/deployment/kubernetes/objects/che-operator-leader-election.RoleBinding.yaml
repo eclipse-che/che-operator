@@ -27,3 +27,4 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: che-operator
+  namespace: eclipse-che
