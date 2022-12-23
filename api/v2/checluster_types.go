@@ -119,6 +119,10 @@ type CheClusterDevEnvironments struct {
 	// +kubebuilder:validation:Pattern=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
 	// +kubebuilder:validation:MaxLength=63
 	ServiceAccount string `json:"serviceAccount,omitempty"`
+	// Pod scheduler for the workspace pods.
+	// If not specified, the pod scheduler is set to the default scheduler on the cluster.
+	// +optional
+	PodSchedulerName string `json:"podSchedulerName,omitempty"`
 }
 
 // Che components configuration.
