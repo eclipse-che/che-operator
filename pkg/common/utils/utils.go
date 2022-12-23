@@ -229,7 +229,10 @@ func FormatLabels(m map[string]string) string {
 func Whitelist(hostname string) (value string) {
 	i := strings.Index(hostname, ".")
 	if i > -1 {
-		return hostname[i:]
+		j := strings.LastIndex(hostname, ".")
+		if j > i {
+			return hostname[i:]
+		}
 	}
 	return hostname
 }

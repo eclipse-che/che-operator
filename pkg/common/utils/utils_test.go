@@ -74,6 +74,7 @@ func TestWhitelist(t *testing.T) {
 		{"abraCadabra-KvakaZybra", "abraCadabra-KvakaZybra"},
 		{".", "."},
 		{"", ""},
+		{"test.com", "test.com"},
 	}
 	for _, test := range tests {
 		if actual := Whitelist(test.host); !reflect.DeepEqual(test.whitelistedHost, actual) {
