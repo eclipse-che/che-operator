@@ -5410,6 +5410,7 @@ spec:
                     disableContainerBuildCapabilities: true
                     secondsOfInactivityBeforeIdling: 1800
                     secondsOfRunBeforeIdling: -1
+                    startTimeoutSeconds: 300
                     storage:
                       pvcStrategy: per-user
                   description: Development environment default configuration options.
@@ -7006,11 +7007,13 @@ spec:
                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                       type: string
                     startTimeoutSeconds:
+                      default: 300
                       description: StartTimeoutSeconds determines the maximum duration
                         (in seconds) that a workspace can take to start before it
                         is automatically failed. If not specified, the default value
                         of 300 seconds (5 minutes) is used.
                       format: int32
+                      minimum: 1
                       type: integer
                     storage:
                       default:
