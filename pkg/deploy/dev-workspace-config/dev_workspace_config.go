@@ -12,6 +12,8 @@
 package devworkspaceconfig
 
 import (
+	"fmt"
+
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
@@ -56,7 +58,7 @@ func (d *DevWorkspaceConfigReconciler) Reconcile(ctx *chetypes.DeployContext) (r
 		dwoc.Config = &controllerv1alpha1.OperatorConfiguration{}
 	}
 
-	if err := updateWorkspaceConfig(&ctx.CheCluster.Spec.DevEnvironments, dwoc.Config); err != nil {
+	if err := updateWorkspaceConfig(ctx.CheCluster, dwoc.Config); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
@@ -71,7 +73,8 @@ func (d *DevWorkspaceConfigReconciler) Finalize(ctx *chetypes.DeployContext) boo
 	return true
 }
 
-func updateWorkspaceConfig(devEnvironments *chev2.CheClusterDevEnvironments, operatorConfig *controllerv1alpha1.OperatorConfiguration) error {
+func updateWorkspaceConfig(cheCluster *chev2.CheCluster, operatorConfig *controllerv1alpha1.OperatorConfiguration) error {
+	devEnvironments := &cheCluster.Spec.DevEnvironments
 	if operatorConfig.Workspace == nil {
 		operatorConfig.Workspace = &controllerv1alpha1.WorkspaceConfig{}
 	}
@@ -88,7 +91,22 @@ func updateWorkspaceConfig(devEnvironments *chev2.CheClusterDevEnvironments, ope
 		return err
 	}
 
+	operatorConfig.Workspace.ContainerSecurityContext = nil
+	if cheCluster.IsContainerBuildCapabilitiesEnabled() {
+		operatorConfig.Workspace.ContainerSecurityContext = constants.DefaultWorkspaceContainerSecurityContext.DeepCopy()
+	}
+
+	updateStartTimeout(operatorConfig, devEnvironments.StartTimeoutSeconds)
 	return nil
+}
+
+func updateStartTimeout(operatorConfig *controllerv1alpha1.OperatorConfiguration, startTimeoutSeconds *int32) {
+	if startTimeoutSeconds == nil {
+		// Allow the default start timeout of 5 minutes to be used if devEnvironments.StartTimeoutSeconds is unset
+		operatorConfig.Workspace.ProgressTimeout = ""
+	} else {
+		operatorConfig.Workspace.ProgressTimeout = fmt.Sprintf("%ds", *startTimeoutSeconds)
+	}
 }
 
 func updateWorkspaceStorageConfig(devEnvironments *chev2.CheClusterDevEnvironments, workspaceConfig *controllerv1alpha1.WorkspaceConfig) error {
