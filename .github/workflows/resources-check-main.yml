@@ -17,14 +17,14 @@ on:
       - main
 jobs:
   resources-validation:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout source code
-      uses: actions/checkout@v2.3.1
+      uses: actions/checkout@v3
     - name: Install yq
       run: sudo pip install yq
     - name: Set up Go 1.18
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v3
       with:
         go-version: 1.18
     - name: Validate operator resources
@@ -32,14 +32,14 @@ jobs:
         go install golang.org/x/tools/cmd/goimports@latest
         ${GITHUB_WORKSPACE}/build/scripts/check-resources.sh
   bundle-version-validation:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout source code
-      uses: actions/checkout@v2.3.1
+      uses: actions/checkout@v3
     - name: Install yq
       run: sudo pip install yq
     - name: Set up Go 1.18
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v3
       with:
         go-version: 1.18
     - name: Validate OLM bundle version

@@ -14,50 +14,50 @@ name: PR check
 on: pull_request
 jobs:
   unit-tests:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout source code
-      uses: actions/checkout@v2.3.1
+      uses: actions/checkout@v3
     - name: Set up Go 1.18
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v3
       with:
         go-version: 1.18
     - name: Run unit tests
       run: make test
   image-build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout source code
-      uses: actions/checkout@v2.3.1
+      uses: actions/checkout@v3
     - name: Build image
       run: docker build .
   multiplatform-image-build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout source code
-      uses: actions/checkout@v2.3.1
+      uses: actions/checkout@v3
     - name: Set up QEMU
-      uses: docker/setup-qemu-action@v1
+      uses: docker/setup-qemu-action@v2
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
+      uses: docker/setup-buildx-action@v2
     - name: Build images
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v3
       with:
         file: Dockerfile
         platforms: linux/amd64,linux/ppc64le
         tags: quay.io/eclipse/che-operator:next
   source-code-validation:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout source code
-      uses: actions/checkout@v2.3.1
+      uses: actions/checkout@v3
     - name: Set up Go 1.18
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v3
       with:
         go-version: 1.18
     - name: Cache go modules
       id: cache-mod
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
@@ -101,10 +101,10 @@ jobs:
         LICENSE_TEMPLATE="${GITHUB_WORKSPACE}/hack/license-header.txt"
         check-license-header -f "${LICENSE_TEMPLATE}" ${FILES_TO_CHECK_LICENSE}
   dependencies-md-validation:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout source code
-      uses: actions/checkout@v2.3.1
+      uses: actions/checkout@v3
     - name: Validate DEPENDENCIES.md file
       uses: che-incubator/dependencies-license-action@0.0.2
       env:
