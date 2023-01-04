@@ -519,19 +519,17 @@ func add5XXErrorHandling(cfg *gateway.TraefikConfig, dwId string) {
 	dashboardServiceName := defaults.GetCheFlavor() + "-dashboard"
 	cfg.AddErrors(dwId, "500-599", dashboardServiceName, "/")
 
-	if infrastructure.IsOpenShift() {
-		// If a connection cannot be established with the workspace service within the `DialTimeout`, traefik
-		// will retry the connection with an exponential backoff
-		cfg.HTTP.ServersTransports = map[string]*gateway.TraefikConfigServersTransport{}
+	// If a connection cannot be established with the workspace service within the `DialTimeout`, traefik
+	// will retry the connection with an exponential backoff
+	cfg.HTTP.ServersTransports = map[string]*gateway.TraefikConfigServersTransport{}
 
-		cfg.HTTP.ServersTransports[dwId] = &gateway.TraefikConfigServersTransport{
-			ForwardingTimeouts: &gateway.TraefikConfigForwardingTimeouts{
-				DialTimeout: "2500ms",
-			},
-		}
-		cfg.AddRetry(dwId, 2, "500ms")
-		cfg.HTTP.Services[dwId].LoadBalancer.ServersTransport = dwId
+	cfg.HTTP.ServersTransports[dwId] = &gateway.TraefikConfigServersTransport{
+		ForwardingTimeouts: &gateway.TraefikConfigForwardingTimeouts{
+			DialTimeout: "2500ms",
+		},
 	}
+	cfg.AddRetry(dwId, 2, "500ms")
+	cfg.HTTP.Services[dwId].LoadBalancer.ServersTransport = dwId
 }
 
 // makes '/healthz' path of main endpoints reachable from the outside
