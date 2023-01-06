@@ -5410,6 +5410,7 @@ spec:
                     disableContainerBuildCapabilities: true
                     secondsOfInactivityBeforeIdling: 1800
                     secondsOfRunBeforeIdling: -1
+                    startTimeoutSeconds: 300
                     storage:
                       pvcStrategy: per-user
                   description: Development environment default configuration options.
@@ -6980,6 +6981,10 @@ spec:
                       description: The node selector limits the nodes that can run
                         the workspace pods.
                       type: object
+                    podSchedulerName:
+                      description: Pod scheduler for the workspace pods. If not specified,
+                        the pod scheduler is set to the default scheduler on the cluster.
+                      type: string
                     secondsOfInactivityBeforeIdling:
                       default: 1800
                       description: Idle timeout for workspaces in seconds. This timeout
@@ -7001,6 +7006,15 @@ spec:
                       maxLength: 63
                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                       type: string
+                    startTimeoutSeconds:
+                      default: 300
+                      description: StartTimeoutSeconds determines the maximum duration
+                        (in seconds) that a workspace can take to start before it
+                        is automatically failed. If not specified, the default value
+                        of 300 seconds (5 minutes) is used.
+                      format: int32
+                      minimum: 1
+                      type: integer
                     storage:
                       default:
                         pvcStrategy: per-user
@@ -7040,13 +7054,15 @@ spec:
                           default: per-user
                           description: 'Persistent volume claim strategy for the Che
                             server. The supported strategies are: `per-user` (all
-                            workspaces PVCs in one volume) and ''per-workspace'' (each
-                            workspace is given its own individual PVC). For details,
-                            see https://github.com/eclipse/che/issues/21185.'
+                            workspaces PVCs in one volume), `per-workspace` (each
+                            workspace is given its own individual PVC) and `ephemeral`
+                            (non-persistent storage where local changes will be lost
+                            when the workspace is stopped.)'
                           enum:
                             - common
                             - per-user
                             - per-workspace
+                            - ephemeral
                           type: string
                       type: object
                     tolerations:
