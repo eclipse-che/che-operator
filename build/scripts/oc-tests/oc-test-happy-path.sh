@@ -13,17 +13,17 @@
 
 set -ex
 
+export DEVWORKSPACE_HAPPY_PATH="https://raw.githubusercontent.com/eclipse/che/main/tests/devworkspace-happy-path"
 export OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
 source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
-
-export DEVWORKSPACE_HAPPY_PATH="https://raw.githubusercontent.com/eclipse/che/main/tests/devworkspace-happy-path"
-source <(curl -s ${DEVWORKSPACE_HAPPY_PATH}/common.sh)
 
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
 runTests() {
   . ${OPERATOR_REPO}/build/scripts/olm/test-catalog-from-sources.sh --verbose
+
+  export HAPPY_PATH_SUITE=mocha-empty-workspace-devworkspace-happy-path-che-code
   bash <(curl -s ${DEVWORKSPACE_HAPPY_PATH}/remote-launch.sh)
 }
 
