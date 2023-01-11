@@ -6799,6 +6799,13 @@ spec:
                     default: true
                     description: Disables the container build capabilities.
                     type: boolean
+                  maxNumberOfWorkspacePerUser:
+                    default: -1
+                    description: Total number of workspaces, both stopped and running,
+                      that a user can keep. The default value, `-1`, allows users
+                      to keep an unlimited number of workspaces.
+                    format: int32
+                    type: integer
                   nodeSelector:
                     additionalProperties:
                       type: string
@@ -6941,11 +6948,6 @@ spec:
                           label.'
                         type: string
                     type: object
-                  workspacesLimitPerUser:
-                    default: -1
-                    description: Total number of workspaces that a user can keep. The default value, `-1`, allows users to keep an unlimited number of workspaces.
-                    format: int32
-                    type: integer
                 type: object
               gitServices:
                 description: A configuration that allows users to work with remote
