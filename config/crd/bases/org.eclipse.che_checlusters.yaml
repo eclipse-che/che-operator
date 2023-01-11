@@ -6787,13 +6787,13 @@ spec:
                     type: boolean
                   maxNumberOfRunningWorkspacesPerUser:
                     description: The maximum number of running workspaces per user.
-                    format: int32
+                    format: int64
                     minimum: 0
                     type: integer
                   maxNumberOfWorkspacesPerUser:
                     description: Total number of workspaces, both stopped and running,
                       that a user can keep.
-                    format: int32
+                    format: int64
                     minimum: 0
                     type: integer
                   nodeSelector:

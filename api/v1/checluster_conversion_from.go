@@ -386,7 +386,7 @@ func (dst *CheCluster) convertFrom_Database(src *chev2.CheCluster) error {
 
 func (dst *CheCluster) convertFrom_DevWorkspace(src *chev2.CheCluster) error {
 	if src.Spec.DevEnvironments.MaxNumberOfRunningWorkspacesPerUser != nil {
-		dst.Spec.DevWorkspace.RunningLimit = strconv.FormatInt(int64(*src.Spec.DevEnvironments.MaxNumberOfRunningWorkspacesPerUser), 10)
+		dst.Spec.DevWorkspace.RunningLimit = strconv.FormatInt(*src.Spec.DevEnvironments.MaxNumberOfRunningWorkspacesPerUser, 10)
 	}
 	dst.Spec.DevWorkspace.SecondsOfInactivityBeforeIdling = src.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling
 	dst.Spec.DevWorkspace.SecondsOfRunBeforeIdling = src.Spec.DevEnvironments.SecondsOfRunBeforeIdling

@@ -514,7 +514,7 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Storage.PvcStrategy, "PvcStrategy")
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling, pointer.Int32Ptr(1800))
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.SecondsOfRunBeforeIdling, pointer.Int32Ptr(-1))
-	assert.Equal(t, checlusterv2.Spec.DevEnvironments.MaxNumberOfRunningWorkspacesPerUser, pointer.Int32Ptr(10))
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.MaxNumberOfRunningWorkspacesPerUser, pointer.Int64Ptr(10))
 
 	assert.Equal(t, checlusterv2.Status.CheURL, "CheURL")
 	assert.Equal(t, checlusterv2.Status.CheVersion, "CheVersion")

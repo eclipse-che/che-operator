@@ -291,8 +291,8 @@ func (src *CheCluster) convertTo_Components(dst *chev2.CheCluster) error {
 
 func (src *CheCluster) convertTo_Components_DevWorkspace(dst *chev2.CheCluster) error {
 	if src.Spec.DevWorkspace.RunningLimit != "" {
-		runningLimit, err := strconv.ParseInt(src.Spec.DevWorkspace.RunningLimit, 10, 32)
-		dst.Spec.DevEnvironments.MaxNumberOfRunningWorkspacesPerUser = pointer.Int32Ptr(int32(runningLimit))
+		runningLimit, err := strconv.ParseInt(src.Spec.DevWorkspace.RunningLimit, 10, 64)
+		dst.Spec.DevEnvironments.MaxNumberOfRunningWorkspacesPerUser = pointer.Int64Ptr(runningLimit)
 		return err
 	}
 	return nil

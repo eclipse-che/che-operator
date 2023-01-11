@@ -133,11 +133,11 @@ type CheClusterDevEnvironments struct {
 	// Total number of workspaces, both stopped and running, that a user can keep.
 	// +kubebuilder:validation:Minimum:=0
 	// +optional
-	MaxNumberOfWorkspacesPerUser *int32 `json:"maxNumberOfWorkspacesPerUser,omitempty"`
+	MaxNumberOfWorkspacesPerUser *int64 `json:"maxNumberOfWorkspacesPerUser,omitempty"`
 	// The maximum number of running workspaces per user.
 	// +kubebuilder:validation:Minimum:=0
 	// +optional
-	MaxNumberOfRunningWorkspacesPerUser *int32 `json:"maxNumberOfRunningWorkspacesPerUser,omitempty"`
+	MaxNumberOfRunningWorkspacesPerUser *int64 `json:"maxNumberOfRunningWorkspacesPerUser,omitempty"`
 }
 
 // Che components configuration.

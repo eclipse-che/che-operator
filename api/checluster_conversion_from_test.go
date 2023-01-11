@@ -398,7 +398,7 @@ func TestConvertFrom(t *testing.T) {
 				}},
 				SecondsOfInactivityBeforeIdling:     pointer.Int32Ptr(1800),
 				SecondsOfRunBeforeIdling:            pointer.Int32Ptr(-1),
-				MaxNumberOfRunningWorkspacesPerUser: pointer.Int32Ptr(10),
+				MaxNumberOfRunningWorkspacesPerUser: pointer.Int64Ptr(10),
 			},
 			ContainerRegistry: chev2.CheClusterContainerRegistry{
 				Hostname:     "AirGapContainerRegistryHostname",

@@ -194,12 +194,12 @@ func (in *CheClusterDevEnvironments) DeepCopyInto(out *CheClusterDevEnvironments
 	}
 	if in.MaxNumberOfWorkspacesPerUser != nil {
 		in, out := &in.MaxNumberOfWorkspacesPerUser, &out.MaxNumberOfWorkspacesPerUser
-		*out = new(int32)
+		*out = new(int64)
 		**out = **in
 	}
 	if in.MaxNumberOfRunningWorkspacesPerUser != nil {
 		in, out := &in.MaxNumberOfRunningWorkspacesPerUser, &out.MaxNumberOfRunningWorkspacesPerUser
-		*out = new(int32)
+		*out = new(int64)
 		**out = **in
 	}
 }
