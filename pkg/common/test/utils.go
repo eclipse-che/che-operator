@@ -25,6 +25,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"k8s.io/utils/pointer"
 
+	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	console "github.com/openshift/api/console/v1"
@@ -184,6 +185,7 @@ func GetDeployContext(cheCluster *chev2.CheCluster, initObjs []runtime.Object) *
 	scheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.Secret{})
 	scheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.Secret{})
 	scheme.AddKnownTypes(console.GroupVersion, &console.ConsoleLink{})
+	scheme.AddKnownTypes(chev1alpha1.GroupVersion, &chev1alpha1.KubernetesImagePuller{})
 	securityv1.Install(scheme)
 
 	initObjs = append(initObjs, cheCluster)

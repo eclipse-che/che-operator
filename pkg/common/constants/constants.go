@@ -117,9 +117,6 @@ const (
 	DefaultCheTLSSecretName                = "che-tls"
 	DefaultIngressClass                    = "nginx"
 
-	// ImagePuller
-	KubernetesImagePullerOperatorCSV = "kubernetes-imagepuller-operator.v0.0.9"
-
 	// components name
 	DevfileRegistryName                = "devfile-registry"
 	PluginRegistryName                 = "plugin-registry"
@@ -128,6 +125,7 @@ const (
 	GatewayConfigSideCarContainerName  = "configbump"
 	GatewayAuthenticationContainerName = "oauth-proxy"
 	GatewayAuthorizationContainerName  = "kube-rbac-proxy"
+	KubernetesImagePullerComponentName = "kubernetes-image-puller"
 
 	// common
 	CheFlavor             = "che"
