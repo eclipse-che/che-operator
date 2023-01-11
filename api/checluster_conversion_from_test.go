@@ -301,9 +301,6 @@ func TestConvertFrom(t *testing.T) {
 						CredentialsSecretName: "ProxyCredentialsSecretName",
 					},
 				},
-				DevWorkspace: chev2.DevWorkspace{
-					RunningLimit: "RunningLimit",
-				},
 			},
 			Networking: chev2.CheClusterSpecNetworking{
 				Auth: chev2.Auth{
@@ -399,8 +396,9 @@ func TestConvertFrom(t *testing.T) {
 					Value:    "Value",
 					Effect:   "Effect",
 				}},
-				SecondsOfInactivityBeforeIdling: pointer.Int32Ptr(1800),
-				SecondsOfRunBeforeIdling:        pointer.Int32Ptr(-1),
+				SecondsOfInactivityBeforeIdling:     pointer.Int32Ptr(1800),
+				SecondsOfRunBeforeIdling:            pointer.Int32Ptr(-1),
+				MaxNumberOfRunningWorkspacesPerUser: pointer.Int32Ptr(10),
 			},
 			ContainerRegistry: chev2.CheClusterContainerRegistry{
 				Hostname:     "AirGapContainerRegistryHostname",
@@ -487,7 +485,7 @@ func TestConvertFrom(t *testing.T) {
 	assert.Equal(t, checlusterv1.Spec.Database.PostgresEnv[0].Name, "database-name")
 	assert.Equal(t, checlusterv1.Spec.Database.PostgresEnv[0].Value, "database-value")
 
-	assert.Equal(t, checlusterv1.Spec.DevWorkspace.RunningLimit, "RunningLimit")
+	assert.Equal(t, checlusterv1.Spec.DevWorkspace.RunningLimit, "10")
 	assert.Equal(t, checlusterv1.Spec.DevWorkspace.SecondsOfInactivityBeforeIdling, pointer.Int32Ptr(1800))
 	assert.Equal(t, checlusterv1.Spec.DevWorkspace.SecondsOfRunBeforeIdling, pointer.Int32Ptr(-1))
 	assert.True(t, checlusterv1.Spec.DevWorkspace.Enable)

@@ -37,7 +37,7 @@ type CheClusterSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Development environments"
-	// +kubebuilder:default:={disableContainerBuildCapabilities: true, defaultComponents: {{name: universal-developer-image, container: {image: "quay.io/devfile/universal-developer-image:ubi8-38da5c2"}}}, defaultEditor: che-incubator/che-code/insiders, storage: {pvcStrategy: per-user}, defaultNamespace: {template: <username>-che, autoProvision: true}, secondsOfInactivityBeforeIdling:1800, secondsOfRunBeforeIdling:-1, startTimeoutSeconds:300, maxNumberOfWorkspacePerUser:-1}
+	// +kubebuilder:default:={disableContainerBuildCapabilities: true, defaultComponents: {{name: universal-developer-image, container: {image: "quay.io/devfile/universal-developer-image:ubi8-38da5c2"}}}, defaultEditor: che-incubator/che-code/insiders, storage: {pvcStrategy: per-user}, defaultNamespace: {template: <username>-che, autoProvision: true}, secondsOfInactivityBeforeIdling:1800, secondsOfRunBeforeIdling:-1, startTimeoutSeconds:300, maxNumberOfWorkspacesPerUser:-1, maxNumberOfRunningWorkspacesPerUser:1}
 	DevEnvironments CheClusterDevEnvironments `json:"devEnvironments"`
 	// Che components configuration.
 	// +optional
@@ -134,7 +134,12 @@ type CheClusterDevEnvironments struct {
 	// The default value, `-1`, allows users to keep an unlimited number of workspaces.
 	// +kubebuilder:default:=-1
 	// +optional
-	MaxNumberOfWorkspacePerUser *int32 `json:"maxNumberOfWorkspacePerUser,omitempty"`
+	MaxNumberOfWorkspacesPerUser *int32 `json:"maxNumberOfWorkspacesPerUser,omitempty"`
+	// The maximum number of running workspaces per user.
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:default:=1
+	// +optional
+	MaxNumberOfRunningWorkspacesPerUser *int32 `json:"maxNumberOfRunningWorkspacesPerUser,omitempty"`
 }
 
 // Che components configuration.
@@ -365,6 +370,7 @@ type ImagePuller struct {
 // See https://github.com/devfile/devworkspace-operator
 // +k8s:openapi-gen=true
 type DevWorkspace struct {
+	// Deprecated in favor of `MaxNumberOfRunningWorkspacesPerUser`
 	// The maximum number of running workspaces per user.
 	// +optional
 	RunningLimit string `json:"runningLimit,omitempty"`
