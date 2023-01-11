@@ -151,6 +151,6 @@ var (
 				"SETUID",
 			},
 		},
-		AllowPrivilegeEscalation: pointer.BoolPtr(false),
+		AllowPrivilegeEscalation: pointer.BoolPtr(true),
 	}
 )
