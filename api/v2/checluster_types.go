@@ -133,6 +133,7 @@ type CheClusterDevEnvironments struct {
 	// Total number of workspaces, both stopped and running, that a user can keep.
 	// The default value, `-1`, allows users to keep an unlimited number of workspaces.
 	// +kubebuilder:default:=-1
+	// +optional
 	MaxNumberOfWorkspacePerUser *int32 `json:"maxNumberOfWorkspacePerUser,omitempty"`
 }
 
