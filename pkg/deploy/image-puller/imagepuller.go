@@ -14,9 +14,10 @@ package imagepuller
 import (
 	goerror "errors"
 	"fmt"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"sort"
 	"strings"
+
+	"github.com/google/go-cmp/cmp/cmpopts"
 
 	"github.com/google/go-cmp/cmp"
 	ctrl "sigs.k8s.io/controller-runtime"
