@@ -5288,6 +5288,7 @@ spec:
                     autoProvision: true
                     template: <username>-che
                   disableContainerBuildCapabilities: true
+                  maxNumberOfRunningWorkspacesPerUser: 1
                   maxNumberOfWorkspacesPerUser: -1
                   secondsOfInactivityBeforeIdling: 1800
                   secondsOfRunBeforeIdling: -1
