@@ -37,7 +37,7 @@ type CheClusterSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Development environments"
-	// +kubebuilder:default:={disableContainerBuildCapabilities: true, defaultComponents: {{name: universal-developer-image, container: {image: "quay.io/devfile/universal-developer-image:ubi8-38da5c2"}}}, defaultEditor: che-incubator/che-code/insiders, storage: {pvcStrategy: per-user}, defaultNamespace: {template: <username>-che, autoProvision: true}, secondsOfInactivityBeforeIdling:1800, secondsOfRunBeforeIdling:-1, startTimeoutSeconds:300, maxNumberOfWorkspacesPerUser:-1, maxNumberOfRunningWorkspacesPerUser:1}
+	// +kubebuilder:default:={disableContainerBuildCapabilities: true, defaultComponents: {{name: universal-developer-image, container: {image: "quay.io/devfile/universal-developer-image:ubi8-38da5c2"}}}, defaultEditor: che-incubator/che-code/insiders, storage: {pvcStrategy: per-user}, defaultNamespace: {template: <username>-che, autoProvision: true}, secondsOfInactivityBeforeIdling:1800, secondsOfRunBeforeIdling:-1, startTimeoutSeconds:300, maxNumberOfWorkspacesPerUser:-1}
 	DevEnvironments CheClusterDevEnvironments `json:"devEnvironments"`
 	// Che components configuration.
 	// +optional
@@ -139,7 +139,6 @@ type CheClusterDevEnvironments struct {
 	// The maximum number of running workspaces per user.
 	// The value, -1, allows users to run an unlimited number of workspaces.
 	// +kubebuilder:validation:Minimum:=-1
-	// +kubebuilder:default:=1
 	// +optional
 	MaxNumberOfRunningWorkspacesPerUser *int64 `json:"maxNumberOfRunningWorkspacesPerUser,omitempty"`
 }

@@ -5288,7 +5288,6 @@ spec:
                     autoProvision: true
                     template: <username>-che
                   disableContainerBuildCapabilities: true
-                  maxNumberOfRunningWorkspacesPerUser: 1
                   maxNumberOfWorkspacesPerUser: -1
                   secondsOfInactivityBeforeIdling: 1800
                   secondsOfRunBeforeIdling: -1
@@ -6807,7 +6806,6 @@ spec:
                     description: Disables the container build capabilities.
                     type: boolean
                   maxNumberOfRunningWorkspacesPerUser:
-                    default: 1
                     description: The maximum number of running workspaces per user.
                       The value, -1, allows users to run an unlimited number of workspaces.
                     format: int64
