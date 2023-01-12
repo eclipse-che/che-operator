@@ -15,6 +15,7 @@ package v2
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"golang.org/x/mod/semver"
@@ -49,6 +50,7 @@ var _ webhook.Defaulter = &CheCluster{}
 func (r *CheCluster) Default() {
 	setContainerBuildConfiguration(r)
 	setDefaultOpenVSXURL(r)
+	setDefaultMaxNumberOfRunningWorkspacesPerUser(r)
 }
 
 // Sets ContainerBuildConfiguration if container build capabilities is enabled.
@@ -82,6 +84,19 @@ func setDefaultOpenVSXURL(cheCluster *CheCluster) {
 			// Eclipse Che is being updated from version < 7.53.0
 			cheCluster.Spec.Components.PluginRegistry.OpenVSXURL = pointer.StringPtr(constants.DefaultOpenVSXUrl)
 			return
+		}
+	}
+}
+
+// setDefaultMaxNumberOfRunningWorkspacesPerUser copies from `RunningLimit` field into `MaxNumberOfRunningWorkspacesPerUser` since
+// Spec.Components.DevWorkspace.RunningLimit is deprecated in favor of Spec.DevEnvironments.MaxNumberOfRunningWorkspacesPerUser
+func setDefaultMaxNumberOfRunningWorkspacesPerUser(cheCluster *CheCluster) {
+	if cheCluster.Spec.Components.DevWorkspace.RunningLimit != "" {
+		if runningLimit, err := strconv.ParseInt(cheCluster.Spec.Components.DevWorkspace.RunningLimit, 10, 64); err == nil {
+			cheCluster.Spec.Components.DevWorkspace.RunningLimit = ""
+			cheCluster.Spec.DevEnvironments.MaxNumberOfRunningWorkspacesPerUser = pointer.Int64Ptr(runningLimit)
+		} else {
+			logger.Error(err, "Failed to parse", "spec.components.devWorkspace.runningLimit", cheCluster.Spec.Components.DevWorkspace.RunningLimit)
 		}
 	}
 }
