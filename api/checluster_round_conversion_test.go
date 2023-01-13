@@ -236,9 +236,6 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 							CredentialsSecretName: "ProxyCredentialsSecretName",
 						},
 					},
-					DevWorkspace: chev2.DevWorkspace{
-						RunningLimit: "RunningLimit",
-					},
 				},
 				Networking: chev2.CheClusterSpecNetworking{
 					TlsSecretName: "che-tls",
@@ -308,6 +305,7 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 						Value:    "Value",
 						Effect:   "Effect",
 					}},
+					MaxNumberOfRunningWorkspacesPerUser: pointer.Int64Ptr(10),
 				},
 				ContainerRegistry: chev2.CheClusterContainerRegistry{
 					Hostname:     "AirGapContainerRegistryHostname",

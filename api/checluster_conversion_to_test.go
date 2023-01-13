@@ -334,7 +334,7 @@ func TestConvertTo(t *testing.T) {
 			},
 			DevWorkspace: chev1.CheClusterSpecDevWorkspace{
 				Enable:                          true,
-				RunningLimit:                    "RunningLimit",
+				RunningLimit:                    "10",
 				SecondsOfInactivityBeforeIdling: pointer.Int32Ptr(1800),
 				SecondsOfRunBeforeIdling:        pointer.Int32Ptr(-1),
 			},
@@ -473,8 +473,6 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.Components.Database.Pvc.ClaimSize, "DatabasePvcClaimSize")
 	assert.Equal(t, checlusterv2.Spec.Components.Database.Pvc.StorageClass, "PostgresPVCStorageClassName")
 
-	assert.Equal(t, checlusterv2.Spec.Components.DevWorkspace.RunningLimit, "RunningLimit")
-
 	assert.Equal(t, checlusterv2.Spec.Components.ImagePuller.Enable, true)
 	assert.Equal(t, checlusterv2.Spec.Components.Metrics.Enable, true)
 
@@ -516,6 +514,7 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Storage.PvcStrategy, "PvcStrategy")
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling, pointer.Int32Ptr(1800))
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.SecondsOfRunBeforeIdling, pointer.Int32Ptr(-1))
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.MaxNumberOfRunningWorkspacesPerUser, pointer.Int64Ptr(10))
 
 	assert.Equal(t, checlusterv2.Status.CheURL, "CheURL")
 	assert.Equal(t, checlusterv2.Status.CheVersion, "CheVersion")
