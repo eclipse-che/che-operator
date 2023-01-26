@@ -1,56 +1,43 @@
---- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che/generated/openshift/org.eclipse.che_checlusters.yaml	2023-01-06 19:24:08.769940883 +0000
-+++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che/manifests/org.eclipse.che_checlusters.yaml	2023-01-06 19:24:08.777940899 +0000
-@@ -5410,6 +5410,7 @@
-                     disableContainerBuildCapabilities: true
-                     secondsOfInactivityBeforeIdling: 1800
-                     secondsOfRunBeforeIdling: -1
-+                    startTimeoutSeconds: 300
-                     storage:
-                       pvcStrategy: per-user
-                   description: Development environment default configuration options.
-@@ -6980,6 +6981,10 @@
-                       description: The node selector limits the nodes that can run
-                         the workspace pods.
-                       type: object
-+                    podSchedulerName:
-+                      description: Pod scheduler for the workspace pods. If not specified,
-+                        the pod scheduler is set to the default scheduler on the cluster.
-+                      type: string
-                     secondsOfInactivityBeforeIdling:
-                       default: 1800
-                       description: Idle timeout for workspaces in seconds. This timeout
-@@ -7001,6 +7006,15 @@
-                       maxLength: 63
-                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
-                       type: string
-+                    startTimeoutSeconds:
-+                      default: 300
-+                      description: StartTimeoutSeconds determines the maximum duration
-+                        (in seconds) that a workspace can take to start before it
-+                        is automatically failed. If not specified, the default value
-+                        of 300 seconds (5 minutes) is used.
-+                      format: int32
-+                      minimum: 1
-+                      type: integer
-                     storage:
-                       default:
-                         pvcStrategy: per-user
-@@ -7040,13 +7054,15 @@
-                           default: per-user
-                           description: 'Persistent volume claim strategy for the Che
-                             server. The supported strategies are: `per-user` (all
--                            workspaces PVCs in one volume) and ''per-workspace'' (each
--                            workspace is given its own individual PVC). For details,
--                            see https://github.com/eclipse/che/issues/21185.'
-+                            workspaces PVCs in one volume), `per-workspace` (each
-+                            workspace is given its own individual PVC) and `ephemeral`
-+                            (non-persistent storage where local changes will be lost
-+                            when the workspace is stopped.)'
-                           enum:
-                             - common
-                             - per-user
-                             - per-workspace
-+                            - ephemeral
+--- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che/generated/openshift/org.eclipse.che_checlusters.yaml	2023-01-26 04:46:15.606200818 +0000
++++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che/manifests/org.eclipse.che_checlusters.yaml	2023-01-26 04:46:15.614200879 +0000
+@@ -4846,8 +4846,8 @@
+                       description: DevWorkspace Operator configuration.
+                       properties:
+                         runningLimit:
+-                          description: The maximum number of running workspaces per
+-                            user.
++                          description: Deprecated in favor of `MaxNumberOfRunningWorkspacesPerUser`
++                            The maximum number of running workspaces per user.
                            type: string
                        type: object
-                     tolerations:
+                     devfileRegistry:
+@@ -5408,6 +5408,7 @@
+                       autoProvision: true
+                       template: <username>-che
+                     disableContainerBuildCapabilities: true
++                    maxNumberOfWorkspacesPerUser: -1
+                     secondsOfInactivityBeforeIdling: 1800
+                     secondsOfRunBeforeIdling: -1
+                     startTimeoutSeconds: 300
+@@ -6975,6 +6976,21 @@
+                       default: true
+                       description: Disables the container build capabilities.
+                       type: boolean
++                    maxNumberOfRunningWorkspacesPerUser:
++                      description: The maximum number of running workspaces per user.
++                        The value, -1, allows users to run an unlimited number of
++                        workspaces.
++                      format: int64
++                      minimum: -1
++                      type: integer
++                    maxNumberOfWorkspacesPerUser:
++                      default: -1
++                      description: Total number of workspaces, both stopped and running,
++                        that a user can keep. The value, -1, allows users to keep
++                        an unlimited number of workspaces.
++                      format: int64
++                      minimum: -1
++                      type: integer
+                     nodeSelector:
+                       additionalProperties:
+                         type: string
