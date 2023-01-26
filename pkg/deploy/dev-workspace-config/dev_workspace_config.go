@@ -56,7 +56,7 @@ func (d *DevWorkspaceConfigReconciler) Reconcile(ctx *chetypes.DeployContext) (r
 		dwoc.Config = &controllerv1alpha1.OperatorConfiguration{}
 	}
 
-	if err := updateWorkspaceConfig(&ctx.CheCluster.Spec.DevEnvironments, dwoc.Config); err != nil {
+	if err := updateWorkspaceConfig(ctx.CheCluster, dwoc.Config); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
@@ -71,7 +71,8 @@ func (d *DevWorkspaceConfigReconciler) Finalize(ctx *chetypes.DeployContext) boo
 	return true
 }
 
-func updateWorkspaceConfig(devEnvironments *chev2.CheClusterDevEnvironments, operatorConfig *controllerv1alpha1.OperatorConfiguration) error {
+func updateWorkspaceConfig(cheCluster *chev2.CheCluster, operatorConfig *controllerv1alpha1.OperatorConfiguration) error {
+	devEnvironments := &cheCluster.Spec.DevEnvironments
 	if operatorConfig.Workspace == nil {
 		operatorConfig.Workspace = &controllerv1alpha1.WorkspaceConfig{}
 	}
@@ -82,6 +83,11 @@ func updateWorkspaceConfig(devEnvironments *chev2.CheClusterDevEnvironments, ope
 
 	if err := updateWorkspaceServiceAccountConfig(devEnvironments, operatorConfig.Workspace); err != nil {
 		return err
+	}
+
+	operatorConfig.Workspace.ContainerSecurityContext = nil
+	if cheCluster.IsContainerBuildCapabilitiesEnabled() {
+		operatorConfig.Workspace.ContainerSecurityContext = constants.DefaultWorkspaceContainerSecurityContext.DeepCopy()
 	}
 
 	return nil
