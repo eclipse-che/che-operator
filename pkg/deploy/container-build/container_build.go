@@ -259,8 +259,6 @@ func (cb *ContainerBuildReconciler) getSccSpec(ctx *chetypes.DeployContext) *sec
 		AllowedCapabilities:      []corev1.Capability{"SETUID", "SETGID"},
 		DefaultAddCapabilities:   nil,
 		FSGroup:                  securityv1.FSGroupStrategyOptions{Type: securityv1.FSGroupStrategyMustRunAs},
-		// Temporary workaround for https://github.com/devfile/devworkspace-operator/issues/884
-		Priority:                 pointer.Int32Ptr(20),
 		ReadOnlyRootFilesystem:   false,
 		RequiredDropCapabilities: []corev1.Capability{"KILL", "MKNOD"},
 		RunAsUser:                securityv1.RunAsUserStrategyOptions{Type: securityv1.RunAsUserStrategyMustRunAsRange},
