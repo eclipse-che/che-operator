@@ -16,6 +16,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/go-cmp/cmp"
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -94,8 +97,36 @@ func (cb *ContainerBuildReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 }
 
 func (cb *ContainerBuildReconciler) syncSCC(ctx *chetypes.DeployContext) (bool, error) {
-	_, err := deploy.CreateIfNotExists(ctx, cb.getSccSpec(ctx))
-	return err == nil, err
+	scc := &securityv1.SecurityContextConstraints{}
+	if exists, err := deploy.Get(ctx,
+		types.NamespacedName{Name: ctx.CheCluster.Spec.DevEnvironments.ContainerBuildConfiguration.OpenShiftSecurityContextConstraint},
+		scc); err != nil {
+		return false, err
+	} else if exists {
+		if deploy.IsPartOfEclipseCheResourceAndManagedByOperator(scc.Labels) {
+			// SCC exists and created by operator (custom SCC won't be updated).
+			// So, remove priority. See details https://issues.redhat.com/browse/CRW-3894
+			scc.Priority = nil
+
+			// Ensure kind and version set correctly before invoking `Sync`
+			scc.Kind = "SecurityContextConstraints"
+			scc.APIVersion = securityv1.GroupVersion.String()
+
+			return deploy.Sync(
+				ctx,
+				scc,
+				cmp.Options{
+					cmp.Comparer(func(x, y securityv1.SecurityContextConstraints) bool {
+						return pointer.Int32Equal(x.Priority, y.Priority)
+					}),
+				})
+		}
+	} else {
+		// Create a new SCC. If custom SCC exists then it won't be touched.
+		return deploy.Create(ctx, cb.getSccSpec(ctx))
+	}
+
+	return true, nil
 }
 
 func (cb *ContainerBuildReconciler) syncRBAC(ctx *chetypes.DeployContext) (bool, error) {
@@ -259,8 +290,6 @@ func (cb *ContainerBuildReconciler) getSccSpec(ctx *chetypes.DeployContext) *sec
 		AllowedCapabilities:      []corev1.Capability{"SETUID", "SETGID"},
 		DefaultAddCapabilities:   nil,
 		FSGroup:                  securityv1.FSGroupStrategyOptions{Type: securityv1.FSGroupStrategyMustRunAs},
-		// Temporary workaround for https://github.com/devfile/devworkspace-operator/issues/884
-		Priority:                 pointer.Int32Ptr(20),
 		ReadOnlyRootFilesystem:   false,
 		RequiredDropCapabilities: []corev1.Capability{"KILL", "MKNOD"},
 		RunAsUser:                securityv1.RunAsUserStrategyOptions{Type: securityv1.RunAsUserStrategyMustRunAsRange},
