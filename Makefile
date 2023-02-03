@@ -78,8 +78,8 @@ else
   ECLIPSE_CHE_NAMESPACE ?= "eclipse-che"
 endif
 
-ifneq (,$(shell $(K8S_CLI) get pod -l app.kubernetes.io/component=che-operator -A 2>/dev/null))
-  OPERATOR_NAMESPACE := $(shell $(K8S_CLI) get pod -l app.kubernetes.io/component=che-operator -A -o "jsonpath={.items[0].metadata.namespace}")
+ifneq (,$(shell $(K8S_CLI) get deployment -l app.kubernetes.io/component=che-operator -A 2>/dev/null))
+  OPERATOR_NAMESPACE := $(shell $(K8S_CLI) get deployment -l app.kubernetes.io/component=che-operator -A -o "jsonpath={.items[0].metadata.namespace}")
 else
   OPERATOR_NAMESPACE ?= "eclipse-che"
 endif
@@ -389,8 +389,8 @@ download-gateway-resources:
 # Store `che-operator-webhook-server-cert` secret locally
 store_tls_cert:
 	mkdir -p /tmp/k8s-webhook-server/serving-certs/
-	$(K8S_CLI) get secret che-operator-service-cert -n $(OPERATOR_NAMESPACE) -o json | jq -r '.data["tls.crt"]' | base64 -d > /tmp/k8s-webhook-server/serving-certs/tls.crt
-	$(K8S_CLI) get secret che-operator-service-cert -n $(OPERATOR_NAMESPACE) -o json | jq -r '.data["tls.key"]' | base64 -d > /tmp/k8s-webhook-server/serving-certs/tls.key
+	$(K8S_CLI) get secret che-operator-service-cert -n $(ECLIPSE_CHE_NAMESPACE) -o json | jq -r '.data["tls.crt"]' | base64 -d > /tmp/k8s-webhook-server/serving-certs/tls.crt
+	$(K8S_CLI) get secret che-operator-service-cert -n $(ECLIPSE_CHE_NAMESPACE) -o json | jq -r '.data["tls.key"]' | base64 -d > /tmp/k8s-webhook-server/serving-certs/tls.key
 
 ##@ OLM catalog
 
