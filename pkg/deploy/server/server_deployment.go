@@ -348,12 +348,17 @@ func MountGitHubOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1.Depl
 		mountEnv(deployment, "CHE_INTEGRATION_GITHUB_OAUTH__ENDPOINT", oauthEndpoint)
 	}
 
+	disableSubdomainIsolation := secret.Annotations[constants.CheEclipseOrgScmGitHubDisableSubdomainIsolation]
 	for _, gitHubService := range ctx.CheCluster.Spec.GitServices.GitHub {
 		if gitHubService.SecretName == secret.Name {
 			if gitHubService.DisableSubdomainIsolation != nil {
-				mountEnv(deployment, "CHE_INTEGRATION_GITHUB_DISABLE__SUBDOMAIN__ISOLATION", strconv.FormatBool(*gitHubService.DisableSubdomainIsolation))
+				// CheCluster CR take precedence
+				disableSubdomainIsolation = strconv.FormatBool(*gitHubService.DisableSubdomainIsolation)
 			}
 		}
+	}
+	if disableSubdomainIsolation != "" {
+		mountEnv(deployment, "CHE_INTEGRATION_GITHUB_DISABLE__SUBDOMAIN__ISOLATION", disableSubdomainIsolation)
 	}
 
 	return nil

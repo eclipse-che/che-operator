@@ -637,7 +637,85 @@ func TestMountGitHubDisableSubdomainIsolationEnvVar(t *testing.T) {
 			},
 			expectedDisableSubdomainIsolation: "",
 		},
-	}
+		{
+			name: "Test #5",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					GitServices: chev2.CheClusterGitServices{
+						GitHub: []chev2.GitHubService{
+							{
+								SecretName: "github-oauth-config",
+							},
+						},
+					},
+				},
+			},
+			initObjects: []runtime.Object{
+				&corev1.Secret{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "Secret",
+						APIVersion: "v1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "github-oauth-config",
+						Namespace: "eclipse-che",
+						Labels: map[string]string{
+							"app.kubernetes.io/part-of":   "che.eclipse.org",
+							"app.kubernetes.io/component": "oauth-scm-configuration",
+						},
+						Annotations: map[string]string{
+							"che.eclipse.org/oauth-scm-server":                       "github",
+							"che.eclipse.org/scm-github-disable-subdomain-isolation": "true",
+						},
+					},
+				},
+			},
+			expectedDisableSubdomainIsolation: "true",
+		},
+		{
+			name: "Test #6",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					GitServices: chev2.CheClusterGitServices{
+						GitHub: []chev2.GitHubService{
+							{
+								SecretName:                "github-oauth-config",
+								DisableSubdomainIsolation: pointer.BoolPtr(false),
+							},
+						},
+					},
+				},
+			},
+			initObjects: []runtime.Object{
+				&corev1.Secret{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "Secret",
+						APIVersion: "v1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "github-oauth-config",
+						Namespace: "eclipse-che",
+						Labels: map[string]string{
+							"app.kubernetes.io/part-of":   "che.eclipse.org",
+							"app.kubernetes.io/component": "oauth-scm-configuration",
+						},
+						Annotations: map[string]string{
+							"che.eclipse.org/oauth-scm-server":                       "github",
+							"che.eclipse.org/scm-github-disable-subdomain-isolation": "true",
+						},
+					},
+				},
+			},
+			expectedDisableSubdomainIsolation: "false",
+		}}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
