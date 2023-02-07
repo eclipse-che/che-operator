@@ -1123,19 +1123,15 @@ spec:
                         hosted on Bitbucket (bitbucket.org or self-hosted).
                       properties:
                         endpoint:
-                          default: https://bitbucket.org
-                          description: Bitbucket server endpoint URL.
+                          description: 'Bitbucket server endpoint URL. Deprecated
+                            in favor of `che.eclipse.org/scm-server-endpoint` annotation.
+                            See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/.'
                           type: string
                         secretName:
                           description: 'Kubernetes secret, that contains Base64-encoded
-                            Bitbucket OAuth 1.0 or OAuth 2.0 data. For OAuth 1.0:
-                            private key, Bitbucket Application link consumer key and
-                            Bitbucket Application link shared secret must be stored
-                            in `private.key`, `consumer.key` and `shared_secret` keys
-                            respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/.
-                            For OAuth 2.0: Bitbucket OAuth consumer key and Bitbucket
-                            OAuth consumer secret must be stored in `id` and `secret`
-                            keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-the-bitbucket-cloud/.'
+                            Bitbucket OAuth 1.0 or OAuth 2.0 data. See the following
+                            pages for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/
+                            and https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-the-bitbucket-cloud/.'
                           type: string
                       required:
                       - secretName
@@ -1149,14 +1145,14 @@ spec:
                         hosted on GitHub (GitHub.com or GitHub Enterprise).
                       properties:
                         endpoint:
-                          default: https://github.com
-                          description: GitHub server endpoint URL.
+                          description: 'GitHub server endpoint URL. Deprecated in
+                            favor of `che.eclipse.org/scm-server-endpoint` annotation.
+                            See the following page for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
                           type: string
                         secretName:
                           description: 'Kubernetes secret, that contains Base64-encoded
-                            GitHub OAuth Client id and GitHub OAuth Client secret,
-                            that stored in `id` and `secret` keys respectively. See
-                            the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
+                            GitHub OAuth Client id and GitHub OAuth Client secret.
+                            See the following page for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
                           type: string
                       required:
                       - endpoint
@@ -1171,14 +1167,14 @@ spec:
                         hosted on GitLab (gitlab.com or self-hosted).
                       properties:
                         endpoint:
-                          default: https://gitlab.com
-                          description: GitLab server endpoint URL.
+                          description: 'GitLab server endpoint URL. Deprecated in
+                            favor of `che.eclipse.org/scm-server-endpoint` annotation.
+                            See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
                           type: string
                         secretName:
                           description: 'Kubernetes secret, that contains Base64-encoded
-                            GitHub Application id and GitLab Application Client secret,
-                            that stored in `id` and `secret` keys respectively. See
-                            the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
+                            GitHub Application id and GitLab Application Client secret.
+                            See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
                           type: string
                       required:
                       - endpoint
@@ -6969,19 +6965,15 @@ spec:
                         hosted on Bitbucket (bitbucket.org or self-hosted).
                       properties:
                         endpoint:
-                          default: https://bitbucket.org
-                          description: Bitbucket server endpoint URL.
+                          description: 'Bitbucket server endpoint URL. Deprecated
+                            in favor of `che.eclipse.org/scm-server-endpoint` annotation.
+                            See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/.'
                           type: string
                         secretName:
                           description: 'Kubernetes secret, that contains Base64-encoded
-                            Bitbucket OAuth 1.0 or OAuth 2.0 data. For OAuth 1.0:
-                            private key, Bitbucket Application link consumer key and
-                            Bitbucket Application link shared secret must be stored
-                            in `private.key`, `consumer.key` and `shared_secret` keys
-                            respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/.
-                            For OAuth 2.0: Bitbucket OAuth consumer key and Bitbucket
-                            OAuth consumer secret must be stored in `id` and `secret`
-                            keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-the-bitbucket-cloud/.'
+                            Bitbucket OAuth 1.0 or OAuth 2.0 data. See the following
+                            pages for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/
+                            and https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-the-bitbucket-cloud/.'
                           type: string
                       required:
                       - secretName
@@ -6995,17 +6987,19 @@ spec:
                         hosted on GitHub (GitHub.com or GitHub Enterprise).
                       properties:
                         disableSubdomainIsolation:
-                          description: Disables subdomain isolation.
+                          description: 'Disables subdomain isolation. Deprecated in
+                            favor of `che.eclipse.org/scm-github-disable-subdomain-isolation`
+                            annotation. See the following page for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
                           type: boolean
                         endpoint:
-                          default: https://github.com
-                          description: GitHub server endpoint URL.
+                          description: 'GitHub server endpoint URL. Deprecated in
+                            favor of `che.eclipse.org/scm-server-endpoint` annotation.
+                            See the following page for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
                           type: string
                         secretName:
                           description: 'Kubernetes secret, that contains Base64-encoded
-                            GitHub OAuth Client id and GitHub OAuth Client secret,
-                            that stored in `id` and `secret` keys respectively. See
-                            the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
+                            GitHub OAuth Client id and GitHub OAuth Client secret.
+                            See the following page for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
                           type: string
                       required:
                       - endpoint
@@ -7020,14 +7014,14 @@ spec:
                         hosted on GitLab (gitlab.com or self-hosted).
                       properties:
                         endpoint:
-                          default: https://gitlab.com
-                          description: GitLab server endpoint URL.
+                          description: 'GitLab server endpoint URL. Deprecated in
+                            favor of `che.eclipse.org/scm-server-endpoint` annotation.
+                            See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
                           type: string
                         secretName:
                           description: 'Kubernetes secret, that contains Base64-encoded
-                            GitHub Application id and GitLab Application Client secret,
-                            that stored in `id` and `secret` keys respectively. See
-                            the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
+                            GitHub Application id and GitLab Application Client secret.
+                            See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
                           type: string
                       required:
                       - endpoint

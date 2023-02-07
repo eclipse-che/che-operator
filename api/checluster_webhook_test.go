@@ -157,6 +157,9 @@ func TestValidateScmSecrets(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "gitlab-scm-secret",
+			Annotations: map[string]string{
+				constants.CheEclipseOrgScmServerEndpoint: "gitlab-endpoint-secret",
+			},
 		},
 		Data: map[string][]byte{
 			"id":     []byte("id"),
@@ -189,18 +192,18 @@ func TestValidateScmSecrets(t *testing.T) {
 				GitHub: []v2.GitHubService{
 					{
 						SecretName: "github-scm-secret",
+						Endpoint:   "github-endpoint",
 					},
 				},
 				GitLab: []v2.GitLabService{
 					{
 						SecretName: "gitlab-scm-secret",
-						Endpoint:   "gitlab-endpoint",
+						Endpoint:   "gitlab-endpoint-checluster",
 					},
 				},
 				BitBucket: []v2.BitBucketService{
 					{
 						SecretName: "bitbucket-scm-secret",
-						Endpoint:   "bitbucket-endpoint",
 					},
 				},
 			},
@@ -213,20 +216,21 @@ func TestValidateScmSecrets(t *testing.T) {
 	githubSecret, err = k8sHelper.GetClientset().CoreV1().Secrets("eclipse-che").Get(context.TODO(), "github-scm-secret", metav1.GetOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, "github", githubSecret.Annotations[constants.CheEclipseOrgOAuthScmServer])
+	assert.Equal(t, "github-endpoint", githubSecret.Annotations[constants.CheEclipseOrgScmServerEndpoint])
 	assert.Equal(t, constants.OAuthScmConfiguration, githubSecret.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.CheEclipseOrg, githubSecret.Labels[constants.KubernetesPartOfLabelKey])
 
 	gitlabSecret, err = k8sHelper.GetClientset().CoreV1().Secrets("eclipse-che").Get(context.TODO(), "gitlab-scm-secret", metav1.GetOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, "gitlab", gitlabSecret.Annotations[constants.CheEclipseOrgOAuthScmServer])
-	assert.Equal(t, "gitlab-endpoint", gitlabSecret.Annotations[constants.CheEclipseOrgScmServerEndpoint])
+	assert.Equal(t, "gitlab-endpoint-secret", gitlabSecret.Annotations[constants.CheEclipseOrgScmServerEndpoint])
 	assert.Equal(t, constants.OAuthScmConfiguration, gitlabSecret.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.CheEclipseOrg, gitlabSecret.Labels[constants.KubernetesPartOfLabelKey])
 
 	bitbucketSecret, err = k8sHelper.GetClientset().CoreV1().Secrets("eclipse-che").Get(context.TODO(), "bitbucket-scm-secret", metav1.GetOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, "bitbucket", bitbucketSecret.Annotations[constants.CheEclipseOrgOAuthScmServer])
-	assert.Equal(t, "bitbucket-endpoint", bitbucketSecret.Annotations[constants.CheEclipseOrgScmServerEndpoint])
+	assert.Empty(t, bitbucketSecret.Annotations[constants.CheEclipseOrgScmServerEndpoint])
 	assert.Equal(t, constants.OAuthScmConfiguration, bitbucketSecret.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.CheEclipseOrg, bitbucketSecret.Labels[constants.KubernetesPartOfLabelKey])
 }

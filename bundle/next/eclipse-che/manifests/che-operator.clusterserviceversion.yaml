@@ -77,7 +77,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che.v7.61.0-758.next
+  name: eclipse-che.v7.61.0-759.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -146,13 +146,8 @@ spec:
             displayName: Bitbucket
             path: gitServices.bitbucket
           - description: 'Kubernetes secret, that contains Base64-encoded Bitbucket
-              OAuth 1.0 or OAuth 2.0 data. For OAuth 1.0: private key, Bitbucket Application
-              link consumer key and Bitbucket Application link shared secret must
-              be stored in `private.key`, `consumer.key` and `shared_secret` keys
-              respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/.
-              For OAuth 2.0: Bitbucket OAuth consumer key and Bitbucket OAuth consumer
-              secret must be stored in `id` and `secret` keys respectively. See the
-              following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-the-bitbucket-cloud/.'
+              OAuth 1.0 or OAuth 2.0 data. See the following pages for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/
+              and https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-the-bitbucket-cloud/.'
             displayName: Secret Name
             path: gitServices.bitbucket[0].secretName
             x-descriptors:
@@ -162,8 +157,8 @@ spec:
             displayName: GitHub
             path: gitServices.github
           - description: 'Kubernetes secret, that contains Base64-encoded GitHub OAuth
-              Client id and GitHub OAuth Client secret, that stored in `id` and `secret`
-              keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
+              Client id and GitHub OAuth Client secret. See the following page for
+              details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
             displayName: Secret Name
             path: gitServices.github[0].secretName
             x-descriptors:
@@ -173,8 +168,7 @@ spec:
             displayName: GitLab
             path: gitServices.gitlab
           - description: 'Kubernetes secret, that contains Base64-encoded GitHub Application
-              id and GitLab Application Client secret, that stored in `id` and `secret`
-              keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
+              id and GitLab Application Client secret. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
             displayName: Secret Name
             path: gitServices.gitlab[0].secretName
             x-descriptors:
@@ -310,13 +304,8 @@ spec:
             displayName: Bitbucket
             path: gitServices.bitbucket
           - description: 'Kubernetes secret, that contains Base64-encoded Bitbucket
-              OAuth 1.0 or OAuth 2.0 data. For OAuth 1.0: private key, Bitbucket Application
-              link consumer key and Bitbucket Application link shared secret must
-              be stored in `private.key`, `consumer.key` and `shared_secret` keys
-              respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/.
-              For OAuth 2.0: Bitbucket OAuth consumer key and Bitbucket OAuth consumer
-              secret must be stored in `id` and `secret` keys respectively. See the
-              following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-the-bitbucket-cloud/.'
+              OAuth 1.0 or OAuth 2.0 data. See the following pages for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/
+              and https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-the-bitbucket-cloud/.'
             displayName: Secret Name
             path: gitServices.bitbucket[0].secretName
             x-descriptors:
@@ -326,8 +315,8 @@ spec:
             displayName: GitHub
             path: gitServices.github
           - description: 'Kubernetes secret, that contains Base64-encoded GitHub OAuth
-              Client id and GitHub OAuth Client secret, that stored in `id` and `secret`
-              keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
+              Client id and GitHub OAuth Client secret. See the following page for
+              details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
             displayName: Secret Name
             path: gitServices.github[0].secretName
             x-descriptors:
@@ -337,8 +326,7 @@ spec:
             displayName: GitLab
             path: gitServices.gitlab
           - description: 'Kubernetes secret, that contains Base64-encoded GitHub Application
-              id and GitLab Application Client secret, that stored in `id` and `secret`
-              keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
+              id and GitLab Application Client secret. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
             displayName: Secret Name
             path: gitServices.gitlab[0].secretName
             x-descriptors:
@@ -1233,7 +1221,7 @@ spec:
   minKubeVersion: 1.19.0
   provider:
     name: Eclipse Foundation
-  version: 7.61.0-758.next
+  version: 7.61.0-759.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1
