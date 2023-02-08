@@ -234,3 +234,40 @@ func TestValidateScmSecrets(t *testing.T) {
 	assert.Equal(t, constants.OAuthScmConfiguration, bitbucketSecret.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.CheEclipseOrg, bitbucketSecret.Labels[constants.KubernetesPartOfLabelKey])
 }
+
+func TestValidateScmSecretsShouldThrowError(t *testing.T) {
+	checluster := &v2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+		Spec: v2.CheClusterSpec{
+			GitServices: v2.CheClusterGitServices{
+				GitHub: []v2.GitHubService{
+					{
+						SecretName: "github-scm-secret-with-errors",
+					},
+				},
+			},
+		},
+	}
+
+	err := checluster.ValidateCreate()
+	assert.Error(t, err)
+	assert.Equal(t, "secret 'github-scm-secret-with-errors' not found", err.Error())
+
+	githubSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
+			Name:      "github-scm-secret-with-errors",
+		},
+	}
+
+	k8sHelper := k8shelper.New()
+	_, err = k8sHelper.GetClientset().CoreV1().Secrets("eclipse-che").Create(context.TODO(), githubSecret, metav1.CreateOptions{})
+	assert.Nil(t, err)
+
+	err = checluster.ValidateCreate()
+	assert.Error(t, err)
+	assert.Equal(t, "secret 'github-scm-secret-with-errors' must contain [id, secret] keys", err.Error())
+}

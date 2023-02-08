@@ -1160,7 +1160,6 @@ spec:
                             See the following page for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
                           type: string
                       required:
-                      - endpoint
                       - secretName
                       type: object
                     type: array
@@ -1182,7 +1181,6 @@ spec:
                             See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
                           type: string
                       required:
-                      - endpoint
                       - secretName
                       type: object
                     type: array
@@ -7007,7 +7005,6 @@ spec:
                             See the following page for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
                           type: string
                       required:
-                      - endpoint
                       - secretName
                       type: object
                     type: array
@@ -7029,7 +7026,6 @@ spec:
                             See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
                           type: string
                       required:
-                      - endpoint
                       - secretName
                       type: object
                     type: array

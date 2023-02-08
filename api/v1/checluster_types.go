@@ -817,7 +817,8 @@ type GitHubService struct {
 	// GitHub server endpoint URL.
 	// Deprecated in favor of `che.eclipse.org/scm-server-endpoint` annotation.
 	// See the following page for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.
-	Endpoint string `json:"endpoint"`
+	// +optional
+	Endpoint string `json:"endpoint,omitempty"`
 }
 
 // GitLabService enables users to work with repositories hosted on GitLab (gitlab.com or self-hosted).
@@ -830,7 +831,8 @@ type GitLabService struct {
 	// GitLab server endpoint URL.
 	// Deprecated in favor of `che.eclipse.org/scm-server-endpoint` annotation.
 	// See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.
-	Endpoint string `json:"endpoint"`
+	// +optional
+	Endpoint string `json:"endpoint,omitempty"`
 }
 
 // BitBucketService enables users to work with repositories hosted on Bitbucket (bitbucket.org or self-hosted).
@@ -844,6 +846,7 @@ type BitBucketService struct {
 	// Bitbucket server endpoint URL.
 	// Deprecated in favor of `che.eclipse.org/scm-server-endpoint` annotation.
 	// See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/.
+	// +optional
 	Endpoint string `json:"endpoint,omitempty"`
 }
 
