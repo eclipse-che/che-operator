@@ -185,26 +185,21 @@ func validateOAuthSecret(secretName string, scmProvider string, serverEndpoint s
 
 func validateGitHubOAuthSecretDataKeys(secret *corev1.Secret) error {
 	keys2validate := []string{constants.GitHubOAuthConfigClientIdFileName, constants.GitHubOAuthConfigClientSecretFileName}
-	if err := validateOAuthSecretDataKeys(secret, keys2validate); err != nil {
-		return err
-	}
-	return nil
+	return validateOAuthSecretDataKeys(secret, keys2validate)
 }
 
 func validateGitLabOAuthSecretDataKeys(secret *corev1.Secret) error {
 	keys2validate := []string{constants.GitLabOAuthConfigClientIdFileName, constants.GitLabOAuthConfigClientSecretFileName}
-	if err := validateOAuthSecretDataKeys(secret, keys2validate); err != nil {
-		return err
-	}
-
-	return nil
+	return validateOAuthSecretDataKeys(secret, keys2validate)
 }
 
 func validateBitBucketOAuthSecretDataKeys(secret *corev1.Secret) error {
 	oauth1Keys2validate := []string{constants.BitBucketOAuthConfigPrivateKeyFileName, constants.BitBucketOAuthConfigConsumerKeyFileName}
 	errOauth1Keys := validateOAuthSecretDataKeys(secret, oauth1Keys2validate)
+
 	oauth2Keys2validate := []string{constants.BitBucketOAuthConfigClientIdFileName, constants.BitBucketOAuthConfigClientSecretFileName}
 	errOauth2Keys := validateOAuthSecretDataKeys(secret, oauth2Keys2validate)
+
 	if errOauth1Keys != nil && errOauth2Keys != nil {
 		return fmt.Errorf("secret must contain either [%s] or [%s] keys", strings.Join(oauth1Keys2validate, ", "), strings.Join(oauth2Keys2validate, ", "))
 	}
