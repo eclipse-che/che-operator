@@ -86,7 +86,6 @@ func (dst *CheCluster) convertFrom_GitServices(src *chev2.CheCluster) error {
 			dst.Spec.GitServices.GitHub,
 			GitHubService{
 				SecretName: github.SecretName,
-				Endpoint:   github.Endpoint,
 			})
 	}
 
@@ -95,7 +94,6 @@ func (dst *CheCluster) convertFrom_GitServices(src *chev2.CheCluster) error {
 			dst.Spec.GitServices.GitLab,
 			GitLabService{
 				SecretName: gitlab.SecretName,
-				Endpoint:   gitlab.Endpoint,
 			})
 	}
 
@@ -104,7 +102,6 @@ func (dst *CheCluster) convertFrom_GitServices(src *chev2.CheCluster) error {
 			dst.Spec.GitServices.BitBucket,
 			BitBucketService{
 				SecretName: bitbucket.SecretName,
-				Endpoint:   bitbucket.Endpoint,
 			})
 	}
 

@@ -12,8 +12,6 @@
 package server
 
 import (
-	"strconv"
-
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -348,12 +346,8 @@ func MountGitHubOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1.Depl
 		mountEnv(deployment, "CHE_INTEGRATION_GITHUB_OAUTH__ENDPOINT", oauthEndpoint)
 	}
 
-	for _, gitHubService := range ctx.CheCluster.Spec.GitServices.GitHub {
-		if gitHubService.SecretName == secret.Name {
-			if gitHubService.DisableSubdomainIsolation != nil {
-				mountEnv(deployment, "CHE_INTEGRATION_GITHUB_DISABLE__SUBDOMAIN__ISOLATION", strconv.FormatBool(*gitHubService.DisableSubdomainIsolation))
-			}
-		}
+	if secret.Annotations[constants.CheEclipseOrgScmGitHubDisableSubdomainIsolation] != "" {
+		mountEnv(deployment, "CHE_INTEGRATION_GITHUB_DISABLE__SUBDOMAIN__ISOLATION", secret.Annotations[constants.CheEclipseOrgScmGitHubDisableSubdomainIsolation])
 	}
 
 	return nil

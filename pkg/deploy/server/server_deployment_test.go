@@ -14,8 +14,6 @@ package server
 import (
 	"os"
 
-	"k8s.io/utils/pointer"
-
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
@@ -303,13 +301,14 @@ func TestMountBitbucketOAuthEnvVar(t *testing.T) {
 
 func TestMountGitHubOAuthEnvVar(t *testing.T) {
 	type testCase struct {
-		name                  string
-		initObjects           []runtime.Object
-		expectedIdKeyPath     string
-		expectedSecretKeyPath string
-		expectedOAuthEndpoint string
-		expectedVolume        corev1.Volume
-		expectedVolumeMount   corev1.VolumeMount
+		name                              string
+		initObjects                       []runtime.Object
+		expectedIdKeyPath                 string
+		expectedSecretKeyPath             string
+		expectedOAuthEndpoint             string
+		expectedDisableSubdomainIsolation string
+		expectedVolume                    corev1.Volume
+		expectedVolumeMount               corev1.VolumeMount
 	}
 
 	testCases := []testCase{
@@ -329,8 +328,9 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 							"app.kubernetes.io/component": "oauth-scm-configuration",
 						},
 						Annotations: map[string]string{
-							"che.eclipse.org/oauth-scm-server":    "github",
-							"che.eclipse.org/scm-server-endpoint": "endpoint_1",
+							"che.eclipse.org/oauth-scm-server":                       "github",
+							"che.eclipse.org/scm-server-endpoint":                    "endpoint_1",
+							"che.eclipse.org/scm-github-disable-subdomain-isolation": "true",
 						},
 					},
 					Data: map[string][]byte{
@@ -339,9 +339,10 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 					},
 				},
 			},
-			expectedIdKeyPath:     "/che-conf/oauth/github/id",
-			expectedSecretKeyPath: "/che-conf/oauth/github/secret",
-			expectedOAuthEndpoint: "endpoint_1",
+			expectedIdKeyPath:                 "/che-conf/oauth/github/id",
+			expectedSecretKeyPath:             "/che-conf/oauth/github/secret",
+			expectedOAuthEndpoint:             "endpoint_1",
+			expectedDisableSubdomainIsolation: "true",
 			expectedVolume: corev1.Volume{
 				Name: "github-oauth-config",
 				VolumeSource: corev1.VolumeSource{
@@ -375,6 +376,9 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 
 			value = utils.GetEnvByName("CHE_INTEGRATION_GITHUB_OAUTH__ENDPOINT", container.Env)
 			assert.Equal(t, testCase.expectedOAuthEndpoint, value)
+
+			value = utils.GetEnvByName("CHE_INTEGRATION_GITHUB_DISABLE__SUBDOMAIN__ISOLATION", container.Env)
+			assert.Equal(t, testCase.expectedDisableSubdomainIsolation, value)
 
 			volume := test.FindVolume(deployment.Spec.Template.Spec.Volumes, "github-oauth-config")
 			assert.NotNil(t, volume)
@@ -469,188 +473,6 @@ func TestMountGitLabOAuthEnvVar(t *testing.T) {
 			volumeMount := test.FindVolumeMount(container.VolumeMounts, "gitlab-oauth-config")
 			assert.NotNil(t, volumeMount)
 			assert.Equal(t, testCase.expectedVolumeMount, volumeMount)
-		})
-	}
-}
-
-func TestMountGitHubDisableSubdomainIsolationEnvVar(t *testing.T) {
-	type testCase struct {
-		name                              string
-		cheCluster                        *chev2.CheCluster
-		initObjects                       []runtime.Object
-		expectedDisableSubdomainIsolation string
-	}
-
-	testCases := []testCase{
-		{
-			name: "Test #1",
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "eclipse-che",
-					Namespace: "eclipse-che",
-				},
-				Spec: chev2.CheClusterSpec{
-					GitServices: chev2.CheClusterGitServices{
-						GitHub: []chev2.GitHubService{
-							{
-								DisableSubdomainIsolation: pointer.BoolPtr(true),
-								SecretName:                "github-oauth-config",
-							},
-						},
-					},
-				},
-			},
-			initObjects: []runtime.Object{
-				&corev1.Secret{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "Secret",
-						APIVersion: "v1",
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "github-oauth-config",
-						Namespace: "eclipse-che",
-						Labels: map[string]string{
-							"app.kubernetes.io/part-of":   "che.eclipse.org",
-							"app.kubernetes.io/component": "oauth-scm-configuration",
-						},
-						Annotations: map[string]string{
-							"che.eclipse.org/oauth-scm-server": "github",
-						},
-					},
-				},
-			},
-			expectedDisableSubdomainIsolation: "true",
-		},
-		{
-			name: "Test #2",
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "eclipse-che",
-					Namespace: "eclipse-che",
-				},
-				Spec: chev2.CheClusterSpec{
-					GitServices: chev2.CheClusterGitServices{
-						GitHub: []chev2.GitHubService{
-							{
-								DisableSubdomainIsolation: pointer.BoolPtr(false),
-								SecretName:                "github-oauth-config",
-							},
-						},
-					},
-				},
-			},
-			initObjects: []runtime.Object{
-				&corev1.Secret{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "Secret",
-						APIVersion: "v1",
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "github-oauth-config",
-						Namespace: "eclipse-che",
-						Labels: map[string]string{
-							"app.kubernetes.io/part-of":   "che.eclipse.org",
-							"app.kubernetes.io/component": "oauth-scm-configuration",
-						},
-						Annotations: map[string]string{
-							"che.eclipse.org/oauth-scm-server": "github",
-						},
-					},
-				},
-			},
-			expectedDisableSubdomainIsolation: "false",
-		},
-		{
-			name: "Test #3",
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "eclipse-che",
-					Namespace: "eclipse-che",
-				},
-				Spec: chev2.CheClusterSpec{
-					GitServices: chev2.CheClusterGitServices{
-						GitHub: []chev2.GitHubService{
-							{
-								SecretName: "github-oauth-config",
-							},
-						},
-					},
-				},
-			},
-			initObjects: []runtime.Object{
-				&corev1.Secret{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "Secret",
-						APIVersion: "v1",
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "github-oauth-config",
-						Namespace: "eclipse-che",
-						Labels: map[string]string{
-							"app.kubernetes.io/part-of":   "che.eclipse.org",
-							"app.kubernetes.io/component": "oauth-scm-configuration",
-						},
-						Annotations: map[string]string{
-							"che.eclipse.org/oauth-scm-server": "github",
-						},
-					},
-				},
-			},
-			expectedDisableSubdomainIsolation: "",
-		},
-		{
-			name: "Test #4",
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "eclipse-che",
-					Namespace: "eclipse-che",
-				},
-				Spec: chev2.CheClusterSpec{
-					GitServices: chev2.CheClusterGitServices{
-						GitHub: []chev2.GitHubService{
-							{
-								SecretName:                "NOT-FOUND-SECRET",
-								DisableSubdomainIsolation: pointer.BoolPtr(true),
-							},
-						},
-					},
-				},
-			},
-			initObjects: []runtime.Object{
-				&corev1.Secret{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "Secret",
-						APIVersion: "v1",
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "github-oauth-config",
-						Namespace: "eclipse-che",
-						Labels: map[string]string{
-							"app.kubernetes.io/part-of":   "che.eclipse.org",
-							"app.kubernetes.io/component": "oauth-scm-configuration",
-						},
-						Annotations: map[string]string{
-							"che.eclipse.org/oauth-scm-server": "github",
-						},
-					},
-				},
-			},
-			expectedDisableSubdomainIsolation: "",
-		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.GetDeployContext(testCase.cheCluster, testCase.initObjects)
-
-			server := NewCheServerReconciler()
-			deployment, err := server.getDeploymentSpec(ctx)
-			assert.Nil(t, err, "Unexpected error %v", err)
-
-			container := &deployment.Spec.Template.Spec.Containers[0]
-
-			value := utils.GetEnvByName("CHE_INTEGRATION_GITHUB_DISABLE__SUBDOMAIN__ISOLATION", container.Env)
-			assert.Equal(t, testCase.expectedDisableSubdomainIsolation, value)
 		})
 	}
 }

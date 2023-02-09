@@ -94,13 +94,14 @@ const (
 	KubernetesNameLabelKey      = "app.kubernetes.io/name"
 
 	// Annotations
-	CheEclipseOrgMountPath                = "che.eclipse.org/mount-path"
-	CheEclipseOrgMountAs                  = "che.eclipse.org/mount-as"
-	CheEclipseOrgEnvName                  = "che.eclipse.org/env-name"
-	CheEclipseOrgNamespace                = "che.eclipse.org/namespace"
-	CheEclipseOrgOAuthScmServer           = "che.eclipse.org/oauth-scm-server"
-	CheEclipseOrgScmServerEndpoint        = "che.eclipse.org/scm-server-endpoint"
-	CheEclipseOrgManagedAnnotationsDigest = "che.eclipse.org/managed-annotations-digest"
+	CheEclipseOrgMountPath                          = "che.eclipse.org/mount-path"
+	CheEclipseOrgMountAs                            = "che.eclipse.org/mount-as"
+	CheEclipseOrgEnvName                            = "che.eclipse.org/env-name"
+	CheEclipseOrgNamespace                          = "che.eclipse.org/namespace"
+	CheEclipseOrgOAuthScmServer                     = "che.eclipse.org/oauth-scm-server"
+	CheEclipseOrgScmServerEndpoint                  = "che.eclipse.org/scm-server-endpoint"
+	CheEclipseOrgManagedAnnotationsDigest           = "che.eclipse.org/managed-annotations-digest"
+	CheEclipseOrgScmGitHubDisableSubdomainIsolation = "che.eclipse.org/scm-github-disable-subdomain-isolation"
 
 	// DevEnvironments
 	PerUserPVCStorageStrategy      = "per-user"

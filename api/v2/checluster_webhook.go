@@ -15,9 +15,11 @@ package v2
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"golang.org/x/mod/semver"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/utils/pointer"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -125,19 +127,19 @@ func ensureSingletonCheCluster() error {
 
 func validate(checluster *CheCluster) error {
 	for _, github := range checluster.Spec.GitServices.GitHub {
-		if err := validateGitHubOAuthSecret(github, checluster.Namespace); err != nil {
+		if err := validateOAuthSecret(github.SecretName, "github", github.Endpoint, github.DisableSubdomainIsolation, checluster.Namespace); err != nil {
 			return err
 		}
 	}
 
 	for _, gitlab := range checluster.Spec.GitServices.GitLab {
-		if err := validateGitLabOAuthSecret(gitlab, checluster.Namespace); err != nil {
+		if err := validateOAuthSecret(gitlab.SecretName, "gitlab", gitlab.Endpoint, nil, checluster.Namespace); err != nil {
 			return err
 		}
 	}
 
 	for _, bitbucket := range checluster.Spec.GitServices.BitBucket {
-		if err := validateBitBucketOAuthSecret(bitbucket, checluster.Namespace); err != nil {
+		if err := validateOAuthSecret(bitbucket.SecretName, "bitbucket", bitbucket.Endpoint, nil, checluster.Namespace); err != nil {
 			return err
 		}
 	}
@@ -145,60 +147,71 @@ func validate(checluster *CheCluster) error {
 	return nil
 }
 
-func validateGitHubOAuthSecret(github GitHubService, namespace string) error {
-	if github.SecretName == "" {
+func validateOAuthSecret(secretName string, scmProvider string, serverEndpoint string, disableSubdomainIsolation *bool, namespace string) error {
+	if secretName == "" {
 		return nil
 	}
 
+	k8sHelper := k8shelper.New()
+	secret, err := k8sHelper.GetClientset().CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return fmt.Errorf("secret '%s' not found", secretName)
+		}
+		return fmt.Errorf("error reading '%s' secret", err.Error())
+	}
+
+	if err := ensureScmLabelsAndAnnotations(secret, scmProvider, serverEndpoint, disableSubdomainIsolation); err != nil {
+		return err
+	}
+
+	switch scmProvider {
+	case "github":
+		if err := validateGitHubOAuthSecretDataKeys(secret); err != nil {
+			return err
+		}
+	case "gitlab":
+		if err := validateGitLabOAuthSecretDataKeys(secret); err != nil {
+			return err
+		}
+	case "bitbucket":
+		if err := validateBitBucketOAuthSecretDataKeys(secret); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func validateGitHubOAuthSecretDataKeys(secret *corev1.Secret) error {
 	keys2validate := []string{constants.GitHubOAuthConfigClientIdFileName, constants.GitHubOAuthConfigClientSecretFileName}
-	if err := validateSecretKeys(keys2validate, github.SecretName, namespace); err != nil {
-		return err
-	}
-	if err := ensureScmLabelsAndAnnotations("github", github.Endpoint, github.SecretName, namespace); err != nil {
-		return err
-	}
-	return nil
+	return validateOAuthSecretDataKeys(secret, keys2validate)
 }
 
-func validateGitLabOAuthSecret(gitlab GitLabService, namespace string) error {
-	if gitlab.SecretName == "" {
-		return nil
-	}
-
+func validateGitLabOAuthSecretDataKeys(secret *corev1.Secret) error {
 	keys2validate := []string{constants.GitLabOAuthConfigClientIdFileName, constants.GitLabOAuthConfigClientSecretFileName}
-	if err := validateSecretKeys(keys2validate, gitlab.SecretName, namespace); err != nil {
-		return err
-	}
-	if err := ensureScmLabelsAndAnnotations("gitlab", gitlab.Endpoint, gitlab.SecretName, namespace); err != nil {
-		return err
-	}
-	return nil
+	return validateOAuthSecretDataKeys(secret, keys2validate)
 }
 
-func validateBitBucketOAuthSecret(bitbucket BitBucketService, namespace string) error {
-	if bitbucket.SecretName == "" {
-		return nil
-	}
-
+func validateBitBucketOAuthSecretDataKeys(secret *corev1.Secret) error {
 	oauth1Keys2validate := []string{constants.BitBucketOAuthConfigPrivateKeyFileName, constants.BitBucketOAuthConfigConsumerKeyFileName}
-	errOauth1Keys := validateSecretKeys(oauth1Keys2validate, bitbucket.SecretName, namespace)
+	errOauth1Keys := validateOAuthSecretDataKeys(secret, oauth1Keys2validate)
+
 	oauth2Keys2validate := []string{constants.BitBucketOAuthConfigClientIdFileName, constants.BitBucketOAuthConfigClientSecretFileName}
-	errOauth2Keys := validateSecretKeys(oauth2Keys2validate, bitbucket.SecretName, namespace)
+	errOauth2Keys := validateOAuthSecretDataKeys(secret, oauth2Keys2validate)
+
 	if errOauth1Keys != nil && errOauth2Keys != nil {
 		return fmt.Errorf("secret must contain either [%s] or [%s] keys", strings.Join(oauth1Keys2validate, ", "), strings.Join(oauth2Keys2validate, ", "))
 	}
-	if err := ensureScmLabelsAndAnnotations("bitbucket", bitbucket.Endpoint, bitbucket.SecretName, namespace); err != nil {
-		return err
-	}
+
 	return nil
 }
 
-func ensureScmLabelsAndAnnotations(scmProvider string, endpointUrl string, secretName string, namespace string) error {
+func ensureScmLabelsAndAnnotations(secret *corev1.Secret, scmProvider string, serverEndpoint string, disableSubdomainIsolation *bool) error {
 	patch := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
-				constants.CheEclipseOrgOAuthScmServer:    scmProvider,
-				constants.CheEclipseOrgScmServerEndpoint: endpointUrl,
+				constants.CheEclipseOrgOAuthScmServer: scmProvider,
 			},
 			Labels: map[string]string{
 				constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
@@ -206,26 +219,33 @@ func ensureScmLabelsAndAnnotations(scmProvider string, endpointUrl string, secre
 			},
 		},
 	}
-	patchData, _ := json.Marshal(patch)
 
+	if disableSubdomainIsolation != nil && secret.Annotations[constants.CheEclipseOrgScmGitHubDisableSubdomainIsolation] == "" {
+		// for backward compatability, copy CheCluster CR value into annotation
+		patch.Annotations[constants.CheEclipseOrgScmGitHubDisableSubdomainIsolation] = strconv.FormatBool(*disableSubdomainIsolation)
+	}
+	if serverEndpoint != "" && secret.Annotations[constants.CheEclipseOrgScmServerEndpoint] == "" {
+		// for backward compatability, copy CheCluster CR value into annotation
+		patch.Annotations[constants.CheEclipseOrgScmServerEndpoint] = serverEndpoint
+	}
+
+	patchData, _ := json.Marshal(patch)
 	k8sHelper := k8shelper.New()
-	if _, err := k8sHelper.GetClientset().CoreV1().Secrets(namespace).Patch(context.TODO(), secretName, types.MergePatchType, patchData, metav1.PatchOptions{}); err != nil {
+	if _, err := k8sHelper.
+		GetClientset().
+		CoreV1().
+		Secrets(secret.Namespace).
+		Patch(context.TODO(), secret.Name, types.MergePatchType, patchData, metav1.PatchOptions{}); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func validateSecretKeys(keys []string, secretName string, namespace string) error {
-	k8sHelper := k8shelper.New()
-	secret, err := k8sHelper.GetClientset().CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-
+func validateOAuthSecretDataKeys(secret *corev1.Secret, keys []string) error {
 	for _, key := range keys {
 		if len(secret.Data[key]) == 0 {
-			return fmt.Errorf("secret must contain [%s] keys", strings.Join(keys, ", "))
+			return fmt.Errorf("secret '%s' must contain [%s] keys", secret.Name, strings.Join(keys, ", "))
 		}
 	}
 
