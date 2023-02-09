@@ -368,7 +368,7 @@ type CheClusterSpecServer struct {
 	// The plugin ID must have `publisher/plugin/version`.
 	// The URI must start from `http`.
 	// +optional
-	// +kubebuilder:default:=che-incubator/che-code/insiders
+	// +kubebuilder:default:=che-incubator/che-code/latest
 	WorkspaceDefaultEditor string `json:"workspaceDefaultEditor,omitempty"`
 	// Default components applied to DevWorkspaces.
 	// These default components are meant to be used when a Devfile does not contain any components.
