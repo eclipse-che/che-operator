@@ -224,6 +224,10 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 		return nil, err
 	}
 
+	if err := MountAzureDevOpsOAuthConfig(ctx, deployment); err != nil {
+		return nil, err
+	}
+
 	container := &deployment.Spec.Template.Spec.Containers[0]
 
 	chePostgresCredentialsSecret := utils.GetValue(ctx.CheCluster.Spec.Components.Database.CredentialsSecretName, constants.DefaultPostgresCredentialsSecret)
@@ -348,6 +352,24 @@ func MountGitHubOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1.Depl
 
 	if secret.Annotations[constants.CheEclipseOrgScmGitHubDisableSubdomainIsolation] != "" {
 		mountEnv(deployment, "CHE_INTEGRATION_GITHUB_DISABLE__SUBDOMAIN__ISOLATION", secret.Annotations[constants.CheEclipseOrgScmGitHubDisableSubdomainIsolation])
+	}
+
+	return nil
+}
+
+func MountAzureDevOpsOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1.Deployment) error {
+	secret, err := getOAuthConfig(ctx, constants.AzureDevOpsOAuth)
+	if secret == nil {
+		return err
+	}
+
+	mountVolumes(deployment, secret, constants.AzureDevOpsOAuthConfigMountPath)
+	mountEnv(deployment, "CHE_OAUTH2_AZURE_DEVOPS_CLIENTID__FILEPATH", constants.AzureDevOpsOAuthConfigMountPath+"/"+constants.AzureDevOpsOAuthConfigClientIdFileName)
+	mountEnv(deployment, "CHE_OAUTH2_AZURE_DEVOPS_CLIENTSECRET__FILEPATH", constants.AzureDevOpsOAuthConfigMountPath+"/"+constants.AzureDevOpsOAuthConfigClientSecretFileName)
+
+	oauthEndpoint := secret.Annotations[constants.CheEclipseOrgScmServerEndpoint]
+	if oauthEndpoint != "" {
+		mountEnv(deployment, "CHE_INTEGRATION_AZURE_DEVOPS_OAUTH__ENDPOINT", oauthEndpoint)
 	}
 
 	return nil
