@@ -314,19 +314,18 @@ func MountBitBucketOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1.D
 	}
 
 	mountVolumes(deployment, secret, constants.BitBucketOAuthConfigMountPath)
-	mountEnv(deployment, "CHE_OAUTH1_BITBUCKET_CONSUMERKEYPATH", constants.BitBucketOAuthConfigMountPath+"/"+constants.BitBucketOAuthConfigConsumerKeyFileName)
-	mountEnv(deployment, "CHE_OAUTH1_BITBUCKET_PRIVATEKEYPATH", constants.BitBucketOAuthConfigMountPath+"/"+constants.BitBucketOAuthConfigPrivateKeyFileName)
 
-	if secret.Data["id"] != nil {
+	if secret.Data["id"] != nil && secret.Data["secret"] != nil {
 		mountEnv(deployment, "CHE_OAUTH2_BITBUCKET_CLIENTID__FILEPATH", constants.BitBucketOAuthConfigMountPath+"/"+constants.BitBucketOAuthConfigClientIdFileName)
-	}
-	if secret.Data["secret"] != nil {
 		mountEnv(deployment, "CHE_OAUTH2_BITBUCKET_CLIENTSECRET__FILEPATH", constants.BitBucketOAuthConfigMountPath+"/"+constants.BitBucketOAuthConfigClientSecretFileName)
+	} else {
+		mountEnv(deployment, "CHE_OAUTH1_BITBUCKET_CONSUMERKEYPATH", constants.BitBucketOAuthConfigMountPath+"/"+constants.BitBucketOAuthConfigConsumerKeyFileName)
+		mountEnv(deployment, "CHE_OAUTH1_BITBUCKET_PRIVATEKEYPATH", constants.BitBucketOAuthConfigMountPath+"/"+constants.BitBucketOAuthConfigPrivateKeyFileName)
 	}
 
 	oauthEndpoint := secret.Annotations[constants.CheEclipseOrgScmServerEndpoint]
 	if oauthEndpoint != "" {
-		mountEnv(deployment, "CHE_OAUTH1_BITBUCKET_ENDPOINT", oauthEndpoint)
+		mountEnv(deployment, "CHE_OAUTH_BITBUCKET_ENDPOINT", oauthEndpoint)
 	}
 	return nil
 }
