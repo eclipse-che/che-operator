@@ -203,7 +203,7 @@ func TestMountBitBucketServerOAuthEnvVar(t *testing.T) {
 			value = utils.GetEnvByName("CHE_OAUTH1_BITBUCKET_PRIVATEKEYPATH", container.Env)
 			assert.Equal(t, testCase.expectedPrivateKeyPath, value)
 
-			value = utils.GetEnvByName("CHE_OAUTH1_BITBUCKET_ENDPOINT", container.Env)
+			value = utils.GetEnvByName("CHE_OAUTH_BITBUCKET_ENDPOINT", container.Env)
 			assert.Equal(t, testCase.expectedOAuthEndpoint, value)
 
 			volume := test.FindVolume(deployment.Spec.Template.Spec.Volumes, "bitbucket-oauth-config")
