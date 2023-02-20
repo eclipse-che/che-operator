@@ -6962,15 +6962,15 @@ spec:
                 properties:
                   azure:
                     description: Enables users to work with repositories hosted on
-                      Azure (dev.azure.com).
+                      Azure DevOps Service (dev.azure.com).
                     items:
                       description: AzureDevOpsService enables users to work with repositories
-                        hosted on Azure (dev.azure.com).
+                        hosted on Azure DevOps Service (dev.azure.com).
                       properties:
                         secretName:
                           description: 'Kubernetes secret, that contains Base64-encoded
-                            Azure DevOps Application id and Azure DevOps Application
-                            Client secret. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-azure'
+                            Azure DevOps Service Application ID and Client Secret.
+                            See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-azure-devops-service'
                           type: string
                       required:
                       - secretName
