@@ -609,6 +609,10 @@ type CheClusterGitServices struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Bitbucket"
 	BitBucket []BitBucketService `json:"bitbucket,omitempty"`
+	// Enables users to work with repositories hosted on Azure (dev.azure.com).
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Azure"
+	AzureDevOps []AzureDevOpsService `json:"azure,omitempty"`
 }
 
 // GitHubService enables users to work with repositories hosted on GitHub (GitHub.com or GitHub Enterprise).
@@ -657,6 +661,15 @@ type BitBucketService struct {
 	// See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/.
 	// +optional
 	Endpoint string `json:"endpoint,omitempty"`
+}
+
+// AzureDevOpsService enables users to work with repositories hosted on Azure (dev.azure.com).
+type AzureDevOpsService struct {
+	// Kubernetes secret, that contains Base64-encoded Azure DevOps Application id and Azure DevOps Application Client secret.
+	// See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-azure
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:io.kubernetes:Secret"
+	SecretName string `json:"secretName"`
 }
 
 // Container build configuration.

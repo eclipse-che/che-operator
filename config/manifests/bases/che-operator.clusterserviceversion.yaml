@@ -88,6 +88,16 @@ spec:
       - description: Configuration of an alternative registry that stores Che images.
         displayName: Container registry
         path: containerRegistry
+      - description: Enables users to work with repositories hosted on Azure (dev.azure.com).
+        displayName: Azure
+        path: gitServices.azure
+      - description: 'Kubernetes secret, that contains Base64-encoded Azure DevOps
+          Application id and Azure DevOps Application Client secret. See the following
+          page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-azure'
+        displayName: Secret Name
+        path: gitServices.azure[0].secretName
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:Secret
       - description: Enables users to work with repositories hosted on Bitbucket (bitbucket.org
           or self-hosted).
         displayName: Bitbucket

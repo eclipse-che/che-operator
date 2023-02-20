@@ -367,11 +367,6 @@ func MountAzureDevOpsOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1
 	mountEnv(deployment, "CHE_OAUTH2_AZURE_DEVOPS_CLIENTID__FILEPATH", constants.AzureDevOpsOAuthConfigMountPath+"/"+constants.AzureDevOpsOAuthConfigClientIdFileName)
 	mountEnv(deployment, "CHE_OAUTH2_AZURE_DEVOPS_CLIENTSECRET__FILEPATH", constants.AzureDevOpsOAuthConfigMountPath+"/"+constants.AzureDevOpsOAuthConfigClientSecretFileName)
 
-	oauthEndpoint := secret.Annotations[constants.CheEclipseOrgScmServerEndpoint]
-	if oauthEndpoint != "" {
-		mountEnv(deployment, "CHE_INTEGRATION_AZURE_DEVOPS_OAUTH__ENDPOINT", oauthEndpoint)
-	}
-
 	return nil
 }
 

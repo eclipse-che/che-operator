@@ -419,9 +419,7 @@ func TestMountAzureDevOpsOAuthEnvVar(t *testing.T) {
 							"app.kubernetes.io/component": "oauth-scm-configuration",
 						},
 						Annotations: map[string]string{
-							"che.eclipse.org/oauth-scm-server":                       "azure-devops",
-							"che.eclipse.org/scm-server-endpoint":                    "endpoint_1",
-							"che.eclipse.org/scm-github-disable-subdomain-isolation": "true",
+							"che.eclipse.org/oauth-scm-server": "azure-devops",
 						},
 					},
 					Data: map[string][]byte{
@@ -463,9 +461,6 @@ func TestMountAzureDevOpsOAuthEnvVar(t *testing.T) {
 
 			value = utils.GetEnvByName("CHE_OAUTH2_AZURE_DEVOPS_CLIENTSECRET__FILEPATH", container.Env)
 			assert.Equal(t, testCase.expectedSecretKeyPath, value)
-
-			value = utils.GetEnvByName("CHE_INTEGRATION_AZURE_DEVOPS_OAUTH__ENDPOINT", container.Env)
-			assert.Equal(t, testCase.expectedOAuthEndpoint, value)
 
 			volume := test.FindVolume(deployment.Spec.Template.Spec.Volumes, "azure-devops-oauth-config")
 			assert.NotNil(t, volume)
