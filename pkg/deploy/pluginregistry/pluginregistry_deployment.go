@@ -58,6 +58,7 @@ func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(ctx *chetypes
 	if ctx.CheCluster.IsOpenVSXURLEmpty() {
 		// Add time to start embedded VSX registry
 		deployment.Spec.Template.Spec.Containers[0].LivenessProbe.InitialDelaySeconds = 300
+		deployment.Spec.Template.Spec.Containers[0].ReadinessProbe.FailureThreshold = 90
 	}
 
 	deploy.EnsurePodSecurityStandards(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
