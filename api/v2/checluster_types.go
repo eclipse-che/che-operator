@@ -666,7 +666,7 @@ type BitBucketService struct {
 // AzureDevOpsService enables users to work with repositories hosted on Azure DevOps Service (dev.azure.com).
 type AzureDevOpsService struct {
 	// Kubernetes secret, that contains Base64-encoded Azure DevOps Service Application ID and Client Secret.
-	// See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-azure-devops-service
+	// See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-microsoft-azure-devops-services
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:io.kubernetes:Secret"
 	SecretName string `json:"secretName"`

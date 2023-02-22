@@ -77,7 +77,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che.v7.61.0-763.next
+  name: eclipse-che.v7.61.0-764.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -146,7 +146,7 @@ spec:
             displayName: Azure
             path: gitServices.azure
           - description: 'Kubernetes secret, that contains Base64-encoded Azure DevOps
-              Service Application ID and Client Secret. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-azure-devops-service'
+              Service Application ID and Client Secret. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-microsoft-azure-devops-services'
             displayName: Secret Name
             path: gitServices.azure[0].secretName
             x-descriptors:
@@ -1231,7 +1231,7 @@ spec:
   minKubeVersion: 1.19.0
   provider:
     name: Eclipse Foundation
-  version: 7.61.0-763.next
+  version: 7.61.0-764.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1

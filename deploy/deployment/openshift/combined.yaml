@@ -6970,7 +6970,7 @@ spec:
                         secretName:
                           description: 'Kubernetes secret, that contains Base64-encoded
                             Azure DevOps Service Application ID and Client Secret.
-                            See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-azure-devops-service'
+                            See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-microsoft-azure-devops-services'
                           type: string
                       required:
                       - secretName
