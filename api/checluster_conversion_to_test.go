@@ -254,33 +254,6 @@ func TestConvertTo(t *testing.T) {
 				},
 				OpenVSXRegistryURL: pointer.StringPtr("open-vsx-registry"),
 			},
-			Database: chev1.CheClusterSpecDB{
-				ExternalDb:              true,
-				ChePostgresHostName:     "ChePostgresHostName",
-				ChePostgresPort:         "ChePostgresPort",
-				ChePostgresDb:           "ChePostgresDb",
-				ChePostgresSecret:       "ChePostgresSecret",
-				PostgresImage:           "PostgresImage",
-				PostgresVersion:         "PostgresVersion",
-				PostgresImagePullPolicy: "Always",
-				PvcClaimSize:            "DatabasePvcClaimSize",
-				ChePostgresContainerResources: chev1.ResourcesCustomSettings{
-					Requests: chev1.Resources{
-						Memory: "100Mi",
-						Cpu:    "1",
-					},
-					Limits: chev1.Resources{
-						Memory: "200Mi",
-						Cpu:    "2",
-					},
-				},
-				PostgresEnv: []corev1.EnvVar{
-					{
-						Name:  "database-name",
-						Value: "database-value",
-					},
-				},
-			},
 			Auth: chev1.CheClusterSpecAuth{
 				IdentityProviderURL:               "IdentityProviderURL",
 				OAuthClientName:                   "OAuthClientName",
@@ -317,7 +290,6 @@ func TestConvertTo(t *testing.T) {
 			Storage: chev1.CheClusterSpecStorage{
 				PvcStrategy:                             "PvcStrategy",
 				PvcClaimSize:                            "WorkspacePvcClaimSize",
-				PostgresPVCStorageClassName:             "PostgresPVCStorageClassName",
 				WorkspacePVCStorageClassName:            "WorkspacePVCStorageClassName",
 				PerWorkspaceStrategyPVCStorageClassName: "PerWorkspaceStrategyPVCStorageClassName",
 				PerWorkspaceStrategyPvcClaimSize:        "PerWorkspaceStrategyPvcClaimSize",
@@ -456,23 +428,6 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.Components.Dashboard.HeaderMessage.Text, "DashboardWarning")
 	assert.True(t, checlusterv2.Spec.Components.Dashboard.HeaderMessage.Show)
 
-	assert.Equal(t, checlusterv2.Spec.Components.Database.CredentialsSecretName, "ChePostgresSecret")
-	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].Name, constants.PostgresName)
-	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].Image, "PostgresImage")
-	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].Env[0].Name, "database-name")
-	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].Env[0].Value, "database-value")
-	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].ImagePullPolicy, corev1.PullPolicy("Always"))
-	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].Resources.Limits.Cpu, resource.MustParse("2"))
-	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].Resources.Limits.Memory, resource.MustParse("200Mi"))
-	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].Resources.Requests.Cpu, resource.MustParse("1"))
-	assert.Equal(t, checlusterv2.Spec.Components.Database.Deployment.Containers[0].Resources.Requests.Memory, resource.MustParse("100Mi"))
-	assert.Equal(t, checlusterv2.Spec.Components.Database.ExternalDb, true)
-	assert.Equal(t, checlusterv2.Spec.Components.Database.PostgresDb, "ChePostgresDb")
-	assert.Equal(t, checlusterv2.Spec.Components.Database.PostgresHostName, "ChePostgresHostName")
-	assert.Equal(t, checlusterv2.Spec.Components.Database.PostgresPort, "ChePostgresPort")
-	assert.Equal(t, checlusterv2.Spec.Components.Database.Pvc.ClaimSize, "DatabasePvcClaimSize")
-	assert.Equal(t, checlusterv2.Spec.Components.Database.Pvc.StorageClass, "PostgresPVCStorageClassName")
-
 	assert.Equal(t, checlusterv2.Spec.Components.ImagePuller.Enable, true)
 	assert.Equal(t, checlusterv2.Spec.Components.Metrics.Enable, true)
 
@@ -523,7 +478,6 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Status.ChePhase, chev2.CheClusterPhase("Active"))
 	assert.Equal(t, checlusterv2.Status.PluginRegistryURL, "PluginRegistryURL")
 	assert.Equal(t, checlusterv2.Status.Reason, "Reason")
-	assert.Equal(t, checlusterv2.Status.PostgresVersion, "PostgresVersion")
 
 	assert.Equal(t, checlusterv2.Spec.GitServices.GitHub[0].SecretName, "github-secret-name")
 	assert.Equal(t, checlusterv2.Spec.GitServices.GitLab[0].SecretName, "gitlab-secret-name")

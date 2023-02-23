@@ -17,7 +17,6 @@ import (
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/deploy/postgres"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -230,30 +229,6 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 
 	container := &deployment.Spec.Template.Spec.Containers[0]
 
-	chePostgresCredentialsSecret := utils.GetValue(ctx.CheCluster.Spec.Components.Database.CredentialsSecretName, constants.DefaultPostgresCredentialsSecret)
-	container.Env = append(container.Env,
-		corev1.EnvVar{
-			Name: "CHE_JDBC_USERNAME",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					Key: "user",
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: chePostgresCredentialsSecret,
-					},
-				},
-			},
-		}, corev1.EnvVar{
-			Name: "CHE_JDBC_PASSWORD",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					Key: "password",
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: chePostgresCredentialsSecret,
-					},
-				},
-			},
-		})
-
 	// configure probes if debug isn't set
 	if ctx.CheCluster.Spec.Components.CheServer.Debug == nil || !*ctx.CheCluster.Spec.Components.CheServer.Debug {
 		container.ReadinessProbe = &corev1.Probe{
@@ -292,16 +267,6 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 			TimeoutSeconds:      3,
 			PeriodSeconds:       10,
 			SuccessThreshold:    1,
-		}
-	}
-
-	if defaults.IsComponentReadinessInitContainersConfigured() {
-		if !ctx.CheCluster.Spec.Components.Database.ExternalDb {
-			waitForPostgresInitContainer, err := postgres.GetWaitForPostgresInitContainer(ctx)
-			if err != nil {
-				return nil, err
-			}
-			deployment.Spec.Template.Spec.InitContainers = append(deployment.Spec.Template.Spec.InitContainers, *waitForPostgresInitContainer)
 		}
 	}
 

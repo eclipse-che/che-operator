@@ -42,10 +42,10 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 	}
 
 	var (
-		airGapRegistryHostname                            = "myregistry.org"
-		airGapRegistryOrganization                        = "myorg"
-		expectedAirGapPostgresUpstreamImage               = makeAirGapImagePath(airGapRegistryHostname, airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresImage))
-		expectedAirGapPostgresUpstreamImageOnlyOrgChanged = makeAirGapImagePath(getHostnameFromImage(defaultPostgresImage), airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresImage))
+		airGapRegistryHostname                          = "myregistry.org"
+		airGapRegistryOrganization                      = "myorg"
+		expectedAirGapServerUpstreamImage               = makeAirGapImagePath(airGapRegistryHostname, airGapRegistryOrganization, getImageNameFromFullImage(defaultCheServerImage))
+		expectedAirGapServerUpstreamImageOnlyOrgChanged = makeAirGapImagePath(getHostnameFromImage(defaultCheServerImage), airGapRegistryOrganization, getImageNameFromFullImage(defaultCheServerImage))
 	)
 
 	upstream := &chev2.CheCluster{}
@@ -66,9 +66,9 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 	}
 
 	testCases := map[string]testcase{
-		"default postgres":          {image: defaultPostgresImage, expected: defaultPostgresImage, cr: upstream},
-		"airgap postgres":           {image: defaultPostgresImage, expected: expectedAirGapPostgresUpstreamImage, cr: airGapUpstream},
-		"with only the org changed": {image: defaultPostgresImage, expected: expectedAirGapPostgresUpstreamImageOnlyOrgChanged, cr: upstreamOnlyOrg},
+		"default che-server":        {image: defaultCheServerImage, expected: defaultCheServerImage, cr: upstream},
+		"airgap che-server":         {image: defaultCheServerImage, expected: expectedAirGapServerUpstreamImage, cr: airGapUpstream},
+		"with only the org changed": {image: defaultCheServerImage, expected: expectedAirGapServerUpstreamImageOnlyOrgChanged, cr: upstreamOnlyOrg},
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(*testing.T) {

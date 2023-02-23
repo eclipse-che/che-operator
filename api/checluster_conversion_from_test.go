@@ -110,45 +110,6 @@ func TestConvertFrom(t *testing.T) {
 				Metrics: chev2.ServerMetrics{
 					Enable: true,
 				},
-				Database: chev2.Database{
-					ExternalDb: true,
-					Deployment: &chev2.Deployment{
-						Containers: []chev2.Container{
-							{
-								Image:           "DatabaseImage",
-								ImagePullPolicy: corev1.PullAlways,
-								Resources: &chev2.ResourceRequirements{
-									Requests: &chev2.ResourceList{
-										Memory: resource.MustParse("128Mi"),
-										Cpu:    resource.MustParse("1"),
-									},
-									Limits: &chev2.ResourceList{
-										Memory: resource.MustParse("228Mi"),
-										Cpu:    resource.MustParse("2"),
-									},
-								},
-								Env: []corev1.EnvVar{
-									{
-										Name:  "database-name",
-										Value: "database-value",
-									},
-								},
-							},
-						},
-						SecurityContext: &chev2.PodSecurityContext{
-							RunAsUser: pointer.Int64Ptr(64),
-							FsGroup:   pointer.Int64Ptr(65),
-						},
-					},
-					PostgresHostName:      "PostgresHostName",
-					PostgresPort:          "PostgresPort",
-					PostgresDb:            "PostgresDb",
-					CredentialsSecretName: "DatabaseCredentialsSecretName",
-					Pvc: &chev2.PVC{
-						ClaimSize:    "DatabaseClaimSize",
-						StorageClass: "DatabaseStorageClass",
-					},
-				},
 				PluginRegistry: chev2.PluginRegistry{
 					Deployment: &chev2.Deployment{
 						Containers: []chev2.Container{
@@ -430,7 +391,6 @@ func TestConvertFrom(t *testing.T) {
 			ChePhase:           "Active",
 			Message:            "Message",
 			Reason:             "Reason",
-			PostgresVersion:    "PostgresVersion",
 		},
 	}
 
@@ -465,22 +425,6 @@ func TestConvertFrom(t *testing.T) {
 	assert.Equal(t, checlusterv1.Spec.Auth.GatewayOAuthProxyEnv[0].Value, "oauth-proxy-value")
 	assert.Equal(t, checlusterv1.Spec.Auth.GatewayConfigBumpEnv[0].Name, "configbump-name")
 	assert.Equal(t, checlusterv1.Spec.Auth.GatewayConfigBumpEnv[0].Value, "configbump-value")
-
-	assert.Equal(t, checlusterv1.Spec.Database.ChePostgresContainerResources.Limits.Cpu, "2")
-	assert.Equal(t, checlusterv1.Spec.Database.ChePostgresContainerResources.Limits.Memory, "228Mi")
-	assert.Equal(t, checlusterv1.Spec.Database.ChePostgresContainerResources.Requests.Cpu, "1")
-	assert.Equal(t, checlusterv1.Spec.Database.ChePostgresContainerResources.Requests.Memory, "128Mi")
-	assert.Equal(t, checlusterv1.Spec.Database.ChePostgresDb, "PostgresDb")
-	assert.Equal(t, checlusterv1.Spec.Database.ChePostgresHostName, "PostgresHostName")
-	assert.Equal(t, checlusterv1.Spec.Database.ChePostgresPort, "PostgresPort")
-	assert.Equal(t, checlusterv1.Spec.Database.ChePostgresSecret, "DatabaseCredentialsSecretName")
-	assert.Equal(t, checlusterv1.Spec.Database.ExternalDb, true)
-	assert.Equal(t, checlusterv1.Spec.Database.PostgresImage, "DatabaseImage")
-	assert.Equal(t, checlusterv1.Spec.Database.PostgresImagePullPolicy, corev1.PullAlways)
-	assert.Equal(t, checlusterv1.Spec.Database.PostgresVersion, "PostgresVersion")
-	assert.Equal(t, checlusterv1.Spec.Database.PvcClaimSize, "DatabaseClaimSize")
-	assert.Equal(t, checlusterv1.Spec.Database.PostgresEnv[0].Name, "database-name")
-	assert.Equal(t, checlusterv1.Spec.Database.PostgresEnv[0].Value, "database-value")
 
 	assert.Equal(t, checlusterv1.Spec.DevWorkspace.RunningLimit, "10")
 	assert.Equal(t, checlusterv1.Spec.DevWorkspace.SecondsOfInactivityBeforeIdling, pointer.Int32Ptr(1800))
@@ -560,7 +504,6 @@ func TestConvertFrom(t *testing.T) {
 	assert.Equal(t, checlusterv1.Spec.Server.WorkspacesDefaultPlugins, []chev1.WorkspacesDefaultPlugins{{Editor: "Editor", Plugins: []string{"Plugins_1", "Plugins_2"}}})
 
 	assert.Equal(t, checlusterv1.Spec.Storage.PvcStrategy, "PvcStrategy")
-	assert.Equal(t, checlusterv1.Spec.Storage.PostgresPVCStorageClassName, "DatabaseStorageClass")
 	assert.Equal(t, checlusterv1.Spec.Storage.PvcClaimSize, "StorageClaimSize")
 	assert.Equal(t, checlusterv1.Spec.Storage.WorkspacePVCStorageClassName, "StorageClass")
 	assert.Equal(t, checlusterv1.Spec.Storage.PerWorkspaceStrategyPvcClaimSize, "PerWorkspaceStorageClaimSize")

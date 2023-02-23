@@ -4032,14 +4032,6 @@ spec:
                     cheServer:
                       debug: false
                       logLevel: INFO
-                    database:
-                      credentialsSecretName: postgres-credentials
-                      externalDb: false
-                      postgresDb: dbche
-                      postgresHostName: postgres
-                      postgresPort: "5432"
-                      pvc:
-                        claimSize: 1Gi
                     metrics:
                       enable: true
                   description: Che components configuration.
@@ -4562,19 +4554,10 @@ spec:
                           type: object
                       type: object
                     database:
-                      default:
-                        credentialsSecretName: postgres-credentials
-                        externalDb: false
-                        postgresDb: dbche
-                        postgresHostName: postgres
-                        postgresPort: "5432"
-                        pvc:
-                          claimSize: 1Gi
                       description: Configuration settings related to the database
                         used by the Che installation.
                       properties:
                         credentialsSecretName:
-                          default: postgres-credentials
                           description: The secret that contains PostgreSQL `user`
                             and `password` that the Che server uses to connect to
                             the database. The secret must have a `app.kubernetes.io/part-of=che.eclipse.org`
@@ -4794,7 +4777,6 @@ spec:
                               type: object
                           type: object
                         externalDb:
-                          default: false
                           description: Instructs the Operator to deploy a dedicated
                             database. By default, a dedicated PostgreSQL database
                             is deployed as part of the Che installation. When `externalDb`
@@ -4803,25 +4785,20 @@ spec:
                             about the external database you want to use.
                           type: boolean
                         postgresDb:
-                          default: dbche
                           description: PostgreSQL database name that the Che server
                             uses to connect to the database.
                           type: string
                         postgresHostName:
-                          default: postgres
                           description: PostgreSQL database hostname that the Che server
                             connects to. Override this value only when using an external
                             database. See field `externalDb`.
                           type: string
                         postgresPort:
-                          default: "5432"
                           description: PostgreSQL Database port the Che server connects
                             to. Override this value only when using an external database.
                             See field `externalDb`.
                           type: string
                         pvc:
-                          default:
-                            claimSize: 1Gi
                           description: PVC settings for PostgreSQL database.
                           properties:
                             claimSize:

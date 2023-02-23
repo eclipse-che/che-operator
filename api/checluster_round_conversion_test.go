@@ -85,36 +85,6 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 					Metrics: chev2.ServerMetrics{
 						Enable: true,
 					},
-					Database: chev2.Database{
-						ExternalDb: true,
-						Deployment: &chev2.Deployment{
-							Containers: []chev2.Container{
-								{
-									Name:            "postgres",
-									Image:           "DatabaseImage",
-									ImagePullPolicy: corev1.PullAlways,
-									Resources: &chev2.ResourceRequirements{
-										Requests: &chev2.ResourceList{
-											Memory: resource.MustParse("148Mi"),
-											Cpu:    resource.MustParse("1"),
-										},
-										Limits: &chev2.ResourceList{
-											Memory: resource.MustParse("228Mi"),
-											Cpu:    resource.MustParse("2"),
-										},
-									},
-								},
-							},
-						},
-						PostgresHostName:      "PostgresHostName",
-						PostgresPort:          "PostgresPort",
-						PostgresDb:            "PostgresDb",
-						CredentialsSecretName: "DatabaseCredentialsSecretName",
-						Pvc: &chev2.PVC{
-							ClaimSize:    "DatabaseClaimSize",
-							StorageClass: "DatabaseStorageClass",
-						},
-					},
 					PluginRegistry: chev2.PluginRegistry{
 						Deployment: &chev2.Deployment{
 							Containers: []chev2.Container{
@@ -320,7 +290,6 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 				ChePhase:           "Active",
 				Message:            "Message",
 				Reason:             "Reason",
-				PostgresVersion:    "PostgresVersion",
 			},
 		}
 

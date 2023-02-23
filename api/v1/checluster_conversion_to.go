@@ -101,7 +101,6 @@ func (src *CheCluster) convertTo_GitServices(dst *chev2.CheCluster) error {
 }
 
 func (src *CheCluster) convertTo_Status(dst *chev2.CheCluster) error {
-	dst.Status.PostgresVersion = src.Spec.Database.PostgresVersion
 	dst.Status.CheURL = src.Status.CheURL
 	dst.Status.CheVersion = src.Status.CheVersion
 	dst.Status.DevfileRegistryURL = src.Status.DevfileRegistryURL
@@ -267,10 +266,6 @@ func (src *CheCluster) convertTo_Components(dst *chev2.CheCluster) error {
 		return err
 	}
 
-	if err := src.convertTo_Components_Database(dst); err != nil {
-		return err
-	}
-
 	if err := src.convertTo_Components_Metrics(dst); err != nil {
 		return err
 	}
@@ -430,42 +425,6 @@ func (src *CheCluster) convertTo_Components_DevfileRegistry(dst *chev2.CheCluste
 		src.Spec.Server.DevfileRegistryEnv,
 	)
 
-	return nil
-}
-
-func (src *CheCluster) convertTo_Components_Database(dst *chev2.CheCluster) error {
-	dst.Spec.Components.Database.CredentialsSecretName = src.Spec.Database.ChePostgresSecret
-
-	if src.Spec.Database.ChePostgresSecret == "" && src.Spec.Database.ChePostgresUser != "" && src.Spec.Database.ChePostgresPassword != "" {
-		if err := createCredentialsSecret(
-			src.Spec.Database.ChePostgresUser,
-			src.Spec.Database.ChePostgresPassword,
-			constants.DefaultPostgresCredentialsSecret,
-			src.ObjectMeta.Namespace); err != nil {
-			return err
-		}
-		dst.Spec.Components.Database.CredentialsSecretName = constants.DefaultPostgresCredentialsSecret
-	}
-
-	dst.Spec.Components.Database.Deployment = toCheV2Deployment(
-		constants.PostgresName,
-		src.Spec.Database.PostgresImage,
-		src.Spec.Database.PostgresImagePullPolicy,
-		src.Spec.Database.ChePostgresContainerResources.Requests.Memory,
-		src.Spec.Database.ChePostgresContainerResources.Limits.Memory,
-		src.Spec.Database.ChePostgresContainerResources.Requests.Cpu,
-		src.Spec.Database.ChePostgresContainerResources.Limits.Cpu,
-		nil,
-		nil,
-		src.Spec.Database.PostgresEnv,
-	)
-
-	dst.Spec.Components.Database.ExternalDb = src.Spec.Database.ExternalDb
-	dst.Spec.Components.Database.PostgresDb = src.Spec.Database.ChePostgresDb
-	dst.Spec.Components.Database.PostgresHostName = src.Spec.Database.ChePostgresHostName
-	dst.Spec.Components.Database.PostgresPort = src.Spec.Database.ChePostgresPort
-
-	dst.Spec.Components.Database.Pvc = toCheV2Pvc(src.Spec.Database.PvcClaimSize, src.Spec.Storage.PostgresPVCStorageClassName)
 	return nil
 }
 

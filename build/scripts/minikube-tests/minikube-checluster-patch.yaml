@@ -44,14 +44,6 @@ spec:
                 cpu: '50m'
               limits:
                 cpu: '50m'
-    database:
-      deployment:
-        containers:
-          - resources:
-              request:
-                cpu: '50m'
-              limits:
-                cpu: '50m'
   networking:
     auth:
       gateway:

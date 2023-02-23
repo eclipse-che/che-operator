@@ -18,19 +18,6 @@ import (
 )
 
 const (
-	// PostgresSQL
-	DefaultPostgresUser              = "pgche"
-	DefaultPostgresHostName          = "postgres"
-	DefaultPostgresPort              = "5432"
-	DefaultPostgresDb                = "dbche"
-	DefaultPostgresMemoryLimit       = "1024Mi"
-	DefaultPostgresMemoryRequest     = "512Mi"
-	DefaultPostgresCpuLimit          = "500m"
-	DefaultPostgresCpuRequest        = "100m"
-	DefaultPostgresCredentialsSecret = "postgres-credentials"
-	DefaultPostgresVolumeClaimName   = "postgres-data"
-	DefaultPostgresPvcClaimSize      = "1Gi"
-
 	// Dashboard
 	DefaultDashboardMemoryLimit   = "256Mi"
 	DefaultDashboardMemoryRequest = "32Mi"
@@ -128,6 +115,7 @@ const (
 	DevfileRegistryName                = "devfile-registry"
 	PluginRegistryName                 = "plugin-registry"
 	PostgresName                       = "postgres"
+	BackupServerComponentName          = "backup-rest-server-deployment"
 	GatewayContainerName               = "gateway"
 	GatewayConfigSideCarContainerName  = "configbump"
 	GatewayAuthenticationContainerName = "oauth-proxy"
