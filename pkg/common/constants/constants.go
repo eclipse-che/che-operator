@@ -114,8 +114,6 @@ const (
 	// components name
 	DevfileRegistryName                = "devfile-registry"
 	PluginRegistryName                 = "plugin-registry"
-	PostgresName                       = "postgres"
-	BackupServerComponentName          = "backup-rest-server-deployment"
 	GatewayContainerName               = "gateway"
 	GatewayConfigSideCarContainerName  = "configbump"
 	GatewayAuthenticationContainerName = "oauth-proxy"

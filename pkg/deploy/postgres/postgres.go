@@ -13,10 +13,18 @@ package postgres
 
 import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+)
+
+const (
+	defaultPostgresCredentialsSecret = "postgres-credentials"
+	defaultPostgresVolumeClaimName   = "postgres-data"
+	postgresComponentName            = "postgres"
+	backupServerComponentName        = "backup-rest-server-deployment"
 )
 
 type PostgresReconciler struct {
@@ -28,11 +36,14 @@ func NewPostgresReconciler() *PostgresReconciler {
 }
 
 func (p *PostgresReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	// PostgreSQL is deprecated and will be removed in the future
-	_, _ = p.syncPostgreDeployment(ctx)
-	_, _ = p.syncDbVersion(ctx)
+	// PostgreSQL component is not used anymore
+	_, _ = p.syncCredentials(ctx)
+	_, _ = p.syncService(ctx)
+	_, _ = p.syncPVC(ctx)
+	_, _ = p.syncDeployment(ctx)
+	_, _ = p.setDbVersion(ctx)
 
-	// Backup server component has been already removed
+	// Backup server component is not used anymore
 	_, _ = p.syncBackupDeployment(ctx)
 
 	return reconcile.Result{}, true, nil
@@ -42,18 +53,31 @@ func (p *PostgresReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	return true
 }
 
-func (p *PostgresReconciler) syncPostgreDeployment(ctx *chetypes.DeployContext) (bool, error) {
-	return deploy.DeleteNamespacedObject(ctx, constants.PostgresName, &appsv1.Deployment{})
+func (p *PostgresReconciler) syncService(ctx *chetypes.DeployContext) (bool, error) {
+	return deploy.DeleteNamespacedObject(ctx, postgresComponentName, &corev1.Service{})
 }
 
-func (p *PostgresReconciler) syncBackupDeployment(ctx *chetypes.DeployContext) (bool, error) {
-	return deploy.DeleteNamespacedObject(ctx, constants.BackupServerComponentName, &appsv1.Deployment{})
+func (p *PostgresReconciler) syncPVC(ctx *chetypes.DeployContext) (bool, error) {
+	return deploy.DeleteNamespacedObject(ctx, defaultPostgresVolumeClaimName, &corev1.PersistentVolumeClaim{})
 }
 
-func (p *PostgresReconciler) syncDbVersion(ctx *chetypes.DeployContext) (bool, error) {
+func (p *PostgresReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
+	return deploy.DeleteNamespacedObject(ctx, postgresComponentName, &appsv1.Deployment{})
+}
+
+func (p *PostgresReconciler) setDbVersion(ctx *chetypes.DeployContext) (bool, error) {
 	if ctx.CheCluster.Status.PostgresVersion != "" {
 		ctx.CheCluster.Status.PostgresVersion = ""
 		_ = deploy.UpdateCheCRStatus(ctx, "postgresVersion", ctx.CheCluster.Status.PostgresVersion)
 	}
 	return true, nil
+}
+
+func (p *PostgresReconciler) syncCredentials(ctx *chetypes.DeployContext) (bool, error) {
+	postgresCredentialsSecretName := utils.GetValue(ctx.CheCluster.Spec.Components.Database.CredentialsSecretName, defaultPostgresCredentialsSecret)
+	return deploy.DeleteNamespacedObject(ctx, postgresCredentialsSecretName, &corev1.Secret{})
+}
+
+func (p *PostgresReconciler) syncBackupDeployment(ctx *chetypes.DeployContext) (bool, error) {
+	return deploy.DeleteNamespacedObject(ctx, backupServerComponentName, &appsv1.Deployment{})
 }
