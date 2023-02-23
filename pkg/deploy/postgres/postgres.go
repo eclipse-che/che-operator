@@ -37,10 +37,10 @@ func NewPostgresReconciler() *PostgresReconciler {
 
 func (p *PostgresReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	// PostgreSQL component is not used anymore
+	_, _ = p.syncDeployment(ctx)
+	_, _ = p.syncPVC(ctx)
 	_, _ = p.syncCredentials(ctx)
 	_, _ = p.syncService(ctx)
-	_, _ = p.syncPVC(ctx)
-	_, _ = p.syncDeployment(ctx)
 	_, _ = p.setDbVersion(ctx)
 
 	// Backup server component is not used anymore
