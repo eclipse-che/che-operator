@@ -4555,7 +4555,8 @@ spec:
                       type: object
                     database:
                       description: Configuration settings related to the database
-                        used by the Che installation.
+                        used by the Che installation. Database component is Deprecated.
+                        All properties will be ignored.
                       properties:
                         credentialsSecretName:
                           description: The secret that contains PostgreSQL `user`

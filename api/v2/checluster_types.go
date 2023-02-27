@@ -160,6 +160,7 @@ type CheClusterComponents struct {
 	// +optional
 	DevfileRegistry DevfileRegistry `json:"devfileRegistry"`
 	// Configuration settings related to the database used by the Che installation.
+	// Database component is Deprecated. All properties will be ignored.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:com.tectonic.ui:hidden"
 	Database Database `json:"database"`
@@ -302,7 +303,7 @@ type DevfileRegistry struct {
 	ExternalDevfileRegistries []ExternalDevfileRegistry `json:"externalDevfileRegistries,omitempty"`
 }
 
-// Database component is Deprecated.
+// Database component is Deprecated. All properties will be ignored.
 // Configuration settings related to the database used by the Che installation.
 // +k8s:openapi-gen=true
 type Database struct {
