@@ -144,6 +144,12 @@ func validate(checluster *CheCluster) error {
 		}
 	}
 
+	for _, azure := range checluster.Spec.GitServices.AzureDevOps {
+		if err := validateOAuthSecret(azure.SecretName, constants.AzureDevOpsOAuth, "", nil, checluster.Namespace); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -178,9 +184,18 @@ func validateOAuthSecret(secretName string, scmProvider string, serverEndpoint s
 		if err := validateBitBucketOAuthSecretDataKeys(secret); err != nil {
 			return err
 		}
+	case constants.AzureDevOpsOAuth:
+		if err := validateAzureDevOpsSecretDataKeys(secret); err != nil {
+			return err
+		}
 	}
 
 	return nil
+}
+
+func validateAzureDevOpsSecretDataKeys(secret *corev1.Secret) error {
+	keys2validate := []string{constants.GitHubOAuthConfigClientIdFileName, constants.GitHubOAuthConfigClientSecretFileName}
+	return validateOAuthSecretDataKeys(secret, keys2validate)
 }
 
 func validateGitHubOAuthSecretDataKeys(secret *corev1.Secret) error {
