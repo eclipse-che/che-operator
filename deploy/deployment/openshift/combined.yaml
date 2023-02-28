@@ -3932,14 +3932,6 @@ spec:
                   cheServer:
                     debug: false
                     logLevel: INFO
-                  database:
-                    credentialsSecretName: postgres-credentials
-                    externalDb: false
-                    postgresDb: dbche
-                    postgresHostName: postgres
-                    postgresPort: "5432"
-                    pvc:
-                      claimSize: 1Gi
                   metrics:
                     enable: true
                 description: Che components configuration.
@@ -4454,19 +4446,11 @@ spec:
                         type: object
                     type: object
                   database:
-                    default:
-                      credentialsSecretName: postgres-credentials
-                      externalDb: false
-                      postgresDb: dbche
-                      postgresHostName: postgres
-                      postgresPort: "5432"
-                      pvc:
-                        claimSize: 1Gi
                     description: Configuration settings related to the database used
-                      by the Che installation.
+                      by the Che installation. Database component is Deprecated. All
+                      properties will be ignored.
                     properties:
                       credentialsSecretName:
-                        default: postgres-credentials
                         description: The secret that contains PostgreSQL `user` and
                           `password` that the Che server uses to connect to the database.
                           The secret must have a `app.kubernetes.io/part-of=che.eclipse.org`
@@ -4682,7 +4666,6 @@ spec:
                             type: object
                         type: object
                       externalDb:
-                        default: false
                         description: Instructs the Operator to deploy a dedicated
                           database. By default, a dedicated PostgreSQL database is
                           deployed as part of the Che installation. When `externalDb`
@@ -4691,25 +4674,20 @@ spec:
                           the external database you want to use.
                         type: boolean
                       postgresDb:
-                        default: dbche
                         description: PostgreSQL database name that the Che server
                           uses to connect to the database.
                         type: string
                       postgresHostName:
-                        default: postgres
                         description: PostgreSQL database hostname that the Che server
                           connects to. Override this value only when using an external
                           database. See field `externalDb`.
                         type: string
                       postgresPort:
-                        default: "5432"
                         description: PostgreSQL Database port the Che server connects
                           to. Override this value only when using an external database.
                           See field `externalDb`.
                         type: string
                       pvc:
-                        default:
-                          claimSize: 1Gi
                         description: PVC settings for PostgreSQL database.
                         properties:
                           claimSize:
@@ -8178,10 +8156,6 @@ spec:
           value: quay.io/eclipse/che-devfile-registry:next
         - name: RELATED_IMAGE_che_tls_secrets_creation_job
           value: quay.io/eclipse/che-tls-secret-creator:alpine-01a4c34
-        - name: RELATED_IMAGE_postgres
-          value: quay.io/eclipse/che--centos--postgresql-96-centos7:9.6-b681d78125361519180a6ac05242c296f8906c11eab7e207b5ca9a89b6344392
-        - name: RELATED_IMAGE_postgres_13_3
-          value: quay.io/eclipse/che--centos--postgresql-13-centos7:1-71b24684d64da46f960682cc4216222a7e4ed8b1a31dd5a865b3e71afdea20d2
         - name: RELATED_IMAGE_single_host_gateway
           value: quay.io/eclipse/che--traefik:v2.9.6-bb7be8d50edf73d8d3a812ac8873ef354a0fe9b40d7f3880747b43a3525855d2
         - name: RELATED_IMAGE_single_host_gateway_config_sidecar
@@ -8208,8 +8182,6 @@ spec:
           value: /dashboard/assets/branding/loader.svg
         - name: MAX_CONCURRENT_RECONCILES
           value: "1"
-        - name: ADD_COMPONENT_READINESS_INIT_CONTAINERS
-          value: "false"
         image: quay.io/eclipse/che-operator:next
         imagePullPolicy: Always
         livenessProbe:

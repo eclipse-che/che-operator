@@ -12,20 +12,19 @@
 package postgres
 
 import (
-	"strings"
-
-	chev2 "github.com/eclipse-che/che-operator/api/v2"
-
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
-	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+)
+
+const (
+	defaultPostgresCredentialsSecret = "postgres-credentials"
+	defaultPostgresVolumeClaimName   = "postgres-data"
+	postgresComponentName            = "postgres"
+	backupServerComponentName        = "backup-rest-server-deployment"
 )
 
 type PostgresReconciler struct {
@@ -37,38 +36,15 @@ func NewPostgresReconciler() *PostgresReconciler {
 }
 
 func (p *PostgresReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if ctx.CheCluster.Spec.Components.Database.ExternalDb {
-		return reconcile.Result{}, true, nil
-	}
+	// PostgreSQL component is not used anymore
+	_, _ = p.syncDeployment(ctx)
+	_, _ = p.syncPVC(ctx)
+	_, _ = p.syncCredentials(ctx)
+	_, _ = p.syncService(ctx)
+	_, _ = p.setDbVersion(ctx)
 
-	done, err := p.syncCredentials(ctx)
-	if !done {
-		return reconcile.Result{}, false, err
-	}
-
-	done, err = p.syncService(ctx)
-	if !done {
-		return reconcile.Result{}, false, err
-	}
-
-	done, err = p.syncPVC(ctx)
-	if !done {
-		return reconcile.Result{}, false, err
-	}
-
-	done, err = p.syncDeployment(ctx)
-	if !done {
-		return reconcile.Result{}, false, err
-	}
-
-	if ctx.CheCluster.Status.PostgresVersion == "" {
-		if !test.IsTestMode() { // ignore in tests
-			done, err := p.setDbVersion(ctx)
-			if !done {
-				return reconcile.Result{}, false, err
-			}
-		}
-	}
+	// Backup server component is not used anymore
+	_, _ = p.syncBackupDeployment(ctx)
 
 	return reconcile.Result{}, true, nil
 }
@@ -78,83 +54,30 @@ func (p *PostgresReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 }
 
 func (p *PostgresReconciler) syncService(ctx *chetypes.DeployContext) (bool, error) {
-	return deploy.SyncServiceToCluster(ctx, constants.PostgresName, []string{constants.PostgresName}, []int32{5432}, constants.PostgresName)
+	return deploy.DeleteNamespacedObject(ctx, postgresComponentName, &corev1.Service{})
 }
 
 func (p *PostgresReconciler) syncPVC(ctx *chetypes.DeployContext) (bool, error) {
-	pvc := &chev2.PVC{
-		ClaimSize: constants.DefaultPostgresPvcClaimSize,
-	}
-
-	if ctx.CheCluster.Spec.Components.Database.Pvc != nil {
-		pvc.StorageClass = ctx.CheCluster.Spec.Components.Database.Pvc.StorageClass
-		if ctx.CheCluster.Spec.Components.Database.Pvc.ClaimSize != "" {
-			pvc.ClaimSize = ctx.CheCluster.Spec.Components.Database.Pvc.ClaimSize
-		}
-	}
-
-	done, err := deploy.SyncPVCToCluster(ctx, constants.DefaultPostgresVolumeClaimName, pvc, constants.PostgresName)
-	if !done {
-		if err == nil {
-			logrus.Infof("Waiting on pvc '%s' to be bound. Sometimes PVC can be bound only when the first consumer is created.", constants.DefaultPostgresVolumeClaimName)
-		}
-	}
-	return done, err
+	return deploy.DeleteNamespacedObject(ctx, defaultPostgresVolumeClaimName, &corev1.PersistentVolumeClaim{})
 }
 
 func (p *PostgresReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
-	clusterDeployment := &appsv1.Deployment{}
-	exists, err := deploy.GetNamespacedObject(ctx, constants.PostgresName, clusterDeployment)
-	if err != nil {
-		return false, err
-	}
-
-	if !exists {
-		clusterDeployment = nil
-	}
-
-	specDeployment, err := p.getDeploymentSpec(clusterDeployment, ctx)
-	if err != nil {
-		return false, err
-	}
-
-	return deploy.SyncDeploymentSpecToCluster(ctx, specDeployment, deploy.DefaultDeploymentDiffOpts)
+	return deploy.DeleteNamespacedObject(ctx, postgresComponentName, &appsv1.Deployment{})
 }
 
 func (p *PostgresReconciler) setDbVersion(ctx *chetypes.DeployContext) (bool, error) {
-	k8sHelper := k8shelper.New()
-	postgresVersion, err := k8sHelper.ExecIntoPod(
-		constants.PostgresName,
-		"postgres -V | awk '{print $NF}' | cut -d '.' -f1-2",
-		"get PostgreSQL version",
-		ctx.CheCluster.Namespace)
-	if err != nil {
-		return false, err
+	if ctx.CheCluster.Status.PostgresVersion != "" {
+		ctx.CheCluster.Status.PostgresVersion = ""
+		_ = deploy.UpdateCheCRStatus(ctx, "postgresVersion", ctx.CheCluster.Status.PostgresVersion)
 	}
-
-	postgresVersion = strings.TrimSpace(postgresVersion)
-	ctx.CheCluster.Status.PostgresVersion = postgresVersion
-	err = deploy.UpdateCheCRStatus(ctx, "postgresVersion", postgresVersion)
-	if err != nil {
-		return false, err
-	}
-
 	return true, nil
 }
 
-// Create secret with PostgreSQL credentials.
 func (p *PostgresReconciler) syncCredentials(ctx *chetypes.DeployContext) (bool, error) {
-	postgresCredentialsSecretName := utils.GetValue(ctx.CheCluster.Spec.Components.Database.CredentialsSecretName, constants.DefaultPostgresCredentialsSecret)
-	exists, err := deploy.GetNamespacedObject(ctx, postgresCredentialsSecretName, &corev1.Secret{})
-	if err != nil {
-		return false, err
-	}
+	postgresCredentialsSecretName := utils.GetValue(ctx.CheCluster.Spec.Components.Database.CredentialsSecretName, defaultPostgresCredentialsSecret)
+	return deploy.DeleteNamespacedObject(ctx, postgresCredentialsSecretName, &corev1.Secret{})
+}
 
-	if !exists {
-		postgresUser := constants.DefaultPostgresUser
-		postgresPassword := utils.GeneratePassword(12)
-		return deploy.SyncSecretToCluster(ctx, postgresCredentialsSecretName, ctx.CheCluster.Namespace, map[string][]byte{"user": []byte(postgresUser), "password": []byte(postgresPassword)})
-	}
-
-	return true, nil
+func (p *PostgresReconciler) syncBackupDeployment(ctx *chetypes.DeployContext) (bool, error) {
+	return deploy.DeleteNamespacedObject(ctx, backupServerComponentName, &appsv1.Deployment{})
 }

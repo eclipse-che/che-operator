@@ -61,9 +61,6 @@ type CheConfigMap struct {
 	WorkspacePvcStorageClassName           string `json:"CHE_INFRA_KUBERNETES_PVC_STORAGE__CLASS__NAME"`
 	TlsSupport                             string `json:"CHE_INFRA_OPENSHIFT_TLS__ENABLED"`
 	K8STrustCerts                          string `json:"CHE_INFRA_KUBERNETES_TRUST__CERTS"`
-	DatabaseURL                            string `json:"CHE_JDBC_URL,omitempty"`
-	DbUserName                             string `json:"CHE_JDBC_USERNAME,omitempty"`
-	DbPassword                             string `json:"CHE_JDBC_PASSWORD,omitempty"`
 	CheLogLevel                            string `json:"CHE_LOG_LEVEL"`
 	IdentityProviderUrl                    string `json:"CHE_OIDC_AUTH__SERVER__URL,omitempty"`
 	IdentityProviderInternalURL            string `json:"CHE_OIDC_AUTH__INTERNAL__SERVER__URL,omitempty"`
@@ -133,9 +130,6 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 		}
 	}
 
-	chePostgresHostName := utils.GetValue(ctx.CheCluster.Spec.Components.Database.PostgresHostName, constants.DefaultPostgresHostName)
-	chePostgresPort := utils.GetValue(ctx.CheCluster.Spec.Components.Database.PostgresPort, constants.DefaultPostgresPort)
-	chePostgresDb := utils.GetValue(ctx.CheCluster.Spec.Components.Database.PostgresDb, constants.DefaultPostgresDb)
 	ingressClass := utils.GetValue(ctx.CheCluster.Spec.Networking.Annotations["kubernetes.io/ingress.class"], constants.DefaultIngressClass)
 
 	// grab first the devfile registry url which is deployed by operator
@@ -242,7 +236,6 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 	}
 
 	data.IdentityProviderUrl = identityProviderURL
-	data.DatabaseURL = "jdbc:postgresql://" + chePostgresHostName + ":" + chePostgresPort + "/" + chePostgresDb
 
 	out, err := json.Marshal(data)
 	if err != nil {

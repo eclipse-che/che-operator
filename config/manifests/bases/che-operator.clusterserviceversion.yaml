@@ -88,6 +88,12 @@ spec:
       - description: Configuration of an alternative registry that stores Che images.
         displayName: Container registry
         path: containerRegistry
+      - description: Configuration settings related to the database used by the Che
+          installation. Database component is Deprecated. All properties will be ignored.
+        displayName: Database
+        path: components.database
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:hidden
       - description: Enables users to work with repositories hosted on Azure DevOps
           Service (dev.azure.com).
         displayName: Azure
@@ -172,6 +178,7 @@ spec:
         path: postgresVersion
         x-descriptors:
         - urn:alm:descriptor:text
+        - urn:alm:descriptor:com.tectonic.ui:hidden
       - description: A brief CamelCase message indicating details about why the Che
           deployment is in the current phase.
         displayName: Reason

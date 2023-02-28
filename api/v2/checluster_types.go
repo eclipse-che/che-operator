@@ -43,7 +43,7 @@ type CheClusterSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=2
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Components"
-	// +kubebuilder:default:={cheServer: {logLevel: INFO, debug: false}, metrics: {enable: true}, database: {externalDb: false, credentialsSecretName: postgres-credentials, postgresHostName: postgres, postgresPort: "5432", postgresDb: dbche, pvc: {claimSize: "1Gi"}}}
+	// +kubebuilder:default:={cheServer: {logLevel: INFO, debug: false}, metrics: {enable: true}}
 	Components CheClusterComponents `json:"components"`
 	// A configuration that allows users to work with remote Git repositories.
 	// +optional
@@ -160,8 +160,9 @@ type CheClusterComponents struct {
 	// +optional
 	DevfileRegistry DevfileRegistry `json:"devfileRegistry"`
 	// Configuration settings related to the database used by the Che installation.
+	// Database component is Deprecated. All properties will be ignored.
 	// +optional
-	// +kubebuilder:default:={externalDb: false, credentialsSecretName: postgres-credentials, postgresHostName: postgres, postgresPort: "5432", postgresDb: dbche, pvc: {claimSize: "1Gi"}}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:com.tectonic.ui:hidden"
 	Database Database `json:"database"`
 	// Configuration settings related to the dashboard used by the Che installation.
 	// +optional
@@ -302,6 +303,7 @@ type DevfileRegistry struct {
 	ExternalDevfileRegistries []ExternalDevfileRegistry `json:"externalDevfileRegistries,omitempty"`
 }
 
+// Database component is Deprecated. All properties will be ignored.
 // Configuration settings related to the database used by the Che installation.
 // +k8s:openapi-gen=true
 type Database struct {
@@ -310,33 +312,27 @@ type Database struct {
 	// When `externalDb` is set as `true`, no dedicated database is deployed by the
 	// Operator and you need to provide connection details about the external database you want to use.
 	// +optional
-	// +kubebuilder:default:=false
 	ExternalDb bool `json:"externalDb"`
 	// Deployment override options.
 	// +optional
 	Deployment *Deployment `json:"deployment,omitempty"`
 	// PostgreSQL database hostname that the Che server connects to.
 	// Override this value only when using an external database. See field `externalDb`.
-	// +kubebuilder:default:="postgres"
 	// +optional
 	PostgresHostName string `json:"postgresHostName,omitempty"`
 	// PostgreSQL Database port the Che server connects to.
 	// Override this value only when using an external database. See field `externalDb`.
 	// +optional
-	// +kubebuilder:default:="5432"
 	PostgresPort string `json:"postgresPort,omitempty"`
 	// PostgreSQL database name that the Che server uses to connect to the database.
 	// +optional
-	// +kubebuilder:default:="dbche"
 	PostgresDb string `json:"postgresDb,omitempty"`
 	// The secret that contains PostgreSQL `user` and `password` that the Che server uses to connect to the database.
 	// The secret must have a `app.kubernetes.io/part-of=che.eclipse.org` label.
 	// +optional
-	// +kubebuilder:default:="postgres-credentials"
 	CredentialsSecretName string `json:"credentialsSecretName,omitempty"`
 	// PVC settings for PostgreSQL database.
 	// +optional
-	// +kubebuilder:default:={claimSize: "1Gi"}
 	Pvc *PVC `json:"pvc,omitempty"`
 }
 
@@ -754,6 +750,7 @@ type CheClusterStatus struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="PostgreSQL version"
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors="urn:alm:descriptor:text"
+	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors="urn:alm:descriptor:com.tectonic.ui:hidden"
 	PostgresVersion string `json:"postgresVersion,omitempty"`
 	// The resolved workspace base domain. This is either the copy of the explicitly defined property of the
 	// same name in the spec or, if it is undefined in the spec and we're running on OpenShift, the automatically

@@ -18,6 +18,9 @@ import (
 	"io"
 	"os"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -25,8 +28,6 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
@@ -60,63 +61,6 @@ func (cl *K8sHelper) GetClientset() kubernetes.Interface {
 
 func (cl *K8sHelper) GetClient() client.Client {
 	return cl.client
-}
-
-func (cl *K8sHelper) ExecIntoPod(
-	deploymentName string,
-	command string,
-	reason string,
-	namespace string) (string, error) {
-	pod, err := cl.GetDeploymentPod(deploymentName, namespace)
-	if err != nil {
-		return "", err
-	}
-
-	return cl.DoExecIntoPod(namespace, pod, command, reason)
-}
-
-func (cl *K8sHelper) DoExecIntoPod(namespace string, podName string, command string, reason string) (string, error) {
-	var stdin io.Reader
-	return cl.DoExecIntoPodWithStdin(namespace, podName, command, stdin, reason)
-}
-
-func (cl *K8sHelper) DoExecIntoPodWithStdin(namespace string, podName string, command string, stdin io.Reader, reason string) (string, error) {
-	if reason != "" {
-		logrus.Infof("Running exec for '%s' in the pod '%s'", reason, podName)
-	}
-
-	args := []string{"/bin/bash", "-c", command}
-	stdout, stderr, err := cl.RunExec(args, podName, namespace, stdin)
-	if err != nil {
-		logrus.Errorf("Error running exec: %v, command: %s", err, args)
-		if stderr != "" {
-			logrus.Errorf("Stderr: %s", stderr)
-		}
-		return stdout, err
-	}
-
-	if reason != "" {
-		logrus.Info("Exec successfully completed.")
-	}
-	return stdout, nil
-}
-
-//GetDeploymentPod queries all pods is a selected namespace by LabelSelector
-func (cl *K8sHelper) GetDeploymentPod(name string, ns string) (podName string, err error) {
-	api := cl.clientset.CoreV1()
-	listOptions := metav1.ListOptions{
-		LabelSelector: "component=" + name,
-	}
-	podList, _ := api.Pods(ns).List(context.TODO(), listOptions)
-	podListItems := podList.Items
-	if len(podListItems) == 0 {
-		logrus.Errorf("Failed to find pod for component %s. List of pods: %v", name, podListItems)
-		return "", err
-	}
-	// expecting only one pod to be there so, taking the first one
-	// todo maybe add a unique label to deployments?
-	podName = podListItems[0].Name
-	return podName, nil
 }
 
 func (cl *K8sHelper) GetPodsByComponent(name string, ns string) []string {

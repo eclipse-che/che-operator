@@ -31,8 +31,6 @@ var (
 	defaultPluginRegistryImage                    string
 	defaultDevfileRegistryImage                   string
 	defaultCheTLSSecretsCreationJobImage          string
-	defaultPostgresImage                          string
-	defaultPostgres13Image                        string
 	defaultSingleHostGatewayImage                 string
 	defaultSingleHostGatewayConfigSidecarImage    string
 	defaultGatewayAuthenticationSidecarImage      string
@@ -77,12 +75,6 @@ func Initialize() {
 	defaultDashboardImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_dashboard"))
 	defaultPluginRegistryImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_plugin_registry"))
 	defaultDevfileRegistryImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_devfile_registry"))
-	defaultPostgresImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_postgres"))
-
-	// allow not to set env variable into a container
-	// while downstream is not migrated to PostgreSQL 13.3 yet
-	defaultPostgres13Image = os.Getenv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_postgres_13_3"))
-
 	defaultSingleHostGatewayImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_single_host_gateway"))
 	defaultSingleHostGatewayConfigSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_single_host_gateway_config_sidecar"))
 	defaultGatewayAuthenticationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authentication_sidecar"))
@@ -129,22 +121,6 @@ func GetCheVersion() string {
 	}
 
 	return defaultCheVersion
-}
-
-func GetPostgresImage(checluster *chev2.CheCluster) string {
-	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
-	}
-
-	return PatchDefaultImageName(checluster, defaultPostgresImage)
-}
-
-func GetPostgres13Image(checluster *chev2.CheCluster) string {
-	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
-	}
-
-	return PatchDefaultImageName(checluster, defaultPostgres13Image)
 }
 
 func GetDashboardImage(checluster *chev2.CheCluster) string {
@@ -233,10 +209,6 @@ func GetCheFlavor() string {
 	}
 
 	return defaultCheFlavor
-}
-
-func IsComponentReadinessInitContainersConfigured() bool {
-	return os.Getenv("ADD_COMPONENT_READINESS_INIT_CONTAINERS") == "true"
 }
 
 func GetConsoleLinkName() string {
