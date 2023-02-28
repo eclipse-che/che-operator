@@ -289,7 +289,7 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 
 	addMap(cheEnv, ctx.CheCluster.Spec.Components.CheServer.ExtraProperties)
 
-	for _, oauthProvider := range []string{"bitbucket", "gitlab", "github"} {
+	for _, oauthProvider := range []string{"bitbucket", "gitlab", "github", constants.AzureDevOpsOAuth} {
 		err := updateIntegrationServerEndpoints(ctx, cheEnv, oauthProvider)
 		if err != nil {
 			return nil, err
@@ -305,7 +305,7 @@ func updateIntegrationServerEndpoints(ctx *chetypes.DeployContext, cheEnv map[st
 		return err
 	}
 
-	envName := fmt.Sprintf("CHE_INTEGRATION_%s_SERVER__ENDPOINTS", strings.ToUpper(oauthProvider))
+	envName := fmt.Sprintf("CHE_INTEGRATION_%s_SERVER__ENDPOINTS", strings.ReplaceAll(strings.ToUpper(oauthProvider), "-", "_"))
 	if err != nil {
 		return err
 	}

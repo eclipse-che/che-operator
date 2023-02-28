@@ -6966,6 +6966,22 @@ spec:
                 description: A configuration that allows users to work with remote
                   Git repositories.
                 properties:
+                  azure:
+                    description: Enables users to work with repositories hosted on
+                      Azure DevOps Service (dev.azure.com).
+                    items:
+                      description: AzureDevOpsService enables users to work with repositories
+                        hosted on Azure DevOps Service (dev.azure.com).
+                      properties:
+                        secretName:
+                          description: 'Kubernetes secret, that contains Base64-encoded
+                            Azure DevOps Service Application ID and Client Secret.
+                            See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-microsoft-azure-devops-services'
+                          type: string
+                      required:
+                      - secretName
+                      type: object
+                    type: array
                   bitbucket:
                     description: Enables users to work with repositories hosted on
                       Bitbucket (bitbucket.org or self-hosted).

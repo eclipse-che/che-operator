@@ -141,6 +141,16 @@ spec:
               images.
             displayName: Container registry
             path: containerRegistry
+          - description: Enables users to work with repositories hosted on Azure DevOps
+              Service (dev.azure.com).
+            displayName: Azure
+            path: gitServices.azure
+          - description: 'Kubernetes secret, that contains Base64-encoded Azure DevOps
+              Service Application ID and Client Secret. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-microsoft-azure-devops-services'
+            displayName: Secret Name
+            path: gitServices.azure[0].secretName
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes:Secret
           - description: Enables users to work with repositories hosted on Bitbucket
               (bitbucket.org or self-hosted).
             displayName: Bitbucket
