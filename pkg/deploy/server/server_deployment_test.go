@@ -387,6 +387,88 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 	}
 }
 
+func TestMountAzureDevOpsOAuthEnvVar(t *testing.T) {
+	type testCase struct {
+		name                  string
+		initObjects           []runtime.Object
+		expectedIdKeyPath     string
+		expectedSecretKeyPath string
+		expectedOAuthEndpoint string
+		expectedVolume        corev1.Volume
+		expectedVolumeMount   corev1.VolumeMount
+	}
+
+	testCases := []testCase{
+		{
+			name: "Test",
+			initObjects: []runtime.Object{
+				&corev1.Secret{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "Secret",
+						APIVersion: "v1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "azure-devops-oauth-config",
+						Namespace: "eclipse-che",
+						Labels: map[string]string{
+							"app.kubernetes.io/part-of":   "che.eclipse.org",
+							"app.kubernetes.io/component": "oauth-scm-configuration",
+						},
+						Annotations: map[string]string{
+							"che.eclipse.org/oauth-scm-server": "azure-devops",
+						},
+					},
+					Data: map[string][]byte{
+						"id":     []byte("some_id"),
+						"secret": []byte("some_secret"),
+					},
+				},
+			},
+			expectedIdKeyPath:     "/che-conf/oauth/azure-devops/id",
+			expectedSecretKeyPath: "/che-conf/oauth/azure-devops/secret",
+			expectedOAuthEndpoint: "endpoint_1",
+			expectedVolume: corev1.Volume{
+				Name: "azure-devops-oauth-config",
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: "azure-devops-oauth-config",
+					},
+				},
+			},
+			expectedVolumeMount: corev1.VolumeMount{
+				Name:      "azure-devops-oauth-config",
+				MountPath: "/che-conf/oauth/azure-devops",
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			ctx := test.GetDeployContext(nil, testCase.initObjects)
+
+			server := NewCheServerReconciler()
+			deployment, err := server.getDeploymentSpec(ctx)
+			assert.Nil(t, err, "Unexpected error %v", err)
+
+			container := &deployment.Spec.Template.Spec.Containers[0]
+
+			value := utils.GetEnvByName("CHE_OAUTH2_AZURE_DEVOPS_CLIENTID__FILEPATH", container.Env)
+			assert.Equal(t, testCase.expectedIdKeyPath, value)
+
+			value = utils.GetEnvByName("CHE_OAUTH2_AZURE_DEVOPS_CLIENTSECRET__FILEPATH", container.Env)
+			assert.Equal(t, testCase.expectedSecretKeyPath, value)
+
+			volume := test.FindVolume(deployment.Spec.Template.Spec.Volumes, "azure-devops-oauth-config")
+			assert.NotNil(t, volume)
+			assert.Equal(t, testCase.expectedVolume, volume)
+
+			volumeMount := test.FindVolumeMount(container.VolumeMounts, "azure-devops-oauth-config")
+			assert.NotNil(t, volumeMount)
+			assert.Equal(t, testCase.expectedVolumeMount, volumeMount)
+		})
+	}
+}
+
 func TestMountGitLabOAuthEnvVar(t *testing.T) {
 	type testCase struct {
 		name                  string
