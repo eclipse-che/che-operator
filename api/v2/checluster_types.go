@@ -25,6 +25,8 @@ import (
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+
+	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	imagepullerv1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
@@ -121,6 +123,9 @@ type CheClusterDevEnvironments struct {
 	// +kubebuilder:validation:Pattern=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
 	// +kubebuilder:validation:MaxLength=63
 	ServiceAccount string `json:"serviceAccount,omitempty"`
+	// List of ServiceAccount tokens that will be mounted into workspace pods as projected volumes.
+	// +optional
+	ServiceAccountTokens []controllerv1alpha1.ServiceAccountToken `json:"serviceAccountTokens,omitempty"`
 	// Pod scheduler for the workspace pods.
 	// If not specified, the pod scheduler is set to the default scheduler on the cluster.
 	// +optional

@@ -147,7 +147,8 @@ func updateWorkspaceServiceAccountConfig(devEnvironments *chev2.CheClusterDevEnv
 	isNamespaceAutoProvisioned := pointer.BoolPtrDerefOr(devEnvironments.DefaultNamespace.AutoProvision, constants.DefaultAutoProvision)
 
 	workspaceConfig.ServiceAccount = &controllerv1alpha1.ServiceAccountConfig{
-		ServiceAccountName: devEnvironments.ServiceAccount,
+		ServiceAccountName:   devEnvironments.ServiceAccount,
+		ServiceAccountTokens: devEnvironments.ServiceAccountTokens,
 		// If user's Namespace is not auto provisioned (is pre-created by admin), then ServiceAccount must be pre-created as well
 		DisableCreation: pointer.BoolPtr(!isNamespaceAutoProvisioned && devEnvironments.ServiceAccount != ""),
 	}
