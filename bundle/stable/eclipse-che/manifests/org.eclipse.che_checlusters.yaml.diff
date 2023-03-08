@@ -1,177 +1,96 @@
---- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che/generated/openshift/org.eclipse.che_checlusters.yaml	2023-02-15 22:45:33.472967129 +0000
-+++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che/manifests/org.eclipse.che_checlusters.yaml	2023-02-15 22:45:33.480967257 +0000
-@@ -1150,19 +1150,15 @@
-                           hosted on Bitbucket (bitbucket.org or self-hosted).
-                         properties:
-                           endpoint:
--                            default: https://bitbucket.org
--                            description: Bitbucket server endpoint URL.
-+                            description: 'Bitbucket server endpoint URL. Deprecated
-+                              in favor of `che.eclipse.org/scm-server-endpoint` annotation.
-+                              See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/.'
-                             type: string
-                           secretName:
-                             description: 'Kubernetes secret, that contains Base64-encoded
--                              Bitbucket OAuth 1.0 or OAuth 2.0 data. For OAuth 1.0:
--                              private key, Bitbucket Application link consumer key
--                              and Bitbucket Application link shared secret must be
--                              stored in `private.key`, `consumer.key` and `shared_secret`
--                              keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/.
--                              For OAuth 2.0: Bitbucket OAuth consumer key and Bitbucket
--                              OAuth consumer secret must be stored in `id` and `secret`
--                              keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-the-bitbucket-cloud/.'
-+                              Bitbucket OAuth 1.0 or OAuth 2.0 data. See the following
-+                              pages for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/
-+                              and https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-the-bitbucket-cloud/.'
-                             type: string
-                         required:
-                           - secretName
-@@ -1176,17 +1172,16 @@
-                           hosted on GitHub (GitHub.com or GitHub Enterprise).
-                         properties:
-                           endpoint:
--                            default: https://github.com
--                            description: GitHub server endpoint URL.
-+                            description: 'GitHub server endpoint URL. Deprecated in
-+                              favor of `che.eclipse.org/scm-server-endpoint` annotation.
-+                              See the following page for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
-                             type: string
-                           secretName:
-                             description: 'Kubernetes secret, that contains Base64-encoded
--                              GitHub OAuth Client id and GitHub OAuth Client secret,
--                              that stored in `id` and `secret` keys respectively.
--                              See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
-+                              GitHub OAuth Client id and GitHub OAuth Client secret.
-+                              See the following page for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
-                             type: string
-                         required:
--                          - endpoint
-                           - secretName
-                         type: object
-                       type: array
-@@ -1198,17 +1193,16 @@
-                           hosted on GitLab (gitlab.com or self-hosted).
-                         properties:
-                           endpoint:
--                            default: https://gitlab.com
--                            description: GitLab server endpoint URL.
-+                            description: 'GitLab server endpoint URL. Deprecated in
-+                              favor of `che.eclipse.org/scm-server-endpoint` annotation.
-+                              See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
-                             type: string
-                           secretName:
-                             description: 'Kubernetes secret, that contains Base64-encoded
-                               GitHub Application id and GitLab Application Client
--                              secret, that stored in `id` and `secret` keys respectively.
--                              See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
-+                              secret. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
-                             type: string
-                         required:
--                          - endpoint
-                           - secretName
-                         type: object
-                       type: array
-@@ -3784,7 +3778,7 @@
-                         type: object
-                       type: array
-                     workspaceDefaultEditor:
--                      default: che-incubator/che-code/insiders
-+                      default: che-incubator/che-code/latest
-                       description: The default editor to workspace create with. It
-                         could be a plugin ID or a URI. The plugin ID must have `publisher/plugin/version`.
-                         The URI must start from `http`.
-@@ -5403,7 +5397,7 @@
-                       - container:
-                           image: quay.io/devfile/universal-developer-image:ubi8-38da5c2
-                         name: universal-developer-image
--                    defaultEditor: che-incubator/che-code/insiders
-+                    defaultEditor: che-incubator/che-code/latest
-                     defaultNamespace:
-                       autoProvision: true
-                       template: <username>-che
-@@ -6931,7 +6925,7 @@
-                         type: object
-                       type: array
-                     defaultEditor:
--                      default: che-incubator/che-code/insiders
-+                      default: che-incubator/che-code/latest
-                       description: The default editor to workspace create with. It
-                         could be a plugin ID or a URI. The plugin ID must have `publisher/plugin/version`
-                         format. The URI must start from `http://` or `https://`.
-@@ -7148,19 +7142,15 @@
-                           hosted on Bitbucket (bitbucket.org or self-hosted).
-                         properties:
-                           endpoint:
--                            default: https://bitbucket.org
--                            description: Bitbucket server endpoint URL.
-+                            description: 'Bitbucket server endpoint URL. Deprecated
-+                              in favor of `che.eclipse.org/scm-server-endpoint` annotation.
-+                              See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/.'
-                             type: string
-                           secretName:
-                             description: 'Kubernetes secret, that contains Base64-encoded
--                              Bitbucket OAuth 1.0 or OAuth 2.0 data. For OAuth 1.0:
--                              private key, Bitbucket Application link consumer key
--                              and Bitbucket Application link shared secret must be
--                              stored in `private.key`, `consumer.key` and `shared_secret`
--                              keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/.
--                              For OAuth 2.0: Bitbucket OAuth consumer key and Bitbucket
--                              OAuth consumer secret must be stored in `id` and `secret`
--                              keys respectively. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-the-bitbucket-cloud/.'
-+                              Bitbucket OAuth 1.0 or OAuth 2.0 data. See the following
-+                              pages for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/
-+                              and https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-the-bitbucket-cloud/.'
-                             type: string
-                         required:
-                           - secretName
-@@ -7174,20 +7164,21 @@
-                           hosted on GitHub (GitHub.com or GitHub Enterprise).
-                         properties:
-                           disableSubdomainIsolation:
--                            description: Disables subdomain isolation.
-+                            description: 'Disables subdomain isolation. Deprecated
-+                              in favor of `che.eclipse.org/scm-github-disable-subdomain-isolation`
-+                              annotation. See the following page for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
-                             type: boolean
-                           endpoint:
--                            default: https://github.com
--                            description: GitHub server endpoint URL.
-+                            description: 'GitHub server endpoint URL. Deprecated in
-+                              favor of `che.eclipse.org/scm-server-endpoint` annotation.
-+                              See the following page for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
-                             type: string
-                           secretName:
-                             description: 'Kubernetes secret, that contains Base64-encoded
--                              GitHub OAuth Client id and GitHub OAuth Client secret,
--                              that stored in `id` and `secret` keys respectively.
--                              See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
-+                              GitHub OAuth Client id and GitHub OAuth Client secret.
-+                              See the following page for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
-                             type: string
-                         required:
--                          - endpoint
-                           - secretName
-                         type: object
-                       type: array
-@@ -7199,17 +7190,16 @@
-                           hosted on GitLab (gitlab.com or self-hosted).
-                         properties:
-                           endpoint:
--                            default: https://gitlab.com
--                            description: GitLab server endpoint URL.
-+                            description: 'GitLab server endpoint URL. Deprecated in
-+                              favor of `che.eclipse.org/scm-server-endpoint` annotation.
-+                              See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
-                             type: string
-                           secretName:
-                             description: 'Kubernetes secret, that contains Base64-encoded
-                               GitHub Application id and GitLab Application Client
--                              secret, that stored in `id` and `secret` keys respectively.
--                              See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
-+                              secret. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
-                             type: string
-                         required:
--                          - endpoint
-                           - secretName
-                         type: object
-                       type: array
+--- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che/generated/openshift/org.eclipse.che_checlusters.yaml	2023-03-08 21:23:41.494173285 +0000
++++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che/manifests/org.eclipse.che_checlusters.yaml	2023-03-08 21:23:41.502173283 +0000
+@@ -4032,14 +4032,6 @@
+                     cheServer:
+                       debug: false
+                       logLevel: INFO
+-                    database:
+-                      credentialsSecretName: postgres-credentials
+-                      externalDb: false
+-                      postgresDb: dbche
+-                      postgresHostName: postgres
+-                      postgresPort: "5432"
+-                      pvc:
+-                        claimSize: 1Gi
+                     metrics:
+                       enable: true
+                   description: Che components configuration.
+@@ -4562,19 +4554,11 @@
+                           type: object
+                       type: object
+                     database:
+-                      default:
+-                        credentialsSecretName: postgres-credentials
+-                        externalDb: false
+-                        postgresDb: dbche
+-                        postgresHostName: postgres
+-                        postgresPort: "5432"
+-                        pvc:
+-                          claimSize: 1Gi
+                       description: Configuration settings related to the database
+-                        used by the Che installation.
++                        used by the Che installation. Database component is Deprecated.
++                        All properties will be ignored.
+                       properties:
+                         credentialsSecretName:
+-                          default: postgres-credentials
+                           description: The secret that contains PostgreSQL `user`
+                             and `password` that the Che server uses to connect to
+                             the database. The secret must have a `app.kubernetes.io/part-of=che.eclipse.org`
+@@ -4794,7 +4778,6 @@
+                               type: object
+                           type: object
+                         externalDb:
+-                          default: false
+                           description: Instructs the Operator to deploy a dedicated
+                             database. By default, a dedicated PostgreSQL database
+                             is deployed as part of the Che installation. When `externalDb`
+@@ -4803,25 +4786,20 @@
+                             about the external database you want to use.
+                           type: boolean
+                         postgresDb:
+-                          default: dbche
+                           description: PostgreSQL database name that the Che server
+                             uses to connect to the database.
+                           type: string
+                         postgresHostName:
+-                          default: postgres
+                           description: PostgreSQL database hostname that the Che server
+                             connects to. Override this value only when using an external
+                             database. See field `externalDb`.
+                           type: string
+                         postgresPort:
+-                          default: "5432"
+                           description: PostgreSQL Database port the Che server connects
+                             to. Override this value only when using an external database.
+                             See field `externalDb`.
+                           type: string
+                         pvc:
+-                          default:
+-                            claimSize: 1Gi
+                           description: PVC settings for PostgreSQL database.
+                           properties:
+                             claimSize:
+@@ -7134,6 +7112,22 @@
+                   description: A configuration that allows users to work with remote
+                     Git repositories.
+                   properties:
++                    azure:
++                      description: Enables users to work with repositories hosted
++                        on Azure DevOps Service (dev.azure.com).
++                      items:
++                        description: AzureDevOpsService enables users to work with
++                          repositories hosted on Azure DevOps Service (dev.azure.com).
++                        properties:
++                          secretName:
++                            description: 'Kubernetes secret, that contains Base64-encoded
++                              Azure DevOps Service Application ID and Client Secret.
++                              See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-microsoft-azure-devops-services'
++                            type: string
++                        required:
++                          - secretName
++                        type: object
++                      type: array
+                     bitbucket:
+                       description: Enables users to work with repositories hosted
+                         on Bitbucket (bitbucket.org or self-hosted).
