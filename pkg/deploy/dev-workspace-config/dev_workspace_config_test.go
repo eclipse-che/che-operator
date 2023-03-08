@@ -940,3 +940,248 @@ func TestReconcileDevWorkspaceConfigPodSchedulerName(t *testing.T) {
 		})
 	}
 }
+
+func TestReconcileDevWorkspaceConfigServiceAccountTokens(t *testing.T) {
+	type testCase struct {
+		name                   string
+		cheCluster             *chev2.CheCluster
+		existedObjects         []runtime.Object
+		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
+	}
+
+	var testCases = []testCase{
+		{
+			name: "Create DevWorkspaceOperatorConfig with ServiceAccountTokens",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						ServiceAccountTokens: []controllerv1alpha1.ServiceAccountToken{
+							{
+								Name:              "test-token-1",
+								MountPath:         "/var/run/secrets/tokens",
+								Audience:          "openshift",
+								ExpirationSeconds: 3600,
+							},
+							{
+								Name:              "test-token-2",
+								MountPath:         "/var/run/secrets/tokens",
+								Audience:          "kubernetes",
+								ExpirationSeconds: 180,
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					ServiceAccount: &controllerv1alpha1.ServiceAccountConfig{
+						ServiceAccountTokens: []controllerv1alpha1.ServiceAccountToken{
+							{
+								Name:              "test-token-1",
+								MountPath:         "/var/run/secrets/tokens",
+								Audience:          "openshift",
+								ExpirationSeconds: 3600,
+							},
+							{
+								Name:              "test-token-2",
+								MountPath:         "/var/run/secrets/tokens",
+								Audience:          "kubernetes",
+								ExpirationSeconds: 180,
+							},
+						}},
+				},
+			},
+		},
+		{
+			name: "Update existing DevWorkspaceOperatorConfig when ServiceAccountTokens are added",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						ServiceAccountTokens: []controllerv1alpha1.ServiceAccountToken{
+							{
+								Name:              "test-token",
+								MountPath:         "/var/run/secrets/tokens",
+								Audience:          "openshift",
+								ExpirationSeconds: 3600,
+							},
+							{
+								Name:              "test-token-2",
+								MountPath:         "/var/run/secrets/tokens",
+								Audience:          "kubernetes",
+								ExpirationSeconds: 180,
+							},
+						},
+					},
+				},
+			},
+			existedObjects: []runtime.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					ServiceAccount: &controllerv1alpha1.ServiceAccountConfig{
+						ServiceAccountTokens: []controllerv1alpha1.ServiceAccountToken{
+							{
+								Name:              "test-token",
+								MountPath:         "/var/run/secrets/tokens",
+								Audience:          "openshift",
+								ExpirationSeconds: 3600,
+							},
+							{
+								Name:              "test-token-2",
+								MountPath:         "/var/run/secrets/tokens",
+								Audience:          "kubernetes",
+								ExpirationSeconds: 180,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Update existing DevWorkspaceOperatorConfig when ServiceAccountTokens are changed",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						ServiceAccountTokens: []controllerv1alpha1.ServiceAccountToken{
+							{
+								Name:              "new-token",
+								MountPath:         "/var/run/secrets/tokens",
+								Audience:          "openshift",
+								ExpirationSeconds: 3600,
+							},
+						},
+					},
+				},
+			},
+			existedObjects: []runtime.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							ServiceAccount: &controllerv1alpha1.ServiceAccountConfig{
+								ServiceAccountTokens: []controllerv1alpha1.ServiceAccountToken{
+									{
+										Name:              "old-token",
+										MountPath:         "/var/run/secrets/tokens",
+										Audience:          "openshift",
+										ExpirationSeconds: 60,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					ServiceAccount: &controllerv1alpha1.ServiceAccountConfig{
+						ServiceAccountTokens: []controllerv1alpha1.ServiceAccountToken{
+							{
+								Name:              "new-token",
+								MountPath:         "/var/run/secrets/tokens",
+								Audience:          "openshift",
+								ExpirationSeconds: 3600,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Update existing DevWorkspaceOperatorConfig when ServiceAccountTokens are removed",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						ServiceAccountTokens: []controllerv1alpha1.ServiceAccountToken{},
+					},
+				},
+			},
+			existedObjects: []runtime.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							ServiceAccount: &controllerv1alpha1.ServiceAccountConfig{
+								ServiceAccountTokens: []controllerv1alpha1.ServiceAccountToken{
+									{
+										Name:              "test-token",
+										MountPath:         "/var/run/secrets/tokens",
+										Audience:          "openshift",
+										ExpirationSeconds: 3600,
+									},
+									{
+										Name:              "test-token-2",
+										MountPath:         "/var/run/secrets/tokens",
+										Audience:          "kubernetes",
+										ExpirationSeconds: 180,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					ServiceAccount: &controllerv1alpha1.ServiceAccountConfig{},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			deployContext := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
+			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
+			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
+			assert.NoError(t, err)
+
+			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
+			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			assert.NoError(t, err)
+			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.ServiceAccount.ServiceAccountTokens, dwoc.Config.Workspace.ServiceAccount.ServiceAccountTokens)
+		})
+	}
+}
