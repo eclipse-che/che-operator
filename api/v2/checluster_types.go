@@ -109,7 +109,7 @@ type CheClusterDevEnvironments struct {
 	SecondsOfRunBeforeIdling *int32 `json:"secondsOfRunBeforeIdling,omitempty"`
 	// Disables the container build capabilities.
 	// +optional
-	// +kubebuilder:default:=true
+	// +kubebuilder:default:=false
 	DisableContainerBuildCapabilities *bool `json:"disableContainerBuildCapabilities,omitempty"`
 	// Container build configuration.
 	// +optional
