@@ -12,13 +12,9 @@
 package k8shelper
 
 import (
-	"bytes"
 	"context"
-	"fmt"
-	"io"
 	"os"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,8 +25,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/remotecommand"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
@@ -75,38 +69,6 @@ func (cl *K8sHelper) GetPodsByComponent(name string, ns string) []string {
 	}
 
 	return names
-}
-
-func (cl *K8sHelper) RunExec(command []string, podName, namespace string, stdin io.Reader) (string, string, error) {
-	req := cl.clientset.CoreV1().RESTClient().Post().
-		Resource("pods").
-		Name(podName).
-		Namespace(namespace).
-		SubResource("exec")
-
-	req.VersionedParams(&corev1.PodExecOptions{
-		Command: command,
-		Stdin:   stdin != nil,
-		Stdout:  true,
-		Stderr:  true,
-		TTY:     false,
-	}, scheme.ParameterCodec)
-
-	cfg, _ := config.GetConfig()
-	exec, err := remotecommand.NewSPDYExecutor(cfg, "POST", req.URL())
-	if err != nil {
-		return "", "", fmt.Errorf("error while creating executor: %v", err)
-	}
-
-	var stdout, stderr bytes.Buffer
-	err = exec.Stream(remotecommand.StreamOptions{
-		Stdin:  stdin,
-		Stdout: &stdout,
-		Stderr: &stderr,
-		Tty:    false,
-	})
-
-	return stdout.String(), stderr.String(), err
 }
 
 func initializeForTesting() *K8sHelper {
