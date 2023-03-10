@@ -737,6 +737,7 @@ install-certmgr: ## Install Cert Manager v1.7.1
 install-devworkspace: SHELL := /bin/bash
 install-devworkspace: ## Install Dev Workspace operator, available channels: next, fast
 	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
+	[[ -z "$(OPERATOR_NAMESPACE)" ]] && DEFINED_OPERATOR_NAMESPACE="openshift-operators" || DEFINED_OPERATOR_NAMESPACE=$(OPERATOR_NAMESPACE)
 
 	if [[ $(PLATFORM) == "kubernetes" ]]; then
 		$(MAKE) create-namespace NAMESPACE="devworkspace-controller"
@@ -762,13 +763,13 @@ install-devworkspace: ## Install Dev Workspace operator, available channels: nex
 		$(MAKE) create-catalogsource IMAGE="$${IMAGE}" NAME="devworkspace-operator" NAMESPACE="openshift-marketplace"
 		$(MAKE) create-subscription \
 			NAME="devworkspace-operator" \
-			NAMESPACE="openshift-operators" \
+			NAMESPACE=$${DEFINED_OPERATOR_NAMESPACE} \
 			PACKAGE_NAME="devworkspace-operator" \
 			CHANNEL=$(CHANNEL) \
 			SOURCE="devworkspace-operator" \
 			SOURCE_NAMESPACE="openshift-marketplace" \
 			INSTALL_PLAN_APPROVAL="Auto"
-		$(MAKE) wait-devworkspace-running NAMESPACE="openshift-operators"
+		$(MAKE) wait-devworkspace-running NAMESPACE=$${DEFINED_OPERATOR_NAMESPACE}
 	fi
 
 wait-devworkspace-running: SHELL := /bin/bash
