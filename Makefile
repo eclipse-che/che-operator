@@ -141,9 +141,9 @@ debug: install-che-operands genenerate-env ## Run and debug Eclipse Che operator
 
 docker-build: ## Build Eclipse Che operator image
 	if [ "$(SKIP_TESTS)" = true ]; then
-		${IMAGE_TOOL} build -t ${IMG} --build-arg SKIP_TESTS=true .
+		${IMAGE_TOOL} build -t ${IMG} --build-arg SKIP_TESTS=true build/dockerfiles/
 	else
-		${IMAGE_TOOL} build -t ${IMG} .
+		${IMAGE_TOOL} build -t ${IMG} build/dockerfiles/
 	fi
 
 docker-push: ## Push Eclipse Che operator image to a registry
@@ -159,7 +159,7 @@ update-dev-resources: validate-requirements ## Update development resources
 	echo "[INFO] UBI8 image $${UBI8_MINIMAL_IMAGE}"
 
 	# Dockerfile
-	sed -i 's|registry.access.redhat.com/ubi8-minimal:[^\s]* |'$${UBI8_MINIMAL_IMAGE}' |g' $(PROJECT_DIR)/Dockerfile
+	sed -i 's|registry.access.redhat.com/ubi8-minimal:[^\s]* |'$${UBI8_MINIMAL_IMAGE}' |g' $(PROJECT_DIR)/build/dockerfiles/Dockerfile
 
 	$(MAKE) bundle CHANNEL=next
 	$(MAKE) gen-deployment
