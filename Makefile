@@ -662,7 +662,7 @@ create-operatorgroup: ## Creates operator group
 	[[ -z "$(NAME)" ]] && { echo [ERROR] NAME not defined; exit 1; }
 	[[ -z "$(NAMESPACE)" ]] && { echo [ERROR] NAMESPACE not defined; exit 1; }
 
-	if [[ $($(K8S_CLI) get operatorgroup -n "$${NAMESPACE}" --no-headers | wc -l) == 0 ]]; then
+	if [[ $($(K8S_CLI) get operatorgroup -n "$(NAMESPACE)" --no-headers | wc -l) == 0 ]]; then
 		echo '{
 			"apiVersion": "operators.coreos.com/v1",
 			"kind": "OperatorGroup",
