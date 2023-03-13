@@ -662,15 +662,17 @@ create-operatorgroup: ## Creates operator group
 	[[ -z "$(NAME)" ]] && { echo [ERROR] NAME not defined; exit 1; }
 	[[ -z "$(NAMESPACE)" ]] && { echo [ERROR] NAMESPACE not defined; exit 1; }
 
-	echo '{
-		"apiVersion": "operators.coreos.com/v1",
-		"kind": "OperatorGroup",
-		"metadata": {
-		  "name": "$(NAME)",
-		  "namespace": "$(NAMESPACE)"
-		},
-		"spec": {}
-	  }' | $(K8S_CLI) apply -f -
+	if [[ $(oc get operatorgroup -n "${NAMESPACE}" --no-headers | wc -l) == 0 ]]; then
+		echo '{
+			"apiVersion": "operators.coreos.com/v1",
+			"kind": "OperatorGroup",
+			"metadata": {
+			  "name": "$(NAME)",
+			  "namespace": "$(NAMESPACE)"
+			},
+			"spec": {}
+		  }' | $(K8S_CLI) apply -f -
+	fi
 
 create-subscription: SHELL := /bin/bash
 create-subscription: ## Creates subscription

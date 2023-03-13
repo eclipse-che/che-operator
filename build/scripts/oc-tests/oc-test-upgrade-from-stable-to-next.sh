@@ -52,9 +52,16 @@ deleteDevWorkspaceStableVersionOperator() {
 }
 
 runTests() {
-  . ${OPERATOR_REPO}/build/scripts/olm/test-catalog.sh -i quay.io/eclipse/eclipse-che-olm-catalog:stable -c stable --verbose
+  . ${OPERATOR_REPO}/build/scripts/olm/test-catalog.sh \
+      --che-namespace eclipse-che \
+      --operator-namespace eclipse-che \
+      --catalog-image quay.io/eclipse/eclipse-che-olm-catalog:stable \
+      --chanel stable \
+      --verbose
+
   deleteEclipseCheStableVersionOperator
   deleteDevWorkspaceStableVersionOperator
+
   . ${OPERATOR_REPO}/build/scripts/olm/test-catalog-from-sources.sh --verbose
 }
 

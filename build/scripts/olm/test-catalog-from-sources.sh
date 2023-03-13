@@ -144,11 +144,9 @@ createEclipseCheCatalogFromSources() {
 
 run() {
   make create-namespace NAMESPACE="${NAMESPACE}" VERBOSE=${VERBOSE}
-  if [[ $(oc get operatorgroup -n "${NAMESPACE}" --no-headers | wc -l) == 0 ]]; then
-    make create-operatorgroup NAME=eclipse-che NAMESPACE="${NAMESPACE}" VERBOSE=${VERBOSE}
-  fi
+  make create-operatorgroup NAME="eclipse-che" NAMESPACE="${NAMESPACE}" VERBOSE=${VERBOSE}
 
-  # Install Dev Workspace operator (next version as well)
+  # Install Dev Workspace operator next version
   make install-devworkspace CHANNEL="next" VERBOSE=${VERBOSE} OPERATOR_NAMESPACE="${NAMESPACE}"
 
   exposeOpenShiftRegistry

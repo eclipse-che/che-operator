@@ -18,6 +18,7 @@ source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 
 init() {
   unset NAMESPACE
+  unset OPERATOR_NAMESPACE
   unset VERBOSE
   unset CATALOG_IMAGE
   unset CHANNEL
@@ -25,7 +26,8 @@ init() {
   while [[ "$#" -gt 0 ]]; do
     case $1 in
       '--channel'|'-c') CHANNEL="$2"; shift 1;;
-      '--namespace'|'-n') NAMESPACE="$2"; shift 1;;
+      '--che-namespace'|'-n') NAMESPACE="$2"; shift 1;;
+      '--operator-namespace'|'-o') OPERATOR_NAMESPACE="$2"; shift 1;;
       '--catalog-image'|'-i') CATALOG_IMAGE="$2"; shift 1;;
       '--verbose'|'-v') VERBOSE=1;;
       '--help'|'-h') usage; exit;;
@@ -34,6 +36,7 @@ init() {
   done
 
   [[ ! ${NAMESPACE} ]] && NAMESPACE="eclipse-che"
+  [[ ! ${OPERATOR_NAMESPACE} ]] && NAMESPACE="openshift-operators"
   if [[ ! ${CHANNEL} ]] || [[ ! ${CATALOG_IMAGE} ]]; then usage; exit 1; fi
 }
 
@@ -46,7 +49,8 @@ usage () {
   echo "OPTIONS:"
   echo -e "\t-i,--catalog-image       Catalog image"
   echo -e "\t-c,--channel=next|stable Olm channel to deploy Eclipse Che from"
-  echo -e "\t-n,--namespace           [default: eclipse-che] Kubernetes namespace to deploy Eclipse Che into"
+  echo -e "\t-n,--che-namespace       [default: eclipse-che] Kubernetes namespace to deploy Eclipse Che operands into"
+  echo -e "\t-o,--operator-namespace  [default: openshift-operators] Kubernetes namespace to deploy Eclipse Che operator into"
   echo -e "\t-v,--verbose             Verbose mode"
   echo
 	echo "Example:"
@@ -56,6 +60,8 @@ usage () {
 
 run() {
   make create-namespace NAMESPACE="${NAMESPACE}" VERBOSE=${VERBOSE}
+  make create-namespace NAMESPACE="${OPERATOR_NAMESPACE}" VERBOSE=${VERBOSE}
+  make create-operatorgroup NAME="eclipse-che" NAMESPACE="${OPERATOR_NAMESPACE}" VERBOSE=${VERBOSE}
   make create-catalogsource NAME="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" IMAGE="${CATALOG_IMAGE}" VERBOSE=${VERBOSE} NAMESPACE="openshift-marketplace"
 
   discoverEclipseCheBundles "${CHANNEL}"
@@ -66,21 +72,21 @@ run() {
   fi
 
   if [[ ${CHANNEL} == "next" ]]; then
-    make install-devworkspace CHANNEL=next VERBOSE=${VERBOSE}
+    make install-devworkspace CHANNEL=next OPERATOR_NAMESPACE="${OPERATOR_NAMESPACE}" VERBOSE=${VERBOSE}
   else
-    make install-devworkspace CHANNEL=fast VERBOSE=${VERBOSE}
+    make install-devworkspace CHANNEL=fast OPERATOR_NAMESPACE="${OPERATOR_NAMESPACE}" VERBOSE=${VERBOSE}
   fi
 
   make create-subscription \
     NAME="${ECLIPSE_CHE_SUBSCRIPTION_NAME}" \
-    NAMESPACE="openshift-operators" \
+    NAMESPACE="${OPERATOR_NAMESPACE}" \
     PACKAGE_NAME="${ECLIPSE_CHE_PACKAGE_NAME}" \
     CHANNEL="${CHANNEL}" \
     SOURCE="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" \
     SOURCE_NAMESPACE="openshift-marketplace" \
     INSTALL_PLAN_APPROVAL="Auto" \
     VERBOSE=${VERBOSE}
-  make wait-pod-running NAMESPACE="openshift-operators" SELECTOR="app.kubernetes.io/component=che-operator"
+  make wait-pod-running NAMESPACE="${OPERATOR_NAMESPACE}" SELECTOR="app.kubernetes.io/component=che-operator"
   getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
   make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE=${NAMESPACE} VERBOSE=${VERBOSE}
 }
