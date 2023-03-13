@@ -56,7 +56,7 @@ runTests() {
       --che-namespace eclipse-che \
       --operator-namespace eclipse-che \
       --catalog-image quay.io/eclipse/eclipse-che-olm-catalog:stable \
-      --chanel stable \
+      --channel stable \
       --verbose
 
   deleteEclipseCheStableVersionOperator
