@@ -662,15 +662,17 @@ create-operatorgroup: ## Creates operator group
 	[[ -z "$(NAME)" ]] && { echo [ERROR] NAME not defined; exit 1; }
 	[[ -z "$(NAMESPACE)" ]] && { echo [ERROR] NAMESPACE not defined; exit 1; }
 
-	echo '{
-		"apiVersion": "operators.coreos.com/v1",
-		"kind": "OperatorGroup",
-		"metadata": {
-		  "name": "$(NAME)",
-		  "namespace": "$(NAMESPACE)"
-		},
-		"spec": {}
-	  }' | $(K8S_CLI) apply -f -
+	if [[ $$($(K8S_CLI) get operatorgroup -n "$(NAMESPACE)" --no-headers | wc -l) == 0 ]]; then
+		echo '{
+			"apiVersion": "operators.coreos.com/v1",
+			"kind": "OperatorGroup",
+			"metadata": {
+			  "name": "$(NAME)",
+			  "namespace": "$(NAMESPACE)"
+			},
+			"spec": {}
+		  }' | $(K8S_CLI) apply -f -
+	fi
 
 create-subscription: SHELL := /bin/bash
 create-subscription: ## Creates subscription
@@ -737,6 +739,7 @@ install-certmgr: ## Install Cert Manager v1.7.1
 install-devworkspace: SHELL := /bin/bash
 install-devworkspace: ## Install Dev Workspace operator, available channels: next, fast
 	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
+	[[ -z "$(OPERATOR_NAMESPACE)" ]] && DEFINED_OPERATOR_NAMESPACE="openshift-operators" || DEFINED_OPERATOR_NAMESPACE=$(OPERATOR_NAMESPACE)
 
 	if [[ $(PLATFORM) == "kubernetes" ]]; then
 		$(MAKE) create-namespace NAMESPACE="devworkspace-controller"
@@ -762,13 +765,13 @@ install-devworkspace: ## Install Dev Workspace operator, available channels: nex
 		$(MAKE) create-catalogsource IMAGE="$${IMAGE}" NAME="devworkspace-operator" NAMESPACE="openshift-marketplace"
 		$(MAKE) create-subscription \
 			NAME="devworkspace-operator" \
-			NAMESPACE="openshift-operators" \
+			NAMESPACE=$${DEFINED_OPERATOR_NAMESPACE} \
 			PACKAGE_NAME="devworkspace-operator" \
 			CHANNEL=$(CHANNEL) \
 			SOURCE="devworkspace-operator" \
 			SOURCE_NAMESPACE="openshift-marketplace" \
 			INSTALL_PLAN_APPROVAL="Auto"
-		$(MAKE) wait-devworkspace-running NAMESPACE="openshift-operators"
+		$(MAKE) wait-devworkspace-running NAMESPACE=$${DEFINED_OPERATOR_NAMESPACE}
 	fi
 
 wait-devworkspace-running: SHELL := /bin/bash

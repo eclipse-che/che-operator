@@ -6774,7 +6774,7 @@ spec:
                       type: object
                     type: array
                   disableContainerBuildCapabilities:
-                    default: true
+                    default: false
                     description: Disables the container build capabilities.
                     type: boolean
                   maxNumberOfRunningWorkspacesPerUser:
