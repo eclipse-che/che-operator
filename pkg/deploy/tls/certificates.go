@@ -14,11 +14,12 @@ package tls
 
 import (
 	"context"
+	"reflect"
+	"strings"
+
 	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/json"
-	"reflect"
-	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
