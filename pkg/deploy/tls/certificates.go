@@ -17,6 +17,10 @@ import (
 	"reflect"
 	"strings"
 
+	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/json"
+
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -37,10 +41,12 @@ const (
 	// CheMergedCAConfigMapRevisionsAnnotationKey is annotation name which holds versions of included config maps in format: cm-name1=ver1,cm-name2=ver2
 	CheMergedCAConfigMapRevisionsAnnotationKey = "che.eclipse.org/included-configmaps"
 
+	KubernetesRootCertificateConfigMapName = "kube-root-ca.crt"
+
 	// Local constants
-	// labelEqualSign consyant is used as a replacement for '=' symbol in labels because '=' is not allowed there
+	// labelEqualSign constant is used as a replacement for '=' symbol in labels because '=' is not allowed there
 	labelEqualSign = "-"
-	// labelCommaSign consyant is used as a replacement for ',' symbol in labels because ',' is not allowed there
+	// labelCommaSign constant is used as a replacement for ',' symbol in labels because ',' is not allowed there
 	labelCommaSign = "."
 )
 
@@ -54,14 +60,20 @@ func NewCertificatesReconciler() *CertificatesReconciler {
 
 func (c *CertificatesReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	if ctx.Proxy.TrustedCAMapName != "" {
-		done, err := c.syncTrustStoreConfigMapToCluster(ctx)
-		if !done {
-			return reconcile.Result{}, done, err
+		if done, err := c.syncTrustStoreConfigMapToCluster(ctx); !done {
+			return reconcile.Result{}, false, err
 		}
 	}
 
-	done, err := c.syncAdditionalCACertsConfigMapToCluster(ctx)
-	return reconcile.Result{}, done, err
+	if done, err := c.syncKubernetesRootCertificates(ctx); !done {
+		return reconcile.Result{}, false, err
+	}
+
+	if done, err := c.syncAdditionalCACertsConfigMapToCluster(ctx); !done {
+		return reconcile.Result{}, false, err
+	}
+
+	return reconcile.Result{}, true, nil
 }
 
 func (c *CertificatesReconciler) Finalize(ctx *chetypes.DeployContext) bool {
@@ -103,6 +115,44 @@ func (c *CertificatesReconciler) syncTrustStoreConfigMapToCluster(ctx *chetypes.
 	}
 
 	return true, nil
+}
+
+// syncAdditionalCACertsConfigMapToCluster adds labels to ConfigMap `kube-root-ca.crt` to propagate
+// Kubernetes root certificates to Che components. It is needed to use NonCachingClient because the map
+// initially is not in the cache.
+func (c *CertificatesReconciler) syncKubernetesRootCertificates(ctx *chetypes.DeployContext) (bool, error) {
+	certs := &corev1.ConfigMap{}
+	if err := ctx.ClusterAPI.NonCachingClient.Get(
+		context.TODO(),
+		types.NamespacedName{
+			Name:      KubernetesRootCertificateConfigMapName,
+			Namespace: ctx.CheCluster.Namespace,
+		},
+		certs); err != nil {
+		if errors.IsNotFound(err) {
+			return true, nil
+		} else {
+			return false, err
+		}
+	}
+
+	patchData, _ := json.Marshal(corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+				constants.KubernetesComponentLabelKey: CheCACertsConfigMapLabelValue,
+			},
+		},
+	})
+
+	_, err := k8shelper.New().GetClientset().CoreV1().ConfigMaps(ctx.CheCluster.Namespace).Patch(
+		context.TODO(),
+		KubernetesRootCertificateConfigMapName,
+		types.MergePatchType,
+		patchData,
+		metav1.PatchOptions{},
+	)
+	return err == nil, err
 }
 
 func (c *CertificatesReconciler) syncAdditionalCACertsConfigMapToCluster(ctx *chetypes.DeployContext) (bool, error) {
@@ -182,6 +232,5 @@ func (c *CertificatesReconciler) syncAdditionalCACertsConfigMapToCluster(ctx *ch
 	mergedCAConfigMapSpec := deploy.GetConfigMapSpec(ctx, CheAllCACertsConfigMapName, data, defaults.GetCheFlavor())
 	mergedCAConfigMapSpec.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
 	mergedCAConfigMapSpec.ObjectMeta.Annotations[CheMergedCAConfigMapRevisionsAnnotationKey] = revisions
-	done, err := deploy.SyncConfigMapSpecToCluster(ctx, mergedCAConfigMapSpec)
-	return done, err
+	return deploy.SyncConfigMapSpecToCluster(ctx, mergedCAConfigMapSpec)
 }

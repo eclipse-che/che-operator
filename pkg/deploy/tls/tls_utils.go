@@ -106,7 +106,7 @@ func IsSelfSignedCertificateUsed(ctx *chetypes.DeployContext) (bool, error) {
 	// Retrieve the info about certificate chain from test ingress below.
 
 	// Get route/ingress TLS certificates chain
-	peerCertificates, err := GetEndpointTLSCrtChain(ctx, "")
+	peerCertificates, err := GetTLSCrtChain(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -122,107 +122,101 @@ func IsSelfSignedCertificateUsed(ctx *chetypes.DeployContext) (bool, error) {
 	return false, nil
 }
 
-// GetEndpointTLSCrtChain retrieves TLS certificates chain from given endpoint.
-// If endpoint is not specified, then a test route/ingress will be created and used to get router certificates.
-func GetEndpointTLSCrtChain(ctx *chetypes.DeployContext, endpointURL string) ([]*x509.Certificate, error) {
+// GetTLSCrtChain retrieves TLS certificates chain from a test route/ingress.
+func GetTLSCrtChain(ctx *chetypes.DeployContext) ([]*x509.Certificate, error) {
 	if test.IsTestMode() {
 		return nil, stderrors.New("Not allowed for tests")
 	}
 
-	var useTestEndpoint bool = len(endpointURL) < 1
 	var requestURL string
-	if useTestEndpoint {
-		if infrastructure.IsOpenShift() {
-			// Create test route to get certificates chain.
-			// Note, it is not possible to use SyncRouteToCluster here as it may cause infinite reconcile loop.
-			routeSpec, err := deploy.GetRouteSpec(
-				ctx,
-				"test",
-				"",
-				"test",
-				8080,
-				defaults.GetCheFlavor())
-			if err != nil {
+	if infrastructure.IsOpenShift() {
+		// Create test route to get certificates chain.
+		// Note, it is not possible to use SyncRouteToCluster here as it may cause infinite reconcile loop.
+		routeSpec, err := deploy.GetRouteSpec(
+			ctx,
+			"test",
+			"",
+			"test",
+			8080,
+			defaults.GetCheFlavor())
+		if err != nil {
+			return nil, err
+		}
+		// Remove controller reference to prevent queueing new reconcile loop
+		routeSpec.SetOwnerReferences(nil)
+		// Create route manually
+		if err := ctx.ClusterAPI.Client.Create(context.TODO(), routeSpec); err != nil {
+			if !errors.IsAlreadyExists(err) {
+				logrus.Errorf("Failed to create test route 'test': %s", err)
 				return nil, err
 			}
-			// Remove controller reference to prevent queueing new reconcile loop
-			routeSpec.SetOwnerReferences(nil)
-			// Create route manually
-			if err := ctx.ClusterAPI.Client.Create(context.TODO(), routeSpec); err != nil {
-				if !errors.IsAlreadyExists(err) {
-					logrus.Errorf("Failed to create test route 'test': %s", err)
-					return nil, err
-				}
-			}
-
-			// Schedule test route cleanup after the job done.
-			defer func() {
-				if err := ctx.ClusterAPI.Client.Delete(context.TODO(), routeSpec); err != nil {
-					logrus.Errorf("Failed to delete test route %s: %s", routeSpec.Name, err)
-				}
-			}()
-
-			// Wait till the route is ready
-			route := &routev1.Route{}
-			for {
-				time.Sleep(time.Duration(1) * time.Second)
-				exists, err := deploy.GetNamespacedObject(ctx, routeSpec.Name, route)
-				if err != nil {
-					return nil, err
-				} else if exists {
-					break
-				}
-			}
-
-			requestURL = "https://" + route.Spec.Host
-		} else {
-			// Kubernetes
-
-			// Create test ingress to get certificates chain.
-			// Note, it is not possible to use SyncIngressToCluster here as it may cause infinite reconcile loop.
-			_, ingressSpec := deploy.GetIngressSpec(
-				ctx,
-				"test",
-				"",
-				"test",
-				8080,
-				defaults.GetCheFlavor())
-			// Create ingress manually
-			if err := ctx.ClusterAPI.Client.Create(context.TODO(), ingressSpec); err != nil {
-				if !errors.IsAlreadyExists(err) {
-					logrus.Errorf("Failed to create test ingress 'test': %s", err)
-					return nil, err
-				}
-			}
-
-			// Schedule test ingress cleanup after the job done.
-			defer func() {
-				if err := ctx.ClusterAPI.Client.Delete(context.TODO(), ingressSpec); err != nil {
-					logrus.Errorf("Failed to delete test ingress %s: %s", ingressSpec.Name, err)
-				}
-			}()
-
-			// Wait till the ingress is ready
-			ingress := &networking.Ingress{}
-			for {
-				time.Sleep(time.Duration(1) * time.Second)
-				exists, err := deploy.GetNamespacedObject(ctx, ingressSpec.Name, ingress)
-				if err != nil {
-					return nil, err
-				} else if exists {
-					break
-				}
-			}
-
-			requestURL = "https://" + ingress.Spec.Rules[0].Host
 		}
+
+		// Schedule test route cleanup after the job done.
+		defer func() {
+			if err := ctx.ClusterAPI.Client.Delete(context.TODO(), routeSpec); err != nil {
+				logrus.Errorf("Failed to delete test route %s: %s", routeSpec.Name, err)
+			}
+		}()
+
+		// Wait till the route is ready
+		route := &routev1.Route{}
+		for {
+			time.Sleep(time.Duration(1) * time.Second)
+			exists, err := deploy.GetNamespacedObject(ctx, routeSpec.Name, route)
+			if err != nil {
+				return nil, err
+			} else if exists {
+				break
+			}
+		}
+
+		requestURL = "https://" + route.Spec.Host
 	} else {
-		requestURL = endpointURL
+		// Kubernetes
+
+		// Create test ingress to get certificates chain.
+		// Note, it is not possible to use SyncIngressToCluster here as it may cause infinite reconcile loop.
+		_, ingressSpec := deploy.GetIngressSpec(
+			ctx,
+			"test",
+			"",
+			"test",
+			8080,
+			defaults.GetCheFlavor())
+		// Create ingress manually
+		if err := ctx.ClusterAPI.Client.Create(context.TODO(), ingressSpec); err != nil {
+			if !errors.IsAlreadyExists(err) {
+				logrus.Errorf("Failed to create test ingress 'test': %s", err)
+				return nil, err
+			}
+		}
+
+		// Schedule test ingress cleanup after the job done.
+		defer func() {
+			if err := ctx.ClusterAPI.Client.Delete(context.TODO(), ingressSpec); err != nil {
+				logrus.Errorf("Failed to delete test ingress %s: %s", ingressSpec.Name, err)
+			}
+		}()
+
+		// Wait till the ingress is ready
+		ingress := &networking.Ingress{}
+		for {
+			time.Sleep(time.Duration(1) * time.Second)
+			exists, err := deploy.GetNamespacedObject(ctx, ingressSpec.Name, ingress)
+			if err != nil {
+				return nil, err
+			} else if exists {
+				break
+			}
+		}
+
+		requestURL = "https://" + ingress.Spec.Rules[0].Host
 	}
 
-	certificates, err := doRequestForTLSCrtChain(ctx, requestURL, useTestEndpoint)
+	certificates, err := doRequestForTLSCrtChain(ctx, requestURL, true)
 	if err != nil {
-		if ctx.Proxy.HttpProxy != "" && useTestEndpoint {
+		if ctx.Proxy.HttpProxy != "" {
 			// Fetching certificates from the test route without proxy failed. Probably non-proxy connections are blocked.
 			// Retrying with proxy configuration, however it might cause retreiving of wrong certificate in case of TLS interception by proxy.
 			logrus.Warn("Failed to get certificate chain of trust of the OpenShift Ingress bypassing the proxy")
@@ -259,12 +253,9 @@ func doRequestForTLSCrtChain(ctx *chetypes.DeployContext, requestURL string, ski
 	return resp.TLS.PeerCertificates, nil
 }
 
-// GetEndpointTLSCrtBytes extracts certificate chain from given endpoint.
-// Creates a test TLS route/ingress if endpoint url is empty.
-// There's an easier way which is to read tls secret in default (3.11) or openshift-ingress (4.0) namespace
-// which however requires extra privileges for operator service account
-func GetEndpointTLSCrtBytes(ctx *chetypes.DeployContext, endpointURL string) (certificates []byte, err error) {
-	peerCertificates, err := GetEndpointTLSCrtChain(ctx, endpointURL)
+// GetTLSCrtBytes extracts certificate chain of trust from the test route/ingress.
+func GetTLSCrtBytes(ctx *chetypes.DeployContext) (certificates []byte, err error) {
+	peerCertificates, err := GetTLSCrtChain(ctx)
 	if err != nil {
 		if test.IsTestMode() {
 			fakeCrt := make([]byte, 5)
@@ -543,13 +534,12 @@ func GetAdditionalCACertsConfigMapVersion(ctx *chetypes.DeployContext) string {
 	return ""
 }
 
-// CreateTLSSecretFromEndpoint creates TLS secret with given name which contains certificates obtained from the given url.
-// If the url is empty string, then cluster default certificate will be obtained.
+// CreateTLSSecret creates TLS secret with given name.
 // Does nothing if secret with given name already exists.
-func CreateTLSSecretFromEndpoint(ctx *chetypes.DeployContext, url string, name string) (err error) {
+func CreateTLSSecret(ctx *chetypes.DeployContext, name string) (err error) {
 	secret := &corev1.Secret{}
 	if err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: ctx.CheCluster.Namespace}, secret); err != nil && errors.IsNotFound(err) {
-		crtBytes, err := GetEndpointTLSCrtBytes(ctx, url)
+		crtBytes, err := GetTLSCrtBytes(ctx)
 		if err != nil {
 			logrus.Errorf("Failed to extract certificate for secret %s. Failed to create a secret with a self signed crt: %s", name, err)
 			return err

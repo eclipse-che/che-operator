@@ -32,7 +32,7 @@ func (t *TlsSecretReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 	if infrastructure.IsOpenShift() {
 		// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
 		if ctx.IsSelfSignedCertificate {
-			if err := CreateTLSSecretFromEndpoint(ctx, "", constants.DefaultSelfSignedCertificateSecretName); err != nil {
+			if err := CreateTLSSecret(ctx, constants.DefaultSelfSignedCertificateSecretName); err != nil {
 				return reconcile.Result{}, false, err
 			}
 		}
@@ -46,7 +46,7 @@ func (t *TlsSecretReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 			}
 		} else if ctx.IsSelfSignedCertificate {
 			// Use default self-signed ingress certificate
-			if err := CreateTLSSecretFromEndpoint(ctx, "", constants.DefaultSelfSignedCertificateSecretName); err != nil {
+			if err := CreateTLSSecret(ctx, constants.DefaultSelfSignedCertificateSecretName); err != nil {
 				return reconcile.Result{}, false, err
 			}
 		}
