@@ -55,20 +55,3 @@ COPY --from=builder $REMOTE_SOURCES_DIR/devspaces-images-operator/app/devspaces-
 ENTRYPOINT ["/manager"]
 
 # append Brew metadata here
-ENV SUMMARY="Red Hat OpenShift Dev Spaces operator container" \
-    DESCRIPTION="Red Hat OpenShift Dev Spaces operator container" \
-    PRODNAME="devspaces" \
-    COMPNAME="operator"
-LABEL com.redhat.delivery.appregistry="false" \
-      summary="$SUMMARY" \
-      description="$DESCRIPTION" \
-      io.k8s.description="$DESCRIPTION" \
-      io.k8s.display-name="$DESCRIPTION" \
-      io.openshift.tags="$PRODNAME,$COMPNAME" \
-      com.redhat.component="$PRODNAME-rhel8-$COMPNAME-container" \
-      name="$PRODNAME/$COMPNAME" \
-      version="3.6" \
-      license="EPLv2" \
-      maintainer="Anatolii Bazko <abazko@redhat.com>, Nick Boldt <nboldt@redhat.com>, Dmytro Nochevnov <dnochevn@redhat.com>" \
-      io.openshift.expose-services="" \
-      usage=""
