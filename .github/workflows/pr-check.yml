@@ -30,7 +30,7 @@ jobs:
     - name: Checkout source code
       uses: actions/checkout@v3
     - name: Build image
-      run: docker build build/dockerfiles/
+      run: docker build -f build/dockerfiles/Dockerfile .
   multiplatform-image-build:
     runs-on: ubuntu-22.04
     steps:

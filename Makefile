@@ -141,9 +141,9 @@ debug: install-che-operands genenerate-env ## Run and debug Eclipse Che operator
 
 docker-build: ## Build Eclipse Che operator image
 	if [ "$(SKIP_TESTS)" = true ]; then
-		${IMAGE_TOOL} build -t ${IMG} --build-arg SKIP_TESTS=true build/dockerfiles/
+		${IMAGE_TOOL} build -t ${IMG} --build-arg SKIP_TESTS=true -f build/dockerfiles/Dockerfile .
 	else
-		${IMAGE_TOOL} build -t ${IMG} build/dockerfiles/
+		${IMAGE_TOOL} build -t ${IMG} -f build/dockerfiles/Dockerfile .
 	fi
 
 docker-push: ## Push Eclipse Che operator image to a registry
