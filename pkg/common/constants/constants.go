@@ -24,6 +24,12 @@ const (
 	DefaultDashboardCpuLimit      = "500m"
 	DefaultDashboardCpuRequest    = "100m"
 
+	// Gateway
+	DefaultGatewayMemoryLimit   = "256Mi"
+	DefaultGatewayMemoryRequest = "64Mi"
+	DefaultGatewayCpuLimit      = "25m"
+	DefaultGatewayCpuRequest    = "5m"
+
 	// PluginRegistry
 	DefaultPluginRegistryMemoryLimit                          = "256Mi"
 	DefaultPluginRegistryMemoryLimitEmbeddedOpenVSXRegistry   = "4Gi"
