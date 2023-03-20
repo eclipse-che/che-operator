@@ -18,6 +18,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+
 	"golang.org/x/mod/semver"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/utils/pointer"
@@ -55,6 +57,11 @@ func (r *CheCluster) Default() {
 
 // Sets ContainerBuildConfiguration if container build capabilities is enabled.
 func setContainerBuildConfiguration(cheCluster *CheCluster) {
+	if cheCluster.IsContainerBuildCapabilitiesEnabled() && !infrastructure.IsOpenShift() {
+		// Disable container build capabilities on Kubernetes
+		cheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.BoolPtr(true)
+	}
+
 	if cheCluster.IsContainerBuildCapabilitiesEnabled() && cheCluster.Spec.DevEnvironments.ContainerBuildConfiguration == nil {
 		cheCluster.Spec.DevEnvironments.ContainerBuildConfiguration = &ContainerBuildConfiguration{}
 	}
