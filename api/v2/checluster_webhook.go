@@ -15,6 +15,7 @@ package v2
 import (
 	"context"
 	"fmt"
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"strconv"
 	"strings"
 
@@ -55,6 +56,11 @@ func (r *CheCluster) Default() {
 
 // Sets ContainerBuildConfiguration if container build capabilities is enabled.
 func setContainerBuildConfiguration(cheCluster *CheCluster) {
+	if cheCluster.IsContainerBuildCapabilitiesEnabled() && !infrastructure.IsOpenShift() {
+		// Disable container build capabilities on Kubernetes
+		cheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.BoolPtr(true)
+	}
+
 	if cheCluster.IsContainerBuildCapabilitiesEnabled() && cheCluster.Spec.DevEnvironments.ContainerBuildConfiguration == nil {
 		cheCluster.Spec.DevEnvironments.ContainerBuildConfiguration = &ContainerBuildConfiguration{}
 	}
