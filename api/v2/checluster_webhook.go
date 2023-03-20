@@ -15,9 +15,10 @@ package v2
 import (
 	"context"
 	"fmt"
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"strconv"
 	"strings"
+
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 
 	"golang.org/x/mod/semver"
 	"k8s.io/apimachinery/pkg/api/errors"
