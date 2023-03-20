@@ -13,6 +13,8 @@
 package constants
 
 import (
+	"os"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 )
@@ -31,7 +33,6 @@ const (
 	DefaultPluginRegistryMemoryRequestEmbeddedOpenVSXRegistry = "512Mi"
 	DefaultPluginRegistryCpuLimit                             = "500m"
 	DefaultPluginRegistryCpuRequest                           = "100m"
-	DefaultOpenVSXUrl                                         = "https://open-vsx.org"
 
 	// DevfileRegistry
 	DefaultDevfileRegistryMemoryLimit   = "256Mi"
@@ -145,4 +146,7 @@ var (
 		},
 		AllowPrivilegeEscalation: pointer.BoolPtr(true),
 	}
+
+	// defined in `config/manager/manager.yaml`
+	DefaultOpenVSXUrl = os.Getenv("CHE_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL")
 )

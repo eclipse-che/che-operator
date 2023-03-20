@@ -19,9 +19,10 @@ import (
 	"os"
 	"strings"
 
+	"k8s.io/utils/pointer"
+
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	imagepullerv1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
@@ -37,7 +38,7 @@ type CheClusterSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Development environments"
-	// +kubebuilder:default:={disableContainerBuildCapabilities: true, defaultComponents: {{name: universal-developer-image, container: {image: "quay.io/devfile/universal-developer-image:ubi8-38da5c2"}}}, defaultEditor: che-incubator/che-code/latest, storage: {pvcStrategy: per-user}, defaultNamespace: {template: <username>-che, autoProvision: true}, secondsOfInactivityBeforeIdling:1800, secondsOfRunBeforeIdling:-1, startTimeoutSeconds:300, maxNumberOfWorkspacesPerUser:-1}
+	// +kubebuilder:default:={disableContainerBuildCapabilities: true, storage: {pvcStrategy: per-user}, defaultNamespace: {template: <username>-che, autoProvision: true}, secondsOfInactivityBeforeIdling:1800, secondsOfRunBeforeIdling:-1, startTimeoutSeconds:300, maxNumberOfWorkspacesPerUser:-1}
 	DevEnvironments CheClusterDevEnvironments `json:"devEnvironments"`
 	// Che components configuration.
 	// +optional
@@ -90,12 +91,10 @@ type CheClusterDevEnvironments struct {
 	// The plugin ID must have `publisher/plugin/version` format.
 	// The URI must start from `http://` or `https://`.
 	// +optional
-	// +kubebuilder:default:=che-incubator/che-code/latest
 	DefaultEditor string `json:"defaultEditor,omitempty"`
 	// Default components applied to DevWorkspaces.
 	// These default components are meant to be used when a Devfile, that does not contain any components.
 	// +optional
-	// +kubebuilder:default:={{name: universal-developer-image, container: {image: "quay.io/devfile/universal-developer-image:ubi8-38da5c2"}}}
 	DefaultComponents []devfile.Component `json:"defaultComponents,omitempty"`
 	// Idle timeout for workspaces in seconds.
 	// This timeout is the duration after which a workspace will be idled if there is no activity.
@@ -855,6 +854,25 @@ func (c *CheCluster) IsCheFlavor() bool {
 	return os.Getenv("CHE_FLAVOR") == constants.CheFlavor
 }
 
-func (c *CheCluster) IsOpenVSXURLEmpty() bool {
-	return c.Spec.Components.PluginRegistry.OpenVSXURL == nil || *c.Spec.Components.PluginRegistry.OpenVSXURL == ""
+func (c *CheCluster) IsEmbeddedOpenVSXRegistryConfigured() bool {
+	return c.GetOpenVSXURL() == nil || *c.GetOpenVSXURL() == ""
+}
+
+func (c *CheCluster) GetOpenVSXURL() *string {
+	// For downstream version, returns default one if not set
+	if !c.IsCheFlavor() {
+		if c.Spec.Components.PluginRegistry.OpenVSXURL != nil {
+			return c.Spec.Components.PluginRegistry.OpenVSXURL
+		}
+
+		// No external OpenVSX registry in AirGap environment, use the embedded one
+		if c.IsAirGapMode() {
+			return nil
+		}
+
+		return pointer.StringPtr(constants.DefaultOpenVSXUrl)
+	}
+
+	// For upstream version, returns the value set by `checluster_webhook.go`
+	return c.Spec.Components.PluginRegistry.OpenVSXURL
 }

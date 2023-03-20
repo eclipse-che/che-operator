@@ -129,7 +129,7 @@ func TestSetVSXUrl(t *testing.T) {
 
 			testCase.cheCluster.Default()
 			if testCase.expectedOpenVSXUrl == "" {
-				assert.True(t, testCase.cheCluster.IsOpenVSXURLEmpty())
+				assert.True(t, testCase.cheCluster.IsEmbeddedOpenVSXRegistryConfigured())
 			} else {
 				assert.Equal(t, testCase.expectedOpenVSXUrl, *testCase.cheCluster.Spec.Components.PluginRegistry.OpenVSXURL)
 			}

@@ -48,7 +48,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 	}
 
 	// unset RELATED_IMAGE environment variables, set them back after tests complete
-	matches := utils.GetEnvsByRegExp("^RELATED_IMAGE_.*")
+	matches := utils.GetGetArchitectureDependentEnvsByRegExp("^RELATED_IMAGE_.*")
 	for _, match := range matches {
 		if originalValue, exists := os.LookupEnv(match.Name); exists {
 			os.Unsetenv(match.Name)
@@ -200,7 +200,7 @@ func TestDefaultImages(t *testing.T) {
 	}
 
 	// unset RELATED_IMAGE environment variables, set them back after tests complete
-	matches := utils.GetEnvsByRegExp("^RELATED_IMAGE_.*")
+	matches := utils.GetGetArchitectureDependentEnvsByRegExp("^RELATED_IMAGE_.*")
 	for _, match := range matches {
 		if originalValue, exists := os.LookupEnv(match.Name); exists {
 			os.Unsetenv(match.Name)

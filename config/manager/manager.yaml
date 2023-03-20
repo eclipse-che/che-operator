@@ -96,7 +96,15 @@ spec:
             - name: CONSOLE_LINK_IMAGE
               value: /dashboard/assets/branding/loader.svg
             - name: MAX_CONCURRENT_RECONCILES
-              value: "1"
+              value: '1'
+            - name: CHE_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL
+              value: https://open-vsx.org
+            - name: CHE_SPEC_COMPONENTS_DASHBOARD_HEADERMESSAGE_TEXT
+              value: ''
+            - name: CHE_SPEC_DEVENVIRONMENTS_DEFAULTEDITOR
+              value: che-incubator/che-code/latest
+            - name: CHE_SPEC_DEVENVIRONMENTS_DEFAULTCOMPONENTS
+              value: '[{"name": "universal-developer-image", "container": {"image": "quay.io/devfile/universal-developer-image:ubi8-38da5c2"}}]'
           livenessProbe:
             httpGet:
               path: /healthz

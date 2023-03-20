@@ -77,7 +77,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che.v7.62.0-766.next
+  name: eclipse-che.v7.63.0-771.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -954,6 +954,14 @@ spec:
                         value: /dashboard/assets/branding/loader.svg
                       - name: MAX_CONCURRENT_RECONCILES
                         value: "1"
+                      - name: CHE_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL
+                        value: https://open-vsx.org
+                      - name: CHE_SPEC_COMPONENTS_DASHBOARD_HEADERMESSAGE_TEXT
+                      - name: CHE_SPEC_DEVENVIRONMENTS_DEFAULTEDITOR
+                        value: che-incubator/che-code/latest
+                      - name: CHE_SPEC_DEVENVIRONMENTS_DEFAULTCOMPONENTS
+                        value: '[{"name": "universal-developer-image", "container":
+                          {"image": "quay.io/devfile/universal-developer-image:ubi8-38da5c2"}}]'
                     image: quay.io/eclipse/che-operator:next
                     imagePullPolicy: Always
                     livenessProbe:
@@ -1233,7 +1241,7 @@ spec:
   minKubeVersion: 1.19.0
   provider:
     name: Eclipse Foundation
-  version: 7.62.0-766.next
+  version: 7.63.0-771.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1
