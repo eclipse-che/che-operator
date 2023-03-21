@@ -151,7 +151,7 @@ type CheClusterComponents struct {
 	// General configuration settings related to the Che server.
 	// +optional
 	// +kubebuilder:default:={logLevel: INFO, debug: false}
-	CheServer CheServer `json:"cheServer"`
+	CheServer CheServer `json:"cheServer"`r
 	// Configuration settings related to the plug-in registry used by the Che installation.
 	// +optional
 	PluginRegistry PluginRegistry `json:"pluginRegistry"`
