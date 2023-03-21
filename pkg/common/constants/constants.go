@@ -13,8 +13,6 @@
 package constants
 
 import (
-	"os"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 )
@@ -96,6 +94,7 @@ const (
 	CheEclipseOrgScmGitHubDisableSubdomainIsolation = "che.eclipse.org/scm-github-disable-subdomain-isolation"
 
 	// DevEnvironments
+	DefaultOpenVSXUrl              = "https://open-vsx.org"
 	PerUserPVCStorageStrategy      = "per-user"
 	DefaultPvcStorageStrategy      = "per-user"
 	PerWorkspacePVCStorageStrategy = "per-workspace"
@@ -146,7 +145,4 @@ var (
 		},
 		AllowPrivilegeEscalation: pointer.BoolPtr(true),
 	}
-
-	// defined in `config/manager/manager.yaml`
-	DefaultOpenVSXUrl = os.Getenv("CHE_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL")
 )

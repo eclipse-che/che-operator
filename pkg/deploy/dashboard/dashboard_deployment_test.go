@@ -178,10 +178,6 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 					Value: "http://plugin-registry.eclipse-che.svc:8080/v3",
 				},
 				{
-					Name:  "CHE_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL",
-					Value: "https://open-vsx.org",
-				},
-				{
 					Name:  "CHE_SPEC_DEVENVIRONMENTS_DEFAULTEDITOR",
 					Value: "che-incubator/che-code/latest",
 				},
@@ -244,10 +240,6 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 				{
 					Name:  "CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL",
 					Value: "http://plugin-registry.eclipse-che.svc:8080/v3",
-				},
-				{
-					Name:  "CHE_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL",
-					Value: "https://open-vsx.org",
 				},
 				{
 					Name:  "CHE_SPEC_DEVENVIRONMENTS_DEFAULTEDITOR",

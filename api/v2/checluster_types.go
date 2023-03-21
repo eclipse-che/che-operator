@@ -19,8 +19,6 @@ import (
 	"os"
 	"strings"
 
-	"k8s.io/utils/pointer"
-
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -855,24 +853,5 @@ func (c *CheCluster) IsCheFlavor() bool {
 }
 
 func (c *CheCluster) IsEmbeddedOpenVSXRegistryConfigured() bool {
-	return c.GetOpenVSXURL() == nil || *c.GetOpenVSXURL() == ""
-}
-
-func (c *CheCluster) GetOpenVSXURL() *string {
-	// For downstream version, returns default one if not set
-	if !c.IsCheFlavor() {
-		if c.Spec.Components.PluginRegistry.OpenVSXURL != nil {
-			return c.Spec.Components.PluginRegistry.OpenVSXURL
-		}
-
-		// No external OpenVSX registry in AirGap environment, use the embedded one
-		if c.IsAirGapMode() {
-			return nil
-		}
-
-		return pointer.StringPtr(constants.DefaultOpenVSXUrl)
-	}
-
-	// For upstream version, returns the value set by `checluster_webhook.go`
-	return c.Spec.Components.PluginRegistry.OpenVSXURL
+	return c.Spec.Components.PluginRegistry.OpenVSXURL == nil || *c.Spec.Components.PluginRegistry.OpenVSXURL == ""
 }
