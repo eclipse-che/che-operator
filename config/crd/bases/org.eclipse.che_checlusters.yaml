@@ -2211,7 +2211,7 @@ spec:
                   workspaceDefaultComponents:
                     default:
                     - container:
-                        image: quay.io/devfile/universal-developer-image:ubi8-38da5c2
+                        image: quay.io/devfile/universal-developer-image:ubi8-latest
                       name: universal-developer-image
                     description: Default components applied to DevWorkspaces. These
                       default components are meant to be used when a Devfile does
@@ -5234,7 +5234,7 @@ spec:
                 default:
                   defaultComponents:
                   - container:
-                      image: quay.io/devfile/universal-developer-image:ubi8-38da5c2
+                      image: quay.io/devfile/universal-developer-image:ubi8-latest
                     name: universal-developer-image
                   defaultEditor: che-incubator/che-code/latest
                   defaultNamespace:
@@ -5261,7 +5261,7 @@ spec:
                   defaultComponents:
                     default:
                     - container:
-                        image: quay.io/devfile/universal-developer-image:ubi8-38da5c2
+                        image: quay.io/devfile/universal-developer-image:ubi8-latest
                       name: universal-developer-image
                     description: Default components applied to DevWorkspaces. These
                       default components are meant to be used when a Devfile, that

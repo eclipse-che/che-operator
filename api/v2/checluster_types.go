@@ -37,7 +37,7 @@ type CheClusterSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Development environments"
-	// +kubebuilder:default:={disableContainerBuildCapabilities: true, defaultComponents: {{name: universal-developer-image, container: {image: "quay.io/devfile/universal-developer-image:ubi8-38da5c2"}}}, defaultEditor: che-incubator/che-code/latest, storage: {pvcStrategy: per-user}, defaultNamespace: {template: <username>-che, autoProvision: true}, secondsOfInactivityBeforeIdling:1800, secondsOfRunBeforeIdling:-1, startTimeoutSeconds:300, maxNumberOfWorkspacesPerUser:-1}
+	// +kubebuilder:default:={disableContainerBuildCapabilities: true, defaultComponents: {{name: universal-developer-image, container: {image: "quay.io/devfile/universal-developer-image:ubi8-latest"}}}, defaultEditor: che-incubator/che-code/latest, storage: {pvcStrategy: per-user}, defaultNamespace: {template: <username>-che, autoProvision: true}, secondsOfInactivityBeforeIdling:1800, secondsOfRunBeforeIdling:-1, startTimeoutSeconds:300, maxNumberOfWorkspacesPerUser:-1}
 	DevEnvironments CheClusterDevEnvironments `json:"devEnvironments"`
 	// Che components configuration.
 	// +optional
@@ -95,7 +95,7 @@ type CheClusterDevEnvironments struct {
 	// Default components applied to DevWorkspaces.
 	// These default components are meant to be used when a Devfile, that does not contain any components.
 	// +optional
-	// +kubebuilder:default:={{name: universal-developer-image, container: {image: "quay.io/devfile/universal-developer-image:ubi8-38da5c2"}}}
+	// +kubebuilder:default:={{name: universal-developer-image, container: {image: "quay.io/devfile/universal-developer-image:ubi8-latest"}}}
 	DefaultComponents []devfile.Component `json:"defaultComponents,omitempty"`
 	// Idle timeout for workspaces in seconds.
 	// This timeout is the duration after which a workspace will be idled if there is no activity.
