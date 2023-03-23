@@ -776,8 +776,8 @@ install-devworkspace: ## Install Dev Workspace operator, available channels: nex
 
 wait-devworkspace-running: SHELL := /bin/bash
 wait-devworkspace-running: ## Wait until Dev Workspace operator is up and running
-	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/name=devworkspace-controller"
-	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/name=devworkspace-webhook-server"
+	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/name=devworkspace-controller" NAMESPACE=$(NAMESPACE)
+	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/name=devworkspace-webhook-server" NAMESPACE=$(NAMESPACE)
 
 setup-checluster: create-namespace create-checluster-crd create-checluster-cr ## Setup CheCluster (creates namespace, CRD and CheCluster CR)
 
