@@ -76,9 +76,9 @@ run() {
   fi
 
   if [[ ${CHANNEL} == "next" ]]; then
-    make install-devworkspace CHANNEL=next VERBOSE=${VERBOSE}
+    make install-devworkspace CHANNEL=next VERBOSE=${VERBOSE} OPERATOR_NAMESPACE="openshift-operators"
   else
-    make install-devworkspace CHANNEL=fast VERBOSE=${VERBOSE}
+    make install-devworkspace CHANNEL=fast VERBOSE=${VERBOSE} OPERATOR_NAMESPACE="openshift-operators"
   fi
 
   echo "[INFO] Test update from version: ${PREVIOUS_VERSION} to: ${LASTEST_VERSION}"
