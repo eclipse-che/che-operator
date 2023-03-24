@@ -15,8 +15,6 @@ package migration
 import (
 	"encoding/json"
 	"fmt"
-	"regexp"
-
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 
@@ -81,14 +79,13 @@ func cleanUpDevEnvironmentsDefaultComponents(ctx *chetypes.DeployContext) (bool,
 // cleanUpDashboardHeaderMessage cleans up CheCluster CR `Spec.Components.Dashboard.HeaderMessage`.
 // A new default is set via environment variable `CHE_DEFAULT_SPEC_COMPONENTS_DASHBOARD_HEADERMESSAGE_TEXT`.
 func cleanUpDashboardHeaderMessage(ctx *chetypes.DeployContext) (bool, error) {
-	dashboardHeaderMessageTextRegExp := []string{
+	dashboardHeaderMessageText := []string{
 		defaults.GetDashboardHeaderMessageText(),
 	}
 
-	for _, textRegExp := range dashboardHeaderMessageTextRegExp {
-		if ctx.CheCluster.Spec.Components.Dashboard.HeaderMessage != nil {
-			rxp := regexp.MustCompile(textRegExp)
-			if rxp.MatchString(ctx.CheCluster.Spec.Components.Dashboard.HeaderMessage.Text) {
+	if ctx.CheCluster.Spec.Components.Dashboard.HeaderMessage != nil {
+		for _, text := range dashboardHeaderMessageText {
+			if ctx.CheCluster.Spec.Components.Dashboard.HeaderMessage.Text == text {
 				ctx.CheCluster.Spec.Components.Dashboard.HeaderMessage = nil
 				return true, nil
 			}
