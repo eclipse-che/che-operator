@@ -13,9 +13,10 @@
 package migration
 
 import (
+	"testing"
+
 	devfile "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
-	"testing"
 
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
