@@ -100,7 +100,7 @@ spec:
         - name: CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL
           value: https://open-vsx.org
         - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DISABLECONTAINERBUILDCAPABILITIES
-          value: false
+          value: "false"
         image: quay.io/eclipse/che-operator:next
         imagePullPolicy: Always
         livenessProbe:
