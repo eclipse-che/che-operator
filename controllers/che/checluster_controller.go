@@ -92,6 +92,7 @@ func NewReconciler(
 	// order does matter
 	if !test.IsTestMode() {
 		reconcileManager.RegisterReconciler(migration.NewMigrator())
+		reconcileManager.RegisterReconciler(migration.NewCheClusterDefaultsCleaner())
 		reconcileManager.RegisterReconciler(NewCheClusterValidator())
 	}
 	reconcileManager.RegisterReconciler(imagepuller.NewImagePuller())

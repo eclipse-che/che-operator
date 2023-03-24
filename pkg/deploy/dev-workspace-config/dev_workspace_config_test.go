@@ -86,7 +86,9 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					Name:      "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					DevEnvironments: chev2.CheClusterDevEnvironments{},
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
+					},
 				},
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{Workspace: &controllerv1alpha1.WorkspaceConfig{}},
@@ -100,6 +102,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
 						Storage: chev2.WorkspaceStorage{
 							PvcStrategy: constants.EphemeralPVCStorageStrategy,
 							PerUserStrategyPvcConfig: &chev2.PVC{
@@ -125,6 +128,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
 						Storage: chev2.WorkspaceStorage{
 							PvcStrategy: constants.PerUserPVCStorageStrategy,
 							PerUserStrategyPvcConfig: &chev2.PVC{
@@ -149,6 +153,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
 						Storage: chev2.WorkspaceStorage{
 							PvcStrategy: constants.PerUserPVCStorageStrategy,
 							PerUserStrategyPvcConfig: &chev2.PVC{
@@ -177,6 +182,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
 						Storage: chev2.WorkspaceStorage{
 							PvcStrategy: constants.PerWorkspacePVCStorageStrategy,
 							PerWorkspaceStrategyPvcConfig: &chev2.PVC{
@@ -205,6 +211,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
 						Storage: chev2.WorkspaceStorage{
 							PvcStrategy: constants.PerWorkspacePVCStorageStrategy,
 							PerWorkspaceStrategyPvcConfig: &chev2.PVC{
@@ -253,6 +260,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
 						Storage: chev2.WorkspaceStorage{
 							PvcStrategy: constants.PerUserPVCStorageStrategy,
 							PerUserStrategyPvcConfig: &chev2.PVC{
@@ -301,6 +309,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
 						Storage: chev2.WorkspaceStorage{
 							PvcStrategy: constants.PerUserPVCStorageStrategy,
 							PerUserStrategyPvcConfig: &chev2.PVC{
@@ -491,7 +500,8 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						StartTimeoutSeconds: pointer.Int32Ptr(600),
+						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
+						StartTimeoutSeconds:               pointer.Int32Ptr(600),
 					},
 				},
 			},
@@ -510,7 +520,8 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						StartTimeoutSeconds: pointer.Int32Ptr(600),
+						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
+						StartTimeoutSeconds:               pointer.Int32Ptr(600),
 					},
 				},
 			},
@@ -553,7 +564,8 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						StartTimeoutSeconds: pointer.Int32Ptr(420),
+						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
+						StartTimeoutSeconds:               pointer.Int32Ptr(420),
 					},
 				},
 			},
@@ -596,7 +608,9 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					Name:      "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
-					DevEnvironments: chev2.CheClusterDevEnvironments{},
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
+					},
 				},
 			},
 			existedObjects: []runtime.Object{

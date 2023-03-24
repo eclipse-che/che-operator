@@ -92,7 +92,7 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployCon
 	}
 
 	// Mount CheCluster default values
-	envVars = append(envVars, utils.GetEnvsByRegExp("^CHE_SPEC.*")...)
+	envVars = append(envVars, utils.GetEnvsByRegExp("^CHE_DEFAULT_SPEC.*")...)
 
 	if utils.IsK8SResourceServed(ctx.ClusterAPI.DiscoveryClient, ConsoleLinksResourceName) {
 		envVars = append(envVars,

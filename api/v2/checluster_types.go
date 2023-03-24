@@ -17,7 +17,10 @@ package v2
 
 import (
 	"os"
+	"strconv"
 	"strings"
+
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -36,7 +39,7 @@ type CheClusterSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Development environments"
-	// +kubebuilder:default:={disableContainerBuildCapabilities: true, storage: {pvcStrategy: per-user}, defaultNamespace: {template: <username>-che, autoProvision: true}, secondsOfInactivityBeforeIdling:1800, secondsOfRunBeforeIdling:-1, startTimeoutSeconds:300, maxNumberOfWorkspacesPerUser:-1}
+	// +kubebuilder:default:={storage: {pvcStrategy: per-user}, defaultNamespace: {template: <username>-che, autoProvision: true}, secondsOfInactivityBeforeIdling:1800, secondsOfRunBeforeIdling:-1, startTimeoutSeconds:300, maxNumberOfWorkspacesPerUser:-1}
 	DevEnvironments CheClusterDevEnvironments `json:"devEnvironments"`
 	// Che components configuration.
 	// +optional
@@ -106,7 +109,6 @@ type CheClusterDevEnvironments struct {
 	SecondsOfRunBeforeIdling *int32 `json:"secondsOfRunBeforeIdling,omitempty"`
 	// Disables the container build capabilities.
 	// +optional
-	// +kubebuilder:default:=false
 	DisableContainerBuildCapabilities *bool `json:"disableContainerBuildCapabilities,omitempty"`
 	// Container build configuration.
 	// +optional
@@ -841,7 +843,12 @@ func (c *CheCluster) IsAccessTokenConfigured() bool {
 }
 
 func (c *CheCluster) IsContainerBuildCapabilitiesEnabled() bool {
-	return c.Spec.DevEnvironments.DisableContainerBuildCapabilities != nil && !*c.Spec.DevEnvironments.DisableContainerBuildCapabilities
+	if c.Spec.DevEnvironments.DisableContainerBuildCapabilities == nil {
+		disableContainerBuildCapabilitiesParsed, _ := strconv.ParseBool(defaults.GetDevEnvironmentsDisableContainerBuildCapabilities())
+		return !disableContainerBuildCapabilitiesParsed
+	} else {
+		return !*c.Spec.DevEnvironments.DisableContainerBuildCapabilities
+	}
 }
 
 func (c *CheCluster) IsOpenShiftSecurityContextConstraintSet() bool {
@@ -849,9 +856,19 @@ func (c *CheCluster) IsOpenShiftSecurityContextConstraintSet() bool {
 }
 
 func (c *CheCluster) IsCheFlavor() bool {
-	return os.Getenv("CHE_FLAVOR") == constants.CheFlavor
+	return defaults.GetCheFlavor() == constants.CheFlavor
 }
 
+// IsEmbeddedOpenVSXRegistryConfigured returns true if the Open VSX Registry is configured to be embedded.
+// The logic of Open VSX Registry usage depends on the `Spec.Components.PluginRegistry.OpenVSXURL` value:
+//   * <not set>, uses environment variable `CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL` as the URL
+//     for the registry (default value)
+//   * <empty>, starts embedded Open VSX Registry
+//   * <non-empty>, uses as the URL for the registry
 func (c *CheCluster) IsEmbeddedOpenVSXRegistryConfigured() bool {
-	return c.Spec.Components.PluginRegistry.OpenVSXURL == nil || *c.Spec.Components.PluginRegistry.OpenVSXURL == ""
+	if c.Spec.Components.PluginRegistry.OpenVSXURL == nil {
+		return defaults.GetPluginRegistryOpenVSXURL() == ""
+	} else {
+		return *c.Spec.Components.PluginRegistry.OpenVSXURL == ""
+	}
 }

@@ -336,7 +336,7 @@ genenerate-env:
 	      | select(.name=="che-operator")
 	      | .env[]
 	      | select(has("value"))
-	      | "export \(.name)=\(.value)"' \
+	      | "export \(.name)=\"\(.value)\""' \
 	  > $(BASH_ENV_FILE)
 	echo "export WATCH_NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)" >> $(BASH_ENV_FILE)
 	echo "[INFO] Created $(BASH_ENV_FILE)"
@@ -347,7 +347,7 @@ genenerate-env:
 	      | select(.name=="che-operator")
 	      | .env[]
 	      | select(has("value"))
-	      | "\(.name)=\(.value)"' \
+	      | "\(.name)=\"\(.value)\""' \
 	  > $(VSCODE_ENV_FILE)
 	echo "WATCH_NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)" >> $(VSCODE_ENV_FILE)
 	echo "[INFO] Created $(VSCODE_ENV_FILE)"

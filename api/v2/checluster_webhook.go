@@ -18,13 +18,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
-
-	"golang.org/x/mod/semver"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/utils/pointer"
-
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/json"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -52,46 +47,12 @@ var _ webhook.Defaulter = &CheCluster{}
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *CheCluster) Default() {
 	setContainerBuildConfiguration(r)
-	setDefaultOpenVSXURL(r)
 }
 
 // Sets ContainerBuildConfiguration if container build capabilities is enabled.
 func setContainerBuildConfiguration(cheCluster *CheCluster) {
-	if cheCluster.IsContainerBuildCapabilitiesEnabled() && !infrastructure.IsOpenShift() {
-		// Disable container build capabilities on Kubernetes
-		cheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.BoolPtr(true)
-	}
-
 	if cheCluster.IsContainerBuildCapabilitiesEnabled() && cheCluster.Spec.DevEnvironments.ContainerBuildConfiguration == nil {
 		cheCluster.Spec.DevEnvironments.ContainerBuildConfiguration = &ContainerBuildConfiguration{}
-	}
-}
-
-// https://github.com/eclipse/che/issues/21637
-// When installing Che, the default CheCluster should have pluginRegistry.openVSXURL set to https://open-vsx.org.
-// When updating Che v7.52 or earlier, if `openVSXURL` is NOT set then we should set it to https://open-vsx.org.
-// When updating Che v7.53 or later, if `openVSXURL` is NOT set then we should not modify it.
-func setDefaultOpenVSXURL(cheCluster *CheCluster) {
-	// No external OpenVSX registry in AirGap environment, use the embedded one
-	if cheCluster.IsAirGapMode() {
-		return
-	}
-
-	if cheCluster.Spec.Components.PluginRegistry.OpenVSXURL == nil {
-		if cheCluster.Status.CheVersion == "" {
-			// Eclipse Che is being installed, then set default
-			cheCluster.Spec.Components.PluginRegistry.OpenVSXURL = pointer.StringPtr(constants.DefaultOpenVSXUrl)
-			return
-		}
-
-		if cheCluster.IsCheFlavor() &&
-			cheCluster.Status.CheVersion != "" &&
-			cheCluster.Status.CheVersion != "next" &&
-			semver.Compare(fmt.Sprintf("v%s", cheCluster.Status.CheVersion), "v7.53.0") == -1 {
-			// Eclipse Che is being updated from version < 7.53.0
-			cheCluster.Spec.Components.PluginRegistry.OpenVSXURL = pointer.StringPtr(constants.DefaultOpenVSXUrl)
-			return
-		}
 	}
 }
 

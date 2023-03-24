@@ -19,16 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// UpdateCheCRSpec - updates Che CR "spec" by field
-func UpdateCheCRSpec(deployContext *chetypes.DeployContext, field string, value string) error {
-	err := deployContext.ClusterAPI.Client.Update(context.TODO(), deployContext.CheCluster)
-	if err == nil {
-		logrus.Infof("Custom resource spec %s updated with %s: %s", deployContext.CheCluster.Name, field, value)
-		return nil
-	}
-	return err
-}
-
 func UpdateCheCRStatus(deployContext *chetypes.DeployContext, field string, value string) (err error) {
 	err = deployContext.ClusterAPI.Client.Status().Update(context.TODO(), deployContext.CheCluster)
 	if err == nil {

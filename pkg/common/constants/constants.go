@@ -94,7 +94,6 @@ const (
 	CheEclipseOrgScmGitHubDisableSubdomainIsolation = "che.eclipse.org/scm-github-disable-subdomain-isolation"
 
 	// DevEnvironments
-	DefaultOpenVSXUrl              = "https://open-vsx.org"
 	PerUserPVCStorageStrategy      = "per-user"
 	DefaultPvcStorageStrategy      = "per-user"
 	PerWorkspacePVCStorageStrategy = "per-workspace"

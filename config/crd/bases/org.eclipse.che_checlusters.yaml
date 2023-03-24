@@ -5235,7 +5235,6 @@ spec:
                   defaultNamespace:
                     autoProvision: true
                     template: <username>-che
-                  disableContainerBuildCapabilities: true
                   maxNumberOfWorkspacesPerUser: -1
                   secondsOfInactivityBeforeIdling: 1800
                   secondsOfRunBeforeIdling: -1
@@ -6745,7 +6744,6 @@ spec:
                       type: object
                     type: array
                   disableContainerBuildCapabilities:
-                    default: false
                     description: Disables the container build capabilities.
                     type: boolean
                   maxNumberOfRunningWorkspacesPerUser:
