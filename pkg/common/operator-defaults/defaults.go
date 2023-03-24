@@ -301,13 +301,13 @@ func GetDevEnvironmentsDisableContainerBuildCapabilities() string {
 func PatchDefaultImageName(checluster interface{}, imageName string) string {
 	checlusterUnstructured, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(checluster)
 	hostname, _, _ := unstructured.NestedString(checlusterUnstructured, "spec", "containerRegistry", "hostname")
-	organization, _, _ := unstructured.NestedString(checlusterUnstructured, "spec", "containerRegistry", "hostname")
+	organization, _, _ := unstructured.NestedString(checlusterUnstructured, "spec", "containerRegistry", "organization")
 
 	if hostname == "" && organization == "" {
 		return imageName
 	}
 
-	if hostname != "" {
+	if hostname == "" {
 		hostname = getHostnameFromImage(imageName)
 	}
 
@@ -315,11 +315,11 @@ func PatchDefaultImageName(checluster interface{}, imageName string) string {
 		organization = getOrganizationFromImage(imageName)
 	}
 
-	image := getImageNameFromFullImage(imageName)
+	image := GetImageNameFromFullImage(imageName)
 	return fmt.Sprintf("%s/%s/%s", hostname, organization, image)
 }
 
-func getImageNameFromFullImage(image string) string {
+func GetImageNameFromFullImage(image string) string {
 	imageParts := strings.Split(image, "/")
 	nameAndTag := ""
 	switch len(imageParts) {
