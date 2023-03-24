@@ -15,6 +15,7 @@ package migration
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 
@@ -157,6 +158,7 @@ func cleanUpPluginRegistryOpenVSXURL(ctx *chetypes.DeployContext) (bool, error) 
 
 // cleanUpDevEnvironmentsDisableContainerBuildCapabilities cleans up CheCluster CR `Spec.DevEnvironments.DisableContainerBuildCapabilities`.
 // A new default is set via environment variable `CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DISABLECONTAINERBUILDCAPABILITIES`.
+// Sets to `true` for Kubernetes and to `nil` for OpenShift.
 func cleanUpDevEnvironmentsDisableContainerBuildCapabilities(ctx *chetypes.DeployContext) (bool, error) {
 	if !infrastructure.IsOpenShift() {
 		ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.BoolPtr(true)
