@@ -32,10 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
-var (
-	logger = ctrl.Log.WithName("webhook")
-)
-
 func (r *CheCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).

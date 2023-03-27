@@ -78,10 +78,6 @@ func NewCheClusterDefaultsCleaner() *CheClusterDefaultsCleaner {
 
 func (dc *CheClusterDefaultsCleaner) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	for _, cleanUpTask := range dc.cleanUpTasks {
-		if err := deploy.ReloadCheClusterCR(ctx); err != nil {
-			return reconcile.Result{}, false, err
-		}
-
 		if dc.isCheClusterDefaultsCleanupAnnotationSet(ctx, cleanUpTask.cheClusterSpecField) {
 			continue
 		}

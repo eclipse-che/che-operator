@@ -20,6 +20,8 @@ import (
 	"strconv"
 	"strings"
 
+	ctrl "sigs.k8s.io/controller-runtime"
+
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
@@ -31,6 +33,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+var logger = ctrl.Log.WithName("checluster")
 
 // +k8s:openapi-gen=true
 // Desired configuration of Eclipse Che installation.
@@ -842,13 +846,20 @@ func (c *CheCluster) IsAccessTokenConfigured() bool {
 	return c.GetIdentityToken() == constants.AccessToken
 }
 
+// IsContainerBuildCapabilitiesEnabled returns true if container build capabilities are enabled.
+// If value is not set in the CheCluster CR, then the default value is used.
 func (c *CheCluster) IsContainerBuildCapabilitiesEnabled() bool {
-	if c.Spec.DevEnvironments.DisableContainerBuildCapabilities == nil {
-		disableContainerBuildCapabilitiesParsed, _ := strconv.ParseBool(defaults.GetDevEnvironmentsDisableContainerBuildCapabilities())
-		return !disableContainerBuildCapabilitiesParsed
-	} else {
-		return !*c.Spec.DevEnvironments.DisableContainerBuildCapabilities
+	disableContainerBuildCapabilitiesParsed, err := strconv.ParseBool(defaults.GetDevEnvironmentsDisableContainerBuildCapabilities())
+	if err != nil {
+		logger.Error(err, "Failed to parse disableContainerBuildCapabilities", "value", disableContainerBuildCapabilitiesParsed)
+		return false
 	}
+
+	if c.Spec.DevEnvironments.DisableContainerBuildCapabilities != nil {
+		disableContainerBuildCapabilitiesParsed = *c.Spec.DevEnvironments.DisableContainerBuildCapabilities
+	}
+
+	return !disableContainerBuildCapabilitiesParsed
 }
 
 func (c *CheCluster) IsOpenShiftSecurityContextConstraintSet() bool {
@@ -866,9 +877,9 @@ func (c *CheCluster) IsCheFlavor() bool {
 //   * <empty>, starts embedded Open VSX Registry
 //   * <non-empty>, uses as the URL for the registry
 func (c *CheCluster) IsEmbeddedOpenVSXRegistryConfigured() bool {
-	if c.Spec.Components.PluginRegistry.OpenVSXURL == nil {
-		return defaults.GetPluginRegistryOpenVSXURL() == ""
-	} else {
-		return *c.Spec.Components.PluginRegistry.OpenVSXURL == ""
+	openVSXURL := defaults.GetPluginRegistryOpenVSXURL()
+	if c.Spec.Components.PluginRegistry.OpenVSXURL != nil {
+		openVSXURL = *c.Spec.Components.PluginRegistry.OpenVSXURL
 	}
+	return openVSXURL == ""
 }
