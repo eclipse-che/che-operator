@@ -14,6 +14,9 @@ package deploy
 import (
 	"context"
 
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/types"
@@ -46,8 +49,20 @@ func SetStatusDetails(deployContext *chetypes.DeployContext, reason string, mess
 }
 
 func ReloadCheClusterCR(deployContext *chetypes.DeployContext) error {
-	return deployContext.ClusterAPI.Client.Get(
+	cheCluster := &chev2.CheCluster{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "CheCluster",
+			APIVersion: chev2.GroupVersion.String(),
+		},
+	}
+
+	if err := deployContext.ClusterAPI.Client.Get(
 		context.TODO(),
 		types.NamespacedName{Name: deployContext.CheCluster.Name, Namespace: deployContext.CheCluster.Namespace},
-		deployContext.CheCluster)
+		cheCluster); err != nil {
+		return err
+	}
+
+	deployContext.CheCluster = cheCluster
+	return nil
 }

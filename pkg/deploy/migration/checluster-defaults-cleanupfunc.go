@@ -145,7 +145,7 @@ func cleanUpPluginRegistryOpenVSXURL(ctx *chetypes.DeployContext) (bool, error) 
 		semver.Compare(fmt.Sprintf("v%s", ctx.CheCluster.Status.CheVersion), "v7.53.0") == -1 {
 		// Eclipse Che is being updated from version v7.52 or earlier
 		ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL = pointer.StringPtr(defaults.GetPluginRegistryOpenVSXURL())
-		return false, nil
+		return true, nil
 	}
 
 	if ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL == nil {
@@ -165,6 +165,10 @@ func cleanUpDevEnvironmentsDisableContainerBuildCapabilities(ctx *chetypes.Deplo
 		return true, nil
 	}
 
-	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = nil
-	return true, nil
+	if ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities != nil {
+		ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = nil
+		return true, nil
+	}
+
+	return false, nil
 }
