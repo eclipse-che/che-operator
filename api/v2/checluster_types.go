@@ -31,6 +31,7 @@ import (
 
 	imagepullerv1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
 	devfile "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -137,6 +138,15 @@ type CheClusterDevEnvironments struct {
 	// +kubebuilder:validation:Minimum:=1
 	// +kubebuilder:default:=300
 	StartTimeoutSeconds *int32 `json:"startTimeoutSeconds,omitempty"`
+	// DeploymentStrategy defines the deployment strategy to use to replace existing workspace pods
+	// with new ones. The available deployment stragies are `Recreate` and `RollingUpdate`.
+	// With the `Recreate` deployment strategy, the existing workspace pod is killed before the new one is created.
+	// With the `RollingUpdate` deployment strategy, a new workspace pod is created and the existing workspace pod is deleted
+	// only when the new workspace pod is in a ready state.
+	// If not specified, the default `Recreate` deployment strategy is used.
+	// +optional
+	// +kubebuilder:validation:Enum=Recreate;RollingUpdate
+	DeploymentStrategy appsv1.DeploymentStrategyType `json:"deploymentStrategy,omitempty"`
 	// Total number of workspaces, both stopped and running, that a user can keep.
 	// The value, -1, allows users to keep an unlimited number of workspaces.
 	// +kubebuilder:validation:Minimum:=-1
