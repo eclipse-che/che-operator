@@ -14,10 +14,11 @@ package devworkspace
 
 import (
 	"context"
-	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"os"
 	"testing"
 	"time"
+
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"

@@ -13,10 +13,11 @@
 package migration
 
 import (
-	devfile "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
-	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"os"
 	"testing"
+
+	devfile "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 
