@@ -16,7 +16,6 @@ package v2
 // to regenerate `api/v2/zz_generatedxxx` code after modifying this file.
 
 import (
-	"os"
 	"strconv"
 	"strings"
 
@@ -828,7 +827,7 @@ func (c *CheCluster) GetDefaultNamespace() string {
 		return c.Spec.DevEnvironments.DefaultNamespace.Template
 	}
 
-	return "<username>-" + os.Getenv("CHE_FLAVOR")
+	return "<username>-" + defaults.GetCheFlavor()
 }
 
 func (c *CheCluster) GetIdentityToken() string {
@@ -870,12 +869,8 @@ func (c *CheCluster) IsCheFlavor() bool {
 	return defaults.GetCheFlavor() == constants.CheFlavor
 }
 
-// IsEmbeddedOpenVSXRegistryConfigured returns true if the Open VSX Registry is configured to be embedded.
-// The logic of Open VSX Registry usage depends on the `Spec.Components.PluginRegistry.OpenVSXURL` value:
-//   * <not set>, uses environment variable `CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL` as the URL
-//     for the registry (default value)
-//   * <empty>, starts embedded Open VSX Registry
-//   * <non-empty>, uses as the URL for the registry
+// IsEmbeddedOpenVSXRegistryConfigured returns true if the Open VSX Registry is configured to be embedded
+// only if only the `Spec.Components.PluginRegistry.OpenVSXURL` is empty.
 func (c *CheCluster) IsEmbeddedOpenVSXRegistryConfigured() bool {
 	openVSXURL := defaults.GetPluginRegistryOpenVSXURL()
 	if c.Spec.Components.PluginRegistry.OpenVSXURL != nil {

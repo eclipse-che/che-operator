@@ -21,10 +21,7 @@ source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 trap "catchFinish" EXIT SIGINT
 
 runTests() {
-  . ${OPERATOR_REPO}/build/scripts/olm/test-catalog-from-sources.sh --verbose
-
   export HAPPY_PATH_USERSTORY=EmptyWorkspace && export HAPPY_PATH_SUITE=test-all-devfiles
-
   bash <(curl -s ${DEVWORKSPACE_HAPPY_PATH}/remote-launch.sh)
 }
 

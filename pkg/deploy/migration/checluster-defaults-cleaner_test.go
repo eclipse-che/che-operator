@@ -13,9 +13,11 @@
 package migration
 
 import (
+	devfile "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"os"
 	"testing"
 
-	devfile "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 
 	"github.com/eclipse-che/che-operator/pkg/common/test"
@@ -27,18 +29,28 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestCheClusterDefaultsCleaner(t *testing.T) {
+func TestCheClusterDefaultsCleanerDefaultEditor(t *testing.T) {
 	type testCase struct {
-		name                                      string
-		infra                                     infrastructure.Type
-		cheCluster                                *chev2.CheCluster
-		expectedOpenVSXURL                        *string
-		expectedDisableContainerBuildCapabilities *bool
+		name                  string
+		infra                 infrastructure.Type
+		cheCluster            *chev2.CheCluster
+		expectedDefaultEditor string
 	}
 
 	testCases := []testCase{
 		{
-			name:  "Test upgrade from next",
+			name:  "Case #1",
+			infra: infrastructure.OpenShiftv4,
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+			},
+			expectedDefaultEditor: "",
+		},
+		{
+			name:  "Case #2",
 			infra: infrastructure.OpenShiftv4,
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -48,6 +60,85 @@ func TestCheClusterDefaultsCleaner(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
 						DefaultEditor: "che-incubator/che-code/insiders",
+					},
+				},
+			},
+			expectedDefaultEditor: "",
+		},
+		{
+			name:  "Case #3",
+			infra: infrastructure.OpenShiftv4,
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DefaultEditor: "my/editor",
+					},
+				},
+			},
+			expectedDefaultEditor: "my/editor",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			infrastructure.InitializeForTesting(testCase.infra)
+
+			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
+			cheClusterDefaultsCleanup := NewCheClusterDefaultsCleaner()
+
+			_, done, err := cheClusterDefaultsCleanup.Reconcile(ctx)
+			assert.NoError(t, err)
+			assert.True(t, done)
+
+			assert.Equal(t, testCase.expectedDefaultEditor, ctx.CheCluster.Spec.DevEnvironments.DefaultEditor)
+
+			cheClusterFields := cheClusterDefaultsCleanup.readCheClusterDefaultsCleanupAnnotation(ctx)
+			assert.Equal(t, "true", cheClusterFields["spec.devEnvironments.defaultEditor"])
+
+			// run twice to check that fields are not changed
+			_, done, err = cheClusterDefaultsCleanup.Reconcile(ctx)
+			assert.NoError(t, err)
+			assert.True(t, done)
+
+			assert.Equal(t, testCase.expectedDefaultEditor, ctx.CheCluster.Spec.DevEnvironments.DefaultEditor)
+		})
+	}
+}
+
+func TestCheClusterDefaultsCleanerDefaultComponents(t *testing.T) {
+	type testCase struct {
+		name                      string
+		infra                     infrastructure.Type
+		cheCluster                *chev2.CheCluster
+		expectedDefaultComponents []devfile.Component
+	}
+
+	testCases := []testCase{
+		{
+			name:  "Case #2",
+			infra: infrastructure.OpenShiftv4,
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+			},
+			expectedDefaultComponents: nil,
+		},
+		{
+			name:  "Case #2",
+			infra: infrastructure.OpenShiftv4,
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
 						DefaultComponents: []devfile.Component{
 							{
 								Name: "universal-developer-image",
@@ -60,8 +151,93 @@ func TestCheClusterDefaultsCleaner(t *testing.T) {
 								},
 							},
 						},
-						DisableContainerBuildCapabilities: pointer.BoolPtr(false),
 					},
+				},
+			},
+			expectedDefaultComponents: nil,
+		},
+		{
+			name:  "Case #3",
+			infra: infrastructure.OpenShiftv4,
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DefaultComponents: []devfile.Component{
+							{
+								Name: "universal-developer-image",
+								ComponentUnion: devfile.ComponentUnion{
+									Container: &devfile.ContainerComponent{
+										Container: devfile.Container{
+											Image: "my/image",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedDefaultComponents: []devfile.Component{
+				{
+					Name: "universal-developer-image",
+					ComponentUnion: devfile.ComponentUnion{
+						Container: &devfile.ContainerComponent{
+							Container: devfile.Container{
+								Image: "my/image",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			infrastructure.InitializeForTesting(testCase.infra)
+
+			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
+			cheClusterDefaultsCleanup := NewCheClusterDefaultsCleaner()
+
+			_, done, err := cheClusterDefaultsCleanup.Reconcile(ctx)
+			assert.NoError(t, err)
+			assert.True(t, done)
+
+			assert.Equal(t, testCase.expectedDefaultComponents, ctx.CheCluster.Spec.DevEnvironments.DefaultComponents)
+
+			cheClusterFields := cheClusterDefaultsCleanup.readCheClusterDefaultsCleanupAnnotation(ctx)
+			assert.Equal(t, "true", cheClusterFields["spec.devEnvironments.defaultComponents"])
+
+			// run twice to check that fields are not changed
+			_, done, err = cheClusterDefaultsCleanup.Reconcile(ctx)
+			assert.NoError(t, err)
+			assert.True(t, done)
+
+			assert.Equal(t, testCase.expectedDefaultComponents, ctx.CheCluster.Spec.DevEnvironments.DefaultComponents)
+		})
+	}
+}
+
+func TestCheClusterDefaultsCleanerOpenVSXURL(t *testing.T) {
+	type testCase struct {
+		name               string
+		cheCluster         *chev2.CheCluster
+		expectedOpenVSXURL *string
+	}
+
+	testCases := []testCase{
+		{
+			name: "Test upgrade from next",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
 						PluginRegistry: chev2.PluginRegistry{
 							OpenVSXURL: pointer.StringPtr("https://open-vsx.org"),
@@ -74,8 +250,7 @@ func TestCheClusterDefaultsCleaner(t *testing.T) {
 			},
 		},
 		{
-			name:  "Test upgrade from v7.52.0",
-			infra: infrastructure.OpenShiftv4,
+			name: "Test upgrade from v7.52.0",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
@@ -88,8 +263,7 @@ func TestCheClusterDefaultsCleaner(t *testing.T) {
 			expectedOpenVSXURL: pointer.StringPtr("https://open-vsx.org"),
 		},
 		{
-			name:  "Test upgrade from v7.62.0",
-			infra: infrastructure.OpenShiftv4,
+			name: "Test upgrade from v7.62.0",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
@@ -108,8 +282,7 @@ func TestCheClusterDefaultsCleaner(t *testing.T) {
 			},
 		},
 		{
-			name:  "Test installing a new version",
-			infra: infrastructure.OpenShiftv4,
+			name: "Test installing a new version",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
@@ -125,8 +298,7 @@ func TestCheClusterDefaultsCleaner(t *testing.T) {
 			},
 		},
 		{
-			name:  "Test use embedded OpenVSXURL after upgrade",
-			infra: infrastructure.OpenShiftv4,
+			name: "Test use embedded OpenVSXURL after upgrade",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
@@ -139,8 +311,7 @@ func TestCheClusterDefaultsCleaner(t *testing.T) {
 			expectedOpenVSXURL: pointer.StringPtr(""),
 		},
 		{
-			name:  "Keep existed OpenVSXURL after upgrade",
-			infra: infrastructure.OpenShiftv4,
+			name: "Keep existed OpenVSXURL after upgrade",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
@@ -157,8 +328,7 @@ func TestCheClusterDefaultsCleaner(t *testing.T) {
 			expectedOpenVSXURL: pointer.StringPtr("https://bla-bla-bla"),
 		},
 		{
-			name:  "Keep empty OpenVSXURL after upgrade",
-			infra: infrastructure.OpenShiftv4,
+			name: "Keep empty OpenVSXURL after upgrade",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
@@ -174,8 +344,54 @@ func TestCheClusterDefaultsCleaner(t *testing.T) {
 			},
 			expectedOpenVSXURL: pointer.StringPtr(""),
 		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
+			cheClusterDefaultsCleanup := NewCheClusterDefaultsCleaner()
+
+			_, done, err := cheClusterDefaultsCleanup.Reconcile(ctx)
+			assert.NoError(t, err)
+			assert.True(t, done)
+
+			assert.Equal(t, testCase.expectedOpenVSXURL, ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL)
+
+			cheClusterFields := cheClusterDefaultsCleanup.readCheClusterDefaultsCleanupAnnotation(ctx)
+			assert.Equal(t, "true", cheClusterFields["spec.components.pluginRegistry.openVSXURL"])
+
+			// run twice to check that fields are not changed
+			_, done, err = cheClusterDefaultsCleanup.Reconcile(ctx)
+			assert.NoError(t, err)
+			assert.True(t, done)
+
+			assert.Equal(t, testCase.expectedOpenVSXURL, ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL)
+		})
+	}
+}
+
+func TestCheClusterDefaultsCleanerDashboardHeaderMessage(t *testing.T) {
+	prevDefaultHeaderMessageText := os.Getenv("CHE_DEFAULT_SPEC_COMPONENTS_DASHBOARD_HEADERMESSAGE_TEXT")
+	defer func() {
+		_ = os.Setenv("CHE_DEFAULT_SPEC_COMPONENTS_DASHBOARD_HEADERMESSAGE_TEXT", prevDefaultHeaderMessageText)
+	}()
+
+	err := os.Setenv("CHE_DEFAULT_SPEC_COMPONENTS_DASHBOARD_HEADERMESSAGE_TEXT", ".*$%^*bla^({}'\"|?<>")
+	assert.NoError(t, err)
+
+	// re initialize defaults with new env var
+	defaults.Initialize()
+
+	type testCase struct {
+		name                  string
+		infra                 infrastructure.Type
+		cheCluster            *chev2.CheCluster
+		expectedHeaderMessage *chev2.DashboardHeaderMessage
+	}
+
+	testCases := []testCase{
 		{
-			name:  "Disable container build capabilities on Kubernetes",
+			name:  "Case #1",
 			infra: infrastructure.Kubernetes,
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -183,7 +399,52 @@ func TestCheClusterDefaultsCleaner(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 			},
-			expectedDisableContainerBuildCapabilities: pointer.BoolPtr(true),
+			expectedHeaderMessage: nil,
+		},
+		{
+			name:  "Case #2",
+			infra: infrastructure.Kubernetes,
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						Dashboard: chev2.Dashboard{
+							HeaderMessage: &chev2.DashboardHeaderMessage{
+								Text: "Some message",
+								Show: true,
+							},
+						},
+					},
+				},
+			},
+			expectedHeaderMessage: &chev2.DashboardHeaderMessage{
+				Text: "Some message",
+				Show: true,
+			},
+		},
+		{
+			name:  "Case #3",
+			infra: infrastructure.Kubernetes,
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						Dashboard: chev2.Dashboard{
+							HeaderMessage: &chev2.DashboardHeaderMessage{
+								Text: ".*$%^*bla^({}'\"|?<>",
+								Show: true,
+							},
+						},
+					},
+				},
+			},
+			expectedHeaderMessage: nil,
 		},
 	}
 
@@ -198,29 +459,124 @@ func TestCheClusterDefaultsCleaner(t *testing.T) {
 			assert.NoError(t, err)
 			assert.True(t, done)
 
-			assert.Equal(t, testCase.expectedOpenVSXURL, ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL)
-			assert.Equal(t, testCase.expectedDisableContainerBuildCapabilities, ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities)
-			assert.Empty(t, ctx.CheCluster.Spec.DevEnvironments.DefaultEditor)
-			assert.Empty(t, ctx.CheCluster.Spec.DevEnvironments.DefaultComponents)
-			assert.Nil(t, ctx.CheCluster.Spec.Components.Dashboard.HeaderMessage)
+			assert.Equal(t, testCase.expectedHeaderMessage, ctx.CheCluster.Spec.Components.Dashboard.HeaderMessage)
 
 			cheClusterFields := cheClusterDefaultsCleanup.readCheClusterDefaultsCleanupAnnotation(ctx)
-			assert.Equal(t, "true", cheClusterFields["spec.components.pluginRegistry.openVSXURL"])
 			assert.Equal(t, "true", cheClusterFields["spec.components.dashboard.headerMessage"])
-			assert.Equal(t, "true", cheClusterFields["spec.devEnvironments.disableContainerBuildCapabilities"])
-			assert.Equal(t, "true", cheClusterFields["spec.devEnvironments.defaultComponents"])
-			assert.Equal(t, "true", cheClusterFields["spec.devEnvironments.defaultEditor"])
 
 			// run twice to check that fields are not changed
 			_, done, err = cheClusterDefaultsCleanup.Reconcile(ctx)
 			assert.NoError(t, err)
 			assert.True(t, done)
 
-			assert.Equal(t, testCase.expectedOpenVSXURL, ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL)
+			assert.Equal(t, testCase.expectedHeaderMessage, ctx.CheCluster.Spec.Components.Dashboard.HeaderMessage)
+		})
+	}
+}
+
+func TestCheClusterDefaultsCleanerDisableContainerBuildCapabilities(t *testing.T) {
+	type testCase struct {
+		name                                      string
+		infra                                     infrastructure.Type
+		cheCluster                                *chev2.CheCluster
+		expectedDisableContainerBuildCapabilities *bool
+	}
+
+	testCases := []testCase{
+		{
+			name:  "Kubernetes case #1",
+			infra: infrastructure.Kubernetes,
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+			},
+			expectedDisableContainerBuildCapabilities: pointer.BoolPtr(true),
+		},
+		{
+			name:  "Kubernetes case #2",
+			infra: infrastructure.Kubernetes,
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.BoolPtr(false),
+					},
+				},
+			},
+			expectedDisableContainerBuildCapabilities: pointer.BoolPtr(true),
+		},
+		{
+			name:  "OpenShift case #1",
+			infra: infrastructure.OpenShiftv4,
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+			},
+			expectedDisableContainerBuildCapabilities: nil,
+		},
+		{
+			name:  "OpenShift case #2",
+			infra: infrastructure.OpenShiftv4,
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
+					},
+				},
+			},
+			expectedDisableContainerBuildCapabilities: nil,
+		},
+		{
+			name:  "OpenShift case #3",
+			infra: infrastructure.OpenShiftv4,
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.BoolPtr(false),
+					},
+				},
+			},
+			expectedDisableContainerBuildCapabilities: nil,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			infrastructure.InitializeForTesting(testCase.infra)
+
+			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
+			cheClusterDefaultsCleanup := NewCheClusterDefaultsCleaner()
+
+			_, done, err := cheClusterDefaultsCleanup.Reconcile(ctx)
+			assert.NoError(t, err)
+			assert.True(t, done)
+
 			assert.Equal(t, testCase.expectedDisableContainerBuildCapabilities, ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities)
-			assert.Empty(t, ctx.CheCluster.Spec.DevEnvironments.DefaultEditor)
-			assert.Empty(t, ctx.CheCluster.Spec.DevEnvironments.DefaultComponents)
-			assert.Nil(t, ctx.CheCluster.Spec.Components.Dashboard.HeaderMessage)
+
+			cheClusterFields := cheClusterDefaultsCleanup.readCheClusterDefaultsCleanupAnnotation(ctx)
+			assert.Equal(t, "true", cheClusterFields["spec.devEnvironments.disableContainerBuildCapabilities"])
+
+			// run twice to check that fields are not changed
+			_, done, err = cheClusterDefaultsCleanup.Reconcile(ctx)
+			assert.NoError(t, err)
+			assert.True(t, done)
+
+			assert.Equal(t, testCase.expectedDisableContainerBuildCapabilities, ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities)
 		})
 	}
 }

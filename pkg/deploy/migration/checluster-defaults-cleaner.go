@@ -78,29 +78,22 @@ func NewCheClusterDefaultsCleaner() *CheClusterDefaultsCleaner {
 
 func (dc *CheClusterDefaultsCleaner) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	for _, cleanUpTask := range dc.cleanUpTasks {
-		if err := deploy.ReloadCheClusterCR(ctx); err != nil {
-			return reconcile.Result{}, false, err
-		}
-
 		if dc.isCheClusterDefaultsCleanupAnnotationSet(ctx, cleanUpTask.cheClusterSpecField) {
 			continue
 		}
 
-		// set annotation to mark that the field has been processed
-		dc.setCheClusterDefaultsCleanupAnnotation(ctx, cleanUpTask.cheClusterSpecField)
-
-		if done, err := cleanUpTask.cleanUpFunc(ctx); !done {
-			if err != nil {
+		if done, err := cleanUpTask.cleanUpFunc(ctx); err != nil {
+			return reconcile.Result{}, false, err
+		} else {
+			// set annotation to mark that the field has been processed
+			dc.setCheClusterDefaultsCleanupAnnotation(ctx, cleanUpTask.cheClusterSpecField)
+			if err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster); err != nil {
 				return reconcile.Result{}, false, err
 			}
 
-			// proceed to set the annotation and continue with the next task
-		} else {
-			logger.Info("CheCluster CR cleaned up", "field", cleanUpTask.cheClusterSpecField)
-		}
-
-		if err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster); err != nil {
-			return reconcile.Result{}, false, err
+			if done {
+				logger.Info("CheCluster CR cleaned up", "field", cleanUpTask.cheClusterSpecField)
+			}
 		}
 	}
 
@@ -120,7 +113,10 @@ func (dc *CheClusterDefaultsCleaner) setCheClusterDefaultsCleanupAnnotation(ctx 
 	cheClusterFields := dc.readCheClusterDefaultsCleanupAnnotation(ctx)
 	cheClusterFields[cheClusterField] = "true"
 
-	data, _ := json.Marshal(cheClusterFields)
+	data, err := json.Marshal(cheClusterFields)
+	if err != nil {
+		logger.Error(err, fmt.Sprintf("Failed to marshal %s annotation", cheClusterDefaultsCleanup))
+	}
 
 	annotations := ctx.CheCluster.GetAnnotations()
 	if annotations == nil {

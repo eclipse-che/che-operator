@@ -29,8 +29,7 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-// cleanUpDevEnvironmentsDefaultEditor cleans up CheCluster CR `Spec.DevEnvironments.DefaultEditor`.
-// A new default is set via environment variable `CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTEDITOR`.
+// cleanUpDevEnvironmentsDefaultEditor cleans up CheCluster CR `Spec.DevEnvironments.DefaultEditor` field.
 func cleanUpDevEnvironmentsDefaultEditor(ctx *chetypes.DeployContext) (bool, error) {
 	devEnvironmentsDefaultEditor := []string{
 		"eclipse/che-theia/latest",                 // is not supported anymore, see details at https://github.com/eclipse/che/issues/21771
@@ -49,11 +48,11 @@ func cleanUpDevEnvironmentsDefaultEditor(ctx *chetypes.DeployContext) (bool, err
 	return false, nil
 }
 
-// cleanUpDevEnvironmentsDefaultComponents cleans up CheCluster CR `Spec.DevEnvironments.DefaultComponents`.
-// A new default is set via environment variable `CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTCOMPONENTS`.
+// cleanUpDevEnvironmentsDefaultComponents cleans up CheCluster CR `Spec.DevEnvironments.DefaultComponents` field.
 func cleanUpDevEnvironmentsDefaultComponents(ctx *chetypes.DeployContext) (bool, error) {
 	devEnvironmentsDefaultComponents := []string{
-		"[{\"name\": \"universal-developer-image\", \"container\": {\"image\": \"quay.io/devfile/universal-developer-image:ubi8-38da5c2\"}}]", // previous default
+		"[{\"name\": \"universal-developer-image\", " +
+			"\"container\": {\"image\": \"quay.io/devfile/universal-developer-image:ubi8-38da5c2\"}}]", // previous default
 		defaults.GetDevEnvironmentsDefaultComponents(), // current default (can be equal to the previous one)
 	}
 
@@ -69,7 +68,7 @@ func cleanUpDevEnvironmentsDefaultComponents(ctx *chetypes.DeployContext) (bool,
 			cmp.Options{
 				cmpopts.IgnoreFields(devfile.Container{}, "SourceMapping"), // SourceMapping can have a default value, so it should be ignored
 			}) == "" {
-			ctx.CheCluster.Spec.DevEnvironments.DefaultComponents = []devfile.Component{}
+			ctx.CheCluster.Spec.DevEnvironments.DefaultComponents = nil
 			return true, nil
 		}
 	}
@@ -78,7 +77,6 @@ func cleanUpDevEnvironmentsDefaultComponents(ctx *chetypes.DeployContext) (bool,
 }
 
 // cleanUpDashboardHeaderMessage cleans up CheCluster CR `Spec.Components.Dashboard.HeaderMessage`.
-// A new default is set via environment variable `CHE_DEFAULT_SPEC_COMPONENTS_DASHBOARD_HEADERMESSAGE_TEXT`.
 func cleanUpDashboardHeaderMessage(ctx *chetypes.DeployContext) (bool, error) {
 	dashboardHeaderMessageText := []string{
 		defaults.GetDashboardHeaderMessageText(),
@@ -96,21 +94,16 @@ func cleanUpDashboardHeaderMessage(ctx *chetypes.DeployContext) (bool, error) {
 	return false, nil
 }
 
-// cleanUpPluginRegistryOpenVSXURL cleans up CheCluster CR `Spec.Components.PluginRegistry.OpenVSXURL`.
-// The logic of Open VSX Registry usage depends on the `Spec.Components.PluginRegistry.OpenVSXURL` value:
-//   * <not set>, uses environment variable `CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL` as the URL
-//     for the registry (default value)
-//   * <empty>, starts embedded Open VSX Registry
-//   * <non-empty>, uses as the URL for the registry
-// Clean up is done in the following way (complies with requirements https://github.com/eclipse/che/issues/21637):
-//   * if Eclipse Che is being installed, then use the default openVSXURL
-//   * if Eclipse Che is being upgraded
-//     - if value is <not set> and Eclipse Che v7.52 or earlier, then set the default
-//     - if value is <not set> and Eclipse Che v7.53 or later, then set it to empty string (starts embedded registry)
-//     - if value is <empty>, then do nothing (starts embedded registry)
-//     - if value is <non-empty> and equals to the default value, then set it to nil since default is moved to environment variable
-//       (use external registry from the environment variable)
-//     - if value is <non-empty> and not equals to the default value, then do nothing (use external registry from the value)
+// cleanUpPluginRegistryOpenVSXURL cleans up CheCluster CR `Spec.Components.PluginRegistry.OpenVSXURL` field:
+// (complies with requirements https://github.com/eclipse/che/issues/21637):
+//   1. if value equals to the default one, then set it to nil
+//   2. if Eclipse Che is being installed, then use the default openVSXURL
+//   3. if Eclipse Che is being upgraded
+//      * if value is <not set> and Eclipse Che v7.52 or earlier, then set the default
+//      * if value is <not set> and Eclipse Che v7.53 or later, then set it to empty string (starts embedded registry)
+//      * if value is <empty>, then do nothing (starts embedded registry)
+//      * if value is <non-empty> and not equals to the default value, then do nothing (use external registry from the value)
+// See also [v2.CheCluster].
 func cleanUpPluginRegistryOpenVSXURL(ctx *chetypes.DeployContext) (bool, error) {
 	pluginRegistryOpenVSXURL := []string{
 		"https://openvsx.org",                  // redirects to "https://open-vsx.org"
@@ -138,17 +131,16 @@ func cleanUpPluginRegistryOpenVSXURL(ctx *chetypes.DeployContext) (bool, error) 
 	}
 
 	// Eclipse Che is being upgraded
-	if ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL == nil &&
-		ctx.CheCluster.IsCheFlavor() &&
-		ctx.CheCluster.Status.CheVersion != "" &&
-		ctx.CheCluster.Status.CheVersion != "next" &&
-		semver.Compare(fmt.Sprintf("v%s", ctx.CheCluster.Status.CheVersion), "v7.53.0") == -1 {
-		// Eclipse Che is being updated from version v7.52 or earlier
-		ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL = pointer.StringPtr(defaults.GetPluginRegistryOpenVSXURL())
-		return true, nil
-	}
-
 	if ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL == nil {
+		if ctx.CheCluster.IsCheFlavor() &&
+			ctx.CheCluster.Status.CheVersion != "" &&
+			ctx.CheCluster.Status.CheVersion != "next" &&
+			semver.Compare(fmt.Sprintf("v%s", ctx.CheCluster.Status.CheVersion), "v7.53.0") == -1 {
+			// Eclipse Che is being updated from version v7.52 or earlier
+			ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL = pointer.StringPtr(defaults.GetPluginRegistryOpenVSXURL())
+			return true, nil
+		}
+
 		ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL = pointer.StringPtr("")
 		return true, nil
 	}
@@ -156,9 +148,8 @@ func cleanUpPluginRegistryOpenVSXURL(ctx *chetypes.DeployContext) (bool, error) 
 	return false, nil
 }
 
-// cleanUpDevEnvironmentsDisableContainerBuildCapabilities cleans up CheCluster CR `Spec.DevEnvironments.DisableContainerBuildCapabilities`.
-// A new default is set via environment variable `CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DISABLECONTAINERBUILDCAPABILITIES`.
-// Sets to `true` for Kubernetes and to `nil` for OpenShift.
+// cleanUpDevEnvironmentsDisableContainerBuildCapabilities cleans up
+// CheCluster CR `Spec.DevEnvironments.DisableContainerBuildCapabilities` field. See also [v2.CheCluster].
 func cleanUpDevEnvironmentsDisableContainerBuildCapabilities(ctx *chetypes.DeployContext) (bool, error) {
 	if !infrastructure.IsOpenShift() {
 		ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.BoolPtr(true)
