@@ -15,8 +15,6 @@ package migration
 import (
 	"testing"
 
-	"github.com/eclipse-che/che-operator/pkg/deploy"
-
 	devfile "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 
@@ -199,8 +197,6 @@ func TestCheClusterDefaultsCleaner(t *testing.T) {
 			_, done, err := cheClusterDefaultsCleanup.Reconcile(ctx)
 			assert.NoError(t, err)
 			assert.True(t, done)
-
-			deploy.ReloadCheClusterCR(ctx)
 
 			assert.Equal(t, testCase.expectedOpenVSXURL, ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL)
 			assert.Equal(t, testCase.expectedDisableContainerBuildCapabilities, ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities)
