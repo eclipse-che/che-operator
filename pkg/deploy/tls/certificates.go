@@ -146,7 +146,7 @@ func (c *CertificatesReconciler) syncKubernetesRootCertificates(ctx *chetypes.De
 	kubeRootCertsConfigMap.Labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
 	kubeRootCertsConfigMap.Labels[constants.KubernetesComponentLabelKey] = CheCACertsConfigMapLabelValue
 
-	return deploy.Sync(ctx, kubeRootCertsConfigMap)
+	return deploy.SyncConfigMapSpecToCluster(ctx, kubeRootCertsConfigMap)
 }
 
 func (c *CertificatesReconciler) syncAdditionalCACertsConfigMapToCluster(ctx *chetypes.DeployContext) (bool, error) {
