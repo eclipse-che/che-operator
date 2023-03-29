@@ -165,26 +165,6 @@ func UpdateWithClient(client client.Client, deployContext *chetypes.DeployContex
 			fmt.Printf("Difference:\n%s", diff)
 		}
 
-		targetLabels := map[string]string{}
-		targetAnnos := map[string]string{}
-
-		for k, v := range actualMeta.GetAnnotations() {
-			targetAnnos[k] = v
-		}
-		for k, v := range actualMeta.GetLabels() {
-			targetLabels[k] = v
-		}
-
-		for k, v := range blueprint.GetAnnotations() {
-			targetAnnos[k] = v
-		}
-		for k, v := range blueprint.GetLabels() {
-			targetLabels[k] = v
-		}
-
-		blueprint.SetAnnotations(targetAnnos)
-		blueprint.SetLabels(targetLabels)
-
 		if isUpdateUsingDeleteCreate(actual.GetObjectKind().GroupVersionKind().Kind) {
 			done, err := DeleteWithClient(client, actual)
 			if !done {
