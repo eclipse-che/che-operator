@@ -2273,10 +2273,6 @@ spec:
                       description: Deprecated in favor of `disableInternalClusterSVCNames`.
                       type: boolean
                     workspaceDefaultComponents:
-                      default:
-                        - container:
-                            image: quay.io/devfile/universal-developer-image:ubi8-38da5c2
-                          name: universal-developer-image
                       description: Default components applied to DevWorkspaces. These
                         default components are meant to be used when a Devfile does
                         not contain any components.
