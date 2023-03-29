@@ -129,6 +129,47 @@ func TestSyncAdditionalCACertsConfigMapToCluster(t *testing.T) {
 	assert.Equal(t, cacertMerged.ObjectMeta.Annotations["che.eclipse.org/included-configmaps"], "cert1-1.cert2-1")
 }
 
+func TestSyncKubernetesRootCertificates(t *testing.T) {
+	caCertsMerged := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      CheAllCACertsConfigMapName,
+			Namespace: "eclipse-che",
+			Labels: map[string]string{
+				"app":                          "che",
+				"app.kubernetes.io/component":  "che",
+				"app.kubernetes.io/instance":   "che",
+				"app.kubernetes.io/managed-by": "che-operator",
+				"app.kubernetes.io/name":       "che",
+				"app.kubernetes.io/part-of":    "che.eclipse.org",
+				"component":                    "che",
+			},
+		},
+	}
+
+	kubeRootCert := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      KubernetesRootCertificateConfigMapName,
+			Namespace: "eclipse-che",
+		},
+		Data: map[string]string{
+			"ca.crt": "root-cert",
+		},
+	}
+
+	ctx := test.GetDeployContext(nil, []runtime.Object{kubeRootCert, caCertsMerged})
+
+	certificates := NewCertificatesReconciler()
+	_, _, err := certificates.Reconcile(ctx)
+	assert.Nil(t, err)
+
+	_, _, err = certificates.Reconcile(ctx)
+	assert.Nil(t, err)
+
+	_, done, err := certificates.Reconcile(ctx)
+	assert.Nil(t, err)
+	assert.True(t, done)
+}
+
 func TestSyncGitSelfSignedCertificate(t *testing.T) {
 	cert := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

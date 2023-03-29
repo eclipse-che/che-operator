@@ -17,10 +17,6 @@ import (
 	"reflect"
 	"strings"
 
-	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/json"
-
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -121,14 +117,14 @@ func (c *CertificatesReconciler) syncTrustStoreConfigMapToCluster(ctx *chetypes.
 // Kubernetes root certificates to Che components. It is needed to use NonCachingClient because the map
 // initially is not in the cache.
 func (c *CertificatesReconciler) syncKubernetesRootCertificates(ctx *chetypes.DeployContext) (bool, error) {
-	certs := &corev1.ConfigMap{}
+	kubeRootCertsConfigMap := &corev1.ConfigMap{}
 	if err := ctx.ClusterAPI.NonCachingClient.Get(
 		context.TODO(),
 		types.NamespacedName{
 			Name:      KubernetesRootCertificateConfigMapName,
 			Namespace: ctx.CheCluster.Namespace,
 		},
-		certs); err != nil {
+		kubeRootCertsConfigMap); err != nil {
 		if errors.IsNotFound(err) {
 			return true, nil
 		} else {
@@ -136,23 +132,14 @@ func (c *CertificatesReconciler) syncKubernetesRootCertificates(ctx *chetypes.De
 		}
 	}
 
-	patchData, _ := json.Marshal(corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Labels: map[string]string{
-				constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
-				constants.KubernetesComponentLabelKey: CheCACertsConfigMapLabelValue,
-			},
-		},
-	})
+	if kubeRootCertsConfigMap.GetLabels() == nil {
+		kubeRootCertsConfigMap.SetLabels(map[string]string{})
+	}
 
-	_, err := k8shelper.New().GetClientset().CoreV1().ConfigMaps(ctx.CheCluster.Namespace).Patch(
-		context.TODO(),
-		KubernetesRootCertificateConfigMapName,
-		types.MergePatchType,
-		patchData,
-		metav1.PatchOptions{},
-	)
-	return err == nil, err
+	kubeRootCertsConfigMap.Labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
+	kubeRootCertsConfigMap.Labels[constants.KubernetesComponentLabelKey] = CheCACertsConfigMapLabelValue
+
+	return deploy.Sync(ctx, kubeRootCertsConfigMap)
 }
 
 func (c *CertificatesReconciler) syncAdditionalCACertsConfigMapToCluster(ctx *chetypes.DeployContext) (bool, error) {
