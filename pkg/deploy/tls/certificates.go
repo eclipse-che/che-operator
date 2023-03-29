@@ -119,12 +119,7 @@ func (c *CertificatesReconciler) syncTrustStoreConfigMapToCluster(ctx *chetypes.
 // Kubernetes root certificates to Che components. It is needed to use NonCachingClient because the map
 // initially is not in the cache.
 func (c *CertificatesReconciler) syncKubernetesRootCertificates(ctx *chetypes.DeployContext) (bool, error) {
-	kubeRootCertsConfigMap := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
-			APIVersion: "v1",
-		},
-	}
+	kubeRootCertsConfigMap := &corev1.ConfigMap{}
 	if err := ctx.ClusterAPI.NonCachingClient.Get(
 		context.TODO(),
 		types.NamespacedName{
@@ -146,7 +141,12 @@ func (c *CertificatesReconciler) syncKubernetesRootCertificates(ctx *chetypes.De
 	kubeRootCertsConfigMap.Labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
 	kubeRootCertsConfigMap.Labels[constants.KubernetesComponentLabelKey] = CheCACertsConfigMapLabelValue
 
-	return deploy.SyncConfigMapSpecToCluster(ctx, kubeRootCertsConfigMap)
+	// Set TypeMeta to avoid "cause: no version "" has been registered in scheme" error
+	kubeRootCertsConfigMap.TypeMeta = metav1.TypeMeta{
+		Kind:       "ConfigMap",
+		APIVersion: "v1",
+	}
+	return deploy.SyncWithClient(ctx.ClusterAPI.NonCachingClient, ctx, kubeRootCertsConfigMap, deploy.ConfigMapDiffOpts)
 }
 
 func (c *CertificatesReconciler) syncAdditionalCACertsConfigMapToCluster(ctx *chetypes.DeployContext) (bool, error) {
