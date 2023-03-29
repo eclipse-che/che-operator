@@ -14,6 +14,7 @@ package tls
 
 import (
 	"context"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"reflect"
 	"strings"
 
@@ -117,7 +118,12 @@ func (c *CertificatesReconciler) syncTrustStoreConfigMapToCluster(ctx *chetypes.
 // Kubernetes root certificates to Che components. It is needed to use NonCachingClient because the map
 // initially is not in the cache.
 func (c *CertificatesReconciler) syncKubernetesRootCertificates(ctx *chetypes.DeployContext) (bool, error) {
-	kubeRootCertsConfigMap := &corev1.ConfigMap{}
+	kubeRootCertsConfigMap := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+	}
 	if err := ctx.ClusterAPI.NonCachingClient.Get(
 		context.TODO(),
 		types.NamespacedName{
