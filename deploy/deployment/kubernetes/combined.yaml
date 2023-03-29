@@ -5251,15 +5251,9 @@ spec:
                 type: object
               devEnvironments:
                 default:
-                  defaultComponents:
-                  - container:
-                      image: quay.io/devfile/universal-developer-image:ubi8-38da5c2
-                    name: universal-developer-image
-                  defaultEditor: che-incubator/che-code/latest
                   defaultNamespace:
                     autoProvision: true
                     template: <username>-che
-                  disableContainerBuildCapabilities: true
                   maxNumberOfWorkspacesPerUser: -1
                   secondsOfInactivityBeforeIdling: 1800
                   secondsOfRunBeforeIdling: -1
@@ -5278,10 +5272,6 @@ spec:
                         type: string
                     type: object
                   defaultComponents:
-                    default:
-                    - container:
-                        image: quay.io/devfile/universal-developer-image:ubi8-38da5c2
-                      name: universal-developer-image
                     description: Default components applied to DevWorkspaces. These
                       default components are meant to be used when a Devfile, that
                       does not contain any components.
@@ -6733,7 +6723,6 @@ spec:
                       type: object
                     type: array
                   defaultEditor:
-                    default: che-incubator/che-code/latest
                     description: The default editor to workspace create with. It could
                       be a plugin ID or a URI. The plugin ID must have `publisher/plugin/version`
                       format. The URI must start from `http://` or `https://`.
@@ -6774,7 +6763,6 @@ spec:
                       type: object
                     type: array
                   disableContainerBuildCapabilities:
-                    default: false
                     description: Disables the container build capabilities.
                     type: boolean
                   maxNumberOfRunningWorkspacesPerUser:
@@ -8180,6 +8168,16 @@ spec:
           value: /dashboard/assets/branding/loader.svg
         - name: MAX_CONCURRENT_RECONCILES
           value: "1"
+        - name: CHE_DEFAULT_SPEC_COMPONENTS_DASHBOARD_HEADERMESSAGE_TEXT
+          value: ""
+        - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTEDITOR
+          value: che-incubator/che-code/latest
+        - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTCOMPONENTS
+          value: '[{"name": "universal-developer-image", "container": {"image": "quay.io/devfile/universal-developer-image:ubi8-38da5c2"}}]'
+        - name: CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL
+          value: https://open-vsx.org
+        - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DISABLECONTAINERBUILDCAPABILITIES
+          value: "false"
         image: quay.io/eclipse/che-operator:next
         imagePullPolicy: Always
         livenessProbe:

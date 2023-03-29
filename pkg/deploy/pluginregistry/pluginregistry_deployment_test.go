@@ -48,6 +48,13 @@ func TestGetPluginRegistryDeploymentSpec(t *testing.T) {
 					Namespace: "eclipse-che",
 					Name:      "eclipse-che",
 				},
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						PluginRegistry: chev2.PluginRegistry{
+							OpenVSXURL: pointer.StringPtr(""),
+						},
+					},
+				},
 			},
 		},
 		{

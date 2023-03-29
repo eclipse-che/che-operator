@@ -28,7 +28,7 @@ func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(ctx *chetypes
 	registryImage := defaults.GetPluginRegistryImage(ctx.CheCluster)
 	registryImagePullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(registryImage))
 	probePath := "/v3/plugins/"
-	pluginImagesEnv := utils.GetEnvsByRegExp("^.*plugin_registry_image.*$")
+	pluginImagesEnv := utils.GetGetArchitectureDependentEnvsByRegExp("^.*plugin_registry_image.*$")
 
 	resources := corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{
@@ -41,7 +41,7 @@ func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(ctx *chetypes
 		},
 	}
 
-	if ctx.CheCluster.IsOpenVSXURLEmpty() {
+	if ctx.CheCluster.IsEmbeddedOpenVSXRegistryConfigured() {
 		resources.Requests[corev1.ResourceMemory] = resource.MustParse(constants.DefaultPluginRegistryMemoryRequestEmbeddedOpenVSXRegistry)
 		resources.Limits[corev1.ResourceMemory] = resource.MustParse(constants.DefaultPluginRegistryMemoryLimitEmbeddedOpenVSXRegistry)
 	}
@@ -55,7 +55,7 @@ func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(ctx *chetypes
 		resources,
 		probePath)
 
-	if ctx.CheCluster.IsOpenVSXURLEmpty() {
+	if ctx.CheCluster.IsEmbeddedOpenVSXRegistryConfigured() {
 		// Add time to start embedded VSX registry
 		deployment.Spec.Template.Spec.Containers[0].LivenessProbe.InitialDelaySeconds = 300
 		deployment.Spec.Template.Spec.Containers[0].LivenessProbe.FailureThreshold = 30

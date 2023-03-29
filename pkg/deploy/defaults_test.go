@@ -9,11 +9,13 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package defaults
+package deploy
 
 import (
 	"fmt"
 	"testing"
+
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 )
@@ -26,7 +28,7 @@ func TestCorrectImageName(t *testing.T) {
 	}
 	for k, v := range testCases {
 		t.Run(k, func(*testing.T) {
-			actual := getImageNameFromFullImage(k)
+			actual := defaults.GetImageNameFromFullImage(k)
 			if actual != v {
 				t.Errorf("Expected %s but was %s", v, actual)
 			}
@@ -42,10 +44,8 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 	}
 
 	var (
-		airGapRegistryHostname                          = "myregistry.org"
-		airGapRegistryOrganization                      = "myorg"
-		expectedAirGapServerUpstreamImage               = makeAirGapImagePath(airGapRegistryHostname, airGapRegistryOrganization, getImageNameFromFullImage(defaultCheServerImage))
-		expectedAirGapServerUpstreamImageOnlyOrgChanged = makeAirGapImagePath(getHostnameFromImage(defaultCheServerImage), airGapRegistryOrganization, getImageNameFromFullImage(defaultCheServerImage))
+		airGapRegistryHostname     = "myregistry.org"
+		airGapRegistryOrganization = "myorg"
 	)
 
 	upstream := &chev2.CheCluster{}
@@ -66,13 +66,13 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 	}
 
 	testCases := map[string]testcase{
-		"default che-server":        {image: defaultCheServerImage, expected: defaultCheServerImage, cr: upstream},
-		"airgap che-server":         {image: defaultCheServerImage, expected: expectedAirGapServerUpstreamImage, cr: airGapUpstream},
-		"with only the org changed": {image: defaultCheServerImage, expected: expectedAirGapServerUpstreamImageOnlyOrgChanged, cr: upstreamOnlyOrg},
+		"default che-server":        {image: "quay.io/eclipse/che-server:next", expected: "quay.io/eclipse/che-server:next", cr: upstream},
+		"airgap che-server":         {image: "quay.io/eclipse/che-server:next", expected: "myregistry.org/myorg/che-server:next", cr: airGapUpstream},
+		"with only the org changed": {image: "quay.io/eclipse/che-server:next", expected: "quay.io/myorg/che-server:next", cr: upstreamOnlyOrg},
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(*testing.T) {
-			actual := PatchDefaultImageName(tc.cr, tc.image)
+			actual := defaults.PatchDefaultImageName(tc.cr, tc.image)
 			if actual != tc.expected {
 				t.Errorf("Expected %s but was %s", tc.expected, actual)
 			}

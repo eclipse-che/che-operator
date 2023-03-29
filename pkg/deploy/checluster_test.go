@@ -14,35 +14,42 @@ package deploy
 import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"testing"
 )
 
 func TestReload(t *testing.T) {
-	cheCluster := &chev2.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:       "eclipse-che",
-			Name:            "eclipse-che",
-			ResourceVersion: "1",
-		},
-	}
-
 	chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
-	cli := fake.NewFakeClientWithScheme(scheme.Scheme, cheCluster)
+	cli := fake.NewFakeClientWithScheme(
+		scheme.Scheme,
+		&chev2.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:       "eclipse-che",
+				Name:            "eclipse-che",
+				ResourceVersion: "1",
+			},
+		})
 
-	cheCluster = &chev2.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:       "eclipse-che",
-			Name:            "eclipse-che",
-			ResourceVersion: "2",
+	ctx := &chetypes.DeployContext{
+		CheCluster: &chev2.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:       "eclipse-che",
+				Name:            "eclipse-che",
+				ResourceVersion: "2",
+			},
+			Spec: chev2.CheClusterSpec{
+				Components: chev2.CheClusterComponents{
+					PluginRegistry: chev2.PluginRegistry{
+						OpenVSXURL: pointer.StringPtr("https://open-vsx.org"),
+					},
+				},
+			},
 		},
-	}
-
-	deployContext := &chetypes.DeployContext{
-		CheCluster: cheCluster,
 		ClusterAPI: chetypes.ClusterAPI{
 			Client:           cli,
 			NonCachingClient: cli,
@@ -50,12 +57,11 @@ func TestReload(t *testing.T) {
 		},
 	}
 
-	err := ReloadCheClusterCR(deployContext)
+	err := ReloadCheClusterCR(ctx)
 	if err != nil {
 		t.Errorf("Failed to reload checluster, %v", err)
 	}
 
-	if cheCluster.ObjectMeta.ResourceVersion != "1" {
-		t.Errorf("Failed to reload checluster")
-	}
+	assert.Equal(t, "1", ctx.CheCluster.ObjectMeta.ResourceVersion)
+	assert.Nil(t, ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL)
 }

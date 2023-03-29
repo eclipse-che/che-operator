@@ -18,10 +18,12 @@ import (
 	"testing"
 	"time"
 
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
-	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
+	devworkspacedefaults "github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/sync"
 
 	routev1 "github.com/openshift/api/route/v1"
@@ -350,10 +352,10 @@ func TestCustomResourceFinalization(t *testing.T) {
 				Name:      "ws1",
 				Namespace: ns,
 				Annotations: map[string]string{
-					defaults.ConfigAnnotationCheManagerName:      managerName,
-					defaults.ConfigAnnotationCheManagerNamespace: ns,
+					devworkspacedefaults.ConfigAnnotationCheManagerName:      managerName,
+					devworkspacedefaults.ConfigAnnotationCheManagerNamespace: ns,
 				},
-				Labels: defaults.GetLabelsFromNames(managerName, "gateway-config"),
+				Labels: devworkspacedefaults.GetLabelsFromNames(managerName, "gateway-config"),
 			},
 		})
 
@@ -432,7 +434,7 @@ func TestCustomResourceFinalization(t *testing.T) {
 
 // This test should be removed if we are again in charge of gateway creation.
 func TestExternalGatewayDetection(t *testing.T) {
-	origFlavor := os.Getenv("CHE_FLAVOR")
+	origFlavor := defaults.GetCheFlavor()
 	t.Cleanup(func() {
 		os.Setenv("CHE_FLAVOR", origFlavor)
 	})

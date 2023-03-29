@@ -39,14 +39,24 @@ func IndexEnv(name string, envs []corev1.EnvVar) int {
 	return -1
 }
 
+func GetGetArchitectureDependentEnvsByRegExp(regExp string) []corev1.EnvVar {
+	return doGetEnvsByRegExp(regExp, true)
+}
+
 func GetEnvsByRegExp(regExp string) []corev1.EnvVar {
+	return doGetEnvsByRegExp(regExp, false)
+}
+
+func doGetEnvsByRegExp(regExp string, isArchitectureDependentEnvNameNeeded bool) []corev1.EnvVar {
 	var env []corev1.EnvVar
 	for _, e := range os.Environ() {
 		pair := strings.SplitN(e, "=", 2)
 		envName := pair[0]
 		rxp := regexp.MustCompile(regExp)
 		if rxp.MatchString(envName) {
-			envName = GetArchitectureDependentEnvName(envName)
+			if isArchitectureDependentEnvNameNeeded {
+				envName = GetArchitectureDependentEnvName(envName)
+			}
 			env = append(env, corev1.EnvVar{Name: envName, Value: pair[1]})
 		}
 	}

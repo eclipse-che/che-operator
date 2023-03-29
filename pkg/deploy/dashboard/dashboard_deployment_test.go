@@ -178,6 +178,22 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 					Value: "http://plugin-registry.eclipse-che.svc:8080/v3",
 				},
 				{
+					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTEDITOR",
+					Value: "che-incubator/che-code/latest",
+				},
+				{
+					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTCOMPONENTS",
+					Value: `[{"name": "universal-developer-image", "container": {"image": "quay.io/devfile/universal-developer-image:ubi8-38da5c2"}}]`,
+				},
+				{
+					Name:  "CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL",
+					Value: "https://open-vsx.org",
+				},
+				{
+					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DISABLECONTAINERBUILDCAPABILITIES",
+					Value: "false",
+				},
+				{
 					Name: "OPENSHIFT_CONSOLE_URL",
 				},
 			},
@@ -232,6 +248,22 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 				{
 					Name:  "CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL",
 					Value: "http://plugin-registry.eclipse-che.svc:8080/v3",
+				},
+				{
+					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTEDITOR",
+					Value: "che-incubator/che-code/latest",
+				},
+				{
+					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTCOMPONENTS",
+					Value: `[{"name": "universal-developer-image", "container": {"image": "quay.io/devfile/universal-developer-image:ubi8-38da5c2"}}]`,
+				},
+				{
+					Name:  "CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL",
+					Value: "https://open-vsx.org",
+				},
+				{
+					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DISABLECONTAINERBUILDCAPABILITIES",
+					Value: "false",
 				},
 				{
 					Name:  "OPENSHIFT_CONSOLE_URL",

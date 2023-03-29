@@ -13,6 +13,8 @@
 package containerbuild
 
 import (
+	"context"
+
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
@@ -51,6 +53,8 @@ func TestContainerBuildReconciler(t *testing.T) {
 	// Enable Container build capabilities
 	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.BoolPtr(false)
 	ctx.CheCluster.Spec.DevEnvironments.ContainerBuildConfiguration = &chev2.ContainerBuildConfiguration{OpenShiftSecurityContextConstraint: "scc"}
+	err = ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
+	assert.NoError(t, err)
 
 	_, done, err = containerBuildReconciler.Reconcile(ctx)
 	assert.True(t, done)
@@ -64,6 +68,8 @@ func TestContainerBuildReconciler(t *testing.T) {
 
 	// Disable Container build capabilities
 	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.BoolPtr(true)
+	err = ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
+	assert.NoError(t, err)
 
 	_, done, err = containerBuildReconciler.Reconcile(ctx)
 	assert.True(t, done)
