@@ -181,7 +181,7 @@ collectClusterScopeResources() {
 }
 
 buildAndCopyCheOperatorImageToMinikube() {
-  docker build -t "${OPERATOR_IMAGE}" -f Dockerfile --build-arg SKIP_TESTS=true .
+  docker build -t "${OPERATOR_IMAGE}" -f build/dockerfiles/Dockerfile --build-arg SKIP_TESTS=true .
   docker save "${OPERATOR_IMAGE}" > /tmp/operator.tar
   eval $(minikube docker-env) && docker load -i  /tmp/operator.tar && rm  /tmp/operator.tar
 }

@@ -42,7 +42,7 @@ jobs:
       - name: Build operator image
         uses: docker/build-push-action@v3
         with:
-          file: Dockerfile
+          file: build/dockerfiles/Dockerfile
           platforms: linux/amd64,linux/ppc64le
           push: true
           tags: quay.io/eclipse/che-operator:next

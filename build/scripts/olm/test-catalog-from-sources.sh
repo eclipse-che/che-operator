@@ -91,6 +91,7 @@ buildOperatorFromSources() {
   oc delete buildconfigs ${REGISTRY_OPERATOR_IMAGE_NAME} --ignore-not-found=true -n "${NAMESPACE}"
   oc delete imagestreamtag ${REGISTRY_OPERATOR_IMAGE_NAME}:latest --ignore-not-found=true -n "${NAMESPACE}"
 
+  cp ${OPERATOR_REPO}/build/dockerfiles/Dockerfile ${OPERATOR_REPO}
   oc new-build --binary --strategy docker --name "${REGISTRY_OPERATOR_IMAGE_NAME}" -n "${NAMESPACE}"
   oc start-build "${REGISTRY_OPERATOR_IMAGE_NAME}" --from-dir "${OPERATOR_REPO}" -n "${NAMESPACE}" --wait
 }
