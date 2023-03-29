@@ -77,7 +77,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che.v7.64.0-778.next
+  name: eclipse-che.v7.64.0-780.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -959,7 +959,7 @@ spec:
                         value: che-incubator/che-code/latest
                       - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTCOMPONENTS
                         value: '[{"name": "universal-developer-image", "container":
-                          {"image": "quay.io/devfile/universal-developer-image:ubi8-38da5c2"}}]'
+                          {"image": "quay.io/devfile/universal-developer-image:ubi8-latest"}}]'
                       - name: CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL
                         value: https://open-vsx.org
                       - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DISABLECONTAINERBUILDCAPABILITIES
@@ -1243,7 +1243,7 @@ spec:
   minKubeVersion: 1.19.0
   provider:
     name: Eclipse Foundation
-  version: 7.64.0-778.next
+  version: 7.64.0-780.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1

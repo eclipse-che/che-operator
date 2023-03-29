@@ -183,7 +183,7 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 				},
 				{
 					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTCOMPONENTS",
-					Value: `[{"name": "universal-developer-image", "container": {"image": "quay.io/devfile/universal-developer-image:ubi8-38da5c2"}}]`,
+					Value: `[{"name": "universal-developer-image", "container": {"image": "quay.io/devfile/universal-developer-image:ubi8-latest"}}]`,
 				},
 				{
 					Name:  "CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL",
@@ -255,7 +255,7 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 				},
 				{
 					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTCOMPONENTS",
-					Value: `[{"name": "universal-developer-image", "container": {"image": "quay.io/devfile/universal-developer-image:ubi8-38da5c2"}}]`,
+					Value: `[{"name": "universal-developer-image", "container": {"image": "quay.io/devfile/universal-developer-image:ubi8-latest"}}]`,
 				},
 				{
 					Name:  "CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL",
