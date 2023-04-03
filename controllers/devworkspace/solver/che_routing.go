@@ -188,12 +188,12 @@ func (c *CheRoutingSolver) provisionPodAdditions(objs *solvers.RoutingObjects, c
 		},
 		Resources: corev1.ResourceRequirements{
 			Limits: corev1.ResourceList{
-				corev1.ResourceMemory: resource.MustParse("256Mi"),
-				corev1.ResourceCPU:    resource.MustParse("0.5"),
+				corev1.ResourceMemory: resource.MustParse(constants.DefaultGatewayMemoryLimit),
+				corev1.ResourceCPU:    resource.MustParse(constants.DefaultGatewayCpuLimit),
 			},
 			Requests: corev1.ResourceList{
-				corev1.ResourceMemory: resource.MustParse("64Mi"),
-				corev1.ResourceCPU:    resource.MustParse("0.05"),
+				corev1.ResourceMemory: resource.MustParse(constants.DefaultGatewayMemoryRequest),
+				corev1.ResourceCPU:    resource.MustParse(constants.DefaultGatewayCpuRequest),
 			},
 		},
 	})
