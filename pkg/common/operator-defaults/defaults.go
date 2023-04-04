@@ -61,9 +61,7 @@ func InitializeForTesting(operatorDeploymentFilePath string) {
 
 	for _, container := range operatorDeployment.Spec.Template.Spec.Containers {
 		for _, env := range container.Env {
-			if env.Value != "" {
-				os.Setenv(env.Name, env.Value)
-			}
+			os.Setenv(env.Name, env.Value)
 		}
 	}
 

@@ -86,6 +86,23 @@ func CompareResources(actualDeployment *appsv1.Deployment, expected TestExpected
 	)
 }
 
+func AssertEqualEnvVars(t *testing.T, expected []corev1.EnvVar, actual []corev1.EnvVar) {
+	assert.Equal(t, len(expected), len(actual))
+	for _, expectedEnvVar := range expected {
+		found := true
+		for _, actualEnvVar := range actual {
+			if expectedEnvVar.Name == actualEnvVar.Name && expectedEnvVar.Value == actualEnvVar.Value {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			t.Errorf("Expected env var %s=%s not found", expectedEnvVar.Name, expectedEnvVar.Value)
+		}
+	}
+}
+
 func ValidateSecurityContext(actualDeployment *appsv1.Deployment, t *testing.T) {
 	assert.Equal(t, corev1.Capability("ALL"), actualDeployment.Spec.Template.Spec.Containers[0].SecurityContext.Capabilities.Drop[0])
 	assert.Equal(t, pointer.BoolPtr(false), actualDeployment.Spec.Template.Spec.Containers[0].SecurityContext.AllowPrivilegeEscalation)
