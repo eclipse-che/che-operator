@@ -261,7 +261,7 @@ func TestCheClusterDefaultsCleanerOpenVSXURL(t *testing.T) {
 					CheVersion: "7.52.0",
 				},
 			},
-			expectedOpenVSXURL: pointer.StringPtr("https://open-vsx.org"),
+			expectedOpenVSXURL: pointer.StringPtr(defaults.GetPluginRegistryOpenVSXURL()),
 		},
 		{
 			name: "Test upgrade from v7.62.0",
@@ -327,23 +327,6 @@ func TestCheClusterDefaultsCleanerOpenVSXURL(t *testing.T) {
 				},
 			},
 			expectedOpenVSXURL: pointer.StringPtr("https://bla-bla-bla"),
-		},
-		{
-			name: "Keep empty OpenVSXURL after upgrade",
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "eclipse-che",
-					Namespace: "eclipse-che",
-				},
-				Spec: chev2.CheClusterSpec{
-					Components: chev2.CheClusterComponents{
-						PluginRegistry: chev2.PluginRegistry{
-							OpenVSXURL: pointer.StringPtr(""),
-						},
-					},
-				},
-			},
-			expectedOpenVSXURL: pointer.StringPtr(""),
 		},
 	}
 

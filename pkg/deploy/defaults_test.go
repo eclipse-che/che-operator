@@ -22,9 +22,9 @@ import (
 
 func TestCorrectImageName(t *testing.T) {
 	testCases := map[string]string{
-		"docker.io/eclipse/che-operator:latest": "che-operator:latest",
-		"eclipse/che-operator:7.1.0":            "che-operator:7.1.0",
-		"che-operator:7.2.0":                    "che-operator:7.2.0",
+		"docker.io/eclipse/my-operator:latest": "my-operator:latest",
+		"eclipse/my-operator:7.1.0":            "my-operator:7.1.0",
+		"my-operator:7.2.0":                    "my-operator:7.2.0",
 	}
 	for k, v := range testCases {
 		t.Run(k, func(*testing.T) {

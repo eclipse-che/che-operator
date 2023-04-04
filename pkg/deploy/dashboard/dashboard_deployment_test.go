@@ -13,11 +13,9 @@
 package dashboard
 
 import (
-	"os"
-
-	fakeDiscovery "k8s.io/client-go/discovery/fake"
-
 	"k8s.io/apimachinery/pkg/api/resource"
+	fakeDiscovery "k8s.io/client-go/discovery/fake"
+	"os"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	configv1 "github.com/openshift/api/config/v1"
@@ -178,23 +176,27 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 					Value: "http://plugin-registry.eclipse-che.svc:8080/v3",
 				},
 				{
+					Name: "OPENSHIFT_CONSOLE_URL",
+				},
+				{
+					Name:  "CHE_DEFAULT_SPEC_COMPONENTS_DASHBOARD_HEADERMESSAGE_TEXT",
+					Value: defaults.GetDashboardHeaderMessageText(),
+				},
+				{
 					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTEDITOR",
-					Value: "che-incubator/che-code/latest",
+					Value: defaults.GetDevEnvironmentsDefaultEditor(),
 				},
 				{
 					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTCOMPONENTS",
-					Value: `[{"name": "universal-developer-image", "container": {"image": "quay.io/devfile/universal-developer-image:ubi8-latest"}}]`,
+					Value: defaults.GetDevEnvironmentsDefaultComponents(),
 				},
 				{
 					Name:  "CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL",
-					Value: "https://open-vsx.org",
+					Value: defaults.GetPluginRegistryOpenVSXURL(),
 				},
 				{
 					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DISABLECONTAINERBUILDCAPABILITIES",
-					Value: "false",
-				},
-				{
-					Name: "OPENSHIFT_CONSOLE_URL",
+					Value: defaults.GetDevEnvironmentsDisableContainerBuildCapabilities(),
 				},
 			},
 			cheCluster: &chev2.CheCluster{
@@ -250,24 +252,28 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 					Value: "http://plugin-registry.eclipse-che.svc:8080/v3",
 				},
 				{
+					Name:  "OPENSHIFT_CONSOLE_URL",
+					Value: "https://console-openshift-console.apps.my-host/",
+				},
+				{
+					Name:  "CHE_DEFAULT_SPEC_COMPONENTS_DASHBOARD_HEADERMESSAGE_TEXT",
+					Value: defaults.GetDashboardHeaderMessageText(),
+				},
+				{
 					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTEDITOR",
-					Value: "che-incubator/che-code/latest",
+					Value: defaults.GetDevEnvironmentsDefaultEditor(),
 				},
 				{
 					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTCOMPONENTS",
-					Value: `[{"name": "universal-developer-image", "container": {"image": "quay.io/devfile/universal-developer-image:ubi8-latest"}}]`,
+					Value: defaults.GetDevEnvironmentsDefaultComponents(),
 				},
 				{
 					Name:  "CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL",
-					Value: "https://open-vsx.org",
+					Value: defaults.GetPluginRegistryOpenVSXURL(),
 				},
 				{
 					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DISABLECONTAINERBUILDCAPABILITIES",
-					Value: "false",
-				},
-				{
-					Name:  "OPENSHIFT_CONSOLE_URL",
-					Value: "https://console-openshift-console.apps.my-host/",
+					Value: defaults.GetDevEnvironmentsDisableContainerBuildCapabilities(),
 				},
 			},
 			cheCluster: &chev2.CheCluster{
@@ -299,7 +305,7 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 
 			assert.Nil(t, err)
 			assert.Equal(t, len(deployment.Spec.Template.Spec.Containers), 1)
-			assert.Empty(t, cmp.Diff(testCase.envVars, deployment.Spec.Template.Spec.Containers[0].Env))
+			test.AssertEqualEnvVars(t, testCase.envVars, deployment.Spec.Template.Spec.Containers[0].Env)
 		})
 	}
 }
@@ -316,7 +322,7 @@ func TestDashboardDeploymentVolumes(t *testing.T) {
 	}
 	testCases := []resourcesTestCase{
 		{
-			name:        "Test provisioning Custom CAs only",
+			name: "Test provisioning Custom CAs only",
 			initObjects: []runtime.Object{
 				// no deploy.CheTLSSelfSignedCertificateSecretName is created
 			},
