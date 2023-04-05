@@ -15,6 +15,7 @@ package migration
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -157,8 +158,14 @@ func cleanUpDevEnvironmentsDisableContainerBuildCapabilities(ctx *chetypes.Deplo
 	}
 
 	if ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities != nil {
-		ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = nil
-		return true, nil
+		disableContainerBuildCapabilities, err := strconv.ParseBool(defaults.GetDevEnvironmentsDisableContainerBuildCapabilities())
+		if err != nil {
+			return false, err
+		}
+		if disableContainerBuildCapabilities == *ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities {
+			ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = nil
+			return true, nil
+		}
 	}
 
 	return false, nil

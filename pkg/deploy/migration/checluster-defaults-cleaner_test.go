@@ -519,7 +519,7 @@ func TestCheClusterDefaultsCleanerDisableContainerBuildCapabilities(t *testing.T
 					},
 				},
 			},
-			expectedDisableContainerBuildCapabilities: nil,
+			expectedDisableContainerBuildCapabilities: pointer.BoolPtr(true),
 		},
 		{
 			name:  "OpenShift case #3",
