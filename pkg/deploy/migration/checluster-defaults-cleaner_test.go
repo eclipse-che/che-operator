@@ -13,9 +13,10 @@
 package migration
 
 import (
-	"k8s.io/apimachinery/pkg/api/resource"
 	"os"
 	"testing"
+
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	devfile "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"

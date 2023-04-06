@@ -12,8 +12,9 @@
 package server
 
 import (
-	"k8s.io/apimachinery/pkg/api/resource"
 	"os"
+
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"

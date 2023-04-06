@@ -12,8 +12,9 @@
 package devfileregistry
 
 import (
-	"k8s.io/apimachinery/pkg/api/resource"
 	"os"
+
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"

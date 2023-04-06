@@ -16,6 +16,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
