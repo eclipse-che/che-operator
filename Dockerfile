@@ -10,7 +10,7 @@
 #
 
 # https://registry.access.redhat.com/ubi8/go-toolset
-FROM registry.access.redhat.com/ubi8/go-toolset:1.18.9-13 as builder
+FROM registry.access.redhat.com/ubi8/go-toolset:1.18.10-1 as builder
 ENV GOPATH=/go/
 ARG DEV_HEADER_REWRITE_TRAEFIK_PLUGIN="main"
 ARG SKIP_TESTS="false"
@@ -45,7 +45,7 @@ RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH=
     CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} GO111MODULE=on go build -mod=vendor -a -o che-operator main.go
 
 # https://registry.access.redhat.com/ubi8-minimal
-FROM registry.access.redhat.com/ubi8-minimal:8.7-1085
+FROM registry.access.redhat.com/ubi8-minimal:8.7-1107
 
 COPY --from=builder /tmp/header-rewrite-traefik-plugin /tmp/header-rewrite-traefik-plugin
 COPY --from=builder /che-operator/che-operator /manager
