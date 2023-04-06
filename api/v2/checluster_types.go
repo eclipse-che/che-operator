@@ -578,10 +578,10 @@ type ResourceRequirements struct {
 type ResourceList struct {
 	// Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
 	// +optional
-	Memory resource.Quantity `json:"memory,omitempty"`
+	Memory *resource.Quantity `json:"memory,omitempty"`
 	// CPU, in cores. (500m = .5 cores)
 	// +optional
-	Cpu resource.Quantity `json:"cpu,omitempty"`
+	Cpu *resource.Quantity `json:"cpu,omitempty"`
 }
 
 // PodSecurityContext holds pod-level security attributes and common container settings.

@@ -45,32 +45,36 @@ type CheClusterDefaultsCleaner struct {
 }
 
 type CleanUpTask struct {
-	cleanUpFunc         func(*chetypes.DeployContext) (bool, error)
-	cheClusterSpecField string
+	cleanUpFunc      func(*chetypes.DeployContext) (bool, error)
+	fieldsIdentifier string
 }
 
 func NewCheClusterDefaultsCleaner() *CheClusterDefaultsCleaner {
 	return &CheClusterDefaultsCleaner{
 		cleanUpTasks: []CleanUpTask{
 			{
-				cleanUpFunc:         cleanUpDevEnvironmentsDefaultEditor,
-				cheClusterSpecField: "spec.devEnvironments.defaultEditor",
+				cleanUpFunc:      cleanUpDevEnvironmentsDefaultEditor,
+				fieldsIdentifier: "spec.devEnvironments.defaultEditor",
 			},
 			{
-				cleanUpFunc:         cleanUpDevEnvironmentsDefaultComponents,
-				cheClusterSpecField: "spec.devEnvironments.defaultComponents",
+				cleanUpFunc:      cleanUpDevEnvironmentsDefaultComponents,
+				fieldsIdentifier: "spec.devEnvironments.defaultComponents",
 			},
 			{
-				cleanUpFunc:         cleanUpDevEnvironmentsDisableContainerBuildCapabilities,
-				cheClusterSpecField: "spec.devEnvironments.disableContainerBuildCapabilities",
+				cleanUpFunc:      cleanUpDevEnvironmentsDisableContainerBuildCapabilities,
+				fieldsIdentifier: "spec.devEnvironments.disableContainerBuildCapabilities",
 			},
 			{
-				cleanUpFunc:         cleanUpDashboardHeaderMessage,
-				cheClusterSpecField: "spec.components.dashboard.headerMessage",
+				cleanUpFunc:      cleanUpDashboardHeaderMessage,
+				fieldsIdentifier: "spec.components.dashboard.headerMessage",
 			},
 			{
-				cleanUpFunc:         cleanUpPluginRegistryOpenVSXURL,
-				cheClusterSpecField: "spec.components.pluginRegistry.openVSXURL",
+				cleanUpFunc:      cleanUpPluginRegistryOpenVSXURL,
+				fieldsIdentifier: "spec.components.pluginRegistry.openVSXURL",
+			},
+			{
+				cleanUpFunc:      cleanUpContainersResources,
+				fieldsIdentifier: "containers.resources",
 			},
 		},
 	}
@@ -78,7 +82,7 @@ func NewCheClusterDefaultsCleaner() *CheClusterDefaultsCleaner {
 
 func (dc *CheClusterDefaultsCleaner) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	for _, cleanUpTask := range dc.cleanUpTasks {
-		if dc.isCheClusterDefaultsCleanupAnnotationSet(ctx, cleanUpTask.cheClusterSpecField) {
+		if dc.isCheClusterDefaultsCleanupAnnotationSet(ctx, cleanUpTask.fieldsIdentifier) {
 			continue
 		}
 
@@ -86,13 +90,13 @@ func (dc *CheClusterDefaultsCleaner) Reconcile(ctx *chetypes.DeployContext) (rec
 			return reconcile.Result{}, false, err
 		} else {
 			// set annotation to mark that the field has been processed
-			dc.setCheClusterDefaultsCleanupAnnotation(ctx, cleanUpTask.cheClusterSpecField)
+			dc.setCheClusterDefaultsCleanupAnnotation(ctx, cleanUpTask.fieldsIdentifier)
 			if err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster); err != nil {
 				return reconcile.Result{}, false, err
 			}
 
 			if done {
-				logger.Info("CheCluster CR cleaned up", "field", cleanUpTask.cheClusterSpecField)
+				logger.Info("CheCluster CR cleaned up", "field", cleanUpTask.fieldsIdentifier)
 			}
 		}
 	}

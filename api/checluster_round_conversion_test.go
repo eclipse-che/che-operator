@@ -74,6 +74,11 @@ func TestRoundConvertEmptyCheClusterV1(t *testing.T) {
 }
 
 func TestRoundConvertCheClusterV2(t *testing.T) {
+	memoryRequest := resource.MustParse("148Mi")
+	cpuRequest := resource.MustParse("1")
+	memoryLimit := resource.MustParse("228Mi")
+	cpuLimit := resource.MustParse("2")
+
 	f := func() {
 		checlusterv2Original := &chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
@@ -94,12 +99,12 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 									ImagePullPolicy: corev1.PullAlways,
 									Resources: &chev2.ResourceRequirements{
 										Requests: &chev2.ResourceList{
-											Memory: resource.MustParse("148Mi"),
-											Cpu:    resource.MustParse("1"),
+											Memory: &memoryRequest,
+											Cpu:    &cpuRequest,
 										},
 										Limits: &chev2.ResourceList{
-											Memory: resource.MustParse("228Mi"),
-											Cpu:    resource.MustParse("2"),
+											Memory: &memoryLimit,
+											Cpu:    &cpuLimit,
 										},
 									},
 								},
@@ -121,12 +126,12 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 									ImagePullPolicy: corev1.PullAlways,
 									Resources: &chev2.ResourceRequirements{
 										Requests: &chev2.ResourceList{
-											Memory: resource.MustParse("148Mi"),
-											Cpu:    resource.MustParse("1"),
+											Memory: &memoryRequest,
+											Cpu:    &cpuRequest,
 										},
 										Limits: &chev2.ResourceList{
-											Memory: resource.MustParse("228Mi"),
-											Cpu:    resource.MustParse("2"),
+											Memory: &memoryLimit,
+											Cpu:    &cpuLimit,
 										},
 									},
 								},
@@ -148,12 +153,12 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 									ImagePullPolicy: corev1.PullAlways,
 									Resources: &chev2.ResourceRequirements{
 										Requests: &chev2.ResourceList{
-											Memory: resource.MustParse("148Mi"),
-											Cpu:    resource.MustParse("1"),
+											Memory: &memoryRequest,
+											Cpu:    &cpuRequest,
 										},
 										Limits: &chev2.ResourceList{
-											Memory: resource.MustParse("228Mi"),
-											Cpu:    resource.MustParse("2"),
+											Memory: &memoryLimit,
+											Cpu:    &cpuLimit,
 										},
 									},
 								},
@@ -181,12 +186,12 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 									ImagePullPolicy: corev1.PullAlways,
 									Resources: &chev2.ResourceRequirements{
 										Requests: &chev2.ResourceList{
-											Memory: resource.MustParse("148Mi"),
-											Cpu:    resource.MustParse("1"),
+											Memory: &memoryRequest,
+											Cpu:    &cpuRequest,
 										},
 										Limits: &chev2.ResourceList{
-											Memory: resource.MustParse("228Mi"),
-											Cpu:    resource.MustParse("2"),
+											Memory: &memoryLimit,
+											Cpu:    &cpuLimit,
 										},
 									},
 								},

@@ -97,71 +97,97 @@ func SyncDeploymentSpecToCluster(
 }
 
 // CustomizeDeployment customize deployment
-func CustomizeDeployment(deployment *appsv1.Deployment, customDeployment *chev2.Deployment) error {
-	if customDeployment == nil || len(customDeployment.Containers) == 0 {
+func CustomizeDeployment(deployment *appsv1.Deployment, customSettings *chev2.Deployment) error {
+	if customSettings == nil || len(customSettings.Containers) == 0 {
 		return nil
 	}
 
 	for index, _ := range deployment.Spec.Template.Spec.Containers {
 		container := &deployment.Spec.Template.Spec.Containers[index]
 
-		customContainer := &customDeployment.Containers[0]
+		customContainer := &customSettings.Containers[0]
 		if len(deployment.Spec.Template.Spec.Containers) != 1 {
-			customContainer = getContainerByName(container.Name, customDeployment.Containers)
+			customContainer = getContainerByName(container.Name, customSettings.Containers)
 			if customContainer == nil {
 				continue
 			}
 		}
 
-		container.Image = utils.GetValue(customContainer.Image, container.Image)
-
-		for _, env := range customContainer.Env {
-			index := utils.IndexEnv(env.Name, container.Env)
-			if index == -1 {
-				container.Env = append(container.Env, env)
-			} else {
-				container.Env[index] = env
-			}
-		}
-
-		if customContainer.ImagePullPolicy != "" {
-			container.ImagePullPolicy = customContainer.ImagePullPolicy
-		} else if container.ImagePullPolicy == "" {
-			container.ImagePullPolicy = corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(container.Image))
-		}
-
-		if customContainer.Resources != nil {
-			if customContainer.Resources.Requests != nil {
-				if !customContainer.Resources.Requests.Memory.IsZero() {
-					container.Resources.Requests[corev1.ResourceMemory] = customContainer.Resources.Requests.Memory
-				}
-				if !customContainer.Resources.Requests.Cpu.IsZero() {
-					container.Resources.Requests[corev1.ResourceCPU] = customContainer.Resources.Requests.Cpu
-				}
-			}
-
-			if customContainer.Resources.Limits != nil {
-				if !customContainer.Resources.Limits.Memory.IsZero() {
-					container.Resources.Limits[corev1.ResourceMemory] = customContainer.Resources.Limits.Memory
-				}
-				if !customContainer.Resources.Limits.Cpu.IsZero() {
-					container.Resources.Limits[corev1.ResourceCPU] = customContainer.Resources.Limits.Cpu
-				}
-			}
+		if err := CustomizeContainer(container, customContainer); err != nil {
+			return err
 		}
 	}
 
 	if !infrastructure.IsOpenShift() {
-		if customDeployment.SecurityContext != nil {
+		if customSettings.SecurityContext != nil {
 			if deployment.Spec.Template.Spec.SecurityContext == nil {
 				deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{}
 			}
 
-			if customDeployment.SecurityContext.FsGroup != nil {
-				deployment.Spec.Template.Spec.SecurityContext.FSGroup = pointer.Int64Ptr(*customDeployment.SecurityContext.FsGroup)
+			if customSettings.SecurityContext.FsGroup != nil {
+				deployment.Spec.Template.Spec.SecurityContext.FSGroup = pointer.Int64Ptr(*customSettings.SecurityContext.FsGroup)
 			}
-			if customDeployment.SecurityContext.RunAsUser != nil {
-				deployment.Spec.Template.Spec.SecurityContext.RunAsUser = pointer.Int64Ptr(*customDeployment.SecurityContext.RunAsUser)
+			if customSettings.SecurityContext.RunAsUser != nil {
+				deployment.Spec.Template.Spec.SecurityContext.RunAsUser = pointer.Int64Ptr(*customSettings.SecurityContext.RunAsUser)
+			}
+		}
+	}
+
+	return nil
+}
+
+// CustomizeContainer customize container with custom settings.
+func CustomizeContainer(container *corev1.Container, customSettings *chev2.Container) error {
+	container.Image = utils.GetValue(customSettings.Image, container.Image)
+
+	container.ImagePullPolicy = customSettings.ImagePullPolicy
+	if container.ImagePullPolicy == "" {
+		container.ImagePullPolicy = corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(container.Image))
+	}
+
+	for _, env := range customSettings.Env {
+		index := utils.IndexEnv(env.Name, container.Env)
+		if index == -1 {
+			container.Env = append(container.Env, env)
+		} else {
+			container.Env[index] = env
+		}
+	}
+
+	if customSettings.Resources != nil {
+		if customSettings.Resources.Requests != nil {
+			if customSettings.Resources.Requests.Memory != nil {
+				if customSettings.Resources.Requests.Memory.IsZero() {
+					delete(container.Resources.Requests, corev1.ResourceMemory)
+				} else {
+					container.Resources.Requests[corev1.ResourceMemory] = *customSettings.Resources.Requests.Memory
+				}
+			}
+
+			if customSettings.Resources.Requests.Cpu != nil {
+				if customSettings.Resources.Requests.Cpu.IsZero() {
+					delete(container.Resources.Requests, corev1.ResourceCPU)
+				} else {
+					container.Resources.Requests[corev1.ResourceCPU] = *customSettings.Resources.Requests.Cpu
+				}
+			}
+		}
+
+		if customSettings.Resources.Limits != nil {
+			if customSettings.Resources.Limits.Memory != nil {
+				if customSettings.Resources.Limits.Memory.IsZero() {
+					delete(container.Resources.Limits, corev1.ResourceMemory)
+				} else {
+					container.Resources.Limits[corev1.ResourceMemory] = *customSettings.Resources.Limits.Memory
+				}
+			}
+
+			if customSettings.Resources.Limits.Cpu != nil {
+				if customSettings.Resources.Limits.Cpu.IsZero() {
+					delete(container.Resources.Limits, corev1.ResourceCPU)
+				} else {
+					container.Resources.Limits[corev1.ResourceCPU] = *customSettings.Resources.Limits.Cpu
+				}
 			}
 		}
 	}

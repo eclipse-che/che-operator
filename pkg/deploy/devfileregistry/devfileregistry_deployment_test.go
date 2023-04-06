@@ -12,9 +12,8 @@
 package devfileregistry
 
 import (
-	"os"
-
 	"k8s.io/apimachinery/pkg/api/resource"
+	"os"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
@@ -29,6 +28,11 @@ import (
 )
 
 func TestGetDevfileRegistryDeploymentSpec(t *testing.T) {
+	memoryRequest := resource.MustParse("150Mi")
+	cpuRequest := resource.MustParse("150m")
+	memoryLimit := resource.MustParse("250Mi")
+	cpuLimit := resource.MustParse("250m")
+
 	type testCase struct {
 		name          string
 		initObjects   []runtime.Object
@@ -75,12 +79,12 @@ func TestGetDevfileRegistryDeploymentSpec(t *testing.T) {
 										Name: constants.DevfileRegistryName,
 										Resources: &chev2.ResourceRequirements{
 											Requests: &chev2.ResourceList{
-												Memory: resource.MustParse("150Mi"),
-												Cpu:    resource.MustParse("150m"),
+												Memory: &memoryRequest,
+												Cpu:    &cpuRequest,
 											},
 											Limits: &chev2.ResourceList{
-												Memory: resource.MustParse("250Mi"),
-												Cpu:    resource.MustParse("250m"),
+												Memory: &memoryLimit,
+												Cpu:    &cpuLimit,
 											},
 										},
 									},

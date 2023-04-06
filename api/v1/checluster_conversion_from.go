@@ -434,8 +434,8 @@ func findTrustStoreConfigMap(namespace string) (string, error) {
 	return "", nil
 }
 
-func resource2String(resource resource.Quantity) string {
-	if resource.IsZero() {
+func resource2String(resource *resource.Quantity) string {
+	if resource == nil || resource.IsZero() {
 		return ""
 	}
 	return resource.String()

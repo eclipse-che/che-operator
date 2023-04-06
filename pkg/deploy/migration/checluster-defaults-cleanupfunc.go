@@ -16,6 +16,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -169,4 +170,47 @@ func cleanUpDevEnvironmentsDisableContainerBuildCapabilities(ctx *chetypes.Deplo
 	}
 
 	return false, nil
+}
+
+func cleanUpContainersResources(ctx *chetypes.DeployContext) (bool, error) {
+	deployments := []*chev2.Deployment{
+		ctx.CheCluster.Spec.Components.CheServer.Deployment,
+		ctx.CheCluster.Spec.Components.PluginRegistry.Deployment,
+		ctx.CheCluster.Spec.Components.DevfileRegistry.Deployment,
+		ctx.CheCluster.Spec.Components.Dashboard.Deployment,
+		ctx.CheCluster.Spec.Networking.Auth.Gateway.Deployment,
+	}
+
+	done := false
+	for _, deployment := range deployments {
+		if deployment != nil {
+			for _, container := range deployment.Containers {
+				if container.Resources != nil {
+					if container.Resources.Requests != nil {
+						if container.Resources.Requests.Memory != nil && container.Resources.Requests.Memory.IsZero() {
+							container.Resources.Requests.Memory = nil
+							done = true
+						}
+
+						if container.Resources.Requests.Cpu != nil && container.Resources.Requests.Cpu.IsZero() {
+							container.Resources.Requests.Cpu = nil
+							done = true
+						}
+
+						if container.Resources.Limits.Memory != nil && container.Resources.Limits.Memory.IsZero() {
+							container.Resources.Limits.Memory = nil
+							done = true
+						}
+
+						if container.Resources.Limits.Cpu != nil && container.Resources.Limits.Cpu.IsZero() {
+							container.Resources.Limits.Cpu = nil
+							done = true
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return done, nil
 }
