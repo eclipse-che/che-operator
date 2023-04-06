@@ -171,6 +171,10 @@ func CustomizeContainer(container *corev1.Container, customSettings *chev2.Conta
 					container.Resources.Requests[corev1.ResourceCPU] = *customSettings.Resources.Requests.Cpu
 				}
 			}
+
+			if len(container.Resources.Requests) == 0 {
+				container.Resources.Requests = nil
+			}
 		}
 
 		if customSettings.Resources.Limits != nil {
@@ -188,6 +192,10 @@ func CustomizeContainer(container *corev1.Container, customSettings *chev2.Conta
 				} else {
 					container.Resources.Limits[corev1.ResourceCPU] = *customSettings.Resources.Limits.Cpu
 				}
+			}
+
+			if len(container.Resources.Limits) == 0 {
+				container.Resources.Limits = nil
 			}
 		}
 	}
