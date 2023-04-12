@@ -26,7 +26,7 @@ import (
 	"fmt"
 	"net/http"
 
-	apix "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apix "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -65,6 +65,12 @@ func (wh *Webhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(convertReview)
 	if err != nil {
 		log.Error(err, "failed to read conversion request")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if convertReview.Request == nil {
+		log.Error(nil, "conversion request is nil")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
