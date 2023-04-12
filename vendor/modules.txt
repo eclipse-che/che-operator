@@ -70,11 +70,11 @@ github.com/evanphx/json-patch
 # github.com/fsnotify/fsnotify v1.6.0 => github.com/fsnotify/fsnotify v1.4.7
 ## explicit
 github.com/fsnotify/fsnotify
-# github.com/go-logr/logr v1.2.3 => github.com/go-logr/logr v0.4.0
-## explicit; go 1.14
+# github.com/go-logr/logr v1.2.3
+## explicit; go 1.16
 github.com/go-logr/logr
-# github.com/go-logr/zapr v1.2.3 => github.com/go-logr/zapr v0.4.0
-## explicit
+# github.com/go-logr/zapr v1.2.3
+## explicit; go 1.16
 github.com/go-logr/zapr
 # github.com/gogo/protobuf v1.3.2 => github.com/gogo/protobuf v1.3.2
 ## explicit; go 1.15
@@ -113,10 +113,6 @@ github.com/googleapis/gnostic/compiler
 github.com/googleapis/gnostic/extensions
 github.com/googleapis/gnostic/jsonschema
 github.com/googleapis/gnostic/openapiv2
-# github.com/hashicorp/errwrap v1.0.0 => github.com/hashicorp/errwrap v1.0.0
-## explicit
-# github.com/hashicorp/go-multierror v1.1.1 => github.com/hashicorp/go-multierror v1.1.1
-## explicit; go 1.13
 # github.com/hashicorp/golang-lru v0.5.4 => github.com/hashicorp/golang-lru v0.5.1
 ## explicit
 github.com/hashicorp/golang-lru
@@ -133,8 +129,6 @@ github.com/konsorten/go-windows-terminal-sequences
 # github.com/matttproud/golang_protobuf_extensions v1.0.2 => github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369
 ## explicit; go 1.9
 github.com/matttproud/golang_protobuf_extensions/pbutil
-# github.com/mitchellh/reflectwalk v1.0.1 => github.com/mitchellh/reflectwalk v1.0.1
-## explicit
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd => github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 ## explicit
 github.com/modern-go/concurrent
@@ -1153,8 +1147,6 @@ sigs.k8s.io/yaml
 # github.com/fatih/set => github.com/fatih/set v0.2.1
 # github.com/go-errors/errors => github.com/go-errors/errors v1.0.1
 # github.com/go-kit/log => github.com/go-kit/log v0.1.0
-# github.com/go-logr/logr => github.com/go-logr/logr v0.4.0
-# github.com/go-logr/zapr => github.com/go-logr/zapr v0.4.0
 # github.com/gobuffalo/here => github.com/gobuffalo/here v0.6.0
 # github.com/google/go-cmp => github.com/google/go-cmp v0.5.6
 # github.com/hashicorp/go-multierror => github.com/hashicorp/go-multierror v1.1.1
