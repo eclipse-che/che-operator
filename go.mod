@@ -450,7 +450,6 @@ replace (
 	k8s.io/code-generator => k8s.io/code-generator v0.0.0-20200708172309-f186a36abf5c
 	k8s.io/component-helpers => k8s.io/component-helpers v0.20.1
 	k8s.io/gengo => k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6
-	k8s.io/klog/v2 => k8s.io/klog/v2 v2.8.0
 	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.0.0-20180912235703-14b8d2d93fcb
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20200923105717-7eba4cbaebdf
 	kubernetes/klog => kubernetes/klog v1.0.0
