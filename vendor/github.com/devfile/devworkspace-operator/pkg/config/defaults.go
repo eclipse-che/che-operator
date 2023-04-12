@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2022 Red Hat, Inc.
+// Copyright (c) 2019-2023 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -20,6 +20,7 @@ import (
 
 	"github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/utils/pointer"
@@ -32,8 +33,9 @@ var defaultConfig = &v1alpha1.OperatorConfiguration{
 		ClusterHostSuffix:   "", // is auto discovered when running on OpenShift. Must be defined by CR on Kubernetes.
 	},
 	Workspace: &v1alpha1.WorkspaceConfig{
-		ImagePullPolicy: "Always",
-		PVCName:         "claim-devworkspace",
+		ImagePullPolicy:    "Always",
+		DeploymentStrategy: appsv1.RecreateDeploymentStrategyType,
+		PVCName:            "claim-devworkspace",
 		ServiceAccount: &v1alpha1.ServiceAccountConfig{
 			DisableCreation: pointer.Bool(false),
 		},

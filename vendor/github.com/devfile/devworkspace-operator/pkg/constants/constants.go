@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2022 Red Hat, Inc.
+// Copyright (c) 2019-2023 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -16,6 +16,8 @@
 // Package constants defines constant values used throughout the DevWorkspace Operator
 package constants
 
+import "k8s.io/apimachinery/pkg/util/intstr"
+
 // Labels which should be used for controller related objects
 var ControllerAppLabels = func() map[string]string {
 	return map[string]string{
@@ -23,6 +25,13 @@ var ControllerAppLabels = func() map[string]string {
 		"app.kubernetes.io/part-of": "devworkspace-operator",
 	}
 }
+
+var (
+	// Maximum number of unavailable workspace pods when using the RollingUpdate deployment strategy
+	RollingUpdateMaxUnavailable = intstr.FromInt(0)
+	// Maximum number of excesss workspace pods when using the RollingUpdate deployment strategy
+	RollingUpdateMaximumSurge = intstr.FromInt(1)
+)
 
 // Internal constants
 const (
