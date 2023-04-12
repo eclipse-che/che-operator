@@ -469,7 +469,6 @@ replace (
 	sigs.k8s.io/controller-tgithub.com/containerd/console v0.0.0-20180822173158-c12b1e7919c1ools => sigs.k8s.io/controller-tools v0.0.0-20200129215414-2bc3f5eb99cc
 	sigs.k8s.io/kind => sigs.k8s.io/kind v0.10.0
 	sigs.k8s.io/structured-merge-diff/v3 => sigs.k8s.io/structured-merge-diff/v3 v3.0.0-20200116222232-67a7b8c61874
-	sigs.k8s.io/structured-merge-diff/v4 => sigs.k8s.io/structured-merge-diff/v4 v4.1.0
 	sigs.k8s.io/yaml => sigs.k8s.io/yaml v1.2.0
 )
 
