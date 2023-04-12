@@ -4108,6 +4108,10 @@ spec:
                                           - type: integer
                                           - type: string
                                           description: CPU, in cores. (500m = .5 cores)
+                                            If the value is not specified, then the
+                                            default value is set depending on the
+                                            component. If value is `0`, then no value
+                                            is set for the component.
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                         memory:
@@ -4115,7 +4119,11 @@ spec:
                                           - type: integer
                                           - type: string
                                           description: Memory, in bytes. (500Gi =
-                                            500GiB = 500 * 1024 * 1024 * 1024)
+                                            500GiB = 500 * 1024 * 1024 * 1024) If
+                                            the value is not specified, then the default
+                                            value is set depending on the component.
+                                            If value is `0`, then no value is set
+                                            for the component.
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                       type: object
@@ -4128,6 +4136,10 @@ spec:
                                           - type: integer
                                           - type: string
                                           description: CPU, in cores. (500m = .5 cores)
+                                            If the value is not specified, then the
+                                            default value is set depending on the
+                                            component. If value is `0`, then no value
+                                            is set for the component.
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                         memory:
@@ -4135,7 +4147,11 @@ spec:
                                           - type: integer
                                           - type: string
                                           description: Memory, in bytes. (500Gi =
-                                            500GiB = 500 * 1024 * 1024 * 1024)
+                                            500GiB = 500 * 1024 * 1024 * 1024) If
+                                            the value is not specified, then the default
+                                            value is set depending on the component.
+                                            If value is `0`, then no value is set
+                                            for the component.
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                       type: object
@@ -4375,6 +4391,10 @@ spec:
                                           - type: integer
                                           - type: string
                                           description: CPU, in cores. (500m = .5 cores)
+                                            If the value is not specified, then the
+                                            default value is set depending on the
+                                            component. If value is `0`, then no value
+                                            is set for the component.
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                         memory:
@@ -4382,7 +4402,11 @@ spec:
                                           - type: integer
                                           - type: string
                                           description: Memory, in bytes. (500Gi =
-                                            500GiB = 500 * 1024 * 1024 * 1024)
+                                            500GiB = 500 * 1024 * 1024 * 1024) If
+                                            the value is not specified, then the default
+                                            value is set depending on the component.
+                                            If value is `0`, then no value is set
+                                            for the component.
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                       type: object
@@ -4395,6 +4419,10 @@ spec:
                                           - type: integer
                                           - type: string
                                           description: CPU, in cores. (500m = .5 cores)
+                                            If the value is not specified, then the
+                                            default value is set depending on the
+                                            component. If value is `0`, then no value
+                                            is set for the component.
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                         memory:
@@ -4402,7 +4430,11 @@ spec:
                                           - type: integer
                                           - type: string
                                           description: Memory, in bytes. (500Gi =
-                                            500GiB = 500 * 1024 * 1024 * 1024)
+                                            500GiB = 500 * 1024 * 1024 * 1024) If
+                                            the value is not specified, then the default
+                                            value is set depending on the component.
+                                            If value is `0`, then no value is set
+                                            for the component.
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                       type: object
@@ -4606,6 +4638,10 @@ spec:
                                           - type: integer
                                           - type: string
                                           description: CPU, in cores. (500m = .5 cores)
+                                            If the value is not specified, then the
+                                            default value is set depending on the
+                                            component. If value is `0`, then no value
+                                            is set for the component.
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                         memory:
@@ -4613,7 +4649,11 @@ spec:
                                           - type: integer
                                           - type: string
                                           description: Memory, in bytes. (500Gi =
-                                            500GiB = 500 * 1024 * 1024 * 1024)
+                                            500GiB = 500 * 1024 * 1024 * 1024) If
+                                            the value is not specified, then the default
+                                            value is set depending on the component.
+                                            If value is `0`, then no value is set
+                                            for the component.
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                       type: object
@@ -4626,6 +4666,10 @@ spec:
                                           - type: integer
                                           - type: string
                                           description: CPU, in cores. (500m = .5 cores)
+                                            If the value is not specified, then the
+                                            default value is set depending on the
+                                            component. If value is `0`, then no value
+                                            is set for the component.
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                         memory:
@@ -4633,7 +4677,11 @@ spec:
                                           - type: integer
                                           - type: string
                                           description: Memory, in bytes. (500Gi =
-                                            500GiB = 500 * 1024 * 1024 * 1024)
+                                            500GiB = 500 * 1024 * 1024 * 1024) If
+                                            the value is not specified, then the default
+                                            value is set depending on the component.
+                                            If value is `0`, then no value is set
+                                            for the component.
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                       type: object
@@ -4864,6 +4912,10 @@ spec:
                                           - type: integer
                                           - type: string
                                           description: CPU, in cores. (500m = .5 cores)
+                                            If the value is not specified, then the
+                                            default value is set depending on the
+                                            component. If value is `0`, then no value
+                                            is set for the component.
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                         memory:
@@ -4871,7 +4923,11 @@ spec:
                                           - type: integer
                                           - type: string
                                           description: Memory, in bytes. (500Gi =
-                                            500GiB = 500 * 1024 * 1024 * 1024)
+                                            500GiB = 500 * 1024 * 1024 * 1024) If
+                                            the value is not specified, then the default
+                                            value is set depending on the component.
+                                            If value is `0`, then no value is set
+                                            for the component.
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                       type: object
@@ -4884,6 +4940,10 @@ spec:
                                           - type: integer
                                           - type: string
                                           description: CPU, in cores. (500m = .5 cores)
+                                            If the value is not specified, then the
+                                            default value is set depending on the
+                                            component. If value is `0`, then no value
+                                            is set for the component.
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                         memory:
@@ -4891,7 +4951,11 @@ spec:
                                           - type: integer
                                           - type: string
                                           description: Memory, in bytes. (500Gi =
-                                            500GiB = 500 * 1024 * 1024 * 1024)
+                                            500GiB = 500 * 1024 * 1024 * 1024) If
+                                            the value is not specified, then the default
+                                            value is set depending on the component.
+                                            If value is `0`, then no value is set
+                                            for the component.
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                       type: object
@@ -5152,6 +5216,10 @@ spec:
                                           - type: integer
                                           - type: string
                                           description: CPU, in cores. (500m = .5 cores)
+                                            If the value is not specified, then the
+                                            default value is set depending on the
+                                            component. If value is `0`, then no value
+                                            is set for the component.
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                         memory:
@@ -5159,7 +5227,11 @@ spec:
                                           - type: integer
                                           - type: string
                                           description: Memory, in bytes. (500Gi =
-                                            500GiB = 500 * 1024 * 1024 * 1024)
+                                            500GiB = 500 * 1024 * 1024 * 1024) If
+                                            the value is not specified, then the default
+                                            value is set depending on the component.
+                                            If value is `0`, then no value is set
+                                            for the component.
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                       type: object
@@ -5172,6 +5244,10 @@ spec:
                                           - type: integer
                                           - type: string
                                           description: CPU, in cores. (500m = .5 cores)
+                                            If the value is not specified, then the
+                                            default value is set depending on the
+                                            component. If value is `0`, then no value
+                                            is set for the component.
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                         memory:
@@ -5179,7 +5255,11 @@ spec:
                                           - type: integer
                                           - type: string
                                           description: Memory, in bytes. (500Gi =
-                                            500GiB = 500 * 1024 * 1024 * 1024)
+                                            500GiB = 500 * 1024 * 1024 * 1024) If
+                                            the value is not specified, then the default
+                                            value is set depending on the component.
+                                            If value is `0`, then no value is set
+                                            for the component.
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                       type: object
@@ -7209,7 +7289,10 @@ spec:
                                               - type: integer
                                               - type: string
                                               description: CPU, in cores. (500m =
-                                                .5 cores)
+                                                .5 cores) If the value is not specified,
+                                                then the default value is set depending
+                                                on the component. If value is `0`,
+                                                then no value is set for the component.
                                               pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                               x-kubernetes-int-or-string: true
                                             memory:
@@ -7218,6 +7301,10 @@ spec:
                                               - type: string
                                               description: Memory, in bytes. (500Gi
                                                 = 500GiB = 500 * 1024 * 1024 * 1024)
+                                                If the value is not specified, then
+                                                the default value is set depending
+                                                on the component. If value is `0`,
+                                                then no value is set for the component.
                                               pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                               x-kubernetes-int-or-string: true
                                           type: object
@@ -7230,7 +7317,10 @@ spec:
                                               - type: integer
                                               - type: string
                                               description: CPU, in cores. (500m =
-                                                .5 cores)
+                                                .5 cores) If the value is not specified,
+                                                then the default value is set depending
+                                                on the component. If value is `0`,
+                                                then no value is set for the component.
                                               pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                               x-kubernetes-int-or-string: true
                                             memory:
@@ -7239,6 +7329,10 @@ spec:
                                               - type: string
                                               description: Memory, in bytes. (500Gi
                                                 = 500GiB = 500 * 1024 * 1024 * 1024)
+                                                If the value is not specified, then
+                                                the default value is set depending
+                                                on the component. If value is `0`,
+                                                then no value is set for the component.
                                               pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                               x-kubernetes-int-or-string: true
                                           type: object

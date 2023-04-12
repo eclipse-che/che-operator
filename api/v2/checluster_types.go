@@ -577,9 +577,13 @@ type ResourceRequirements struct {
 // List of resources.
 type ResourceList struct {
 	// Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
+	// If the value is not specified, then the default value is set depending on the component.
+	// If value is `0`, then no value is set for the component.
 	// +optional
 	Memory *resource.Quantity `json:"memory,omitempty"`
 	// CPU, in cores. (500m = .5 cores)
+	// If the value is not specified, then the default value is set depending on the component.
+	// If value is `0`, then no value is set for the component.
 	// +optional
 	Cpu *resource.Quantity `json:"cpu,omitempty"`
 }
