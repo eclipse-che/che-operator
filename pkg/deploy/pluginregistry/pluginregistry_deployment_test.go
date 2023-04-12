@@ -25,6 +25,11 @@ import (
 )
 
 func TestGetPluginRegistryDeploymentSpec(t *testing.T) {
+	memoryRequest := resource.MustParse("150Mi")
+	cpuRequest := resource.MustParse("150m")
+	memoryLimit := resource.MustParse("250Mi")
+	cpuLimit := resource.MustParse("250m")
+
 	type testCase struct {
 		name          string
 		initObjects   []runtime.Object
@@ -99,12 +104,12 @@ func TestGetPluginRegistryDeploymentSpec(t *testing.T) {
 										Name: constants.PluginRegistryName,
 										Resources: &chev2.ResourceRequirements{
 											Requests: &chev2.ResourceList{
-												Memory: resource.MustParse("150Mi"),
-												Cpu:    resource.MustParse("150m"),
+												Memory: &memoryRequest,
+												Cpu:    &cpuRequest,
 											},
 											Limits: &chev2.ResourceList{
-												Memory: resource.MustParse("250Mi"),
-												Cpu:    resource.MustParse("250m"),
+												Memory: &memoryLimit,
+												Cpu:    &cpuLimit,
 											},
 										},
 									},

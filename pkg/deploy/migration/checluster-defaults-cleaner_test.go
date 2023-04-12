@@ -16,6 +16,8 @@ import (
 	"os"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+
 	devfile "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 
@@ -561,6 +563,139 @@ func TestCheClusterDefaultsCleanerDisableContainerBuildCapabilities(t *testing.T
 			assert.True(t, done)
 
 			assert.Equal(t, testCase.expectedDisableContainerBuildCapabilities, ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities)
+		})
+	}
+}
+
+func TestCheClusterDefaultsCleanerContainerResources(t *testing.T) {
+	type testCase struct {
+		name               string
+		cheCluster         *chev2.CheCluster
+		expectedDeployment *chev2.Deployment
+	}
+
+	zeroResource := resource.MustParse("0")
+	memoryLimit := resource.MustParse("512Mi")
+	cpuRequest := resource.MustParse("100m")
+
+	testCases := []testCase{
+		{
+			name: "Case #1",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+			},
+			expectedDeployment: nil,
+		},
+		{
+			name: "Case #2",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						CheServer: chev2.CheServer{
+							Deployment: &chev2.Deployment{
+								Containers: []chev2.Container{
+									{
+										Resources: &chev2.ResourceRequirements{
+											Requests: &chev2.ResourceList{
+												Cpu: &cpuRequest,
+											},
+											Limits: &chev2.ResourceList{
+												Memory: &memoryLimit,
+												Cpu:    &zeroResource,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedDeployment: &chev2.Deployment{
+				Containers: []chev2.Container{
+					{
+						Resources: &chev2.ResourceRequirements{
+							Requests: &chev2.ResourceList{
+								Cpu: &cpuRequest,
+							},
+							Limits: &chev2.ResourceList{
+								Memory: &memoryLimit,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Case #3",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						CheServer: chev2.CheServer{
+							Deployment: &chev2.Deployment{
+								Containers: []chev2.Container{
+									{
+										Resources: &chev2.ResourceRequirements{
+											Requests: &chev2.ResourceList{
+												Memory: &zeroResource,
+												Cpu:    &zeroResource,
+											},
+											Limits: &chev2.ResourceList{
+												Memory: &zeroResource,
+												Cpu:    &zeroResource,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedDeployment: &chev2.Deployment{
+				Containers: []chev2.Container{
+					{
+						Resources: &chev2.ResourceRequirements{
+							Requests: &chev2.ResourceList{},
+							Limits:   &chev2.ResourceList{},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
+			cheClusterDefaultsCleanup := NewCheClusterDefaultsCleaner()
+
+			_, done, err := cheClusterDefaultsCleanup.Reconcile(ctx)
+			assert.NoError(t, err)
+			assert.True(t, done)
+
+			assert.Equal(t, testCase.expectedDeployment, ctx.CheCluster.Spec.Components.CheServer.Deployment)
+
+			cheClusterFields := cheClusterDefaultsCleanup.readCheClusterDefaultsCleanupAnnotation(ctx)
+			assert.Equal(t, "true", cheClusterFields["containers.resources"])
+
+			// run twice to check that fields are not changed
+			_, done, err = cheClusterDefaultsCleanup.Reconcile(ctx)
+			assert.NoError(t, err)
+			assert.True(t, done)
+
+			assert.Equal(t, testCase.expectedDeployment, ctx.CheCluster.Spec.Components.CheServer.Deployment)
 		})
 	}
 }

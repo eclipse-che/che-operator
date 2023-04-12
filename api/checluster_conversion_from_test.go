@@ -100,6 +100,11 @@ func TestConvertFromIngressOnOpenShift(t *testing.T) {
 func TestConvertFrom(t *testing.T) {
 	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
+	memoryRequest := resource.MustParse("128Mi")
+	cpuRequest := resource.MustParse("1")
+	memoryLimit := resource.MustParse("228Mi")
+	cpuLimit := resource.MustParse("2")
+
 	checlusterv2 := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "eclipse-che",
@@ -118,12 +123,12 @@ func TestConvertFrom(t *testing.T) {
 								ImagePullPolicy: corev1.PullAlways,
 								Resources: &chev2.ResourceRequirements{
 									Requests: &chev2.ResourceList{
-										Memory: resource.MustParse("128Mi"),
-										Cpu:    resource.MustParse("1"),
+										Memory: &memoryRequest,
+										Cpu:    &cpuRequest,
 									},
 									Limits: &chev2.ResourceList{
-										Memory: resource.MustParse("228Mi"),
-										Cpu:    resource.MustParse("2"),
+										Memory: &memoryLimit,
+										Cpu:    &cpuLimit,
 									},
 								},
 								Env: []corev1.EnvVar{
@@ -158,14 +163,13 @@ func TestConvertFrom(t *testing.T) {
 								ImagePullPolicy: corev1.PullAlways,
 								Resources: &chev2.ResourceRequirements{
 									Requests: &chev2.ResourceList{
-										Memory: resource.MustParse("128Mi"),
-										Cpu:    resource.MustParse("1"),
+										Memory: &memoryRequest,
+										Cpu:    &cpuRequest,
 									},
 									Limits: &chev2.ResourceList{
-										Memory: resource.MustParse("228Mi"),
-										Cpu:    resource.MustParse("2"),
-									},
-								},
+										Memory: &memoryLimit,
+										Cpu:    &cpuLimit,
+									}},
 								Env: []corev1.EnvVar{
 									{
 										Name:  "devfile-registry-name",
@@ -194,12 +198,12 @@ func TestConvertFrom(t *testing.T) {
 								ImagePullPolicy: corev1.PullAlways,
 								Resources: &chev2.ResourceRequirements{
 									Requests: &chev2.ResourceList{
-										Memory: resource.MustParse("128Mi"),
-										Cpu:    resource.MustParse("1"),
+										Memory: &memoryRequest,
+										Cpu:    &cpuRequest,
 									},
 									Limits: &chev2.ResourceList{
-										Memory: resource.MustParse("228Mi"),
-										Cpu:    resource.MustParse("2"),
+										Memory: &memoryLimit,
+										Cpu:    &cpuLimit,
 									},
 								},
 								Env: []corev1.EnvVar{
@@ -232,12 +236,12 @@ func TestConvertFrom(t *testing.T) {
 								ImagePullPolicy: corev1.PullAlways,
 								Resources: &chev2.ResourceRequirements{
 									Requests: &chev2.ResourceList{
-										Memory: resource.MustParse("128Mi"),
-										Cpu:    resource.MustParse("1"),
+										Memory: &memoryRequest,
+										Cpu:    &cpuRequest,
 									},
 									Limits: &chev2.ResourceList{
-										Memory: resource.MustParse("228Mi"),
-										Cpu:    resource.MustParse("2"),
+										Memory: &memoryLimit,
+										Cpu:    &cpuLimit,
 									},
 								},
 								Env: []corev1.EnvVar{
@@ -517,6 +521,9 @@ func TestConvertFrom(t *testing.T) {
 func TestShouldConvertFromWhenOnlyMemoryResourceSpecified(t *testing.T) {
 	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 
+	memoryRequest := resource.MustParse("128Mi")
+	memoryLimit := resource.MustParse("228Mi")
+
 	checlusterv2 := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "eclipse-che",
@@ -530,10 +537,10 @@ func TestShouldConvertFromWhenOnlyMemoryResourceSpecified(t *testing.T) {
 							{
 								Resources: &chev2.ResourceRequirements{
 									Requests: &chev2.ResourceList{
-										Memory: resource.MustParse("128Mi"),
+										Memory: &memoryRequest,
 									},
 									Limits: &chev2.ResourceList{
-										Memory: resource.MustParse("228Mi"),
+										Memory: &memoryLimit,
 									},
 								},
 							},

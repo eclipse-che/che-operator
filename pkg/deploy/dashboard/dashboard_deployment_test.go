@@ -50,6 +50,11 @@ func TestDashboardDeploymentSecurityContext(t *testing.T) {
 }
 
 func TestDashboardDeploymentResources(t *testing.T) {
+	memoryRequest := resource.MustParse("150Mi")
+	cpuRequest := resource.MustParse("150m")
+	memoryLimit := resource.MustParse("250Mi")
+	cpuLimit := resource.MustParse("250m")
+
 	type resourcesTestCase struct {
 		name          string
 		initObjects   []runtime.Object
@@ -96,12 +101,12 @@ func TestDashboardDeploymentResources(t *testing.T) {
 										Name: defaults.GetCheFlavor() + "-dashboard",
 										Resources: &chev2.ResourceRequirements{
 											Requests: &chev2.ResourceList{
-												Memory: resource.MustParse("150Mi"),
-												Cpu:    resource.MustParse("150m"),
+												Memory: &memoryRequest,
+												Cpu:    &cpuRequest,
 											},
 											Limits: &chev2.ResourceList{
-												Memory: resource.MustParse("250Mi"),
-												Cpu:    resource.MustParse("250m"),
+												Memory: &memoryLimit,
+												Cpu:    &cpuLimit,
 											},
 										},
 									},
