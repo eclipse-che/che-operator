@@ -43,6 +43,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
+	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-logr/zapr v1.2.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -514,7 +515,6 @@ replace (
 	k8s.io/client-go => k8s.io/client-go v0.21.3
 	k8s.io/component-base => k8s.io/component-base v0.21.3
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.19
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.9.5
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.6.0
 	sigs.k8s.io/kustomize/api => sigs.k8s.io/kustomize/api v0.8.8
 	sigs.k8s.io/kustomize/kyaml => sigs.k8s.io/kustomize/kyaml v0.10.17
