@@ -208,10 +208,6 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	if devworkspace.GetDevWorkspaceState(r.scheme, checluster) != devworkspace.EnabledState {
-		return ctrl.Result{}, nil
-	}
-
 	// let's construct the deployContext to be able to use methods from v1 operator
 	deployContext := &chetypes.DeployContext{
 		CheCluster: checluster,

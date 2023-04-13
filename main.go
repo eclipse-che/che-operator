@@ -17,6 +17,10 @@ import (
 	"os"
 	"time"
 
+	dwr "github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting"
+	"github.com/eclipse-che/che-operator/controllers/devworkspace/solver"
+	"github.com/eclipse-che/che-operator/controllers/usernamespace"
+
 	securityv1 "github.com/openshift/api/security/v1"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
@@ -28,14 +32,9 @@ import (
 	"github.com/sirupsen/logrus"
 
 	dwoApi "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
-	dwr "github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting"
-
 	"github.com/eclipse-che/che-operator/controllers/devworkspace"
-	"github.com/eclipse-che/che-operator/controllers/devworkspace/solver"
-
-	"github.com/eclipse-che/che-operator/controllers/usernamespace"
-
 	"go.uber.org/zap/zapcore"
+
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	"k8s.io/client-go/discovery"
@@ -218,6 +217,19 @@ func main() {
 		enableLeaderElection = false
 	}
 
+	// Add the Dev Workspace API to the scheme
+	if err := dwoApi.AddToScheme(scheme); err != nil {
+		setupLog.Error(err, "Dev Workspace Operator is not installed")
+		os.Exit(1)
+	}
+
+	// DWO use the infrastructure package for openshift detection. It needs to be initialized
+	// but only supports OpenShift v4 or Kubernetes.
+	if err := devworkspaceinfra.Initialize(); err != nil {
+		setupLog.Error(err, "failed to evaluate infrastructure which is needed for DevWorkspace support")
+		os.Exit(1)
+	}
+
 	cacheFunction, err := getCacheFunc()
 	if err != nil {
 		setupLog.Error(err, "failed to create cache function")
@@ -253,10 +265,27 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Setup all Controllers
 	cheReconciler := checontroller.NewReconciler(mgr.GetClient(), nonCachingClient, discoveryClient, mgr.GetScheme(), watchNamespace)
-
 	if err = cheReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to set up controller", "controller", "CheCluster")
+		os.Exit(1)
+	}
+
+	routing := dwr.DevWorkspaceRoutingReconciler{
+		Client:       mgr.GetClient(),
+		Log:          ctrl.Log.WithName("controllers").WithName("DevWorkspaceRouting"),
+		Scheme:       mgr.GetScheme(),
+		SolverGetter: solver.Getter(mgr.GetScheme()),
+	}
+	if err := routing.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to set up controller", "controller", "DevWorkspaceRouting")
+		os.Exit(1)
+	}
+
+	userNamespaceReconciler := usernamespace.NewReconciler()
+	if err = userNamespaceReconciler.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to set up controller", "controller", "CheUserReconciler")
 		os.Exit(1)
 	}
 
@@ -275,48 +304,6 @@ func main() {
 	if err := dwChe.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to set up devWorkspace controller", "controller", "DevWorkspaceReconciler")
 		os.Exit(1)
-	}
-
-	shouldDevWorkspaceBeEnabled, err := devworkspace.ShouldDevWorkspacesBeEnabled(mgr)
-	if err != nil {
-		setupLog.Error(err, "Failed to evaluate DevWorkspace mode state", "controller", "DevWorkspaceReconciler")
-		os.Exit(1)
-	}
-	if shouldDevWorkspaceBeEnabled {
-		if err := dwoApi.AddToScheme(mgr.GetScheme()); err != nil {
-			setupLog.Error(err, "failed to register DevWorkspace API Scheme", "controller", "DevWorkspace")
-			os.Exit(1)
-		}
-
-		// DWO use the infrastructure package for openshift detection. It needs to be initialized
-		// but only supports OpenShift v4 or Kubernetes.
-		if err := devworkspaceinfra.Initialize(); err != nil {
-			setupLog.Error(err, "failed to evaluate infrastructure which is needed for DevWorkspace support")
-			os.Exit(1)
-		}
-		routing := dwr.DevWorkspaceRoutingReconciler{
-			Client:       mgr.GetClient(),
-			Log:          ctrl.Log.WithName("controllers").WithName("DevWorkspaceRouting"),
-			Scheme:       mgr.GetScheme(),
-			SolverGetter: solver.Getter(mgr.GetScheme()),
-		}
-		if err := routing.SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to set up controller", "controller", "DevWorkspaceRouting")
-			os.Exit(1)
-		}
-
-		userNamespaceReconciler := usernamespace.NewReconciler()
-		if err = userNamespaceReconciler.SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to set up controller", "controller", "CheUserReconciler")
-			os.Exit(1)
-		}
-		setupLog.Info("DevWorkspace support enabled.")
-	} else {
-		setupLog.Info("DevWorkspace support disabled. Will initiate restart when CheCluster with devworkspaces enabled will appear")
-		go devworkspace.NotifyWhenDevWorkspaceEnabled(mgr, sigHandler.Done(), func() {
-			setupLog.Info("CheCluster with DevWorkspace enabled discovered. Restarting to activate DevWorkspaces mode")
-			os.Exit(0)
-		})
 	}
 
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {

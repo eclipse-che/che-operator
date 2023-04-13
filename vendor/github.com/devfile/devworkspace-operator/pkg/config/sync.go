@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2022 Red Hat, Inc.
+// Copyright (c) 2019-2023 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -286,9 +286,15 @@ func mergeConfig(from, to *controller.OperatorConfiguration) {
 			if from.Workspace.ServiceAccount.DisableCreation != nil {
 				to.Workspace.ServiceAccount.DisableCreation = pointer.BoolPtr(*from.Workspace.ServiceAccount.DisableCreation)
 			}
+			if from.Workspace.ServiceAccount.ServiceAccountTokens != nil {
+				to.Workspace.ServiceAccount.ServiceAccountTokens = from.Workspace.ServiceAccount.ServiceAccountTokens
+			}
 		}
 		if from.Workspace.ImagePullPolicy != "" {
 			to.Workspace.ImagePullPolicy = from.Workspace.ImagePullPolicy
+		}
+		if from.Workspace.DeploymentStrategy != "" {
+			to.Workspace.DeploymentStrategy = from.Workspace.DeploymentStrategy
 		}
 		if from.Workspace.IdleTimeout != "" {
 			to.Workspace.IdleTimeout = from.Workspace.IdleTimeout
@@ -399,6 +405,9 @@ func GetCurrentConfigString(currConfig *controller.OperatorConfiguration) string
 		if workspace.ImagePullPolicy != defaultConfig.Workspace.ImagePullPolicy {
 			config = append(config, fmt.Sprintf("workspace.imagePullPolicy=%s", workspace.ImagePullPolicy))
 		}
+		if workspace.DeploymentStrategy != defaultConfig.Workspace.DeploymentStrategy {
+			config = append(config, fmt.Sprintf("workspace.deploymentStrategy=%s", workspace.DeploymentStrategy))
+		}
 		if workspace.PVCName != defaultConfig.Workspace.PVCName {
 			config = append(config, fmt.Sprintf("workspace.pvcName=%s", workspace.PVCName))
 		}
@@ -408,6 +417,13 @@ func GetCurrentConfigString(currConfig *controller.OperatorConfiguration) string
 			}
 			if workspace.ServiceAccount.DisableCreation != nil && *workspace.ServiceAccount.DisableCreation != *defaultConfig.Workspace.ServiceAccount.DisableCreation {
 				config = append(config, fmt.Sprintf("workspace.serviceAccount.disableCreation=%t", *workspace.ServiceAccount.DisableCreation))
+			}
+			if workspace.ServiceAccount.ServiceAccountTokens != nil {
+				serviceAccountTokens := make([]string, 0)
+				for _, saToken := range workspace.ServiceAccount.ServiceAccountTokens {
+					serviceAccountTokens = append(serviceAccountTokens, saToken.String())
+				}
+				config = append(config, fmt.Sprintf("workspace.serviceAccount.serviceAccountTokens=[%s]", strings.Join(serviceAccountTokens, ", ")))
 			}
 		}
 		if workspace.StorageClassName != nil && workspace.StorageClassName != defaultConfig.Workspace.StorageClassName {

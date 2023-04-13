@@ -149,22 +149,6 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, r.finalize(ctx, cluster)
 	}
 
-	disabledMessage := ""
-	switch GetDevWorkspaceState(r.scheme, cluster) {
-	case APINotPresentState:
-		disabledMessage = "DevWorkspace CRDs are not installed"
-	case DisabledState:
-		disabledMessage = "DevWorkspace Che is disabled"
-	}
-
-	if disabledMessage != "" {
-		res, err := r.updateStatus(ctx, cluster, nil, cluster.Status.WorkspaceBaseDomain, chev2.ClusterPhaseInactive, disabledMessage)
-		if err != nil {
-			return res, err
-		}
-		return res, nil
-	}
-
 	finalizerUpdated, err := r.ensureFinalizer(ctx, cluster)
 	if err != nil {
 		log.Info("Failed to set a finalizer", "object", req.String())

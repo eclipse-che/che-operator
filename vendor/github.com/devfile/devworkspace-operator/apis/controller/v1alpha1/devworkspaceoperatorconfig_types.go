@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2022 Red Hat, Inc.
+// Copyright (c) 2019-2023 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -16,7 +16,10 @@
 package v1alpha1
 
 import (
+	"fmt"
+
 	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -92,6 +95,40 @@ type ServiceAccountConfig struct {
 	// exists in any namespace where a workspace is created. If a suitable ServiceAccount does not exist, starting DevWorkspaces
 	// will fail.
 	DisableCreation *bool `json:"disableCreation,omitempty"`
+	// List of ServiceAccount tokens that will be mounted into workspace pods as projected volumes.
+	ServiceAccountTokens []ServiceAccountToken `json:"serviceAccountTokens,omitempty"`
+}
+
+type ServiceAccountToken struct {
+	// Identifiable name of the ServiceAccount token.
+	// If multiple ServiceAccount tokens use the same mount path, a generic name will be used
+	// for the projected volume instead.
+	// +kubebuilder:validation:Required
+	Name string `json:"name"`
+	// Path within the workspace container at which the token should be mounted.  Must
+	// not contain ':'.
+	// +kubebuilder:validation:Required
+	MountPath string `json:"mountPath"`
+	// Path is the path relative to the mount point of the file to project the
+	// token into.
+	// +kubebuilder:validation:Required
+	Path string `json:"path"`
+	// Audience is the intended audience of the token. A recipient of a token
+	// must identify itself with an identifier specified in the audience of the
+	// token, and otherwise should reject the token. The audience defaults to the
+	// identifier of the apiserver.
+	// +kubebuilder:validation:Optional
+	Audience string `json:"audience,omitempty"`
+	// ExpirationSeconds is the requested duration of validity of the service
+	// account token. As the token approaches expiration, the kubelet volume
+	// plugin will proactively rotate the service account token. The kubelet will
+	// start trying to rotate the token if the token is older than 80 percent of
+	// its time to live or if the token is older than 24 hours. Defaults to 1 hour
+	// and must be at least 10 minutes.
+	// +kubebuilder:validation:Minimum=600
+	// +kubebuilder:default:=3600
+	// +kubebuilder:validation:Optional
+	ExpirationSeconds int64 `json:"expirationSeconds,omitempty"`
 }
 
 type WorkspaceConfig struct {
@@ -100,6 +137,14 @@ type WorkspaceConfig struct {
 	// not specified, the default value of "Always" is used.
 	// +kubebuilder:validation:Enum=IfNotPresent;Always;Never
 	ImagePullPolicy string `json:"imagePullPolicy,omitempty"`
+	// DeploymentStrategy defines the deployment strategy to use to replace existing DevWorkspace pods
+	// with new ones. The available deployment stragies are "Recreate" and "RollingUpdate".
+	// With the "Recreate" deployment strategy, the existing workspace pod is killed before the new one is created.
+	// With the "RollingUpdate" deployment strategy, a new workspace pod is created and the existing workspace pod is deleted
+	// only when the new workspace pod is in a ready state.
+	// If not specified, the default "Recreate" deployment strategy is used.
+	// +kubebuilder:validation:Enum=Recreate;RollingUpdate
+	DeploymentStrategy appsv1.DeploymentStrategyType `json:"deploymentStrategy,omitempty"`
 	// PVCName defines the name used for the persistent volume claim created
 	// to support workspace storage when the 'common' storage class is used.
 	// If not specified, the default value of `claim-devworkspace` is used.
@@ -169,7 +214,7 @@ type DevWorkspaceOperatorConfig struct {
 }
 
 // DevWorkspaceOperatorConfigList contains a list of DevWorkspaceOperatorConfig
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 type DevWorkspaceOperatorConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -178,4 +223,8 @@ type DevWorkspaceOperatorConfigList struct {
 
 func init() {
 	SchemeBuilder.Register(&DevWorkspaceOperatorConfig{}, &DevWorkspaceOperatorConfigList{})
+}
+
+func (saToken ServiceAccountToken) String() string {
+	return fmt.Sprintf("{name: %s, path: %s, mountPath: %s, audience: %s, expirationSeconds %d}", saToken.Name, saToken.Path, saToken.MountPath, saToken.Audience, saToken.ExpirationSeconds)
 }

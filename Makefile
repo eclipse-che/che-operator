@@ -745,9 +745,9 @@ install-devworkspace: ## Install Dev Workspace operator, available channels: nex
 		$(MAKE) create-namespace NAMESPACE="devworkspace-controller"
 		if [[ $(CHANNEL) == "fast" ]]; then
 			rm -rf /tmp/dwo
-			git clone --quiet https://github.com/devfile/devworkspace-operator ${OPERATOR_REPO}/tmp/dwo
-			pushd ${OPERATOR_REPO}/tmp/dwo
-			DWO_STABLE_VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
+			git clone --quiet https://github.com/devfile/devworkspace-operator /tmp/dwo
+			pushd /tmp/dwo
+			DWO_STABLE_VERSION=$$(git describe --tags $$(git rev-list --tags --max-count=1))
 			popd
 
 			$(K8S_CLI) apply -f https://raw.githubusercontent.com/devfile/devworkspace-operator/$${DWO_STABLE_VERSION}/deploy/deployment/kubernetes/combined.yaml

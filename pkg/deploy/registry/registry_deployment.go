@@ -92,7 +92,7 @@ func GetSpecRegistryDeployment(
 							},
 							Resources: resources,
 							ReadinessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
+								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path: "/" + registryType + "s/",
 										Port: intstr.IntOrString{
@@ -109,7 +109,7 @@ func GetSpecRegistryDeployment(
 								PeriodSeconds:       10,
 							},
 							LivenessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
+								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path: "/" + registryType + "s/",
 										Port: intstr.IntOrString{
