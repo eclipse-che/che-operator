@@ -10,7 +10,8 @@ import (
 
 // OAuthAccessToken describes an OAuth access token
 type OAuthAccessToken struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// ClientName references the client that created this token.
@@ -49,7 +50,8 @@ type OAuthAccessToken struct {
 
 // OAuthAuthorizeToken describes an OAuth authorization token
 type OAuthAuthorizeToken struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// ClientName references the client that created this token.
@@ -87,7 +89,8 @@ type OAuthAuthorizeToken struct {
 
 // OAuthClient describes an OAuth client
 type OAuthClient struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Secret is the unique secret associated with a client
@@ -104,10 +107,11 @@ type OAuthClient struct {
 	// +patchStrategy=merge
 	RedirectURIs []string `json:"redirectURIs,omitempty" patchStrategy:"merge" protobuf:"bytes,5,rep,name=redirectURIs"`
 
-	// GrantMethod is a required field which determines how to handle grants for this client.
-	// Valid grant handling methods are:
+	// GrantMethod determines how to handle grants for this client. If no method is provided, the
+	// cluster default grant handling method will be used. Valid grant handling methods are:
 	//  - auto:   always approves grant requests, useful for trusted clients
 	//  - prompt: prompts the end user for approval of grant requests, useful for third-party clients
+	//  - deny:   always denies grant requests, useful for black-listed clients
 	GrantMethod GrantHandlerType `json:"grantMethod,omitempty" protobuf:"bytes,6,opt,name=grantMethod,casttype=GrantHandlerType"`
 
 	// ScopeRestrictions describes which scopes this client can request.  Each requested scope
@@ -169,7 +173,8 @@ type ClusterRoleScopeRestriction struct {
 
 // OAuthClientAuthorization describes an authorization created by an OAuth client
 type OAuthClientAuthorization struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// ClientName references the client that created this authorization
@@ -191,8 +196,8 @@ type OAuthClientAuthorization struct {
 // OAuthAccessTokenList is a collection of OAuth access tokens
 type OAuthAccessTokenList struct {
 	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-
 	// Items is the list of OAuth access tokens
 	Items []OAuthAccessToken `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
@@ -202,8 +207,8 @@ type OAuthAccessTokenList struct {
 // OAuthAuthorizeTokenList is a collection of OAuth authorization tokens
 type OAuthAuthorizeTokenList struct {
 	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-
 	// Items is the list of OAuth authorization tokens
 	Items []OAuthAuthorizeToken `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
@@ -213,8 +218,8 @@ type OAuthAuthorizeTokenList struct {
 // OAuthClientList is a collection of OAuth clients
 type OAuthClientList struct {
 	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-
 	// Items is the list of OAuth clients
 	Items []OAuthClient `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
@@ -224,8 +229,8 @@ type OAuthClientList struct {
 // OAuthClientAuthorizationList is a collection of OAuth client authorizations
 type OAuthClientAuthorizationList struct {
 	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-
 	// Items is the list of OAuth client authorizations
 	Items []OAuthClientAuthorization `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
@@ -234,9 +239,9 @@ type OAuthClientAuthorizationList struct {
 
 // OAuthRedirectReference is a reference to an OAuth redirect object.
 type OAuthRedirectReference struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-
 	// The reference to an redirect object in the current namespace.
 	Reference RedirectReference `json:"reference,omitempty" protobuf:"bytes,2,opt,name=reference"`
 }

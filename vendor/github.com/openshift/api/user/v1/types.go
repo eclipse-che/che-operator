@@ -17,7 +17,8 @@ import (
 // identity provider - if a user already exists with the incoming name, the user name may have
 // a number appended to it depending on the configuration of the system.
 type User struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// FullName is the full name of user
@@ -37,8 +38,8 @@ type User struct {
 // UserList is a collection of Users
 type UserList struct {
 	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-
 	// Items is the list of users
 	Items []User `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
@@ -53,7 +54,8 @@ type UserList struct {
 // user. Information retrieved from the authentication provider is stored in the extra field
 // using a schema determined by the provider.
 type Identity struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// ProviderName is the source of identity information
@@ -75,8 +77,8 @@ type Identity struct {
 // IdentityList is a collection of Identities
 type IdentityList struct {
 	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-
 	// Items is the list of identities
 	Items []Identity `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
@@ -88,7 +90,8 @@ type IdentityList struct {
 
 // UserIdentityMapping maps a user to an identity
 type UserIdentityMapping struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Identity is a reference to an identity
@@ -112,7 +115,8 @@ func (t OptionalNames) String() string {
 
 // Group represents a referenceable set of Users
 type Group struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Users is the list of users in this group.
@@ -124,8 +128,8 @@ type Group struct {
 // GroupList is a collection of Groups
 type GroupList struct {
 	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-
 	// Items is the list of groups
 	Items []Group `json:"items" protobuf:"bytes,2,rep,name=items"`
 }

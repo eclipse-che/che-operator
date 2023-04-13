@@ -24,10 +24,6 @@ var (
 	// AccumulatedCopySizeLimit limits the total size increase in bytes caused by
 	// "copy" operations in a patch.
 	AccumulatedCopySizeLimit int64 = 0
-	startObject                    = json.Delim('{')
-	endObject                      = json.Delim('}')
-	startArray                     = json.Delim('[')
-	endArray                       = json.Delim(']')
 )
 
 var (
@@ -36,15 +32,11 @@ var (
 	ErrUnknownType  = errors.New("unknown object type")
 	ErrInvalid      = errors.New("invalid state detected")
 	ErrInvalidIndex = errors.New("invalid index referenced")
-
-	rawJSONArray  = []byte("[]")
-	rawJSONObject = []byte("{}")
-	rawJSONNull   = []byte("null")
 )
 
 type lazyNode struct {
 	raw   *json.RawMessage
-	doc   *partialDoc
+	doc   partialDoc
 	ary   partialArray
 	which int
 }
@@ -55,56 +47,18 @@ type Operation map[string]*json.RawMessage
 // Patch is an ordered collection of Operations.
 type Patch []Operation
 
-type partialDoc struct {
-	keys []string
-	obj  map[string]*lazyNode
-}
-
+type partialDoc map[string]*lazyNode
 type partialArray []*lazyNode
 
 type container interface {
-	get(key string, options *ApplyOptions) (*lazyNode, error)
-	set(key string, val *lazyNode, options *ApplyOptions) error
-	add(key string, val *lazyNode, options *ApplyOptions) error
-	remove(key string, options *ApplyOptions) error
-}
-
-// ApplyOptions specifies options for calls to ApplyWithOptions.
-// Use NewApplyOptions to obtain default values for ApplyOptions.
-type ApplyOptions struct {
-	// SupportNegativeIndices decides whether to support non-standard practice of
-	// allowing negative indices to mean indices starting at the end of an array.
-	// Default to true.
-	SupportNegativeIndices bool
-	// AccumulatedCopySizeLimit limits the total size increase in bytes caused by
-	// "copy" operations in a patch.
-	AccumulatedCopySizeLimit int64
-	// AllowMissingPathOnRemove indicates whether to fail "remove" operations when the target path is missing.
-	// Default to false.
-	AllowMissingPathOnRemove bool
-	// EnsurePathExistsOnAdd instructs json-patch to recursively create the missing parts of path on "add" operation.
-	// Default to false.
-	EnsurePathExistsOnAdd bool
-}
-
-// NewApplyOptions creates a default set of options for calls to ApplyWithOptions.
-func NewApplyOptions() *ApplyOptions {
-	return &ApplyOptions{
-		SupportNegativeIndices:   SupportNegativeIndices,
-		AccumulatedCopySizeLimit: AccumulatedCopySizeLimit,
-		AllowMissingPathOnRemove: false,
-		EnsurePathExistsOnAdd:    false,
-	}
+	get(key string) (*lazyNode, error)
+	set(key string, val *lazyNode) error
+	add(key string, val *lazyNode) error
+	remove(key string) error
 }
 
 func newLazyNode(raw *json.RawMessage) *lazyNode {
 	return &lazyNode{raw: raw, doc: nil, ary: nil, which: eRaw}
-}
-
-func newRawMessage(buf []byte) *json.RawMessage {
-	ra := make(json.RawMessage, len(buf))
-	copy(ra, buf)
-	return &ra
 }
 
 func (n *lazyNode) MarshalJSON() ([]byte, error) {
@@ -128,109 +82,6 @@ func (n *lazyNode) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (n *partialDoc) MarshalJSON() ([]byte, error) {
-	var buf bytes.Buffer
-	if _, err := buf.WriteString("{"); err != nil {
-		return nil, err
-	}
-	for i, k := range n.keys {
-		if i > 0 {
-			if _, err := buf.WriteString(", "); err != nil {
-				return nil, err
-			}
-		}
-		key, err := json.Marshal(k)
-		if err != nil {
-			return nil, err
-		}
-		if _, err := buf.Write(key); err != nil {
-			return nil, err
-		}
-		if _, err := buf.WriteString(": "); err != nil {
-			return nil, err
-		}
-		value, err := json.Marshal(n.obj[k])
-		if err != nil {
-			return nil, err
-		}
-		if _, err := buf.Write(value); err != nil {
-			return nil, err
-		}
-	}
-	if _, err := buf.WriteString("}"); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
-type syntaxError struct {
-	msg string
-}
-
-func (err *syntaxError) Error() string {
-	return err.msg
-}
-
-func (n *partialDoc) UnmarshalJSON(data []byte) error {
-	if err := json.Unmarshal(data, &n.obj); err != nil {
-		return err
-	}
-	buffer := bytes.NewBuffer(data)
-	d := json.NewDecoder(buffer)
-	if t, err := d.Token(); err != nil {
-		return err
-	} else if t != startObject {
-		return &syntaxError{fmt.Sprintf("unexpected JSON token in document node: %s", t)}
-	}
-	for d.More() {
-		k, err := d.Token()
-		if err != nil {
-			return err
-		}
-		key, ok := k.(string)
-		if !ok {
-			return &syntaxError{fmt.Sprintf("unexpected JSON token as document node key: %s", k)}
-		}
-		if err := skipValue(d); err != nil {
-			return err
-		}
-		n.keys = append(n.keys, key)
-	}
-	return nil
-}
-
-func skipValue(d *json.Decoder) error {
-	t, err := d.Token()
-	if err != nil {
-		return err
-	}
-	if t != startObject && t != startArray {
-		return nil
-	}
-	for d.More() {
-		if t == startObject {
-			// consume key token
-			if _, err := d.Token(); err != nil {
-				return err
-			}
-		}
-		if err := skipValue(d); err != nil {
-			return err
-		}
-	}
-	end, err := d.Token()
-	if err != nil {
-		return err
-	}
-	if t == startObject && end != endObject {
-		return &syntaxError{msg: "expected close object token"}
-	}
-	if t == startArray && end != endArray {
-		return &syntaxError{msg: "expected close object token"}
-	}
-	return nil
-}
-
 func deepCopy(src *lazyNode) (*lazyNode, int, error) {
 	if src == nil {
 		return nil, 0, nil
@@ -240,12 +91,14 @@ func deepCopy(src *lazyNode) (*lazyNode, int, error) {
 		return nil, 0, err
 	}
 	sz := len(a)
-	return newLazyNode(newRawMessage(a)), sz, nil
+	ra := make(json.RawMessage, sz)
+	copy(ra, a)
+	return newLazyNode(&ra), sz, nil
 }
 
 func (n *lazyNode) intoDoc() (*partialDoc, error) {
 	if n.which == eDoc {
-		return n.doc, nil
+		return &n.doc, nil
 	}
 
 	if n.raw == nil {
@@ -259,7 +112,7 @@ func (n *lazyNode) intoDoc() (*partialDoc, error) {
 	}
 
 	n.which = eDoc
-	return n.doc, nil
+	return &n.doc, nil
 }
 
 func (n *lazyNode) intoAry() (*partialArray, error) {
@@ -349,12 +202,12 @@ func (n *lazyNode) equal(o *lazyNode) bool {
 			return false
 		}
 
-		if len(n.doc.obj) != len(o.doc.obj) {
+		if len(n.doc) != len(o.doc) {
 			return false
 		}
 
-		for k, v := range n.doc.obj {
-			ov, ok := o.doc.obj[k]
+		for k, v := range n.doc {
+			ov, ok := o.doc[k]
 
 			if !ok {
 				return false
@@ -487,7 +340,7 @@ Loop:
 	return false
 }
 
-func findObject(pd *container, path string, options *ApplyOptions) (container, string) {
+func findObject(pd *container, path string) (container, string) {
 	doc := *pd
 
 	split := strings.Split(path, "/")
@@ -504,7 +357,7 @@ func findObject(pd *container, path string, options *ApplyOptions) (container, s
 
 	for _, part := range parts {
 
-		next, ok := doc.get(decodePatchKey(part), options)
+		next, ok := doc.get(decodePatchKey(part))
 
 		if next == nil || ok != nil {
 			return nil, ""
@@ -528,76 +381,46 @@ func findObject(pd *container, path string, options *ApplyOptions) (container, s
 	return doc, decodePatchKey(key)
 }
 
-func (d *partialDoc) set(key string, val *lazyNode, options *ApplyOptions) error {
-	found := false
-	for _, k := range d.keys {
-		if k == key {
-			found = true
-			break
-		}
-	}
-	if !found {
-		d.keys = append(d.keys, key)
-	}
-	d.obj[key] = val
+func (d *partialDoc) set(key string, val *lazyNode) error {
+	(*d)[key] = val
 	return nil
 }
 
-func (d *partialDoc) add(key string, val *lazyNode, options *ApplyOptions) error {
-	return d.set(key, val, options)
+func (d *partialDoc) add(key string, val *lazyNode) error {
+	(*d)[key] = val
+	return nil
 }
 
-func (d *partialDoc) get(key string, options *ApplyOptions) (*lazyNode, error) {
-	v, ok := d.obj[key]
+func (d *partialDoc) get(key string) (*lazyNode, error) {
+	v, ok := (*d)[key]
 	if !ok {
 		return v, errors.Wrapf(ErrMissing, "unable to get nonexistent key: %s", key)
 	}
 	return v, nil
 }
 
-func (d *partialDoc) remove(key string, options *ApplyOptions) error {
-	_, ok := d.obj[key]
+func (d *partialDoc) remove(key string) error {
+	_, ok := (*d)[key]
 	if !ok {
-		if options.AllowMissingPathOnRemove {
-			return nil
-		}
 		return errors.Wrapf(ErrMissing, "unable to remove nonexistent key: %s", key)
 	}
-	idx := -1
-	for i, k := range d.keys {
-		if k == key {
-			idx = i
-			break
-		}
-	}
-	d.keys = append(d.keys[0:idx], d.keys[idx+1:]...)
-	delete(d.obj, key)
+
+	delete(*d, key)
 	return nil
 }
 
 // set should only be used to implement the "replace" operation, so "key" must
 // be an already existing index in "d".
-func (d *partialArray) set(key string, val *lazyNode, options *ApplyOptions) error {
+func (d *partialArray) set(key string, val *lazyNode) error {
 	idx, err := strconv.Atoi(key)
 	if err != nil {
 		return err
 	}
-
-	if idx < 0 {
-		if !options.SupportNegativeIndices {
-			return errors.Wrapf(ErrInvalidIndex, "Unable to access invalid index: %d", idx)
-		}
-		if idx < -len(*d) {
-			return errors.Wrapf(ErrInvalidIndex, "Unable to access invalid index: %d", idx)
-		}
-		idx += len(*d)
-	}
-
 	(*d)[idx] = val
 	return nil
 }
 
-func (d *partialArray) add(key string, val *lazyNode, options *ApplyOptions) error {
+func (d *partialArray) add(key string, val *lazyNode) error {
 	if key == "-" {
 		*d = append(*d, val)
 		return nil
@@ -619,7 +442,7 @@ func (d *partialArray) add(key string, val *lazyNode, options *ApplyOptions) err
 	}
 
 	if idx < 0 {
-		if !options.SupportNegativeIndices {
+		if !SupportNegativeIndices {
 			return errors.Wrapf(ErrInvalidIndex, "Unable to access invalid index: %d", idx)
 		}
 		if idx < -len(ary) {
@@ -636,21 +459,11 @@ func (d *partialArray) add(key string, val *lazyNode, options *ApplyOptions) err
 	return nil
 }
 
-func (d *partialArray) get(key string, options *ApplyOptions) (*lazyNode, error) {
+func (d *partialArray) get(key string) (*lazyNode, error) {
 	idx, err := strconv.Atoi(key)
 
 	if err != nil {
 		return nil, err
-	}
-
-	if idx < 0 {
-		if !options.SupportNegativeIndices {
-			return nil, errors.Wrapf(ErrInvalidIndex, "Unable to access invalid index: %d", idx)
-		}
-		if idx < -len(*d) {
-			return nil, errors.Wrapf(ErrInvalidIndex, "Unable to access invalid index: %d", idx)
-		}
-		idx += len(*d)
 	}
 
 	if idx >= len(*d) {
@@ -660,7 +473,7 @@ func (d *partialArray) get(key string, options *ApplyOptions) (*lazyNode, error)
 	return (*d)[idx], nil
 }
 
-func (d *partialArray) remove(key string, options *ApplyOptions) error {
+func (d *partialArray) remove(key string) error {
 	idx, err := strconv.Atoi(key)
 	if err != nil {
 		return err
@@ -669,20 +482,14 @@ func (d *partialArray) remove(key string, options *ApplyOptions) error {
 	cur := *d
 
 	if idx >= len(cur) {
-		if options.AllowMissingPathOnRemove {
-			return nil
-		}
 		return errors.Wrapf(ErrInvalidIndex, "Unable to access invalid index: %d", idx)
 	}
 
 	if idx < 0 {
-		if !options.SupportNegativeIndices {
+		if !SupportNegativeIndices {
 			return errors.Wrapf(ErrInvalidIndex, "Unable to access invalid index: %d", idx)
 		}
 		if idx < -len(cur) {
-			if options.AllowMissingPathOnRemove {
-				return nil
-			}
 			return errors.Wrapf(ErrInvalidIndex, "Unable to access invalid index: %d", idx)
 		}
 		idx += len(cur)
@@ -695,29 +502,22 @@ func (d *partialArray) remove(key string, options *ApplyOptions) error {
 
 	*d = ary
 	return nil
+
 }
 
-func (p Patch) add(doc *container, op Operation, options *ApplyOptions) error {
+func (p Patch) add(doc *container, op Operation) error {
 	path, err := op.Path()
 	if err != nil {
 		return errors.Wrapf(ErrMissing, "add operation failed to decode path")
 	}
 
-	if options.EnsurePathExistsOnAdd {
-		err = ensurePathExists(doc, path, options)
-
-		if err != nil {
-			return err
-		}
-	}
-
-	con, key := findObject(doc, path, options)
+	con, key := findObject(doc, path)
 
 	if con == nil {
 		return errors.Wrapf(ErrMissing, "add operation does not apply: doc is missing path: \"%s\"", path)
 	}
 
-	err = con.add(key, op.value(), options)
+	err = con.add(key, op.value())
 	if err != nil {
 		return errors.Wrapf(err, "error in add for path: '%s'", path)
 	}
@@ -725,113 +525,19 @@ func (p Patch) add(doc *container, op Operation, options *ApplyOptions) error {
 	return nil
 }
 
-// Given a document and a path to a key, walk the path and create all missing elements
-// creating objects and arrays as needed.
-func ensurePathExists(pd *container, path string, options *ApplyOptions) error {
-	doc := *pd
-
-	var err error
-	var arrIndex int
-
-	split := strings.Split(path, "/")
-
-	if len(split) < 2 {
-		return nil
-	}
-
-	parts := split[1:]
-
-	for pi, part := range parts {
-
-		// Have we reached the key part of the path?
-		// If yes, we're done.
-		if pi == len(parts)-1 {
-			return nil
-		}
-
-		target, ok := doc.get(decodePatchKey(part), options)
-
-		if target == nil || ok != nil {
-
-			// If the current container is an array which has fewer elements than our target index,
-			// pad the current container with nulls.
-			if arrIndex, err = strconv.Atoi(part); err == nil {
-				pa, ok := doc.(*partialArray)
-
-				if ok && arrIndex >= len(*pa)+1 {
-					// Pad the array with null values up to the required index.
-					for i := len(*pa); i <= arrIndex-1; i++ {
-						doc.add(strconv.Itoa(i), newLazyNode(newRawMessage(rawJSONNull)), options)
-					}
-				}
-			}
-
-			// Check if the next part is a numeric index or "-".
-			// If yes, then create an array, otherwise, create an object.
-			if arrIndex, err = strconv.Atoi(parts[pi+1]); err == nil || parts[pi+1] == "-" {
-				if arrIndex < 0 {
-
-					if !options.SupportNegativeIndices {
-						return errors.Wrapf(ErrInvalidIndex, "Unable to ensure path for invalid index: %d", arrIndex)
-					}
-
-					if arrIndex < -1 {
-						return errors.Wrapf(ErrInvalidIndex, "Unable to ensure path for negative index other than -1: %d", arrIndex)
-					}
-
-					arrIndex = 0
-				}
-
-				newNode := newLazyNode(newRawMessage(rawJSONArray))
-				doc.add(part, newNode, options)
-				doc, _ = newNode.intoAry()
-
-				// Pad the new array with null values up to the required index.
-				for i := 0; i < arrIndex; i++ {
-					doc.add(strconv.Itoa(i), newLazyNode(newRawMessage(rawJSONNull)), options)
-				}
-			} else {
-				newNode := newLazyNode(newRawMessage(rawJSONObject))
-
-				doc.add(part, newNode, options)
-				doc, _ = newNode.intoDoc()
-			}
-		} else {
-			if isArray(*target.raw) {
-				doc, err = target.intoAry()
-
-				if err != nil {
-					return err
-				}
-			} else {
-				doc, err = target.intoDoc()
-
-				if err != nil {
-					return err
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
-func (p Patch) remove(doc *container, op Operation, options *ApplyOptions) error {
+func (p Patch) remove(doc *container, op Operation) error {
 	path, err := op.Path()
 	if err != nil {
 		return errors.Wrapf(ErrMissing, "remove operation failed to decode path")
 	}
 
-	con, key := findObject(doc, path, options)
+	con, key := findObject(doc, path)
 
 	if con == nil {
-		if options.AllowMissingPathOnRemove {
-			return nil
-		}
 		return errors.Wrapf(ErrMissing, "remove operation does not apply: doc is missing path: \"%s\"", path)
 	}
 
-	err = con.remove(key, options)
+	err = con.remove(key)
 	if err != nil {
 		return errors.Wrapf(err, "error in remove for path: '%s'", path)
 	}
@@ -839,47 +545,24 @@ func (p Patch) remove(doc *container, op Operation, options *ApplyOptions) error
 	return nil
 }
 
-func (p Patch) replace(doc *container, op Operation, options *ApplyOptions) error {
+func (p Patch) replace(doc *container, op Operation) error {
 	path, err := op.Path()
 	if err != nil {
 		return errors.Wrapf(err, "replace operation failed to decode path")
 	}
 
-	if path == "" {
-		val := op.value()
-
-		if val.which == eRaw {
-			if !val.tryDoc() {
-				if !val.tryAry() {
-					return errors.Wrapf(err, "replace operation value must be object or array")
-				}
-			}
-		}
-
-		switch val.which {
-		case eAry:
-			*doc = &val.ary
-		case eDoc:
-			*doc = val.doc
-		case eRaw:
-			return errors.Wrapf(err, "replace operation hit impossible case")
-		}
-
-		return nil
-	}
-
-	con, key := findObject(doc, path, options)
+	con, key := findObject(doc, path)
 
 	if con == nil {
 		return errors.Wrapf(ErrMissing, "replace operation does not apply: doc is missing path: %s", path)
 	}
 
-	_, ok := con.get(key, options)
+	_, ok := con.get(key)
 	if ok != nil {
 		return errors.Wrapf(ErrMissing, "replace operation does not apply: doc is missing key: %s", path)
 	}
 
-	err = con.set(key, op.value(), options)
+	err = con.set(key, op.value())
 	if err != nil {
 		return errors.Wrapf(err, "error in remove for path: '%s'", path)
 	}
@@ -887,24 +570,24 @@ func (p Patch) replace(doc *container, op Operation, options *ApplyOptions) erro
 	return nil
 }
 
-func (p Patch) move(doc *container, op Operation, options *ApplyOptions) error {
+func (p Patch) move(doc *container, op Operation) error {
 	from, err := op.From()
 	if err != nil {
 		return errors.Wrapf(err, "move operation failed to decode from")
 	}
 
-	con, key := findObject(doc, from, options)
+	con, key := findObject(doc, from)
 
 	if con == nil {
 		return errors.Wrapf(ErrMissing, "move operation does not apply: doc is missing from path: %s", from)
 	}
 
-	val, err := con.get(key, options)
+	val, err := con.get(key)
 	if err != nil {
 		return errors.Wrapf(err, "error in move for path: '%s'", key)
 	}
 
-	err = con.remove(key, options)
+	err = con.remove(key)
 	if err != nil {
 		return errors.Wrapf(err, "error in move for path: '%s'", key)
 	}
@@ -914,13 +597,13 @@ func (p Patch) move(doc *container, op Operation, options *ApplyOptions) error {
 		return errors.Wrapf(err, "move operation failed to decode path")
 	}
 
-	con, key = findObject(doc, path, options)
+	con, key = findObject(doc, path)
 
 	if con == nil {
 		return errors.Wrapf(ErrMissing, "move operation does not apply: doc is missing destination path: %s", path)
 	}
 
-	err = con.add(key, val, options)
+	err = con.add(key, val)
 	if err != nil {
 		return errors.Wrapf(err, "error in move for path: '%s'", path)
 	}
@@ -928,38 +611,19 @@ func (p Patch) move(doc *container, op Operation, options *ApplyOptions) error {
 	return nil
 }
 
-func (p Patch) test(doc *container, op Operation, options *ApplyOptions) error {
+func (p Patch) test(doc *container, op Operation) error {
 	path, err := op.Path()
 	if err != nil {
 		return errors.Wrapf(err, "test operation failed to decode path")
 	}
 
-	if path == "" {
-		var self lazyNode
-
-		switch sv := (*doc).(type) {
-		case *partialDoc:
-			self.doc = sv
-			self.which = eDoc
-		case *partialArray:
-			self.ary = *sv
-			self.which = eAry
-		}
-
-		if self.equal(op.value()) {
-			return nil
-		}
-
-		return errors.Wrapf(ErrTestFailed, "testing value %s failed", path)
-	}
-
-	con, key := findObject(doc, path, options)
+	con, key := findObject(doc, path)
 
 	if con == nil {
 		return errors.Wrapf(ErrMissing, "test operation does not apply: is missing path: %s", path)
 	}
 
-	val, err := con.get(key, options)
+	val, err := con.get(key)
 	if err != nil && errors.Cause(err) != ErrMissing {
 		return errors.Wrapf(err, "error in test for path: '%s'", path)
 	}
@@ -980,19 +644,19 @@ func (p Patch) test(doc *container, op Operation, options *ApplyOptions) error {
 	return errors.Wrapf(ErrTestFailed, "testing value %s failed", path)
 }
 
-func (p Patch) copy(doc *container, op Operation, accumulatedCopySize *int64, options *ApplyOptions) error {
+func (p Patch) copy(doc *container, op Operation, accumulatedCopySize *int64) error {
 	from, err := op.From()
 	if err != nil {
 		return errors.Wrapf(err, "copy operation failed to decode from")
 	}
 
-	con, key := findObject(doc, from, options)
+	con, key := findObject(doc, from)
 
 	if con == nil {
 		return errors.Wrapf(ErrMissing, "copy operation does not apply: doc is missing from path: %s", from)
 	}
 
-	val, err := con.get(key, options)
+	val, err := con.get(key)
 	if err != nil {
 		return errors.Wrapf(err, "error in copy for from: '%s'", from)
 	}
@@ -1002,7 +666,7 @@ func (p Patch) copy(doc *container, op Operation, accumulatedCopySize *int64, op
 		return errors.Wrapf(ErrMissing, "copy operation failed to decode path")
 	}
 
-	con, key = findObject(doc, path, options)
+	con, key = findObject(doc, path)
 
 	if con == nil {
 		return errors.Wrapf(ErrMissing, "copy operation does not apply: doc is missing destination path: %s", path)
@@ -1014,11 +678,11 @@ func (p Patch) copy(doc *container, op Operation, accumulatedCopySize *int64, op
 	}
 
 	(*accumulatedCopySize) += int64(sz)
-	if options.AccumulatedCopySizeLimit > 0 && *accumulatedCopySize > options.AccumulatedCopySizeLimit {
-		return NewAccumulatedCopySizeError(options.AccumulatedCopySizeLimit, *accumulatedCopySize)
+	if AccumulatedCopySizeLimit > 0 && *accumulatedCopySize > AccumulatedCopySizeLimit {
+		return NewAccumulatedCopySizeError(AccumulatedCopySizeLimit, *accumulatedCopySize)
 	}
 
-	err = con.add(key, valCopy, options)
+	err = con.add(key, valCopy)
 	if err != nil {
 		return errors.Wrapf(err, "error while adding value during copy")
 	}
@@ -1028,8 +692,13 @@ func (p Patch) copy(doc *container, op Operation, accumulatedCopySize *int64, op
 
 // Equal indicates if 2 JSON documents have the same structural equality.
 func Equal(a, b []byte) bool {
-	la := newLazyNode(newRawMessage(a))
-	lb := newLazyNode(newRawMessage(b))
+	ra := make(json.RawMessage, len(a))
+	copy(ra, a)
+	la := newLazyNode(&ra)
+
+	rb := make(json.RawMessage, len(b))
+	copy(rb, b)
+	lb := newLazyNode(&rb)
 
 	return la.equal(lb)
 }
@@ -1050,28 +719,12 @@ func DecodePatch(buf []byte) (Patch, error) {
 // Apply mutates a JSON document according to the patch, and returns the new
 // document.
 func (p Patch) Apply(doc []byte) ([]byte, error) {
-	return p.ApplyWithOptions(doc, NewApplyOptions())
-}
-
-// ApplyWithOptions mutates a JSON document according to the patch and the passed in ApplyOptions.
-// It returns the new document.
-func (p Patch) ApplyWithOptions(doc []byte, options *ApplyOptions) ([]byte, error) {
-	return p.ApplyIndentWithOptions(doc, "", options)
+	return p.ApplyIndent(doc, "")
 }
 
 // ApplyIndent mutates a JSON document according to the patch, and returns the new
 // document indented.
 func (p Patch) ApplyIndent(doc []byte, indent string) ([]byte, error) {
-	return p.ApplyIndentWithOptions(doc, indent, NewApplyOptions())
-}
-
-// ApplyIndentWithOptions mutates a JSON document according to the patch and the passed in ApplyOptions.
-// It returns the new document indented.
-func (p Patch) ApplyIndentWithOptions(doc []byte, indent string, options *ApplyOptions) ([]byte, error) {
-	if len(doc) == 0 {
-		return doc, nil
-	}
-
 	var pd container
 	if doc[0] == '[' {
 		pd = &partialArray{}
@@ -1092,17 +745,17 @@ func (p Patch) ApplyIndentWithOptions(doc []byte, indent string, options *ApplyO
 	for _, op := range p {
 		switch op.Kind() {
 		case "add":
-			err = p.add(&pd, op, options)
+			err = p.add(&pd, op)
 		case "remove":
-			err = p.remove(&pd, op, options)
+			err = p.remove(&pd, op)
 		case "replace":
-			err = p.replace(&pd, op, options)
+			err = p.replace(&pd, op)
 		case "move":
-			err = p.move(&pd, op, options)
+			err = p.move(&pd, op)
 		case "test":
-			err = p.test(&pd, op, options)
+			err = p.test(&pd, op)
 		case "copy":
-			err = p.copy(&pd, op, &accumulatedCopySize, options)
+			err = p.copy(&pd, op, &accumulatedCopySize)
 		default:
 			err = fmt.Errorf("Unexpected kind: %s", op.Kind())
 		}
