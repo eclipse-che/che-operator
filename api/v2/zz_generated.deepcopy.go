@@ -19,6 +19,7 @@ package v2
 
 import (
 	"github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
+	"github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -201,6 +202,11 @@ func (in *CheClusterDevEnvironments) DeepCopyInto(out *CheClusterDevEnvironments
 		in, out := &in.ContainerBuildConfiguration, &out.ContainerBuildConfiguration
 		*out = new(ContainerBuildConfiguration)
 		**out = **in
+	}
+	if in.ServiceAccountTokens != nil {
+		in, out := &in.ServiceAccountTokens, &out.ServiceAccountTokens
+		*out = make([]v1alpha1.ServiceAccountToken, len(*in))
+		copy(*out, *in)
 	}
 	if in.StartTimeoutSeconds != nil {
 		in, out := &in.StartTimeoutSeconds, &out.StartTimeoutSeconds
