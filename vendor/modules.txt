@@ -1209,7 +1209,6 @@ sigs.k8s.io/yaml
 # sigs.k8s.io/controller-tgithub.com/containerd/console v0.0.0-20180822173158-c12b1e7919c1ools => sigs.k8s.io/controller-tools v0.0.0-20200129215414-2bc3f5eb99cc
 # sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.6.0
 # sigs.k8s.io/kind => sigs.k8s.io/kind v0.10.0
-# sigs.k8s.io/kustomize/api => sigs.k8s.io/kustomize/api v0.8.8
-# sigs.k8s.io/kustomize/kyaml => sigs.k8s.io/kustomize/kyaml v0.10.17
+# sigs.k8s.io/structured-merge-diff => sigs.k8s.io/structured-merge-diff v1.0.2
 # sigs.k8s.io/structured-merge-diff/v3 => sigs.k8s.io/structured-merge-diff/v3 v3.0.0-20200116222232-67a7b8c61874
 # sigs.k8s.io/yaml => sigs.k8s.io/yaml v1.2.0
