@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2022 Red Hat, Inc.
+// Copyright (c) 2019-2023 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -62,9 +62,9 @@ func (wc *ControllerConfig) GetClusterRoutingSuffix() *string {
 	return wc.GetProperty(routingSuffix)
 }
 
-//GetExperimentalFeaturesEnabled returns true if experimental features should be enabled.
-//DO NOT TURN ON IT IN THE PRODUCTION.
-//Experimental features are not well tested and may be totally removed without announcement.
+// GetExperimentalFeaturesEnabled returns true if experimental features should be enabled.
+// DO NOT TURN ON IT IN THE PRODUCTION.
+// Experimental features are not well tested and may be totally removed without announcement.
 func (wc *ControllerConfig) GetExperimentalFeaturesEnabled() *string {
 	return wc.GetProperty(experimentalFeaturesEnabled)
 }

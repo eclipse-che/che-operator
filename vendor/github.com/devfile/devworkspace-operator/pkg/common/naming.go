@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2022 Red Hat, Inc.
+// Copyright (c) 2019-2023 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -16,6 +16,7 @@
 package common
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"regexp"
 	"strings"
@@ -128,6 +129,18 @@ func AutoMountSecretVolumeName(volumeName string) string {
 
 func AutoMountPVCVolumeName(pvcName string) string {
 	return pvcName
+}
+
+func AutoMountProjectedVolumeName(mountPath string) string {
+	// To avoid issues around sanitizing mountPath to generate a unique name (length, allowed chars)
+	// just use the sha256 hash of mountPath
+	hash := sha256.Sum256([]byte(mountPath))
+	return fmt.Sprintf("projected-%x", hash[:10])
+}
+
+func ServiceAccountTokenProjectionName(mountPath string) string {
+	hash := sha256.Sum256([]byte(mountPath))
+	return fmt.Sprintf("sa-token-projected-%x", hash[:10])
 }
 
 func WorkspaceRoleName() string {

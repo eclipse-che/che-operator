@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2022 Red Hat, Inc.
+// Copyright (c) 2019-2023 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -42,22 +42,6 @@ const (
 	// DevWorkspaceMountLabel is the label key to store if a configmap, secret, or PVC should be mounted to the devworkspace
 	DevWorkspaceMountLabel = "controller.devfile.io/mount-to-devworkspace"
 
-	// DevWorkspaceGitCredentialLabel is the label key to specify if the secret is a git credential. All secrets who
-	// specify this label in a namespace will consolidate into one secret before mounting into a devworkspace.
-	// Only secret data with the credentials key will be used and credentials must be the base64 encoded version
-	//	of https://{USERNAME}:{PERSONAL_ACCESS_TOKEN}@{GIT_WEBSITE}
-	// E.g. echo -n "https://{USERNAME}:{PERSONAL_ACCESS_TOKEN}@{GIT_WEBSITE}" | base64
-	// see https://git-scm.com/docs/git-credential-store#_storage_format for more details
-	DevWorkspaceGitCredentialLabel = "controller.devfile.io/git-credential"
-
-	// DevWorkspaceGitTLSLabel is the label key to specify if the configmap is credentials for accessing a git server.
-	// Configmap must contain the following data:
-	// certificate: the certificate used to access the git server in Base64 ASCII
-	// You can also optionally define the git host.
-	// host: the url of the git server
-	// If the git host is not defined then the certificate will be used for all http repositories.
-	DevWorkspaceGitTLSLabel = "controller.devfile.io/git-tls-credential"
-
 	// DevWorkspaceMountPathAnnotation is the annotation key to store the mount path for the secret or configmap.
 	// If no mount path is provided, configmaps will be mounted at /etc/config/<configmap-name>, secrets will
 	// be mounted at /etc/secret/<secret-name>, and persistent volume claims will be mounted to /tmp/<claim-name>
@@ -74,6 +58,36 @@ const (
 	// until it is restarted.
 	// If mountAs is not provided, the default behaviour will be to mount as a file.
 	DevWorkspaceMountAsAnnotation = "controller.devfile.io/mount-as"
+
+	// DevWorkspaceMountAccessModeAnnotation is an annotation key used to configure the access mode for configmaps and
+	// secrets mounted using the 'controller.devfile.io/mount-to-devworkspace' annotation. The access mode annotation
+	// can either be specified as a decimal (e.g. '416') or as an octal by prefixing the number with zero (e.g. '0640')
+	DevWorkspaceMountAccessModeAnnotation = "controller.devfile.io/mount-access-mode"
+
+	// DevWorkspaceGitCredentialLabel is the label key to specify if the secret is a git credential. All secrets who
+	// specify this label in a namespace will consolidate into one secret before mounting into a devworkspace.
+	// Only secret data with the credentials key will be used and credentials must be the base64 encoded version
+	//	of https://{USERNAME}:{PERSONAL_ACCESS_TOKEN}@{GIT_WEBSITE}
+	// E.g. echo -n "https://{USERNAME}:{PERSONAL_ACCESS_TOKEN}@{GIT_WEBSITE}" | base64
+	// see https://git-scm.com/docs/git-credential-store#_storage_format for more details
+	DevWorkspaceGitCredentialLabel = "controller.devfile.io/git-credential"
+
+	// DevWorkspaceGitTLSLabel is the label key to specify if the configmap is credentials for accessing a git server.
+	// Configmap must contain the following data:
+	// certificate: the certificate used to access the git server in Base64 ASCII
+	// You can also optionally define the git host.
+	// host: the url of the git server
+	// If the git host is not defined then the certificate will be used for all http repositories.
+	DevWorkspaceGitTLSLabel = "controller.devfile.io/git-tls-credential"
+
+	// GitCredentialsConfigMapName is the name used for the configmap that stores the Git configuration for workspaces
+	// in a given namespace. It is used when e.g. adding Git credentials via secret
+	GitCredentialsConfigMapName = "devworkspace-gitconfig"
+
+	// GitCredentialsMergedSecretName is the name for the merged Git credentials secret that is mounted to workspaces
+	// when Git credentials are defined. This secret combines the values of any secrets labelled
+	// "controller.devfile.io/git-credential"
+	GitCredentialsMergedSecretName = "devworkspace-merged-git-credentials"
 
 	// DevWorkspaceMountAsEnv is the annotation value for DevWorkspaceMountAsAnnotation to mount the resource as environment variables
 	// via envFrom
