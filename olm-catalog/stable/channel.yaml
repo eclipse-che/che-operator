@@ -33,3 +33,5 @@ entries:
     replaces: eclipse-che.v7.61.0
   - name: eclipse-che.v7.63.0
     replaces: eclipse-che.v7.62.0
+  - name: eclipse-che.v7.64.0
+    replaces: eclipse-che.v7.63.0
