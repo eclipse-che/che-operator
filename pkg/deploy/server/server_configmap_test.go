@@ -546,6 +546,26 @@ func TestUpdateUserClusterRoles(t *testing.T) {
 			},
 			expectedUserClusterRoles: "eclipse-che-cheworkspaces-clusterrole, eclipse-che-cheworkspaces-devworkspace-clusterrole, test-roles",
 		},
+		{
+			name: "Test #4",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						CheServer: chev2.CheServer{
+							ClusterRoles: []string{"test-roles-1", "test-roles-2"},
+							ExtraProperties: map[string]string{
+								"CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES": "test-roles-2, test-roles-3",
+							},
+						},
+					},
+				},
+			},
+			expectedUserClusterRoles: "eclipse-che-cheworkspaces-clusterrole, eclipse-che-cheworkspaces-devworkspace-clusterrole, test-roles-1, test-roles-2, test-roles-3",
+		},
 	}
 
 	for _, testCase := range testCases {
