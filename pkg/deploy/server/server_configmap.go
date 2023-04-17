@@ -315,18 +315,20 @@ func GetCheConfigMapVersion(deployContext *chetypes.DeployContext) string {
 }
 
 func updateUserClusterRoles(ctx *chetypes.DeployContext, cheEnv map[string]string) {
-	defaultUserClusterRole := fmt.Sprintf("%s-cheworkspaces-clusterrole", ctx.CheCluster.Namespace)
-	defaultUserDevWorkspaceClusterRole := fmt.Sprintf("%s-cheworkspaces-devworkspace-clusterrole", ctx.CheCluster.Namespace)
+	userClusterRoles := fmt.Sprintf("%s-cheworkspaces-clusterrole", ctx.CheCluster.Namespace) + ", " +
+		fmt.Sprintf("%s-cheworkspaces-devworkspace-clusterrole", ctx.CheCluster.Namespace)
 
-	userClusterRoles := strings.TrimSpace(cheEnv["CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"])
-	if userClusterRoles == "" {
-		userClusterRoles = defaultUserClusterRole + ", " + defaultUserDevWorkspaceClusterRole
-	} else {
-		if strings.Index(userClusterRoles, defaultUserClusterRole) == -1 {
-			userClusterRoles = userClusterRoles + ", " + defaultUserClusterRole
+	for _, role := range ctx.CheCluster.Spec.Components.CheServer.ClusterRoles {
+		trimmedRoleName := strings.TrimSpace(role)
+		if !strings.Contains(userClusterRoles, trimmedRoleName) {
+			userClusterRoles = userClusterRoles + ", " + trimmedRoleName
 		}
-		if strings.Index(userClusterRoles, defaultUserDevWorkspaceClusterRole) == -1 {
-			userClusterRoles = userClusterRoles + ", " + defaultUserDevWorkspaceClusterRole
+	}
+
+	for _, role := range strings.Split(cheEnv["CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"], ",") {
+		trimmedRoleName := strings.TrimSpace(role)
+		if !strings.Contains(userClusterRoles, trimmedRoleName) {
+			userClusterRoles = userClusterRoles + ", " + trimmedRoleName
 		}
 	}
 

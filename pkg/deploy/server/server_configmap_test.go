@@ -12,7 +12,6 @@
 package server
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
@@ -528,7 +527,7 @@ func TestUpdateUserClusterRoles(t *testing.T) {
 					},
 				},
 			},
-			expectedUserClusterRoles: "test-roles, eclipse-che-cheworkspaces-clusterrole, eclipse-che-cheworkspaces-devworkspace-clusterrole",
+			expectedUserClusterRoles: "eclipse-che-cheworkspaces-clusterrole, eclipse-che-cheworkspaces-devworkspace-clusterrole, test-roles",
 		},
 		{
 			name: "Test #3",
@@ -540,12 +539,12 @@ func TestUpdateUserClusterRoles(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
 						CheServer: chev2.CheServer{
-							ClusterRoles: []string{"test-roles, eclipse-che-cheworkspaces-clusterrole"},
+							ClusterRoles: []string{"test-roles", "eclipse-che-cheworkspaces-clusterrole"},
 						},
 					},
 				},
 			},
-			expectedUserClusterRoles: "test-roles, eclipse-che-cheworkspaces-clusterrole, eclipse-che-cheworkspaces-devworkspace-clusterrole",
+			expectedUserClusterRoles: "eclipse-che-cheworkspaces-clusterrole, eclipse-che-cheworkspaces-devworkspace-clusterrole, test-roles",
 		},
 	}
 
@@ -553,12 +552,11 @@ func TestUpdateUserClusterRoles(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
 
-			env := map[string]string{
-				"CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES": strings.Join(testCase.cheCluster.Spec.Components.CheServer.ClusterRoles, ", "),
-			}
-			updateUserClusterRoles(ctx, env)
+			reconciler := NewCheServerReconciler()
+			cheEnv, err := reconciler.getCheConfigMapData(ctx)
 
-			assert.Equal(t, testCase.expectedUserClusterRoles, env["CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"])
+			assert.NoError(t, err)
+			assert.Equal(t, testCase.expectedUserClusterRoles, cheEnv["CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"])
 		})
 	}
 }
