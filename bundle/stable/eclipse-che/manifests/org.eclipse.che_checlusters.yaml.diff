@@ -1,11 +1,770 @@
---- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che/generated/openshift/org.eclipse.che_checlusters.yaml	2023-03-22 21:08:37.793074107 +0000
-+++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che/manifests/org.eclipse.che_checlusters.yaml	2023-03-22 21:08:37.805074231 +0000
-@@ -6945,7 +6945,7 @@
+--- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che/generated/openshift/org.eclipse.che_checlusters.yaml	2023-04-17 19:37:08.811090573 +0000
++++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che/manifests/org.eclipse.che_checlusters.yaml	2023-04-17 19:37:08.823090749 +0000
+@@ -115,13 +115,15 @@
+                             type: string
+                           value:
+                             description: 'Variable references $(VAR_NAME) are expanded
+-                              using the previous defined environment variables in
++                              using the previously defined environment variables in
+                               the container and any service environment variables.
+                               If a variable cannot be resolved, the reference in the
+-                              input string will be unchanged. The $(VAR_NAME) syntax
+-                              can be escaped with a double $$, ie: $$(VAR_NAME). Escaped
+-                              references will never be expanded, regardless of whether
+-                              the variable exists or not. Defaults to "".'
++                              input string will be unchanged. Double $$ are reduced
++                              to a single $, which allows for escaping the $(VAR_NAME)
++                              syntax: i.e. "$$(VAR_NAME)" will produce the string
++                              literal "$(VAR_NAME)". Escaped references will never
++                              be expanded, regardless of whether the variable exists
++                              or not. Defaults to "".'
+                             type: string
+                           valueFrom:
+                             description: Source for the environment variable's value.
+@@ -228,13 +230,15 @@
+                             type: string
+                           value:
+                             description: 'Variable references $(VAR_NAME) are expanded
+-                              using the previous defined environment variables in
++                              using the previously defined environment variables in
+                               the container and any service environment variables.
+                               If a variable cannot be resolved, the reference in the
+-                              input string will be unchanged. The $(VAR_NAME) syntax
+-                              can be escaped with a double $$, ie: $$(VAR_NAME). Escaped
+-                              references will never be expanded, regardless of whether
+-                              the variable exists or not. Defaults to "".'
++                              input string will be unchanged. Double $$ are reduced
++                              to a single $, which allows for escaping the $(VAR_NAME)
++                              syntax: i.e. "$$(VAR_NAME)" will produce the string
++                              literal "$(VAR_NAME)". Escaped references will never
++                              be expanded, regardless of whether the variable exists
++                              or not. Defaults to "".'
+                             type: string
+                           valueFrom:
+                             description: Source for the environment variable's value.
+@@ -345,13 +349,15 @@
+                             type: string
+                           value:
+                             description: 'Variable references $(VAR_NAME) are expanded
+-                              using the previous defined environment variables in
++                              using the previously defined environment variables in
+                               the container and any service environment variables.
+                               If a variable cannot be resolved, the reference in the
+-                              input string will be unchanged. The $(VAR_NAME) syntax
+-                              can be escaped with a double $$, ie: $$(VAR_NAME). Escaped
+-                              references will never be expanded, regardless of whether
+-                              the variable exists or not. Defaults to "".'
++                              input string will be unchanged. Double $$ are reduced
++                              to a single $, which allows for escaping the $(VAR_NAME)
++                              syntax: i.e. "$$(VAR_NAME)" will produce the string
++                              literal "$(VAR_NAME)". Escaped references will never
++                              be expanded, regardless of whether the variable exists
++                              or not. Defaults to "".'
+                             type: string
+                           valueFrom:
+                             description: Source for the environment variable's value.
+@@ -458,13 +464,15 @@
+                             type: string
+                           value:
+                             description: 'Variable references $(VAR_NAME) are expanded
+-                              using the previous defined environment variables in
++                              using the previously defined environment variables in
+                               the container and any service environment variables.
+                               If a variable cannot be resolved, the reference in the
+-                              input string will be unchanged. The $(VAR_NAME) syntax
+-                              can be escaped with a double $$, ie: $$(VAR_NAME). Escaped
+-                              references will never be expanded, regardless of whether
+-                              the variable exists or not. Defaults to "".'
++                              input string will be unchanged. Double $$ are reduced
++                              to a single $, which allows for escaping the $(VAR_NAME)
++                              syntax: i.e. "$$(VAR_NAME)" will produce the string
++                              literal "$(VAR_NAME)". Escaped references will never
++                              be expanded, regardless of whether the variable exists
++                              or not. Defaults to "".'
+                             type: string
+                           valueFrom:
+                             description: Source for the environment variable's value.
+@@ -867,13 +875,15 @@
+                             type: string
+                           value:
+                             description: 'Variable references $(VAR_NAME) are expanded
+-                              using the previous defined environment variables in
++                              using the previously defined environment variables in
+                               the container and any service environment variables.
+                               If a variable cannot be resolved, the reference in the
+-                              input string will be unchanged. The $(VAR_NAME) syntax
+-                              can be escaped with a double $$, ie: $$(VAR_NAME). Escaped
+-                              references will never be expanded, regardless of whether
+-                              the variable exists or not. Defaults to "".'
++                              input string will be unchanged. Double $$ are reduced
++                              to a single $, which allows for escaping the $(VAR_NAME)
++                              syntax: i.e. "$$(VAR_NAME)" will produce the string
++                              literal "$(VAR_NAME)". Escaped references will never
++                              be expanded, regardless of whether the variable exists
++                              or not. Defaults to "".'
+                             type: string
+                           valueFrom:
+                             description: Source for the environment variable's value.
+@@ -1017,13 +1027,15 @@
+                             type: string
+                           value:
+                             description: 'Variable references $(VAR_NAME) are expanded
+-                              using the previous defined environment variables in
++                              using the previously defined environment variables in
+                               the container and any service environment variables.
+                               If a variable cannot be resolved, the reference in the
+-                              input string will be unchanged. The $(VAR_NAME) syntax
+-                              can be escaped with a double $$, ie: $$(VAR_NAME). Escaped
+-                              references will never be expanded, regardless of whether
+-                              the variable exists or not. Defaults to "".'
++                              input string will be unchanged. Double $$ are reduced
++                              to a single $, which allows for escaping the $(VAR_NAME)
++                              syntax: i.e. "$$(VAR_NAME)" will produce the string
++                              literal "$(VAR_NAME)". Escaped references will never
++                              be expanded, regardless of whether the variable exists
++                              or not. Defaults to "".'
+                             type: string
+                           valueFrom:
+                             description: Source for the environment variable's value.
+@@ -1408,13 +1420,15 @@
+                             type: string
+                           value:
+                             description: 'Variable references $(VAR_NAME) are expanded
+-                              using the previous defined environment variables in
++                              using the previously defined environment variables in
+                               the container and any service environment variables.
+                               If a variable cannot be resolved, the reference in the
+-                              input string will be unchanged. The $(VAR_NAME) syntax
+-                              can be escaped with a double $$, ie: $$(VAR_NAME). Escaped
+-                              references will never be expanded, regardless of whether
+-                              the variable exists or not. Defaults to "".'
++                              input string will be unchanged. Double $$ are reduced
++                              to a single $, which allows for escaping the $(VAR_NAME)
++                              syntax: i.e. "$$(VAR_NAME)" will produce the string
++                              literal "$(VAR_NAME)". Escaped references will never
++                              be expanded, regardless of whether the variable exists
++                              or not. Defaults to "".'
+                             type: string
+                           valueFrom:
+                             description: Source for the environment variable's value.
+@@ -1583,13 +1597,15 @@
+                             type: string
+                           value:
+                             description: 'Variable references $(VAR_NAME) are expanded
+-                              using the previous defined environment variables in
++                              using the previously defined environment variables in
+                               the container and any service environment variables.
+                               If a variable cannot be resolved, the reference in the
+-                              input string will be unchanged. The $(VAR_NAME) syntax
+-                              can be escaped with a double $$, ie: $$(VAR_NAME). Escaped
+-                              references will never be expanded, regardless of whether
+-                              the variable exists or not. Defaults to "".'
++                              input string will be unchanged. Double $$ are reduced
++                              to a single $, which allows for escaping the $(VAR_NAME)
++                              syntax: i.e. "$$(VAR_NAME)" will produce the string
++                              literal "$(VAR_NAME)". Escaped references will never
++                              be expanded, regardless of whether the variable exists
++                              or not. Defaults to "".'
+                             type: string
+                           valueFrom:
+                             description: Source for the environment variable's value.
+@@ -1763,13 +1779,15 @@
+                             type: string
+                           value:
+                             description: 'Variable references $(VAR_NAME) are expanded
+-                              using the previous defined environment variables in
++                              using the previously defined environment variables in
+                               the container and any service environment variables.
+                               If a variable cannot be resolved, the reference in the
+-                              input string will be unchanged. The $(VAR_NAME) syntax
+-                              can be escaped with a double $$, ie: $$(VAR_NAME). Escaped
+-                              references will never be expanded, regardless of whether
+-                              the variable exists or not. Defaults to "".'
++                              input string will be unchanged. Double $$ are reduced
++                              to a single $, which allows for escaping the $(VAR_NAME)
++                              syntax: i.e. "$$(VAR_NAME)" will produce the string
++                              literal "$(VAR_NAME)". Escaped references will never
++                              be expanded, regardless of whether the variable exists
++                              or not. Defaults to "".'
+                             type: string
+                           valueFrom:
+                             description: Source for the environment variable's value.
+@@ -2004,13 +2022,15 @@
+                             type: string
+                           value:
+                             description: 'Variable references $(VAR_NAME) are expanded
+-                              using the previous defined environment variables in
++                              using the previously defined environment variables in
+                               the container and any service environment variables.
+                               If a variable cannot be resolved, the reference in the
+-                              input string will be unchanged. The $(VAR_NAME) syntax
+-                              can be escaped with a double $$, ie: $$(VAR_NAME). Escaped
+-                              references will never be expanded, regardless of whether
+-                              the variable exists or not. Defaults to "".'
++                              input string will be unchanged. Double $$ are reduced
++                              to a single $, which allows for escaping the $(VAR_NAME)
++                              syntax: i.e. "$$(VAR_NAME)" will produce the string
++                              literal "$(VAR_NAME)". Escaped references will never
++                              be expanded, regardless of whether the variable exists
++                              or not. Defaults to "".'
+                             type: string
+                           valueFrom:
+                             description: Source for the environment variable's value.
+@@ -2273,10 +2293,6 @@
+                       description: Deprecated in favor of `disableInternalClusterSVCNames`.
+                       type: boolean
+                     workspaceDefaultComponents:
+-                      default:
+-                        - container:
+-                            image: quay.io/devfile/universal-developer-image:ubi8-38da5c2
+-                          name: universal-developer-image
+                       description: Default components applied to DevWorkspaces. These
+                         default components are meant to be used when a Devfile does
+                         not contain any components.
+@@ -3033,11 +3049,18 @@
+                                               type: string
+                                           type: object
+                                         hotReloadCapable:
+-                                          description: "Whether the command is capable\
+-                                            \ to reload itself when source code changes.\
+-                                            \ If set to `true` the command won't be\
+-                                            \ restarted and it is expected to handle\
+-                                            \ file changes on its own. \n Default\
++                                          description: "Specify whether the command\
++                                            \ is restarted or not when the source\
++                                            \ code changes. If set to `true` the command\
++                                            \ won't be restarted. A *hotReloadCapable*\
++                                            \ `run` or `debug` command is expected\
++                                            \ to handle file changes on its own and\
++                                            \ won't be restarted. A *hotReloadCapable*\
++                                            \ `build` command is expected to be executed\
++                                            \ only once and won't be executed again.\
++                                            \ This field is taken into account only\
++                                            \ for commands `build`, `run` and `debug`\
++                                            \ with `isDefault` set to `true`. \n Default\
+                                             \ value is `false`"
+                                           type: boolean
+                                         label:
+@@ -4079,13 +4102,15 @@
+                                           type: string
+                                         value:
+                                           description: 'Variable references $(VAR_NAME)
+-                                            are expanded using the previous defined
++                                            are expanded using the previously defined
+                                             environment variables in the container
+                                             and any service environment variables.
+                                             If a variable cannot be resolved, the
+                                             reference in the input string will be
+-                                            unchanged. The $(VAR_NAME) syntax can
+-                                            be escaped with a double $$, ie: $$(VAR_NAME).
++                                            unchanged. Double $$ are reduced to a
++                                            single $, which allows for escaping the
++                                            $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)"
++                                            will produce the string literal "$(VAR_NAME)".
+                                             Escaped references will never be expanded,
+                                             regardless of whether the variable exists
+                                             or not. Defaults to "".'
+@@ -4219,7 +4244,10 @@
+                                               - type: integer
+                                               - type: string
+                                             description: CPU, in cores. (500m = .5
+-                                              cores)
++                                              cores) If the value is not specified,
++                                              then the default value is set depending
++                                              on the component. If value is `0`, then
++                                              no value is set for the component.
+                                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                             x-kubernetes-int-or-string: true
+                                           memory:
+@@ -4228,6 +4256,10 @@
+                                               - type: string
+                                             description: Memory, in bytes. (500Gi
+                                               = 500GiB = 500 * 1024 * 1024 * 1024)
++                                              If the value is not specified, then
++                                              the default value is set depending on
++                                              the component. If value is `0`, then
++                                              no value is set for the component.
+                                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                             x-kubernetes-int-or-string: true
+                                         type: object
+@@ -4240,7 +4272,10 @@
+                                               - type: integer
+                                               - type: string
+                                             description: CPU, in cores. (500m = .5
+-                                              cores)
++                                              cores) If the value is not specified,
++                                              then the default value is set depending
++                                              on the component. If value is `0`, then
++                                              no value is set for the component.
+                                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                             x-kubernetes-int-or-string: true
+                                           memory:
+@@ -4249,6 +4284,10 @@
+                                               - type: string
+                                             description: Memory, in bytes. (500Gi
+                                               = 500GiB = 500 * 1024 * 1024 * 1024)
++                                              If the value is not specified, then
++                                              the default value is set depending on
++                                              the component. If value is `0`, then
++                                              no value is set for the component.
+                                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                             x-kubernetes-int-or-string: true
+                                         type: object
+@@ -4350,13 +4389,15 @@
+                                           type: string
+                                         value:
+                                           description: 'Variable references $(VAR_NAME)
+-                                            are expanded using the previous defined
++                                            are expanded using the previously defined
+                                             environment variables in the container
+                                             and any service environment variables.
+                                             If a variable cannot be resolved, the
+                                             reference in the input string will be
+-                                            unchanged. The $(VAR_NAME) syntax can
+-                                            be escaped with a double $$, ie: $$(VAR_NAME).
++                                            unchanged. Double $$ are reduced to a
++                                            single $, which allows for escaping the
++                                            $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)"
++                                            will produce the string literal "$(VAR_NAME)".
+                                             Escaped references will never be expanded,
+                                             regardless of whether the variable exists
+                                             or not. Defaults to "".'
+@@ -4490,7 +4531,10 @@
+                                               - type: integer
+                                               - type: string
+                                             description: CPU, in cores. (500m = .5
+-                                              cores)
++                                              cores) If the value is not specified,
++                                              then the default value is set depending
++                                              on the component. If value is `0`, then
++                                              no value is set for the component.
+                                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                             x-kubernetes-int-or-string: true
+                                           memory:
+@@ -4499,6 +4543,10 @@
+                                               - type: string
+                                             description: Memory, in bytes. (500Gi
+                                               = 500GiB = 500 * 1024 * 1024 * 1024)
++                                              If the value is not specified, then
++                                              the default value is set depending on
++                                              the component. If value is `0`, then
++                                              no value is set for the component.
+                                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                             x-kubernetes-int-or-string: true
+                                         type: object
+@@ -4511,7 +4559,10 @@
+                                               - type: integer
+                                               - type: string
+                                             description: CPU, in cores. (500m = .5
+-                                              cores)
++                                              cores) If the value is not specified,
++                                              then the default value is set depending
++                                              on the component. If value is `0`, then
++                                              no value is set for the component.
+                                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                             x-kubernetes-int-or-string: true
+                                           memory:
+@@ -4520,6 +4571,10 @@
+                                               - type: string
+                                             description: Memory, in bytes. (500Gi
+                                               = 500GiB = 500 * 1024 * 1024 * 1024)
++                                              If the value is not specified, then
++                                              the default value is set depending on
++                                              the component. If value is `0`, then
++                                              no value is set for the component.
+                                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                             x-kubernetes-int-or-string: true
+                                         type: object
+@@ -4585,13 +4640,15 @@
+                                           type: string
+                                         value:
+                                           description: 'Variable references $(VAR_NAME)
+-                                            are expanded using the previous defined
++                                            are expanded using the previously defined
+                                             environment variables in the container
+                                             and any service environment variables.
+                                             If a variable cannot be resolved, the
+                                             reference in the input string will be
+-                                            unchanged. The $(VAR_NAME) syntax can
+-                                            be escaped with a double $$, ie: $$(VAR_NAME).
++                                            unchanged. Double $$ are reduced to a
++                                            single $, which allows for escaping the
++                                            $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)"
++                                            will produce the string literal "$(VAR_NAME)".
+                                             Escaped references will never be expanded,
+                                             regardless of whether the variable exists
+                                             or not. Defaults to "".'
+@@ -4725,7 +4782,10 @@
+                                               - type: integer
+                                               - type: string
+                                             description: CPU, in cores. (500m = .5
+-                                              cores)
++                                              cores) If the value is not specified,
++                                              then the default value is set depending
++                                              on the component. If value is `0`, then
++                                              no value is set for the component.
+                                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                             x-kubernetes-int-or-string: true
+                                           memory:
+@@ -4734,6 +4794,10 @@
+                                               - type: string
+                                             description: Memory, in bytes. (500Gi
+                                               = 500GiB = 500 * 1024 * 1024 * 1024)
++                                              If the value is not specified, then
++                                              the default value is set depending on
++                                              the component. If value is `0`, then
++                                              no value is set for the component.
+                                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                             x-kubernetes-int-or-string: true
+                                         type: object
+@@ -4746,7 +4810,10 @@
+                                               - type: integer
+                                               - type: string
+                                             description: CPU, in cores. (500m = .5
+-                                              cores)
++                                              cores) If the value is not specified,
++                                              then the default value is set depending
++                                              on the component. If value is `0`, then
++                                              no value is set for the component.
+                                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                             x-kubernetes-int-or-string: true
+                                           memory:
+@@ -4755,6 +4822,10 @@
+                                               - type: string
+                                             description: Memory, in bytes. (500Gi
+                                               = 500GiB = 500 * 1024 * 1024 * 1024)
++                                              If the value is not specified, then
++                                              the default value is set depending on
++                                              the component. If value is `0`, then
++                                              no value is set for the component.
+                                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                             x-kubernetes-int-or-string: true
+                                         type: object
+@@ -4847,13 +4918,15 @@
+                                           type: string
+                                         value:
+                                           description: 'Variable references $(VAR_NAME)
+-                                            are expanded using the previous defined
++                                            are expanded using the previously defined
+                                             environment variables in the container
+                                             and any service environment variables.
+                                             If a variable cannot be resolved, the
+                                             reference in the input string will be
+-                                            unchanged. The $(VAR_NAME) syntax can
+-                                            be escaped with a double $$, ie: $$(VAR_NAME).
++                                            unchanged. Double $$ are reduced to a
++                                            single $, which allows for escaping the
++                                            $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)"
++                                            will produce the string literal "$(VAR_NAME)".
+                                             Escaped references will never be expanded,
+                                             regardless of whether the variable exists
+                                             or not. Defaults to "".'
+@@ -4987,7 +5060,10 @@
+                                               - type: integer
+                                               - type: string
+                                             description: CPU, in cores. (500m = .5
+-                                              cores)
++                                              cores) If the value is not specified,
++                                              then the default value is set depending
++                                              on the component. If value is `0`, then
++                                              no value is set for the component.
+                                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                             x-kubernetes-int-or-string: true
+                                           memory:
+@@ -4996,6 +5072,10 @@
+                                               - type: string
+                                             description: Memory, in bytes. (500Gi
+                                               = 500GiB = 500 * 1024 * 1024 * 1024)
++                                              If the value is not specified, then
++                                              the default value is set depending on
++                                              the component. If value is `0`, then
++                                              no value is set for the component.
+                                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                             x-kubernetes-int-or-string: true
+                                         type: object
+@@ -5008,7 +5088,10 @@
+                                               - type: integer
+                                               - type: string
+                                             description: CPU, in cores. (500m = .5
+-                                              cores)
++                                              cores) If the value is not specified,
++                                              then the default value is set depending
++                                              on the component. If value is `0`, then
++                                              no value is set for the component.
+                                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                             x-kubernetes-int-or-string: true
+                                           memory:
+@@ -5017,6 +5100,10 @@
+                                               - type: string
+                                             description: Memory, in bytes. (500Gi
+                                               = 500GiB = 500 * 1024 * 1024 * 1024)
++                                              If the value is not specified, then
++                                              the default value is set depending on
++                                              the component. If value is `0`, then
++                                              no value is set for the component.
+                                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                             x-kubernetes-int-or-string: true
+                                         type: object
+@@ -5139,13 +5226,15 @@
+                                           type: string
+                                         value:
+                                           description: 'Variable references $(VAR_NAME)
+-                                            are expanded using the previous defined
++                                            are expanded using the previously defined
+                                             environment variables in the container
+                                             and any service environment variables.
+                                             If a variable cannot be resolved, the
+                                             reference in the input string will be
+-                                            unchanged. The $(VAR_NAME) syntax can
+-                                            be escaped with a double $$, ie: $$(VAR_NAME).
++                                            unchanged. Double $$ are reduced to a
++                                            single $, which allows for escaping the
++                                            $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)"
++                                            will produce the string literal "$(VAR_NAME)".
+                                             Escaped references will never be expanded,
+                                             regardless of whether the variable exists
+                                             or not. Defaults to "".'
+@@ -5279,7 +5368,10 @@
+                                               - type: integer
+                                               - type: string
+                                             description: CPU, in cores. (500m = .5
+-                                              cores)
++                                              cores) If the value is not specified,
++                                              then the default value is set depending
++                                              on the component. If value is `0`, then
++                                              no value is set for the component.
+                                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                             x-kubernetes-int-or-string: true
+                                           memory:
+@@ -5288,6 +5380,10 @@
+                                               - type: string
+                                             description: Memory, in bytes. (500Gi
+                                               = 500GiB = 500 * 1024 * 1024 * 1024)
++                                              If the value is not specified, then
++                                              the default value is set depending on
++                                              the component. If value is `0`, then
++                                              no value is set for the component.
+                                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                             x-kubernetes-int-or-string: true
+                                         type: object
+@@ -5300,7 +5396,10 @@
+                                               - type: integer
+                                               - type: string
+                                             description: CPU, in cores. (500m = .5
+-                                              cores)
++                                              cores) If the value is not specified,
++                                              then the default value is set depending
++                                              on the component. If value is `0`, then
++                                              no value is set for the component.
+                                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                             x-kubernetes-int-or-string: true
+                                           memory:
+@@ -5309,6 +5408,10 @@
+                                               - type: string
+                                             description: Memory, in bytes. (500Gi
+                                               = 500GiB = 500 * 1024 * 1024 * 1024)
++                                              If the value is not specified, then
++                                              the default value is set depending on
++                                              the component. If value is `0`, then
++                                              no value is set for the component.
+                                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                             x-kubernetes-int-or-string: true
+                                         type: object
+@@ -5371,15 +5474,9 @@
+                   type: object
+                 devEnvironments:
+                   default:
+-                    defaultComponents:
+-                      - container:
+-                          image: quay.io/devfile/universal-developer-image:ubi8-38da5c2
+-                        name: universal-developer-image
+-                    defaultEditor: che-incubator/che-code/latest
+                     defaultNamespace:
+                       autoProvision: true
+                       template: <username>-che
+-                    disableContainerBuildCapabilities: true
+                     maxNumberOfWorkspacesPerUser: -1
+                     secondsOfInactivityBeforeIdling: 1800
+                     secondsOfRunBeforeIdling: -1
+@@ -5398,10 +5495,6 @@
+                           type: string
+                       type: object
+                     defaultComponents:
+-                      default:
+-                        - container:
+-                            image: quay.io/devfile/universal-developer-image:ubi8-38da5c2
+-                          name: universal-developer-image
+                       description: Default components applied to DevWorkspaces. These
+                         default components are meant to be used when a Devfile, that
+                         does not contain any components.
+@@ -6158,11 +6251,18 @@
+                                               type: string
+                                           type: object
+                                         hotReloadCapable:
+-                                          description: "Whether the command is capable\
+-                                            \ to reload itself when source code changes.\
+-                                            \ If set to `true` the command won't be\
+-                                            \ restarted and it is expected to handle\
+-                                            \ file changes on its own. \n Default\
++                                          description: "Specify whether the command\
++                                            \ is restarted or not when the source\
++                                            \ code changes. If set to `true` the command\
++                                            \ won't be restarted. A *hotReloadCapable*\
++                                            \ `run` or `debug` command is expected\
++                                            \ to handle file changes on its own and\
++                                            \ won't be restarted. A *hotReloadCapable*\
++                                            \ `build` command is expected to be executed\
++                                            \ only once and won't be executed again.\
++                                            \ This field is taken into account only\
++                                            \ for commands `build`, `run` and `debug`\
++                                            \ with `isDefault` set to `true`. \n Default\
+                                             \ value is `false`"
+                                           type: boolean
+                                         label:
+@@ -6903,7 +7003,6 @@
+                         type: object
+                       type: array
+                     defaultEditor:
+-                      default: che-incubator/che-code/latest
+                       description: The default editor to workspace create with. It
+                         could be a plugin ID or a URI. The plugin ID must have `publisher/plugin/version`
+                         format. The URI must start from `http://` or `https://`.
+@@ -6945,7 +7044,6 @@
                          type: object
                        type: array
                      disableContainerBuildCapabilities:
--                      default: true
-+                      default: false
+-                      default: false
                        description: Disables the container build capabilities.
                        type: boolean
                      maxNumberOfRunningWorkspacesPerUser:
+@@ -6994,6 +7092,51 @@
+                       maxLength: 63
+                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                       type: string
++                    serviceAccountTokens:
++                      description: List of ServiceAccount tokens that will be mounted
++                        into workspace pods as projected volumes.
++                      items:
++                        properties:
++                          audience:
++                            description: Audience is the intended audience of the
++                              token. A recipient of a token must identify itself with
++                              an identifier specified in the audience of the token,
++                              and otherwise should reject the token. The audience
++                              defaults to the identifier of the apiserver.
++                            type: string
++                          expirationSeconds:
++                            default: 3600
++                            description: ExpirationSeconds is the requested duration
++                              of validity of the service account token. As the token
++                              approaches expiration, the kubelet volume plugin will
++                              proactively rotate the service account token. The kubelet
++                              will start trying to rotate the token if the token is
++                              older than 80 percent of its time to live or if the
++                              token is older than 24 hours. Defaults to 1 hour and
++                              must be at least 10 minutes.
++                            format: int64
++                            minimum: 600
++                            type: integer
++                          mountPath:
++                            description: Path within the workspace container at which
++                              the token should be mounted.  Must not contain ':'.
++                            type: string
++                          name:
++                            description: Identifiable name of the ServiceAccount token.
++                              If multiple ServiceAccount tokens use the same mount
++                              path, a generic name will be used for the projected
++                              volume instead.
++                            type: string
++                          path:
++                            description: Path is the path relative to the mount point
++                              of the file to project the token into.
++                            type: string
++                        required:
++                          - mountPath
++                          - name
++                          - path
++                        type: object
++                      type: array
+                     startTimeoutSeconds:
+                       default: 300
+                       description: StartTimeoutSeconds determines the maximum duration
+@@ -7263,17 +7406,19 @@
+                                               type: string
+                                             value:
+                                               description: 'Variable references $(VAR_NAME)
+-                                                are expanded using the previous defined
+-                                                environment variables in the container
+-                                                and any service environment variables.
+-                                                If a variable cannot be resolved,
+-                                                the reference in the input string
+-                                                will be unchanged. The $(VAR_NAME)
+-                                                syntax can be escaped with a double
+-                                                $$, ie: $$(VAR_NAME). Escaped references
+-                                                will never be expanded, regardless
+-                                                of whether the variable exists or
+-                                                not. Defaults to "".'
++                                                are expanded using the previously
++                                                defined environment variables in the
++                                                container and any service environment
++                                                variables. If a variable cannot be
++                                                resolved, the reference in the input
++                                                string will be unchanged. Double $$
++                                                are reduced to a single $, which allows
++                                                for escaping the $(VAR_NAME) syntax:
++                                                i.e. "$$(VAR_NAME)" will produce the
++                                                string literal "$(VAR_NAME)". Escaped
++                                                references will never be expanded,
++                                                regardless of whether the variable
++                                                exists or not. Defaults to "".'
+                                               type: string
+                                             valueFrom:
+                                               description: Source for the environment
+@@ -7410,7 +7555,11 @@
+                                                   - type: integer
+                                                   - type: string
+                                                 description: CPU, in cores. (500m
+-                                                  = .5 cores)
++                                                  = .5 cores) If the value is not
++                                                  specified, then the default value
++                                                  is set depending on the component.
++                                                  If value is `0`, then no value is
++                                                  set for the component.
+                                                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                                 x-kubernetes-int-or-string: true
+                                               memory:
+@@ -7419,6 +7568,10 @@
+                                                   - type: string
+                                                 description: Memory, in bytes. (500Gi
+                                                   = 500GiB = 500 * 1024 * 1024 * 1024)
++                                                  If the value is not specified, then
++                                                  the default value is set depending
++                                                  on the component. If value is `0`,
++                                                  then no value is set for the component.
+                                                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                                 x-kubernetes-int-or-string: true
+                                             type: object
+@@ -7431,7 +7584,11 @@
+                                                   - type: integer
+                                                   - type: string
+                                                 description: CPU, in cores. (500m
+-                                                  = .5 cores)
++                                                  = .5 cores) If the value is not
++                                                  specified, then the default value
++                                                  is set depending on the component.
++                                                  If value is `0`, then no value is
++                                                  set for the component.
+                                                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                                 x-kubernetes-int-or-string: true
+                                               memory:
+@@ -7440,6 +7597,10 @@
+                                                   - type: string
+                                                 description: Memory, in bytes. (500Gi
+                                                   = 500GiB = 500 * 1024 * 1024 * 1024)
++                                                  If the value is not specified, then
++                                                  the default value is set depending
++                                                  on the component. If value is `0`,
++                                                  then no value is set for the component.
+                                                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                                 x-kubernetes-int-or-string: true
+                                             type: object
