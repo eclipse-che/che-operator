@@ -12,6 +12,7 @@
 package server
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
@@ -490,6 +491,74 @@ func TestShouldSetUpCorrectlyInternalCheServerURL(t *testing.T) {
 			actualData, err := server.getCheConfigMapData(ctx)
 			assert.Nil(t, err)
 			test.ValidateContainData(actualData, testCase.expectedData, t)
+		})
+	}
+}
+
+func TestUpdateUserClusterRoles(t *testing.T) {
+	type testCase struct {
+		name                     string
+		cheCluster               *chev2.CheCluster
+		expectedUserClusterRoles string
+	}
+
+	testCases := []testCase{
+		{
+			name: "Test #1",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+			},
+			expectedUserClusterRoles: "eclipse-che-cheworkspaces-clusterrole, eclipse-che-cheworkspaces-devworkspace-clusterrole",
+		},
+		{
+			name: "Test #2",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						CheServer: chev2.CheServer{
+							ClusterRoles: []string{"test-roles"},
+						},
+					},
+				},
+			},
+			expectedUserClusterRoles: "test-roles, eclipse-che-cheworkspaces-clusterrole, eclipse-che-cheworkspaces-devworkspace-clusterrole",
+		},
+		{
+			name: "Test #3",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						CheServer: chev2.CheServer{
+							ClusterRoles: []string{"test-roles, eclipse-che-cheworkspaces-clusterrole"},
+						},
+					},
+				},
+			},
+			expectedUserClusterRoles: "test-roles, eclipse-che-cheworkspaces-clusterrole, eclipse-che-cheworkspaces-devworkspace-clusterrole",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
+
+			env := map[string]string{
+				"CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES": strings.Join(testCase.cheCluster.Spec.Components.CheServer.ClusterRoles, ", "),
+			}
+			updateUserClusterRoles(ctx, env)
+
+			assert.Equal(t, testCase.expectedUserClusterRoles, env["CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"])
 		})
 	}
 }

@@ -187,7 +187,6 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 	webSocketInternalEndpoint := fmt.Sprintf("ws://%s.%s.svc:8080/api/websocket", deploy.CheServiceName, ctx.CheCluster.Namespace)
 	webSocketEndpoint := "wss://" + ctx.CheHost + "/api/websocket"
 	cheWorkspaceServiceAccount := "NULL"
-	cheUserClusterRoleNames := fmt.Sprintf("%s-cheworkspaces-clusterrole, %s-cheworkspaces-devworkspace-clusterrole", ctx.CheCluster.Namespace, ctx.CheCluster.Namespace)
 
 	data := &CheConfigMap{
 		CheMultiUser:                           "true",
@@ -200,7 +199,6 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 		CheDebugServer:                         cheDebug,
 		CheInfrastructureActive:                infra,
 		CheInfraKubernetesServiceAccountName:   cheWorkspaceServiceAccount,
-		CheInfraKubernetesUserClusterRoles:     cheUserClusterRoleNames,
 		DefaultTargetNamespace:                 workspaceNamespaceDefault,
 		NamespaceCreationAllowed:               namespaceCreationAllowed,
 		TlsSupport:                             "true",
@@ -208,12 +206,6 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 		CheLogLevel:                            cheLogLevel,
 		OpenShiftIdentityProvider:              openShiftIdentityProviderId,
 		JavaOpts:                               constants.DefaultJavaOpts + " " + proxyJavaOpts,
-		WorkspaceJavaOpts:                      constants.DefaultWorkspaceJavaOpts + " " + proxyJavaOpts,
-		WorkspaceMavenOpts:                     constants.DefaultWorkspaceJavaOpts + " " + proxyJavaOpts,
-		WorkspaceProxyJavaOpts:                 proxyJavaOpts,
-		WorkspaceHttpProxy:                     ctx.Proxy.HttpProxy,
-		WorkspaceHttpsProxy:                    ctx.Proxy.HttpsProxy,
-		WorkspaceNoProxy:                       cheWorkspaceNoProxy,
 		PluginRegistryUrl:                      pluginRegistryURL,
 		PluginRegistryInternalUrl:              pluginRegistryInternalURL,
 		DevfileRegistryUrl:                     devfileRegistryURL,
@@ -282,6 +274,8 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 
 	addMap(cheEnv, ctx.CheCluster.Spec.Components.CheServer.ExtraProperties)
 
+	updateUserClusterRoles(ctx, cheEnv)
+
 	for _, oauthProvider := range []string{"bitbucket", "gitlab", "github", constants.AzureDevOpsOAuth} {
 		err := updateIntegrationServerEndpoints(ctx, cheEnv, oauthProvider)
 		if err != nil {
@@ -318,4 +312,23 @@ func GetCheConfigMapVersion(deployContext *chetypes.DeployContext) string {
 		return cheConfigMap.ResourceVersion
 	}
 	return ""
+}
+
+func updateUserClusterRoles(ctx *chetypes.DeployContext, cheEnv map[string]string) {
+	defaultUserClusterRole := fmt.Sprintf("%s-cheworkspaces-clusterrole", ctx.CheCluster.Namespace)
+	defaultUserDevWorkspaceClusterRole := fmt.Sprintf("%s-cheworkspaces-devworkspace-clusterrole", ctx.CheCluster.Namespace)
+
+	userClusterRoles := strings.TrimSpace(cheEnv["CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"])
+	if userClusterRoles == "" {
+		userClusterRoles = defaultUserClusterRole + ", " + defaultUserDevWorkspaceClusterRole
+	} else {
+		if strings.Index(userClusterRoles, defaultUserClusterRole) == -1 {
+			userClusterRoles = userClusterRoles + ", " + defaultUserClusterRole
+		}
+		if strings.Index(userClusterRoles, defaultUserDevWorkspaceClusterRole) == -1 {
+			userClusterRoles = userClusterRoles + ", " + defaultUserDevWorkspaceClusterRole
+		}
+	}
+
+	cheEnv["CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"] = userClusterRoles
 }
