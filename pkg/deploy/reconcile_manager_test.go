@@ -70,7 +70,7 @@ func TestShouldUpdateAndCleanStatus(t *testing.T) {
 	assert.False(t, done)
 	assert.NotNil(t, err)
 	assert.NotEmpty(t, deployContext.CheCluster.Status.Reason)
-	assert.Equal(t, "Reconciler failed deploy.TestReconcilable, cause: Reconcile error", deployContext.CheCluster.Status.Message)
+	assert.Equal(t, "Reconciler failed deploy.TestReconcilable, cause: reconcile error", deployContext.CheCluster.Status.Message)
 	assert.Equal(t, tr, rm.failedReconciler)
 
 	_, done, err = rm.ReconcileAll(deployContext)
