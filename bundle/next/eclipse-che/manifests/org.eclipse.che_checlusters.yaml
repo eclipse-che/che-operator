@@ -4067,13 +4067,12 @@ spec:
                         server.
                       properties:
                         clusterRoles:
-                          description: 'ClusterRoles assigned to Che ServiceAccount.
-                            The defaults roles are: - `<che-namespace>-cheworkspaces-namespaces-clusterrole`
-                            - `<che-namespace>-cheworkspaces-clusterrole` - `<che-namespace>-cheworkspaces-devworkspace-clusterrole`
+                          description: 'Additional ClusterRoles assigned to Che ServiceAccount.
+                            Each role must have a `app.kubernetes.io/part-of=che.eclipse.org`
+                            label. The defaults roles are: - `<che-namespace>-cheworkspaces-clusterrole`
                             where the <che-namespace> is the namespace where the CheCluster
-                            CRD is created. Each role must have a `app.kubernetes.io/part-of=che.eclipse.org`
-                            label. The Che Operator must already have all permissions
-                            in these ClusterRoles to grant them.'
+                            CR is created. The Che Operator must already have all
+                            permissions in these ClusterRoles to grant them.'
                           items:
                             type: string
                           type: array

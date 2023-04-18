@@ -315,8 +315,8 @@ func GetCheConfigMapVersion(deployContext *chetypes.DeployContext) string {
 }
 
 func updateUserClusterRoles(ctx *chetypes.DeployContext, cheEnv map[string]string) {
-	userClusterRoles := fmt.Sprintf("%s-cheworkspaces-clusterrole", ctx.CheCluster.Namespace) + ", " +
-		fmt.Sprintf("%s-cheworkspaces-devworkspace-clusterrole", ctx.CheCluster.Namespace)
+	// see [rbac.UserPermissionsReconciler]
+	userClusterRoles := fmt.Sprintf("%s-cheworkspaces-clusterrole", ctx.CheCluster.Namespace)
 
 	for _, role := range strings.Split(cheEnv["CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"], ",") {
 		trimmedRoleName := strings.TrimSpace(role)

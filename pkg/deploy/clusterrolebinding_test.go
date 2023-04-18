@@ -13,6 +13,7 @@ package deploy
 
 import (
 	"context"
+
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	rbacv1 "k8s.io/api/rbac/v1"
