@@ -59,6 +59,7 @@ func TestReconcile(t *testing.T) {
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test-role"}, &rbac.ClusterRoleBinding{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: getComponentName(ctx), Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 	assert.Equal(t, ctx.CheCluster.Status.ChePhase, chev2.CheClusterPhase(chev2.ClusterPhaseInactive))
+	assert.Equal(t, 1, len(ctx.CheCluster.Finalizers))
 
 	cheDeployment := &appsv1.Deployment{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: defaults.GetCheFlavor(), Namespace: "eclipse-che"}, cheDeployment)
@@ -75,6 +76,11 @@ func TestReconcile(t *testing.T) {
 	assert.Equal(t, ctx.CheCluster.Status.ChePhase, chev2.CheClusterPhase(chev2.ClusterPhaseActive))
 	assert.NotEmpty(t, ctx.CheCluster.Status.CheVersion)
 	assert.NotEmpty(t, ctx.CheCluster.Status.CheURL)
+
+	done = server.Finalize(ctx)
+	assert.True(t, done)
+
+	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test-role"}, &rbac.ClusterRoleBinding{}))
 }
 
 func TestUpdateAvailabilityStatus(t *testing.T) {
