@@ -13,8 +13,6 @@ package deploy
 
 import (
 	"context"
-	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
@@ -23,31 +21,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const FinalizerName = "cluster-resources." + constants.FinalizerSuffix
-
-type FinalizerReconciler struct {
-	Reconcilable
-}
-
-func NewFinalizerReconciler() *FinalizerReconciler {
-	return &FinalizerReconciler{}
-}
-
-func (fr *FinalizerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if err := AppendFinalizer(ctx, FinalizerName); err != nil {
-		return reconcile.Result{}, false, err
-	}
-
-	return reconcile.Result{}, true, nil
-}
-
-func (fr *FinalizerReconciler) Finalize(ctx *chetypes.DeployContext) bool {
+func CleanUpAllFinalizers(ctx *chetypes.DeployContext) error {
 	ctx.CheCluster.Finalizers = []string{}
-	if err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster); err != nil {
-		return false
-	}
-
-	return true
+	return ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
 }
 
 func AppendFinalizer(deployContext *chetypes.DeployContext, finalizer string) error {

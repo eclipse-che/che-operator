@@ -121,8 +121,6 @@ func NewReconciler(
 		reconcileManager.RegisterReconciler(consolelink.NewConsoleLinkReconciler())
 	}
 
-	reconcileManager.RegisterReconciler(deploy.NewFinalizerReconciler())
-
 	return &CheClusterReconciler{
 		Scheme: scheme,
 		Log:    ctrl.Log.WithName("controllers").WithName("CheCluster"),
