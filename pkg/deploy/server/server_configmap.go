@@ -318,13 +318,6 @@ func updateUserClusterRoles(ctx *chetypes.DeployContext, cheEnv map[string]strin
 	userClusterRoles := fmt.Sprintf("%s-cheworkspaces-clusterrole", ctx.CheCluster.Namespace) + ", " +
 		fmt.Sprintf("%s-cheworkspaces-devworkspace-clusterrole", ctx.CheCluster.Namespace)
 
-	for _, role := range ctx.CheCluster.Spec.Components.CheServer.ClusterRoles {
-		trimmedRoleName := strings.TrimSpace(role)
-		if !strings.Contains(userClusterRoles, trimmedRoleName) {
-			userClusterRoles = userClusterRoles + ", " + trimmedRoleName
-		}
-	}
-
 	for _, role := range strings.Split(cheEnv["CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"], ",") {
 		trimmedRoleName := strings.TrimSpace(role)
 		if !strings.Contains(userClusterRoles, trimmedRoleName) {

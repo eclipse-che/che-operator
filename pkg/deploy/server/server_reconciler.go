@@ -14,12 +14,22 @@ package server
 import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	util "github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"strings"
+)
+
+const (
+	crb                   = ".crb."
+	cheCRBFinalizerSuffix = crb + constants.FinalizerSuffix
 )
 
 type CheServerReconciler struct {
@@ -40,6 +50,14 @@ func (s *CheServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 	// the version of the object is used in the deployment
 	exists, err := deploy.GetNamespacedObject(ctx, CheConfigMapName, &corev1.ConfigMap{})
 	if !exists {
+		return reconcile.Result{}, false, err
+	}
+
+	if done, err := deploy.SyncServiceAccountToCluster(ctx, constants.DefaultCheServiceAccountName); !done {
+		return reconcile.Result{}, false, err
+	}
+
+	if done, err := s.syncClusterRoleBinding(ctx); !done {
 		return reconcile.Result{}, false, err
 	}
 
@@ -66,8 +84,39 @@ func (s *CheServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 	return reconcile.Result{}, true, nil
 }
 
-func (s *CheServerReconciler) Finalize(ctx *chetypes.DeployContext) bool {
-	return true
+func (c *CheServerReconciler) Finalize(ctx *chetypes.DeployContext) bool {
+	done := true
+
+	for _, cheClusterRole := range ctx.CheCluster.Spec.Components.CheServer.ClusterRoles {
+		cheClusterRole := strings.TrimSpace(cheClusterRole)
+		if cheClusterRole != "" {
+			if done, err := deploy.Delete(ctx, types.NamespacedName{Name: cheClusterRole}, &rbacv1.ClusterRoleBinding{}); !done {
+				done = false
+				logrus.Errorf("Error deleting ClusterRoleBinding: %v", err)
+			}
+
+			finalizer := c.getCRBFinalizerName(cheClusterRole)
+			if err := deploy.DeleteFinalizer(ctx, finalizer); err != nil {
+				done = false
+				logrus.Errorf("Error deleting finalizer: %v", err)
+			}
+
+			// Removes any legacy finalizers https://github.com/eclipse/che/issues/19506
+			cheClusterRoleBindingLegacyName := ctx.CheCluster.Namespace + "-" + constants.DefaultCheServiceAccountName + "-" + cheClusterRole
+			if done, err := deploy.Delete(ctx, types.NamespacedName{Name: cheClusterRoleBindingLegacyName}, &rbacv1.ClusterRoleBinding{}); !done {
+				done = false
+				logrus.Errorf("Error deleting ClusterRoleBinding: %v", err)
+			}
+
+			finalizerLegacyName := strings.ToLower(cheClusterRoleBindingLegacyName) + ".clusterrolebinding.finalizers.che.eclipse.org"
+			if err := deploy.DeleteFinalizer(ctx, finalizerLegacyName); err != nil {
+				done = false
+				logrus.Errorf("Error deleting finalizer: %v", err)
+			}
+		}
+	}
+
+	return done
 }
 
 func (s *CheServerReconciler) syncCheConfigMap(ctx *chetypes.DeployContext) (bool, error) {
@@ -115,6 +164,49 @@ func (s *CheServerReconciler) syncActiveChePhase(ctx *chetypes.DeployContext) (b
 	return true, nil
 }
 
+func (s *CheServerReconciler) syncClusterRoleBinding(ctx *chetypes.DeployContext) (bool, error) {
+	for _, cheClusterRole := range ctx.CheCluster.Spec.Components.CheServer.ClusterRoles {
+		cheClusterRole := strings.TrimSpace(cheClusterRole)
+		if cheClusterRole != "" {
+			if done, err := deploy.SyncClusterRoleBindingToCluster(ctx, cheClusterRole, constants.DefaultCheServiceAccountName, cheClusterRole); !done {
+				return false, err
+			}
+
+			finalizer := s.getCRBFinalizerName(cheClusterRole)
+			if err := deploy.AppendFinalizer(ctx, finalizer); err != nil {
+				return false, err
+			}
+		}
+	}
+
+	// Delete abandoned CRBs
+	for _, finalizer := range ctx.CheCluster.Finalizers {
+		if strings.HasSuffix(finalizer, cheCRBFinalizerSuffix) {
+			cheClusterRole := strings.TrimSuffix(finalizer, cheCRBFinalizerSuffix)
+			if !util.Contains(ctx.CheCluster.Spec.Components.CheServer.ClusterRoles, cheClusterRole) {
+				if done, err := deploy.Delete(ctx, types.NamespacedName{Name: cheClusterRole}, &rbacv1.ClusterRoleBinding{}); !done {
+					return false, err
+				}
+
+				if err := deploy.DeleteFinalizer(ctx, finalizer); err != nil {
+					return false, err
+				}
+			}
+		}
+	}
+
+	return true, nil
+}
+
+func (s *CheServerReconciler) getCRBFinalizerName(crbName string) string {
+	finalizer := crbName + cheCRBFinalizerSuffix
+	diff := len(finalizer) - 63
+	if diff > 0 {
+		return finalizer[:len(finalizer)-diff]
+	}
+	return finalizer
+}
+
 func (s *CheServerReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
 	spec, err := s.getDeploymentSpec(ctx)
 	if err != nil {
@@ -133,6 +225,7 @@ func (s CheServerReconciler) syncCheVersion(ctx *chetypes.DeployContext) (bool, 
 	}
 	return true, nil
 }
+
 func (s CheServerReconciler) syncCheURL(ctx *chetypes.DeployContext) (bool, error) {
 	var cheUrl = "https://" + ctx.CheHost
 	if ctx.CheCluster.Status.CheURL != cheUrl {

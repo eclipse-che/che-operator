@@ -99,13 +99,3 @@ func TestDeleteFinalizer(t *testing.T) {
 		t.Fatalf("Failed to delete finalizer: %v", err)
 	}
 }
-
-func TestGetFinalizerNameShouldReturnStringLess64Chars(t *testing.T) {
-	expected := "7890123456789012345678901234567891234567.finalizers.che.eclipse"
-	prefix := "7890123456789012345678901234567891234567"
-
-	actual := GetFinalizerName(prefix)
-	if expected != actual {
-		t.Fatalf("Incorrect finalizer name: %s", actual)
-	}
-}

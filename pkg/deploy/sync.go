@@ -62,25 +62,6 @@ func SyncWithClient(cli client.Client, deployContext *chetypes.DeployContext, bl
 	return UpdateWithClient(cli, deployContext, actual.(client.Object), blueprint, diffOpts...)
 }
 
-func SyncAndAddFinalizer(
-	deployContext *chetypes.DeployContext,
-	blueprint metav1.Object,
-	diffOpts cmp.Option,
-	finalizer string) (bool, error) {
-
-	// eclipse-che custom resource is being deleted, we shouldn't sync
-	// TODO move this check before `Sync` invocation
-	if deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
-		done, err := Sync(deployContext, blueprint.(client.Object), diffOpts)
-		if !done {
-			return done, err
-		}
-		err = AppendFinalizer(deployContext, finalizer)
-		return err == nil, err
-	}
-	return true, nil
-}
-
 // Gets object by key.
 // Returns true if object exists otherwise returns false.
 func Get(deployContext *chetypes.DeployContext, key client.ObjectKey, actual client.Object) (bool, error) {

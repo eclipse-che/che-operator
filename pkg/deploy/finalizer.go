@@ -78,12 +78,3 @@ func DeleteObjectWithFinalizer(deployContext *chetypes.DeployContext, key client
 
 	return DeleteFinalizer(deployContext, finalizer)
 }
-
-func GetFinalizerName(prefix string) string {
-	finalizer := prefix + ".finalizers.che.eclipse.org"
-	diff := len(finalizer) - 63
-	if diff > 0 {
-		return finalizer[:len(finalizer)-diff]
-	}
-	return finalizer
-}

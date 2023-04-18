@@ -13,15 +13,15 @@ package server
 
 import (
 	"context"
-
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-
-	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	rbac "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -37,6 +37,13 @@ func TestReconcile(t *testing.T) {
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
 		},
+		Spec: chev2.CheClusterSpec{
+			Components: chev2.CheClusterComponents{
+				CheServer: chev2.CheServer{
+					ClusterRoles: []string{"test-role"},
+				},
+			},
+		},
 	}
 
 	ctx := test.GetDeployContext(cheCluster, []runtime.Object{})
@@ -47,6 +54,8 @@ func TestReconcile(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: CheConfigMapName, Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Namespace: "eclipse-che", Name: "che"}, &corev1.ServiceAccount{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test-role"}, &rbac.ClusterRoleBinding{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: getComponentName(ctx), Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 	assert.Equal(t, ctx.CheCluster.Status.ChePhase, chev2.CheClusterPhase(chev2.ClusterPhaseInactive))
 
@@ -63,8 +72,8 @@ func TestReconcile(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.Equal(t, ctx.CheCluster.Status.ChePhase, chev2.CheClusterPhase(chev2.ClusterPhaseActive))
-	assert.NotEmpty(t, cheCluster.Status.CheVersion)
-	assert.NotEmpty(t, cheCluster.Status.CheURL)
+	assert.NotEmpty(t, ctx.CheCluster.Status.CheVersion)
+	assert.NotEmpty(t, ctx.CheCluster.Status.CheURL)
 }
 
 func TestUpdateAvailabilityStatus(t *testing.T) {
@@ -102,4 +111,57 @@ func TestUpdateAvailabilityStatus(t *testing.T) {
 	assert.False(t, done)
 	assert.Nil(t, err)
 	assert.Equal(t, ctx.CheCluster.Status.ChePhase, chev2.CheClusterPhase(chev2.RollingUpdate))
+}
+
+// TestSyncClusterRoleBinding tests that CRB is deleted when no roles are specified in CR.
+func TestSyncClusterRoleBinding(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+	cheCluster := &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+		Spec: chev2.CheClusterSpec{
+			Components: chev2.CheClusterComponents{
+				CheServer: chev2.CheServer{
+					ClusterRoles: []string{"test-role"},
+				},
+			},
+		},
+	}
+
+	ctx := test.GetDeployContext(cheCluster, []runtime.Object{})
+	reconciler := NewCheServerReconciler()
+
+	done, err := reconciler.syncClusterRoleBinding(ctx)
+	assert.True(t, done)
+	assert.NoError(t, err)
+
+	err = deploy.ReloadCheClusterCR(ctx)
+	assert.NoError(t, err)
+
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test-role"}, &rbac.ClusterRoleBinding{}))
+	assert.Equal(t, ctx.CheCluster.Finalizers, []string{"test-role.crb.finalizers.che.eclipse.org"})
+
+	ctx.CheCluster.Spec.Components.CheServer.ClusterRoles = []string{}
+	err = ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
+	assert.NoError(t, err)
+
+	done, err = reconciler.syncClusterRoleBinding(ctx)
+	assert.True(t, done)
+	assert.NoError(t, err)
+
+	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Namespace: "eclipse-che", Name: "test-role"}, &rbac.ClusterRoleBinding{}))
+	assert.Empty(t, ctx.CheCluster.Finalizers)
+}
+
+func TestGetFinalizerName(t *testing.T) {
+	crbName := "0123456789012345678901234567890123456789" // 40 chars
+
+	reconciler := NewCheServerReconciler()
+	finalizer := reconciler.getCRBFinalizerName(crbName)
+
+	assert.Equal(t, crbName+".crb.finalizers.che.ecl", finalizer)
+	assert.True(t, len(finalizer) <= 63)
 }
