@@ -27,14 +27,11 @@ import (
 
 const (
 	// CheUserPermissionsTemplateName - template for ClusterRole and ClusterRoleBinding names
-	CheUserPermissionsTemplateName  = "%s-cheworkspaces-clusterrole"
-	CheUserPermissionsFinalizerName = "cheWorkspaces.clusterpermissions.finalizers.che.eclipse.org"
+	CheUserPermissionsTemplateName = "%s-cheworkspaces-clusterrole"
 
 	// Legacy permissions
-	CheNamespaceEditorClusterRoleNameTemplate = "%s-cheworkspaces-namespaces-clusterrole"
-	NamespacesEditorPermissionsFinalizerName  = "namespaces-editor.permissions.finalizers.che.eclipse.org"
-	DevWorkspaceClusterRoleNameTemplate       = "%s-cheworkspaces-devworkspace-clusterrole"
-	DevWorkspacePermissionsFinalizerName      = "devWorkspace.permissions.finalizers.che.eclipse.org"
+	CheUserNamespaceEditorPermissionsTemplateName = "%s-cheworkspaces-namespaces-clusterrole"
+	CheUserDevWorkspacePermissionsTemplateName    = "%s-cheworkspaces-devworkspace-clusterrole"
 )
 
 type UserPermissionsReconciler struct {
@@ -50,15 +47,11 @@ func (up *UserPermissionsReconciler) Reconcile(ctx *chetypes.DeployContext) (rec
 	// che-server uses "che" service account for creation RBAC for a user in his namespace.
 	name := fmt.Sprintf(CheUserPermissionsTemplateName, ctx.CheCluster.Namespace)
 
-	if done, err := deploy.SyncClusterRoleToCluster(ctx, name, up.getWorkspacesPolicies()); !done {
+	if done, err := deploy.SyncClusterRoleToCluster(ctx, name, up.getUserPolicies()); !done {
 		return reconcile.Result{}, false, err
 	}
 
 	if done, err := deploy.SyncClusterRoleBindingToCluster(ctx, name, constants.DefaultCheServiceAccountName, name); !done {
-		return reconcile.Result{}, false, err
-	}
-
-	if err := deploy.AppendFinalizer(ctx, CheUserPermissionsFinalizerName); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
@@ -68,45 +61,40 @@ func (up *UserPermissionsReconciler) Reconcile(ctx *chetypes.DeployContext) (rec
 func (up *UserPermissionsReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	done := true
 
-	if completed := up.removePermissions(ctx, CheUserPermissionsTemplateName, CheUserPermissionsFinalizerName); !completed {
+	if completed := up.removePermissions(ctx, CheUserPermissionsTemplateName); !completed {
 		done = false
 	}
 
 	// Remove legacy permissions
-	if completed := up.removePermissions(ctx, DevWorkspaceClusterRoleNameTemplate, DevWorkspacePermissionsFinalizerName); !completed {
+	if completed := up.removePermissions(ctx, CheUserDevWorkspacePermissionsTemplateName); !completed {
 		done = false
 	}
 
-	if completed := up.removePermissions(ctx, CheNamespaceEditorClusterRoleNameTemplate, NamespacesEditorPermissionsFinalizerName); !completed {
+	if completed := up.removePermissions(ctx, CheUserNamespaceEditorPermissionsTemplateName); !completed {
 		done = false
 	}
 
 	return done
 }
 
-func (up *UserPermissionsReconciler) removePermissions(ctx *chetypes.DeployContext, templateName string, finalizer string) bool {
-	done := true
+func (up *UserPermissionsReconciler) removePermissions(ctx *chetypes.DeployContext, templateName string) bool {
+	completed := true
 
 	name := fmt.Sprintf(templateName, ctx.CheCluster.Namespace)
-	if _, err := deploy.Delete(ctx, types.NamespacedName{Name: name}, &rbacv1.ClusterRole{}); err != nil {
-		done = false
+	if done, err := deploy.Delete(ctx, types.NamespacedName{Name: name}, &rbacv1.ClusterRole{}); !done {
+		completed = false
 		logrus.Errorf("Failed to delete ClusterRole '%s', cause: %v", name, err)
 	}
 
-	if _, err := deploy.Delete(ctx, types.NamespacedName{Name: name}, &rbacv1.ClusterRoleBinding{}); err != nil {
-		done = false
+	if done, err := deploy.Delete(ctx, types.NamespacedName{Name: name}, &rbacv1.ClusterRoleBinding{}); !done {
+		completed = false
 		logrus.Errorf("Failed to delete ClusterRoleBinding '%s', cause: %v", name, err)
 	}
 
-	if err := deploy.DeleteFinalizer(ctx, finalizer); err != nil {
-		done = false
-		logrus.Errorf("Failed to delete finalizer '%s', cause: %v", finalizer, err)
-	}
-
-	return done
+	return completed
 }
 
-func (up *UserPermissionsReconciler) getWorkspacesPolicies() []rbacv1.PolicyRule {
+func (up *UserPermissionsReconciler) getUserPolicies() []rbacv1.PolicyRule {
 	k8sPolicies := []rbacv1.PolicyRule{
 		{
 			APIGroups: []string{""},

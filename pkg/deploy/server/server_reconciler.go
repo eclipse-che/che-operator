@@ -86,38 +86,26 @@ func (s *CheServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 }
 
 func (c *CheServerReconciler) Finalize(ctx *chetypes.DeployContext) bool {
-	done := true
+	completed := true
 
 	for _, cheClusterRole := range ctx.CheCluster.Spec.Components.CheServer.ClusterRoles {
 		cheClusterRole := strings.TrimSpace(cheClusterRole)
 		if cheClusterRole != "" {
 			if done, err := deploy.Delete(ctx, types.NamespacedName{Name: cheClusterRole}, &rbacv1.ClusterRoleBinding{}); !done {
-				done = false
+				completed = false
 				logrus.Errorf("Error deleting ClusterRoleBinding: %v", err)
 			}
 
-			finalizer := c.getCRBFinalizerName(cheClusterRole)
-			if err := deploy.DeleteFinalizer(ctx, finalizer); err != nil {
-				done = false
-				logrus.Errorf("Error deleting finalizer: %v", err)
-			}
-
-			// Removes any legacy finalizers https://github.com/eclipse/che/issues/19506
+			// Removes any legacy CRB https://github.com/eclipse/che/issues/19506
 			cheClusterRoleBindingLegacyName := ctx.CheCluster.Namespace + "-" + constants.DefaultCheServiceAccountName + "-" + cheClusterRole
 			if done, err := deploy.Delete(ctx, types.NamespacedName{Name: cheClusterRoleBindingLegacyName}, &rbacv1.ClusterRoleBinding{}); !done {
-				done = false
+				completed = false
 				logrus.Errorf("Error deleting ClusterRoleBinding: %v", err)
-			}
-
-			finalizerLegacyName := strings.ToLower(cheClusterRoleBindingLegacyName) + ".clusterrolebinding.finalizers.che.eclipse.org"
-			if err := deploy.DeleteFinalizer(ctx, finalizerLegacyName); err != nil {
-				done = false
-				logrus.Errorf("Error deleting finalizer: %v", err)
 			}
 		}
 	}
 
-	return done
+	return completed
 }
 
 func (s *CheServerReconciler) syncCheConfigMap(ctx *chetypes.DeployContext) (bool, error) {

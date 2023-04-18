@@ -12,6 +12,7 @@
 package rbac
 
 import (
+	"fmt"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -19,7 +20,6 @@ import (
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
-	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/stretchr/testify/assert"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -48,11 +48,16 @@ func TestReconcileWorkspacePermissions(t *testing.T) {
 
 			assert.Nil(t, err)
 			assert.True(t, done)
-			assert.True(t, utils.Contains(ctx.CheCluster.Finalizers, CheUserPermissionsFinalizerName))
 
-			name := "eclipse-che-cheworkspaces-clusterrole"
+			name := fmt.Sprintf(CheUserPermissionsTemplateName, ctx.CheCluster.Namespace)
 			assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: name}, &rbac.ClusterRole{}))
 			assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: name}, &rbac.ClusterRoleBinding{}))
+
+			done = up.Finalize(ctx)
+			assert.True(t, done)
+
+			assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: name}, &rbac.ClusterRole{}))
+			assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: name}, &rbac.ClusterRoleBinding{}))
 		})
 	}
 }
