@@ -37,9 +37,6 @@ var (
 	defaultSingleHostGatewayConfigSidecarImage              string
 	defaultGatewayAuthenticationSidecarImage                string
 	defaultGatewayAuthorizationSidecarImage                 string
-	defaultCheWorkspacePluginBrokerMetadataImage            string
-	defaultCheWorkspacePluginBrokerArtifactsImage           string
-	defaultCheServerSecureExposerJwtProxyImage              string
 	defaultConsoleLinkName                                  string
 	defaultConsoleLinkDisplayName                           string
 	defaultConsoleLinkSection                               string
@@ -158,30 +155,6 @@ func GetDevfileRegistryImage(checluster interface{}) string {
 	}
 
 	return PatchDefaultImageName(checluster, defaultDevfileRegistryImage)
-}
-
-func GetCheWorkspacePluginBrokerMetadataImage(checluster interface{}) string {
-	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
-	}
-
-	return PatchDefaultImageName(checluster, defaultCheWorkspacePluginBrokerMetadataImage)
-}
-
-func GetCheWorkspacePluginBrokerArtifactsImage(checluster interface{}) string {
-	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
-	}
-
-	return PatchDefaultImageName(checluster, defaultCheWorkspacePluginBrokerArtifactsImage)
-}
-
-func GetCheServerSecureExposerJwtProxyImage(checluster interface{}) string {
-	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
-	}
-
-	return PatchDefaultImageName(checluster, defaultCheServerSecureExposerJwtProxyImage)
 }
 
 func GetGatewayImage(checluster interface{}) string {
