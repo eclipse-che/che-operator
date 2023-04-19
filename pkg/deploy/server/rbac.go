@@ -36,14 +36,14 @@ const (
 // Create ClusterRole and ClusterRoleBinding for "che" service account.
 // che-server uses "che" service account for creation RBAC for a user in his namespace.
 func (s *CheServerReconciler) syncPermissions(ctx *chetypes.DeployContext) (bool, error) {
-	names := []string{
-		fmt.Sprintf(commonPermissionsTemplateName, ctx.CheCluster.Namespace),
-		fmt.Sprintf(namespacePermissionsTemplateName, ctx.CheCluster.Namespace),
-		fmt.Sprintf(devWorkspacePermissionsTemplateName, ctx.CheCluster.Namespace),
+	policies := map[string][]rbacv1.PolicyRule{
+		fmt.Sprintf(commonPermissionsTemplateName, ctx.CheCluster.Namespace):       s.getCommonPolicies(),
+		fmt.Sprintf(namespacePermissionsTemplateName, ctx.CheCluster.Namespace):    s.getNamespaceEditorPolicies(),
+		fmt.Sprintf(devWorkspacePermissionsTemplateName, ctx.CheCluster.Namespace): s.getDevWorkspacePolicies(),
 	}
 
-	for _, name := range names {
-		if done, err := deploy.SyncClusterRoleToCluster(ctx, name, s.getCommonPolicies()); !done {
+	for name, policy := range policies {
+		if done, err := deploy.SyncClusterRoleToCluster(ctx, name, policy); !done {
 			return false, err
 		}
 
