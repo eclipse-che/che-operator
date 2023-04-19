@@ -510,7 +510,7 @@ func TestUpdateUserClusterRoles(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 			},
-			expectedUserClusterRoles: "eclipse-che-cheworkspaces-clusterrole",
+			expectedUserClusterRoles: "eclipse-che-cheworkspaces-clusterrole, eclipse-che-cheworkspaces-devworkspace-clusterrole",
 		},
 		{
 			name: "Test #2",
@@ -529,7 +529,7 @@ func TestUpdateUserClusterRoles(t *testing.T) {
 					},
 				},
 			},
-			expectedUserClusterRoles: "eclipse-che-cheworkspaces-clusterrole, test-roles-1, test-roles-2",
+			expectedUserClusterRoles: "eclipse-che-cheworkspaces-clusterrole, eclipse-che-cheworkspaces-devworkspace-clusterrole, test-roles-1, test-roles-2",
 		},
 	}
 

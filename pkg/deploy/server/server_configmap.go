@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2021 Red Hat, Inc.
+// Copyright (c) 2019-2023 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -34,12 +34,6 @@ import (
 const (
 	CheConfigMapName = "che"
 )
-
-func addMap(a map[string]string, b map[string]string) {
-	for k, v := range b {
-		a[k] = v
-	}
-}
 
 type CheConfigMap struct {
 	CheHost                                string `json:"CHE_HOST"`
@@ -247,7 +241,7 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 			"CHE_INFRA_KUBERNETES_INGRESS_PATH__TRANSFORM":             "%s(.*)",
 		}
 		k8sCheEnv["CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S"] = "true"
-		addMap(cheEnv, k8sCheEnv)
+		utils.AddMap(cheEnv, k8sCheEnv)
 	}
 
 	// Add TLS key and server certificate to properties since user workspaces is created in another
@@ -272,12 +266,12 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 		}
 	}
 
-	addMap(cheEnv, ctx.CheCluster.Spec.Components.CheServer.ExtraProperties)
+	utils.AddMap(cheEnv, ctx.CheCluster.Spec.Components.CheServer.ExtraProperties)
 
-	updateUserClusterRoles(ctx, cheEnv)
+	s.updateUserClusterRoles(ctx, cheEnv)
 
 	for _, oauthProvider := range []string{"bitbucket", "gitlab", "github", constants.AzureDevOpsOAuth} {
-		err := updateIntegrationServerEndpoints(ctx, cheEnv, oauthProvider)
+		err := s.updateIntegrationServerEndpoints(ctx, cheEnv, oauthProvider)
 		if err != nil {
 			return nil, err
 		}
@@ -286,7 +280,7 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 	return cheEnv, nil
 }
 
-func updateIntegrationServerEndpoints(ctx *chetypes.DeployContext, cheEnv map[string]string, oauthProvider string) error {
+func (s *CheServerReconciler) updateIntegrationServerEndpoints(ctx *chetypes.DeployContext, cheEnv map[string]string, oauthProvider string) error {
 	secret, err := getOAuthConfig(ctx, oauthProvider)
 	if secret == nil {
 		return err
@@ -314,9 +308,8 @@ func GetCheConfigMapVersion(deployContext *chetypes.DeployContext) string {
 	return ""
 }
 
-func updateUserClusterRoles(ctx *chetypes.DeployContext, cheEnv map[string]string) {
-	// see [rbac.UserPermissionsReconciler]
-	userClusterRoles := fmt.Sprintf("%s-cheworkspaces-clusterrole", ctx.CheCluster.Namespace)
+func (s *CheServerReconciler) updateUserClusterRoles(ctx *chetypes.DeployContext, cheEnv map[string]string) {
+	userClusterRoles := strings.Join(s.getUserClusterRoles(ctx), ", ")
 
 	for _, role := range strings.Split(cheEnv["CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"], ",") {
 		trimmedRoleName := strings.TrimSpace(role)

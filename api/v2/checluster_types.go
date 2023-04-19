@@ -250,6 +250,8 @@ type CheServer struct {
 	// Each role must have a `app.kubernetes.io/part-of=che.eclipse.org` label.
 	// The defaults roles are:
 	// - `<che-namespace>-cheworkspaces-clusterrole`
+	// - `<che-namespace>-cheworkspaces-namespaces-clusterrole`
+	// - `<che-namespace>-cheworkspaces-devworkspace-clusterrole`
 	// where the <che-namespace> is the namespace where the CheCluster CR is created.
 	// The Che Operator must already have all permissions in these ClusterRoles to grant them.
 	// +optional

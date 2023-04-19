@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2021 Red Hat, Inc.
+// Copyright (c) 2019-2023 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -18,7 +18,6 @@ import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -118,49 +117,6 @@ func TestUpdateAvailabilityStatus(t *testing.T) {
 	assert.False(t, done)
 	assert.Nil(t, err)
 	assert.Equal(t, ctx.CheCluster.Status.ChePhase, chev2.CheClusterPhase(chev2.RollingUpdate))
-}
-
-// TestSyncClusterRoleBinding tests that CRB is deleted when no roles are specified in CR.
-func TestSyncClusterRoleBinding(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-
-	cheCluster := &chev2.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "eclipse-che",
-			Namespace: "eclipse-che",
-		},
-		Spec: chev2.CheClusterSpec{
-			Components: chev2.CheClusterComponents{
-				CheServer: chev2.CheServer{
-					ClusterRoles: []string{"test-role"},
-				},
-			},
-		},
-	}
-
-	ctx := test.GetDeployContext(cheCluster, []runtime.Object{})
-	reconciler := NewCheServerReconciler()
-
-	done, err := reconciler.syncClusterRoleBinding(ctx)
-	assert.True(t, done)
-	assert.NoError(t, err)
-
-	err = deploy.ReloadCheClusterCR(ctx)
-	assert.NoError(t, err)
-
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test-role"}, &rbac.ClusterRoleBinding{}))
-	assert.Equal(t, ctx.CheCluster.Finalizers, []string{"test-role.crb.finalizers.che.eclipse.org"})
-
-	ctx.CheCluster.Spec.Components.CheServer.ClusterRoles = []string{}
-	err = ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
-	assert.NoError(t, err)
-
-	done, err = reconciler.syncClusterRoleBinding(ctx)
-	assert.True(t, done)
-	assert.NoError(t, err)
-
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Namespace: "eclipse-che", Name: "test-role"}, &rbac.ClusterRoleBinding{}))
-	assert.Empty(t, ctx.CheCluster.Finalizers)
 }
 
 func TestGetFinalizerName(t *testing.T) {

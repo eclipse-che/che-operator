@@ -212,6 +212,12 @@ func CloneMap(m map[string]string) map[string]string {
 	return result
 }
 
+func AddMap(a map[string]string, b map[string]string) {
+	for k, v := range b {
+		a[k] = v
+	}
+}
+
 // Converts label map into plain string
 func FormatLabels(m map[string]string) string {
 	if len(m) == 0 {
