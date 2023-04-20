@@ -177,7 +177,7 @@ func (c *CheRoutingSolver) provisionPodAdditions(objs *solvers.RoutingObjects, c
 		}
 	}
 
-	gatewayContainer := corev1.Container{
+	gatewayContainer := &corev1.Container{
 		Name:            wsGatewayName,
 		Image:           image,
 		ImagePullPolicy: corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(image)),
@@ -200,10 +200,10 @@ func (c *CheRoutingSolver) provisionPodAdditions(objs *solvers.RoutingObjects, c
 	}
 
 	if cheCluster.Spec.DevEnvironments.GatewayContainer != nil {
-		deploy.CustomizeContainer(&gatewayContainer, cheCluster.Spec.DevEnvironments.GatewayContainer)
+		_ = deploy.CustomizeContainer(gatewayContainer, cheCluster.Spec.DevEnvironments.GatewayContainer)
 	}
 
-	objs.PodAdditions.Containers = append(objs.PodAdditions.Containers, gatewayContainer)
+	objs.PodAdditions.Containers = append(objs.PodAdditions.Containers, *gatewayContainer)
 
 	// Even though DefaultMode is optional in Kubernetes, DevWorkspace Controller needs it to be explicitly defined.
 	// 420 = 0644 = '-rw-r--r--'
