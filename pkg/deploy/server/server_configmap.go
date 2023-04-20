@@ -300,9 +300,18 @@ func (s *CheServerReconciler) updateUserClusterRoles(ctx *chetypes.DeployContext
 	userClusterRoles := strings.Join(s.getUserClusterRoles(ctx), ", ")
 
 	for _, role := range strings.Split(cheEnv["CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"], ",") {
-		trimmedRoleName := strings.TrimSpace(role)
-		if !strings.Contains(userClusterRoles, trimmedRoleName) {
-			userClusterRoles = userClusterRoles + ", " + trimmedRoleName
+		role := strings.TrimSpace(role)
+		if !strings.Contains(userClusterRoles, role) {
+			userClusterRoles = userClusterRoles + ", " + role
+		}
+	}
+
+	if ctx.CheCluster.Spec.DevEnvironments.User != nil {
+		for _, role := range ctx.CheCluster.Spec.DevEnvironments.User.ClusterRoles {
+			role := strings.TrimSpace(role)
+			if !strings.Contains(userClusterRoles, role) {
+				userClusterRoles = userClusterRoles + ", " + role
+			}
 		}
 	}
 

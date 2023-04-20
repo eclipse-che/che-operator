@@ -7251,6 +7251,17 @@ spec:
                             label.'
                           type: string
                       type: object
+                    user:
+                      description: User configuration.
+                      properties:
+                        clusterRoles:
+                          description: Additional ClusterRoles assigned to the user.
+                            The role must have `app.kubernetes.io/part-of=che.eclipse.org`
+                            label.
+                          items:
+                            type: string
+                          type: array
+                      type: object
                   type: object
                 gitServices:
                   description: A configuration that allows users to work with remote

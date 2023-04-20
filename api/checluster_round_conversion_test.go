@@ -281,6 +281,12 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 						Effect:   "Effect",
 					}},
 					MaxNumberOfRunningWorkspacesPerUser: pointer.Int64Ptr(10),
+					User: &chev2.UserConfiguration{
+						ClusterRoles: []string{
+							"ClusterRoles_1",
+							"ClusterRoles_2",
+						},
+					},
 				},
 				ContainerRegistry: chev2.CheClusterContainerRegistry{
 					Hostname:     "AirGapContainerRegistryHostname",
