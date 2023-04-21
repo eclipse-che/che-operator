@@ -547,11 +547,9 @@ func TestUpdateUserClusterRoles(t *testing.T) {
 						},
 					},
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DefaultNamespace: chev2.DefaultNamespace{
-							User: &chev2.UserConfiguration{
-								ClusterRoles: []string{
-									"test-roles-3",
-								},
+						User: &chev2.UserConfiguration{
+							ClusterRoles: []string{
+								"test-roles-3",
 							},
 						},
 					},
