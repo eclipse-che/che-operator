@@ -20,6 +20,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+const Finalizer = "cluster-resources." + constants.FinalizerSuffix
+
 type Reconcilable interface {
 	// Reconcile object.
 	Reconcile(ctx *chetypes.DeployContext) (result reconcile.Result, done bool, err error)
@@ -46,6 +48,10 @@ func (manager *ReconcileManager) RegisterReconciler(reconciler Reconcilable) {
 // Reconcile all objects in a order they have been added
 // If reconciliation failed then CheCluster status will be updated accordingly.
 func (manager *ReconcileManager) ReconcileAll(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
+	if err := AppendFinalizer(ctx, Finalizer); err != nil {
+		return reconcile.Result{}, false, err
+	}
+
 	for _, reconciler := range manager.reconcilers {
 		result, done, err := reconciler.Reconcile(ctx)
 		if err != nil {
@@ -75,13 +81,18 @@ func (manager *ReconcileManager) FinalizeAll(ctx *chetypes.DeployContext) (done 
 	for _, reconciler := range manager.reconcilers {
 		if completed := reconciler.Finalize(ctx); !completed {
 			reconcilerName := GetObjectType(reconciler)
-			errMsg := fmt.Sprintf("Finalization failed for reconciler: %s", reconcilerName)
-
-			ctx.CheCluster.Status.Message = errMsg
-			_ = UpdateCheCRStatus(ctx, "Message", errMsg)
+			ctx.CheCluster.Status.Message = fmt.Sprintf("Finalization failed for reconciler: %s", reconcilerName)
+			_ = UpdateCheCRStatus(ctx, "Message", ctx.CheCluster.Status.Message)
 
 			done = false
 		}
 	}
+
+	if done {
+		if err := CleanUpAllFinalizers(ctx); err != nil {
+			return false
+		}
+	}
+
 	return done
 }

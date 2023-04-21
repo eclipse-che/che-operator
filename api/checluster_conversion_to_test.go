@@ -161,7 +161,7 @@ func TestConvertTo(t *testing.T) {
 				CheLogLevel:                         "CheLogLevel",
 				CheDebug:                            "true",
 				CheClusterRoles:                     "CheClusterRoles_1,CheClusterRoles_2",
-				CheWorkspaceClusterRole:             "CheWorkspaceClusterRole",
+				CheWorkspaceClusterRole:             "ClusterRoles_1,ClusterRoles_2",
 				WorkspaceNamespaceDefault:           "WorkspaceNamespaceDefault",
 				AllowAutoProvisionUserNamespace:     pointer.BoolPtr(true),
 				WorkspaceDefaultEditor:              "WorkspaceDefaultEditor",
@@ -413,6 +413,7 @@ func TestConvertTo(t *testing.T) {
 		Editor:  "Editor",
 		Plugins: []string{"Plugin_1,Plugin_2"},
 	}})
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.User.ClusterRoles, []string{"CheClusterRoles_1", "CheClusterRoles_2"})
 
 	assert.Equal(t, checlusterv2.Spec.Components.Dashboard.Deployment.Containers[0].Name, defaults.GetCheFlavor()+"-dashboard")
 	assert.Equal(t, checlusterv2.Spec.Components.Dashboard.Deployment.Containers[0].Image, "DashboardImage")

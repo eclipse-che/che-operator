@@ -123,6 +123,7 @@ const (
 	CheFlavor             = "che"
 	CheEclipseOrg         = "che.eclipse.org"
 	InstallOrUpdateFailed = "InstallOrUpdateFailed"
+	FinalizerSuffix       = "finalizers.che.eclipse.org"
 
 	// DevWorkspace
 	DevWorkspaceServiceAccountName = "devworkspace-controller-serviceaccount"

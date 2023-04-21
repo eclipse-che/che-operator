@@ -21,6 +21,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+func CleanUpAllFinalizers(ctx *chetypes.DeployContext) error {
+	ctx.CheCluster.Finalizers = []string{}
+	return ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
+}
+
 func AppendFinalizer(deployContext *chetypes.DeployContext, finalizer string) error {
 	if err := ReloadCheClusterCR(deployContext); err != nil {
 		return err
@@ -77,13 +82,4 @@ func DeleteObjectWithFinalizer(deployContext *chetypes.DeployContext, key client
 	}
 
 	return DeleteFinalizer(deployContext, finalizer)
-}
-
-func GetFinalizerName(prefix string) string {
-	finalizer := prefix + ".finalizers.che.eclipse.org"
-	diff := len(finalizer) - 63
-	if diff > 0 {
-		return finalizer[:len(finalizer)-diff]
-	}
-	return finalizer
 }

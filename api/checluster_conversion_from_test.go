@@ -364,6 +364,9 @@ func TestConvertFrom(t *testing.T) {
 				SecondsOfInactivityBeforeIdling:     pointer.Int32Ptr(1800),
 				SecondsOfRunBeforeIdling:            pointer.Int32Ptr(-1),
 				MaxNumberOfRunningWorkspacesPerUser: pointer.Int64Ptr(10),
+				User: &chev2.UserConfiguration{
+					ClusterRoles: []string{"ClusterRoles_1", "ClusterRoles_2"},
+				},
 			},
 			ContainerRegistry: chev2.CheClusterContainerRegistry{
 				Hostname:     "AirGapContainerRegistryHostname",
@@ -506,6 +509,7 @@ func TestConvertFrom(t *testing.T) {
 		},
 	})
 	assert.Equal(t, checlusterv1.Spec.Server.WorkspacesDefaultPlugins, []chev1.WorkspacesDefaultPlugins{{Editor: "Editor", Plugins: []string{"Plugins_1", "Plugins_2"}}})
+	assert.Equal(t, checlusterv1.Spec.Server.CheWorkspaceClusterRole, "ClusterRoles_1,ClusterRoles_2")
 
 	assert.Equal(t, checlusterv1.Spec.Storage.PvcStrategy, "PvcStrategy")
 	assert.Equal(t, checlusterv1.Spec.Storage.PvcClaimSize, "StorageClaimSize")

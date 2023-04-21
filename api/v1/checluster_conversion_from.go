@@ -108,6 +108,9 @@ func (dst *CheCluster) convertFrom_Server(src *chev2.CheCluster) error {
 	dst.Spec.Server.AirGapContainerRegistryHostname = src.Spec.ContainerRegistry.Hostname
 	dst.Spec.Server.AirGapContainerRegistryOrganization = src.Spec.ContainerRegistry.Organization
 	dst.Spec.Server.CheClusterRoles = strings.Join(src.Spec.Components.CheServer.ClusterRoles, ",")
+	if src.Spec.DevEnvironments.User != nil {
+		dst.Spec.Server.CheWorkspaceClusterRole = strings.Join(src.Spec.DevEnvironments.User.ClusterRoles, ",")
+	}
 	dst.Spec.Server.CustomCheProperties = utils.CloneMap(src.Spec.Components.CheServer.ExtraProperties)
 	if src.Spec.Components.CheServer.Debug != nil {
 		dst.Spec.Server.CheDebug = strconv.FormatBool(*src.Spec.Components.CheServer.Debug)

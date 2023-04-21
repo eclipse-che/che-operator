@@ -3938,12 +3938,13 @@ spec:
                       server.
                     properties:
                       clusterRoles:
-                        description: 'ClusterRoles assigned to Che ServiceAccount.
-                          The defaults roles are: - `<che-namespace>-cheworkspaces-namespaces-clusterrole`
-                          - `<che-namespace>-cheworkspaces-clusterrole` - `<che-namespace>-cheworkspaces-devworkspace-clusterrole`
+                        description: 'Additional ClusterRoles assigned to Che ServiceAccount.
+                          Each role must have a `app.kubernetes.io/part-of=che.eclipse.org`
+                          label. The defaults roles are: - `<che-namespace>-cheworkspaces-clusterrole`
+                          - `<che-namespace>-cheworkspaces-namespaces-clusterrole`
+                          - `<che-namespace>-cheworkspaces-devworkspace-clusterrole`
                           where the <che-namespace> is the namespace where the CheCluster
-                          CRD is created. Each role must have a `app.kubernetes.io/part-of=che.eclipse.org`
-                          label. The Che Operator must already have all permissions
+                          CR is created. The Che Operator must already have all permissions
                           in these ClusterRoles to grant them.'
                         items:
                           type: string
@@ -7050,6 +7051,17 @@ spec:
                           The ConfigMap must have a `app.kubernetes.io/part-of=che.eclipse.org`
                           label.'
                         type: string
+                    type: object
+                  user:
+                    description: User configuration.
+                    properties:
+                      clusterRoles:
+                        description: Additional ClusterRoles assigned to the user.
+                          The role must have `app.kubernetes.io/part-of=che.eclipse.org`
+                          label.
+                        items:
+                          type: string
+                        type: array
                     type: object
                 type: object
               gitServices:

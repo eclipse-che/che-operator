@@ -16,7 +16,6 @@ import (
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	corev1 "k8s.io/api/core/v1"
@@ -168,28 +167,6 @@ func TestUpdate(t *testing.T) {
 
 	if actual.Labels["a"] != "b" {
 		t.Fatalf("Object hasn't been updated")
-	}
-}
-
-func TestSyncAndAddFinalizer(t *testing.T) {
-	cli, deployContext := initDeployContext()
-
-	cli.Create(context.TODO(), deployContext.CheCluster)
-
-	// Sync object
-	done, err := SyncAndAddFinalizer(deployContext, testObj.DeepCopy(), cmp.Options{}, "test-finalizer")
-	if !done || err != nil {
-		t.Fatalf("Error syncing object: %v", err)
-	}
-
-	actual := &corev1.Secret{}
-	err = cli.Get(context.TODO(), testKey, actual)
-	if err != nil {
-		t.Fatalf("Failed to get object: %v", err)
-	}
-
-	if !utils.Contains(deployContext.CheCluster.Finalizers, "test-finalizer") {
-		t.Fatalf("Failed to add finalizer")
 	}
 }
 

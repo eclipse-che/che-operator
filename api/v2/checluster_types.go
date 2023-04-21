@@ -148,6 +148,9 @@ type CheClusterDevEnvironments struct {
 	// +kubebuilder:validation:Minimum:=-1
 	// +optional
 	MaxNumberOfRunningWorkspacesPerUser *int64 `json:"maxNumberOfRunningWorkspacesPerUser,omitempty"`
+	// User configuration.
+	// +optional
+	User *UserConfiguration `json:"user,omitempty"`
 }
 
 // Che components configuration.
@@ -246,13 +249,13 @@ type CheServer struct {
 	// +optional
 	// +kubebuilder:default:=false
 	Debug *bool `json:"debug,omitempty"`
-	// ClusterRoles assigned to Che ServiceAccount.
-	// The defaults roles are:
-	// - `<che-namespace>-cheworkspaces-namespaces-clusterrole`
-	// - `<che-namespace>-cheworkspaces-clusterrole`
-	// - `<che-namespace>-cheworkspaces-devworkspace-clusterrole`
-	// where the <che-namespace> is the namespace where the CheCluster CRD is created.
+	// Additional ClusterRoles assigned to Che ServiceAccount.
 	// Each role must have a `app.kubernetes.io/part-of=che.eclipse.org` label.
+	// The defaults roles are:
+	// - `<che-namespace>-cheworkspaces-clusterrole`
+	// - `<che-namespace>-cheworkspaces-namespaces-clusterrole`
+	// - `<che-namespace>-cheworkspaces-devworkspace-clusterrole`
+	// where the <che-namespace> is the namespace where the CheCluster CR is created.
 	// The Che Operator must already have all permissions in these ClusterRoles to grant them.
 	// +optional
 	ClusterRoles []string `json:"clusterRoles,omitempty"`
@@ -409,6 +412,13 @@ type TrustedCerts struct {
 	// The ConfigMap must have a `app.kubernetes.io/part-of=che.eclipse.org` label.
 	// +optional
 	GitTrustedCertsConfigMapName string `json:"gitTrustedCertsConfigMapName,omitempty"`
+}
+
+type UserConfiguration struct {
+	// Additional ClusterRoles assigned to the user.
+	// The role must have `app.kubernetes.io/part-of=che.eclipse.org` label.
+	// +optional
+	ClusterRoles []string `json:"clusterRoles,omitempty"`
 }
 
 // Configuration settings related to the workspaces persistent storage.

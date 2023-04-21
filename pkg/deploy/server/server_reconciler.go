@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2021 Red Hat, Inc.
+// Copyright (c) 2019-2023 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -14,12 +14,18 @@ package server
 import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+)
+
+const (
+	crb                   = ".crb."
+	cheCRBFinalizerSuffix = crb + constants.FinalizerSuffix
 )
 
 type CheServerReconciler struct {
@@ -40,6 +46,14 @@ func (s *CheServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 	// the version of the object is used in the deployment
 	exists, err := deploy.GetNamespacedObject(ctx, CheConfigMapName, &corev1.ConfigMap{})
 	if !exists {
+		return reconcile.Result{}, false, err
+	}
+
+	if done, err := deploy.SyncServiceAccountToCluster(ctx, constants.DefaultCheServiceAccountName); !done {
+		return reconcile.Result{}, false, err
+	}
+
+	if done, err := s.syncPermissions(ctx); !done {
 		return reconcile.Result{}, false, err
 	}
 
@@ -66,8 +80,8 @@ func (s *CheServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 	return reconcile.Result{}, true, nil
 }
 
-func (s *CheServerReconciler) Finalize(ctx *chetypes.DeployContext) bool {
-	return true
+func (c *CheServerReconciler) Finalize(ctx *chetypes.DeployContext) bool {
+	return c.deletePermissions(ctx)
 }
 
 func (s *CheServerReconciler) syncCheConfigMap(ctx *chetypes.DeployContext) (bool, error) {
@@ -115,6 +129,15 @@ func (s *CheServerReconciler) syncActiveChePhase(ctx *chetypes.DeployContext) (b
 	return true, nil
 }
 
+func (s *CheServerReconciler) getCRBFinalizerName(crbName string) string {
+	finalizer := crbName + cheCRBFinalizerSuffix
+	diff := len(finalizer) - 63
+	if diff > 0 {
+		return finalizer[:len(finalizer)-diff]
+	}
+	return finalizer
+}
+
 func (s *CheServerReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
 	spec, err := s.getDeploymentSpec(ctx)
 	if err != nil {
@@ -133,6 +156,7 @@ func (s CheServerReconciler) syncCheVersion(ctx *chetypes.DeployContext) (bool, 
 	}
 	return true, nil
 }
+
 func (s CheServerReconciler) syncCheURL(ctx *chetypes.DeployContext) (bool, error) {
 	var cheUrl = "https://" + ctx.CheHost
 	if ctx.CheCluster.Status.CheURL != cheUrl {

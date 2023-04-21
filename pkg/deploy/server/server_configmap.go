@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2021 Red Hat, Inc.
+// Copyright (c) 2019-2023 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -35,57 +35,42 @@ const (
 	CheConfigMapName = "che"
 )
 
-func addMap(a map[string]string, b map[string]string) {
-	for k, v := range b {
-		a[k] = v
-	}
-}
-
 type CheConfigMap struct {
-	CheHost                                string `json:"CHE_HOST"`
-	CheMultiUser                           string `json:"CHE_MULTIUSER"`
-	ChePort                                string `json:"CHE_PORT"`
-	CheApi                                 string `json:"CHE_API"`
-	CheApiInternal                         string `json:"CHE_API_INTERNAL"`
-	CheWebSocketEndpoint                   string `json:"CHE_WEBSOCKET_ENDPOINT"`
-	CheWebSocketInternalEndpoint           string `json:"CHE_WEBSOCKET_INTERNAL_ENDPOINT"`
-	CheDebugServer                         string `json:"CHE_DEBUG_SERVER"`
-	CheMetricsEnabled                      string `json:"CHE_METRICS_ENABLED"`
-	CheInfrastructureActive                string `json:"CHE_INFRASTRUCTURE_ACTIVE"`
-	CheInfraKubernetesServiceAccountName   string `json:"CHE_INFRA_KUBERNETES_SERVICE__ACCOUNT__NAME"`
-	CheInfraKubernetesUserClusterRoles     string `json:"CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"`
-	DefaultTargetNamespace                 string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"`
-	NamespaceCreationAllowed               string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_CREATION__ALLOWED"`
-	PvcStrategy                            string `json:"CHE_INFRA_KUBERNETES_PVC_STRATEGY"`
-	PvcClaimSize                           string `json:"CHE_INFRA_KUBERNETES_PVC_QUANTITY"`
-	WorkspacePvcStorageClassName           string `json:"CHE_INFRA_KUBERNETES_PVC_STORAGE__CLASS__NAME"`
-	TlsSupport                             string `json:"CHE_INFRA_OPENSHIFT_TLS__ENABLED"`
-	K8STrustCerts                          string `json:"CHE_INFRA_KUBERNETES_TRUST__CERTS"`
-	CheLogLevel                            string `json:"CHE_LOG_LEVEL"`
-	IdentityProviderUrl                    string `json:"CHE_OIDC_AUTH__SERVER__URL,omitempty"`
-	IdentityProviderInternalURL            string `json:"CHE_OIDC_AUTH__INTERNAL__SERVER__URL,omitempty"`
-	OpenShiftIdentityProvider              string `json:"CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"`
-	JavaOpts                               string `json:"JAVA_OPTS"`
-	WorkspaceJavaOpts                      string `json:"CHE_WORKSPACE_JAVA__OPTIONS"`
-	WorkspaceMavenOpts                     string `json:"CHE_WORKSPACE_MAVEN__OPTIONS"`
-	WorkspaceProxyJavaOpts                 string `json:"CHE_WORKSPACE_HTTP__PROXY__JAVA__OPTIONS"`
-	WorkspaceHttpProxy                     string `json:"CHE_WORKSPACE_HTTP__PROXY"`
-	WorkspaceHttpsProxy                    string `json:"CHE_WORKSPACE_HTTPS__PROXY"`
-	WorkspaceNoProxy                       string `json:"CHE_WORKSPACE_NO__PROXY"`
-	PluginRegistryUrl                      string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__URL,omitempty"`
-	PluginRegistryInternalUrl              string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL,omitempty"`
-	DevfileRegistryUrl                     string `json:"CHE_WORKSPACE_DEVFILE__REGISTRY__URL,omitempty"`
-	DevfileRegistryInternalUrl             string `json:"CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL,omitempty"`
-	CheWorkspacePluginBrokerMetadataImage  string `json:"CHE_WORKSPACE_PLUGIN__BROKER_METADATA_IMAGE,omitempty"`
-	CheWorkspacePluginBrokerArtifactsImage string `json:"CHE_WORKSPACE_PLUGIN__BROKER_ARTIFACTS_IMAGE,omitempty"`
-	CheServerSecureExposerJwtProxyImage    string `json:"CHE_SERVER_SECURE__EXPOSER_JWTPROXY_IMAGE,omitempty"`
-	CheJGroupsKubernetesLabels             string `json:"KUBERNETES_LABELS,omitempty"`
-	CheTrustedCABundlesConfigMap           string `json:"CHE_TRUSTED__CA__BUNDLES__CONFIGMAP,omitempty"`
-	ServerStrategy                         string `json:"CHE_INFRA_KUBERNETES_SERVER__STRATEGY"`
-	WorkspaceExposure                      string `json:"CHE_INFRA_KUBERNETES_SINGLEHOST_WORKSPACE_EXPOSURE"`
-	SingleHostGatewayConfigMapLabels       string `json:"CHE_INFRA_KUBERNETES_SINGLEHOST_GATEWAY_CONFIGMAP__LABELS"`
-	CheDevWorkspacesEnabled                string `json:"CHE_DEVWORKSPACES_ENABLED"`
-	Http2Disable                           string `json:"HTTP2_DISABLE"`
+	CheHost                              string `json:"CHE_HOST"`
+	CheMultiUser                         string `json:"CHE_MULTIUSER"`
+	ChePort                              string `json:"CHE_PORT"`
+	CheApi                               string `json:"CHE_API"`
+	CheApiInternal                       string `json:"CHE_API_INTERNAL"`
+	CheWebSocketEndpoint                 string `json:"CHE_WEBSOCKET_ENDPOINT"`
+	CheWebSocketInternalEndpoint         string `json:"CHE_WEBSOCKET_INTERNAL_ENDPOINT"`
+	CheDebugServer                       string `json:"CHE_DEBUG_SERVER"`
+	CheMetricsEnabled                    string `json:"CHE_METRICS_ENABLED"`
+	CheInfrastructureActive              string `json:"CHE_INFRASTRUCTURE_ACTIVE"`
+	CheInfraKubernetesServiceAccountName string `json:"CHE_INFRA_KUBERNETES_SERVICE__ACCOUNT__NAME"`
+	CheInfraKubernetesUserClusterRoles   string `json:"CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"`
+	DefaultTargetNamespace               string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"`
+	NamespaceCreationAllowed             string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_CREATION__ALLOWED"`
+	PvcStrategy                          string `json:"CHE_INFRA_KUBERNETES_PVC_STRATEGY"`
+	PvcClaimSize                         string `json:"CHE_INFRA_KUBERNETES_PVC_QUANTITY"`
+	WorkspacePvcStorageClassName         string `json:"CHE_INFRA_KUBERNETES_PVC_STORAGE__CLASS__NAME"`
+	TlsSupport                           string `json:"CHE_INFRA_OPENSHIFT_TLS__ENABLED"`
+	K8STrustCerts                        string `json:"CHE_INFRA_KUBERNETES_TRUST__CERTS"`
+	CheLogLevel                          string `json:"CHE_LOG_LEVEL"`
+	IdentityProviderUrl                  string `json:"CHE_OIDC_AUTH__SERVER__URL,omitempty"`
+	IdentityProviderInternalURL          string `json:"CHE_OIDC_AUTH__INTERNAL__SERVER__URL,omitempty"`
+	OpenShiftIdentityProvider            string `json:"CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"`
+	JavaOpts                             string `json:"JAVA_OPTS"`
+	PluginRegistryUrl                    string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__URL,omitempty"`
+	PluginRegistryInternalUrl            string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL,omitempty"`
+	DevfileRegistryUrl                   string `json:"CHE_WORKSPACE_DEVFILE__REGISTRY__URL,omitempty"`
+	DevfileRegistryInternalUrl           string `json:"CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL,omitempty"`
+	CheJGroupsKubernetesLabels           string `json:"KUBERNETES_LABELS,omitempty"`
+	CheTrustedCABundlesConfigMap         string `json:"CHE_TRUSTED__CA__BUNDLES__CONFIGMAP,omitempty"`
+	ServerStrategy                       string `json:"CHE_INFRA_KUBERNETES_SERVER__STRATEGY"`
+	WorkspaceExposure                    string `json:"CHE_INFRA_KUBERNETES_SINGLEHOST_WORKSPACE_EXPOSURE"`
+	SingleHostGatewayConfigMapLabels     string `json:"CHE_INFRA_KUBERNETES_SINGLEHOST_GATEWAY_CONFIGMAP__LABELS"`
+	CheDevWorkspacesEnabled              string `json:"CHE_DEVWORKSPACES_ENABLED"`
+	Http2Disable                         string `json:"HTTP2_DISABLE"`
 }
 
 // GetCheConfigMapData gets env values from CR spec and returns a map with key:value
@@ -187,47 +172,36 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 	webSocketInternalEndpoint := fmt.Sprintf("ws://%s.%s.svc:8080/api/websocket", deploy.CheServiceName, ctx.CheCluster.Namespace)
 	webSocketEndpoint := "wss://" + ctx.CheHost + "/api/websocket"
 	cheWorkspaceServiceAccount := "NULL"
-	cheUserClusterRoleNames := fmt.Sprintf("%s-cheworkspaces-clusterrole, %s-cheworkspaces-devworkspace-clusterrole", ctx.CheCluster.Namespace, ctx.CheCluster.Namespace)
 
 	data := &CheConfigMap{
-		CheMultiUser:                           "true",
-		CheHost:                                ctx.CheHost,
-		ChePort:                                "8080",
-		CheApi:                                 cheAPI,
-		CheApiInternal:                         cheInternalAPI,
-		CheWebSocketEndpoint:                   webSocketEndpoint,
-		CheWebSocketInternalEndpoint:           webSocketInternalEndpoint,
-		CheDebugServer:                         cheDebug,
-		CheInfrastructureActive:                infra,
-		CheInfraKubernetesServiceAccountName:   cheWorkspaceServiceAccount,
-		CheInfraKubernetesUserClusterRoles:     cheUserClusterRoleNames,
-		DefaultTargetNamespace:                 workspaceNamespaceDefault,
-		NamespaceCreationAllowed:               namespaceCreationAllowed,
-		TlsSupport:                             "true",
-		K8STrustCerts:                          "true",
-		CheLogLevel:                            cheLogLevel,
-		OpenShiftIdentityProvider:              openShiftIdentityProviderId,
-		JavaOpts:                               constants.DefaultJavaOpts + " " + proxyJavaOpts,
-		WorkspaceJavaOpts:                      constants.DefaultWorkspaceJavaOpts + " " + proxyJavaOpts,
-		WorkspaceMavenOpts:                     constants.DefaultWorkspaceJavaOpts + " " + proxyJavaOpts,
-		WorkspaceProxyJavaOpts:                 proxyJavaOpts,
-		WorkspaceHttpProxy:                     ctx.Proxy.HttpProxy,
-		WorkspaceHttpsProxy:                    ctx.Proxy.HttpsProxy,
-		WorkspaceNoProxy:                       cheWorkspaceNoProxy,
-		PluginRegistryUrl:                      pluginRegistryURL,
-		PluginRegistryInternalUrl:              pluginRegistryInternalURL,
-		DevfileRegistryUrl:                     devfileRegistryURL,
-		DevfileRegistryInternalUrl:             devfileRegistryInternalURL,
-		CheWorkspacePluginBrokerMetadataImage:  defaults.GetCheWorkspacePluginBrokerMetadataImage(ctx.CheCluster),
-		CheWorkspacePluginBrokerArtifactsImage: defaults.GetCheWorkspacePluginBrokerArtifactsImage(ctx.CheCluster),
-		CheServerSecureExposerJwtProxyImage:    defaults.GetCheServerSecureExposerJwtProxyImage(ctx.CheCluster),
-		CheJGroupsKubernetesLabels:             cheLabels,
-		CheMetricsEnabled:                      cheMetrics,
-		CheTrustedCABundlesConfigMap:           deploytls.CheAllCACertsConfigMapName,
-		ServerStrategy:                         "single-host",
-		WorkspaceExposure:                      "gateway",
-		SingleHostGatewayConfigMapLabels:       singleHostGatewayConfigMapLabels,
-		CheDevWorkspacesEnabled:                strconv.FormatBool(true),
+		CheMultiUser:                         "true",
+		CheHost:                              ctx.CheHost,
+		ChePort:                              "8080",
+		CheApi:                               cheAPI,
+		CheApiInternal:                       cheInternalAPI,
+		CheWebSocketEndpoint:                 webSocketEndpoint,
+		CheWebSocketInternalEndpoint:         webSocketInternalEndpoint,
+		CheDebugServer:                       cheDebug,
+		CheInfrastructureActive:              infra,
+		CheInfraKubernetesServiceAccountName: cheWorkspaceServiceAccount,
+		DefaultTargetNamespace:               workspaceNamespaceDefault,
+		NamespaceCreationAllowed:             namespaceCreationAllowed,
+		TlsSupport:                           "true",
+		K8STrustCerts:                        "true",
+		CheLogLevel:                          cheLogLevel,
+		OpenShiftIdentityProvider:            openShiftIdentityProviderId,
+		JavaOpts:                             constants.DefaultJavaOpts + " " + proxyJavaOpts,
+		PluginRegistryUrl:                    pluginRegistryURL,
+		PluginRegistryInternalUrl:            pluginRegistryInternalURL,
+		DevfileRegistryUrl:                   devfileRegistryURL,
+		DevfileRegistryInternalUrl:           devfileRegistryInternalURL,
+		CheJGroupsKubernetesLabels:           cheLabels,
+		CheMetricsEnabled:                    cheMetrics,
+		CheTrustedCABundlesConfigMap:         deploytls.CheAllCACertsConfigMapName,
+		ServerStrategy:                       "single-host",
+		WorkspaceExposure:                    "gateway",
+		SingleHostGatewayConfigMapLabels:     singleHostGatewayConfigMapLabels,
+		CheDevWorkspacesEnabled:              strconv.FormatBool(true),
 		// Disable HTTP2 protocol.
 		// Fix issue with creating config maps on the cluster https://issues.redhat.com/browse/CRW-2677
 		// The root cause is in the HTTP2 protocol support of the okttp3 library that is used by fabric8.kubernetes-client that is used by che-server
@@ -255,7 +229,7 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 			"CHE_INFRA_KUBERNETES_INGRESS_PATH__TRANSFORM":             "%s(.*)",
 		}
 		k8sCheEnv["CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S"] = "true"
-		addMap(cheEnv, k8sCheEnv)
+		utils.AddMap(cheEnv, k8sCheEnv)
 	}
 
 	// Add TLS key and server certificate to properties since user workspaces is created in another
@@ -280,10 +254,12 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 		}
 	}
 
-	addMap(cheEnv, ctx.CheCluster.Spec.Components.CheServer.ExtraProperties)
+	utils.AddMap(cheEnv, ctx.CheCluster.Spec.Components.CheServer.ExtraProperties)
+
+	s.updateUserClusterRoles(ctx, cheEnv)
 
 	for _, oauthProvider := range []string{"bitbucket", "gitlab", "github", constants.AzureDevOpsOAuth} {
-		err := updateIntegrationServerEndpoints(ctx, cheEnv, oauthProvider)
+		err := s.updateIntegrationServerEndpoints(ctx, cheEnv, oauthProvider)
 		if err != nil {
 			return nil, err
 		}
@@ -292,7 +268,7 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 	return cheEnv, nil
 }
 
-func updateIntegrationServerEndpoints(ctx *chetypes.DeployContext, cheEnv map[string]string, oauthProvider string) error {
+func (s *CheServerReconciler) updateIntegrationServerEndpoints(ctx *chetypes.DeployContext, cheEnv map[string]string, oauthProvider string) error {
 	secret, err := getOAuthConfig(ctx, oauthProvider)
 	if secret == nil {
 		return err
@@ -318,4 +294,26 @@ func GetCheConfigMapVersion(deployContext *chetypes.DeployContext) string {
 		return cheConfigMap.ResourceVersion
 	}
 	return ""
+}
+
+func (s *CheServerReconciler) updateUserClusterRoles(ctx *chetypes.DeployContext, cheEnv map[string]string) {
+	userClusterRoles := strings.Join(s.getUserClusterRoles(ctx), ", ")
+
+	for _, role := range strings.Split(cheEnv["CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"], ",") {
+		role := strings.TrimSpace(role)
+		if !strings.Contains(userClusterRoles, role) {
+			userClusterRoles = userClusterRoles + ", " + role
+		}
+	}
+
+	if ctx.CheCluster.Spec.DevEnvironments.User != nil {
+		for _, role := range ctx.CheCluster.Spec.DevEnvironments.User.ClusterRoles {
+			role := strings.TrimSpace(role)
+			if !strings.Contains(userClusterRoles, role) {
+				userClusterRoles = userClusterRoles + ", " + role
+			}
+		}
+	}
+
+	cheEnv["CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"] = userClusterRoles
 }

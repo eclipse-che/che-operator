@@ -24,31 +24,43 @@ import (
 
 type TestReconcilable struct {
 	shouldFailReconcileOnce bool
-	alreadyFailed           bool
+	shouldFailFinalizerOnce bool
+	alreadyFailedReconcile  bool
+	alreadyFailedFinalizer  bool
 }
 
-func NewTestReconcilable(shouldFailReconcileOnce bool) *TestReconcilable {
-	return &TestReconcilable{shouldFailReconcileOnce, false}
+func NewTestReconcilable(shouldFailReconcileOnce bool, shouldFailFinalizerOnce bool) *TestReconcilable {
+	return &TestReconcilable{
+		shouldFailReconcileOnce,
+		shouldFailFinalizerOnce,
+		false,
+		false}
 }
 
 func (tr *TestReconcilable) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	// Fails on first invocation passes on others
-	if !tr.alreadyFailed && tr.shouldFailReconcileOnce {
-		tr.alreadyFailed = true
-		return reconcile.Result{}, false, fmt.Errorf("Reconcile error")
+	if !tr.alreadyFailedReconcile && tr.shouldFailReconcileOnce {
+		tr.alreadyFailedReconcile = true
+		return reconcile.Result{}, false, fmt.Errorf("reconcile error")
 	} else {
 		return reconcile.Result{}, true, nil
 	}
 }
 
 func (tr *TestReconcilable) Finalize(ctx *chetypes.DeployContext) bool {
-	return true
+	// Fails on first invocation passes on others
+	if !tr.alreadyFailedFinalizer && tr.shouldFailFinalizerOnce {
+		tr.alreadyFailedFinalizer = true
+		return false
+	} else {
+		return true
+	}
 }
 
 func TestShouldUpdateAndCleanStatus(t *testing.T) {
 	deployContext := test.GetDeployContext(nil, []runtime.Object{})
 
-	tr := NewTestReconcilable(true)
+	tr := NewTestReconcilable(true, false)
 
 	rm := NewReconcileManager()
 	rm.RegisterReconciler(tr)
@@ -58,7 +70,7 @@ func TestShouldUpdateAndCleanStatus(t *testing.T) {
 	assert.False(t, done)
 	assert.NotNil(t, err)
 	assert.NotEmpty(t, deployContext.CheCluster.Status.Reason)
-	assert.Equal(t, "Reconciler failed deploy.TestReconcilable, cause: Reconcile error", deployContext.CheCluster.Status.Message)
+	assert.Equal(t, "Reconciler failed deploy.TestReconcilable, cause: reconcile error", deployContext.CheCluster.Status.Message)
 	assert.Equal(t, tr, rm.failedReconciler)
 
 	_, done, err = rm.ReconcileAll(deployContext)
@@ -68,4 +80,40 @@ func TestShouldUpdateAndCleanStatus(t *testing.T) {
 	assert.Empty(t, deployContext.CheCluster.Status.Reason)
 	assert.Empty(t, deployContext.CheCluster.Status.Message)
 	assert.Nil(t, rm.failedReconciler)
+}
+
+func TestShouldCleanUpAllFinalizers(t *testing.T) {
+	ctx := test.GetDeployContext(nil, []runtime.Object{})
+
+	rm := NewReconcileManager()
+	rm.RegisterReconciler(NewTestReconcilable(false, false))
+
+	_, done, err := rm.ReconcileAll(ctx)
+	assert.True(t, done)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(ctx.CheCluster.Finalizers))
+
+	done = rm.FinalizeAll(ctx)
+	assert.True(t, done)
+	assert.Empty(t, ctx.CheCluster.Finalizers)
+}
+
+func TestShouldNotCleanUpAllFinalizersIfFailure(t *testing.T) {
+	ctx := test.GetDeployContext(nil, []runtime.Object{})
+
+	rm := NewReconcileManager()
+	rm.RegisterReconciler(NewTestReconcilable(false, true))
+
+	_, done, err := rm.ReconcileAll(ctx)
+	assert.True(t, done)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(ctx.CheCluster.Finalizers))
+
+	done = rm.FinalizeAll(ctx)
+	assert.False(t, done)
+	assert.Equal(t, 1, len(ctx.CheCluster.Finalizers))
+
+	done = rm.FinalizeAll(ctx)
+	assert.True(t, done)
+	assert.Empty(t, ctx.CheCluster.Finalizers)
 }

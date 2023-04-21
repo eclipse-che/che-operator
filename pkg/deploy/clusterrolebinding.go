@@ -12,8 +12,6 @@
 package deploy
 
 import (
-	"strings"
-
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -21,7 +19,6 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	rbac "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 var ClusterRoleBindingDiffOpts = cmp.Options{
@@ -36,39 +33,6 @@ func SyncClusterRoleBindingToCluster(
 
 	crbSpec := getClusterRoleBindingSpec(deployContext, name, serviceAccountName, deployContext.CheCluster.Namespace, clusterRoleName)
 	return Sync(deployContext, crbSpec, ClusterRoleBindingDiffOpts)
-}
-
-func SyncClusterRoleBindingAndAddFinalizerToCluster(
-	deployContext *chetypes.DeployContext,
-	name string,
-	serviceAccountName string,
-	clusterRoleName string) (bool, error) {
-
-	finalizer := GetFinalizerName(strings.ToLower(name) + ".crb")
-	crbSpec := getClusterRoleBindingSpec(deployContext, name, serviceAccountName, deployContext.CheCluster.Namespace, clusterRoleName)
-	return SyncAndAddFinalizer(deployContext, crbSpec, ClusterRoleBindingDiffOpts, finalizer)
-}
-
-func ReconcileClusterRoleBindingFinalizer(deployContext *chetypes.DeployContext, name string) error {
-	if deployContext.CheCluster.DeletionTimestamp.IsZero() {
-		return nil
-	}
-
-	finalizer := GetFinalizerName(strings.ToLower(name) + ".crb")
-	return DeleteObjectWithFinalizer(deployContext, types.NamespacedName{Name: name}, &rbac.ClusterRoleBinding{}, finalizer)
-}
-
-func GetLegacyUniqueClusterRoleBindingName(deployContext *chetypes.DeployContext, serviceAccount string, clusterRole string) string {
-	return deployContext.CheCluster.Namespace + "-" + serviceAccount + "-" + clusterRole
-}
-
-func ReconcileLegacyClusterRoleBindingFinalizer(deployContext *chetypes.DeployContext, name string) error {
-	if deployContext.CheCluster.DeletionTimestamp.IsZero() {
-		return nil
-	}
-
-	finalizer := strings.ToLower(name) + ".clusterrolebinding.finalizers.che.eclipse.org"
-	return DeleteObjectWithFinalizer(deployContext, types.NamespacedName{Name: name}, &rbac.ClusterRoleBinding{}, finalizer)
 }
 
 func getClusterRoleBindingSpec(
