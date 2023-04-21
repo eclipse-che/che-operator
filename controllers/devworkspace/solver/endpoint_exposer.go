@@ -142,7 +142,7 @@ func (e *IngressExposer) initFrom(ctx context.Context, cl client.Client, cluster
 	return nil
 }
 
-func (e *RouteExposer) getRouteForService(endpoint *EndpointInfo) routev1.Route {
+func (e *RouteExposer) getRouteForService(endpoint *EndpointInfo, username string, dwName string) routev1.Route {
 	targetEndpoint := intstr.FromInt(int(endpoint.port))
 	labels := labels.Merge(
 		e.labels,
@@ -159,7 +159,7 @@ func (e *RouteExposer) getRouteForService(endpoint *EndpointInfo) routev1.Route 
 			OwnerReferences: endpoint.service.OwnerReferences,
 		},
 		Spec: routev1.RouteSpec{
-			Host: hostName(endpoint.order, e.devWorkspaceID, e.baseDomain),
+			Host: hostName(username, dwName, endpoint.endpointName, e.baseDomain),
 			To: routev1.RouteTargetReference{
 				Kind: "Service",
 				Name: endpoint.service.Name,
@@ -185,8 +185,8 @@ func (e *RouteExposer) getRouteForService(endpoint *EndpointInfo) routev1.Route 
 	return route
 }
 
-func (e *IngressExposer) getIngressForService(endpoint *EndpointInfo) networkingv1.Ingress {
-	hostname := hostName(endpoint.order, e.devWorkspaceID, e.baseDomain)
+func (e *IngressExposer) getIngressForService(endpoint *EndpointInfo, username string, dwName string) networkingv1.Ingress {
+	hostname := hostName(username, dwName, endpoint.endpointName, e.baseDomain)
 	ingressPathType := networkingv1.PathTypeImplementationSpecific
 
 	ingress := networkingv1.Ingress{
@@ -239,8 +239,8 @@ func (e *IngressExposer) getIngressForService(endpoint *EndpointInfo) networking
 	return ingress
 }
 
-func hostName(order int, workspaceID string, baseDomain string) string {
-	return fmt.Sprintf("%s-%d.%s", workspaceID, order, baseDomain)
+func hostName(username string, workspaceName string, endpointName string, baseDomain string) string {
+	return fmt.Sprintf("%s.%s.%s.%s", username, workspaceName, endpointName, baseDomain)
 }
 
 func routeAnnotations(machineName string, endpointName string) map[string]string {
