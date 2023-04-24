@@ -130,6 +130,8 @@ func GetIngressSpec(
 	if ingressClassName == "" {
 		ingressClassName = annotations["kubernetes.io/ingress.class"]
 	}
+	// annotations `kubernetes.io/ingress.class` can not be set when the class field is also set
+	delete(annotations, "kubernetes.io/ingress.class")
 
 	ingress := &networking.Ingress{
 		TypeMeta: metav1.TypeMeta{

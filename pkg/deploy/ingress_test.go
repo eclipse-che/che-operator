@@ -132,8 +132,7 @@ func TestIngressSpec(t *testing.T) {
 					},
 					Annotations: map[string]string{
 						"che.eclipse.org/managed-annotations-digest": "0000",
-						"annotation-key":              "annotation-value",
-						"kubernetes.io/ingress.class": "nginx",
+						"annotation-key": "annotation-value",
 					},
 				},
 				TypeMeta: metav1.TypeMeta{
