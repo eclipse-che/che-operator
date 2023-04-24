@@ -214,6 +214,10 @@ type CheClusterSpecNetworking struct {
 	// The secret must have a `app.kubernetes.io/part-of=che.eclipse.org` label.
 	// +optional
 	TlsSecretName string `json:"tlsSecretName,omitempty"`
+	// IngressClassName is the name of an IngressClass cluster resource.
+	// If a class name is defined in both the `IngressClassName` field and the `kubernetes.io/ingress.class` annotation,
+	// `IngressClassName` field takes precedence.
+	IngressClassName string `json:"ingressClassName,omitempty"`
 	// Authentication settings.
 	// +optional
 	// +kubebuilder:default:={gateway: {configLabels: {app: che, component: che-gateway-config}}}
