@@ -484,7 +484,7 @@ func provisionMainWorkspaceRoute(cheCluster *chev2.CheCluster, routing *dwo.DevW
 	// authorize against kube-rbac-proxy in che-gateway. This will be needed for k8s native auth as well.
 	cfg.AddAuth(dwId, "http://127.0.0.1:8089?namespace="+dwNamespace)
 
-	add5XXErrorHandling(cfg, dwId)
+	addErrorHandling(cfg, dwId)
 
 	// make '/healthz' path of main endpoints reachable from outside
 	routeForHealthzEndpoint(cfg, dwId, routing.Spec.Endpoints)
@@ -507,17 +507,17 @@ func provisionMainWorkspaceRoute(cheCluster *chev2.CheCluster, routing *dwo.DevW
 	}
 }
 
-// add5XXErrorHandling adds traefik middlewares to the traefik config such that
-// when a connection cannot be established with the workspace service (causing a 5XX error code), traefik
+// addErrorHandling adds traefik middlewares to the traefik config such that
+// when a connection cannot be established with the workspace service (causing a 404 or 5XX error code), traefik
 // routes the request to the dashboard service instead.
-func add5XXErrorHandling(cfg *gateway.TraefikConfig, dwId string) {
+func addErrorHandling(cfg *gateway.TraefikConfig, dwId string) {
 	// revalidate cache to prevent case where redirect to dashboard after trying to restart an idled workspace
 	noCacheHeader := map[string]string{"cache-control": "no-store, max-age=0"}
 	cfg.AddResponseHeaders(dwId, noCacheHeader)
 
 	// dashboard service name must match Traefik dashboard service name
 	dashboardServiceName := defaults.GetCheFlavor() + "-dashboard"
-	cfg.AddErrors(dwId, "500-599", dashboardServiceName, "/")
+	cfg.AddErrors(dwId, "404,500-599", dashboardServiceName, "/")
 
 	// If a connection cannot be established with the workspace service within the `DialTimeout`, traefik
 	// will retry the connection with an exponential backoff

@@ -93,7 +93,7 @@ func TestAddOpenShiftTokenCheck(t *testing.T) {
 }
 
 func TestAddErrors(t *testing.T) {
-	status := "500-599"
+	status := "404,500-599"
 	service := "service"
 	query := "/"
 
