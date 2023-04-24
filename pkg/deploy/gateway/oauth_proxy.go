@@ -78,7 +78,7 @@ upstreams = [
 ]
 client_id = "%s"
 client_secret = "%s"
-scope = "user:info"
+scope = "user:full"
 openshift_service_account = "%s"
 cookie_secret = "%s"
 cookie_expire = "24h0m0s"
