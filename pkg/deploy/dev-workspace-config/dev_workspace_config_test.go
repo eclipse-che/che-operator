@@ -91,7 +91,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					},
 				},
 			},
-			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{Workspace: &controllerv1alpha1.WorkspaceConfig{}},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{Workspace: &controllerv1alpha1.WorkspaceConfig{DeploymentStrategy: "Recreate"}},
 		},
 		{
 			name: "Create DevWorkspaceOperatorConfig with ephemeral strategy",
@@ -117,7 +117,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					},
 				},
 			},
-			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{Workspace: &controllerv1alpha1.WorkspaceConfig{}},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{Workspace: &controllerv1alpha1.WorkspaceConfig{DeploymentStrategy: "Recreate"}},
 		},
 		{
 			name: "Create DevWorkspaceOperatorConfig with StorageClassName only",
@@ -140,7 +140,8 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					StorageClassName: pointer.StringPtr("test-storage"),
+					StorageClassName:   pointer.StringPtr("test-storage"),
+					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
@@ -170,6 +171,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						Common: &quantity15Gi,
 					},
+					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
@@ -199,6 +201,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						PerWorkspace: &quantity15Gi,
 					},
+					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
@@ -248,6 +251,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						PerWorkspace: &quantity15Gi,
 					},
+					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
@@ -297,6 +301,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						Common: &quantity15Gi,
 					},
+					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
@@ -350,6 +355,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						Common: &quantity15Gi,
 					},
+					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
@@ -367,7 +373,9 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
-				Workspace: &controllerv1alpha1.WorkspaceConfig{},
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					DeploymentStrategy: "Recreate",
+				},
 			},
 		},
 		{
@@ -394,6 +402,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 						},
 						AllowPrivilegeEscalation: pointer.BoolPtr(true),
 					},
+					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
@@ -445,6 +454,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 						},
 						AllowPrivilegeEscalation: pointer.BoolPtr(true),
 					},
+					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
@@ -478,6 +488,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 								Common: &quantity10Gi,
 							},
 							ContainerSecurityContext: &corev1.SecurityContext{},
+							DeploymentStrategy:       "Recreate",
 						},
 					},
 				},
@@ -488,6 +499,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						Common: &quantity10Gi,
 					},
+					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
@@ -507,7 +519,8 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					ProgressTimeout: "600s",
+					ProgressTimeout:    "600s",
+					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
@@ -551,7 +564,8 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						Common: &quantity10Gi,
 					},
-					ProgressTimeout: "600s",
+					ProgressTimeout:    "600s",
+					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
@@ -596,7 +610,8 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						Common: &quantity10Gi,
 					},
-					ProgressTimeout: "420s",
+					ProgressTimeout:    "420s",
+					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
@@ -640,6 +655,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						Common: &quantity10Gi,
 					},
+					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
@@ -703,6 +719,7 @@ func TestReconcileServiceAccountConfig(t *testing.T) {
 						ServiceAccountName: "service-account",
 						DisableCreation:    pointer.BoolPtr(false),
 					},
+					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
@@ -728,6 +745,7 @@ func TestReconcileServiceAccountConfig(t *testing.T) {
 						ServiceAccountName: "service-account",
 						DisableCreation:    pointer.BoolPtr(true),
 					},
+					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
@@ -747,6 +765,7 @@ func TestReconcileServiceAccountConfig(t *testing.T) {
 					ServiceAccount: &controllerv1alpha1.ServiceAccountConfig{
 						DisableCreation: pointer.BoolPtr(false),
 					},
+					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
@@ -770,6 +789,7 @@ func TestReconcileServiceAccountConfig(t *testing.T) {
 					ServiceAccount: &controllerv1alpha1.ServiceAccountConfig{
 						DisableCreation: pointer.BoolPtr(false),
 					},
+					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
@@ -817,7 +837,8 @@ func TestReconcileDevWorkspaceConfigPodSchedulerName(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					SchedulerName: "test-scheduler",
+					SchedulerName:      "test-scheduler",
+					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
@@ -848,7 +869,8 @@ func TestReconcileDevWorkspaceConfigPodSchedulerName(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					SchedulerName: "test-scheduler",
+					SchedulerName:      "test-scheduler",
+					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
@@ -884,7 +906,8 @@ func TestReconcileDevWorkspaceConfigPodSchedulerName(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					SchedulerName: "test-scheduler",
+					SchedulerName:      "test-scheduler",
+					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
@@ -919,7 +942,9 @@ func TestReconcileDevWorkspaceConfigPodSchedulerName(t *testing.T) {
 				},
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
-				Workspace: &controllerv1alpha1.WorkspaceConfig{},
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					DeploymentStrategy: "Recreate",
+				},
 			},
 		},
 	}
@@ -993,6 +1018,7 @@ func TestReconcileDevWorkspaceConfigServiceAccountTokens(t *testing.T) {
 								ExpirationSeconds: 180,
 							},
 						}},
+					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
@@ -1052,6 +1078,7 @@ func TestReconcileDevWorkspaceConfigServiceAccountTokens(t *testing.T) {
 							},
 						},
 					},
+					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
@@ -1113,6 +1140,7 @@ func TestReconcileDevWorkspaceConfigServiceAccountTokens(t *testing.T) {
 							},
 						},
 					},
+					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
@@ -1163,7 +1191,8 @@ func TestReconcileDevWorkspaceConfigServiceAccountTokens(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					ServiceAccount: &controllerv1alpha1.ServiceAccountConfig{},
+					ServiceAccount:     &controllerv1alpha1.ServiceAccountConfig{},
+					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
@@ -1182,6 +1211,120 @@ func TestReconcileDevWorkspaceConfigServiceAccountTokens(t *testing.T) {
 			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
 			assert.NoError(t, err)
 			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.ServiceAccount.ServiceAccountTokens, dwoc.Config.Workspace.ServiceAccount.ServiceAccountTokens)
+		})
+	}
+}
+
+func TestReconcileDevWorkspaceConfigDeploymentStrategy(t *testing.T) {
+	type testCase struct {
+		name                   string
+		cheCluster             *chev2.CheCluster
+		existedObjects         []runtime.Object
+		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
+	}
+
+	var testCases = []testCase{
+		{
+			name: "Create DevWorkspaceOperatorConfig with DeploymentStrategy",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DeploymentStrategy: "Recreate",
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					DeploymentStrategy: "Recreate",
+				},
+			},
+		},
+		{
+			name: "Update existing DevWorkspaceOperatorConfig when DeploymentStrategy is added",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DeploymentStrategy: "Recreate",
+					},
+				},
+			},
+			existedObjects: []runtime.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					DeploymentStrategy: "Recreate",
+				},
+			},
+		},
+		{
+			name: "Update existing DevWorkspaceOperatorConfig when DeploymentStrategy is changed",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DeploymentStrategy: "RollingUpdate",
+					},
+				},
+			},
+			existedObjects: []runtime.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							DeploymentStrategy: "Recreate",
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					DeploymentStrategy: "RollingUpdate",
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			deployContext := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
+			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
+			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
+			assert.NoError(t, err)
+
+			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
+			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			assert.NoError(t, err)
+			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.DeploymentStrategy, dwoc.Config.Workspace.DeploymentStrategy)
 		})
 	}
 }
