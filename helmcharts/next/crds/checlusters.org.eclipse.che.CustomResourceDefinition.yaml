@@ -7510,6 +7510,12 @@ spec:
                   hostname:
                     description: The public hostname of the installed Che server.
                     type: string
+                  ingressClassName:
+                    description: IngressClassName is the name of an IngressClass cluster
+                      resource. If a class name is defined in both the `IngressClassName`
+                      field and the `kubernetes.io/ingress.class` annotation, `IngressClassName`
+                      field takes precedence.
+                    type: string
                   labels:
                     additionalProperties:
                       type: string

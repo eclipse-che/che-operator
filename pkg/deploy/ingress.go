@@ -15,6 +15,8 @@ import (
 	"reflect"
 	"sort"
 
+	"k8s.io/utils/pointer"
+
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
@@ -124,6 +126,13 @@ func GetIngressSpec(
 		}
 	}
 
+	ingressClassName := deployContext.CheCluster.Spec.Networking.IngressClassName
+	if ingressClassName == "" {
+		ingressClassName = annotations["kubernetes.io/ingress.class"]
+	}
+	// annotations `kubernetes.io/ingress.class` can not be set when the class field is also set
+	delete(annotations, "kubernetes.io/ingress.class")
+
 	ingress := &networking.Ingress{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Ingress",
@@ -136,6 +145,7 @@ func GetIngressSpec(
 			Annotations: annotations,
 		},
 		Spec: networking.IngressSpec{
+			IngressClassName: pointer.String(ingressClassName),
 			Rules: []networking.IngressRule{
 				{
 					Host: host,

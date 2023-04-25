@@ -31,20 +31,14 @@ import (
 
 func TestIngressSpec(t *testing.T) {
 	type testCase struct {
-		name             string
-		ingressName      string
-		ingressPath      string
-		ingressComponent string
-		serviceName      string
-		servicePort      int
-		expectedIngress  *networking.Ingress
-		cheCluster       *chev2.CheCluster
+		name            string
+		expectedIngress *networking.Ingress
+		cheCluster      *chev2.CheCluster
 	}
 
 	testCases := []testCase{
 		{
-			name:        "Test ingress",
-			ingressName: "test",
+			name: "Test case #1",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -52,16 +46,13 @@ func TestIngressSpec(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					Networking: chev2.CheClusterSpecNetworking{
-						Hostname:    "test-host",
-						Labels:      map[string]string{"type": "default"},
-						Annotations: map[string]string{"annotation-key": "annotation-value"},
+						Hostname:         "test-host",
+						Labels:           map[string]string{"type": "default"},
+						Annotations:      map[string]string{"annotation-key": "annotation-value"},
+						IngressClassName: "nginx",
 					},
 				},
 			},
-			ingressPath:      "",
-			ingressComponent: defaults.GetCheFlavor(),
-			serviceName:      "che-host",
-			servicePort:      8080,
 			expectedIngress: &networking.Ingress{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -84,7 +75,73 @@ func TestIngressSpec(t *testing.T) {
 					APIVersion: networking.SchemeGroupVersion.String(),
 				},
 				Spec: networking.IngressSpec{
-					TLS: []v1.IngressTLS{{Hosts: []string{"test-host"}}},
+					IngressClassName: pointer.String("nginx"),
+					TLS:              []v1.IngressTLS{{Hosts: []string{"test-host"}}},
+					Rules: []networking.IngressRule{
+						{
+							Host: "test-host",
+							IngressRuleValue: networking.IngressRuleValue{
+								HTTP: &networking.HTTPIngressRuleValue{
+									Paths: []networking.HTTPIngressPath{
+										{
+											Backend: networking.IngressBackend{
+												Service: &networking.IngressServiceBackend{
+													Name: "che-host",
+													Port: networking.ServiceBackendPort{
+														Number: 8080,
+													},
+												},
+											},
+											Path:     "/",
+											PathType: (*networking.PathType)(pointer.StringPtr(string(networking.PathTypeImplementationSpecific))),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Test case #1",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Networking: chev2.CheClusterSpecNetworking{
+						Hostname:    "test-host",
+						Labels:      map[string]string{"type": "default"},
+						Annotations: map[string]string{"annotation-key": "annotation-value", "kubernetes.io/ingress.class": "nginx"},
+					},
+				},
+			},
+			expectedIngress: &networking.Ingress{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "eclipse-che",
+					Labels: map[string]string{
+						"type":                         "default",
+						"app.kubernetes.io/component":  defaults.GetCheFlavor(),
+						"app.kubernetes.io/instance":   defaults.GetCheFlavor(),
+						"app.kubernetes.io/part-of":    "che.eclipse.org",
+						"app.kubernetes.io/managed-by": defaults.GetCheFlavor() + "-operator",
+						"app.kubernetes.io/name":       defaults.GetCheFlavor(),
+					},
+					Annotations: map[string]string{
+						"che.eclipse.org/managed-annotations-digest": "0000",
+						"annotation-key": "annotation-value",
+					},
+				},
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Ingress",
+					APIVersion: networking.SchemeGroupVersion.String(),
+				},
+				Spec: networking.IngressSpec{
+					IngressClassName: pointer.String("nginx"),
+					TLS:              []v1.IngressTLS{{Hosts: []string{"test-host"}}},
 					Rules: []networking.IngressRule{
 						{
 							Host: "test-host",
@@ -116,15 +173,13 @@ func TestIngressSpec(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			deployContext := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
-
 			_, actualIngress := GetIngressSpec(deployContext,
-				testCase.ingressName,
-				testCase.ingressPath,
-				testCase.serviceName,
-				testCase.servicePort,
-				testCase.ingressComponent,
+				"test",
+				"",
+				"che-host",
+				8080,
+				defaults.GetCheFlavor(),
 			)
-
 			assert.Equal(t, testCase.expectedIngress, actualIngress)
 		})
 	}
