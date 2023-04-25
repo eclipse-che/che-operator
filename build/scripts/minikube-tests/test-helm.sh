@@ -83,6 +83,11 @@ runTest() {
     make wait-eclipseche-version VERSION="next" NAMESPACE=${NAMESPACE}
     make wait-devworkspace-running NAMESPACE="devworkspace-controller"
   popd
+
+  createDevWorkspace
+  startAndWaitDevWorkspace
+  stopAndWaitDevWorkspace
+  deleteDevWorkspace
 }
 
 initDefaults

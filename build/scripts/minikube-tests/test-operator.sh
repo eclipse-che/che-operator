@@ -41,6 +41,11 @@ runTest() {
     --che-operator-cr-patch-yaml "${OPERATOR_REPO}/build/scripts/minikube-tests/minikube-checluster-patch.yaml"
 
   make wait-devworkspace-running NAMESPACE="devworkspace-controller" VERBOSE=1
+
+  createDevWorkspace
+  startAndWaitDevWorkspace
+  stopAndWaitDevWorkspace
+  deleteDevWorkspace
 }
 
 pushd ${OPERATOR_REPO} >/dev/null

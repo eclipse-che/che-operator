@@ -37,6 +37,10 @@ runTest() {
     --k8spodreadytimeout=120000 \
     --che-operator-cr-patch-yaml "${OPERATOR_REPO}/build/scripts/minikube-tests/minikube-checluster-patch.yaml"
 
+  createDevWorkspace
+  startAndWaitDevWorkspace
+  stopAndWaitDevWorkspace
+
   # Free up some cpu resources
   kubectl scale deployment che --replicas=0 -n eclipse-che
 
@@ -51,6 +55,10 @@ runTest() {
     make wait-devworkspace-running NAMESPACE="devworkspace-controller"
     make wait-eclipseche-version VERSION="next" NAMESPACE=${NAMESPACE}
   popd
+
+  startAndWaitDevWorkspace
+  stopAndWaitDevWorkspace
+  deleteDevWorkspace
 }
 
 initDefaults

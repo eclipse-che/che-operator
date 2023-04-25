@@ -19,31 +19,33 @@ spec:
         containers:
           - resources:
               request:
-                cpu: '50m'
+                cpu: '20m'
               limits:
-                cpu: '50m'
+                cpu: '20m'
     devfileRegistry:
       deployment:
         containers:
           - resources:
               request:
-                cpu: '50m'
+                cpu: '20m'
               limits:
-                cpu: '50m'
+                cpu: '20m'
     cheServer:
       deployment:
         containers:
           - resources:
               limits:
-                cpu: '500m'
+                cpu: '400m'
+              request:
+                cpu: '400m'
     dashboard:
       deployment:
         containers:
           - resources:
               request:
-                cpu: '50m'
+                cpu: '40m'
               limits:
-                cpu: '50m'
+                cpu: '40m'
   networking:
     auth:
       gateway:
@@ -52,24 +54,24 @@ spec:
             - name: gateway
               resources:
                 request:
-                  cpu: '50m'
+                  cpu: '20m'
                 limits:
-                  cpu: '50m'
+                  cpu: '20m'
             - name: configbump
               resources:
                 request:
-                  cpu: '50m'
+                  cpu: '20m'
                 limits:
-                  cpu: '50m'
+                  cpu: '20m'
             - name: oauth-proxy
               resources:
                 request:
-                  cpu: '50m'
+                  cpu: '20m'
                 limits:
-                  cpu: '50m'
+                  cpu: '20m'
             - name: kube-rbac-proxy
               resources:
                 request:
-                  cpu: '50m'
+                  cpu: '20m'
                 limits:
-                  cpu: '50m'
+                  cpu: '20m'
