@@ -210,7 +210,7 @@ metadata:
   namespace: ${USER_NAMESPACE}
 spec:
   routingClass: che
-  started: true
+  started: false
   contributions:
     - name: ide
       uri: http://plugin-registry.eclipse-che.svc:8080/v3/plugins/che-incubator/che-code/insiders/devfile.yaml
@@ -221,8 +221,6 @@ spec:
           image: quay.io/devfile/universal-developer-image:ubi8-latest
           cpuLimit: 100m
 EOF
-
-  kubectl wait devworkspace ${DEV_WORKSPACE_NAME} -n ${USER_NAMESPACE} --for=jsonpath='{.status.phase}'=Running --timeout=12000s
 }
 
 startAndWaitDevWorkspace() {

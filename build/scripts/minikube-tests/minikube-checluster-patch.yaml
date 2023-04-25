@@ -12,9 +12,9 @@
 
 apiVersion: org.eclipse.che/v2
 spec:
+  devEnvironments:
+    startTimeoutSeconds: 12000
   components:
-    devEnvironments:
-      startTimeoutSeconds: 12000
     pluginRegistry:
       openVSXURL: https://open-vsx.org
       deployment:
