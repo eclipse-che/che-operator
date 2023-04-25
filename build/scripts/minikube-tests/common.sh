@@ -32,6 +32,8 @@ initDefaults() {
   export ARTIFACTS_DIR=${ARTIFACT_DIR:-"/tmp/artifacts-che"}
   export CHECTL_TEMPLATES_BASE_DIR=/tmp/chectl-templates
   export OPERATOR_IMAGE="test/che-operator:test"
+  export DEV_WORKSPACE_NAME="test-dev-workspace"
+  export USER_NAMESPACE="admin-che"
 
   # turn off telemetry
   mkdir -p ${HOME}/.config/chectl
@@ -186,3 +188,53 @@ buildAndCopyCheOperatorImageToMinikube() {
   eval $(minikube docker-env) && docker load -i  /tmp/operator.tar && rm  /tmp/operator.tar
 }
 
+createDevWorkspace() {
+  kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${USER_NAMESPACE}
+  annotations:
+    che.eclipse.org/username: admin
+  labels:
+    app.kubernetes.io/component: workspaces-namespace
+    app.kubernetes.io/part-of: che.eclipse.org
+    kubernetes.io/metadata.name: ${USER_NAMESPACE}
+EOF
+
+  kubectl apply -f - <<EOF
+kind: DevWorkspace
+apiVersion: workspace.devfile.io/v1alpha2
+metadata:
+  name: ${DEV_WORKSPACE_NAME}
+  namespace: ${USER_NAMESPACE}
+spec:
+  routingClass: che
+  started: true
+  contributions:
+    - name: ide
+      uri: http://plugin-registry.eclipse-che.svc:8080/v3/plugins/che-incubator/che-code/insiders/devfile.yaml
+  template:
+    components:
+      - name: tooling-container
+        container:
+          image: quay.io/devfile/universal-developer-image:ubi8-latest
+          cpuLimit: 100m
+EOF
+
+  kubectl wait devworkspace ${DEV_WORKSPACE_NAME} -n ${USER_NAMESPACE} --for=jsonpath='{.status.phase}'=Running --timeout=12000s
+}
+
+startAndWaitDevWorkspace() {
+  kubectl patch devworkspace ${DEV_WORKSPACE_NAME} -p '{"spec":{"started":true}}' --type=merge -n ${USER_NAMESPACE}
+  kubectl wait devworkspace ${DEV_WORKSPACE_NAME} -n ${USER_NAMESPACE} --for=jsonpath='{.status.phase}'=Running --timeout=12000s
+}
+
+stopAndWaitDevWorkspace() {
+  kubectl patch devworkspace ${DEV_WORKSPACE_NAME} -p '{"spec":{"started":false}}' --type=merge -n ${USER_NAMESPACE}
+  kubectl wait devworkspace ${DEV_WORKSPACE_NAME} -n ${USER_NAMESPACE} --for=jsonpath='{.status.phase}'=Stopped
+}
+
+deleteDevWorkspace() {
+  kubectl delete devworkspace ${DEV_WORKSPACE_NAME} -n ${USER_NAMESPACE}
+}

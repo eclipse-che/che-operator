@@ -34,6 +34,10 @@ runTest() {
     --k8spodreadytimeout=120000 \
     --che-operator-cr-patch-yaml "${OPERATOR_REPO}/build/scripts/minikube-tests/minikube-checluster-patch.yaml"
 
+  createDevWorkspace
+  startAndWaitDevWorkspace
+  stopAndWaitDevWorkspace
+
   chectl server:update --templates ${LAST_OPERATOR_VERSION_TEMPLATE_PATH} --batch
 
   # Wait until Eclipse Che is deployed
@@ -41,6 +45,10 @@ runTest() {
     make wait-devworkspace-running NAMESPACE="devworkspace-controller"
     make wait-eclipseche-version VERSION="${LAST_PACKAGE_VERSION}" NAMESPACE=${NAMESPACE}
   popd
+
+  startAndWaitDevWorkspace
+  stopAndWaitDevWorkspace
+  deleteDevWorkspace
 }
 
 initDefaults
