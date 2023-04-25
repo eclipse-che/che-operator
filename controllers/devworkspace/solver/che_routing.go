@@ -24,6 +24,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -176,7 +177,7 @@ func (c *CheRoutingSolver) provisionPodAdditions(objs *solvers.RoutingObjects, c
 		}
 	}
 
-	objs.PodAdditions.Containers = append(objs.PodAdditions.Containers, corev1.Container{
+	gatewayContainer := &corev1.Container{
 		Name:            wsGatewayName,
 		Image:           image,
 		ImagePullPolicy: corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(image)),
@@ -188,15 +189,23 @@ func (c *CheRoutingSolver) provisionPodAdditions(objs *solvers.RoutingObjects, c
 		},
 		Resources: corev1.ResourceRequirements{
 			Limits: corev1.ResourceList{
-				corev1.ResourceMemory: resource.MustParse("256Mi"),
-				corev1.ResourceCPU:    resource.MustParse("0.5"),
+				corev1.ResourceMemory: resource.MustParse(constants.DefaultGatewayMemoryLimit),
+				corev1.ResourceCPU:    resource.MustParse(constants.DefaultGatewayCpuLimit),
 			},
 			Requests: corev1.ResourceList{
-				corev1.ResourceMemory: resource.MustParse("64Mi"),
-				corev1.ResourceCPU:    resource.MustParse("0.05"),
+				corev1.ResourceMemory: resource.MustParse(constants.DefaultGatewayMemoryRequest),
+				corev1.ResourceCPU:    resource.MustParse(constants.DefaultGatewayCpuRequest),
 			},
 		},
-	})
+	}
+
+	if cheCluster.Spec.DevEnvironments.GatewayContainer != nil {
+		if err := deploy.CustomizeContainer(gatewayContainer, cheCluster.Spec.DevEnvironments.GatewayContainer); err != nil {
+			return err
+		}
+	}
+
+	objs.PodAdditions.Containers = append(objs.PodAdditions.Containers, *gatewayContainer)
 
 	// Even though DefaultMode is optional in Kubernetes, DevWorkspace Controller needs it to be explicitly defined.
 	// 420 = 0644 = '-rw-r--r--'

@@ -20,14 +20,19 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	// "k8s.io/apimachinery/pkg/api/resource"
+
 	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers"
-	"github.com/devfile/devworkspace-operator/pkg/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
+
+	dwConstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	controller "github.com/eclipse-che/che-operator/controllers/devworkspace"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
+	constants "github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -35,6 +40,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	rbac "k8s.io/api/rbac/v1"
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -248,7 +254,7 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 				t.Errorf("The namespace of the associated che manager should have been recorded in the service annotation")
 			}
 
-			if svc.Labels[constants.DevWorkspaceIDLabel] != "wsid" {
+			if svc.Labels[dwConstants.DevWorkspaceIDLabel] != "wsid" {
 				t.Errorf("The workspace ID should be recorded in the service labels")
 			}
 		})
@@ -561,7 +567,7 @@ func TestCreateSubDomainObjects(t *testing.T) {
 					t.Errorf("The namespace of the associated che manager should have been recorded in the service annotation")
 				}
 
-				if svc.Labels[constants.DevWorkspaceIDLabel] != "wsid" {
+				if svc.Labels[dwConstants.DevWorkspaceIDLabel] != "wsid" {
 					t.Errorf("The workspace ID should be recorded in the service labels")
 				}
 			})
@@ -1037,4 +1043,214 @@ func TestUsesCustomCertificateForWorkspaceEndpointRoutes(t *testing.T) {
 	if route.Spec.TLS != nil {
 		t.Errorf("Unexpected TLS on the route: %s", route.Spec.TLS)
 	}
+}
+
+func TestOverrideGatewayContainerProvisioning(t *testing.T) {
+	overrideMemoryRequest := resource.MustParse("128Mi")
+	overrideCpuRequest := resource.MustParse("1")
+	overrideMemoryLimit := resource.MustParse("228Mi")
+	overrideCpuLimit := resource.MustParse("2")
+
+	cheCluster := &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
+			Name:      "eclipse-che",
+		},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Hostname: "test.hostname",
+				Domain:   "test.domain",
+			},
+			DevEnvironments: chev2.CheClusterDevEnvironments{
+				GatewayContainer: &chev2.Container{
+					Resources: &chev2.ResourceRequirements{
+						Requests: &chev2.ResourceList{
+							Memory: &overrideMemoryRequest,
+							Cpu:    &overrideCpuRequest,
+						},
+						Limits: &chev2.ResourceList{
+							Memory: &overrideMemoryLimit,
+							Cpu:    &overrideCpuLimit,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	deployContext := test.GetDeployContext(cheCluster, []runtime.Object{})
+
+	cheSolver := &CheRoutingSolver{client: deployContext.ClusterAPI.Client, scheme: deployContext.ClusterAPI.Scheme}
+	objs := &solvers.RoutingObjects{}
+
+	routing := &dwo.DevWorkspaceRouting{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "routing",
+			Namespace: "ws",
+		},
+		Spec: dwo.DevWorkspaceRoutingSpec{
+			DevWorkspaceId: "wsid",
+		},
+	}
+
+	cheSolver.provisionPodAdditions(objs, cheCluster, routing)
+
+	assert.Equal(t, overrideCpuRequest.String(), objs.PodAdditions.Containers[0].Resources.Requests.Cpu().String())
+	assert.Equal(t, overrideMemoryRequest.String(), objs.PodAdditions.Containers[0].Resources.Requests.Memory().String())
+	assert.Equal(t, overrideCpuLimit.String(), objs.PodAdditions.Containers[0].Resources.Limits.Cpu().String())
+	assert.Equal(t, overrideMemoryLimit.String(), objs.PodAdditions.Containers[0].Resources.Limits.Memory().String())
+}
+
+func TestOverridePartialLimitsGatewayContainerProvisioning(t *testing.T) {
+	overrideMemoryRequest := resource.MustParse("0")
+	overrideCpuRequest := resource.MustParse("0")
+	defaultMemoryLimit := resource.MustParse(constants.DefaultGatewayMemoryLimit)
+	defaultCpuLimit := resource.MustParse(constants.DefaultGatewayCpuLimit)
+
+	cheCluster := &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
+			Name:      "eclipse-che",
+		},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Hostname: "test.hostname",
+				Domain:   "test.domain",
+			},
+			DevEnvironments: chev2.CheClusterDevEnvironments{
+				GatewayContainer: &chev2.Container{
+					Resources: &chev2.ResourceRequirements{
+						Requests: &chev2.ResourceList{
+							Memory: &overrideMemoryRequest,
+							Cpu:    &overrideCpuRequest,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	deployContext := test.GetDeployContext(cheCluster, []runtime.Object{})
+
+	cheSolver := &CheRoutingSolver{client: deployContext.ClusterAPI.Client, scheme: deployContext.ClusterAPI.Scheme}
+	objs := &solvers.RoutingObjects{}
+
+	routing := &dwo.DevWorkspaceRouting{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "routing",
+			Namespace: "ws",
+		},
+		Spec: dwo.DevWorkspaceRoutingSpec{
+			DevWorkspaceId: "wsid",
+		},
+	}
+
+	cheSolver.provisionPodAdditions(objs, cheCluster, routing)
+
+	assert.Equal(t, overrideCpuRequest.String(), objs.PodAdditions.Containers[0].Resources.Requests.Cpu().String())
+	assert.Equal(t, overrideMemoryRequest.String(), objs.PodAdditions.Containers[0].Resources.Requests.Memory().String())
+	assert.Equal(t, defaultCpuLimit.String(), objs.PodAdditions.Containers[0].Resources.Limits.Cpu().String())
+	assert.Equal(t, defaultMemoryLimit.String(), objs.PodAdditions.Containers[0].Resources.Limits.Memory().String())
+}
+
+func TestOverrideGatewayEmptyContainerProvisioning(t *testing.T) {
+	overrideMemoryRequest := resource.MustParse("0")
+	overrideCpuRequest := resource.MustParse("0")
+	overrideMemoryLimit := resource.MustParse("0")
+	overrideCpuLimit := resource.MustParse("0")
+
+	cheCluster := &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
+			Name:      "eclipse-che",
+		},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Hostname: "test.hostname",
+				Domain:   "test.domain",
+			},
+			DevEnvironments: chev2.CheClusterDevEnvironments{
+				GatewayContainer: &chev2.Container{
+					Resources: &chev2.ResourceRequirements{
+						Requests: &chev2.ResourceList{
+							Memory: &overrideMemoryRequest,
+							Cpu:    &overrideCpuRequest,
+						},
+						Limits: &chev2.ResourceList{
+							Memory: &overrideMemoryLimit,
+							Cpu:    &overrideCpuLimit,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	deployContext := test.GetDeployContext(cheCluster, []runtime.Object{})
+
+	cheSolver := &CheRoutingSolver{client: deployContext.ClusterAPI.Client, scheme: deployContext.ClusterAPI.Scheme}
+	objs := &solvers.RoutingObjects{}
+
+	routing := &dwo.DevWorkspaceRouting{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "routing",
+			Namespace: "ws",
+		},
+		Spec: dwo.DevWorkspaceRoutingSpec{
+			DevWorkspaceId: "wsid",
+		},
+	}
+
+	cheSolver.provisionPodAdditions(objs, cheCluster, routing)
+
+	assert.Equal(t, overrideCpuRequest.String(), objs.PodAdditions.Containers[0].Resources.Requests.Cpu().String())
+	assert.Equal(t, overrideMemoryRequest.String(), objs.PodAdditions.Containers[0].Resources.Requests.Memory().String())
+	assert.Equal(t, overrideCpuLimit.String(), objs.PodAdditions.Containers[0].Resources.Limits.Cpu().String())
+	assert.Equal(t, overrideMemoryLimit.String(), objs.PodAdditions.Containers[0].Resources.Limits.Memory().String())
+}
+
+func TestDefaultGatewayContainerProvisioning(t *testing.T) {
+	defaultMemoryRequest := resource.MustParse(constants.DefaultGatewayMemoryRequest)
+	defaultCpuRequest := resource.MustParse(constants.DefaultGatewayCpuRequest)
+	defaultMemoryLimit := resource.MustParse(constants.DefaultGatewayMemoryLimit)
+	defaultCpuLimit := resource.MustParse(constants.DefaultGatewayCpuLimit)
+
+	cheCluster := &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
+			Name:      "eclipse-che",
+		},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Hostname: "test.hostname",
+				Domain:   "test.domain",
+			},
+		},
+	}
+
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	deployContext := test.GetDeployContext(cheCluster, []runtime.Object{})
+
+	cheSolver := &CheRoutingSolver{client: deployContext.ClusterAPI.Client, scheme: deployContext.ClusterAPI.Scheme}
+	objs := &solvers.RoutingObjects{}
+
+	routing := &dwo.DevWorkspaceRouting{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "routing",
+			Namespace: "ws",
+		},
+		Spec: dwo.DevWorkspaceRoutingSpec{
+			DevWorkspaceId: "wsid",
+		},
+	}
+
+	cheSolver.provisionPodAdditions(objs, cheCluster, routing)
+
+	assert.Equal(t, defaultCpuRequest.String(), objs.PodAdditions.Containers[0].Resources.Requests.Cpu().String())
+	assert.Equal(t, defaultMemoryRequest.String(), objs.PodAdditions.Containers[0].Resources.Requests.Memory().String())
+	assert.Equal(t, defaultCpuLimit.String(), objs.PodAdditions.Containers[0].Resources.Limits.Cpu().String())
+	assert.Equal(t, defaultMemoryLimit.String(), objs.PodAdditions.Containers[0].Resources.Limits.Memory().String())
 }

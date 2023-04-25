@@ -74,6 +74,10 @@ type CheClusterSpec struct {
 // Development environment configuration.
 // +k8s:openapi-gen=true
 type CheClusterDevEnvironments struct {
+	//
+	// GatewayContainer configuration.
+	// +optional
+	GatewayContainer *Container `json:"gatewayContainer,omitempty"`
 	// Workspaces persistent storage.
 	// +optional
 	// +kubebuilder:default:={pvcStrategy: per-user}
