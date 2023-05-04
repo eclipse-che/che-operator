@@ -27,8 +27,8 @@ const (
 	// Gateway
 	DefaultGatewayMemoryLimit   = "256Mi"
 	DefaultGatewayMemoryRequest = "64Mi"
-	DefaultGatewayCpuLimit      = "25m"
-	DefaultGatewayCpuRequest    = "5m"
+	DefaultGatewayCpuLimit      = "500m"
+	DefaultGatewayCpuRequest    = "50m"
 
 	// PluginRegistry
 	DefaultPluginRegistryMemoryLimit                          = "256Mi"
