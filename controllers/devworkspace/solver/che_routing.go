@@ -372,13 +372,7 @@ func (c *CheRoutingSolver) getGatewayConfigsAndFillRoutingObjects(cheCluster *ch
 }
 
 func getNormalizedUsername(c client.Client, namespace string) (string, error) {
-	secret := &corev1.Secret{}
-	err := c.Get(context.TODO(), client.ObjectKey{Name: "user-profile", Namespace: namespace}, secret)
-	if err != nil {
-		return "", err
-	}
-	username := string(secret.Data["name"])
-	return normalize(username), nil
+	return "admin-che", nil
 }
 
 func getNormalizedWkspName(c client.Client, namespace string, routingName string) (string, error) {
