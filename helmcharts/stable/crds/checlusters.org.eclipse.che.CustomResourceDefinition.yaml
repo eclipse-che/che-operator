@@ -3952,12 +3952,13 @@ spec:
                       server.
                     properties:
                       clusterRoles:
-                        description: 'ClusterRoles assigned to Che ServiceAccount.
-                          The defaults roles are: - `<che-namespace>-cheworkspaces-namespaces-clusterrole`
-                          - `<che-namespace>-cheworkspaces-clusterrole` - `<che-namespace>-cheworkspaces-devworkspace-clusterrole`
+                        description: 'Additional ClusterRoles assigned to Che ServiceAccount.
+                          Each role must have a `app.kubernetes.io/part-of=che.eclipse.org`
+                          label. The defaults roles are: - `<che-namespace>-cheworkspaces-clusterrole`
+                          - `<che-namespace>-cheworkspaces-namespaces-clusterrole`
+                          - `<che-namespace>-cheworkspaces-devworkspace-clusterrole`
                           where the <che-namespace> is the namespace where the CheCluster
-                          CRD is created. Each role must have a `app.kubernetes.io/part-of=che.eclipse.org`
-                          label. The Che Operator must already have all permissions
+                          CR is created. The Che Operator must already have all permissions
                           in these ClusterRoles to grant them.'
                         items:
                           type: string
@@ -6862,9 +6863,211 @@ spec:
                           type: array
                       type: object
                     type: array
+                  deploymentStrategy:
+                    description: DeploymentStrategy defines the deployment strategy
+                      to use to replace existing workspace pods with new ones. The
+                      available deployment stragies are `Recreate` and `RollingUpdate`.
+                      With the `Recreate` deployment strategy, the existing workspace
+                      pod is killed before the new one is created. With the `RollingUpdate`
+                      deployment strategy, a new workspace pod is created and the
+                      existing workspace pod is deleted only when the new workspace
+                      pod is in a ready state. If not specified, the default `Recreate`
+                      deployment strategy is used.
+                    enum:
+                    - Recreate
+                    - RollingUpdate
+                    type: string
                   disableContainerBuildCapabilities:
                     description: Disables the container build capabilities.
                     type: boolean
+                  gatewayContainer:
+                    description: GatewayContainer configuration.
+                    properties:
+                      env:
+                        description: List of environment variables to set in the container.
+                        items:
+                          description: EnvVar represents an environment variable present
+                            in a Container.
+                          properties:
+                            name:
+                              description: Name of the environment variable. Must
+                                be a C_IDENTIFIER.
+                              type: string
+                            value:
+                              description: 'Variable references $(VAR_NAME) are expanded
+                                using the previously defined environment variables
+                                in the container and any service environment variables.
+                                If a variable cannot be resolved, the reference in
+                                the input string will be unchanged. Double $$ are
+                                reduced to a single $, which allows for escaping the
+                                $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)" will produce
+                                the string literal "$(VAR_NAME)". Escaped references
+                                will never be expanded, regardless of whether the
+                                variable exists or not. Defaults to "".'
+                              type: string
+                            valueFrom:
+                              description: Source for the environment variable's value.
+                                Cannot be used if value is not empty.
+                              properties:
+                                configMapKeyRef:
+                                  description: Selects a key of a ConfigMap.
+                                  properties:
+                                    key:
+                                      description: The key to select.
+                                      type: string
+                                    name:
+                                      description: 'Name of the referent. More info:
+                                        https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                        TODO: Add other useful fields. apiVersion,
+                                        kind, uid?'
+                                      type: string
+                                    optional:
+                                      description: Specify whether the ConfigMap or
+                                        its key must be defined
+                                      type: boolean
+                                  required:
+                                  - key
+                                  type: object
+                                fieldRef:
+                                  description: 'Selects a field of the pod: supports
+                                    metadata.name, metadata.namespace, `metadata.labels[''<KEY>'']`,
+                                    `metadata.annotations[''<KEY>'']`, spec.nodeName,
+                                    spec.serviceAccountName, status.hostIP, status.podIP,
+                                    status.podIPs.'
+                                  properties:
+                                    apiVersion:
+                                      description: Version of the schema the FieldPath
+                                        is written in terms of, defaults to "v1".
+                                      type: string
+                                    fieldPath:
+                                      description: Path of the field to select in
+                                        the specified API version.
+                                      type: string
+                                  required:
+                                  - fieldPath
+                                  type: object
+                                resourceFieldRef:
+                                  description: 'Selects a resource of the container:
+                                    only resources limits and requests (limits.cpu,
+                                    limits.memory, limits.ephemeral-storage, requests.cpu,
+                                    requests.memory and requests.ephemeral-storage)
+                                    are currently supported.'
+                                  properties:
+                                    containerName:
+                                      description: 'Container name: required for volumes,
+                                        optional for env vars'
+                                      type: string
+                                    divisor:
+                                      anyOf:
+                                      - type: integer
+                                      - type: string
+                                      description: Specifies the output format of
+                                        the exposed resources, defaults to "1"
+                                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                      x-kubernetes-int-or-string: true
+                                    resource:
+                                      description: 'Required: resource to select'
+                                      type: string
+                                  required:
+                                  - resource
+                                  type: object
+                                secretKeyRef:
+                                  description: Selects a key of a secret in the pod's
+                                    namespace
+                                  properties:
+                                    key:
+                                      description: The key of the secret to select
+                                        from.  Must be a valid secret key.
+                                      type: string
+                                    name:
+                                      description: 'Name of the referent. More info:
+                                        https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                        TODO: Add other useful fields. apiVersion,
+                                        kind, uid?'
+                                      type: string
+                                    optional:
+                                      description: Specify whether the Secret or its
+                                        key must be defined
+                                      type: boolean
+                                  required:
+                                  - key
+                                  type: object
+                              type: object
+                          required:
+                          - name
+                          type: object
+                        type: array
+                      image:
+                        description: Container image. Omit it or leave it empty to
+                          use the default container image provided by the Operator.
+                        type: string
+                      imagePullPolicy:
+                        description: Image pull policy. Default value is `Always`
+                          for `nightly`, `next` or `latest` images, and `IfNotPresent`
+                          in other cases.
+                        enum:
+                        - Always
+                        - IfNotPresent
+                        - Never
+                        type: string
+                      name:
+                        description: Container name.
+                        type: string
+                      resources:
+                        description: Compute resources required by this container.
+                        properties:
+                          limits:
+                            description: Describes the maximum amount of compute resources
+                              allowed.
+                            properties:
+                              cpu:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                description: CPU, in cores. (500m = .5 cores) If the
+                                  value is not specified, then the default value is
+                                  set depending on the component. If value is `0`,
+                                  then no value is set for the component.
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                              memory:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                description: Memory, in bytes. (500Gi = 500GiB = 500
+                                  * 1024 * 1024 * 1024) If the value is not specified,
+                                  then the default value is set depending on the component.
+                                  If value is `0`, then no value is set for the component.
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                            type: object
+                          request:
+                            description: Describes the minimum amount of compute resources
+                              required.
+                            properties:
+                              cpu:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                description: CPU, in cores. (500m = .5 cores) If the
+                                  value is not specified, then the default value is
+                                  set depending on the component. If value is `0`,
+                                  then no value is set for the component.
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                              memory:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                description: Memory, in bytes. (500Gi = 500GiB = 500
+                                  * 1024 * 1024 * 1024) If the value is not specified,
+                                  then the default value is set depending on the component.
+                                  If value is `0`, then no value is set for the component.
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                            type: object
+                        type: object
+                    type: object
                   maxNumberOfRunningWorkspacesPerUser:
                     description: The maximum number of running workspaces per user.
                       The value, -1, allows users to run an unlimited number of workspaces.
@@ -7064,6 +7267,17 @@ spec:
                           The ConfigMap must have a `app.kubernetes.io/part-of=che.eclipse.org`
                           label.'
                         type: string
+                    type: object
+                  user:
+                    description: User configuration.
+                    properties:
+                      clusterRoles:
+                        description: Additional ClusterRoles assigned to the user.
+                          The role must have `app.kubernetes.io/part-of=che.eclipse.org`
+                          label.
+                        items:
+                          type: string
+                        type: array
                     type: object
                 type: object
               gitServices:
@@ -7483,6 +7697,12 @@ spec:
                     type: string
                   hostname:
                     description: The public hostname of the installed Che server.
+                    type: string
+                  ingressClassName:
+                    description: IngressClassName is the name of an IngressClass cluster
+                      resource. If a class name is defined in both the `IngressClassName`
+                      field and the `kubernetes.io/ingress.class` annotation, `IngressClassName`
+                      field takes precedence.
                     type: string
                   labels:
                     additionalProperties:
