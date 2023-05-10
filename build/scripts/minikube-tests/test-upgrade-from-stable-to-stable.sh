@@ -38,6 +38,9 @@ runTest() {
   startAndWaitDevWorkspace
   stopAndWaitDevWorkspace
 
+  # Free up some cpu resources
+  kubectl scale deployment che --replicas=0 -n eclipse-che
+
   chectl server:update --templates ${LAST_OPERATOR_VERSION_TEMPLATE_PATH} --batch
 
   # Wait until Eclipse Che is deployed
