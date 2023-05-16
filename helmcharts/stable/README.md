@@ -1,6 +1,6 @@
 # Eclipse Che Helm Charts
 
-A collaborative Kubernetes-native development solution that delivers Kubernetes workspaces and in-browser IDE for rapid cloud application development. This operator installs PostgreSQL, Plugin registry, Devfile registry and the Eclipse Che server, as well as configures all these services.
+A collaborative Kubernetes-native development solution that delivers Kubernetes workspaces and in-browser IDE for rapid cloud application development. This operator installs  Plugin registry, Devfile registry and the Eclipse Che server, as well as configures all these services.
 
 - [Charts](#charts)
   - [Prerequisites](#prerequisites)
