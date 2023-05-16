@@ -77,7 +77,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che.v7.66.0-791.next
+  name: eclipse-che.v7.67.0-792.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -467,7 +467,7 @@ spec:
         version: v1
   description: |
     A collaborative Kubernetes-native development solution that delivers OpenShift workspaces and in-browser IDE for rapid cloud application development.
-    This operator installs PostgreSQL, Plugin and Devfile registries, Dashboard, Gateway and the Eclipse Che server, as well as configures all these services.
+    This operator installs the Plugin and Devfile registries, Dashboard, Gateway and the Eclipse Che server, and configures these services.
     OpenShift OAuth is used directly for authentication. TLS mode is on.
 
     ## How to Install
@@ -479,7 +479,6 @@ spec:
     By default, the operator deploys Eclipse Che with:
     * 10Gi storage
     * Auto-generated passwords
-    * Bundled PostgreSQL
     * Bundled Plugin and Devfile registries
 
     Use `oc edit checluster/eclipse-che -n eclipse-che` to update Eclipse Che default installation options.
@@ -1243,7 +1242,7 @@ spec:
   minKubeVersion: 1.19.0
   provider:
     name: Eclipse Foundation
-  version: 7.66.0-791.next
+  version: 7.67.0-792.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1

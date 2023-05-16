@@ -412,7 +412,7 @@ spec:
       version: v1
   description: |
     A collaborative Kubernetes-native development solution that delivers OpenShift workspaces and in-browser IDE for rapid cloud application development.
-    This operator installs PostgreSQL, Plugin and Devfile registries, Dashboard, Gateway and the Eclipse Che server, as well as configures all these services.
+    This operator installs the Plugin and Devfile registries, Dashboard, Gateway and the Eclipse Che server, and configures these services.
     OpenShift OAuth is used directly for authentication. TLS mode is on.
 
     ## How to Install
@@ -424,7 +424,6 @@ spec:
     By default, the operator deploys Eclipse Che with:
     * 10Gi storage
     * Auto-generated passwords
-    * Bundled PostgreSQL
     * Bundled Plugin and Devfile registries
 
     Use `oc edit checluster/eclipse-che -n eclipse-che` to update Eclipse Che default installation options.
