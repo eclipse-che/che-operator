@@ -377,6 +377,12 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 			assert.Truef(t, found, "traefik config route doesn't set middleware '%s'", mware)
 		}
 
+		t.Run("testEndpointInMainWorkspaceRoute", func(t *testing.T) {
+			assert.Contains(t, workspaceMainConfig.HTTP.Routers, wsid)
+			assert.Equal(t, workspaceMainConfig.HTTP.Routers[wsid].Service, wsid)
+			assert.Equal(t, workspaceMainConfig.HTTP.Routers[wsid].Rule, "PathPrefix(`/username/my-workspace`)")
+		})
+
 		t.Run("testServerTransportInMainWorkspaceRoute", func(t *testing.T) {
 			serverTransportName := wsid
 
@@ -403,6 +409,143 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 			assert.Contains(t, workspaceConfig.HTTP.Routers, healthzName)
 			assert.Equal(t, workspaceConfig.HTTP.Routers[healthzName].Service, healthzName)
 			assert.Equal(t, workspaceConfig.HTTP.Routers[healthzName].Rule, "Path(`/9999/healthz`)")
+			assert.NotContains(t, workspaceConfig.HTTP.Routers[healthzName].Middlewares, healthzName+gateway.AuthMiddlewareSuffix)
+			assert.Contains(t, workspaceConfig.HTTP.Routers[healthzName].Middlewares, healthzName+gateway.StripPrefixMiddlewareSuffix)
+		})
+
+	})
+}
+
+func TestCreateRelocatedObjectsK8SLegacy(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
+	cl, _, objs := getSpecObjectsForManager(t, &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "che",
+			Namespace:  "ns",
+			Finalizers: []string{controller.FinalizerName},
+		},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Domain:   "down.on.earth",
+				Hostname: "over.the.rainbow",
+			},
+		},
+	}, relocatableDevWorkspaceRouting())
+
+	t.Run("noIngresses", func(t *testing.T) {
+		if len(objs.Ingresses) != 0 {
+			t.Error()
+		}
+	})
+
+	t.Run("noRoutes", func(t *testing.T) {
+		if len(objs.Routes) != 0 {
+			t.Error()
+		}
+	})
+
+	t.Run("traefikConfig", func(t *testing.T) {
+		cms := &corev1.ConfigMapList{}
+		cl.List(context.TODO(), cms)
+
+		assert.Len(t, cms.Items, 2)
+
+		var workspaceMainCfg *corev1.ConfigMap
+		var workspaceCfg *corev1.ConfigMap
+		for _, cfg := range cms.Items {
+			if cfg.Name == "wsid-route" && cfg.Namespace == "ns" {
+				workspaceMainCfg = cfg.DeepCopy()
+			}
+			if cfg.Name == "wsid-route" && cfg.Namespace == "ws" {
+				workspaceCfg = cfg.DeepCopy()
+			}
+		}
+
+		assert.NotNil(t, workspaceMainCfg)
+
+		traefikMainWorkspaceConfig := workspaceMainCfg.Data["wsid.yml"]
+		assert.NotEmpty(t, traefikMainWorkspaceConfig)
+
+		traefikWorkspaceConfig := workspaceCfg.Data["workspace.yml"]
+		assert.NotEmpty(t, traefikWorkspaceConfig)
+
+		workspaceConfig := gateway.TraefikConfig{}
+		assert.NoError(t, yaml.Unmarshal([]byte(traefikWorkspaceConfig), &workspaceConfig))
+		assert.Len(t, workspaceConfig.HTTP.Routers, 2)
+
+		wsid := "wsid-m1-9999"
+		assert.Contains(t, workspaceConfig.HTTP.Routers, wsid)
+		assert.Len(t, workspaceConfig.HTTP.Routers[wsid].Middlewares, 2)
+		assert.Len(t, workspaceConfig.HTTP.Middlewares, 3)
+
+		mwares := []string{wsid + gateway.StripPrefixMiddlewareSuffix}
+		for _, mware := range mwares {
+			assert.Contains(t, workspaceConfig.HTTP.Middlewares, mware)
+			found := false
+			for _, r := range workspaceConfig.HTTP.Routers[wsid].Middlewares {
+				if r == mware {
+					found = true
+				}
+			}
+			assert.True(t, found)
+		}
+
+		workspaceMainConfig := gateway.TraefikConfig{}
+		assert.NoError(t, yaml.Unmarshal([]byte(traefikMainWorkspaceConfig), &workspaceMainConfig))
+		assert.Len(t, workspaceMainConfig.HTTP.Middlewares, 5)
+
+		wsid = "wsid"
+		mwares = []string{
+			wsid + gateway.AuthMiddlewareSuffix,
+			wsid + gateway.StripPrefixMiddlewareSuffix,
+			wsid + gateway.HeadersMiddlewareSuffix,
+			wsid + gateway.ErrorsMiddlewareSuffix,
+			wsid + gateway.RetryMiddlewareSuffix}
+		for _, mware := range mwares {
+			assert.Contains(t, workspaceMainConfig.HTTP.Middlewares, mware)
+
+			found := false
+			for _, r := range workspaceMainConfig.HTTP.Routers[wsid].Middlewares {
+				if r == mware {
+					found = true
+				}
+			}
+			assert.Truef(t, found, "traefik config route doesn't set middleware '%s'", mware)
+		}
+
+		t.Run("testEndpointInMainWorkspaceRoute", func(t *testing.T) {
+			assert.Contains(t, workspaceMainConfig.HTTP.Routers, wsid)
+			assert.Equal(t, workspaceMainConfig.HTTP.Routers[wsid].Service, wsid)
+			assert.Equal(t, workspaceMainConfig.HTTP.Routers[wsid].Rule, fmt.Sprintf("PathPrefix(`/%s`)", wsid))
+		})
+
+		t.Run("testServerTransportInMainWorkspaceRoute", func(t *testing.T) {
+			serverTransportName := wsid
+
+			assert.Len(t, workspaceMainConfig.HTTP.ServersTransports, 1)
+			assert.Contains(t, workspaceMainConfig.HTTP.ServersTransports, serverTransportName)
+
+			assert.Len(t, workspaceMainConfig.HTTP.Services, 1)
+			assert.Contains(t, workspaceMainConfig.HTTP.Services, wsid)
+			assert.Equal(t, workspaceMainConfig.HTTP.Services[wsid].LoadBalancer.ServersTransport, serverTransportName)
+		})
+
+		t.Run("testHealthzEndpointInMainWorkspaceRoute", func(t *testing.T) {
+			healthzName := "wsid-9999-healthz"
+			assert.Contains(t, workspaceMainConfig.HTTP.Routers, healthzName)
+			assert.Equal(t, workspaceMainConfig.HTTP.Routers[healthzName].Service, wsid)
+			assert.Equal(t, workspaceMainConfig.HTTP.Routers[healthzName].Rule, "Path(`/wsid/m1/9999/healthz`)")
+			assert.NotContains(t, workspaceMainConfig.HTTP.Routers[healthzName].Middlewares, "wsid"+gateway.AuthMiddlewareSuffix)
+			assert.Contains(t, workspaceMainConfig.HTTP.Routers[healthzName].Middlewares, "wsid"+gateway.StripPrefixMiddlewareSuffix)
+			assert.NotContains(t, workspaceMainConfig.HTTP.Routers[healthzName].Middlewares, "wsid"+gateway.HeaderRewriteMiddlewareSuffix)
+		})
+
+		t.Run("testHealthzEndpointInWorkspaceRoute", func(t *testing.T) {
+			healthzName := "wsid-m1-9999-healthz"
+			assert.Contains(t, workspaceConfig.HTTP.Routers, healthzName)
+			assert.Equal(t, workspaceConfig.HTTP.Routers[healthzName].Service, healthzName)
+			assert.Equal(t, workspaceConfig.HTTP.Routers[healthzName].Rule, "Path(`/m1/9999/healthz`)")
 			assert.NotContains(t, workspaceConfig.HTTP.Routers[healthzName].Middlewares, healthzName+gateway.AuthMiddlewareSuffix)
 			assert.Contains(t, workspaceConfig.HTTP.Routers[healthzName].Middlewares, healthzName+gateway.StripPrefixMiddlewareSuffix)
 		})
@@ -514,6 +657,114 @@ func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 	})
 }
 
+func TestCreateRelocatedObjectsOpenshiftLegacy(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+	cl, _, objs := getSpecObjectsForManager(t, &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "che",
+			Namespace:  "ns",
+			Finalizers: []string{controller.FinalizerName},
+		},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Domain:   "down.on.earth",
+				Hostname: "over.the.rainbow",
+			},
+		},
+	}, relocatableDevWorkspaceRouting())
+
+	assert.Empty(t, objs.Ingresses)
+	assert.Empty(t, objs.Routes)
+
+	t.Run("traefikConfig", func(t *testing.T) {
+		cms := &corev1.ConfigMapList{}
+		cl.List(context.TODO(), cms)
+
+		assert.Len(t, cms.Items, 2)
+
+		var workspaceMainCfg *corev1.ConfigMap
+		var workspaceCfg *corev1.ConfigMap
+		for _, cfg := range cms.Items {
+			if cfg.Name == "wsid-route" && cfg.Namespace == "ns" {
+				workspaceMainCfg = cfg.DeepCopy()
+			}
+			if cfg.Name == "wsid-route" && cfg.Namespace == "ws" {
+				workspaceCfg = cfg.DeepCopy()
+			}
+		}
+
+		assert.NotNil(t, workspaceMainCfg, "traefik configuration for the workspace not found")
+
+		traefikMainWorkspaceConfig := workspaceMainCfg.Data["wsid.yml"]
+		assert.NotEmpty(t, traefikMainWorkspaceConfig, "No traefik config file found in the main workspace config configmap")
+
+		traefikWorkspaceConfig := workspaceCfg.Data["workspace.yml"]
+		assert.NotEmpty(t, traefikWorkspaceConfig, "No traefik config file found in the workspace config configmap")
+
+		workspaceConfig := gateway.TraefikConfig{}
+		assert.NoError(t, yaml.Unmarshal([]byte(traefikWorkspaceConfig), &workspaceConfig))
+
+		wsid := "wsid-m1-9999"
+		assert.Contains(t, workspaceConfig.HTTP.Routers, wsid)
+		assert.Len(t, workspaceConfig.HTTP.Routers[wsid].Middlewares, 2)
+
+		workspaceMainConfig := gateway.TraefikConfig{}
+		assert.NoError(t, yaml.Unmarshal([]byte(traefikMainWorkspaceConfig), &workspaceMainConfig))
+		assert.Len(t, workspaceMainConfig.HTTP.Middlewares, 6)
+
+		wsid = "wsid"
+		mwares := []string{
+			wsid + gateway.AuthMiddlewareSuffix,
+			wsid + gateway.StripPrefixMiddlewareSuffix,
+			wsid + gateway.HeaderRewriteMiddlewareSuffix,
+			wsid + gateway.HeadersMiddlewareSuffix,
+			wsid + gateway.ErrorsMiddlewareSuffix,
+			wsid + gateway.RetryMiddlewareSuffix}
+		for _, mware := range mwares {
+			assert.Contains(t, workspaceMainConfig.HTTP.Middlewares, mware)
+
+			found := false
+			for _, r := range workspaceMainConfig.HTTP.Routers[wsid].Middlewares {
+				if r == mware {
+					found = true
+				}
+			}
+			assert.Truef(t, found, "traefik config route doesn't set middleware '%s'", mware)
+		}
+
+		t.Run("testServerTransportInMainWorkspaceRoute", func(t *testing.T) {
+			serverTransportName := wsid
+
+			assert.Len(t, workspaceMainConfig.HTTP.ServersTransports, 1)
+			assert.Contains(t, workspaceMainConfig.HTTP.ServersTransports, serverTransportName)
+
+			assert.Len(t, workspaceMainConfig.HTTP.Services, 1)
+			assert.Contains(t, workspaceMainConfig.HTTP.Services, wsid)
+			assert.Equal(t, workspaceMainConfig.HTTP.Services[wsid].LoadBalancer.ServersTransport, serverTransportName)
+		})
+
+		t.Run("testHealthzEndpointInMainWorkspaceRoute", func(t *testing.T) {
+			healthzName := "wsid-9999-healthz"
+			assert.Contains(t, workspaceMainConfig.HTTP.Routers, healthzName)
+			assert.Equal(t, workspaceMainConfig.HTTP.Routers[healthzName].Service, wsid)
+			assert.Equal(t, workspaceMainConfig.HTTP.Routers[healthzName].Rule, "Path(`/wsid/m1/9999/healthz`)")
+			assert.NotContains(t, workspaceMainConfig.HTTP.Routers[healthzName].Middlewares, "wsid"+gateway.AuthMiddlewareSuffix)
+			assert.Contains(t, workspaceMainConfig.HTTP.Routers[healthzName].Middlewares, "wsid"+gateway.StripPrefixMiddlewareSuffix)
+			assert.Contains(t, workspaceMainConfig.HTTP.Routers[healthzName].Middlewares, "wsid"+gateway.HeaderRewriteMiddlewareSuffix)
+		})
+
+		t.Run("testHealthzEndpointInWorkspaceRoute", func(t *testing.T) {
+			healthzName := "wsid-m1-9999-healthz"
+			assert.Contains(t, workspaceConfig.HTTP.Routers, healthzName)
+			assert.Equal(t, workspaceConfig.HTTP.Routers[healthzName].Service, healthzName)
+			assert.Equal(t, workspaceConfig.HTTP.Routers[healthzName].Rule, "Path(`/m1/9999/healthz`)")
+			assert.NotContains(t, workspaceConfig.HTTP.Routers[healthzName].Middlewares, healthzName+gateway.AuthMiddlewareSuffix)
+			assert.Contains(t, workspaceConfig.HTTP.Routers[healthzName].Middlewares, healthzName+gateway.StripPrefixMiddlewareSuffix)
+		})
+	})
+}
+
 func TestUniqueMainEndpoint(t *testing.T) {
 	wsid := "wsid123"
 
@@ -597,6 +848,104 @@ func TestUniqueMainEndpoint(t *testing.T) {
 	})
 }
 
+func TestUniqueMainEndpointLegacy(t *testing.T) {
+	wsid := "wsid123"
+
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+	routing := &dwo.DevWorkspaceRouting{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "routing",
+			Namespace: "ws",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: "workspace.devfile.io/v1alpha2",
+					Kind:       "DevWorkspace",
+					Name:       "my-workspace",
+					UID:        "uid",
+				},
+			},
+		},
+		Spec: dwo.DevWorkspaceRoutingSpec{
+			DevWorkspaceId: wsid,
+			RoutingClass:   "che",
+			Endpoints: map[string]dwo.EndpointList{
+				"m1": {
+					{
+						Name:       "e1",
+						TargetPort: 9999,
+						Exposure:   dwo.PublicEndpointExposure,
+						Protocol:   "https",
+						Path:       "/1/",
+						Attributes: dwo.Attributes{
+							urlRewriteSupportedEndpointAttributeName: apiext.JSON{Raw: []byte("\"true\"")},
+							string(dwo.TypeEndpointAttribute):        apiext.JSON{Raw: []byte("\"main\"")},
+							uniqueEndpointAttributeName:              apiext.JSON{Raw: []byte("\"true\"")},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	cl, _, _ := getSpecObjectsForManager(t, &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "che",
+			Namespace:  "ns",
+			Finalizers: []string{controller.FinalizerName},
+		},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Domain:   "down.on.earth",
+				Hostname: "over.the.rainbow",
+			},
+		},
+	}, routing)
+
+	cms := &corev1.ConfigMapList{}
+	cl.List(context.TODO(), cms)
+
+	assert.Len(t, cms.Items, 2)
+
+	var workspaceMainCfg *corev1.ConfigMap
+	var workspaceCfg *corev1.ConfigMap
+	for _, cfg := range cms.Items {
+		if cfg.Name == wsid+"-route" && cfg.Namespace == "ns" {
+			workspaceMainCfg = cfg.DeepCopy()
+		}
+		if cfg.Name == wsid+"-route" && cfg.Namespace == "ws" {
+			workspaceCfg = cfg.DeepCopy()
+		}
+	}
+
+	traefikWorkspaceConfig := workspaceCfg.Data["workspace.yml"]
+	workspaceConfig := gateway.TraefikConfig{}
+	assert.NoError(t, yaml.Unmarshal([]byte(traefikWorkspaceConfig), &workspaceConfig))
+
+	traefikMainWorkspaceConfig := workspaceMainCfg.Data[wsid+".yml"]
+	workspaceMainConfig := gateway.TraefikConfig{}
+	assert.NoError(t, yaml.Unmarshal([]byte(traefikMainWorkspaceConfig), &workspaceMainConfig))
+
+	t.Run("testHealthzEndpointInMainWorkspaceRoute", func(t *testing.T) {
+		healthzName := wsid + "-e1-healthz"
+		assert.Contains(t, workspaceMainConfig.HTTP.Routers, healthzName)
+		assert.Equal(t, workspaceMainConfig.HTTP.Routers[healthzName].Service, wsid)
+		assert.Equal(t, workspaceMainConfig.HTTP.Routers[healthzName].Rule, "Path(`/"+wsid+"/m1/e1/healthz`)")
+		assert.NotContains(t, workspaceMainConfig.HTTP.Routers[healthzName].Middlewares, wsid+gateway.AuthMiddlewareSuffix)
+		assert.Contains(t, workspaceMainConfig.HTTP.Routers[healthzName].Middlewares, wsid+gateway.StripPrefixMiddlewareSuffix)
+		assert.Contains(t, workspaceMainConfig.HTTP.Routers[healthzName].Middlewares, wsid+gateway.HeaderRewriteMiddlewareSuffix)
+	})
+
+	t.Run("testHealthzEndpointInWorkspaceRoute", func(t *testing.T) {
+		healthzName := wsid + "-m1-e1-healthz"
+		assert.Contains(t, workspaceConfig.HTTP.Routers, healthzName)
+		assert.Equal(t, workspaceConfig.HTTP.Routers[healthzName].Service, healthzName)
+		assert.Equal(t, workspaceConfig.HTTP.Routers[healthzName].Rule, "Path(`/m1/e1/healthz`)")
+		assert.NotContains(t, workspaceConfig.HTTP.Routers[healthzName].Middlewares, healthzName+gateway.AuthMiddlewareSuffix)
+		assert.Contains(t, workspaceConfig.HTTP.Routers[healthzName].Middlewares, healthzName+gateway.StripPrefixMiddlewareSuffix)
+	})
+}
+
 func TestCreateSubDomainObjects(t *testing.T) {
 	testCommon := func(infra infrastructure.Type) solvers.RoutingObjects {
 		infrastructure.InitializeForTesting(infra)
@@ -668,6 +1017,89 @@ func TestCreateSubDomainObjects(t *testing.T) {
 	})
 }
 
+func TestCreateSubDomainObjectsLegacy(t *testing.T) {
+	testCommon := func(infra infrastructure.Type) solvers.RoutingObjects {
+		infrastructure.InitializeForTesting(infra)
+
+		cl, _, objs := getSpecObjectsForManager(t, &chev2.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       "che",
+				Namespace:  "ns",
+				Finalizers: []string{controller.FinalizerName},
+			},
+			Spec: chev2.CheClusterSpec{
+				Networking: chev2.CheClusterSpecNetworking{
+					Domain:   "down.on.earth",
+					Hostname: "over.the.rainbow",
+				},
+			},
+		}, subdomainDevWorkspaceRouting())
+
+		t.Run("testPodAdditions", func(t *testing.T) {
+			if len(objs.PodAdditions.Containers) != 1 || objs.PodAdditions.Containers[0].Name != wsGatewayName {
+				t.Error("expected Container pod addition with Workspace Gateway. Got ", objs.PodAdditions)
+			}
+			if len(objs.PodAdditions.Volumes) != 1 || objs.PodAdditions.Volumes[0].Name != wsGatewayName {
+				t.Error("expected Volume pod addition for workspace gateway. Got ", objs.PodAdditions)
+			}
+		})
+
+		for i := range objs.Services {
+			t.Run(fmt.Sprintf("service-%d", i), func(t *testing.T) {
+				svc := &objs.Services[i]
+				if svc.Annotations[defaults.ConfigAnnotationCheManagerName] != "che" {
+					t.Errorf("The name of the associated che manager should have been recorded in the service annotation")
+				}
+
+				if svc.Annotations[defaults.ConfigAnnotationCheManagerNamespace] != "ns" {
+					t.Errorf("The namespace of the associated che manager should have been recorded in the service annotation")
+				}
+
+				if svc.Labels[dwConstants.DevWorkspaceIDLabel] != "wsid" {
+					t.Errorf("The workspace ID should be recorded in the service labels")
+				}
+			})
+		}
+
+		t.Run("noWorkspaceTraefikConfig", func(t *testing.T) {
+			cms := &corev1.ConfigMapList{}
+			cl.List(context.TODO(), cms)
+
+			if len(cms.Items) != 2 {
+				t.Errorf("there should be 2 configmaps create but found: %d", len(cms.Items))
+			}
+		})
+
+		return objs
+	}
+
+	t.Run("expectedIngresses", func(t *testing.T) {
+		objs := testCommon(infrastructure.Kubernetes)
+		if len(objs.Ingresses) != 3 {
+			t.Error("Expected 3 ingress, found ", len(objs.Ingresses))
+		}
+		if objs.Ingresses[0].Spec.Rules[0].Host != "wsid-1.down.on.earth" {
+			t.Error("Expected Ingress host 'wsid-1.down.on.earth', but got ", objs.Ingresses[0].Spec.Rules[0].Host)
+		}
+		if objs.Ingresses[1].Spec.Rules[0].Host != "wsid-2.down.on.earth" {
+			t.Error("Expected Ingress host 'wsid-2.down.on.earth', but got ", objs.Ingresses[1].Spec.Rules[0].Host)
+		}
+		if objs.Ingresses[2].Spec.Rules[0].Host != "wsid-3.down.on.earth" {
+			t.Error("Expected Ingress host 'wsid-3.down.on.earth', but got ", objs.Ingresses[2].Spec.Rules[0].Host)
+		}
+	})
+
+	t.Run("expectedRoutes", func(t *testing.T) {
+		objs := testCommon(infrastructure.OpenShiftv4)
+		if len(objs.Routes) != 3 {
+			t.Error("Expected 3 Routes, found ", len(objs.Routes))
+		}
+		if objs.Routes[0].Spec.Host != "wsid-1.down.on.earth" {
+			t.Error("Expected Route host 'wsid-1.down.on.earth', but got ", objs.Routes[0].Spec.Host)
+		}
+	})
+}
+
 func TestReportRelocatableExposedEndpoints(t *testing.T) {
 	// kubernetes
 	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
@@ -719,6 +1151,72 @@ func TestReportRelocatableExposedEndpoints(t *testing.T) {
 	}
 	if e3.Url != "https://over.the.rainbow/username/my-workspace/9999/" {
 		t.Errorf("The e3 endpoint should have the following URL: '%s' but has '%s'.", "https://over.the.rainbow/username/my-workspace/9999/", e3.Url)
+	}
+}
+
+func TestReportRelocatableExposedEndpointsLegacy(t *testing.T) {
+	// kubernetes
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
+	routing := relocatableDevWorkspaceRouting()
+	_, solver, objs := getSpecObjectsForManager(t, &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "che",
+			Namespace:  "ns",
+			Finalizers: []string{controller.FinalizerName},
+		},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Domain:   "down.on.earth",
+				Hostname: "over.the.rainbow",
+			},
+		},
+	}, routing)
+
+	exposed, ready, err := solver.GetExposedEndpoints(routing.Spec.Endpoints, objs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !ready {
+		t.Errorf("The exposed endpoints should have been ready.")
+	}
+
+	if len(exposed) != 1 {
+		t.Errorf("There should have been 1 exposed endpoins but found %d", len(exposed))
+	}
+
+	m1, ok := exposed["m1"]
+	if !ok {
+		t.Errorf("The exposed endpoints should have been defined on the m1 component.")
+	}
+
+	if len(m1) != 3 {
+		t.Fatalf("There should have been 3 endpoints for m1.")
+	}
+
+	e1 := m1[0]
+	if e1.Name != "e1" {
+		t.Errorf("The first endpoint should have been e1 but is %s", e1.Name)
+	}
+	if e1.Url != "https://over.the.rainbow/wsid/m1/9999/1/" {
+		t.Errorf("The e1 endpoint should have the following URL: '%s' but has '%s'.", "https://over.the.rainbow/wsid/m1/9999/1/", e1.Url)
+	}
+
+	e2 := m1[1]
+	if e2.Name != "e2" {
+		t.Errorf("The second endpoint should have been e2 but is %s", e1.Name)
+	}
+	if e2.Url != "https://over.the.rainbow/wsid/m1/9999/2.js" {
+		t.Errorf("The e2 endpoint should have the following URL: '%s' but has '%s'.", "https://over.the.rainbow/wsid/m1/9999/2.js", e2.Url)
+	}
+
+	e3 := m1[2]
+	if e3.Name != "e3" {
+		t.Errorf("The third endpoint should have been e3 but is %s", e1.Name)
+	}
+	if e3.Url != "https://over.the.rainbow/wsid/m1/9999/" {
+		t.Errorf("The e3 endpoint should have the following URL: '%s' but has '%s'.", "https://over.the.rainbow/wsid/m1/9999/", e3.Url)
 	}
 }
 
@@ -840,6 +1338,136 @@ func TestExposeEndpoints(t *testing.T) {
 	assert.Equal(t, "http://username.my-workspace.server-pub-nr.down.on.earth/", spnr[0].Url)
 }
 
+func TestExposeEndpointsLegacy(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
+	routing := &dwo.DevWorkspaceRouting{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "routing",
+			Namespace: "ws",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: "workspace.devfile.io/v1alpha2",
+					Kind:       "DevWorkspace",
+					Name:       "my-workspace",
+					UID:        "uid",
+				},
+			},
+		},
+		Spec: dwo.DevWorkspaceRoutingSpec{
+			DevWorkspaceId: "wsid",
+			RoutingClass:   "che",
+			Endpoints: map[string]dwo.EndpointList{
+				"server-internal": {
+					{
+						Name:       "server-int",
+						TargetPort: 8081,
+						Exposure:   dwo.InternalEndpointExposure,
+						Protocol:   "http",
+						Attributes: map[string]apiext.JSON{
+							"urlRewriteSupported": apiext.JSON{Raw: []byte("\"true\"")},
+							"cookiesAuthEnabled":  apiext.JSON{Raw: []byte("\"true\"")},
+						},
+					},
+				},
+				"server-internal-no-rewrite": {
+					{
+						Name:       "server-int-nr",
+						TargetPort: 8084,
+						Exposure:   dwo.InternalEndpointExposure,
+						Protocol:   "http",
+					},
+				},
+				"server-none": {
+					{
+						Name:       "server-int",
+						TargetPort: 8080,
+						Exposure:   dwo.NoneEndpointExposure,
+						Protocol:   "http",
+						Attributes: map[string]apiext.JSON{
+							"urlRewriteSupported": apiext.JSON{Raw: []byte("\"true\"")},
+							"cookiesAuthEnabled":  apiext.JSON{Raw: []byte("\"true\"")},
+						},
+					},
+				},
+				"server-none-no-rewrite": {
+					{
+						Name:       "server-none-nr",
+						TargetPort: 8083,
+						Exposure:   dwo.NoneEndpointExposure,
+						Protocol:   "http",
+					},
+				},
+				"server-public": {
+					{
+						Name:       "server-pub",
+						TargetPort: 8082,
+						Exposure:   dwo.PublicEndpointExposure,
+						Protocol:   "http",
+						Attributes: map[string]apiext.JSON{
+							"urlRewriteSupported": apiext.JSON{Raw: []byte("\"true\"")},
+							"cookiesAuthEnabled":  apiext.JSON{Raw: []byte("\"true\"")},
+						},
+					},
+				},
+				"server-public-no-rewrite": {
+					{
+						Name:       "server-pub-nr",
+						TargetPort: 8085,
+						Exposure:   dwo.PublicEndpointExposure,
+						Protocol:   "http",
+					},
+				},
+			},
+		},
+	}
+
+	_, solver, objs := getSpecObjectsForManager(t, &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "che",
+			Namespace:  "ns",
+			Finalizers: []string{controller.FinalizerName},
+		},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Domain:   "down.on.earth",
+				Hostname: "over.the.rainbow",
+			},
+		},
+	}, routing)
+
+	assert.Equal(t, 1, len(objs.Ingresses))
+
+	exposed, ready, err := solver.GetExposedEndpoints(routing.Spec.Endpoints, objs)
+	assert.Nil(t, err)
+	assert.True(t, ready)
+	assert.Equal(t, 4, len(exposed))
+
+	si, ok := exposed["server-internal"]
+	assert.True(t, ok)
+	assert.Equal(t, 1, len(si))
+	assert.Equal(t, "server-int", si[0].Name)
+	assert.Equal(t, "http://wsid-service.ws.svc:8081", si[0].Url)
+
+	sinr, ok := exposed["server-internal-no-rewrite"]
+	assert.True(t, ok)
+	assert.Equal(t, 1, len(sinr))
+	assert.Equal(t, "server-int-nr", sinr[0].Name)
+	assert.Equal(t, "http://wsid-service.ws.svc:8084", sinr[0].Url)
+
+	sp, ok := exposed["server-public"]
+	assert.True(t, ok)
+	assert.Equal(t, 1, len(sp))
+	assert.Equal(t, "server-pub", sp[0].Name)
+	assert.Equal(t, "https://over.the.rainbow/wsid/server-public/8082/", sp[0].Url)
+
+	spnr, ok := exposed["server-public-no-rewrite"]
+	assert.True(t, ok)
+	assert.Equal(t, 1, len(spnr))
+	assert.Equal(t, "server-pub-nr", spnr[0].Name)
+	assert.Equal(t, "http://wsid-1.down.on.earth/", spnr[0].Url)
+}
+
 func TestReportSubdomainExposedEndpoints(t *testing.T) {
 	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 	routing := subdomainDevWorkspaceRouting()
@@ -889,6 +1517,70 @@ func TestReportSubdomainExposedEndpoints(t *testing.T) {
 	}
 	if e3.Url != "http://username.my-workspace.e3.down.on.earth/" {
 		t.Errorf("The e3 endpoint should have the following URL: '%s' but has '%s'.", "http://username.my-workspace.e3.down.on.earth/", e3.Url)
+	}
+}
+
+func TestReportSubdomainExposedEndpointsLegacy(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	routing := subdomainDevWorkspaceRouting()
+	_, solver, objs := getSpecObjectsForManager(t, &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "che",
+			Namespace:  "ns",
+			Finalizers: []string{controller.FinalizerName},
+		},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Domain:   "down.on.earth",
+				Hostname: "over.the.rainbow",
+			},
+		},
+	}, routing)
+
+	exposed, ready, err := solver.GetExposedEndpoints(routing.Spec.Endpoints, objs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !ready {
+		t.Errorf("The exposed endpoints should have been ready.")
+	}
+
+	if len(exposed) != 1 {
+		t.Errorf("There should have been 1 exposed endpoins but found %d", len(exposed))
+	}
+
+	m1, ok := exposed["m1"]
+	if !ok {
+		t.Errorf("The exposed endpoints should have been defined on the m1 component.")
+	}
+
+	if len(m1) != 3 {
+		t.Fatalf("There should have been 3 endpoints for m1.")
+	}
+
+	e1 := m1[0]
+	if e1.Name != "e1" {
+		t.Errorf("The first endpoint should have been e1 but is %s", e1.Name)
+	}
+	if e1.Url != "https://wsid-1.down.on.earth/1/" {
+		t.Errorf("The e1 endpoint should have the following URL: '%s' but has '%s'.", "https://wsid-1.down.on.earth/1/", e1.Url)
+	}
+
+	e2 := m1[1]
+	if e2.Name != "e2" {
+		t.Errorf("The second endpoint should have been e2 but is %s", e1.Name)
+	}
+	if e2.Url != "https://wsid-2.down.on.earth/2.js" {
+		t.Errorf("The e2 endpoint should have the following URL: '%s' but has '%s'.", "https://wsid-2.down.on.earth/2.js", e2.Url)
+	}
+
+	e3 := m1[2]
+	if e3.Name != "e3" {
+		t.Errorf("The third endpoint should have been e3 but is %s", e1.Name)
+	}
+	if e3.Url != "http://wsid-3.down.on.earth/" {
+		t.Errorf("The e3 endpoint should have the following URL: '%s' but has '%s'.", "https://wsid-3.down.on.earth/", e3.Url)
 	}
 }
 

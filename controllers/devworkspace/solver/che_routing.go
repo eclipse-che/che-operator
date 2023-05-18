@@ -17,7 +17,6 @@ import (
 	"fmt"
 	"path"
 	"regexp"
-	"strconv"
 	"strings"
 
 	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
@@ -280,17 +279,25 @@ func (c *CheRoutingSolver) cheExposedEndpoints(cheCluster *chev2.CheCluster, wor
 					return map[string]dwo.ExposedEndpointList{}, false, nil
 				}
 
+				useLegacyRouting := false
 				username, err := getNormalizedUsername(c.client, routingObj.Services[0].Namespace)
 				if err != nil {
-					return map[string]dwo.ExposedEndpointList{}, false, err
+					useLegacyRouting = true
 				}
 
 				dwName, err := getNormalizedWkspName(c.client, routingObj.Services[0].Namespace, routingObj.Services[0].ObjectMeta.OwnerReferences[0].Name)
 				if err != nil {
-					return map[string]dwo.ExposedEndpointList{}, false, err
+					useLegacyRouting = true
 				}
 
-				publicURLPrefix := getPublicURLPrefixForEndpoint(dwName, username, endpoint)
+				var endpointStrategy EndpointStrategy
+				if useLegacyRouting {
+					endpointStrategy = Legacy{workspaceID: workspaceID, componentName: component}
+				} else {
+					endpointStrategy = UsernameWkspName{username: username, workspaceName: dwName}
+				}
+
+				publicURLPrefix := getPublicURLPrefixForEndpoint(endpoint, endpointStrategy)
 				endpointURL = path.Join(gatewayHost, publicURLPrefix, endpoint.Path)
 			}
 
@@ -340,28 +347,37 @@ func (c *CheRoutingSolver) getGatewayConfigsAndFillRoutingObjects(cheCluster *ch
 	}
 
 	configs := make([]corev1.ConfigMap, 0)
+
+	useLegacyRouting := false
 	username, err := getNormalizedUsername(c.client, routing.Namespace)
 	if err != nil {
-		return nil, err
+		useLegacyRouting = true
 	}
 
 	dwName, err := getNormalizedWkspName(c.client, routing.Namespace, routing.Name)
 	if err != nil {
-		return nil, err
+		useLegacyRouting = true
+	}
+
+	var endpointStrategy EndpointStrategy
+	if useLegacyRouting {
+		endpointStrategy = Legacy{workspaceID: workspaceID}
+	} else {
+		endpointStrategy = UsernameWkspName{username: username, workspaceName: dwName}
 	}
 
 	// first do routing from main che-gateway into workspace service
-	if mainWsRouteConfig, err := provisionMainWorkspaceRoute(cheCluster, routing, username, dwName, cmLabels); err != nil {
+	if mainWsRouteConfig, err := provisionMainWorkspaceRoute(cheCluster, routing, cmLabels, endpointStrategy); err != nil {
 		return nil, err
 	} else {
 		configs = append(configs, *mainWsRouteConfig)
 	}
 
 	// then expose the endpoints
-	if infraExposer, err := c.getInfraSpecificExposer(cheCluster, routing, objs, username, dwName); err != nil {
+	if infraExposer, err := c.getInfraSpecificExposer(cheCluster, routing, objs, endpointStrategy); err != nil {
 		return nil, err
 	} else {
-		if workspaceConfig := exposeAllEndpoints(cheCluster, routing, objs, infraExposer); workspaceConfig != nil {
+		if workspaceConfig := exposeAllEndpoints(cheCluster, routing, objs, infraExposer, endpointStrategy); workspaceConfig != nil {
 			configs = append(configs, *workspaceConfig)
 		}
 	}
@@ -370,6 +386,19 @@ func (c *CheRoutingSolver) getGatewayConfigsAndFillRoutingObjects(cheCluster *ch
 }
 
 func getNormalizedUsername(c client.Client, namespace string) (string, error) {
+	username, err := getUsernameFromNamespace(c, namespace)
+
+	if err != nil {
+		username, err = getUsernameFromSecret(c, namespace)
+	}
+
+	if err != nil {
+		return "", err
+	}
+	return normalize(username), nil
+}
+
+func getUsernameFromSecret(c client.Client, namespace string) (string, error) {
 	secret := &corev1.Secret{}
 	err := c.Get(context.TODO(), client.ObjectKey{Name: "user-profile", Namespace: namespace}, secret)
 	if err != nil {
@@ -377,6 +406,28 @@ func getNormalizedUsername(c client.Client, namespace string) (string, error) {
 	}
 	username := string(secret.Data["name"])
 	return normalize(username), nil
+}
+
+func getUsernameFromNamespace(c client.Client, namespace string) (string, error) {
+	nsInfo := &corev1.Namespace{}
+	err := c.Get(context.TODO(), client.ObjectKey{Name: namespace}, nsInfo)
+	if err != nil {
+		return "", err
+	}
+
+	notFoundError := fmt.Errorf("username not found in namespace %s", namespace)
+
+	if nsInfo.GetAnnotations() == nil {
+		return "", notFoundError
+	}
+
+	username, exists := nsInfo.GetAnnotations()["che.eclipse.org/username"]
+
+	if exists {
+		return username, nil
+	}
+
+	return "", notFoundError
 }
 
 func getNormalizedWkspName(c client.Client, namespace string, routingName string) (string, error) {
@@ -398,14 +449,14 @@ func normalize(username string) string {
 	return r3.ReplaceAllString(result, "")       // trim dashes at beginning/end
 }
 
-func (c *CheRoutingSolver) getInfraSpecificExposer(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects, username string, dwName string) (func(info *EndpointInfo), error) {
+func (c *CheRoutingSolver) getInfraSpecificExposer(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects, endpointStrategy EndpointStrategy) (func(info *EndpointInfo), error) {
 	if infrastructure.IsOpenShift() {
 		exposer := &RouteExposer{}
 		if err := exposer.initFrom(context.TODO(), c.client, cheCluster, routing); err != nil {
 			return nil, err
 		}
 		return func(info *EndpointInfo) {
-			route := exposer.getRouteForService(info, username, dwName)
+			route := exposer.getRouteForService(info, endpointStrategy)
 			objs.Routes = append(objs.Routes, route)
 		}, nil
 	} else {
@@ -414,7 +465,7 @@ func (c *CheRoutingSolver) getInfraSpecificExposer(cheCluster *chev2.CheCluster,
 			return nil, err
 		}
 		return func(info *EndpointInfo) {
-			ingress := exposer.getIngressForService(info, username, dwName)
+			ingress := exposer.getIngressForService(info, endpointStrategy)
 			objs.Ingresses = append(objs.Ingresses, ingress)
 		}, nil
 	}
@@ -430,7 +481,7 @@ func getCommonService(objs *solvers.RoutingObjects, dwId string) *corev1.Service
 	return nil
 }
 
-func exposeAllEndpoints(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects, ingressExpose func(*EndpointInfo)) *corev1.ConfigMap {
+func exposeAllEndpoints(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects, ingressExpose func(*EndpointInfo), endpointStrategy EndpointStrategy) *corev1.ConfigMap {
 	wsRouteConfig := gateway.CreateEmptyTraefikConfig()
 
 	commonService := getCommonService(objs, routing.Spec.DevWorkspaceId)
@@ -461,7 +512,7 @@ func exposeAllEndpoints(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceR
 			}
 
 			if e.Attributes.GetString(urlRewriteSupportedEndpointAttributeName, nil) == "true" {
-				addEndpointToTraefikConfig(componentName, e, wsRouteConfig, cheCluster, routing)
+				addEndpointToTraefikConfig(componentName, e, wsRouteConfig, cheCluster, routing, endpointStrategy)
 			} else {
 				ingressExpose(&EndpointInfo{
 					order:         order,
@@ -522,16 +573,16 @@ func containPort(service *corev1.Service, port int32) bool {
 	return false
 }
 
-func provisionMainWorkspaceRoute(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, username string, dwName string, cmLabels map[string]string) (*corev1.ConfigMap, error) {
+func provisionMainWorkspaceRoute(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, cmLabels map[string]string, endpointStrategy EndpointStrategy) (*corev1.ConfigMap, error) {
 	dwId := routing.Spec.DevWorkspaceId
 	dwNamespace := routing.Namespace
 
 	cfg := gateway.CreateCommonTraefikConfig(
 		dwId,
-		fmt.Sprintf("PathPrefix(`/%s/%s`)", username, dwName),
+		fmt.Sprintf("PathPrefix(`%s`)", endpointStrategy.getMainWorkspacePathPrefix()),
 		100,
 		getServiceURL(wsGatewayPort, dwId, dwNamespace),
-		[]string{fmt.Sprintf("/%s/%s", username, dwName)})
+		[]string{endpointStrategy.getMainWorkspacePathPrefix()})
 
 	if cheCluster.IsAccessTokenConfigured() {
 		cfg.AddAuthHeaderRewrite(dwId)
@@ -543,7 +594,7 @@ func provisionMainWorkspaceRoute(cheCluster *chev2.CheCluster, routing *dwo.DevW
 	add5XXErrorHandling(cfg, dwId)
 
 	// make '/healthz' path of main endpoints reachable from outside
-	routeForHealthzEndpoint(cfg, username, dwName, dwId, routing.Spec.Endpoints)
+	routeForHealthzEndpoint(cfg, dwId, routing.Spec.Endpoints, endpointStrategy)
 
 	if contents, err := yaml.Marshal(cfg); err != nil {
 		return nil, err
@@ -589,7 +640,7 @@ func add5XXErrorHandling(cfg *gateway.TraefikConfig, dwId string) {
 }
 
 // makes '/healthz' path of main endpoints reachable from the outside
-func routeForHealthzEndpoint(cfg *gateway.TraefikConfig, username string, dwName string, dwId string, endpoints map[string]dwo.EndpointList) {
+func routeForHealthzEndpoint(cfg *gateway.TraefikConfig, dwId string, endpoints map[string]dwo.EndpointList, endpointStrategy EndpointStrategy) {
 	for componentName, endpoints := range endpoints {
 		for _, e := range endpoints {
 			if e.Attributes.GetString(string(dwo.TypeEndpointAttribute), nil) == string(dwo.MainEndpointType) {
@@ -597,10 +648,10 @@ func routeForHealthzEndpoint(cfg *gateway.TraefikConfig, username string, dwName
 				if infrastructure.IsOpenShift() {
 					middlewares = append(middlewares, dwId+gateway.HeaderRewriteMiddlewareSuffix)
 				}
-				routeName, endpointPath := createEndpointPath(&e, componentName)
+				routeName, endpointPath := endpointStrategy.getEndpointPath(&e, componentName)
 				routerName := fmt.Sprintf("%s-%s-healthz", dwId, routeName)
 				cfg.HTTP.Routers[routerName] = &gateway.TraefikConfigRouter{
-					Rule:        fmt.Sprintf("Path(`/%s/%s%s/healthz`)", username, dwName, endpointPath),
+					Rule:        fmt.Sprintf("Path(`%s/healthz`)", endpointStrategy.getEndpointPathPrefix(endpointPath)),
 					Service:     dwId,
 					Middlewares: middlewares,
 					Priority:    101,
@@ -610,8 +661,8 @@ func routeForHealthzEndpoint(cfg *gateway.TraefikConfig, username string, dwName
 	}
 }
 
-func addEndpointToTraefikConfig(componentName string, e dwo.Endpoint, cfg *gateway.TraefikConfig, cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting) {
-	routeName, prefix := createEndpointPath(&e, componentName)
+func addEndpointToTraefikConfig(componentName string, e dwo.Endpoint, cfg *gateway.TraefikConfig, cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, endpointStrategy EndpointStrategy) {
+	routeName, prefix := endpointStrategy.getEndpointPath(&e, componentName)
 	rulePrefix := fmt.Sprintf("PathPrefix(`%s`)", prefix)
 
 	// skip if exact same route is already exposed
@@ -641,19 +692,6 @@ func addEndpointToTraefikConfig(componentName string, e dwo.Endpoint, cfg *gatew
 			fmt.Sprintf("http://127.0.0.1:%d", e.TargetPort),
 			[]string{prefix})
 	}
-}
-
-func createEndpointPath(e *dwo.Endpoint, componentName string) (routeName string, path string) {
-	if e.Attributes.GetString(uniqueEndpointAttributeName, nil) == "true" {
-		// if endpoint is unique, we're exposing on /componentName/<endpoint-name>
-		routeName = e.Name
-	} else {
-		// if endpoint is NOT unique, we're exposing on /componentName/<port-number>
-		routeName = strconv.Itoa(e.TargetPort)
-	}
-	path = fmt.Sprintf("/%s", routeName)
-
-	return routeName, path
 }
 
 func findServiceForPort(port int32, objs *solvers.RoutingObjects) *corev1.Service {
@@ -762,20 +800,12 @@ func getServiceURL(port int32, workspaceID string, workspaceNamespace string) st
 	return fmt.Sprintf("http://%s.%s.svc:%d", common.ServiceName(workspaceID), workspaceNamespace, port)
 }
 
-func getPublicURLPrefixForEndpoint(dwName string, username string, endpoint dwo.Endpoint) string {
+func getPublicURLPrefixForEndpoint(endpoint dwo.Endpoint, endpointStrategy EndpointStrategy) string {
 	endpointName := ""
 	if endpoint.Attributes.GetString(uniqueEndpointAttributeName, nil) == "true" {
 		endpointName = endpoint.Name
 	}
-
-	return getPublicURLPrefix(dwName, username, int32(endpoint.TargetPort), endpointName)
-}
-
-func getPublicURLPrefix(dwName string, username string, port int32, uniqueEndpointName string) string {
-	if uniqueEndpointName == "" {
-		return fmt.Sprintf(endpointURLPrefixPattern, username, dwName, port)
-	}
-	return fmt.Sprintf(uniqueEndpointURLPrefixPattern, username, dwName, uniqueEndpointName)
+	return endpointStrategy.getPublicURLPrefix(int32(endpoint.TargetPort), endpointName)
 }
 
 func determineEndpointScheme(e dwo.Endpoint) string {
