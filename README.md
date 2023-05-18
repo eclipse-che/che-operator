@@ -16,7 +16,7 @@
 - [Builds](#Builds)
 - [License](#License)
  
-
+d
 ## Description
 
 Che/Red Hat OpenShift Dev Spaces operator uses [Operator SDK](https://github.com/operator-framework/operator-sdk) and [Go Kube client](https://github.com/kubernetes/client-go) to deploy, update and manage K8S/OpenShift resources that constitute a multi-user Eclipse Che/Red Hat OpenShift Dev Spaces cluster.
