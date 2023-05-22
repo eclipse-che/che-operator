@@ -183,11 +183,6 @@ type CheClusterComponents struct {
 	// Configuration settings related to the devfile registry used by the Che installation.
 	// +optional
 	DevfileRegistry DevfileRegistry `json:"devfileRegistry"`
-	// Configuration settings related to the database used by the Che installation.
-	// Database component is Deprecated. All properties will be ignored.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:com.tectonic.ui:hidden"
-	Database Database `json:"database"`
 	// Configuration settings related to the dashboard used by the Che installation.
 	// +optional
 	Dashboard Dashboard `json:"dashboard"`
@@ -329,39 +324,6 @@ type DevfileRegistry struct {
 	// External devfile registries serving sample ready-to-use devfiles.
 	// +optional
 	ExternalDevfileRegistries []ExternalDevfileRegistry `json:"externalDevfileRegistries,omitempty"`
-}
-
-// Database component is Deprecated. All properties will be ignored.
-// Configuration settings related to the database used by the Che installation.
-// +k8s:openapi-gen=true
-type Database struct {
-	// Instructs the Operator to deploy a dedicated database.
-	// By default, a dedicated PostgreSQL database is deployed as part of the Che installation.
-	// When `externalDb` is set as `true`, no dedicated database is deployed by the
-	// Operator and you need to provide connection details about the external database you want to use.
-	// +optional
-	ExternalDb bool `json:"externalDb"`
-	// Deployment override options.
-	// +optional
-	Deployment *Deployment `json:"deployment,omitempty"`
-	// PostgreSQL database hostname that the Che server connects to.
-	// Override this value only when using an external database. See field `externalDb`.
-	// +optional
-	PostgresHostName string `json:"postgresHostName,omitempty"`
-	// PostgreSQL Database port the Che server connects to.
-	// Override this value only when using an external database. See field `externalDb`.
-	// +optional
-	PostgresPort string `json:"postgresPort,omitempty"`
-	// PostgreSQL database name that the Che server uses to connect to the database.
-	// +optional
-	PostgresDb string `json:"postgresDb,omitempty"`
-	// The secret that contains PostgreSQL `user` and `password` that the Che server uses to connect to the database.
-	// The secret must have a `app.kubernetes.io/part-of=che.eclipse.org` label.
-	// +optional
-	CredentialsSecretName string `json:"credentialsSecretName,omitempty"`
-	// PVC settings for PostgreSQL database.
-	// +optional
-	Pvc *PVC `json:"pvc,omitempty"`
 }
 
 // Che server metrics configuration
@@ -784,13 +746,6 @@ type CheClusterStatus struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Reason"
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors="urn:alm:descriptor:text"
 	Reason string `json:"reason,omitempty"`
-	// The PostgreSQL version of the image in use.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=status
-	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="PostgreSQL version"
-	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors="urn:alm:descriptor:text"
-	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors="urn:alm:descriptor:com.tectonic.ui:hidden"
-	PostgresVersion string `json:"postgresVersion,omitempty"`
 	// The resolved workspace base domain. This is either the copy of the explicitly defined property of the
 	// same name in the spec or, if it is undefined in the spec and we're running on OpenShift, the automatically
 	// resolved basedomain for routes.
