@@ -22,7 +22,7 @@ import (
 // Interface for different workspace and endpoint url path strategies
 type EndpointStrategy interface {
 	// get url paths for traefik config
-	getPublicURLPrefix(port int32, uniqueEndpointName string) string
+	getPublicURLPrefix(port int32, uniqueEndpointName string, componentName string) string
 	getMainWorkspacePathPrefix() string
 	getEndpointPath(e *dwo.Endpoint, componentName string) (routeName string, path string)
 	getEndpointPathPrefix(endpointPath string) string
@@ -41,7 +41,7 @@ type UsernameWkspName struct {
 	workspaceName string
 }
 
-func (u UsernameWkspName) getPublicURLPrefix(port int32, uniqueEndpointName string) string {
+func (u UsernameWkspName) getPublicURLPrefix(port int32, uniqueEndpointName string, componentName string) string {
 	if uniqueEndpointName == "" {
 		return fmt.Sprintf(endpointURLPrefixPattern, u.username, u.workspaceName, port)
 	}
@@ -77,15 +77,14 @@ func (u UsernameWkspName) getHostname(endpointInfo *EndpointInfo, baseDomain str
 // Public endpoints defined in the devfile are exposed on the following path via route or ingress:
 // <WORKSPACE_ID>-<ENDPOINT_ORDER_NUMBER>.<CLUSTER_INGRESS_DOMAIN>/<ENDPOINT_PATH>
 type Legacy struct {
-	workspaceID   string
-	componentName string
+	workspaceID string
 }
 
-func (l Legacy) getPublicURLPrefix(port int32, uniqueEndpointName string) string {
+func (l Legacy) getPublicURLPrefix(port int32, uniqueEndpointName string, componentName string) string {
 	if uniqueEndpointName == "" {
-		return fmt.Sprintf(endpointURLPrefixPattern, l.workspaceID, l.componentName, port)
+		return fmt.Sprintf(endpointURLPrefixPattern, l.workspaceID, componentName, port)
 	}
-	return fmt.Sprintf(uniqueEndpointURLPrefixPattern, l.workspaceID, l.componentName, uniqueEndpointName)
+	return fmt.Sprintf(uniqueEndpointURLPrefixPattern, l.workspaceID, componentName, uniqueEndpointName)
 }
 
 func (l Legacy) getMainWorkspacePathPrefix() string {

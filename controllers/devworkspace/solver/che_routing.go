@@ -292,12 +292,12 @@ func (c *CheRoutingSolver) cheExposedEndpoints(cheCluster *chev2.CheCluster, wor
 
 				var endpointStrategy EndpointStrategy
 				if useLegacyRouting {
-					endpointStrategy = Legacy{workspaceID: workspaceID, componentName: component}
+					endpointStrategy = Legacy{workspaceID: workspaceID}
 				} else {
 					endpointStrategy = UsernameWkspName{username: username, workspaceName: dwName}
 				}
 
-				publicURLPrefix := getPublicURLPrefixForEndpoint(endpoint, endpointStrategy)
+				publicURLPrefix := getPublicURLPrefixForEndpoint(component, endpoint, endpointStrategy)
 				endpointURL = path.Join(gatewayHost, publicURLPrefix, endpoint.Path)
 			}
 
@@ -800,12 +800,12 @@ func getServiceURL(port int32, workspaceID string, workspaceNamespace string) st
 	return fmt.Sprintf("http://%s.%s.svc:%d", common.ServiceName(workspaceID), workspaceNamespace, port)
 }
 
-func getPublicURLPrefixForEndpoint(endpoint dwo.Endpoint, endpointStrategy EndpointStrategy) string {
+func getPublicURLPrefixForEndpoint(componentName string, endpoint dwo.Endpoint, endpointStrategy EndpointStrategy) string {
 	endpointName := ""
 	if endpoint.Attributes.GetString(uniqueEndpointAttributeName, nil) == "true" {
 		endpointName = endpoint.Name
 	}
-	return endpointStrategy.getPublicURLPrefix(int32(endpoint.TargetPort), endpointName)
+	return endpointStrategy.getPublicURLPrefix(int32(endpoint.TargetPort), endpointName, componentName)
 }
 
 func determineEndpointScheme(e dwo.Endpoint) string {
