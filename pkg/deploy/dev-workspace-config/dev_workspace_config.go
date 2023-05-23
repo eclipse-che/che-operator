@@ -101,6 +101,8 @@ func updateWorkspaceConfig(cheCluster *chev2.CheCluster, operatorConfig *control
 
 	updateStartTimeout(operatorConfig, devEnvironments.StartTimeoutSeconds)
 
+	updatePersistUserHomeConfig(devEnvironments.PersistUserHome, operatorConfig.Workspace)
+
 	operatorConfig.Workspace.DeploymentStrategy = v1.DeploymentStrategyType(utils.GetValue(string(devEnvironments.DeploymentStrategy), constants.DefaultDeploymentStrategy))
 	return nil
 }
@@ -146,6 +148,14 @@ func updateWorkspaceStorageConfig(devEnvironments *chev2.CheClusterDevEnvironmen
 		}
 	}
 	return nil
+}
+
+func updatePersistUserHomeConfig(persistentHomeConfig *chev2.PersistentHomeConfig, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
+	workspaceConfig.PersistUserHome = nil
+	if persistentHomeConfig != nil {
+		workspaceConfig.PersistUserHome = &controllerv1alpha1.PersistentHomeConfig{}
+		workspaceConfig.PersistUserHome.Enabled = persistentHomeConfig.Enabled
+	}
 }
 
 func updateWorkspaceServiceAccountConfig(devEnvironments *chev2.CheClusterDevEnvironments, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
