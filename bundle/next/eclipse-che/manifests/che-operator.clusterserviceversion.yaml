@@ -866,6 +866,12 @@ spec:
                 - delete
                 - update
                 - use
+            - apiGroups:
+                - ""
+              resources:
+                - limitranges
+              verbs:
+                - list
           serviceAccountName: che-operator
       deployments:
         - name: che-operator

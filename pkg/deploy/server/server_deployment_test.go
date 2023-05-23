@@ -12,28 +12,182 @@
 package server
 
 import (
-	"os"
-
 	"k8s.io/apimachinery/pkg/api/resource"
 
-	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/stretchr/testify/assert"
 
+	"testing"
+
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	"testing"
 )
+
+func TestDeploymentCpuLimit(t *testing.T) {
+	type testCase struct {
+		name             string
+		cheCluster       *chev2.CheCluster
+		initObjects      []runtime.Object
+		expectedCpuLimit string
+	}
+
+	cpuLimit250m := resource.MustParse("250m")
+	cpuLimit0m := resource.MustParse("0")
+
+	testCases := []testCase{
+		{
+			name: "No CPU limit if LimitRange does not exists",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+			},
+			initObjects:      []runtime.Object{},
+			expectedCpuLimit: "",
+		},
+		{
+			name: "Default CPU limit if LimitRange exists",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+			},
+			initObjects: []runtime.Object{
+				&corev1.LimitRange{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "eclipse-che",
+						Name:      "limitRange",
+					},
+				},
+			},
+			expectedCpuLimit: constants.DefaultServerCpuLimit,
+		},
+		{
+			name: "Overridden CPU in CheCluster",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						CheServer: chev2.CheServer{
+							Deployment: &chev2.Deployment{
+								Containers: []chev2.Container{
+									{
+										Name: defaults.GetCheFlavor(),
+										Resources: &chev2.ResourceRequirements{
+											Limits: &chev2.ResourceList{
+												Cpu: &cpuLimit250m,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			initObjects: []runtime.Object{
+				&corev1.LimitRange{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "eclipse-che",
+						Name:      "limitRange",
+					},
+				},
+			},
+			expectedCpuLimit: "250m",
+		},
+		{
+			name: "Overridden CPU in CheCluster",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						CheServer: chev2.CheServer{
+							Deployment: &chev2.Deployment{
+								Containers: []chev2.Container{
+									{
+										Name: defaults.GetCheFlavor(),
+										Resources: &chev2.ResourceRequirements{
+											Limits: &chev2.ResourceList{
+												Cpu: &cpuLimit250m,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			initObjects:      []runtime.Object{},
+			expectedCpuLimit: "250m",
+		},
+		{
+			name: "Overridden CPU in CheCluster",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						CheServer: chev2.CheServer{
+							Deployment: &chev2.Deployment{
+								Containers: []chev2.Container{
+									{
+										Name: defaults.GetCheFlavor(),
+										Resources: &chev2.ResourceRequirements{
+											Limits: &chev2.ResourceList{
+												Cpu: &cpuLimit0m,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			initObjects: []runtime.Object{
+				&corev1.LimitRange{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "eclipse-che",
+						Name:      "limitRange",
+					},
+				},
+			},
+			expectedCpuLimit: "",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			ctx := test.GetDeployContext(testCase.cheCluster, testCase.initObjects)
+
+			server := NewCheServerReconciler()
+			deployment, err := server.getDeploymentSpec(ctx)
+
+			assert.Nil(t, err)
+			if testCase.expectedCpuLimit == "" {
+				assert.Empty(t, deployment.Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceCPU])
+			} else {
+				assert.Equal(t, testCase.expectedCpuLimit, deployment.Spec.Template.Spec.Containers[0].Resources.Limits.Cpu().String())
+			}
+		})
+	}
+}
 
 func TestDeployment(t *testing.T) {
 	memoryRequest := resource.MustParse("150Mi")
@@ -57,7 +211,7 @@ func TestDeployment(t *testing.T) {
 			initObjects:   []runtime.Object{},
 			memoryLimit:   constants.DefaultServerMemoryLimit,
 			memoryRequest: constants.DefaultServerMemoryRequest,
-			cpuLimit:      constants.DefaultServerCpuLimit,
+			cpuLimit:      "0", // no CPU limit if LimitRange does not exists
 			cpuRequest:    constants.DefaultServerCpuRequest,
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -105,18 +259,7 @@ func TestDeployment(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
-			testCase.initObjects = append(testCase.initObjects)
-			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
-
-			ctx := &chetypes.DeployContext{
-				CheCluster: testCase.cheCluster,
-				ClusterAPI: chetypes.ClusterAPI{
-					Client: cli,
-					Scheme: scheme.Scheme,
-				},
-			}
+			ctx := test.GetDeployContext(testCase.cheCluster, testCase.initObjects)
 
 			server := NewCheServerReconciler()
 			deployment, err := server.getDeploymentSpec(ctx)

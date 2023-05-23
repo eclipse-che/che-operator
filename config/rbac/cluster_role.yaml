@@ -403,3 +403,9 @@ rules:
       - delete
       - update
       - use
+  - apiGroups:
+      - ""
+    resources:
+      - limitranges
+    verbs:
+      - list

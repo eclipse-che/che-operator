@@ -12,6 +12,7 @@
 package server
 
 import (
+	"context"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -23,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
@@ -208,6 +210,13 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 		},
 	}
 
+	limitRanges := &corev1.LimitRangeList{}
+	if err := ctx.ClusterAPI.NonCachingClient.List(context.TODO(), limitRanges, &client.ListOptions{Namespace: ctx.CheCluster.Namespace}); err != nil {
+		return nil, err
+	} else if len(limitRanges.Items) == 0 { // no LimitRange in the namespace
+		delete(deployment.Spec.Template.Spec.Containers[0].Resources.Limits, corev1.ResourceCPU)
+	}
+
 	err = MountBitBucketOAuthConfig(ctx, deployment)
 	if err != nil {
 		return nil, err
@@ -271,7 +280,9 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 	}
 
 	deploy.EnsurePodSecurityStandards(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
-	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.CheServer.Deployment)
+	if err := deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.CheServer.Deployment); err != nil {
+		return nil, err
+	}
 
 	return deployment, nil
 }
