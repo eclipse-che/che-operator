@@ -33,11 +33,9 @@ runTest() {
   chectl server:deploy \
     --batch \
     --platform minikube \
-    --k8spodwaittimeout=120000 \
-    --k8spodreadytimeout=120000 \
+    --k8spodwaittimeout=6000000 \
+    --k8spodreadytimeout=6000000 \
     --templates "${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH}" \
-    --k8spodwaittimeout=120000 \
-    --k8spodreadytimeout=120000 \
     --che-operator-cr-patch-yaml "${OPERATOR_REPO}/build/scripts/minikube-tests/minikube-checluster-patch.yaml"
 
   make wait-devworkspace-running NAMESPACE="devworkspace-controller" VERBOSE=1
