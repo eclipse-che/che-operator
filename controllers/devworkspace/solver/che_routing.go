@@ -232,6 +232,8 @@ func (c *CheRoutingSolver) cheExposedEndpoints(cheCluster *chev2.CheCluster, wor
 
 	gatewayHost := cheCluster.GetCheHost()
 
+	endpointStrategy := getEndpointPathStrategy(c.client, workspaceID, routingObj.Services[0].Namespace, routingObj.Services[0].ObjectMeta.OwnerReferences[0].Name)
+
 	for component, endpoints := range componentEndpoints {
 		for _, endpoint := range endpoints {
 			if dw.EndpointExposure(endpoint.Exposure) == dw.NoneEndpointExposure {
@@ -277,24 +279,6 @@ func (c *CheRoutingSolver) cheExposedEndpoints(cheCluster *chev2.CheCluster, wor
 				if gatewayHost == "" {
 					// the gateway has not yet established the host
 					return map[string]dwo.ExposedEndpointList{}, false, nil
-				}
-
-				useLegacyRouting := false
-				username, err := getNormalizedUsername(c.client, routingObj.Services[0].Namespace)
-				if err != nil {
-					useLegacyRouting = true
-				}
-
-				dwName, err := getNormalizedWkspName(c.client, routingObj.Services[0].Namespace, routingObj.Services[0].ObjectMeta.OwnerReferences[0].Name)
-				if err != nil {
-					useLegacyRouting = true
-				}
-
-				var endpointStrategy EndpointStrategy
-				if useLegacyRouting {
-					endpointStrategy = Legacy{workspaceID: workspaceID}
-				} else {
-					endpointStrategy = UsernameWkspName{username: username, workspaceName: dwName}
 				}
 
 				publicURLPrefix := getPublicURLPrefixForEndpoint(component, endpoint, endpointStrategy)
@@ -347,24 +331,7 @@ func (c *CheRoutingSolver) getGatewayConfigsAndFillRoutingObjects(cheCluster *ch
 	}
 
 	configs := make([]corev1.ConfigMap, 0)
-
-	useLegacyRouting := false
-	username, err := getNormalizedUsername(c.client, routing.Namespace)
-	if err != nil {
-		useLegacyRouting = true
-	}
-
-	dwName, err := getNormalizedWkspName(c.client, routing.Namespace, routing.Name)
-	if err != nil {
-		useLegacyRouting = true
-	}
-
-	var endpointStrategy EndpointStrategy
-	if useLegacyRouting {
-		endpointStrategy = Legacy{workspaceID: workspaceID}
-	} else {
-		endpointStrategy = UsernameWkspName{username: username, workspaceName: dwName}
-	}
+	endpointStrategy := getEndpointPathStrategy(c.client, workspaceID, routing.Namespace, routing.Name)
 
 	// first do routing from main che-gateway into workspace service
 	if mainWsRouteConfig, err := provisionMainWorkspaceRoute(cheCluster, routing, cmLabels, endpointStrategy); err != nil {
@@ -383,6 +350,30 @@ func (c *CheRoutingSolver) getGatewayConfigsAndFillRoutingObjects(cheCluster *ch
 	}
 
 	return configs, nil
+}
+
+func getEndpointPathStrategy(c client.Client, workspaceId string, namespace string, dwRoutingName string) EndpointStrategy {
+	useLegacyPaths := false
+	username, err := getNormalizedUsername(c, namespace)
+	if err != nil {
+		useLegacyPaths = true
+	}
+
+	dwName, err := getNormalizedWkspName(c, namespace, dwRoutingName)
+	if err != nil {
+		useLegacyPaths = true
+	}
+
+	if useLegacyPaths {
+		strategy := new(Legacy)
+		strategy.workspaceID = workspaceId
+		return strategy
+	} else {
+		strategy := new(UsernameWkspName)
+		strategy.username = username
+		strategy.workspaceName = dwName
+		return strategy
+	}
 }
 
 func getNormalizedUsername(c client.Client, namespace string) (string, error) {
