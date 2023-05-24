@@ -81,6 +81,7 @@ const (
 	OAuthScmConfiguration                      = "oauth-scm-configuration"
 	AccessToken                                = "access_token"
 	IdToken                                    = "id_token"
+	OpenShiftOAuthScope                        = "user:full"
 
 	// Labels
 	KubernetesComponentLabelKey = "app.kubernetes.io/component"

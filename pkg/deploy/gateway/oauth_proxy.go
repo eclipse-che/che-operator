@@ -78,7 +78,7 @@ upstreams = [
 ]
 client_id = "%s"
 client_secret = "%s"
-scope = "user:full"
+scope = "%s"
 openshift_service_account = "%s"
 cookie_secret = "%s"
 cookie_expire = "24h0m0s"
@@ -91,6 +91,7 @@ skip_provider_button = false
 		ctx.CheHost,
 		oauthClientName,
 		oauthSecret,
+		utils.GetValue(ctx.CheCluster.Spec.Networking.Auth.OAuthScope, constants.OpenShiftOAuthScope),
 		GatewayServiceName,
 		cookieSecret,
 		skipAuthConfig(ctx.CheCluster))
