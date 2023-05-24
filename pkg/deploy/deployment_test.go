@@ -13,9 +13,10 @@ package deploy
 
 import (
 	"context"
-	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"os"
 	"reflect"
+
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/api/resource"
