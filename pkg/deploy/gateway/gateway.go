@@ -142,7 +142,10 @@ func syncAll(deployContext *chetypes.DeployContext) error {
 		return err
 	}
 
-	depl := getGatewayDeploymentSpec(deployContext)
+	depl, err := getGatewayDeploymentSpec(deployContext)
+	if err != nil {
+		return err
+	}
 	if _, err := deploy.Sync(deployContext, depl, deploy.DefaultDeploymentDiffOpts); err != nil {
 		// Failed to sync (update), let's delete and create instead
 		if strings.Contains(err.Error(), "field is immutable") {
@@ -424,7 +427,7 @@ experimental:
 	}
 }
 
-func getGatewayDeploymentSpec(ctx *chetypes.DeployContext) *appsv1.Deployment {
+func getGatewayDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
 	terminationGracePeriodSeconds := int64(10)
 
 	deployLabels, labelsSelector := deploy.GetLabelsAndSelector(GatewayServiceName)
@@ -462,8 +465,11 @@ func getGatewayDeploymentSpec(ctx *chetypes.DeployContext) *appsv1.Deployment {
 	}
 
 	deploy.EnsurePodSecurityStandards(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
-	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Networking.Auth.Gateway.Deployment)
-	return deployment
+	if err := deploy.OverrideDeployment(ctx, deployment, ctx.CheCluster.Spec.Networking.Auth.Gateway.Deployment); err != nil {
+		return nil, err
+	}
+
+	return deployment, nil
 }
 
 func getContainersSpec(ctx *chetypes.DeployContext) []corev1.Container {

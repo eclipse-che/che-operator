@@ -304,7 +304,8 @@ func TestCustomizeGatewayDeploymentAllImages(t *testing.T) {
 	}
 	ctx := test.GetDeployContext(checluster, []runtime.Object{})
 
-	deployment := getGatewayDeploymentSpec(ctx)
+	deployment, err := getGatewayDeploymentSpec(ctx)
+	assert.NoError(t, err)
 	containers := deployment.Spec.Template.Spec.Containers
 	assert.Equal(t, constants.GatewayContainerName, containers[0].Name)
 	assert.Equal(t, "gateway-image", containers[0].Image)
@@ -344,7 +345,9 @@ func TestCustomizeGatewayDeploymentSingleImage(t *testing.T) {
 	}
 	ctx := test.GetDeployContext(checluster, []runtime.Object{})
 
-	deployment := getGatewayDeploymentSpec(ctx)
+	deployment, err := getGatewayDeploymentSpec(ctx)
+	assert.NoError(t, err)
+
 	containers := deployment.Spec.Template.Spec.Containers
 	assert.Equal(t, constants.GatewayContainerName, containers[0].Name)
 	assert.Equal(t, "gateway-image", containers[0].Image)

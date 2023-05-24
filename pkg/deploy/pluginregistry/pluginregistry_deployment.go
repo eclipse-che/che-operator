@@ -23,7 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
-func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(ctx *chetypes.DeployContext) *appsv1.Deployment {
+func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
 	registryType := "plugin"
 	registryImage := defaults.GetPluginRegistryImage(ctx.CheCluster)
 	registryImagePullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(registryImage))
@@ -62,6 +62,9 @@ func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(ctx *chetypes
 	}
 
 	deploy.EnsurePodSecurityStandards(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
-	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.PluginRegistry.Deployment)
-	return deployment
+	if err := deploy.OverrideDeployment(ctx, deployment, ctx.CheCluster.Spec.Components.PluginRegistry.Deployment); err != nil {
+		return nil, err
+	}
+
+	return deployment, nil
 }

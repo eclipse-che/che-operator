@@ -71,7 +71,7 @@ func TestDashboardDeploymentResources(t *testing.T) {
 			initObjects:   []runtime.Object{},
 			memoryLimit:   constants.DefaultDashboardMemoryLimit,
 			memoryRequest: constants.DefaultDashboardMemoryRequest,
-			cpuLimit:      constants.DefaultDashboardCpuLimit,
+			cpuLimit:      "0", // CPU limit is not set when possible
 			cpuRequest:    constants.DefaultDashboardCpuRequest,
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{

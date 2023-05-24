@@ -14,6 +14,7 @@ package pluginregistry
 import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/utils/pointer"
 
@@ -46,7 +47,7 @@ func TestGetPluginRegistryDeploymentSpec(t *testing.T) {
 			initObjects:   []runtime.Object{},
 			memoryLimit:   constants.DefaultPluginRegistryMemoryLimitEmbeddedOpenVSXRegistry,
 			memoryRequest: constants.DefaultPluginRegistryMemoryRequestEmbeddedOpenVSXRegistry,
-			cpuLimit:      constants.DefaultPluginRegistryCpuLimit,
+			cpuLimit:      "0", // CPU limit is not set when possible
 			cpuRequest:    constants.DefaultPluginRegistryCpuRequest,
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -67,7 +68,7 @@ func TestGetPluginRegistryDeploymentSpec(t *testing.T) {
 			initObjects:   []runtime.Object{},
 			memoryLimit:   constants.DefaultPluginRegistryMemoryLimit,
 			memoryRequest: constants.DefaultPluginRegistryMemoryRequest,
-			cpuLimit:      constants.DefaultPluginRegistryCpuLimit,
+			cpuLimit:      "0", // CPU limit is not set when possible
 			cpuRequest:    constants.DefaultPluginRegistryCpuRequest,
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -127,7 +128,8 @@ func TestGetPluginRegistryDeploymentSpec(t *testing.T) {
 			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
 
 			pluginregistry := NewPluginRegistryReconciler()
-			deployment := pluginregistry.getPluginRegistryDeploymentSpec(ctx)
+			deployment, err := pluginregistry.getPluginRegistryDeploymentSpec(ctx)
+			assert.NoError(t, err)
 
 			test.CompareResources(deployment,
 				test.TestExpectedResources{

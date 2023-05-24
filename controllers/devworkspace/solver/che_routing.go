@@ -199,17 +199,8 @@ func (c *CheRoutingSolver) provisionPodAdditions(objs *solvers.RoutingObjects, c
 		},
 	}
 
-	limitRanges := &corev1.LimitRangeList{}
-	if err := c.client.List(context.TODO(), limitRanges, &client.ListOptions{Namespace: routing.GetNamespace()}); err != nil {
+	if err := deploy.OverrideContainer(c.client, routing.GetNamespace(), gatewayContainer, cheCluster.Spec.DevEnvironments.GatewayContainer); err != nil {
 		return err
-	} else if len(limitRanges.Items) == 0 { // no LimitRange in the namespace
-		delete(gatewayContainer.Resources.Limits, corev1.ResourceCPU)
-	}
-
-	if cheCluster.Spec.DevEnvironments.GatewayContainer != nil {
-		if err := deploy.CustomizeContainer(gatewayContainer, cheCluster.Spec.DevEnvironments.GatewayContainer); err != nil {
-			return err
-		}
 	}
 
 	objs.PodAdditions.Containers = append(objs.PodAdditions.Containers, *gatewayContainer)

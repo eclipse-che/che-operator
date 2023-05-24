@@ -106,8 +106,11 @@ func (d *DevfileRegistryReconciler) updateStatus(endpoint string, ctx *chetypes.
 }
 
 func (d *DevfileRegistryReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
-	spec := d.getDevfileRegistryDeploymentSpec(ctx)
-	return deploy.SyncDeploymentSpecToCluster(ctx, spec, deploy.DefaultDeploymentDiffOpts)
+	if spec, err := d.getDevfileRegistryDeploymentSpec(ctx); err != nil {
+		return false, err
+	} else {
+		return deploy.SyncDeploymentSpecToCluster(ctx, spec, deploy.DefaultDeploymentDiffOpts)
+	}
 }
 
 func (d *DevfileRegistryReconciler) createGatewayConfig() *gateway.TraefikConfig {

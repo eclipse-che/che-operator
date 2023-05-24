@@ -13,6 +13,7 @@ package deploy
 
 import (
 	"context"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"os"
 	"reflect"
 
@@ -707,11 +708,14 @@ func TestCustomizeDeploymentShouldNotUpdateResources(t *testing.T) {
 		},
 	}
 
-	err := CustomizeDeployment(deployment, customizationDeployment)
+	ctx := test.GetDeployContext(nil, []runtime.Object{})
+	err := OverrideDeployment(ctx, deployment, customizationDeployment)
 	assert.Nil(t, err)
+
 	assert.Equal(t, "1", deployment.Spec.Template.Spec.Containers[0].Resources.Requests.Cpu().String())
 	assert.Equal(t, "100Mi", deployment.Spec.Template.Spec.Containers[0].Resources.Requests.Memory().String())
-	assert.Equal(t, "2", deployment.Spec.Template.Spec.Containers[0].Resources.Limits.Cpu().String())
+	// CPU limit is not set when possible
+	assert.Equal(t, "0", deployment.Spec.Template.Spec.Containers[0].Resources.Limits.Cpu().String())
 	assert.Equal(t, "200Mi", deployment.Spec.Template.Spec.Containers[0].Resources.Limits.Memory().String())
 }
 
@@ -790,8 +794,10 @@ func TestCustomizeDeploymentImagePullPolicy(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
-			err := CustomizeDeployment(testCase.initDeployment, testCase.customizationDeployment)
+			ctx := test.GetDeployContext(nil, []runtime.Object{})
+			err := OverrideDeployment(ctx, testCase.initDeployment, testCase.customizationDeployment)
 			assert.Nil(t, err)
+
 			assert.Equal(t, testCase.expectedImagePullPolicy, testCase.initDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
 		})
 	}
@@ -873,9 +879,131 @@ func TestCustomizeDeploymentEnvVar(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
-			err := CustomizeDeployment(testCase.initDeployment, testCase.customizationDeployment)
+			ctx := test.GetDeployContext(nil, []runtime.Object{})
+			err := OverrideDeployment(ctx, testCase.initDeployment, testCase.customizationDeployment)
 			assert.Nil(t, err)
+
 			assert.Equal(t, testCase.expectedEnv, testCase.initDeployment.Spec.Template.Spec.Containers[0].Env)
+		})
+	}
+}
+func TestOverrideContainerCpuLimit(t *testing.T) {
+	type testCase struct {
+		name             string
+		container        *corev1.Container
+		overrideSettings *chev2.Container
+		initObjects      []runtime.Object
+		expectedCpuLimit string
+	}
+
+	cpuLimit500m := resource.MustParse("500m")
+
+	testCases := []testCase{
+		{
+			name: "No CPU limit, LimitRange does not exists",
+			container: &corev1.Container{
+				Resources: corev1.ResourceRequirements{
+					Limits: corev1.ResourceList{
+						corev1.ResourceCPU: resource.MustParse("250m"),
+					},
+				},
+			},
+			overrideSettings: &chev2.Container{},
+			initObjects:      []runtime.Object{},
+			expectedCpuLimit: "",
+		},
+		{
+			name: "No CPU limit, LimitRange does not exists",
+			container: &corev1.Container{
+				Resources: corev1.ResourceRequirements{
+					Limits: corev1.ResourceList{
+						corev1.ResourceCPU: resource.MustParse("250m"),
+					},
+				},
+			},
+			overrideSettings: nil,
+			initObjects:      []runtime.Object{},
+			expectedCpuLimit: "",
+		},
+		{
+			name: "CPU limit is set, LimitRange exists",
+			container: &corev1.Container{
+				Resources: corev1.ResourceRequirements{
+					Limits: corev1.ResourceList{
+						corev1.ResourceCPU: resource.MustParse("250m"),
+					},
+				},
+			},
+			overrideSettings: &chev2.Container{},
+			initObjects: []runtime.Object{
+				&corev1.LimitRange{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test",
+						Namespace: "eclipse-che",
+					},
+				},
+			},
+			expectedCpuLimit: "250m",
+		},
+		{
+			name: "Overridden CPU limit, LimitRange does not exists",
+			container: &corev1.Container{
+				Resources: corev1.ResourceRequirements{
+					Limits: corev1.ResourceList{
+						corev1.ResourceCPU: resource.MustParse("250m"),
+					},
+				},
+			},
+			overrideSettings: &chev2.Container{
+				Resources: &chev2.ResourceRequirements{
+					Limits: &chev2.ResourceList{
+						Cpu: &cpuLimit500m,
+					},
+				},
+			},
+			initObjects:      []runtime.Object{},
+			expectedCpuLimit: "500m",
+		},
+		{
+			name: "Overridden CPU limit, LimitRange exists",
+			container: &corev1.Container{
+				Resources: corev1.ResourceRequirements{
+					Limits: corev1.ResourceList{
+						corev1.ResourceCPU: resource.MustParse("250m"),
+					},
+				},
+			},
+			overrideSettings: &chev2.Container{
+				Resources: &chev2.ResourceRequirements{
+					Limits: &chev2.ResourceList{
+						Cpu: &cpuLimit500m,
+					},
+				},
+			},
+			initObjects: []runtime.Object{
+				&corev1.LimitRange{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test",
+						Namespace: "eclipse-che",
+					},
+				},
+			},
+			expectedCpuLimit: "500m",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			ctx := test.GetDeployContext(nil, testCase.initObjects)
+
+			err := OverrideContainer(ctx.ClusterAPI.NonCachingClient, "eclipse-che", testCase.container, testCase.overrideSettings)
+			assert.NoError(t, err)
+
+			if testCase.expectedCpuLimit == "" {
+				assert.Empty(t, testCase.container.Resources.Limits[corev1.ResourceCPU])
+			} else {
+				assert.Equal(t, testCase.expectedCpuLimit, testCase.container.Resources.Limits.Cpu().String())
+			}
 		})
 	}
 }
