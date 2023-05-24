@@ -437,7 +437,8 @@ func normalize(username string) string {
 
 	result := r1.ReplaceAllString(username, "-") // replace invalid chars with '-'
 	result = r2.ReplaceAllString(result, "-")    // replace multiple '-' with single ones
-	return r3.ReplaceAllString(result, "")       // trim dashes at beginning/end
+	result = r3.ReplaceAllString(result, "")     // trim dashes at beginning/end
+	return strings.ToLower(result)
 }
 
 func (c *CheRoutingSolver) getInfraSpecificExposer(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects, endpointStrategy EndpointStrategy) (func(info *EndpointInfo), error) {
