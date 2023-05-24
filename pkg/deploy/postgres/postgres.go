@@ -13,7 +13,6 @@ package postgres
 
 import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -41,7 +40,6 @@ func (p *PostgresReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.R
 	_, _ = p.syncPVC(ctx)
 	_, _ = p.syncCredentials(ctx)
 	_, _ = p.syncService(ctx)
-	_, _ = p.setDbVersion(ctx)
 
 	// Backup server component is not used anymore
 	_, _ = p.syncBackupDeployment(ctx)
@@ -65,17 +63,8 @@ func (p *PostgresReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, 
 	return deploy.DeleteNamespacedObject(ctx, postgresComponentName, &appsv1.Deployment{})
 }
 
-func (p *PostgresReconciler) setDbVersion(ctx *chetypes.DeployContext) (bool, error) {
-	if ctx.CheCluster.Status.PostgresVersion != "" {
-		ctx.CheCluster.Status.PostgresVersion = ""
-		_ = deploy.UpdateCheCRStatus(ctx, "postgresVersion", ctx.CheCluster.Status.PostgresVersion)
-	}
-	return true, nil
-}
-
 func (p *PostgresReconciler) syncCredentials(ctx *chetypes.DeployContext) (bool, error) {
-	postgresCredentialsSecretName := utils.GetValue(ctx.CheCluster.Spec.Components.Database.CredentialsSecretName, defaultPostgresCredentialsSecret)
-	return deploy.DeleteNamespacedObject(ctx, postgresCredentialsSecretName, &corev1.Secret{})
+	return deploy.DeleteNamespacedObject(ctx, defaultPostgresCredentialsSecret, &corev1.Secret{})
 }
 
 func (p *PostgresReconciler) syncBackupDeployment(ctx *chetypes.DeployContext) (bool, error) {

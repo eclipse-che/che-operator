@@ -77,7 +77,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che.v7.67.0-792.next
+  name: eclipse-che.v7.68.0-793.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -141,13 +141,6 @@ spec:
               images.
             displayName: Container registry
             path: containerRegistry
-          - description: Configuration settings related to the database used by the
-              Che installation. Database component is Deprecated. All properties will
-              be ignored.
-            displayName: Database
-            path: components.database
-            x-descriptors:
-              - urn:alm:descriptor:com.tectonic.ui:hidden
           - description: Enables users to work with repositories hosted on Azure DevOps
               Service (dev.azure.com).
             displayName: Azure
@@ -227,12 +220,6 @@ spec:
             path: pluginRegistryURL
             x-descriptors:
               - urn:alm:descriptor:org.w3:link
-          - description: The PostgreSQL version of the image in use.
-            displayName: PostgreSQL version
-            path: postgresVersion
-            x-descriptors:
-              - urn:alm:descriptor:text
-              - urn:alm:descriptor:com.tectonic.ui:hidden
           - description: A brief CamelCase message indicating details about why the
               Che deployment is in the current phase.
             displayName: Reason
@@ -1242,7 +1229,7 @@ spec:
   minKubeVersion: 1.19.0
   provider:
     name: Eclipse Foundation
-  version: 7.67.0-792.next
+  version: 7.68.0-793.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1
