@@ -78,6 +78,9 @@ type CheClusterDevEnvironments struct {
 	// GatewayContainer configuration.
 	// +optional
 	GatewayContainer *Container `json:"gatewayContainer,omitempty"`
+	// Project clone container configuration.
+	// +optional
+	ProjectCloneContainer *Container `json:"projectCloneContainer,omitempty"`
 	// Workspaces persistent storage.
 	// +optional
 	// +kubebuilder:default:={pvcStrategy: per-user}
@@ -824,7 +827,7 @@ type CheCluster struct {
 	Status CheClusterStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 // The CheClusterList contains a list of CheClusters.
 type CheClusterList struct {
 	metav1.TypeMeta `json:",inline"`

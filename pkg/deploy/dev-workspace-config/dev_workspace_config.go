@@ -9,6 +9,7 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
+
 package devworkspaceconfig
 
 import (
@@ -21,6 +22,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	v1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
@@ -84,13 +86,13 @@ func updateWorkspaceConfig(cheCluster *chev2.CheCluster, operatorConfig *control
 		return err
 	}
 
-	if err := updateWorkspaceServiceAccountConfig(devEnvironments, operatorConfig.Workspace); err != nil {
-		return err
-	}
+	updateWorkspaceServiceAccountConfig(devEnvironments, operatorConfig.Workspace)
 
 	if err := updateWorkspacePodSchedulerNameConfig(devEnvironments, operatorConfig.Workspace); err != nil {
 		return err
 	}
+
+	updateProjectCloneConfig(devEnvironments, operatorConfig.Workspace)
 
 	operatorConfig.Workspace.ContainerSecurityContext = nil
 	if cheCluster.IsContainerBuildCapabilitiesEnabled() {
@@ -146,19 +148,63 @@ func updateWorkspaceStorageConfig(devEnvironments *chev2.CheClusterDevEnvironmen
 	return nil
 }
 
-func updateWorkspaceServiceAccountConfig(devEnvironments *chev2.CheClusterDevEnvironments, workspaceConfig *controllerv1alpha1.WorkspaceConfig) error {
-	isNamespaceAutoProvisioned := pointer.BoolPtrDerefOr(devEnvironments.DefaultNamespace.AutoProvision, constants.DefaultAutoProvision)
+func updateWorkspaceServiceAccountConfig(devEnvironments *chev2.CheClusterDevEnvironments, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
+	isNamespaceAutoProvisioned := pointer.BoolDeref(devEnvironments.DefaultNamespace.AutoProvision, constants.DefaultAutoProvision)
 
 	workspaceConfig.ServiceAccount = &controllerv1alpha1.ServiceAccountConfig{
 		ServiceAccountName:   devEnvironments.ServiceAccount,
 		ServiceAccountTokens: devEnvironments.ServiceAccountTokens,
 		// If user's Namespace is not auto provisioned (is pre-created by admin), then ServiceAccount must be pre-created as well
-		DisableCreation: pointer.BoolPtr(!isNamespaceAutoProvisioned && devEnvironments.ServiceAccount != ""),
+		DisableCreation: pointer.Bool(!isNamespaceAutoProvisioned && devEnvironments.ServiceAccount != ""),
 	}
-	return nil
 }
 
 func updateWorkspacePodSchedulerNameConfig(devEnvironments *chev2.CheClusterDevEnvironments, workspaceConfig *controllerv1alpha1.WorkspaceConfig) error {
 	workspaceConfig.SchedulerName = devEnvironments.PodSchedulerName
 	return nil
+}
+
+func updateProjectCloneConfig(devEnvironments *chev2.CheClusterDevEnvironments, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
+	if devEnvironments.ProjectCloneContainer == nil {
+		return
+	}
+	if workspaceConfig.ProjectCloneConfig == nil {
+		workspaceConfig.ProjectCloneConfig = &controllerv1alpha1.ProjectCloneConfig{}
+	}
+	container := devEnvironments.ProjectCloneContainer
+
+	workspaceConfig.ProjectCloneConfig.Image = container.Image
+	workspaceConfig.ProjectCloneConfig.ImagePullPolicy = container.ImagePullPolicy
+	workspaceConfig.ProjectCloneConfig.Env = container.Env
+	workspaceConfig.ProjectCloneConfig.Resources = cheResourcesToCoreV1Resources(container.Resources)
+}
+
+// cheResourcesToCoreV1Resources converts a Che resources struct to the usual Kubernetes object by directly copying fields.
+// It does not set any default values or include logic for removing requests/limits that are set to "0" as it is intended
+// to prepare resources for the DevWorkspace Operator, which has its own defaults and handling of "0" values.
+func cheResourcesToCoreV1Resources(resources *chev2.ResourceRequirements) *corev1.ResourceRequirements {
+	if resources == nil {
+		return nil
+	}
+
+	result := &corev1.ResourceRequirements{}
+	if resources.Limits != nil {
+		result.Limits = corev1.ResourceList{}
+		if resources.Limits.Memory != nil {
+			result.Limits[corev1.ResourceMemory] = *resources.Limits.Memory
+		}
+		if resources.Limits.Cpu != nil {
+			result.Limits[corev1.ResourceCPU] = *resources.Limits.Cpu
+		}
+	}
+	if resources.Requests != nil {
+		result.Requests = corev1.ResourceList{}
+		if resources.Requests.Memory != nil {
+			result.Requests[corev1.ResourceMemory] = *resources.Requests.Memory
+		}
+		if resources.Requests.Cpu != nil {
+			result.Requests[corev1.ResourceCPU] = *resources.Requests.Cpu
+		}
+	}
+	return result
 }
