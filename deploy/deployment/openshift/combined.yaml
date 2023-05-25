@@ -8123,6 +8123,12 @@ rules:
   - delete
   - update
   - use
+- apiGroups:
+  - ""
+  resources:
+  - limitranges
+  verbs:
+  - list
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

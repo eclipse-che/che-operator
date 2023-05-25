@@ -20,8 +20,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	// "k8s.io/apimachinery/pkg/api/resource"
-
 	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers"
@@ -1094,7 +1092,8 @@ func TestOverrideGatewayContainerProvisioning(t *testing.T) {
 		},
 	}
 
-	cheSolver.provisionPodAdditions(objs, cheCluster, routing)
+	err := cheSolver.provisionPodAdditions(objs, cheCluster, routing)
+	assert.NoError(t, err)
 
 	assert.Equal(t, overrideCpuRequest.String(), objs.PodAdditions.Containers[0].Resources.Requests.Cpu().String())
 	assert.Equal(t, overrideMemoryRequest.String(), objs.PodAdditions.Containers[0].Resources.Requests.Memory().String())
@@ -1106,7 +1105,6 @@ func TestOverridePartialLimitsGatewayContainerProvisioning(t *testing.T) {
 	overrideMemoryRequest := resource.MustParse("0")
 	overrideCpuRequest := resource.MustParse("0")
 	defaultMemoryLimit := resource.MustParse(constants.DefaultGatewayMemoryLimit)
-	defaultCpuLimit := resource.MustParse(constants.DefaultGatewayCpuLimit)
 
 	cheCluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1147,11 +1145,12 @@ func TestOverridePartialLimitsGatewayContainerProvisioning(t *testing.T) {
 		},
 	}
 
-	cheSolver.provisionPodAdditions(objs, cheCluster, routing)
+	err := cheSolver.provisionPodAdditions(objs, cheCluster, routing)
+	assert.NoError(t, err)
 
 	assert.Equal(t, overrideCpuRequest.String(), objs.PodAdditions.Containers[0].Resources.Requests.Cpu().String())
 	assert.Equal(t, overrideMemoryRequest.String(), objs.PodAdditions.Containers[0].Resources.Requests.Memory().String())
-	assert.Equal(t, defaultCpuLimit.String(), objs.PodAdditions.Containers[0].Resources.Limits.Cpu().String())
+	assert.Empty(t, objs.PodAdditions.Containers[0].Resources.Limits[corev1.ResourceCPU])
 	assert.Equal(t, defaultMemoryLimit.String(), objs.PodAdditions.Containers[0].Resources.Limits.Memory().String())
 }
 
@@ -1204,7 +1203,8 @@ func TestOverrideGatewayEmptyContainerProvisioning(t *testing.T) {
 		},
 	}
 
-	cheSolver.provisionPodAdditions(objs, cheCluster, routing)
+	err := cheSolver.provisionPodAdditions(objs, cheCluster, routing)
+	assert.NoError(t, err)
 
 	assert.Equal(t, overrideCpuRequest.String(), objs.PodAdditions.Containers[0].Resources.Requests.Cpu().String())
 	assert.Equal(t, overrideMemoryRequest.String(), objs.PodAdditions.Containers[0].Resources.Requests.Memory().String())
@@ -1216,7 +1216,6 @@ func TestDefaultGatewayContainerProvisioning(t *testing.T) {
 	defaultMemoryRequest := resource.MustParse(constants.DefaultGatewayMemoryRequest)
 	defaultCpuRequest := resource.MustParse(constants.DefaultGatewayCpuRequest)
 	defaultMemoryLimit := resource.MustParse(constants.DefaultGatewayMemoryLimit)
-	defaultCpuLimit := resource.MustParse(constants.DefaultGatewayCpuLimit)
 
 	cheCluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1247,10 +1246,11 @@ func TestDefaultGatewayContainerProvisioning(t *testing.T) {
 		},
 	}
 
-	cheSolver.provisionPodAdditions(objs, cheCluster, routing)
+	err := cheSolver.provisionPodAdditions(objs, cheCluster, routing)
+	assert.NoError(t, err)
 
 	assert.Equal(t, defaultCpuRequest.String(), objs.PodAdditions.Containers[0].Resources.Requests.Cpu().String())
 	assert.Equal(t, defaultMemoryRequest.String(), objs.PodAdditions.Containers[0].Resources.Requests.Memory().String())
-	assert.Equal(t, defaultCpuLimit.String(), objs.PodAdditions.Containers[0].Resources.Limits.Cpu().String())
+	assert.Empty(t, objs.PodAdditions.Containers[0].Resources.Limits[corev1.ResourceCPU])
 	assert.Equal(t, defaultMemoryLimit.String(), objs.PodAdditions.Containers[0].Resources.Limits.Memory().String())
 }

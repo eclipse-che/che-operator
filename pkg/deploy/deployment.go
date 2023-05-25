@@ -17,6 +17,9 @@ import (
 	"sort"
 	"strings"
 
+	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/utils/pointer"
@@ -96,39 +99,47 @@ func SyncDeploymentSpecToCluster(
 	return provisioned, nil
 }
 
-// CustomizeDeployment customize deployment
-func CustomizeDeployment(deployment *appsv1.Deployment, customSettings *chev2.Deployment) error {
-	if customSettings == nil || len(customSettings.Containers) == 0 {
-		return nil
-	}
+// OverrideDeployment with custom settings
+func OverrideDeployment(
+	ctx *chetypes.DeployContext,
+	deployment *appsv1.Deployment,
+	overrideDeploymentSettings *chev2.Deployment) error {
 
 	for index, _ := range deployment.Spec.Template.Spec.Containers {
+		var overrideContainerSettings *chev2.Container
 		container := &deployment.Spec.Template.Spec.Containers[index]
 
-		customContainer := &customSettings.Containers[0]
-		if len(deployment.Spec.Template.Spec.Containers) != 1 {
-			customContainer = getContainerByName(container.Name, customSettings.Containers)
-			if customContainer == nil {
-				continue
+		if overrideDeploymentSettings != nil {
+			if len(deployment.Spec.Template.Spec.Containers) != 1 {
+				for _, c := range overrideDeploymentSettings.Containers {
+					if c.Name == container.Name {
+						overrideContainerSettings = &c
+						break
+					}
+				}
+			} else {
+				overrideContainerSettings = &overrideDeploymentSettings.Containers[0]
 			}
 		}
 
-		if err := CustomizeContainer(container, customContainer); err != nil {
+		if err := OverrideContainer(ctx.CheCluster.Namespace, container, overrideContainerSettings); err != nil {
 			return err
 		}
 	}
 
 	if !infrastructure.IsOpenShift() {
-		if customSettings.SecurityContext != nil {
-			if deployment.Spec.Template.Spec.SecurityContext == nil {
-				deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{}
-			}
+		if overrideDeploymentSettings != nil {
+			if overrideDeploymentSettings.SecurityContext != nil {
+				if deployment.Spec.Template.Spec.SecurityContext == nil {
+					deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{}
+				}
 
-			if customSettings.SecurityContext.FsGroup != nil {
-				deployment.Spec.Template.Spec.SecurityContext.FSGroup = pointer.Int64Ptr(*customSettings.SecurityContext.FsGroup)
-			}
-			if customSettings.SecurityContext.RunAsUser != nil {
-				deployment.Spec.Template.Spec.SecurityContext.RunAsUser = pointer.Int64Ptr(*customSettings.SecurityContext.RunAsUser)
+				if overrideDeploymentSettings.SecurityContext.FsGroup != nil {
+					deployment.Spec.Template.Spec.SecurityContext.FSGroup = pointer.Int64Ptr(*overrideDeploymentSettings.SecurityContext.FsGroup)
+				}
+				if overrideDeploymentSettings.SecurityContext.RunAsUser != nil {
+					deployment.Spec.Template.Spec.SecurityContext.RunAsUser = pointer.Int64Ptr(*overrideDeploymentSettings.SecurityContext.RunAsUser)
+				}
 			}
 		}
 	}
@@ -136,16 +147,37 @@ func CustomizeDeployment(deployment *appsv1.Deployment, customSettings *chev2.De
 	return nil
 }
 
-// CustomizeContainer customize container with custom settings.
-func CustomizeContainer(container *corev1.Container, customSettings *chev2.Container) error {
-	container.Image = utils.GetValue(customSettings.Image, container.Image)
+func OverrideContainer(
+	namespace string,
+	container *corev1.Container,
+	overrideSettings *chev2.Container) error {
 
-	container.ImagePullPolicy = customSettings.ImagePullPolicy
+	// Set empty CPU limits when possible:
+	// 1. If there is no LimitRange in the namespace
+	// 2. CPU limits is not overridden
+	// See details at https://github.com/eclipse/che/issues/22198
+	if overrideSettings == nil || overrideSettings.Resources == nil || overrideSettings.Resources.Limits == nil || overrideSettings.Resources.Limits.Cpu == nil {
+		// use NonCachedClient to avoid cache LimitRange objects
+		if limitRanges, err := k8shelper.New().GetClientset().CoreV1().LimitRanges(namespace).List(context.TODO(), metav1.ListOptions{}); err != nil {
+			return err
+		} else if len(limitRanges.Items) == 0 { // no LimitRange in the namespace
+			delete(container.Resources.Limits, corev1.ResourceCPU)
+		}
+	}
+
+	if overrideSettings == nil {
+		return nil
+	}
+
+	// Image
+	container.Image = utils.GetValue(overrideSettings.Image, container.Image)
+	container.ImagePullPolicy = overrideSettings.ImagePullPolicy
 	if container.ImagePullPolicy == "" {
 		container.ImagePullPolicy = corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(container.Image))
 	}
 
-	for _, env := range customSettings.Env {
+	// Env
+	for _, env := range overrideSettings.Env {
 		index := utils.IndexEnv(env.Name, container.Env)
 		if index == -1 {
 			container.Env = append(container.Env, env)
@@ -154,21 +186,22 @@ func CustomizeContainer(container *corev1.Container, customSettings *chev2.Conta
 		}
 	}
 
-	if customSettings.Resources != nil {
-		if customSettings.Resources.Requests != nil {
-			if customSettings.Resources.Requests.Memory != nil {
-				if customSettings.Resources.Requests.Memory.IsZero() {
+	// Resources
+	if overrideSettings.Resources != nil {
+		if overrideSettings.Resources.Requests != nil {
+			if overrideSettings.Resources.Requests.Memory != nil {
+				if overrideSettings.Resources.Requests.Memory.IsZero() {
 					delete(container.Resources.Requests, corev1.ResourceMemory)
 				} else {
-					container.Resources.Requests[corev1.ResourceMemory] = *customSettings.Resources.Requests.Memory
+					container.Resources.Requests[corev1.ResourceMemory] = *overrideSettings.Resources.Requests.Memory
 				}
 			}
 
-			if customSettings.Resources.Requests.Cpu != nil {
-				if customSettings.Resources.Requests.Cpu.IsZero() {
+			if overrideSettings.Resources.Requests.Cpu != nil {
+				if overrideSettings.Resources.Requests.Cpu.IsZero() {
 					delete(container.Resources.Requests, corev1.ResourceCPU)
 				} else {
-					container.Resources.Requests[corev1.ResourceCPU] = *customSettings.Resources.Requests.Cpu
+					container.Resources.Requests[corev1.ResourceCPU] = *overrideSettings.Resources.Requests.Cpu
 				}
 			}
 
@@ -177,20 +210,20 @@ func CustomizeContainer(container *corev1.Container, customSettings *chev2.Conta
 			}
 		}
 
-		if customSettings.Resources.Limits != nil {
-			if customSettings.Resources.Limits.Memory != nil {
-				if customSettings.Resources.Limits.Memory.IsZero() {
+		if overrideSettings.Resources.Limits != nil {
+			if overrideSettings.Resources.Limits.Memory != nil {
+				if overrideSettings.Resources.Limits.Memory.IsZero() {
 					delete(container.Resources.Limits, corev1.ResourceMemory)
 				} else {
-					container.Resources.Limits[corev1.ResourceMemory] = *customSettings.Resources.Limits.Memory
+					container.Resources.Limits[corev1.ResourceMemory] = *overrideSettings.Resources.Limits.Memory
 				}
 			}
 
-			if customSettings.Resources.Limits.Cpu != nil {
-				if customSettings.Resources.Limits.Cpu.IsZero() {
+			if overrideSettings.Resources.Limits.Cpu != nil {
+				if overrideSettings.Resources.Limits.Cpu.IsZero() {
 					delete(container.Resources.Limits, corev1.ResourceCPU)
 				} else {
-					container.Resources.Limits[corev1.ResourceCPU] = *customSettings.Resources.Limits.Cpu
+					container.Resources.Limits[corev1.ResourceCPU] = *overrideSettings.Resources.Limits.Cpu
 				}
 			}
 
@@ -221,16 +254,6 @@ func EnsurePodSecurityStandards(deployment *appsv1.Deployment, userId int64, gro
 		deployment.Spec.Template.Spec.SecurityContext.RunAsUser = pointer.Int64Ptr(userId)
 		deployment.Spec.Template.Spec.SecurityContext.FSGroup = pointer.Int64Ptr(groupId)
 	}
-}
-
-func getContainerByName(name string, containers []chev2.Container) *chev2.Container {
-	for _, c := range containers {
-		if c.Name == name {
-			return &c
-		}
-	}
-
-	return nil
 }
 
 // MountSecrets mounts secrets into a container as a file or as environment variable.

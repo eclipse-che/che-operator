@@ -197,7 +197,9 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployCon
 	}
 
 	deploy.EnsurePodSecurityStandards(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
-	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.Dashboard.Deployment)
+	if err := deploy.OverrideDeployment(ctx, deployment, ctx.CheCluster.Spec.Components.Dashboard.Deployment); err != nil {
+		return nil, err
+	}
 	return deployment, nil
 }
 

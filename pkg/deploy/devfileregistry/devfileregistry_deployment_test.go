@@ -14,6 +14,8 @@ package devfileregistry
 import (
 	"os"
 
+	"github.com/stretchr/testify/assert"
+
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -50,7 +52,7 @@ func TestGetDevfileRegistryDeploymentSpec(t *testing.T) {
 			initObjects:   []runtime.Object{},
 			memoryLimit:   constants.DefaultDevfileRegistryMemoryLimit,
 			memoryRequest: constants.DefaultDevfileRegistryMemoryRequest,
-			cpuLimit:      constants.DefaultDevfileRegistryCpuLimit,
+			cpuLimit:      "0", // CPU limit is not set when possible
 			cpuRequest:    constants.DefaultDevfileRegistryCpuRequest,
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -104,7 +106,8 @@ func TestGetDevfileRegistryDeploymentSpec(t *testing.T) {
 			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
 
 			devfileregistry := NewDevfileRegistryReconciler()
-			deployment := devfileregistry.getDevfileRegistryDeploymentSpec(ctx)
+			deployment, err := devfileregistry.getDevfileRegistryDeploymentSpec(ctx)
+			assert.NoError(t, err)
 
 			test.CompareResources(deployment,
 				test.TestExpectedResources{

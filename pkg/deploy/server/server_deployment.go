@@ -271,7 +271,9 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 	}
 
 	deploy.EnsurePodSecurityStandards(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
-	deploy.CustomizeDeployment(deployment, ctx.CheCluster.Spec.Components.CheServer.Deployment)
+	if err := deploy.OverrideDeployment(ctx, deployment, ctx.CheCluster.Spec.Components.CheServer.Deployment); err != nil {
+		return nil, err
+	}
 
 	return deployment, nil
 }

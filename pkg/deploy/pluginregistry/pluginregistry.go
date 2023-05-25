@@ -116,8 +116,11 @@ func (p *PluginRegistryReconciler) updateStatus(endpoint string, ctx *chetypes.D
 }
 
 func (p *PluginRegistryReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
-	spec := p.getPluginRegistryDeploymentSpec(ctx)
-	return deploy.SyncDeploymentSpecToCluster(ctx, spec, deploy.DefaultDeploymentDiffOpts)
+	if spec, err := p.getPluginRegistryDeploymentSpec(ctx); err != nil {
+		return false, err
+	} else {
+		return deploy.SyncDeploymentSpecToCluster(ctx, spec, deploy.DefaultDeploymentDiffOpts)
+	}
 }
 
 func (p *PluginRegistryReconciler) createGatewayConfig(ctx *chetypes.DeployContext) *gateway.TraefikConfig {

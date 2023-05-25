@@ -12,27 +12,20 @@
 package server
 
 import (
-	"os"
-
 	"k8s.io/apimachinery/pkg/api/resource"
 
-	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/stretchr/testify/assert"
 
+	"testing"
+
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	"testing"
 )
 
 func TestDeployment(t *testing.T) {
@@ -57,7 +50,7 @@ func TestDeployment(t *testing.T) {
 			initObjects:   []runtime.Object{},
 			memoryLimit:   constants.DefaultServerMemoryLimit,
 			memoryRequest: constants.DefaultServerMemoryRequest,
-			cpuLimit:      constants.DefaultServerCpuLimit,
+			cpuLimit:      "0", // no CPU limit if LimitRange does not exists
 			cpuRequest:    constants.DefaultServerCpuRequest,
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -105,18 +98,7 @@ func TestDeployment(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
-			testCase.initObjects = append(testCase.initObjects)
-			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
-
-			ctx := &chetypes.DeployContext{
-				CheCluster: testCase.cheCluster,
-				ClusterAPI: chetypes.ClusterAPI{
-					Client: cli,
-					Scheme: scheme.Scheme,
-				},
-			}
+			ctx := test.GetDeployContext(testCase.cheCluster, testCase.initObjects)
 
 			server := NewCheServerReconciler()
 			deployment, err := server.getDeploymentSpec(ctx)

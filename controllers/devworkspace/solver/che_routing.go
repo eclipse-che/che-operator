@@ -199,10 +199,8 @@ func (c *CheRoutingSolver) provisionPodAdditions(objs *solvers.RoutingObjects, c
 		},
 	}
 
-	if cheCluster.Spec.DevEnvironments.GatewayContainer != nil {
-		if err := deploy.CustomizeContainer(gatewayContainer, cheCluster.Spec.DevEnvironments.GatewayContainer); err != nil {
-			return err
-		}
+	if err := deploy.OverrideContainer(routing.GetNamespace(), gatewayContainer, cheCluster.Spec.DevEnvironments.GatewayContainer); err != nil {
+		return err
 	}
 
 	objs.PodAdditions.Containers = append(objs.PodAdditions.Containers, *gatewayContainer)
