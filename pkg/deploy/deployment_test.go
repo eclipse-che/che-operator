@@ -16,6 +16,8 @@ import (
 	"os"
 	"reflect"
 
+	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
+
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 
 	"github.com/stretchr/testify/assert"
@@ -893,7 +895,7 @@ func TestOverrideContainerCpuLimit(t *testing.T) {
 		name             string
 		container        *corev1.Container
 		overrideSettings *chev2.Container
-		initObjects      []runtime.Object
+		limitRange       *corev1.LimitRange
 		expectedCpuLimit string
 	}
 
@@ -910,7 +912,6 @@ func TestOverrideContainerCpuLimit(t *testing.T) {
 				},
 			},
 			overrideSettings: &chev2.Container{},
-			initObjects:      []runtime.Object{},
 			expectedCpuLimit: "",
 		},
 		{
@@ -923,7 +924,6 @@ func TestOverrideContainerCpuLimit(t *testing.T) {
 				},
 			},
 			overrideSettings: nil,
-			initObjects:      []runtime.Object{},
 			expectedCpuLimit: "",
 		},
 		{
@@ -936,12 +936,10 @@ func TestOverrideContainerCpuLimit(t *testing.T) {
 				},
 			},
 			overrideSettings: &chev2.Container{},
-			initObjects: []runtime.Object{
-				&corev1.LimitRange{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test",
-						Namespace: "eclipse-che",
-					},
+			limitRange: &corev1.LimitRange{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "eclipse-che",
 				},
 			},
 			expectedCpuLimit: "250m",
@@ -962,7 +960,6 @@ func TestOverrideContainerCpuLimit(t *testing.T) {
 					},
 				},
 			},
-			initObjects:      []runtime.Object{},
 			expectedCpuLimit: "500m",
 		},
 		{
@@ -981,12 +978,10 @@ func TestOverrideContainerCpuLimit(t *testing.T) {
 					},
 				},
 			},
-			initObjects: []runtime.Object{
-				&corev1.LimitRange{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test",
-						Namespace: "eclipse-che",
-					},
+			limitRange: &corev1.LimitRange{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "eclipse-che",
 				},
 			},
 			expectedCpuLimit: "500m",
@@ -995,9 +990,14 @@ func TestOverrideContainerCpuLimit(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.GetDeployContext(nil, testCase.initObjects)
+			k8sHelper := k8shelper.New()
 
-			err := OverrideContainer(ctx.ClusterAPI.NonCachingClient, "eclipse-che", testCase.container, testCase.overrideSettings)
+			if testCase.limitRange != nil {
+				_, err := k8sHelper.GetClientset().CoreV1().LimitRanges("eclipse-che").Create(context.TODO(), testCase.limitRange, metav1.CreateOptions{})
+				assert.NoError(t, err)
+			}
+
+			err := OverrideContainer("eclipse-che", testCase.container, testCase.overrideSettings)
 			assert.NoError(t, err)
 
 			if testCase.expectedCpuLimit == "" {
@@ -1005,6 +1005,13 @@ func TestOverrideContainerCpuLimit(t *testing.T) {
 			} else {
 				assert.Equal(t, testCase.expectedCpuLimit, testCase.container.Resources.Limits.Cpu().String())
 			}
+
+			defer func() {
+				if testCase.limitRange != nil {
+					err := k8sHelper.GetClientset().CoreV1().LimitRanges("eclipse-che").Delete(context.TODO(), testCase.limitRange.Name, metav1.DeleteOptions{})
+					assert.NoError(t, err)
+				}
+			}()
 		})
 	}
 }

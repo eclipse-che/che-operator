@@ -17,6 +17,9 @@ import (
 	"sort"
 	"strings"
 
+	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/utils/pointer"
@@ -119,7 +122,7 @@ func OverrideDeployment(
 			}
 		}
 
-		if err := OverrideContainer(ctx.ClusterAPI.NonCachingClient, ctx.CheCluster.Namespace, container, overrideContainerSettings); err != nil {
+		if err := OverrideContainer(ctx.CheCluster.Namespace, container, overrideContainerSettings); err != nil {
 			return err
 		}
 	}
@@ -145,7 +148,6 @@ func OverrideDeployment(
 }
 
 func OverrideContainer(
-	k8sClient client.Client,
 	namespace string,
 	container *corev1.Container,
 	overrideSettings *chev2.Container) error {
@@ -155,8 +157,8 @@ func OverrideContainer(
 	// 2. CPU limits is not overridden
 	// See details at https://github.com/eclipse/che/issues/22198
 	if overrideSettings == nil || overrideSettings.Resources == nil || overrideSettings.Resources.Limits == nil || overrideSettings.Resources.Limits.Cpu == nil {
-		limitRanges := &corev1.LimitRangeList{}
-		if err := k8sClient.List(context.TODO(), limitRanges, &client.ListOptions{Namespace: namespace}); err != nil {
+		// use NonCachedClient to avoid cache LimitRange objects
+		if limitRanges, err := k8shelper.New().GetClientset().CoreV1().LimitRanges(namespace).List(context.TODO(), metav1.ListOptions{}); err != nil {
 			return err
 		} else if len(limitRanges.Items) == 0 { // no LimitRange in the namespace
 			delete(container.Resources.Limits, corev1.ResourceCPU)
