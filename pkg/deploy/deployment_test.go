@@ -890,6 +890,33 @@ func TestCustomizeDeploymentEnvVar(t *testing.T) {
 		})
 	}
 }
+
+func TestShouldNotThrowErrorIfOverrideDeploymentSettingsIsEmpty(t *testing.T) {
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "test",
+		},
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name: "test",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	overrideDeploymentSettings := &chev2.Deployment{}
+
+	ctx := test.GetDeployContext(nil, []runtime.Object{})
+	err := OverrideDeployment(ctx, deployment, overrideDeploymentSettings)
+	assert.Nil(t, err)
+}
+
 func TestOverrideContainerCpuLimit(t *testing.T) {
 	type testCase struct {
 		name             string
