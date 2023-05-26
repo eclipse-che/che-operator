@@ -109,16 +109,16 @@ func OverrideDeployment(
 		var overrideContainerSettings *chev2.Container
 		container := &deployment.Spec.Template.Spec.Containers[index]
 
-		if overrideDeploymentSettings != nil {
-			if len(deployment.Spec.Template.Spec.Containers) != 1 {
+		if overrideDeploymentSettings != nil && len(overrideDeploymentSettings.Containers) > 0 {
+			if len(deployment.Spec.Template.Spec.Containers) == 1 {
+				overrideContainerSettings = &overrideDeploymentSettings.Containers[0]
+			} else {
 				for _, c := range overrideDeploymentSettings.Containers {
 					if c.Name == container.Name {
 						overrideContainerSettings = &c
 						break
 					}
 				}
-			} else {
-				overrideContainerSettings = &overrideDeploymentSettings.Containers[0]
 			}
 		}
 
