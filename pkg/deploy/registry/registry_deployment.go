@@ -94,7 +94,7 @@ func GetSpecRegistryDeployment(
 							ReadinessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
-										Path: "/" + registryType + "s/",
+										Path: probePath,
 										Port: intstr.IntOrString{
 											Type:   intstr.Int,
 											IntVal: int32(8080),
@@ -111,7 +111,7 @@ func GetSpecRegistryDeployment(
 							LivenessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
-										Path: "/" + registryType + "s/",
+										Path: probePath,
 										Port: intstr.IntOrString{
 											Type:   intstr.Int,
 											IntVal: int32(8080),
