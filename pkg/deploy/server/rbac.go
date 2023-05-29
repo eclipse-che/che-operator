@@ -191,17 +191,17 @@ func (s *CheServerReconciler) getCommonPolicies() []rbacv1.PolicyRule {
 		{
 			APIGroups: []string{""},
 			Resources: []string{"persistentvolumeclaims"},
-			Verbs:     []string{"get", "list", "watch", "create", "delete"},
+			Verbs:     []string{"get", "list", "watch", "create", "delete", "update", "patch"},
 		},
 		{
 			APIGroups: []string{""},
 			Resources: []string{"pods"},
-			Verbs:     []string{"get", "list", "watch", "create", "delete"},
+			Verbs:     []string{"get", "list", "watch", "create", "delete", "update", "patch"},
 		},
 		{
 			APIGroups: []string{""},
 			Resources: []string{"services"},
-			Verbs:     []string{"get", "list", "create", "delete"},
+			Verbs:     []string{"get", "list", "create", "delete", "update", "patch"},
 		},
 		{
 			APIGroups: []string{""},
