@@ -152,6 +152,11 @@ func (in *CheClusterDevEnvironments) DeepCopyInto(out *CheClusterDevEnvironments
 		*out = new(Container)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.ProjectCloneContainer != nil {
+		in, out := &in.ProjectCloneContainer, &out.ProjectCloneContainer
+		*out = new(Container)
+		(*in).DeepCopyInto(*out)
+	}
 	in.Storage.DeepCopyInto(&out.Storage)
 	if in.DefaultPlugins != nil {
 		in, out := &in.DefaultPlugins, &out.DefaultPlugins

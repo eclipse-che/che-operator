@@ -9,30 +9,28 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
+
 package devworkspaceconfig
 
 import (
+	"context"
 	"regexp"
 	"testing"
-
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
-	corev1 "k8s.io/api/core/v1"
-
-	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/utils/pointer"
-
-	"context"
 
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
 )
 
 func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
@@ -52,6 +50,8 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 
 	var quantity15Gi = resource.MustParse("15Gi")
 	var quantity10Gi = resource.MustParse("10Gi")
+	var quantity1CPU = resource.MustParse("1000m")
+	var quantity500mCPU = resource.MustParse("500m")
 
 	var expectedErrorTestCases = []errorTestCase{
 		{
@@ -87,7 +87,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
+						DisableContainerBuildCapabilities: pointer.Bool(true),
 					},
 				},
 			},
@@ -102,7 +102,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
+						DisableContainerBuildCapabilities: pointer.Bool(true),
 						Storage: chev2.WorkspaceStorage{
 							PvcStrategy: constants.EphemeralPVCStorageStrategy,
 							PerUserStrategyPvcConfig: &chev2.PVC{
@@ -128,7 +128,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
+						DisableContainerBuildCapabilities: pointer.Bool(true),
 						Storage: chev2.WorkspaceStorage{
 							PvcStrategy: constants.PerUserPVCStorageStrategy,
 							PerUserStrategyPvcConfig: &chev2.PVC{
@@ -140,7 +140,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					StorageClassName:   pointer.StringPtr("test-storage"),
+					StorageClassName:   pointer.String("test-storage"),
 					DeploymentStrategy: "Recreate",
 				},
 			},
@@ -154,7 +154,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
+						DisableContainerBuildCapabilities: pointer.Bool(true),
 						Storage: chev2.WorkspaceStorage{
 							PvcStrategy: constants.PerUserPVCStorageStrategy,
 							PerUserStrategyPvcConfig: &chev2.PVC{
@@ -167,7 +167,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					StorageClassName: pointer.StringPtr("test-storage"),
+					StorageClassName: pointer.String("test-storage"),
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						Common: &quantity15Gi,
 					},
@@ -184,7 +184,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
+						DisableContainerBuildCapabilities: pointer.Bool(true),
 						Storage: chev2.WorkspaceStorage{
 							PvcStrategy: constants.PerWorkspacePVCStorageStrategy,
 							PerWorkspaceStrategyPvcConfig: &chev2.PVC{
@@ -197,7 +197,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					StorageClassName: pointer.StringPtr("test-storage"),
+					StorageClassName: pointer.String("test-storage"),
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						PerWorkspace: &quantity15Gi,
 					},
@@ -214,7 +214,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
+						DisableContainerBuildCapabilities: pointer.Bool(true),
 						Storage: chev2.WorkspaceStorage{
 							PvcStrategy: constants.PerWorkspacePVCStorageStrategy,
 							PerWorkspaceStrategyPvcConfig: &chev2.PVC{
@@ -237,7 +237,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					},
 					Config: &controllerv1alpha1.OperatorConfiguration{
 						Workspace: &controllerv1alpha1.WorkspaceConfig{
-							StorageClassName: pointer.StringPtr("default-storage-class"),
+							StorageClassName: pointer.String("default-storage-class"),
 							DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 								PerWorkspace: &quantity10Gi,
 							},
@@ -247,7 +247,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					StorageClassName: pointer.StringPtr("test-storage"),
+					StorageClassName: pointer.String("test-storage"),
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						PerWorkspace: &quantity15Gi,
 					},
@@ -264,7 +264,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
+						DisableContainerBuildCapabilities: pointer.Bool(true),
 						Storage: chev2.WorkspaceStorage{
 							PvcStrategy: constants.PerUserPVCStorageStrategy,
 							PerUserStrategyPvcConfig: &chev2.PVC{
@@ -287,7 +287,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					},
 					Config: &controllerv1alpha1.OperatorConfiguration{
 						Workspace: &controllerv1alpha1.WorkspaceConfig{
-							StorageClassName: pointer.StringPtr("default-storage-class"),
+							StorageClassName: pointer.String("default-storage-class"),
 							DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 								Common: &quantity10Gi,
 							},
@@ -297,7 +297,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					StorageClassName: pointer.StringPtr("test-storage"),
+					StorageClassName: pointer.String("test-storage"),
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						Common: &quantity15Gi,
 					},
@@ -314,7 +314,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
+						DisableContainerBuildCapabilities: pointer.Bool(true),
 						Storage: chev2.WorkspaceStorage{
 							PvcStrategy: constants.PerUserPVCStorageStrategy,
 							PerUserStrategyPvcConfig: &chev2.PVC{
@@ -351,7 +351,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
 					ImagePullPolicy:  "Always",
-					StorageClassName: pointer.StringPtr("test-storage"),
+					StorageClassName: pointer.String("test-storage"),
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						Common: &quantity15Gi,
 					},
@@ -368,7 +368,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
+						DisableContainerBuildCapabilities: pointer.Bool(true),
 					},
 				},
 			},
@@ -387,7 +387,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.BoolPtr(false),
+						DisableContainerBuildCapabilities: pointer.Bool(false),
 					},
 				},
 			},
@@ -400,7 +400,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 								"SETUID",
 							},
 						},
-						AllowPrivilegeEscalation: pointer.BoolPtr(true),
+						AllowPrivilegeEscalation: pointer.Bool(true),
 					},
 					DeploymentStrategy: "Recreate",
 				},
@@ -415,7 +415,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.BoolPtr(false),
+						DisableContainerBuildCapabilities: pointer.Bool(false),
 					},
 				},
 			},
@@ -431,7 +431,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					},
 					Config: &controllerv1alpha1.OperatorConfiguration{
 						Workspace: &controllerv1alpha1.WorkspaceConfig{
-							StorageClassName: pointer.StringPtr("default-storage-class"),
+							StorageClassName: pointer.String("default-storage-class"),
 							DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 								Common: &quantity10Gi,
 							},
@@ -441,7 +441,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					StorageClassName: pointer.StringPtr("default-storage-class"),
+					StorageClassName: pointer.String("default-storage-class"),
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						Common: &quantity10Gi,
 					},
@@ -452,7 +452,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 								"SETUID",
 							},
 						},
-						AllowPrivilegeEscalation: pointer.BoolPtr(true),
+						AllowPrivilegeEscalation: pointer.Bool(true),
 					},
 					DeploymentStrategy: "Recreate",
 				},
@@ -467,7 +467,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
+						DisableContainerBuildCapabilities: pointer.Bool(true),
 					},
 				},
 			},
@@ -483,7 +483,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					},
 					Config: &controllerv1alpha1.OperatorConfiguration{
 						Workspace: &controllerv1alpha1.WorkspaceConfig{
-							StorageClassName: pointer.StringPtr("default-storage-class"),
+							StorageClassName: pointer.String("default-storage-class"),
 							DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 								Common: &quantity10Gi,
 							},
@@ -495,7 +495,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					StorageClassName: pointer.StringPtr("default-storage-class"),
+					StorageClassName: pointer.String("default-storage-class"),
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						Common: &quantity10Gi,
 					},
@@ -512,8 +512,8 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
-						StartTimeoutSeconds:               pointer.Int32Ptr(600),
+						DisableContainerBuildCapabilities: pointer.Bool(true),
+						StartTimeoutSeconds:               pointer.Int32(600),
 					},
 				},
 			},
@@ -533,8 +533,8 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
-						StartTimeoutSeconds:               pointer.Int32Ptr(600),
+						DisableContainerBuildCapabilities: pointer.Bool(true),
+						StartTimeoutSeconds:               pointer.Int32(600),
 					},
 				},
 			},
@@ -550,7 +550,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					},
 					Config: &controllerv1alpha1.OperatorConfiguration{
 						Workspace: &controllerv1alpha1.WorkspaceConfig{
-							StorageClassName: pointer.StringPtr("default-storage-class"),
+							StorageClassName: pointer.String("default-storage-class"),
 							DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 								Common: &quantity10Gi,
 							},
@@ -560,7 +560,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					StorageClassName: pointer.StringPtr("default-storage-class"),
+					StorageClassName: pointer.String("default-storage-class"),
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						Common: &quantity10Gi,
 					},
@@ -578,8 +578,8 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
-						StartTimeoutSeconds:               pointer.Int32Ptr(420),
+						DisableContainerBuildCapabilities: pointer.Bool(true),
+						StartTimeoutSeconds:               pointer.Int32(420),
 					},
 				},
 			},
@@ -595,7 +595,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					},
 					Config: &controllerv1alpha1.OperatorConfiguration{
 						Workspace: &controllerv1alpha1.WorkspaceConfig{
-							StorageClassName: pointer.StringPtr("default-storage-class"),
+							StorageClassName: pointer.String("default-storage-class"),
 							DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 								Common: &quantity10Gi,
 							},
@@ -606,7 +606,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					StorageClassName: pointer.StringPtr("default-storage-class"),
+					StorageClassName: pointer.String("default-storage-class"),
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						Common: &quantity10Gi,
 					},
@@ -624,7 +624,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
+						DisableContainerBuildCapabilities: pointer.Bool(true),
 					},
 				},
 			},
@@ -640,7 +640,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					},
 					Config: &controllerv1alpha1.OperatorConfiguration{
 						Workspace: &controllerv1alpha1.WorkspaceConfig{
-							StorageClassName: pointer.StringPtr("default-storage-class"),
+							StorageClassName: pointer.String("default-storage-class"),
 							DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 								Common: &quantity10Gi,
 							},
@@ -651,11 +651,92 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					StorageClassName: pointer.StringPtr("default-storage-class"),
+					StorageClassName: pointer.String("default-storage-class"),
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						Common: &quantity10Gi,
 					},
 					DeploymentStrategy: "Recreate",
+				},
+			},
+		},
+		{
+			name: "Configures ProjectCloneConfig in DevWorkspaceOperatorConfig",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.Bool(true),
+						ProjectCloneContainer: &chev2.Container{
+							Name:            "project-clone",
+							Image:           "test-image",
+							ImagePullPolicy: "IfNotPresent",
+							Env: []corev1.EnvVar{
+								{Name: "test-env-1", Value: "test-val-1"},
+								{Name: "test-env-2", Value: "test-val-2"},
+							},
+							Resources: &chev2.ResourceRequirements{
+								Requests: &chev2.ResourceList{
+									Memory: &quantity10Gi,
+									Cpu:    &quantity500mCPU,
+								},
+								Limits: &chev2.ResourceList{
+									Memory: &quantity15Gi,
+									Cpu:    &quantity1CPU,
+								},
+							},
+						},
+					},
+				},
+			},
+			existedObjects: []runtime.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							StorageClassName: pointer.String("default-storage-class"),
+							DefaultStorageSize: &controllerv1alpha1.StorageSizes{
+								Common: &quantity10Gi,
+							},
+							ProgressTimeout: "1h30m",
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					StorageClassName: pointer.String("default-storage-class"),
+					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
+						Common: &quantity10Gi,
+					},
+					DeploymentStrategy: "Recreate",
+					ProjectCloneConfig: &controllerv1alpha1.ProjectCloneConfig{
+						Image:           "test-image",
+						ImagePullPolicy: "IfNotPresent",
+						Env: []corev1.EnvVar{
+							{Name: "test-env-1", Value: "test-val-1"},
+							{Name: "test-env-2", Value: "test-val-2"},
+						},
+						Resources: &corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								corev1.ResourceMemory: quantity10Gi,
+								corev1.ResourceCPU:    quantity500mCPU,
+							},
+							Limits: corev1.ResourceList{
+								corev1.ResourceMemory: quantity15Gi,
+								corev1.ResourceCPU:    quantity1CPU,
+							},
+						},
+					},
 				},
 			},
 		},
@@ -717,7 +798,7 @@ func TestReconcileServiceAccountConfig(t *testing.T) {
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
 					ServiceAccount: &controllerv1alpha1.ServiceAccountConfig{
 						ServiceAccountName: "service-account",
-						DisableCreation:    pointer.BoolPtr(false),
+						DisableCreation:    pointer.Bool(false),
 					},
 					DeploymentStrategy: "Recreate",
 				},
@@ -733,7 +814,7 @@ func TestReconcileServiceAccountConfig(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
 						DefaultNamespace: chev2.DefaultNamespace{
-							AutoProvision: pointer.BoolPtr(false),
+							AutoProvision: pointer.Bool(false),
 						},
 						ServiceAccount: "service-account",
 					},
@@ -743,7 +824,7 @@ func TestReconcileServiceAccountConfig(t *testing.T) {
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
 					ServiceAccount: &controllerv1alpha1.ServiceAccountConfig{
 						ServiceAccountName: "service-account",
-						DisableCreation:    pointer.BoolPtr(true),
+						DisableCreation:    pointer.Bool(true),
 					},
 					DeploymentStrategy: "Recreate",
 				},
@@ -763,7 +844,7 @@ func TestReconcileServiceAccountConfig(t *testing.T) {
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
 					ServiceAccount: &controllerv1alpha1.ServiceAccountConfig{
-						DisableCreation: pointer.BoolPtr(false),
+						DisableCreation: pointer.Bool(false),
 					},
 					DeploymentStrategy: "Recreate",
 				},
@@ -779,7 +860,7 @@ func TestReconcileServiceAccountConfig(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
 						DefaultNamespace: chev2.DefaultNamespace{
-							AutoProvision: pointer.BoolPtr(false),
+							AutoProvision: pointer.Bool(false),
 						},
 					},
 				},
@@ -787,7 +868,7 @@ func TestReconcileServiceAccountConfig(t *testing.T) {
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
 					ServiceAccount: &controllerv1alpha1.ServiceAccountConfig{
-						DisableCreation: pointer.BoolPtr(false),
+						DisableCreation: pointer.Bool(false),
 					},
 					DeploymentStrategy: "Recreate",
 				},
@@ -1327,4 +1408,195 @@ func TestReconcileDevWorkspaceConfigDeploymentStrategy(t *testing.T) {
 			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.DeploymentStrategy, dwoc.Config.Workspace.DeploymentStrategy)
 		})
 	}
+}
+
+func TestReconcileDevWorkspaceProjectCloneCOnfig(t *testing.T) {
+	const testNamespace = "eclipse-che"
+	testMemLimit := resource.MustParse("2Gi")
+	testCpuLimit := resource.MustParse("1000m")
+	testMemRequest := resource.MustParse("1Gi")
+	testCpuRequest := resource.MustParse("500m")
+
+	type testCase struct {
+		name                       string
+		cheProjectCloneConfig      *chev2.Container
+		expectedDevWorkspaceConfig *controllerv1alpha1.ProjectCloneConfig
+		existingDevWorkspaceConfig *controllerv1alpha1.ProjectCloneConfig
+	}
+
+	tests := []testCase{
+		{
+			name: "Syncs Che project clone config to DevWorkspaceOperatorConfig",
+			cheProjectCloneConfig: &chev2.Container{
+				Name:            "project-clone",
+				Image:           "test-image",
+				ImagePullPolicy: "IfNotPresent",
+				Env: []corev1.EnvVar{
+					{Name: "test-env-1", Value: "test-val-1"},
+					{Name: "test-env-2", Value: "test-val-2"},
+				},
+				Resources: &chev2.ResourceRequirements{
+					Limits: &chev2.ResourceList{
+						Memory: &testMemLimit,
+						Cpu:    &testCpuLimit,
+					},
+					Requests: &chev2.ResourceList{
+						Memory: &testMemRequest,
+						Cpu:    &testCpuRequest,
+					},
+				},
+			},
+			expectedDevWorkspaceConfig: &controllerv1alpha1.ProjectCloneConfig{
+				Image:           "test-image",
+				ImagePullPolicy: "IfNotPresent",
+				Env: []corev1.EnvVar{
+					{Name: "test-env-1", Value: "test-val-1"},
+					{Name: "test-env-2", Value: "test-val-2"},
+				},
+				Resources: &corev1.ResourceRequirements{
+					Limits: corev1.ResourceList{
+						corev1.ResourceMemory: testMemLimit,
+						corev1.ResourceCPU:    testCpuLimit,
+					},
+					Requests: corev1.ResourceList{
+						corev1.ResourceMemory: testMemRequest,
+						corev1.ResourceCPU:    testCpuRequest,
+					},
+				},
+			},
+		},
+		{
+			name: "Updates existing DevWorkspaceOperatorConfig with new Che project clone config",
+			cheProjectCloneConfig: &chev2.Container{
+				Name:            "project-clone",
+				Image:           "test-image",
+				ImagePullPolicy: "IfNotPresent",
+				Env: []corev1.EnvVar{
+					{Name: "test-env-1", Value: "test-val-1"},
+					{Name: "test-env-2", Value: "test-val-2"},
+				},
+				Resources: &chev2.ResourceRequirements{
+					Limits: &chev2.ResourceList{
+						Memory: &testMemLimit,
+						Cpu:    &testCpuLimit,
+					},
+					Requests: &chev2.ResourceList{
+						Memory: &testMemRequest,
+						Cpu:    &testCpuRequest,
+					},
+				},
+			},
+			expectedDevWorkspaceConfig: &controllerv1alpha1.ProjectCloneConfig{
+				Image:           "test-image",
+				ImagePullPolicy: "IfNotPresent",
+				Env: []corev1.EnvVar{
+					{Name: "test-env-1", Value: "test-val-1"},
+					{Name: "test-env-2", Value: "test-val-2"},
+				},
+				Resources: &corev1.ResourceRequirements{
+					Limits: corev1.ResourceList{
+						corev1.ResourceMemory: testMemLimit,
+						corev1.ResourceCPU:    testCpuLimit,
+					},
+					Requests: corev1.ResourceList{
+						corev1.ResourceMemory: testMemRequest,
+						corev1.ResourceCPU:    testCpuRequest,
+					},
+				},
+			},
+			existingDevWorkspaceConfig: &controllerv1alpha1.ProjectCloneConfig{
+				Image:           "other image",
+				ImagePullPolicy: "Always",
+				Env: []corev1.EnvVar{
+					{Name: "other-env", Value: "other-val"},
+				},
+				Resources: &corev1.ResourceRequirements{
+					Limits: corev1.ResourceList{
+						corev1.ResourceMemory: resource.MustParse("1234Mi"),
+						corev1.ResourceCPU:    resource.MustParse("1234m"),
+					},
+					Requests: corev1.ResourceList{
+						corev1.ResourceMemory: resource.MustParse("1111Mi"),
+						corev1.ResourceCPU:    resource.MustParse("1111m"),
+					},
+				},
+			},
+		},
+		{
+			name: "Removes fields from existing config when removed from CheCluster",
+			cheProjectCloneConfig: &chev2.Container{
+				Name:            "",
+				Image:           "",
+				ImagePullPolicy: "",
+				Env:             nil,
+				Resources:       nil,
+			},
+			expectedDevWorkspaceConfig: &controllerv1alpha1.ProjectCloneConfig{
+				Image:           "",
+				ImagePullPolicy: "",
+				Env:             nil,
+				Resources:       nil,
+			},
+			existingDevWorkspaceConfig: &controllerv1alpha1.ProjectCloneConfig{
+				Image:           "other image",
+				ImagePullPolicy: "Always",
+				Env: []corev1.EnvVar{
+					{Name: "other-env", Value: "other-val"},
+				},
+				Resources: &corev1.ResourceRequirements{
+					Limits: corev1.ResourceList{
+						corev1.ResourceMemory: resource.MustParse("1234Mi"),
+						corev1.ResourceCPU:    resource.MustParse("1234m"),
+					},
+					Requests: corev1.ResourceList{
+						corev1.ResourceMemory: resource.MustParse("1111Mi"),
+						corev1.ResourceCPU:    resource.MustParse("1111m"),
+					},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			cheCluster := &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: testNamespace,
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						ProjectCloneContainer: testCase.cheProjectCloneConfig,
+					},
+				},
+			}
+			existingDWOC := &controllerv1alpha1.DevWorkspaceOperatorConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      devWorkspaceConfigName,
+					Namespace: testNamespace,
+				},
+				Config: &controllerv1alpha1.OperatorConfiguration{
+					Workspace: &controllerv1alpha1.WorkspaceConfig{
+						ProjectCloneConfig: testCase.existingDevWorkspaceConfig,
+					},
+				},
+			}
+			runtimeDWOC := runtime.Object(existingDWOC)
+
+			deployContext := test.GetDeployContext(cheCluster, []runtime.Object{runtimeDWOC})
+			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
+			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
+			assert.NoError(t, err)
+
+			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
+			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testNamespace}, dwoc)
+			assert.NoError(t, err)
+
+			diff := cmp.Diff(testCase.expectedDevWorkspaceConfig, dwoc.Config.Workspace.ProjectCloneConfig)
+			assert.Empty(t, diff)
+		})
+	}
+
 }
