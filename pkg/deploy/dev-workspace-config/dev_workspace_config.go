@@ -166,6 +166,7 @@ func updateWorkspacePodSchedulerNameConfig(devEnvironments *chev2.CheClusterDevE
 
 func updateProjectCloneConfig(devEnvironments *chev2.CheClusterDevEnvironments, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
 	if devEnvironments.ProjectCloneContainer == nil {
+		workspaceConfig.ProjectCloneConfig = nil
 		return
 	}
 	if workspaceConfig.ProjectCloneConfig == nil {
