@@ -17,10 +17,6 @@
       "program": "${workspaceFolder}/main.go",
       "envFile": "/tmp/che-operator-dev/vscode.env",
       "cwd": "${workspaceFolder}",
-      "args": [
-        "--defaults-path",
-        "config/manager/manager.yaml"
-      ]
     },
     {
       "type": "bashdb",

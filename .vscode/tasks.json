@@ -3,12 +3,7 @@
     "tasks": [
         {
             "label": "Compile Che operator code",
-            "command": "make compile",
-            "options": {
-                "env": {
-                    "ARCH": "amd64"
-                }
-            },
+            "command": "make build",
             "type": "shell",
             "args": [],
             "problemMatcher": [
