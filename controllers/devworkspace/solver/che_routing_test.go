@@ -997,14 +997,14 @@ func TestCreateSubDomainObjects(t *testing.T) {
 		if len(objs.Ingresses) != 3 {
 			t.Error("Expected 3 ingress, found ", len(objs.Ingresses))
 		}
-		if objs.Ingresses[0].Spec.Rules[0].Host != "username.my-workspace.e1.down.on.earth" {
-			t.Error("Expected Ingress host 'username.my-workspace.e1.down.on.earth', but got ", objs.Ingresses[0].Spec.Rules[0].Host)
+		if objs.Ingresses[0].Spec.Rules[0].Host != "username-my-workspace-e1.down.on.earth" {
+			t.Error("Expected Ingress host 'username-my-workspace-e1.down.on.earth', but got ", objs.Ingresses[0].Spec.Rules[0].Host)
 		}
-		if objs.Ingresses[1].Spec.Rules[0].Host != "username.my-workspace.e2.down.on.earth" {
-			t.Error("Expected Ingress host 'username.my-workspace.e2.down.on.earth', but got ", objs.Ingresses[1].Spec.Rules[0].Host)
+		if objs.Ingresses[1].Spec.Rules[0].Host != "username-my-workspace-e2.down.on.earth" {
+			t.Error("Expected Ingress host 'username-my-workspace-e2.down.on.earth', but got ", objs.Ingresses[1].Spec.Rules[0].Host)
 		}
-		if objs.Ingresses[2].Spec.Rules[0].Host != "username.my-workspace.e3.down.on.earth" {
-			t.Error("Expected Ingress host 'username.my-workspace.e3.down.on.earth', but got ", objs.Ingresses[2].Spec.Rules[0].Host)
+		if objs.Ingresses[2].Spec.Rules[0].Host != "username-my-workspace-e3.down.on.earth" {
+			t.Error("Expected Ingress host 'username-my-workspace-e3.down.on.earth', but got ", objs.Ingresses[2].Spec.Rules[0].Host)
 		}
 	})
 
@@ -1013,8 +1013,8 @@ func TestCreateSubDomainObjects(t *testing.T) {
 		if len(objs.Routes) != 3 {
 			t.Error("Expected 3 Routes, found ", len(objs.Routes))
 		}
-		if objs.Routes[0].Spec.Host != "username.my-workspace.e1.down.on.earth" {
-			t.Error("Expected Route host 'username.my-workspace.e1.down.on.earth', but got ", objs.Routes[0].Spec.Host)
+		if objs.Routes[0].Spec.Host != "username-my-workspace-e1.down.on.earth" {
+			t.Error("Expected Route host 'username-my-workspace-e1.down.on.earth', but got ", objs.Routes[0].Spec.Host)
 		}
 	})
 }
@@ -1337,7 +1337,7 @@ func TestExposeEndpoints(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, 1, len(spnr))
 	assert.Equal(t, "server-pub-nr", spnr[0].Name)
-	assert.Equal(t, "http://username.my-workspace.server-pub-nr.down.on.earth/", spnr[0].Url)
+	assert.Equal(t, "http://username-my-workspace-server-pub-nr.down.on.earth/", spnr[0].Url)
 }
 
 func TestExposeEndpointsLegacy(t *testing.T) {
@@ -1501,24 +1501,24 @@ func TestReportSubdomainExposedEndpoints(t *testing.T) {
 	if e1.Name != "e1" {
 		t.Errorf("The first endpoint should have been e1 but is %s", e1.Name)
 	}
-	if e1.Url != "https://username.my-workspace.e1.down.on.earth/1/" {
-		t.Errorf("The e1 endpoint should have the following URL: '%s' but has '%s'.", "https://username.my-workspace.e1.down.on.earth/1/", e1.Url)
+	if e1.Url != "https://username-my-workspace-e1.down.on.earth/1/" {
+		t.Errorf("The e1 endpoint should have the following URL: '%s' but has '%s'.", "https://username-my-workspace-e1.down.on.earth/1/", e1.Url)
 	}
 
 	e2 := m1[1]
 	if e2.Name != "e2" {
 		t.Errorf("The second endpoint should have been e2 but is %s", e1.Name)
 	}
-	if e2.Url != "https://username.my-workspace.e2.down.on.earth/2.js" {
-		t.Errorf("The e2 endpoint should have the following URL: '%s' but has '%s'.", "https://username.my-workspace.e2.down.on.earth/2.js", e2.Url)
+	if e2.Url != "https://username-my-workspace-e2.down.on.earth/2.js" {
+		t.Errorf("The e2 endpoint should have the following URL: '%s' but has '%s'.", "https://username-my-workspace-e2.down.on.earth/2.js", e2.Url)
 	}
 
 	e3 := m1[2]
 	if e3.Name != "e3" {
 		t.Errorf("The third endpoint should have been e3 but is %s", e1.Name)
 	}
-	if e3.Url != "http://username.my-workspace.e3.down.on.earth/" {
-		t.Errorf("The e3 endpoint should have the following URL: '%s' but has '%s'.", "http://username.my-workspace.e3.down.on.earth/", e3.Url)
+	if e3.Url != "http://username-my-workspace-e3.down.on.earth/" {
+		t.Errorf("The e3 endpoint should have the following URL: '%s' but has '%s'.", "http://username-my-workspace-e3.down.on.earth/", e3.Url)
 	}
 }
 
@@ -1714,7 +1714,7 @@ func TestUsesCustomCertificateForWorkspaceEndpointIngresses(t *testing.T) {
 		t.Fatalf("Unexpected number of host records on the TLS spec: %d", len(ingress.Spec.TLS[0].Hosts))
 	}
 
-	if ingress.Spec.TLS[0].Hosts[0] != "username.my-workspace.e1.almost.trivial" {
+	if ingress.Spec.TLS[0].Hosts[0] != "username-my-workspace-e1.almost.trivial" {
 		t.Errorf("Unexpected host name of the TLS spec: %s", ingress.Spec.TLS[0].Hosts[0])
 	}
 
@@ -1732,7 +1732,7 @@ func TestUsesCustomCertificateForWorkspaceEndpointIngresses(t *testing.T) {
 		t.Fatalf("Unexpected number of host records on the TLS spec: %d", len(ingress.Spec.TLS[0].Hosts))
 	}
 
-	if ingress.Spec.TLS[0].Hosts[0] != "username.my-workspace.e2.almost.trivial" {
+	if ingress.Spec.TLS[0].Hosts[0] != "username-my-workspace-e2.almost.trivial" {
 		t.Errorf("Unexpected host name of the TLS spec: %s", ingress.Spec.TLS[0].Hosts[0])
 	}
 
