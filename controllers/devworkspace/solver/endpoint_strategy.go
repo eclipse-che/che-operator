@@ -35,7 +35,7 @@ type EndpointStrategy interface {
 // <CHE_DOMAIN>/<USERNAME>/<WORKSPACE_NAME>/<PORT>/
 
 // Public endpoints defined in the devfile are exposed on the following path via route or ingress:
-// <USERNAME>.<WORKSPACE_NAME>.<ENDPOINT_NAME>.<CLUSTER_INGRESS_DOMAIN>/<ENDPOINT_PATH>
+// <USERNAME>-<WORKSPACE_NAME>-<ENDPOINT_NAME>.<CLUSTER_INGRESS_DOMAIN>/<ENDPOINT_PATH>
 type UsernameWkspName struct {
 	username      string
 	workspaceName string
@@ -68,7 +68,7 @@ func (u UsernameWkspName) getEndpointPathPrefix(endpointPath string) string {
 }
 
 func (u UsernameWkspName) getHostname(endpointInfo *EndpointInfo, baseDomain string) string {
-	return fmt.Sprintf("%s.%s.%s.%s", u.username, u.workspaceName, endpointInfo.endpointName, baseDomain)
+	return fmt.Sprintf("%s-%s-%s.%s", u.username, u.workspaceName, endpointInfo.endpointName, baseDomain)
 }
 
 // Main workspace URL is exposed on the following path:
