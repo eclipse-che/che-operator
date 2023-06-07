@@ -31,6 +31,8 @@ components:
           value: /tmp/.cache
         - name: IMAGE_TOOL
           value: podman
+        - name: KUBECONFIG
+          value: /home/user/.kube/config
 commands:
   - id: install-go-1-18
     exec:
