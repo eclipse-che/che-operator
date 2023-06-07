@@ -96,7 +96,7 @@ commands:
     exec:
       label: Update all development resources
       component: tooling-container
-      commandLine: echo $PATH && make update-dev-resources      
+      commandLine: make update-dev-resources      
 events:
   postStart:
     - install-go-1-18
