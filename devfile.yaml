@@ -63,6 +63,13 @@ commands:
       label: POST START EVENT - Install git autocompletion
       component: tooling-container
       commandLine: if ! grep -q "source /usr/share/bash-completion/completions/git" $HOME/.bashrc; then echo "source /usr/share/bash-completion/completions/git" >> $HOME/.bashrc; fi
+  - id: install-git-autocompletion
+    exec:
+      label: POST START EVENT - Install oc autocompletion
+      component: tooling-container
+      commandLine: |
+        oc completion bash > $HOME/oc_bash_completion && \
+        if ! grep -q "source \$HOME/oc_bash_completion" $HOME/.bashrc; then echo "source \$HOME/oc_bash_completion" >> $HOME/.bashrc; fi
   - id: go-build
     exec:
       label: Build Eclipse Che Operator binary
@@ -94,5 +101,6 @@ events:
     - install-chectl
     - install-goimports
     - install-git-autocompletion
+    - install-oc-autocompletion
 
 
