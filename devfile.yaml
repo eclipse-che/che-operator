@@ -56,7 +56,7 @@ commands:
       label: POST START EVENT - Install goimports
       component: tooling-container
       commandLine: |
-        $HOME/go1.18/bin/go install golang.org/x/tools/cmd/goimports@v0.9.2 && \
+        $HOME/go1.18/bin/go install golang.org/x/tools/cmd/goimports@latest && \
         if ! grep -q "PATH=\$PATH:\$GOPATH/bin" $HOME/.bashrc; then echo "export PATH=\$PATH:\$GOPATH/bin" >> $HOME/.bashrc; fi
   - id: install-git-autocompletion
     exec:
