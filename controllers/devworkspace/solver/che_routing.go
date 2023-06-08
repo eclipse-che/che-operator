@@ -374,6 +374,7 @@ func getEndpointPathStrategy(c client.Client, workspaceId string, namespace stri
 		strategy := new(UsernameWkspName)
 		strategy.username = username
 		strategy.workspaceName = dwName
+		strategy.workspaceID = workspaceId
 		return strategy
 	}
 }
