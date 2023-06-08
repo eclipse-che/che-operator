@@ -137,7 +137,7 @@ func getSpecObjects(t *testing.T, routing *dwo.DevWorkspaceRouting) (client.Clie
 				Hostname: "over.the.rainbow",
 			},
 		},
-	}, routing, userProfileSecret())
+	}, routing, userProfileSecret("username"))
 }
 
 func subdomainDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
@@ -240,7 +240,7 @@ func relocatableDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 	}
 }
 
-func userProfileSecret() *corev1.Secret {
+func userProfileSecret(username string) *corev1.Secret {
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "user-profile",
@@ -248,7 +248,7 @@ func userProfileSecret() *corev1.Secret {
 			Finalizers: []string{controller.FinalizerName},
 		},
 		Data: map[string][]byte{
-			"name": []byte("username"),
+			"name": []byte(username),
 		},
 	}
 }
@@ -1522,6 +1522,73 @@ func TestReportSubdomainExposedEndpoints(t *testing.T) {
 	}
 }
 
+func TestReportSubdomainExposedEndpointsLongUsername(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	routing := subdomainDevWorkspaceRouting()
+	_, solver, objs := getSpecObjectsForManager(t, &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "che",
+			Namespace:  "ns",
+			Finalizers: []string{controller.FinalizerName},
+		},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Domain:   "down.on.earth",
+				Hostname: "over.the.rainbow",
+			},
+		},
+	},
+		routing,
+		// use legacy routing
+		userProfileSecret("a-very-very-very-very-very-very-very-very-very-very-long-username"))
+
+	exposed, ready, err := solver.GetExposedEndpoints(routing.Spec.Endpoints, objs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !ready {
+		t.Errorf("The exposed endpoints should have been ready.")
+	}
+
+	if len(exposed) != 1 {
+		t.Errorf("There should have been 1 exposed endpoins but found %d", len(exposed))
+	}
+
+	m1, ok := exposed["m1"]
+	if !ok {
+		t.Errorf("The exposed endpoints should have been defined on the m1 component.")
+	}
+
+	if len(m1) != 3 {
+		t.Fatalf("There should have been 3 endpoints for m1.")
+	}
+
+	e1 := m1[0]
+	if e1.Name != "e1" {
+		t.Errorf("The first endpoint should have been e1 but is %s", e1.Name)
+	}
+	if e1.Url != "https://wsid-1.down.on.earth/1/" {
+		t.Errorf("The e1 endpoint should have the following URL: '%s' but has '%s'.", "https://wsid-1.down.on.earth/1/", e1.Url)
+	}
+
+	e2 := m1[1]
+	if e2.Name != "e2" {
+		t.Errorf("The second endpoint should have been e2 but is %s", e1.Name)
+	}
+	if e2.Url != "https://wsid-2.down.on.earth/2.js" {
+		t.Errorf("The e2 endpoint should have the following URL: '%s' but has '%s'.", "https://wsid-2.down.on.earth/2.js", e2.Url)
+	}
+
+	e3 := m1[2]
+	if e3.Name != "e3" {
+		t.Errorf("The third endpoint should have been e3 but is %s", e1.Name)
+	}
+	if e3.Url != "http://wsid-3.down.on.earth/" {
+		t.Errorf("The e3 endpoint should have the following URL: '%s' but has '%s'.", "https://wsid-3.down.on.earth/", e3.Url)
+	}
+}
+
 func TestReportSubdomainExposedEndpointsLegacy(t *testing.T) {
 	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 	routing := subdomainDevWorkspaceRouting()
@@ -1650,7 +1717,7 @@ func TestUsesIngressAnnotationsForWorkspaceEndpointIngresses(t *testing.T) {
 		},
 	}
 
-	_, _, objs := getSpecObjectsForManager(t, mgr, subdomainDevWorkspaceRouting(), userProfileSecret())
+	_, _, objs := getSpecObjectsForManager(t, mgr, subdomainDevWorkspaceRouting(), userProfileSecret("username"))
 
 	if len(objs.Ingresses) != 3 {
 		t.Fatalf("Unexpected number of generated ingresses: %d", len(objs.Ingresses))
@@ -1685,7 +1752,7 @@ func TestUsesCustomCertificateForWorkspaceEndpointIngresses(t *testing.T) {
 		},
 	}
 
-	_, _, objs := getSpecObjectsForManager(t, mgr, subdomainDevWorkspaceRouting(), userProfileSecret(), &corev1.Secret{
+	_, _, objs := getSpecObjectsForManager(t, mgr, subdomainDevWorkspaceRouting(), userProfileSecret("username"), &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "tlsSecret",
 			Namespace: "ns",
@@ -1761,7 +1828,7 @@ func TestUsesCustomCertificateForWorkspaceEndpointRoutes(t *testing.T) {
 		},
 	}
 
-	_, _, objs := getSpecObjectsForManager(t, mgr, subdomainDevWorkspaceRouting(), userProfileSecret(), &corev1.Secret{
+	_, _, objs := getSpecObjectsForManager(t, mgr, subdomainDevWorkspaceRouting(), userProfileSecret("username"), &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "tlsSecret",
 			Namespace: "ns",

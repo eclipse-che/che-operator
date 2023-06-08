@@ -17,6 +17,7 @@ import (
 	"strconv"
 
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
+	"k8s.io/apimachinery/pkg/util/validation"
 )
 
 // Interface for different workspace and endpoint url path strategies
@@ -39,6 +40,7 @@ type EndpointStrategy interface {
 type UsernameWkspName struct {
 	username      string
 	workspaceName string
+	workspaceID   string
 }
 
 func (u UsernameWkspName) getPublicURLPrefix(port int32, uniqueEndpointName string, componentName string) string {
@@ -68,7 +70,13 @@ func (u UsernameWkspName) getEndpointPathPrefix(endpointPath string) string {
 }
 
 func (u UsernameWkspName) getHostname(endpointInfo *EndpointInfo, baseDomain string) string {
-	return fmt.Sprintf("%s-%s-%s.%s", u.username, u.workspaceName, endpointInfo.endpointName, baseDomain)
+	subDomain := fmt.Sprintf("%s-%s-%s", u.username, u.workspaceName, endpointInfo.endpointName)
+	if errs := validation.IsValidLabelValue(subDomain); len(errs) > 0 {
+		// if subdomain is not valid, use legacy paths
+		return fmt.Sprintf("%s-%d.%s", u.workspaceID, endpointInfo.order, baseDomain)
+	}
+
+	return fmt.Sprintf("%s.%s", subDomain, baseDomain)
 }
 
 // Main workspace URL is exposed on the following path:
