@@ -58,20 +58,7 @@ commands:
       label: POST START EVENT - Install goimports
       component: tooling-container
       commandLine: |
-        $HOME/go1.18/bin/go install golang.org/x/tools/cmd/goimports@latest && \
-        if ! grep -q "PATH=\$PATH:\$GOPATH/bin" $HOME/.bashrc; then echo "export PATH=\$PATH:\$GOPATH/bin" >> $HOME/.bashrc; fi
-  - id: install-git-autocompletion
-    exec:
-      label: POST START EVENT - Install git autocompletion
-      component: tooling-container
-      commandLine: if ! grep -q "source /usr/share/bash-completion/completions/git" $HOME/.bashrc; then echo "source /usr/share/bash-completion/completions/git" >> $HOME/.bashrc; fi
-  - id: install-oc-autocompletion
-    exec:
-      label: POST START EVENT - Install oc autocompletion
-      component: tooling-container
-      commandLine: |
-        oc completion bash > $HOME/oc_bash_completion && \
-        if ! grep -q "source \$HOME/oc_bash_completion" $HOME/.bashrc; then echo "source \$HOME/oc_bash_completion" >> $HOME/.bashrc; fi
+        $HOME/go1.18/bin/go install golang.org/x/tools/cmd/goimports@latest
   - id: go-build
     exec:
       label: Build Eclipse Che Operator binary
@@ -100,9 +87,7 @@ commands:
 events:
   postStart:
     - install-go-1-18
-    - install-chectl
     - install-goimports
-    - install-git-autocompletion
-    - install-oc-autocompletion
+    - install-chectl
 
 
