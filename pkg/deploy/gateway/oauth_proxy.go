@@ -146,6 +146,7 @@ func skipAuthConfig(instance *chev2.CheCluster) string {
 	skipAuthPaths = append(skipAuthPaths, "^/$")
 	skipAuthPaths = append(skipAuthPaths, "/healthz$")
 	skipAuthPaths = append(skipAuthPaths, "^/dashboard/static/preload")
+	skipAuthPaths = append(skipAuthPaths, fmt.Sprintf("^%s$", defaults.GetConsoleLinkImage()))
 	if len(skipAuthPaths) > 0 {
 		propName := "skip_auth_routes"
 		if infrastructure.IsOpenShift() {

@@ -162,7 +162,7 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 
 		configmap := getGatewayOauthProxyConfigSpec(ctx, "blabol")
 		config := configmap.Data["oauth-proxy.cfg"]
-		if !strings.Contains(config, "skip_auth_regex = \"^/$|/healthz$|^/dashboard/static/preload\"") {
+		if !strings.Contains(config, "skip_auth_regex = \"^/$|/healthz$|^/dashboard/static/preload|^/dashboard/assets/branding/loader.svg$\"") {
 			t.Errorf("oauth config shold not contain any skip auth when both registries are external")
 		}
 	})
@@ -183,7 +183,7 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 
 		configmap := getGatewayOauthProxyConfigSpec(ctx, "blabol")
 		config := configmap.Data["oauth-proxy.cfg"]
-		if !strings.Contains(config, "skip_auth_regex = \"^/devfile-registry|^/$|/healthz$|^/dashboard/static/preload\"") {
+		if !strings.Contains(config, "skip_auth_regex = \"^/devfile-registry|^/$|/healthz$|^/dashboard/static/preload|^/dashboard/assets/branding/loader.svg$\"") {
 			t.Error("oauth config should skip auth for devfile registry", config)
 		}
 	})
@@ -204,7 +204,7 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 
 		configmap := getGatewayOauthProxyConfigSpec(ctx, "blabol")
 		config := configmap.Data["oauth-proxy.cfg"]
-		if !strings.Contains(config, "skip_auth_regex = \"^/plugin-registry|^/$|/healthz$|^/dashboard/static/preload\"") {
+		if !strings.Contains(config, "skip_auth_regex = \"^/plugin-registry|^/$|/healthz$|^/dashboard/static/preload|^/dashboard/assets/branding/loader.svg$\"") {
 			t.Error("oauth config should skip auth for plugin registry", config)
 		}
 	})
@@ -225,7 +225,7 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 
 		configmap := getGatewayOauthProxyConfigSpec(ctx, "blabol")
 		config := configmap.Data["oauth-proxy.cfg"]
-		if !strings.Contains(config, "skip_auth_regex = \"^/plugin-registry|^/devfile-registry|^/$|/healthz$|^/dashboard/static/preload\"") {
+		if !strings.Contains(config, "skip_auth_regex = \"^/plugin-registry|^/devfile-registry|^/$|/healthz$|^/dashboard/static/preload|^/dashboard/assets/branding/loader.svg$\"") {
 			t.Error("oauth config should skip auth for plugin and devfile registry.", config)
 		}
 	})
