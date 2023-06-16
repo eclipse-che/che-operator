@@ -520,6 +520,7 @@ func TestCreateRelocatedObjectsK8SLegacy(t *testing.T) {
 			assert.Contains(t, workspaceMainConfig.HTTP.Routers, wsid)
 			assert.Equal(t, workspaceMainConfig.HTTP.Routers[wsid].Service, wsid)
 			assert.Equal(t, workspaceMainConfig.HTTP.Routers[wsid].Rule, fmt.Sprintf("PathPrefix(`/%s`)", wsid))
+			assert.Equal(t, workspaceMainConfig.HTTP.Routers[wsid].Priority, 100+len("/"+wsid))
 		})
 
 		t.Run("testServerTransportInMainWorkspaceRoute", func(t *testing.T) {
@@ -538,6 +539,7 @@ func TestCreateRelocatedObjectsK8SLegacy(t *testing.T) {
 			assert.Contains(t, workspaceMainConfig.HTTP.Routers, healthzName)
 			assert.Equal(t, workspaceMainConfig.HTTP.Routers[healthzName].Service, wsid)
 			assert.Equal(t, workspaceMainConfig.HTTP.Routers[healthzName].Rule, "Path(`/wsid/m1/9999/healthz`)")
+			assert.Equal(t, workspaceMainConfig.HTTP.Routers[healthzName].Priority, 101+len("/"+wsid))
 			assert.NotContains(t, workspaceMainConfig.HTTP.Routers[healthzName].Middlewares, "wsid"+gateway.AuthMiddlewareSuffix)
 			assert.Contains(t, workspaceMainConfig.HTTP.Routers[healthzName].Middlewares, "wsid"+gateway.StripPrefixMiddlewareSuffix)
 			assert.NotContains(t, workspaceMainConfig.HTTP.Routers[healthzName].Middlewares, "wsid"+gateway.HeaderRewriteMiddlewareSuffix)
@@ -548,6 +550,7 @@ func TestCreateRelocatedObjectsK8SLegacy(t *testing.T) {
 			assert.Contains(t, workspaceConfig.HTTP.Routers, healthzName)
 			assert.Equal(t, workspaceConfig.HTTP.Routers[healthzName].Service, healthzName)
 			assert.Equal(t, workspaceConfig.HTTP.Routers[healthzName].Rule, "Path(`/m1/9999/healthz`)")
+			assert.Equal(t, workspaceConfig.HTTP.Routers[healthzName].Priority, 101+len("/m1/9999"))
 			assert.NotContains(t, workspaceConfig.HTTP.Routers[healthzName].Middlewares, healthzName+gateway.AuthMiddlewareSuffix)
 			assert.Contains(t, workspaceConfig.HTTP.Routers[healthzName].Middlewares, healthzName+gateway.StripPrefixMiddlewareSuffix)
 		})
