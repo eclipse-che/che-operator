@@ -569,13 +569,15 @@ func containPort(service *corev1.Service, port int32) bool {
 func provisionMainWorkspaceRoute(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, cmLabels map[string]string, endpointStrategy EndpointStrategy) (*corev1.ConfigMap, error) {
 	dwId := routing.Spec.DevWorkspaceId
 	dwNamespace := routing.Namespace
+	pathPrefix := endpointStrategy.getMainWorkspacePathPrefix()
+	priority := 100 + len(pathPrefix)
 
 	cfg := gateway.CreateCommonTraefikConfig(
 		dwId,
-		fmt.Sprintf("PathPrefix(`%s`)", endpointStrategy.getMainWorkspacePathPrefix()),
-		100,
+		fmt.Sprintf("PathPrefix(`%s`)", pathPrefix),
+		priority,
 		getServiceURL(wsGatewayPort, dwId, dwNamespace),
-		[]string{endpointStrategy.getMainWorkspacePathPrefix()})
+		[]string{pathPrefix})
 
 	if cheCluster.IsAccessTokenConfigured() {
 		cfg.AddAuthHeaderRewrite(dwId)
@@ -587,7 +589,7 @@ func provisionMainWorkspaceRoute(cheCluster *chev2.CheCluster, routing *dwo.DevW
 	add5XXErrorHandling(cfg, dwId)
 
 	// make '/healthz' path of main endpoints reachable from outside
-	routeForHealthzEndpoint(cfg, dwId, routing.Spec.Endpoints, endpointStrategy)
+	routeForHealthzEndpoint(cfg, dwId, routing.Spec.Endpoints, priority+1, endpointStrategy)
 
 	if contents, err := yaml.Marshal(cfg); err != nil {
 		return nil, err
@@ -633,7 +635,7 @@ func add5XXErrorHandling(cfg *gateway.TraefikConfig, dwId string) {
 }
 
 // makes '/healthz' path of main endpoints reachable from the outside
-func routeForHealthzEndpoint(cfg *gateway.TraefikConfig, dwId string, endpoints map[string]dwo.EndpointList, endpointStrategy EndpointStrategy) {
+func routeForHealthzEndpoint(cfg *gateway.TraefikConfig, dwId string, endpoints map[string]dwo.EndpointList, priority int, endpointStrategy EndpointStrategy) {
 	for componentName, endpoints := range endpoints {
 		for _, e := range endpoints {
 			if e.Attributes.GetString(string(dwo.TypeEndpointAttribute), nil) == string(dwo.MainEndpointType) {
@@ -647,7 +649,7 @@ func routeForHealthzEndpoint(cfg *gateway.TraefikConfig, dwId string, endpoints 
 					Rule:        fmt.Sprintf("Path(`%s/healthz`)", endpointStrategy.getEndpointPathPrefix(endpointPath)),
 					Service:     dwId,
 					Middlewares: middlewares,
-					Priority:    101,
+					Priority:    priority,
 				}
 			}
 		}
@@ -657,6 +659,7 @@ func routeForHealthzEndpoint(cfg *gateway.TraefikConfig, dwId string, endpoints 
 func addEndpointToTraefikConfig(componentName string, e dwo.Endpoint, cfg *gateway.TraefikConfig, cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, endpointStrategy EndpointStrategy) {
 	routeName, prefix := endpointStrategy.getEndpointPath(&e, componentName)
 	rulePrefix := fmt.Sprintf("PathPrefix(`%s`)", prefix)
+	priority := 100 + len(prefix)
 
 	// skip if exact same route is already exposed
 	for _, r := range cfg.HTTP.Routers {
@@ -669,7 +672,7 @@ func addEndpointToTraefikConfig(componentName string, e dwo.Endpoint, cfg *gatew
 	cfg.AddComponent(
 		name,
 		rulePrefix,
-		100,
+		priority,
 		fmt.Sprintf("http://127.0.0.1:%d", e.TargetPort),
 		[]string{prefix})
 	cfg.AddAuth(name, fmt.Sprintf("http://%s.%s:8089?namespace=%s", gateway.GatewayServiceName, cheCluster.Namespace, routing.Namespace))
@@ -681,7 +684,7 @@ func addEndpointToTraefikConfig(componentName string, e dwo.Endpoint, cfg *gatew
 		cfg.AddComponent(
 			healthzName,
 			fmt.Sprintf("Path(`%s`)", healthzPath),
-			101,
+			priority+1,
 			fmt.Sprintf("http://127.0.0.1:%d", e.TargetPort),
 			[]string{prefix})
 	}
