@@ -11,7 +11,17 @@
 #
 
 apiVersion: org.eclipse.che/v2
+metadata:
+  annotations:
+    che.eclipse.org/checluster-defaults-cleanup: '{"spec.components.pluginRegistry.openVSXURL":"true"}'
 spec:
+  devEnvironments:
+    gatewayContainer:
+      resources:
+        request:
+          cpu: '20m'
+        limits:
+          cpu: '20m'
   components:
     pluginRegistry:
       openVSXURL: https://open-vsx.org
@@ -35,9 +45,9 @@ spec:
         containers:
           - resources:
               limits:
-                cpu: '400m'
+                cpu: '300m'
               request:
-                cpu: '400m'
+                cpu: '300m'
     dashboard:
       deployment:
         containers:
