@@ -299,6 +299,7 @@ func TestCheClusterDefaultsCleanerOpenVSXURL(t *testing.T) {
 					},
 				},
 			},
+			expectedOpenVSXURL: pointer.StringPtr("https://open-vsx.org"),
 		},
 		{
 			name: "Test use embedded OpenVSXURL after upgrade",
@@ -326,6 +327,9 @@ func TestCheClusterDefaultsCleanerOpenVSXURL(t *testing.T) {
 							OpenVSXURL: pointer.StringPtr("https://bla-bla-bla"),
 						},
 					},
+				},
+				Status: chev2.CheClusterStatus{
+					CheVersion: "7.62.0",
 				},
 			},
 			expectedOpenVSXURL: pointer.StringPtr("https://bla-bla-bla"),

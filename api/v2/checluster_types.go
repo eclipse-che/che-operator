@@ -873,3 +873,9 @@ func (c *CheCluster) IsEmbeddedOpenVSXRegistryConfigured() bool {
 	}
 	return openVSXURL == ""
 }
+
+// IsCheBeingInstalled returns true if the Che version is not set in the status.
+// Basically it means that the Che is being installed since the Che version is set only after the installation.
+func (c *CheCluster) IsCheBeingInstalled() bool {
+	return c.Status.CheVersion == ""
+}

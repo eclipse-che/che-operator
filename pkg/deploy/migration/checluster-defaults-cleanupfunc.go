@@ -99,8 +99,8 @@ func cleanUpDashboardHeaderMessage(ctx *chetypes.DeployContext) (bool, error) {
 
 // cleanUpPluginRegistryOpenVSXURL cleans up CheCluster CR `Spec.Components.PluginRegistry.OpenVSXURL` field:
 // (complies with requirements https://github.com/eclipse/che/issues/21637):
-//   1. if value equals to the default one, then set it to nil
-//   2. if Eclipse Che is being installed, then use the default openVSXURL
+//   1. if Eclipse Che is being installed, then use the default openVSXURL
+//   2. if value equals to the default one, then set it to nil
 //   3. if Eclipse Che is being upgraded
 //      * if value is <not set> and Eclipse Che v7.52 or earlier, then set the default
 //      * if value is <not set> and Eclipse Che v7.53 or later, then set it to empty string (starts embedded registry)
@@ -114,6 +114,10 @@ func cleanUpPluginRegistryOpenVSXURL(ctx *chetypes.DeployContext) (bool, error) 
 		defaults.GetPluginRegistryOpenVSXURL(), // current default (can be equal to the previous one)
 	}
 
+	if ctx.CheCluster.IsCheBeingInstalled() {
+		return false, nil
+	}
+
 	if ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL != nil {
 		for _, openVSXURL := range pluginRegistryOpenVSXURL {
 			if *ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL == openVSXURL {
@@ -121,16 +125,6 @@ func cleanUpPluginRegistryOpenVSXURL(ctx *chetypes.DeployContext) (bool, error) 
 				return true, nil
 			}
 		}
-	}
-
-	// Eclipse Che is being installed
-	if ctx.CheCluster.Status.CheVersion == "" {
-		if ctx.CheCluster.IsAirGapMode() {
-			ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL = pointer.StringPtr("")
-			return true, nil
-		}
-
-		return false, nil
 	}
 
 	// Eclipse Che is being upgraded
