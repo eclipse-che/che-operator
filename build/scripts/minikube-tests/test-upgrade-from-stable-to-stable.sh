@@ -35,8 +35,6 @@ runTest() {
     --che-operator-cr-patch-yaml "${OPERATOR_REPO}/build/scripts/minikube-tests/minikube-checluster-patch.yaml"
 
   createDevWorkspace
-  startAndWaitDevWorkspace
-  stopAndWaitDevWorkspace
 
   # Free up some cpu resources
   kubectl scale deployment che --replicas=0 -n eclipse-che
@@ -48,6 +46,13 @@ runTest() {
     make wait-devworkspace-running NAMESPACE="devworkspace-controller"
     make wait-eclipseche-version VERSION="${LAST_PACKAGE_VERSION}" NAMESPACE=${NAMESPACE}
   popd
+
+  # Free up some resources
+  minikube image rm quay.io/eclipse/che-plugin-registry:${PREVIOUS_PACKAGE_VERSION}
+  minikube image rm quay.io/eclipse/che-devfile-registry:${PREVIOUS_PACKAGE_VERSION}
+  minikube image rm quay.io/eclipse/che-dashboard:${PREVIOUS_PACKAGE_VERSION}
+  minikube image rm quay.io/eclipse/che-server:${PREVIOUS_PACKAGE_VERSION}
+  minikube image rm quay.io/eclipse/che-operator:${PREVIOUS_PACKAGE_VERSION}
 
   startAndWaitDevWorkspace
   stopAndWaitDevWorkspace
