@@ -14,7 +14,6 @@ package migration
 
 import (
 	"encoding/json"
-	"fmt"
 	"strconv"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -25,8 +24,6 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 
 	devfile "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
-	"golang.org/x/mod/semver"
-
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/utils/pointer"
@@ -97,16 +94,7 @@ func cleanUpDashboardHeaderMessage(ctx *chetypes.DeployContext) (bool, error) {
 	return false, nil
 }
 
-// cleanUpPluginRegistryOpenVSXURL cleans up CheCluster CR `Spec.Components.PluginRegistry.OpenVSXURL` field:
-// (complies with requirements https://github.com/eclipse/che/issues/21637):
-//   1. if value equals to the default one, then set it to nil
-//   2. if Eclipse Che is being installed, then use the default openVSXURL
-//   3. if Eclipse Che is being upgraded
-//      * if value is <not set> and Eclipse Che v7.52 or earlier, then set the default
-//      * if value is <not set> and Eclipse Che v7.53 or later, then set it to empty string (starts embedded registry)
-//      * if value is <empty>, then do nothing (starts embedded registry)
-//      * if value is <non-empty> and not equals to the default value, then do nothing (use external registry from the value)
-// See also [v2.CheCluster].
+// cleanUpPluginRegistryOpenVSXURL cleans up CheCluster CR `Spec.Components.PluginRegistry.OpenVSXURL` field.
 func cleanUpPluginRegistryOpenVSXURL(ctx *chetypes.DeployContext) (bool, error) {
 	pluginRegistryOpenVSXURL := []string{
 		"https://openvsx.org",                  // redirects to "https://open-vsx.org"
@@ -121,31 +109,6 @@ func cleanUpPluginRegistryOpenVSXURL(ctx *chetypes.DeployContext) (bool, error) 
 				return true, nil
 			}
 		}
-	}
-
-	// Eclipse Che is being installed
-	if ctx.CheCluster.Status.CheVersion == "" {
-		if ctx.CheCluster.IsAirGapMode() {
-			ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL = pointer.StringPtr("")
-			return true, nil
-		}
-
-		return false, nil
-	}
-
-	// Eclipse Che is being upgraded
-	if ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL == nil {
-		if ctx.CheCluster.IsCheFlavor() &&
-			ctx.CheCluster.Status.CheVersion != "" &&
-			ctx.CheCluster.Status.CheVersion != "next" &&
-			semver.Compare(fmt.Sprintf("v%s", ctx.CheCluster.Status.CheVersion), "v7.53.0") == -1 {
-			// Eclipse Che is being updated from version v7.52 or earlier
-			ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL = pointer.StringPtr(defaults.GetPluginRegistryOpenVSXURL())
-			return true, nil
-		}
-
-		ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL = pointer.StringPtr("")
-		return true, nil
 	}
 
 	return false, nil
