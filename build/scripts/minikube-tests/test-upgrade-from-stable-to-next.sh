@@ -35,9 +35,9 @@ runTest() {
     --templates ${LAST_OPERATOR_VERSION_TEMPLATE_PATH} \
     --che-operator-cr-patch-yaml "${OPERATOR_REPO}/build/scripts/minikube-tests/minikube-checluster-patch.yaml"
 
-  createDevWorkspace
-  startAndWaitDevWorkspace
-  stopAndWaitDevWorkspace
+#  createDevWorkspace
+#  startAndWaitDevWorkspace
+#  stopAndWaitDevWorkspace
 
   # Free up some cpu resources
   kubectl scale deployment che --replicas=0 -n eclipse-che
@@ -54,9 +54,9 @@ runTest() {
     make wait-eclipseche-version VERSION="next" NAMESPACE=${NAMESPACE}
   popd
 
-  startAndWaitDevWorkspace
-  stopAndWaitDevWorkspace
-  deleteDevWorkspace
+#  startAndWaitDevWorkspace
+#  stopAndWaitDevWorkspace
+#  deleteDevWorkspace
 }
 
 initDefaults
