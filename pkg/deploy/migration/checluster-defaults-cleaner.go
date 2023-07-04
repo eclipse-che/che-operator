@@ -86,18 +86,18 @@ func (dc *CheClusterDefaultsCleaner) Reconcile(ctx *chetypes.DeployContext) (rec
 			continue
 		}
 
-		if done, err := cleanUpTask.cleanUpFunc(ctx); err != nil {
-			return reconcile.Result{}, false, err
-		} else {
-			// set annotation to mark that the field has been processed
-			dc.setCheClusterDefaultsCleanupAnnotation(ctx, cleanUpTask.fieldsIdentifier)
-			if err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster); err != nil {
+		if !ctx.CheCluster.IsCheBeingInstalled() {
+			if done, err := cleanUpTask.cleanUpFunc(ctx); err != nil {
 				return reconcile.Result{}, false, err
-			}
-
-			if done {
+			} else if done {
 				logger.Info("CheCluster CR cleaned up", "field", cleanUpTask.fieldsIdentifier)
 			}
+		}
+
+		// set annotation to mark that the field has been processed
+		dc.setCheClusterDefaultsCleanupAnnotation(ctx, cleanUpTask.fieldsIdentifier)
+		if err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster); err != nil {
+			return reconcile.Result{}, false, err
 		}
 	}
 
