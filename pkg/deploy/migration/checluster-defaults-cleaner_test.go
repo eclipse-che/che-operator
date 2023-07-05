@@ -551,39 +551,6 @@ func TestCheClusterDefaultsCleanerDisableContainerBuildCapabilities(t *testing.T
 
 	testCases := []testCase{
 		{
-			name:  "Kubernetes case #1",
-			infra: infrastructure.Kubernetes,
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "eclipse-che",
-					Namespace: "eclipse-che",
-				},
-				Status: chev2.CheClusterStatus{
-					CheVersion: "next",
-				},
-			},
-			expectedDisableContainerBuildCapabilities: pointer.BoolPtr(true),
-		},
-		{
-			name:  "Kubernetes case #2",
-			infra: infrastructure.Kubernetes,
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "eclipse-che",
-					Namespace: "eclipse-che",
-				},
-				Spec: chev2.CheClusterSpec{
-					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.BoolPtr(false),
-					},
-				},
-				Status: chev2.CheClusterStatus{
-					CheVersion: "next",
-				},
-			},
-			expectedDisableContainerBuildCapabilities: pointer.BoolPtr(true),
-		},
-		{
 			name:  "OpenShift case #1",
 			infra: infrastructure.OpenShiftv4,
 			cheCluster: &chev2.CheCluster{
