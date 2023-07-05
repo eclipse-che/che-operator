@@ -18,6 +18,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"k8s.io/utils/pointer"
+
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -43,6 +46,14 @@ var _ webhook.Defaulter = &CheCluster{}
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *CheCluster) Default() {
 	setContainerBuildConfiguration(r)
+	setDisableContainerBuildCapabilities(r)
+}
+
+func setDisableContainerBuildCapabilities(cheCluster *CheCluster) {
+	// Container build capabilities can be enabled on OpenShift only
+	if !infrastructure.IsOpenShift() {
+		cheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.Bool(true)
+	}
 }
 
 // Sets ContainerBuildConfiguration if container build capabilities is enabled.
