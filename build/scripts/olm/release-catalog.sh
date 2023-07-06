@@ -18,12 +18,14 @@ OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_
 init() {
   unset CHANNEL
   unset CATALOG_IMAGE
+  unset BUNDLE_IMAGE
   unset IMAGE_TOOL
 
   while [[ "$#" -gt 0 ]]; do
     case $1 in
       '--channel'|'-c') CHANNEL="$2"; shift 1;;
       '--catalog-image'|'-i') CATALOG_IMAGE="$2"; shift 1;;
+      '--bundle-image'|'-n') BUNDLE_IMAGE="$2"; shift 1;;
       '--image-tool'|'-t') IMAGE_TOOL="$2"; shift 1;;
       '--help'|'-h') usage; exit;;
     esac
@@ -36,7 +38,7 @@ init() {
   BUNDLE_NAME=$(make bundle-name CHANNEL="${CHANNEL}")
   BUNDLE_VERSION=$(make bundle-version CHANNEL="${CHANNEL}")
   REGISTRY="$(echo "${CATALOG_IMAGE}" | rev | cut -d '/' -f2- | rev)"
-  BUNDLE_IMAGE="${REGISTRY}/eclipse-che-olm-bundle:${BUNDLE_VERSION}"
+  BUNDLE_IMAGE="${BUNDLE_IMAGE:=${REGISTRY}/eclipse-che-olm-bundle:${BUNDLE_VERSION}}"
 
   echo "[INFO] Bundle name   : ${BUNDLE_NAME}"
   echo "[INFO] Bundle version: ${BUNDLE_VERSION}"
