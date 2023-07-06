@@ -4369,6 +4369,21 @@ spec:
                       description: Configuration settings related to the dashboard
                         used by the Che installation.
                       properties:
+                        branding:
+                          description: Dashboard branding resources.
+                          properties:
+                            logo:
+                              description: Dashboard logo.
+                              properties:
+                                base64data:
+                                  type: string
+                                mediatype:
+                                  type: string
+                              required:
+                                - base64data
+                                - mediatype
+                              type: object
+                          type: object
                         deployment:
                           description: Deployment override options.
                           properties:
