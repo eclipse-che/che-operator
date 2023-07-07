@@ -25,7 +25,7 @@ init() {
     case $1 in
       '--channel'|'-c') CHANNEL="$2"; shift 1;;
       '--catalog-image'|'-i') CATALOG_IMAGE="$2"; shift 1;;
-      '--bundle-image'|'-n') BUNDLE_IMAGE="$2"; shift 1;;
+      '--bundle-image'|'-b') BUNDLE_IMAGE="$2"; shift 1;;
       '--image-tool'|'-t') IMAGE_TOOL="$2"; shift 1;;
       '--help'|'-h') usage; exit;;
     esac
@@ -33,12 +33,12 @@ init() {
   done
 
   [[ ! ${IMAGE_TOOL} ]] && IMAGE_TOOL="docker"
-  if [[ ! ${CHANNEL} ]] || [[ ! ${CATALOG_IMAGE} ]]; then usage; exit 1; fi
+  if [[ ! ${CHANNEL} ]]; then usage; exit 1; fi
 
   BUNDLE_NAME=$(make bundle-name CHANNEL="${CHANNEL}")
   BUNDLE_VERSION=$(make bundle-version CHANNEL="${CHANNEL}")
-  REGISTRY="$(echo "${CATALOG_IMAGE}" | rev | cut -d '/' -f2- | rev)"
-  BUNDLE_IMAGE="${BUNDLE_IMAGE:=${REGISTRY}/eclipse-che-olm-bundle:${BUNDLE_VERSION}}"
+  BUNDLE_IMAGE="${BUNDLE_IMAGE:=quay.io/eclipse/eclipse-che-olm-bundle:${BUNDLE_VERSION}}"
+  CATALOG_IMAGE=${CATALOG_IMAGE:=quay.io/eclipse/eclipse-che-olm-catalog:${CHANNEL}}
 
   echo "[INFO] Bundle name   : ${BUNDLE_NAME}"
   echo "[INFO] Bundle version: ${BUNDLE_VERSION}"
@@ -54,12 +54,13 @@ usage () {
   echo
   echo "Options:"
   echo -e "\t-i,--catalog-image       Catalog image to build"
+  echo -e "\t-i,--bundle-image        Bundle image to build"
   echo -e "\t-c,--channel=next|stable Olm channel to build bundle from"
   echo -e "\t-t,--image-tool          [default: docker] Image tool"
   echo
 	echo "Example:"
-	echo -e "\t$0 -i quay.io/eclipse/eclipse-che-olm-catalog:next -c next"
-	echo -e "\t$0 -i quay.io/eclipse/eclipse-che-olm-catalog:stable -c stable"
+	echo -e "\t$0 -c next"
+	echo -e "\t$0 -c stable"
 }
 
 build () {
@@ -73,8 +74,17 @@ build () {
     make bundle-build bundle-push CHANNEL="${CHANNEL}" BUNDLE_IMG="${BUNDLE_IMAGE}" IMAGE_TOOL="${IMAGE_TOOL}"
 
     echo "[INFO] Add bundle to the catalog"
+
+    BUNDLE_IMAGE_INSPECT=$(skopeo inspect docker://${BUNDLE_IMAGE})
+    BUNDLE_IMAGE_WITH_DIGESTS=$(echo "${BUNDLE_IMAGE_INSPECT}" | jq -r '.Name')@$(echo "${BUNDLE_IMAGE_INSPECT}" | jq -r '.Digest')
+
+    echo "[INFO] Build image with digest: ${BUNDLE_IMAGE_WITH_DIGESTS}"
+
+    # Reference to the bundle image with digest instead of tag
+    # to deploy Eclipse Che in disconnected cluster
+    make bundle-render CHANNEL="${CHANNEL}" BUNDLE_NAME="${BUNDLE_NAME}" BUNDLE_IMG="${BUNDLE_IMAGE_WITH_DIGESTS}"
+
     LAST_BUNDLE_NAME=$(yq -r '.entries | .[length - 1].name' "${CHANNEL_PATH}")
-    make bundle-render CHANNEL="${CHANNEL}" BUNDLE_NAME="${BUNDLE_NAME}" BUNDLE_IMG="${BUNDLE_IMAGE}"
     if [[ ${CHANNEL} == "stable" ]]; then
       yq -riY '(.entries) += [{"name": "'${BUNDLE_NAME}'", "replaces": "'${LAST_BUNDLE_NAME}'"}]' "${CHANNEL_PATH}"
     else
