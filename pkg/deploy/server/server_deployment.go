@@ -55,14 +55,7 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 		Name:      customPublicCertsVolume.Name,
 		MountPath: "/public-certs",
 	}
-	gitSelfSignedCertEnv := corev1.EnvVar{
-		Name:  "CHE_GIT_SELF__SIGNED__CERT",
-		Value: "",
-	}
-	gitSelfSignedCertHostEnv := corev1.EnvVar{
-		Name:  "CHE_GIT_SELF__SIGNED__CERT__HOST",
-		Value: "",
-	}
+
 	if selfSignedCASecretExists {
 		selfSignedCertEnv = corev1.EnvVar{
 			Name: "CHE_SELF__SIGNED__CERT",
@@ -78,39 +71,8 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 		}
 	}
 
-	if ctx.CheCluster.Spec.DevEnvironments.TrustedCerts != nil {
-		if ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName != "" {
-			gitSelfSignedCertEnv = corev1.EnvVar{
-				Name: "CHE_GIT_SELF__SIGNED__CERT",
-				ValueFrom: &corev1.EnvVarSource{
-					ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-						Key: "ca.crt",
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName,
-						},
-						Optional: &optionalEnv,
-					},
-				},
-			}
-			gitSelfSignedCertHostEnv = corev1.EnvVar{
-				Name: "CHE_GIT_SELF__SIGNED__CERT__HOST",
-				ValueFrom: &corev1.EnvVarSource{
-					ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-						Key: "githost",
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName,
-						},
-						Optional: &optionalEnv,
-					},
-				},
-			}
-		}
-	}
-
 	var cheEnv []corev1.EnvVar
 	cheEnv = append(cheEnv, selfSignedCertEnv)
-	cheEnv = append(cheEnv, gitSelfSignedCertEnv)
-	cheEnv = append(cheEnv, gitSelfSignedCertHostEnv)
 	cheEnv = append(cheEnv,
 		corev1.EnvVar{
 			Name:  "CM_REVISION",
