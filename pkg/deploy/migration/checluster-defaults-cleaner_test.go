@@ -383,7 +383,7 @@ func TestCheClusterDefaultsCleanerOpenVSXURL(t *testing.T) {
 			expectedOpenVSXURL: pointer.StringPtr("https://bla-bla-bla"),
 		},
 		{
-			name: "Case #2",
+			name: "Case #3",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
@@ -392,7 +392,7 @@ func TestCheClusterDefaultsCleanerOpenVSXURL(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
 						PluginRegistry: chev2.PluginRegistry{
-							OpenVSXURL: pointer.StringPtr(""),
+							OpenVSXURL: pointer.String(""),
 						},
 					},
 				},
@@ -400,7 +400,8 @@ func TestCheClusterDefaultsCleanerOpenVSXURL(t *testing.T) {
 					CheVersion: "next",
 				},
 			},
-			expectedOpenVSXURL: pointer.StringPtr(""),
+			// Make it works in downstream as well
+			expectedOpenVSXURL: map[bool]*string{true: nil, false: pointer.String("")}[defaults.GetPluginRegistryOpenVSXURL() == ""],
 		},
 	}
 
