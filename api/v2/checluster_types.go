@@ -296,6 +296,20 @@ type Dashboard struct {
 	// Dashboard header message.
 	// +optional
 	HeaderMessage *DashboardHeaderMessage `json:"headerMessage,omitempty"`
+	// Dashboard branding resources.
+	// +optional
+	Branding *Branding `json:"branding,omitempty"`
+}
+
+type Branding struct {
+	// Dashboard logo.
+	// +optional
+	Logo *Icon `json:"logo,omitempty"`
+}
+
+type Icon struct {
+	Data      string `json:"base64data"`
+	MediaType string `json:"mediatype"`
 }
 
 // Configuration settings related to the plug-in registry used by the Che installation.
