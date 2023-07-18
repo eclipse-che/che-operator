@@ -284,7 +284,7 @@ func mergeConfig(from, to *controller.OperatorConfiguration) {
 				to.Workspace.ServiceAccount.ServiceAccountName = from.Workspace.ServiceAccount.ServiceAccountName
 			}
 			if from.Workspace.ServiceAccount.DisableCreation != nil {
-				to.Workspace.ServiceAccount.DisableCreation = pointer.BoolPtr(*from.Workspace.ServiceAccount.DisableCreation)
+				to.Workspace.ServiceAccount.DisableCreation = pointer.Bool(*from.Workspace.ServiceAccount.DisableCreation)
 			}
 			if from.Workspace.ServiceAccount.ServiceAccountTokens != nil {
 				to.Workspace.ServiceAccount.ServiceAccountTokens = from.Workspace.ServiceAccount.ServiceAccountTokens
@@ -327,6 +327,14 @@ func mergeConfig(from, to *controller.OperatorConfiguration) {
 				to.Workspace.DefaultStorageSize.PerWorkspace = &perWorkspaceSizeCopy
 			}
 		}
+		if from.Workspace.PersistUserHome != nil {
+			if to.Workspace.PersistUserHome == nil {
+				to.Workspace.PersistUserHome = &controller.PersistentHomeConfig{}
+			}
+			if from.Workspace.PersistUserHome.Enabled != nil {
+				to.Workspace.PersistUserHome.Enabled = from.Workspace.PersistUserHome.Enabled
+			}
+		}
 		if from.Workspace.DefaultTemplate != nil {
 			templateSpecContentCopy := from.Workspace.DefaultTemplate.DeepCopy()
 			to.Workspace.DefaultTemplate = templateSpecContentCopy
@@ -356,6 +364,12 @@ func mergeConfig(from, to *controller.OperatorConfiguration) {
 			if from.Workspace.ProjectCloneConfig.Env != nil {
 				to.Workspace.ProjectCloneConfig.Env = from.Workspace.ProjectCloneConfig.Env
 			}
+		}
+		if from.Workspace.DefaultContainerResources != nil {
+			if to.Workspace.DefaultContainerResources == nil {
+				to.Workspace.DefaultContainerResources = &corev1.ResourceRequirements{}
+			}
+			to.Workspace.DefaultContainerResources = mergeResources(from.Workspace.DefaultContainerResources, to.Workspace.DefaultContainerResources)
 		}
 	}
 }
@@ -500,6 +514,11 @@ func GetCurrentConfigString(currConfig *controller.OperatorConfiguration) string
 				config = append(config, fmt.Sprintf("workspace.defaultStorageSize.perWorkspace=%s", workspace.DefaultStorageSize.PerWorkspace.String()))
 			}
 		}
+		if workspace.PersistUserHome != nil {
+			if workspace.PersistUserHome.Enabled != nil && *workspace.PersistUserHome.Enabled != *defaultConfig.Workspace.PersistUserHome.Enabled {
+				config = append(config, fmt.Sprintf("workspace.persistUserHome.enabled=%t", *workspace.PersistUserHome.Enabled))
+			}
+		}
 		if !reflect.DeepEqual(workspace.PodSecurityContext, defaultConfig.Workspace.PodSecurityContext) {
 			config = append(config, "workspace.podSecurityContext is set")
 		}
@@ -525,6 +544,9 @@ func GetCurrentConfigString(currConfig *controller.OperatorConfiguration) string
 			if !reflect.DeepEqual(workspace.ProjectCloneConfig.Resources, defaultConfig.Workspace.ProjectCloneConfig.Resources) {
 				config = append(config, "workspace.projectClone.resources is set")
 			}
+		}
+		if !reflect.DeepEqual(workspace.DefaultContainerResources, defaultConfig.Workspace.DefaultContainerResources) {
+			config = append(config, "workspace.defaultContainerResources is set")
 		}
 	}
 	if currConfig.EnableExperimentalFeatures != nil && *currConfig.EnableExperimentalFeatures {
