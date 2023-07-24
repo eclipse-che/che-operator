@@ -442,11 +442,11 @@ type WorkspaceStorage struct {
 }
 
 type PersistentHomeConfig struct {
-    // Determines whether the user home directory in workspaces should persist between
-    // workspace shutdown and startup.
-    // Must be used with the 'per-user' or 'per-workspace' PVC strategy in order to take effect.
-    // Disabled by default.
-    Enabled *bool `json:"enabled,omitempty"`
+	// Determines whether the user home directory in workspaces should persist between
+	// workspace shutdown and startup.
+	// Must be used with the 'per-user' or 'per-workspace' PVC strategy in order to take effect.
+	// Disabled by default.
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 type WorkspaceDefaultPlugins struct {
