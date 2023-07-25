@@ -16,6 +16,8 @@ set -e
 OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
 
 init() {
+  FORCE="false"
+
   unset CHANNEL
   unset CATALOG_IMAGE
   unset BUNDLE_IMAGE
@@ -27,6 +29,7 @@ init() {
       '--catalog-image'|'-i') CATALOG_IMAGE="$2"; shift 1;;
       '--bundle-image'|'-b') BUNDLE_IMAGE="$2"; shift 1;;
       '--image-tool'|'-t') IMAGE_TOOL="$2"; shift 1;;
+      '--force'|'-f') FORCE="true";;
       '--help'|'-h') usage; exit;;
     esac
     shift 1
@@ -57,6 +60,7 @@ usage () {
   echo -e "\t-i,--bundle-image        Bundle image to build"
   echo -e "\t-c,--channel=next|stable Olm channel to build bundle from"
   echo -e "\t-t,--image-tool          [default: docker] Image tool"
+  echo -e "\t-f,--force               [default: false] Force to build catalog and bundle images even if bundle already exists in the catalog"
   echo
 	echo "Example:"
 	echo -e "\t$0 -c next"
@@ -66,7 +70,8 @@ usage () {
 build () {
   CHANNEL_PATH=$(make channel-path CHANNEL="${CHANNEL}")
 
-  if [[ $(yq -r '.entries[] | select(.name == "'${BUNDLE_NAME}'")' "${CHANNEL_PATH}") ]]; then
+  make download-opm
+  if [[ $(bin/opm render "${CATALOG_IMAGE}" | jq 'select (.schema == "olm.channel") | .entries[] | select(.name == "'${BUNDLE_NAME}'")') ]] && [[ "${FORCE}" == "false" ]]; then
     echo "[INFO] Bundle ${BUNDLE_NAME} already exists in the catalog"
     exit 0
   else
