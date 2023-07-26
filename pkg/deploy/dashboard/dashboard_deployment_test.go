@@ -204,6 +204,10 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DISABLECONTAINERBUILDCAPABILITIES",
 					Value: defaults.GetDevEnvironmentsDisableContainerBuildCapabilities(),
 				},
+				{
+					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_CONTAINERSECURITYCONTEXT",
+					Value: defaults.GetDevEnvironmentsContainerSecurityContext(),
+				},
 			},
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -280,6 +284,10 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 				{
 					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DISABLECONTAINERBUILDCAPABILITIES",
 					Value: defaults.GetDevEnvironmentsDisableContainerBuildCapabilities(),
+				},
+				{
+					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_CONTAINERSECURITYCONTEXT",
+					Value: defaults.GetDevEnvironmentsContainerSecurityContext(),
 				},
 			},
 			cheCluster: &chev2.CheCluster{

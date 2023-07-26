@@ -12,11 +12,6 @@
 
 package constants
 
-import (
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
-)
-
 const (
 	// Dashboard
 	DefaultDashboardMemoryLimit   = "256Mi"
@@ -143,15 +138,5 @@ var (
 	DefaultSingleHostGatewayConfigMapLabels = map[string]string{
 		"app":       "che",
 		"component": "che-gateway-config",
-	}
-
-	DefaultWorkspaceContainerSecurityContext = corev1.SecurityContext{
-		Capabilities: &corev1.Capabilities{
-			Add: []corev1.Capability{
-				"SETGID",
-				"SETUID",
-			},
-		},
-		AllowPrivilegeEscalation: pointer.BoolPtr(true),
 	}
 )

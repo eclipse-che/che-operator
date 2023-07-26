@@ -13,12 +13,14 @@
 package devworkspaceconfig
 
 import (
+	"encoding/json"
 	"fmt"
 
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	v1 "k8s.io/api/apps/v1"
@@ -94,9 +96,8 @@ func updateWorkspaceConfig(cheCluster *chev2.CheCluster, operatorConfig *control
 
 	updateProjectCloneConfig(devEnvironments, operatorConfig.Workspace)
 
-	operatorConfig.Workspace.ContainerSecurityContext = nil
-	if cheCluster.IsContainerBuildCapabilitiesEnabled() {
-		operatorConfig.Workspace.ContainerSecurityContext = constants.DefaultWorkspaceContainerSecurityContext.DeepCopy()
+	if err := updateSecurityContext(operatorConfig, cheCluster); err != nil {
+		return err
 	}
 
 	updateStartTimeout(operatorConfig, devEnvironments.StartTimeoutSeconds)
@@ -104,6 +105,25 @@ func updateWorkspaceConfig(cheCluster *chev2.CheCluster, operatorConfig *control
 	updatePersistUserHomeConfig(devEnvironments.PersistUserHome, operatorConfig.Workspace)
 
 	operatorConfig.Workspace.DeploymentStrategy = v1.DeploymentStrategyType(utils.GetValue(string(devEnvironments.DeploymentStrategy), constants.DefaultDeploymentStrategy))
+	return nil
+}
+
+func updateSecurityContext(operatorConfig *controllerv1alpha1.OperatorConfiguration, cheCluster *chev2.CheCluster) error {
+	operatorConfig.Workspace.ContainerSecurityContext = nil
+	if cheCluster.IsContainerBuildCapabilitiesEnabled() {
+		defaultContainerSecurityContext, err := getDefaultContainerSecurityContext()
+		if err != nil {
+			return err
+		}
+		operatorConfig.Workspace.ContainerSecurityContext = defaultContainerSecurityContext
+	} else if cheCluster.Spec.DevEnvironments.Security.ContainerSecurityContext != nil {
+		operatorConfig.Workspace.ContainerSecurityContext = cheCluster.Spec.DevEnvironments.Security.ContainerSecurityContext
+	}
+
+	operatorConfig.Workspace.PodSecurityContext = nil
+	if cheCluster.Spec.DevEnvironments.Security.PodSecurityContext != nil {
+		operatorConfig.Workspace.PodSecurityContext = cheCluster.Spec.DevEnvironments.Security.PodSecurityContext
+	}
 	return nil
 }
 
@@ -188,6 +208,17 @@ func updateProjectCloneConfig(devEnvironments *chev2.CheClusterDevEnvironments, 
 	workspaceConfig.ProjectCloneConfig.ImagePullPolicy = container.ImagePullPolicy
 	workspaceConfig.ProjectCloneConfig.Env = container.Env
 	workspaceConfig.ProjectCloneConfig.Resources = cheResourcesToCoreV1Resources(container.Resources)
+}
+
+// Returns the default container security context required for container builds.
+// Returns an error if the default container security context could not be retrieved.
+func getDefaultContainerSecurityContext() (*corev1.SecurityContext, error) {
+	containerSecurityContext := &corev1.SecurityContext{}
+	err := json.Unmarshal([]byte(defaults.GetDevEnvironmentsContainerSecurityContext()), &containerSecurityContext)
+	if err != nil {
+		return nil, err
+	}
+	return containerSecurityContext, nil
 }
 
 // cheResourcesToCoreV1Resources converts a Che resources struct to the usual Kubernetes object by directly copying fields.

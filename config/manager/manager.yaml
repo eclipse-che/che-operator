@@ -107,6 +107,8 @@ spec:
               value: https://open-vsx.org
             - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DISABLECONTAINERBUILDCAPABILITIES
               value: 'false'
+            - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_CONTAINERSECURITYCONTEXT
+              value: '{"allowPrivilegeEscalation": true,"capabilities": {"add": ["SETGID", "SETUID"]}}'
           livenessProbe:
             httpGet:
               path: /healthz
