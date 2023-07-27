@@ -1,0 +1,42 @@
+--- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che/generated/openshift/org.eclipse.che_checlusters.yaml	2023-07-27 19:19:26.423955494 +0000
++++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che/manifests/org.eclipse.che_checlusters.yaml	2023-07-27 19:19:26.431955587 +0000
+@@ -4369,6 +4369,21 @@
+                       description: Configuration settings related to the dashboard
+                         used by the Che installation.
+                       properties:
++                        branding:
++                          description: Dashboard branding resources.
++                          properties:
++                            logo:
++                              description: Dashboard logo.
++                              properties:
++                                base64data:
++                                  type: string
++                                mediatype:
++                                  type: string
++                              required:
++                                - base64data
++                                - mediatype
++                              type: object
++                          type: object
+                         deployment:
+                           description: Deployment override options.
+                           properties:
+@@ -6997,6 +7012,17 @@
+                       description: The node selector limits the nodes that can run
+                         the workspace pods.
+                       type: object
++                    persistUserHome:
++                      description: PersistUserHome defines configuration options for
++                        persisting the user home directory in workspaces.
++                      properties:
++                        enabled:
++                          description: Determines whether the user home directory
++                            in workspaces should persist between workspace shutdown
++                            and startup. Must be used with the 'per-user' or 'per-workspace'
++                            PVC strategy in order to take effect. Disabled by default.
++                          type: boolean
++                      type: object
+                     podSchedulerName:
+                       description: Pod scheduler for the workspace pods. If not specified,
+                         the pod scheduler is set to the default scheduler on the cluster.
