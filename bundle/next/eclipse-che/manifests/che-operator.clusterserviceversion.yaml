@@ -77,7 +77,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che.v7.72.0-805.next
+  name: eclipse-che.v7.72.0-806.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -952,6 +952,9 @@ spec:
                         value: https://open-vsx.org
                       - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DISABLECONTAINERBUILDCAPABILITIES
                         value: "false"
+                      - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_CONTAINERSECURITYCONTEXT
+                        value: '{"allowPrivilegeEscalation": true,"capabilities":
+                          {"add": ["SETGID", "SETUID"]}}'
                     image: quay.io/eclipse/che-operator:next
                     imagePullPolicy: Always
                     livenessProbe:
@@ -1231,7 +1234,7 @@ spec:
   minKubeVersion: 1.19.0
   provider:
     name: Eclipse Foundation
-  version: 7.72.0-805.next
+  version: 7.72.0-806.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1

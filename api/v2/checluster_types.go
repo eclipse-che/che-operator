@@ -128,13 +128,13 @@ type CheClusterDevEnvironments struct {
 	// When set to `false` (the default value), the devEnvironments.security.containerSecurityContext
 	// field is ignored, and the following container SecurityContext is applied:
 	//
-	//  containerSecurityContext:  
-	//    allowPrivilegeEscalation: true  
-	//    capabilities:  
-	//      add:  
-	//      - SETGID  
-	//      - SETUID  
-    //
+	//  containerSecurityContext:
+	//    allowPrivilegeEscalation: true
+	//    capabilities:
+	//      add:
+	//      - SETGID
+	//      - SETUID
+	//
 	// +optional
 	DisableContainerBuildCapabilities *bool `json:"disableContainerBuildCapabilities,omitempty"`
 	// Workspace security configuration.
