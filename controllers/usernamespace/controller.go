@@ -405,12 +405,15 @@ func (r *CheUserNamespaceReconciler) reconcileProxySettings(ctx context.Context,
 	proxySettings := map[string]string{}
 	if proxyConfig.HttpProxy != "" {
 		proxySettings["HTTP_PROXY"] = proxyConfig.HttpProxy
+		proxySettings["http_proxy"] = proxyConfig.HttpProxy
 	}
 	if proxyConfig.HttpsProxy != "" {
 		proxySettings["HTTPS_PROXY"] = proxyConfig.HttpsProxy
+		proxySettings["https_proxy"] = proxyConfig.HttpsProxy
 	}
 	if proxyConfig.NoProxy != "" {
 		proxySettings["NO_PROXY"] = proxyConfig.NoProxy
+		proxySettings["no_proxy"] = proxyConfig.NoProxy
 	}
 
 	key := client.ObjectKey{Name: prefixedName("proxy-settings"), Namespace: targetNs}
