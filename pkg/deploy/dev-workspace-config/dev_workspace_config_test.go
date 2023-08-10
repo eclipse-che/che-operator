@@ -14,7 +14,9 @@ package devworkspaceconfig
 
 import (
 	"context"
+	"fmt"
 	"regexp"
+	"sort"
 	"testing"
 
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
@@ -33,7 +35,7 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
+func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 	type testCase struct {
 		name                   string
 		cheCluster             *chev2.CheCluster
@@ -50,8 +52,6 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 
 	var quantity15Gi = resource.MustParse("15Gi")
 	var quantity10Gi = resource.MustParse("10Gi")
-	var quantity1CPU = resource.MustParse("1000m")
-	var quantity500mCPU = resource.MustParse("500m")
 
 	var expectedErrorTestCases = []errorTestCase{
 		{
@@ -94,7 +94,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{Workspace: &controllerv1alpha1.WorkspaceConfig{DeploymentStrategy: "Recreate"}},
 		},
 		{
-			name: "Create DevWorkspaceOperatorConfig with ephemeral strategy",
+			name: "Create DevWorkspaceOperatorConfig with ephemeral storage strategy",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -146,7 +146,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 			},
 		},
 		{
-			name: "Create DevWorkspaceOperatorConfig with per-user strategy",
+			name: "Create DevWorkspaceOperatorConfig with per-user storage strategy",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -176,7 +176,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 			},
 		},
 		{
-			name: "Create DevWorkspaceOperatorConfig with per-workspace strategy",
+			name: "Create DevWorkspaceOperatorConfig with per-workspace storage strategy",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -206,7 +206,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 			},
 		},
 		{
-			name: "Update DevWorkspaceOperatorConfig with per-workspace strategy",
+			name: "Update DevWorkspaceOperatorConfig with per-workspace storage strategy",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -256,7 +256,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 			},
 		},
 		{
-			name: "Update DevWorkspaceOperatorConfig with per-user strategy",
+			name: "Update DevWorkspaceOperatorConfig with per-user storage strategy",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -306,7 +306,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 			},
 		},
 		{
-			name: "Update populated DevWorkspaceOperatorConfig",
+			name: "Update populated DevWorkspaceOperatorConfig with storage class name, storage strategy and storage size",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -359,8 +359,50 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 			},
 		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			deployContext := test.GetDeployContext(testCase.cheCluster, testCase.existedObjects)
+			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
+			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
+			assert.NoError(t, err)
+
+			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
+			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			assert.NoError(t, err)
+
+			diff := cmp.Diff(testCase.expectedOperatorConfig, dwoc.Config, cmp.Options{cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount")})
+			assert.Empty(t, diff)
+		})
+	}
+
+	for _, testCase := range expectedErrorTestCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			deployContext := test.GetDeployContext(testCase.cheCluster, testCase.existedObjects)
+			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
+			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
+			assert.Error(t, err)
+			assert.Regexp(t, regexp.MustCompile(testCase.expectedErrorMessage), err.Error(), "error message must match")
+		})
+	}
+}
+
+func TestReconcileDevWorkspaceConfigForContainerBuilds(t *testing.T) {
+	type testCase struct {
+		name                   string
+		cheCluster             *chev2.CheCluster
+		existedObjects         []runtime.Object
+		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
+	}
+
+	var testCases = []testCase{
 		{
-			name: "Create DevWorkspaceOperatorConfig without Pod Security Context if container build disabled",
+			name: "Create DevWorkspaceOperatorConfig without Container Security Context if container build disabled",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -373,13 +415,11 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 				},
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
-				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					DeploymentStrategy: "Recreate",
-				},
+				Workspace: &controllerv1alpha1.WorkspaceConfig{},
 			},
 		},
 		{
-			name: "Create DevWorkspaceOperatorConfig with Pod and Container Security Context if container build enabled",
+			name: "Create DevWorkspaceOperatorConfig with Container Security Context if container build enabled",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -402,12 +442,11 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 						},
 						AllowPrivilegeEscalation: pointer.Bool(true),
 					},
-					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
 		{
-			name: "Update existing DevWorkspaceOperatorConfig by adding Pod and Container Security Context",
+			name: "Update existing DevWorkspaceOperatorConfig by adding Container Security Context",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -430,21 +469,12 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 						APIVersion: controllerv1alpha1.GroupVersion.String(),
 					},
 					Config: &controllerv1alpha1.OperatorConfiguration{
-						Workspace: &controllerv1alpha1.WorkspaceConfig{
-							StorageClassName: pointer.String("default-storage-class"),
-							DefaultStorageSize: &controllerv1alpha1.StorageSizes{
-								Common: &quantity10Gi,
-							},
-						},
+						Workspace: &controllerv1alpha1.WorkspaceConfig{},
 					},
 				},
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					StorageClassName: pointer.String("default-storage-class"),
-					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
-						Common: &quantity10Gi,
-					},
 					ContainerSecurityContext: &corev1.SecurityContext{
 						Capabilities: &corev1.Capabilities{
 							Add: []corev1.Capability{
@@ -454,12 +484,11 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 						},
 						AllowPrivilegeEscalation: pointer.Bool(true),
 					},
-					DeploymentStrategy: "Recreate",
 				},
 			},
 		},
 		{
-			name: "Update existing DevWorkspaceOperatorConfig by removing Pod and Container Security Context",
+			name: "Update existing DevWorkspaceOperatorConfig by removing Container Security Context",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -483,26 +512,53 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					},
 					Config: &controllerv1alpha1.OperatorConfiguration{
 						Workspace: &controllerv1alpha1.WorkspaceConfig{
-							StorageClassName: pointer.String("default-storage-class"),
-							DefaultStorageSize: &controllerv1alpha1.StorageSizes{
-								Common: &quantity10Gi,
+							ContainerSecurityContext: &corev1.SecurityContext{Capabilities: &corev1.Capabilities{
+								Add: []corev1.Capability{
+									"SETGID",
+									"SETUID",
+								},
 							},
-							ContainerSecurityContext: &corev1.SecurityContext{},
-							DeploymentStrategy:       "Recreate",
+								AllowPrivilegeEscalation: pointer.Bool(true),
+							},
 						},
 					},
 				},
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
-				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					StorageClassName: pointer.String("default-storage-class"),
-					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
-						Common: &quantity10Gi,
-					},
-					DeploymentStrategy: "Recreate",
-				},
+				Workspace: &controllerv1alpha1.WorkspaceConfig{},
 			},
 		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			deployContext := test.GetDeployContext(testCase.cheCluster, testCase.existedObjects)
+			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
+			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
+			assert.NoError(t, err)
+
+			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
+			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			assert.NoError(t, err)
+
+			diff := cmp.Diff(testCase.expectedOperatorConfig, dwoc.Config,
+				cmp.Options{cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount", "ProjectCloneConfig", "DeploymentStrategy", "DefaultStorageSize", "StorageClassName")})
+			assert.Empty(t, diff)
+		})
+	}
+}
+
+func TestReconcileDevWorkspaceConfigProgressTimeout(t *testing.T) {
+	type testCase struct {
+		name                   string
+		cheCluster             *chev2.CheCluster
+		existedObjects         []runtime.Object
+		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
+	}
+
+	var testCases = []testCase{
 		{
 			name: "Create DevWorkspaceOperatorConfig with progressTimeout",
 			cheCluster: &chev2.CheCluster{
@@ -549,23 +605,13 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 						APIVersion: controllerv1alpha1.GroupVersion.String(),
 					},
 					Config: &controllerv1alpha1.OperatorConfiguration{
-						Workspace: &controllerv1alpha1.WorkspaceConfig{
-							StorageClassName: pointer.String("default-storage-class"),
-							DefaultStorageSize: &controllerv1alpha1.StorageSizes{
-								Common: &quantity10Gi,
-							},
-						},
+						Workspace: &controllerv1alpha1.WorkspaceConfig{},
 					},
 				},
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					StorageClassName: pointer.String("default-storage-class"),
-					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
-						Common: &quantity10Gi,
-					},
-					ProgressTimeout:    "600s",
-					DeploymentStrategy: "Recreate",
+					ProgressTimeout: "600s",
 				},
 			},
 		},
@@ -595,10 +641,6 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					},
 					Config: &controllerv1alpha1.OperatorConfiguration{
 						Workspace: &controllerv1alpha1.WorkspaceConfig{
-							StorageClassName: pointer.String("default-storage-class"),
-							DefaultStorageSize: &controllerv1alpha1.StorageSizes{
-								Common: &quantity10Gi,
-							},
 							ProgressTimeout: "1h30m",
 						},
 					},
@@ -606,12 +648,7 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					StorageClassName: pointer.String("default-storage-class"),
-					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
-						Common: &quantity10Gi,
-					},
-					ProgressTimeout:    "420s",
-					DeploymentStrategy: "Recreate",
+					ProgressTimeout: "420s",
 				},
 			},
 		},
@@ -640,104 +677,13 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 					},
 					Config: &controllerv1alpha1.OperatorConfiguration{
 						Workspace: &controllerv1alpha1.WorkspaceConfig{
-							StorageClassName: pointer.String("default-storage-class"),
-							DefaultStorageSize: &controllerv1alpha1.StorageSizes{
-								Common: &quantity10Gi,
-							},
 							ProgressTimeout: "1h30m",
 						},
 					},
 				},
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
-				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					StorageClassName: pointer.String("default-storage-class"),
-					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
-						Common: &quantity10Gi,
-					},
-					DeploymentStrategy: "Recreate",
-				},
-			},
-		},
-		{
-			name: "Configures ProjectCloneConfig in DevWorkspaceOperatorConfig",
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-					Name:      "eclipse-che",
-				},
-				Spec: chev2.CheClusterSpec{
-					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
-						ProjectCloneContainer: &chev2.Container{
-							Name:            "project-clone",
-							Image:           "test-image",
-							ImagePullPolicy: "IfNotPresent",
-							Env: []corev1.EnvVar{
-								{Name: "test-env-1", Value: "test-val-1"},
-								{Name: "test-env-2", Value: "test-val-2"},
-							},
-							Resources: &chev2.ResourceRequirements{
-								Requests: &chev2.ResourceList{
-									Memory: &quantity10Gi,
-									Cpu:    &quantity500mCPU,
-								},
-								Limits: &chev2.ResourceList{
-									Memory: &quantity15Gi,
-									Cpu:    &quantity1CPU,
-								},
-							},
-						},
-					},
-				},
-			},
-			existedObjects: []runtime.Object{
-				&controllerv1alpha1.DevWorkspaceOperatorConfig{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      devWorkspaceConfigName,
-						Namespace: "eclipse-che",
-					},
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "DevWorkspaceOperatorConfig",
-						APIVersion: controllerv1alpha1.GroupVersion.String(),
-					},
-					Config: &controllerv1alpha1.OperatorConfiguration{
-						Workspace: &controllerv1alpha1.WorkspaceConfig{
-							StorageClassName: pointer.String("default-storage-class"),
-							DefaultStorageSize: &controllerv1alpha1.StorageSizes{
-								Common: &quantity10Gi,
-							},
-							ProgressTimeout: "1h30m",
-						},
-					},
-				},
-			},
-			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
-				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					StorageClassName: pointer.String("default-storage-class"),
-					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
-						Common: &quantity10Gi,
-					},
-					DeploymentStrategy: "Recreate",
-					ProjectCloneConfig: &controllerv1alpha1.ProjectCloneConfig{
-						Image:           "test-image",
-						ImagePullPolicy: "IfNotPresent",
-						Env: []corev1.EnvVar{
-							{Name: "test-env-1", Value: "test-val-1"},
-							{Name: "test-env-2", Value: "test-val-2"},
-						},
-						Resources: &corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								corev1.ResourceMemory: quantity10Gi,
-								corev1.ResourceCPU:    quantity500mCPU,
-							},
-							Limits: corev1.ResourceList{
-								corev1.ResourceMemory: quantity15Gi,
-								corev1.ResourceCPU:    quantity1CPU,
-							},
-						},
-					},
-				},
+				Workspace: &controllerv1alpha1.WorkspaceConfig{},
 			},
 		},
 	}
@@ -755,20 +701,9 @@ func TestReconcileDevWorkspaceConfigPerUserStorage(t *testing.T) {
 			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
 			assert.NoError(t, err)
 
-			diff := cmp.Diff(testCase.expectedOperatorConfig, dwoc.Config, cmp.Options{cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount")})
+			diff := cmp.Diff(testCase.expectedOperatorConfig, dwoc.Config,
+				cmp.Options{cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount", "DefaultStorageSize", "StorageClassName", "ProjectCloneConfig", "DeploymentStrategy")})
 			assert.Empty(t, diff)
-		})
-	}
-
-	for _, testCase := range expectedErrorTestCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.cheCluster, testCase.existedObjects)
-			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-
-			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.Error(t, err)
-			assert.Regexp(t, regexp.MustCompile(testCase.expectedErrorMessage), err.Error(), "error message must match")
 		})
 	}
 }
@@ -1410,7 +1345,7 @@ func TestReconcileDevWorkspaceConfigDeploymentStrategy(t *testing.T) {
 	}
 }
 
-func TestReconcileDevWorkspaceProjectCloneCOnfig(t *testing.T) {
+func TestReconcileDevWorkspaceProjectCloneConfig(t *testing.T) {
 	const testNamespace = "eclipse-che"
 	testMemLimit := resource.MustParse("2Gi")
 	testCpuLimit := resource.MustParse("1000m")
@@ -1802,6 +1737,453 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 			assert.NoError(t, err)
 			diff := cmp.Diff(testCase.expectedOperatorConfig, dwoc.Config, cmp.Options{cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount", "DeploymentStrategy", "ContainerSecurityContext")})
 			assert.Empty(t, diff)
+		})
+	}
+}
+
+func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
+	type testCase struct {
+		name                   string
+		cheCluster             *chev2.CheCluster
+		existedObjects         []runtime.Object
+		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
+	}
+
+	var testCases = []testCase{
+		{
+			name: "Create DevWorkspaceOperatorConfig with Container security context",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						// We disable container build capabilities so that it does not override the container security context we configured
+						DisableContainerBuildCapabilities: pointer.Bool(true),
+						Security: chev2.WorkspaceSecurityConfig{
+							ContainerSecurityContext: &corev1.SecurityContext{
+								Capabilities: &corev1.Capabilities{
+									Add: []corev1.Capability{
+										"SYS_TIME",
+										"SETGID",
+										"SETUID",
+									},
+									Drop: []corev1.Capability{
+										"CHOWN",
+										"KILL",
+									},
+								},
+								AllowPrivilegeEscalation: pointer.Bool(false),
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					ContainerSecurityContext: &corev1.SecurityContext{
+						Capabilities: &corev1.Capabilities{
+							Add: []corev1.Capability{
+								"SYS_TIME",
+								"SETGID",
+								"SETUID",
+							},
+							Drop: []corev1.Capability{
+								"CHOWN",
+								"KILL",
+							},
+						},
+						AllowPrivilegeEscalation: pointer.Bool(false),
+					},
+				},
+			},
+		},
+		{
+			name: "Updates existing DevWorkspaceOperatorConfig when Container security context is added",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.Bool(true),
+						Security: chev2.WorkspaceSecurityConfig{
+							ContainerSecurityContext: &corev1.SecurityContext{
+								Capabilities: &corev1.Capabilities{
+									Add: []corev1.Capability{
+										"SYS_TIME",
+										"SETGID",
+										"SETUID",
+									},
+									Drop: []corev1.Capability{
+										"CHOWN",
+										"KILL",
+									},
+								},
+								AllowPrivilegeEscalation: pointer.Bool(false),
+							}},
+					},
+				},
+			},
+			existedObjects: []runtime.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					ContainerSecurityContext: &corev1.SecurityContext{
+						Capabilities: &corev1.Capabilities{
+							Add: []corev1.Capability{
+								"SYS_TIME",
+								"SETGID",
+								"SETUID",
+							},
+							Drop: []corev1.Capability{
+								"CHOWN",
+								"KILL",
+							},
+						},
+						AllowPrivilegeEscalation: pointer.Bool(false),
+					},
+				},
+			},
+		},
+		{
+			name: "Updates existing DevWorkspaceOperatorConfig when Container security is changed",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.Bool(true),
+						Security: chev2.WorkspaceSecurityConfig{
+							ContainerSecurityContext: &corev1.SecurityContext{
+								Capabilities: &corev1.Capabilities{
+									Add: []corev1.Capability{
+										"SYS_TIME",
+										"SETGID",
+										"SETUID",
+									},
+									Drop: []corev1.Capability{
+										"CHOWN",
+										"KILL",
+									},
+								},
+								AllowPrivilegeEscalation: pointer.Bool(false),
+							},
+						},
+					},
+				},
+			},
+			existedObjects: []runtime.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							ContainerSecurityContext: &corev1.SecurityContext{
+								Capabilities: &corev1.Capabilities{
+									Add: []corev1.Capability{
+										"KILL",
+									},
+									Drop: []corev1.Capability{
+										"SYS_TIME",
+									},
+								},
+								AllowPrivilegeEscalation: pointer.Bool(true),
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					ContainerSecurityContext: &corev1.SecurityContext{
+						Capabilities: &corev1.Capabilities{
+							Add: []corev1.Capability{
+								"SYS_TIME",
+								"SETGID",
+								"SETUID",
+							},
+							Drop: []corev1.Capability{
+								"CHOWN",
+								"KILL",
+							},
+						},
+						AllowPrivilegeEscalation: pointer.Bool(false),
+					},
+				},
+			},
+		},
+		{
+			name: "Updates existing DevWorkspaceOperatorConfig when Container security is removed",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.Bool(true),
+					},
+				},
+			},
+			existedObjects: []runtime.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							ContainerSecurityContext: &corev1.SecurityContext{
+								Capabilities: &corev1.Capabilities{
+									Add: []corev1.Capability{
+										"KILL",
+									},
+									Drop: []corev1.Capability{
+										"SYS_TIME",
+									},
+								},
+								AllowPrivilegeEscalation: pointer.Bool(true),
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			deployContext := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
+			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
+			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
+			assert.NoError(t, err)
+
+			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
+			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			assert.NoError(t, err)
+
+			sortCapabilities := func(capabilites []corev1.Capability) func(i, j int) bool {
+				return func(i, j int) bool {
+					return capabilites[i] > capabilites[j]
+				}
+			}
+			expectedContainerSecurityContext := testCase.expectedOperatorConfig.Workspace.ContainerSecurityContext
+			actualContainerSecurityContext := dwoc.Config.Workspace.ContainerSecurityContext
+			if expectedContainerSecurityContext != nil {
+				sort.Slice(expectedContainerSecurityContext.Capabilities.Add, sortCapabilities(expectedContainerSecurityContext.Capabilities.Add))
+				sort.Slice(expectedContainerSecurityContext.Capabilities.Drop, sortCapabilities(expectedContainerSecurityContext.Capabilities.Drop))
+			}
+			if actualContainerSecurityContext != nil {
+				sort.Slice(actualContainerSecurityContext.Capabilities.Add, sortCapabilities(actualContainerSecurityContext.Capabilities.Add))
+				sort.Slice(actualContainerSecurityContext.Capabilities.Drop, sortCapabilities(actualContainerSecurityContext.Capabilities.Drop))
+
+			}
+
+			assert.Equal(t, expectedContainerSecurityContext, actualContainerSecurityContext,
+				fmt.Sprintf("Did not get expected ContainerSecurityContext.\nDiff:%s", cmp.Diff(expectedContainerSecurityContext, actualContainerSecurityContext)))
+		})
+	}
+}
+
+func TestReconcileDevWorkspacePodSecurityContext(t *testing.T) {
+	type testCase struct {
+		name                   string
+		cheCluster             *chev2.CheCluster
+		existedObjects         []runtime.Object
+		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
+	}
+
+	configuredPodSecurityContext := &corev1.PodSecurityContext{
+		RunAsUser:    pointer.Int64(0),
+		RunAsGroup:   pointer.Int64(0),
+		RunAsNonRoot: pointer.Bool(false),
+	}
+
+	var testCases = []testCase{
+		{
+			name: "Create DevWorkspaceOperatorConfig with Pod security context",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						Security: chev2.WorkspaceSecurityConfig{
+							PodSecurityContext: configuredPodSecurityContext,
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					PodSecurityContext: configuredPodSecurityContext,
+				},
+			},
+		},
+		{
+			name: "Updates existing DevWorkspaceOperatorConfig with Pod security context",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						Security: chev2.WorkspaceSecurityConfig{
+							PodSecurityContext: configuredPodSecurityContext,
+						},
+					},
+				},
+			},
+			existedObjects: []runtime.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					PodSecurityContext: configuredPodSecurityContext,
+				},
+			},
+		},
+		{
+			name: "Updates existing DevWorkspaceOperatorConfig when Pod security context is changed",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						Security: chev2.WorkspaceSecurityConfig{
+							PodSecurityContext: configuredPodSecurityContext,
+						},
+					},
+				},
+			},
+			existedObjects: []runtime.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							PodSecurityContext: &corev1.PodSecurityContext{
+								RunAsUser:    pointer.Int64(1000),
+								RunAsGroup:   pointer.Int64(10001),
+								RunAsNonRoot: pointer.Bool(true),
+								SupplementalGroups: []int64{
+									5,
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					PodSecurityContext: configuredPodSecurityContext,
+				},
+			},
+		},
+		{
+			name: "Updates existing DevWorkspaceOperatorConfig when Pod security context is removed",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{},
+				},
+			},
+			existedObjects: []runtime.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							PodSecurityContext: &corev1.PodSecurityContext{
+								RunAsUser:    pointer.Int64(1000),
+								RunAsGroup:   pointer.Int64(10001),
+								RunAsNonRoot: pointer.Bool(true),
+								SupplementalGroups: []int64{
+									5,
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			deployContext := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
+			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
+			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
+			assert.NoError(t, err)
+
+			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
+			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			assert.NoError(t, err)
+			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.PodSecurityContext, dwoc.Config.Workspace.PodSecurityContext,
+				fmt.Sprintf("Did not get expected PodSecurityContext.\nDiff:%s", cmp.Diff(testCase.expectedOperatorConfig.Workspace.PodSecurityContext, dwoc.Config.Workspace.PodSecurityContext)))
 		})
 	}
 }

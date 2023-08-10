@@ -125,8 +125,21 @@ type CheClusterDevEnvironments struct {
 	// +kubebuilder:default:=-1
 	SecondsOfRunBeforeIdling *int32 `json:"secondsOfRunBeforeIdling,omitempty"`
 	// Disables the container build capabilities.
+	// When set to `false` (the default value), the devEnvironments.security.containerSecurityContext
+	// field is ignored, and the following container SecurityContext is applied:
+	//
+	//  containerSecurityContext:
+	//    allowPrivilegeEscalation: true
+	//    capabilities:
+	//      add:
+	//      - SETGID
+	//      - SETUID
+	//
 	// +optional
 	DisableContainerBuildCapabilities *bool `json:"disableContainerBuildCapabilities,omitempty"`
+	// Workspace security configuration.
+	// +optional
+	Security WorkspaceSecurityConfig `json:"security,omitempty"`
 	// Container build configuration.
 	// +optional
 	ContainerBuildConfiguration *ContainerBuildConfiguration `json:"containerBuildConfiguration,omitempty"`
@@ -454,6 +467,19 @@ type WorkspaceDefaultPlugins struct {
 	Editor string `json:"editor,omitempty"`
 	// Default plug-in URIs for the specified editor.
 	Plugins []string `json:"plugins,omitempty"`
+}
+
+// Workspace security configuration
+type WorkspaceSecurityConfig struct {
+	// PodSecurityContext used by all workspace-related pods.
+	// If set, defined values are merged into the default PodSecurityContext configuration.
+	// +optional
+	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
+	// Container SecurityContext used by all workspace-related containers.
+	// If set, defined values are merged into the default Container SecurityContext configuration.
+	// Requires devEnvironments.disableContainerBuildCapabilities to be set to `true` in order to take effect.
+	// +optional
+	ContainerSecurityContext *corev1.SecurityContext `json:"containerSecurityContext,omitempty"`
 }
 
 // Authentication settings.
