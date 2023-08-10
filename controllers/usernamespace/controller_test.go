@@ -341,7 +341,7 @@ func TestCreatesDataInNamespace(t *testing.T) {
 		assert.Equal(t, "true", proxySettings.GetLabels()[dwconstants.DevWorkspaceMountLabel],
 			"proxy settings should be labeled as mounted")
 
-		assert.Equal(t, 1, len(proxySettings.Data), "Expecting just 1 element in the default proxy settings")
+		assert.Equal(t, 2, len(proxySettings.Data), "Expecting just 1 element in the default proxy settings")
 
 		assert.Equal(t, ".svc", proxySettings.Data["NO_PROXY"], "Unexpected proxy settings")
 
