@@ -63,7 +63,7 @@ func (d *DevWorkspaceConfigReconciler) Reconcile(ctx *chetypes.DeployContext) (r
 		dwoc.Config = &controllerv1alpha1.OperatorConfiguration{}
 	}
 
-	if err := updateWorkspaceConfig(ctx.CheCluster, dwoc.Config); err != nil {
+	if err := updateWorkspaceConfig(ctx, dwoc.Config); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
@@ -78,7 +78,8 @@ func (d *DevWorkspaceConfigReconciler) Finalize(ctx *chetypes.DeployContext) boo
 	return true
 }
 
-func updateWorkspaceConfig(cheCluster *chev2.CheCluster, operatorConfig *controllerv1alpha1.OperatorConfiguration) error {
+func updateWorkspaceConfig(ctx *chetypes.DeployContext, operatorConfig *controllerv1alpha1.OperatorConfiguration) error {
+	cheCluster := ctx.CheCluster
 	devEnvironments := &cheCluster.Spec.DevEnvironments
 	if operatorConfig.Workspace == nil {
 		operatorConfig.Workspace = &controllerv1alpha1.WorkspaceConfig{}
@@ -103,6 +104,13 @@ func updateWorkspaceConfig(cheCluster *chev2.CheCluster, operatorConfig *control
 	updatePersistUserHomeConfig(devEnvironments.PersistUserHome, operatorConfig.Workspace)
 
 	updateWorkspaceImagePullPolicy(devEnvironments.ImagePullPolicy, operatorConfig.Workspace)
+
+	if ctx.Proxy.HttpProxy != "" || ctx.Proxy.HttpsProxy != "" {
+		if operatorConfig.Routing == nil {
+			operatorConfig.Routing = &controllerv1alpha1.RoutingConfig{}
+		}
+		updateProxyConfig(operatorConfig.Routing)
+	}
 
 	operatorConfig.Workspace.DeploymentStrategy = v1.DeploymentStrategyType(utils.GetValue(string(devEnvironments.DeploymentStrategy), constants.DefaultDeploymentStrategy))
 	return nil
@@ -211,6 +219,16 @@ func updateProjectCloneConfig(devEnvironments *chev2.CheClusterDevEnvironments, 
 	workspaceConfig.ProjectCloneConfig.ImagePullPolicy = container.ImagePullPolicy
 	workspaceConfig.ProjectCloneConfig.Env = container.Env
 	workspaceConfig.ProjectCloneConfig.Resources = cheResourcesToCoreV1Resources(container.Resources)
+}
+
+func updateProxyConfig(routingConfig *controllerv1alpha1.RoutingConfig) {
+	// Since we create proxy configmaps to mount proxy settings, we want to disable
+	// proxy handling in DWO; otherwise the env vars added by DWO will override the env
+	// vars we intend to mount via configmap.
+	routingConfig.ProxyConfig = &controllerv1alpha1.Proxy{}
+	routingConfig.ProxyConfig.HttpProxy = pointer.String("")
+	routingConfig.ProxyConfig.HttpsProxy = pointer.String("")
+	routingConfig.ProxyConfig.NoProxy = pointer.String("")
 }
 
 // Returns the default container security context required for container builds.
