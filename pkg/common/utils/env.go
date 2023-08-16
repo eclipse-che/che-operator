@@ -15,6 +15,7 @@ import (
 	"os"
 	"regexp"
 	"runtime"
+	"sort"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -60,6 +61,11 @@ func doGetEnvsByRegExp(regExp string, isArchitectureDependentEnvNameNeeded bool)
 			env = append(env, corev1.EnvVar{Name: envName, Value: pair[1]})
 		}
 	}
+
+	sort.Slice(env, func(i, j int) bool {
+		return strings.Compare(env[i].Name, env[j].Name) < 0
+	})
+
 	return env
 }
 
