@@ -185,6 +185,10 @@ type CheClusterDevEnvironments struct {
 	// User configuration.
 	// +optional
 	User *UserConfiguration `json:"user,omitempty"`
+	// ImagePullPolicy defines the imagePullPolicy used for containers in a DevWorkspace.
+	// +optional
+	// +kubebuilder:validation:Enum=Always;IfNotPresent;Never
+	WorkspaceImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 }
 
 // Che components configuration.

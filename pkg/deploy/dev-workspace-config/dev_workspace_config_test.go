@@ -339,9 +339,6 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 						Routing: &controllerv1alpha1.RoutingConfig{
 							DefaultRoutingClass: "routing-class",
 						},
-						Workspace: &controllerv1alpha1.WorkspaceConfig{
-							ImagePullPolicy: "Always",
-						},
 					},
 				},
 			},
@@ -350,7 +347,6 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 					DefaultRoutingClass: "routing-class",
 				},
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					ImagePullPolicy:  "Always",
 					StorageClassName: pointer.String("test-storage"),
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						Common: &quantity15Gi,
@@ -2184,6 +2180,89 @@ func TestReconcileDevWorkspacePodSecurityContext(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.PodSecurityContext, dwoc.Config.Workspace.PodSecurityContext,
 				fmt.Sprintf("Did not get expected PodSecurityContext.\nDiff:%s", cmp.Diff(testCase.expectedOperatorConfig.Workspace.PodSecurityContext, dwoc.Config.Workspace.PodSecurityContext)))
+		})
+	}
+}
+
+func TestReconcileDevWorkspaceImagePullPolicy(t *testing.T) {
+	type testCase struct {
+		name                   string
+		cheCluster             *chev2.CheCluster
+		existedObjects         []runtime.Object
+		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
+	}
+
+	var testCases = []testCase{
+		{
+			name: "Set specific pull policy",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						WorkspaceImagePullPolicy: corev1.PullAlways,
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					ImagePullPolicy: string(corev1.PullAlways),
+				},
+			},
+		},
+		{
+			name: "Clean up pull policy",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						WorkspaceImagePullPolicy: "",
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					ImagePullPolicy: "",
+				},
+			},
+			existedObjects: []runtime.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							ImagePullPolicy: string(corev1.PullAlways),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			deployContext := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
+			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
+			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
+			assert.NoError(t, err)
+
+			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
+			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			assert.NoError(t, err)
+			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.ImagePullPolicy, dwoc.Config.Workspace.ImagePullPolicy)
 		})
 	}
 }

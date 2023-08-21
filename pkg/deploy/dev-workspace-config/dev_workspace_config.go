@@ -102,6 +102,8 @@ func updateWorkspaceConfig(cheCluster *chev2.CheCluster, operatorConfig *control
 
 	updatePersistUserHomeConfig(devEnvironments.PersistUserHome, operatorConfig.Workspace)
 
+	updateWorkspaceImagePullPolicy(devEnvironments.WorkspaceImagePullPolicy, operatorConfig.Workspace)
+
 	operatorConfig.Workspace.DeploymentStrategy = v1.DeploymentStrategyType(utils.GetValue(string(devEnvironments.DeploymentStrategy), constants.DefaultDeploymentStrategy))
 	return nil
 }
@@ -174,6 +176,10 @@ func updatePersistUserHomeConfig(persistentHomeConfig *chev2.PersistentHomeConfi
 		workspaceConfig.PersistUserHome = &controllerv1alpha1.PersistentHomeConfig{}
 		workspaceConfig.PersistUserHome.Enabled = persistentHomeConfig.Enabled
 	}
+}
+
+func updateWorkspaceImagePullPolicy(imagePullPolicy corev1.PullPolicy, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
+	workspaceConfig.ImagePullPolicy = string(imagePullPolicy)
 }
 
 func updateWorkspaceServiceAccountConfig(devEnvironments *chev2.CheClusterDevEnvironments, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
