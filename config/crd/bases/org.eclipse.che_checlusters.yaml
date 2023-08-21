@@ -6799,6 +6799,14 @@ spec:
                             type: object
                         type: object
                     type: object
+                  imagePullPolicy:
+                    description: ImagePullPolicy defines the imagePullPolicy used
+                      for containers in a DevWorkspace.
+                    enum:
+                    - Always
+                    - IfNotPresent
+                    - Never
+                    type: string
                   maxNumberOfRunningWorkspacesPerUser:
                     description: The maximum number of running workspaces per user.
                       The value, -1, allows users to run an unlimited number of workspaces.
