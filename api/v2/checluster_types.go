@@ -188,7 +188,7 @@ type CheClusterDevEnvironments struct {
 	// ImagePullPolicy defines the imagePullPolicy used for containers in a DevWorkspace.
 	// +optional
 	// +kubebuilder:validation:Enum=Always;IfNotPresent;Never
-	WorkspaceImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 }
 
 // Che components configuration.

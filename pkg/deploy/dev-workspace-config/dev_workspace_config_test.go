@@ -2202,7 +2202,7 @@ func TestReconcileDevWorkspaceImagePullPolicy(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						WorkspaceImagePullPolicy: corev1.PullAlways,
+						ImagePullPolicy: corev1.PullAlways,
 					},
 				},
 			},
@@ -2221,7 +2221,7 @@ func TestReconcileDevWorkspaceImagePullPolicy(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						WorkspaceImagePullPolicy: "",
+						ImagePullPolicy: "",
 					},
 				},
 			},
