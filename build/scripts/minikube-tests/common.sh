@@ -219,7 +219,7 @@ spec:
       - name: tooling-container
         container:
           image: quay.io/devfile/universal-developer-image:ubi8-latest
-          cpuLimit: 100m
+          cpuLimit: 50m
           cpuRequest: 100m
 EOF
 }
