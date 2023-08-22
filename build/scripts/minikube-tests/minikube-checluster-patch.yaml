@@ -53,9 +53,9 @@ spec:
         containers:
           - resources:
               request:
-                cpu: '30m'
+                cpu: '40m'
               limits:
-                cpu: '30m'
+                cpu: '40m'
   networking:
     auth:
       gateway:

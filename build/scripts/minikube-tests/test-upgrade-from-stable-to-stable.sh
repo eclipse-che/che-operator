@@ -54,6 +54,9 @@ runTest() {
   minikube image rm quay.io/eclipse/che-server:${PREVIOUS_PACKAGE_VERSION}
   minikube image rm quay.io/eclipse/che-operator:${PREVIOUS_PACKAGE_VERSION}
 
+  # Free up some cpu resources
+  kubectl scale deployment che --replicas=0 -n eclipse-che
+
   startAndWaitDevWorkspace
   stopAndWaitDevWorkspace
   deleteDevWorkspace

@@ -40,6 +40,9 @@ runTest() {
 
   make wait-devworkspace-running NAMESPACE="devworkspace-controller" VERBOSE=1
 
+  # Free up some cpu resources
+  kubectl scale deployment che --replicas=0 -n eclipse-che
+
   createDevWorkspace
   startAndWaitDevWorkspace
   stopAndWaitDevWorkspace
