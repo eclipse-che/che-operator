@@ -7947,6 +7947,19 @@ spec:
                                     type: integer
                                 type: object
                             type: object
+                          kubeRbacProxyLogLevel:
+                            default: 0
+                            description: The glog log level for the kube-rbac-proxy
+                              container within the gateway pod.  The default value
+                              is `0`.
+                            format: int32
+                            type: integer
+                          traefikLogLevel:
+                            default: INFO
+                            description: 'The log level for the Traefik container
+                              within the gateway pod: `DEBUG`, `INFO`, `WARN`, `ERROR`,
+                              `FATAL`, or `PANIC`. The default value is `INFO`'
+                            type: string
                         type: object
                       identityProviderURL:
                         description: Public URL of the Identity Provider server.

@@ -535,6 +535,14 @@ type Gateway struct {
 	// +optional
 	// +kubebuilder:default:={app: che, component: che-gateway-config}
 	ConfigLabels map[string]string `json:"configLabels,omitempty"`
+	// The log level for the Traefik container within the gateway pod: `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`, or `PANIC`. The default value is `INFO`
+	// +optional
+	// +kubebuilder:default:="INFO"
+	TraefikLogLevel string `json:"traefikLogLevel,omitempty"`
+	// The glog log level for the kube-rbac-proxy container within the gateway pod.  The default value is `0`.
+	// +optional
+	// +kubebuilder:default:=0
+	KubeRbacProxyLogLevel *int32 `json:"kubeRbacProxyLogLevel,omitempty"`
 }
 
 // Proxy server configuration.
