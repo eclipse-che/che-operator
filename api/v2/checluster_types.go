@@ -539,7 +539,7 @@ type Gateway struct {
 	// +optional
 	// +kubebuilder:default:="INFO"
 	TraefikLogLevel string `json:"traefikLogLevel,omitempty"`
-	// The glog log level for the kube-rbac-proxy container within the gateway pod.  The default value is `0`.
+	// The k8s.io/klog/v2 log level for the kube-rbac-proxy container within the gateway pod. Larger values represent a higher verbosity. The default value is `0`.
 	// +optional
 	// +kubebuilder:default:=0
 	KubeRbacProxyLogLevel *int32 `json:"kubeRbacProxyLogLevel,omitempty"`
