@@ -8166,7 +8166,7 @@ spec:
                               type: object
                             kubeRbacProxyLogLevel:
                               default: 0
-                              description: The k8s.io/klog/v2 log level for the kube-rbac-proxy
+                              description: The glog log level for the kube-rbac-proxy
                                 container within the gateway pod. Larger values represent
                                 a higher verbosity. The default value is `0`.
                               format: int32
