@@ -383,7 +383,10 @@ func getGatewayHeaderRewritePluginConfigSpec(instance *chev2.CheCluster) (*corev
 
 func getGatewayTraefikConfigSpec(instance *chev2.CheCluster) corev1.ConfigMap {
 	traefikPort := 8081
-	logLevel := utils.GetValue(instance.Spec.Networking.Auth.Gateway.TraefikLogLevel, constants.DefaultTraefikLogLevel)
+	logLevel := constants.DefaultTraefikLogLevel
+	if instance.Spec.Networking.Auth.Gateway.Traefik != nil {
+		logLevel = utils.GetValue(instance.Spec.Networking.Auth.Gateway.Traefik.LogLevel, logLevel)
+	}
 	data := fmt.Sprintf(`
 entrypoints:
   http:

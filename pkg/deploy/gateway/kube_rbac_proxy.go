@@ -52,8 +52,8 @@ authorization:
 
 func getKubeRbacProxyContainerSpec(instance *chev2.CheCluster) corev1.Container {
 	logLevel := constants.DefaultKubeRbacProxyLogLevel
-	if instance.Spec.Networking.Auth.Gateway.KubeRbacProxyLogLevel != nil {
-		logLevel = *instance.Spec.Networking.Auth.Gateway.KubeRbacProxyLogLevel
+	if instance.Spec.Networking.Auth.Gateway.KubeRbacProxy != nil && instance.Spec.Networking.Auth.Gateway.KubeRbacProxy.LogLevel != nil {
+		logLevel = *instance.Spec.Networking.Auth.Gateway.KubeRbacProxy.LogLevel
 	}
 
 	return corev1.Container{

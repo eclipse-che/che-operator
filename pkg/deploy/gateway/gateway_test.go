@@ -368,7 +368,9 @@ func TestTraefikLogLevel(t *testing.T) {
 			Networking: chev2.CheClusterSpecNetworking{
 				Auth: chev2.Auth{
 					Gateway: chev2.Gateway{
-						TraefikLogLevel: "DEBUG",
+						Traefik: &chev2.Traefik{
+							LogLevel: "DEBUG",
+						},
 					},
 				},
 			},
@@ -402,7 +404,9 @@ func TestKubeRbacProxyLogLevel(t *testing.T) {
 			Networking: chev2.CheClusterSpecNetworking{
 				Auth: chev2.Auth{
 					Gateway: chev2.Gateway{
-						KubeRbacProxyLogLevel: &logLevel,
+						KubeRbacProxy: &chev2.KubeRbacProxy{
+							LogLevel: &logLevel,
+						},
 					},
 				},
 			},
