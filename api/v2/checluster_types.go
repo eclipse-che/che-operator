@@ -747,6 +747,7 @@ type Traefik struct {
 	// The log level for the Traefik container within the gateway pod: `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`, or `PANIC`. The default value is `INFO`
 	// +optional
 	// +kubebuilder:default:="INFO"
+	// +kubebuilder:validation:Enum=DEBUG;INFO;WARN;ERROR;FATAL;PANIC
 	LogLevel string `json:"logLevel,omitempty"`
 }
 
