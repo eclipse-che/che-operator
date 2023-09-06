@@ -756,6 +756,7 @@ type KubeRbacProxy struct {
 	// The glog log level for the kube-rbac-proxy container within the gateway pod. Larger values represent a higher verbosity. The default value is `0`.
 	// +optional
 	// +kubebuilder:default:=0
+	// +kubebuilder:validation:Minimum:=0
 	LogLevel *int32 `json:"logLevel,omitempty"`
 }
 
