@@ -8847,9 +8847,9 @@ spec:
         - name: RELATED_IMAGE_single_host_gateway_config_sidecar
           value: quay.io/che-incubator/configbump:0.1.4
         - name: RELATED_IMAGE_gateway_authentication_sidecar
-          value: quay.io/openshift/origin-oauth-proxy:4.9
+          value: quay.io/openshift/origin-oauth-proxy:4.15
         - name: RELATED_IMAGE_gateway_authorization_sidecar
-          value: quay.io/openshift/origin-kube-rbac-proxy:4.9
+          value: quay.io/openshift/origin-kube-rbac-proxy:4.15
         - name: RELATED_IMAGE_gateway_authentication_sidecar_k8s
           value: quay.io/oauth2-proxy/oauth2-proxy:v7.4.0
         - name: RELATED_IMAGE_gateway_authorization_sidecar_k8s
