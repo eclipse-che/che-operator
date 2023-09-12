@@ -17,7 +17,7 @@ metadata:
 components:
   - name: tooling-container
     container:
-      image: quay.io/devfile/universal-developer-image:ubi8-latest
+      image: quay.io/mkuznets/che-operator-tools:latest
       memoryRequest: 2Gi
       memoryLimit: 16Gi
       cpuRequest: 2000m
