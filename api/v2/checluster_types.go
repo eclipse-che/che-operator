@@ -535,6 +535,12 @@ type Gateway struct {
 	// +optional
 	// +kubebuilder:default:={app: che, component: che-gateway-config}
 	ConfigLabels map[string]string `json:"configLabels,omitempty"`
+	// Configuration for Traefik within the Che gateway pod.
+	// +optional
+	Traefik *Traefik `json:"traefik,omitempty"`
+	// Configuration for kube-rbac-proxy within the Che gateway pod.
+	// +optional
+	KubeRbacProxy *KubeRbacProxy `json:"kubeRbacProxy,omitempty"`
 }
 
 // Proxy server configuration.
@@ -734,6 +740,24 @@ type ContainerBuildConfiguration struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:default:=container-build
 	OpenShiftSecurityContextConstraint string `json:"openShiftSecurityContextConstraint,omitempty"`
+}
+
+// Configuration for Traefik within the Che gateway pod.
+type Traefik struct {
+	// The log level for the Traefik container within the gateway pod: `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`, or `PANIC`. The default value is `INFO`
+	// +optional
+	// +kubebuilder:default:="INFO"
+	// +kubebuilder:validation:Enum=DEBUG;INFO;WARN;ERROR;FATAL;PANIC
+	LogLevel string `json:"logLevel,omitempty"`
+}
+
+// Configuration for kube-rbac-proxy within the Che gateway pod.
+type KubeRbacProxy struct {
+	// The glog log level for the kube-rbac-proxy container within the gateway pod. Larger values represent a higher verbosity. The default value is `0`.
+	// +optional
+	// +kubebuilder:default:=0
+	// +kubebuilder:validation:Minimum:=0
+	LogLevel *int32 `json:"logLevel,omitempty"`
 }
 
 // GatewayPhase describes the different phases of the Che gateway lifecycle.

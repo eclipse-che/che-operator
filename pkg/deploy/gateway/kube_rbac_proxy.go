@@ -13,7 +13,10 @@
 package gateway
 
 import (
+	"strconv"
+
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	corev1 "k8s.io/api/core/v1"
@@ -48,6 +51,11 @@ authorization:
 }
 
 func getKubeRbacProxyContainerSpec(instance *chev2.CheCluster) corev1.Container {
+	logLevel := constants.DefaultKubeRbacProxyLogLevel
+	if instance.Spec.Networking.Auth.Gateway.KubeRbacProxy != nil && instance.Spec.Networking.Auth.Gateway.KubeRbacProxy.LogLevel != nil {
+		logLevel = *instance.Spec.Networking.Auth.Gateway.KubeRbacProxy.LogLevel
+	}
+
 	return corev1.Container{
 		Name:            "kube-rbac-proxy",
 		Image:           defaults.GetGatewayAuthorizationSidecarImage(instance),
@@ -57,6 +65,7 @@ func getKubeRbacProxyContainerSpec(instance *chev2.CheCluster) corev1.Container 
 			"--upstream=http://127.0.0.1:8090/ping",
 			"--logtostderr=true",
 			"--config-file=/etc/kube-rbac-proxy/authorization-config.yaml",
+			"--v=" + strconv.FormatInt(int64(logLevel), 10),
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{

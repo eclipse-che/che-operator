@@ -383,6 +383,10 @@ func getGatewayHeaderRewritePluginConfigSpec(instance *chev2.CheCluster) (*corev
 
 func getGatewayTraefikConfigSpec(instance *chev2.CheCluster) corev1.ConfigMap {
 	traefikPort := 8081
+	logLevel := constants.DefaultTraefikLogLevel
+	if instance.Spec.Networking.Auth.Gateway.Traefik != nil {
+		logLevel = utils.GetValue(instance.Spec.Networking.Auth.Gateway.Traefik.LogLevel, logLevel)
+	}
 	data := fmt.Sprintf(`
 entrypoints:
   http:
@@ -401,7 +405,7 @@ providers:
     directory: "/dynamic-config"
     watch: true
 log:
-  level: "INFO"`, traefikPort)
+  level: "%s"`, traefikPort, logLevel)
 
 	if instance.IsAccessTokenConfigured() {
 		data += `

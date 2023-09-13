@@ -20,10 +20,12 @@ const (
 	DefaultDashboardCpuRequest    = "100m"
 
 	// Gateway
-	DefaultGatewayMemoryLimit   = "256Mi"
-	DefaultGatewayMemoryRequest = "64Mi"
-	DefaultGatewayCpuLimit      = "500m"
-	DefaultGatewayCpuRequest    = "50m"
+	DefaultGatewayMemoryLimit    = "256Mi"
+	DefaultGatewayMemoryRequest  = "64Mi"
+	DefaultGatewayCpuLimit       = "500m"
+	DefaultGatewayCpuRequest     = "50m"
+	DefaultTraefikLogLevel       = "INFO"
+	DefaultKubeRbacProxyLogLevel = int32(0)
 
 	// PluginRegistry
 	DefaultPluginRegistryMemoryLimit                          = "256Mi"
