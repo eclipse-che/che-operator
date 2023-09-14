@@ -28,10 +28,10 @@ jobs:
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
       -
-        name: Build and push alpine
+        name: Build and push container
         uses: docker/build-push-action@v4
         with:
           context: .
           file: .devfile.Dockerfile
           push: true
-          tags: quay.io/mkuznets/che-operator-tools:latest
+          tags: quay.io/eclipse/che-operator-dev:latest
