@@ -541,6 +541,9 @@ type Gateway struct {
 	// Configuration for kube-rbac-proxy within the Che gateway pod.
 	// +optional
 	KubeRbacProxy *KubeRbacProxy `json:"kubeRbacProxy,omitempty"`
+	// Configuration for oauth-proxy within the Che gateway pod.
+	// +optional
+	OauthProxy *OauthProxy `json:"oauthProxy,omitempty"`
 }
 
 // Proxy server configuration.
@@ -758,6 +761,13 @@ type KubeRbacProxy struct {
 	// +kubebuilder:default:=0
 	// +kubebuilder:validation:Minimum:=0
 	LogLevel *int32 `json:"logLevel,omitempty"`
+}
+
+// Configuration for oauth-proxy within the Che gateway pod.
+type OauthProxy struct {
+	// How long the _oauth2_proxy cookie lasts.
+	// +optional
+	CookieExpire string `json:"cookieExpire,omitempty"`
 }
 
 // GatewayPhase describes the different phases of the Che gateway lifecycle.

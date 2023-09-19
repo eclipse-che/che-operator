@@ -1,4 +1,3 @@
-//
 // Copyright (c) 2019-2021 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
@@ -7,8 +6,8 @@
 // SPDX-License-Identifier: EPL-2.0
 //
 // Contributors:
-//   Red Hat, Inc. - initial API and implementation
 //
+//	Red Hat, Inc. - initial API and implementation
 package gateway
 
 import (
@@ -16,6 +15,7 @@ import (
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
 )
@@ -35,7 +35,7 @@ func TestKubernetesOauthProxyConfig(t *testing.T) {
 	ctx.CheHost = "che-site.che-domain.com"
 	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
-	config := kubernetesOauthProxyConfig(ctx, "blabol")
+	config := kubernetesOauthProxyConfig(ctx, "blabol", constants.DefaultOauthProxyCookieExpire)
 	assert.Contains(t, config, "pass_authorization_header = true")
 	assert.Contains(t, config, "whitelist_domains = \".che-domain.com\"")
 	assert.Contains(t, config, "cookie_domains = \".che-domain.com\"")
@@ -58,7 +58,7 @@ func TestScopeDefinedForKubernetesOauthProxyConfig(t *testing.T) {
 		}, nil)
 	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
-	config := kubernetesOauthProxyConfig(ctx, "blabol")
+	config := kubernetesOauthProxyConfig(ctx, "blabol", constants.DefaultOauthProxyCookieExpire)
 	assert.Contains(t, config, "scope = \"scope1 scope2 scope3 scope4 scope5\"")
 }
 
@@ -77,7 +77,7 @@ func TestAccessTokenDefinedForKubernetesOauthProxyConfig(t *testing.T) {
 		}, nil)
 	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
-	config := kubernetesOauthProxyConfig(ctx, "blabol")
+	config := kubernetesOauthProxyConfig(ctx, "blabol", constants.DefaultOauthProxyCookieExpire)
 	assert.Contains(t, config, "pass_access_token = true")
 	assert.NotContains(t, config, "pass_authorization_header = true")
 }

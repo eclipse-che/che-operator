@@ -35,11 +35,16 @@ import (
 func getGatewayOauthProxyConfigSpec(ctx *chetypes.DeployContext, cookieSecret string) corev1.ConfigMap {
 	instance := ctx.CheCluster
 
+	cookieExpire := constants.DefaultOauthProxyCookieExpire
+	if instance.Spec.Networking.Auth.Gateway.OauthProxy != nil {
+		cookieExpire = instance.Spec.Networking.Auth.Gateway.OauthProxy.CookieExpire
+	}
+
 	var config string
 	if infrastructure.IsOpenShift() {
-		config = openshiftOauthProxyConfig(ctx, cookieSecret)
+		config = openshiftOauthProxyConfig(ctx, cookieSecret, cookieExpire)
 	} else {
-		config = kubernetesOauthProxyConfig(ctx, cookieSecret)
+		config = kubernetesOauthProxyConfig(ctx, cookieSecret, cookieExpire)
 	}
 	return corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
@@ -57,7 +62,7 @@ func getGatewayOauthProxyConfigSpec(ctx *chetypes.DeployContext, cookieSecret st
 	}
 }
 
-func openshiftOauthProxyConfig(ctx *chetypes.DeployContext, cookieSecret string) string {
+func openshiftOauthProxyConfig(ctx *chetypes.DeployContext, cookieSecret, cookieExpire string) string {
 	oauthSecret := ""
 	oauthClientName := ""
 
@@ -81,7 +86,7 @@ client_secret = "%s"
 scope = "%s"
 openshift_service_account = "%s"
 cookie_secret = "%s"
-cookie_expire = "24h0m0s"
+cookie_expire = "%s"
 email_domains = "*"
 cookie_httponly = false
 pass_access_token = true
@@ -94,10 +99,11 @@ skip_provider_button = false
 		utils.GetValue(ctx.CheCluster.Spec.Networking.Auth.OAuthScope, constants.OpenShiftOAuthScope),
 		GatewayServiceName,
 		cookieSecret,
+		cookieExpire,
 		skipAuthConfig(ctx.CheCluster))
 }
 
-func kubernetesOauthProxyConfig(ctx *chetypes.DeployContext, cookieSecret string) string {
+func kubernetesOauthProxyConfig(ctx *chetypes.DeployContext, cookieSecret, cookieExpire string) string {
 	return fmt.Sprintf(`
 proxy_prefix = "/oauth"
 http_address = ":%d"
@@ -113,7 +119,7 @@ upstreams = [
 client_id = "%s"
 client_secret = "%s"
 cookie_secret = "%s"
-cookie_expire = "24h0m0s"
+cookie_expire = "%s"
 email_domains = "*"
 cookie_httponly = false
 skip_provider_button = true
@@ -128,6 +134,7 @@ cookie_domains = "%s"
 		ctx.CheCluster.Spec.Networking.Auth.OAuthClientName,
 		ctx.CheCluster.Spec.Networking.Auth.OAuthSecret,
 		cookieSecret,
+		cookieExpire,
 		utils.Whitelist(ctx.CheHost),
 		utils.Whitelist(ctx.CheHost),
 		skipAuthConfig(ctx.CheCluster),

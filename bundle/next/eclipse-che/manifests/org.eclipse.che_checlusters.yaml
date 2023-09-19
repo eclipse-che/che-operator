@@ -8197,6 +8197,14 @@ spec:
                                     - PANIC
                                   type: string
                               type: object
+                            oauthProxy:
+                              description: Configuration for oauth-proxy within the Che gateway pod.
+                              type: object
+                              properties:
+                                cookieExpire:
+                                  description: How long the _oauth2_proxy cookie lasts.
+                                  type: string
+                                  default: '24h0m0s'
                           type: object
                         identityProviderURL:
                           description: Public URL of the Identity Provider server.
