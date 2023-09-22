@@ -15,7 +15,7 @@
 GIT_ROOT_DIRECTORY=$(git rev-parse --show-toplevel)
 
 # Container image
-IMAGE_NAME="eclipse/che-operator-olm-build"
+IMAGE_NAME="eclipse/che-operator-dev"
 
 init() {
   BLUE='\033[1;34m'
@@ -25,25 +25,21 @@ init() {
   BOLD='\033[1m'
 }
 
-check() {
-  if [ $# -eq 0 ]; then
-    printf "%bError: %bNo script provided. Command is $ docker-run.sh <script-to-run> [optional-arguments-of-script-to-run]\n" "${RED}" "${NC}"
-    exit 1
-  fi
-  echo "check $1"
-  if [ ! -f "$1" ]; then
-    printf "%bError: %bscript %b provided is not existing. Command is $ docker-run.sh <script-to-run> [optional-arguments-of-script-to-run]\n" "${RED}" "${NC}" "${1}"
-    exit 1
-  fi
-}
-
 # Build image
 build() {
   printf "%bBuilding image %b${IMAGE_NAME}${NC}..." "${BOLD}" "${BLUE}"
-  if docker build -t ${IMAGE_NAME} > docker-build-log 2>&1 -<<EOF
-  FROM golang:1.18-alpine
-  ARG OPERATOR_SDK_VERSION
-  RUN apk add --no-cache --update curl bash py-pip jq skopeo && pip install yq
+  if docker build -t ${IMAGE_NAME} > docker-build-log 2>&1  -<<EOF
+  FROM golang:1.18-bullseye
+  RUN apt update && apt install python3-pip skopeo jq rsync unzip -y && pip install yq && \
+    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
+    install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && \
+    go install golang.org/x/tools/cmd/goimports@latest && \
+    rm -rf /che-operator/bin
+  RUN adduser --disabled-password --gecos "" user
+  ENV GO111MODULE=on
+  ENV GOPATH=/home/user/go
+  ENV PATH=/home/user/go/bin:\$PATH
+  USER 1000
   WORKDIR /che-operator
 EOF
 then
@@ -56,10 +52,9 @@ else
 fi
 }
 
-
 run() {
   printf "%bRunning%b $*\n" "${BOLD}" "${NC}"
-  if docker run --rm -it -v "${GIT_ROOT_DIRECTORY}":/che-operator --entrypoint=/bin/bash ${IMAGE_NAME} "$@"
+  if docker run --rm -it -v "${GIT_ROOT_DIRECTORY}":/che-operator ${IMAGE_NAME} "$@"
   then
     printf "Script execution %b[OK]%b\n" "${GREEN}" "${NC}"
   else
@@ -69,6 +64,5 @@ run() {
 }
 
 init "$@"
-check "$@"
 build "$@"
 run "$@"
