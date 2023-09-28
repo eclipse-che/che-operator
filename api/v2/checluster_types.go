@@ -541,6 +541,17 @@ type Gateway struct {
 	// Configuration for kube-rbac-proxy within the Che gateway pod.
 	// +optional
 	KubeRbacProxy *KubeRbacProxy `json:"kubeRbacProxy,omitempty"`
+	// Configuration for oauth-proxy within the Che gateway pod.
+	// +optional
+	OAuthProxy *OAuthProxy `json:"oAuthProxy,omitempty"`
+}
+
+type OAuthProxy struct {
+	// Expire timeframe for cookie. If set to 0, cookie becomes a session-cookie which will expire when the browser is closed.
+	// +optional
+	// +kubebuilder:default:=86400
+	// +kubebuilder:validation:Minimum:=0
+	CookieExpireSeconds *int32 `json:"cookieExpireSeconds,omitempty"`
 }
 
 // Proxy server configuration.

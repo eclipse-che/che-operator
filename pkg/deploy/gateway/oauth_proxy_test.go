@@ -12,6 +12,7 @@
 package gateway
 
 import (
+	"k8s.io/utils/pointer"
 	"testing"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
@@ -19,6 +20,46 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestCookieExpireForOpenShiftOauthProxyConfig(t *testing.T) {
+	ctx := test.GetDeployContext(
+		&chev2.CheCluster{
+			Spec: chev2.CheClusterSpec{
+				Networking: chev2.CheClusterSpecNetworking{
+					Auth: chev2.Auth{
+						Gateway: chev2.Gateway{
+							OAuthProxy: &chev2.OAuthProxy{
+								CookieExpireSeconds: pointer.Int32(3665),
+							},
+						},
+					},
+				}},
+		}, nil)
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+	config := openshiftOauthProxyConfig(ctx, "")
+	assert.Contains(t, config, "cookie_expire = \"1h1m5s\"")
+}
+
+func TestCookieExpireKubernetesOauthProxyConfig(t *testing.T) {
+	ctx := test.GetDeployContext(
+		&chev2.CheCluster{
+			Spec: chev2.CheClusterSpec{
+				Networking: chev2.CheClusterSpecNetworking{
+					Auth: chev2.Auth{
+						Gateway: chev2.Gateway{
+							OAuthProxy: &chev2.OAuthProxy{
+								CookieExpireSeconds: pointer.Int32(3665),
+							},
+						},
+					},
+				}},
+		}, nil)
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
+	config := kubernetesOauthProxyConfig(ctx, "")
+	assert.Contains(t, config, "cookie_expire = \"1h1m5s\"")
+}
 
 func TestKubernetesOauthProxyConfig(t *testing.T) {
 	ctx := test.GetDeployContext(
