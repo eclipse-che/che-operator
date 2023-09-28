@@ -246,5 +246,9 @@ func cookieExpireAsString(cheCluster *chev2.CheCluster) string {
 		cookieExpire = *cheCluster.Spec.Networking.Auth.Gateway.OAuthProxy.CookieExpireSeconds
 	}
 
+	if cookieExpire == 0 {
+		return "0"
+	}
+
 	return fmt.Sprintf("%dh%dm%ds", cookieExpire/3600, cookieExpire%3600/60, cookieExpire%60)
 }
