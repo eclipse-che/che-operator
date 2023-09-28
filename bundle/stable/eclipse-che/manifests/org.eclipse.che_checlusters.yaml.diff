@@ -1,17 +1,42 @@
---- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che/generated/openshift/org.eclipse.che_checlusters.yaml	2023-09-07 11:58:08.812655632 +0000
-+++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che/manifests/org.eclipse.che_checlusters.yaml	2023-09-07 11:58:08.820655816 +0000
-@@ -6995,6 +6995,14 @@
+--- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che/generated/openshift/org.eclipse.che_checlusters.yaml	2023-09-28 00:11:31.708424769 +0000
++++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che/manifests/org.eclipse.che_checlusters.yaml	2023-09-28 00:11:31.720425006 +0000
+@@ -8164,6 +8164,39 @@
+                                       type: integer
+                                   type: object
                                type: object
++                            kubeRbacProxy:
++                              description: Configuration for kube-rbac-proxy within
++                                the Che gateway pod.
++                              properties:
++                                logLevel:
++                                  default: 0
++                                  description: The glog log level for the kube-rbac-proxy
++                                    container within the gateway pod. Larger values
++                                    represent a higher verbosity. The default value
++                                    is `0`.
++                                  format: int32
++                                  minimum: 0
++                                  type: integer
++                              type: object
++                            traefik:
++                              description: Configuration for Traefik within the Che
++                                gateway pod.
++                              properties:
++                                logLevel:
++                                  default: INFO
++                                  description: 'The log level for the Traefik container
++                                    within the gateway pod: `DEBUG`, `INFO`, `WARN`,
++                                    `ERROR`, `FATAL`, or `PANIC`. The default value
++                                    is `INFO`'
++                                  enum:
++                                    - DEBUG
++                                    - INFO
++                                    - WARN
++                                    - ERROR
++                                    - FATAL
++                                    - PANIC
++                                  type: string
++                              type: object
                            type: object
-                       type: object
-+                    imagePullPolicy:
-+                      description: ImagePullPolicy defines the imagePullPolicy used
-+                        for containers in a DevWorkspace.
-+                      enum:
-+                        - Always
-+                        - IfNotPresent
-+                        - Never
-+                      type: string
-                     maxNumberOfRunningWorkspacesPerUser:
-                       description: The maximum number of running workspaces per user.
-                         The value, -1, allows users to run an unlimited number of
+                         identityProviderURL:
+                           description: Public URL of the Identity Provider server.
