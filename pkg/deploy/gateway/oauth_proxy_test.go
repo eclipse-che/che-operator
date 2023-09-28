@@ -12,8 +12,9 @@
 package gateway
 
 import (
-	"k8s.io/utils/pointer"
 	"testing"
+
+	"k8s.io/utils/pointer"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"

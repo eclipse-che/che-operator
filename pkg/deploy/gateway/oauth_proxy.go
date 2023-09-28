@@ -14,10 +14,11 @@ package gateway
 
 import (
 	"fmt"
+	"strings"
+
 	identityprovider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"strings"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -244,10 +245,6 @@ func cookieExpireAsString(cheCluster *chev2.CheCluster) string {
 	cookieExpire := constants.DefaultOAuthProxyCookieExpireSeconds
 	if cheCluster.Spec.Networking.Auth.Gateway.OAuthProxy != nil && cheCluster.Spec.Networking.Auth.Gateway.OAuthProxy.CookieExpireSeconds != nil {
 		cookieExpire = *cheCluster.Spec.Networking.Auth.Gateway.OAuthProxy.CookieExpireSeconds
-	}
-
-	if cookieExpire == 0 {
-		return "0"
 	}
 
 	return fmt.Sprintf("%dh%dm%ds", cookieExpire/3600, cookieExpire%3600/60, cookieExpire%60)
