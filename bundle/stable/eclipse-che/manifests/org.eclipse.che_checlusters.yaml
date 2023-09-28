@@ -8164,6 +8164,39 @@ spec:
                                       type: integer
                                   type: object
                               type: object
+                            kubeRbacProxy:
+                              description: Configuration for kube-rbac-proxy within
+                                the Che gateway pod.
+                              properties:
+                                logLevel:
+                                  default: 0
+                                  description: The glog log level for the kube-rbac-proxy
+                                    container within the gateway pod. Larger values
+                                    represent a higher verbosity. The default value
+                                    is `0`.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
+                              type: object
+                            traefik:
+                              description: Configuration for Traefik within the Che
+                                gateway pod.
+                              properties:
+                                logLevel:
+                                  default: INFO
+                                  description: 'The log level for the Traefik container
+                                    within the gateway pod: `DEBUG`, `INFO`, `WARN`,
+                                    `ERROR`, `FATAL`, or `PANIC`. The default value
+                                    is `INFO`'
+                                  enum:
+                                    - DEBUG
+                                    - INFO
+                                    - WARN
+                                    - ERROR
+                                    - FATAL
+                                    - PANIC
+                                  type: string
+                              type: object
                           type: object
                         identityProviderURL:
                           description: Public URL of the Identity Provider server.
