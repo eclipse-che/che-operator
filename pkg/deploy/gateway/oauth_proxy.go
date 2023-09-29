@@ -18,7 +18,6 @@ import (
 
 	identityprovider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
 	"github.com/sirupsen/logrus"
-
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
@@ -81,7 +80,7 @@ client_secret = "%s"
 scope = "%s"
 openshift_service_account = "%s"
 cookie_secret = "%s"
-cookie_expire = "24h0m0s"
+cookie_expire = "%s"
 email_domains = "*"
 cookie_httponly = false
 pass_access_token = true
@@ -94,6 +93,7 @@ skip_provider_button = false
 		utils.GetValue(ctx.CheCluster.Spec.Networking.Auth.OAuthScope, constants.OpenShiftOAuthScope),
 		GatewayServiceName,
 		cookieSecret,
+		cookieExpireAsString(ctx.CheCluster),
 		skipAuthConfig(ctx.CheCluster))
 }
 
@@ -113,7 +113,7 @@ upstreams = [
 client_id = "%s"
 client_secret = "%s"
 cookie_secret = "%s"
-cookie_expire = "24h0m0s"
+cookie_expire = "%s"
 email_domains = "*"
 cookie_httponly = false
 skip_provider_button = true
@@ -128,6 +128,7 @@ cookie_domains = "%s"
 		ctx.CheCluster.Spec.Networking.Auth.OAuthClientName,
 		ctx.CheCluster.Spec.Networking.Auth.OAuthSecret,
 		cookieSecret,
+		cookieExpireAsString(ctx.CheCluster),
 		utils.Whitelist(ctx.CheHost),
 		utils.Whitelist(ctx.CheHost),
 		skipAuthConfig(ctx.CheCluster),
@@ -238,4 +239,13 @@ func getOauthProxyConfigVolume() corev1.Volume {
 			},
 		},
 	}
+}
+
+func cookieExpireAsString(cheCluster *chev2.CheCluster) string {
+	cookieExpire := constants.DefaultOAuthProxyCookieExpireSeconds
+	if cheCluster.Spec.Networking.Auth.Gateway.OAuthProxy != nil && cheCluster.Spec.Networking.Auth.Gateway.OAuthProxy.CookieExpireSeconds != nil {
+		cookieExpire = *cheCluster.Spec.Networking.Auth.Gateway.OAuthProxy.CookieExpireSeconds
+	}
+
+	return fmt.Sprintf("%dh%dm%ds", cookieExpire/3600, cookieExpire%3600/60, cookieExpire%60)
 }

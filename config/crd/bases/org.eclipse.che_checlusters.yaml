@@ -7961,6 +7961,19 @@ spec:
                                 minimum: 0
                                 type: integer
                             type: object
+                          oAuthProxy:
+                            description: Configuration for oauth-proxy within the
+                              Che gateway pod.
+                            properties:
+                              cookieExpireSeconds:
+                                default: 86400
+                                description: Expire timeframe for cookie. If set to
+                                  0, cookie becomes a session-cookie which will expire
+                                  when the browser is closed.
+                                format: int32
+                                minimum: 0
+                                type: integer
+                            type: object
                           traefik:
                             description: Configuration for Traefik within the Che
                               gateway pod.
