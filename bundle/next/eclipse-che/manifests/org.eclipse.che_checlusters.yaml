@@ -4623,6 +4623,18 @@ spec:
                               description: Warning message displayed on the user dashboard.
                               type: string
                           type: object
+                        logLevel:
+                          default: ERROR
+                          description: The log level for the Dashboard.
+                          enum:
+                            - DEBUG
+                            - INFO
+                            - WARN
+                            - ERROR
+                            - FATAL
+                            - TRACE
+                            - SILENT
+                          type: string
                       type: object
                     devWorkspace:
                       description: DevWorkspace Operator configuration.
