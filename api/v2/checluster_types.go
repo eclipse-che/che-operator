@@ -311,6 +311,11 @@ type CheServer struct {
 // Configuration settings related to the Dashaboard used by the Che installation.
 // +k8s:openapi-gen=true
 type Dashboard struct {
+	// The log level for the Dashboard.
+	// +optional
+	// +kubebuilder:default:="ERROR"
+	// +kubebuilder:validation:Enum=DEBUG;INFO;WARN;ERROR;FATAL;TRACE;SILENT
+	LogLevel string `json:"logLevel,omitempty"`
 	// Deployment override options.
 	// +optional
 	Deployment *Deployment `json:"deployment,omitempty"`
