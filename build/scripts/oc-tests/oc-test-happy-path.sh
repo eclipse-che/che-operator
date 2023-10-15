@@ -23,8 +23,9 @@ trap "catchFinish" EXIT SIGINT
 runTests() {
   . ${OPERATOR_REPO}/build/scripts/olm/test-catalog-from-sources.sh --verbose
 
-  export HAPPY_PATH_USERSTORY=EmptyWorkspace
+  export HAPPY_PATH_USERSTORY=SmokeTest
   export HAPPY_PATH_SUITE=test
+  export MOCHA_DIRECTORY='.'
   bash <(curl -s ${DEVWORKSPACE_HAPPY_PATH}/remote-launch.sh)
 }
 
