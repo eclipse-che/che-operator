@@ -105,11 +105,15 @@ func updateWorkspaceConfig(ctx *chetypes.DeployContext, operatorConfig *controll
 
 	updateWorkspaceImagePullPolicy(devEnvironments.ImagePullPolicy, operatorConfig.Workspace)
 
+	// If the CheCluster has a configured proxy, or if the Che Operator has detected a proxy configuration,
+	// we need to disable automatic proxy handling in the DevWorkspace Operator as its implementation collides
+	// with ours -- they set environment variables the deployment spec explicitly, which overrides the proxy-settings
+	// automount configmap.
 	if ctx.Proxy.HttpProxy != "" || ctx.Proxy.HttpsProxy != "" {
 		if operatorConfig.Routing == nil {
 			operatorConfig.Routing = &controllerv1alpha1.RoutingConfig{}
 		}
-		updateProxyConfig(operatorConfig.Routing)
+		disableDWOProxy(operatorConfig.Routing)
 	}
 
 	operatorConfig.Workspace.DeploymentStrategy = v1.DeploymentStrategyType(utils.GetValue(string(devEnvironments.DeploymentStrategy), constants.DefaultDeploymentStrategy))
@@ -221,7 +225,7 @@ func updateProjectCloneConfig(devEnvironments *chev2.CheClusterDevEnvironments, 
 	workspaceConfig.ProjectCloneConfig.Resources = cheResourcesToCoreV1Resources(container.Resources)
 }
 
-func updateProxyConfig(routingConfig *controllerv1alpha1.RoutingConfig) {
+func disableDWOProxy(routingConfig *controllerv1alpha1.RoutingConfig) {
 	// Since we create proxy configmaps to mount proxy settings, we want to disable
 	// proxy handling in DWO; otherwise the env vars added by DWO will override the env
 	// vars we intend to mount via configmap.
