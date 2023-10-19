@@ -60,6 +60,7 @@ jobs:
           pip install yq
           pip install semver
           sudo apt-get -y -q install hub
+          hub --version
           # get base32 util from che-release project
           wget https://raw.githubusercontent.com/eclipse/che-release/master/utils/base32
           # copy base32 python-based helper script into dir that's accessed from PATH (so it's accessible to this and other called scripts)
@@ -80,7 +81,6 @@ jobs:
           echo "CHE_VERSION=${CHE_VERSION}"
           BRANCH=${CHE_VERSION%.*}.x
           echo "BRANCH=${BRANCH}"
-          hub version
           git config --global user.name "Mykhailo Kuznietsov"
           git config --global user.email "mkuznets@redhat.com"
           export GITHUB_TOKEN=${{ secrets.CHE_BOT_GITHUB_TOKEN }}
