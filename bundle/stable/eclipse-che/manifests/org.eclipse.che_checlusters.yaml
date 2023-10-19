@@ -4623,6 +4623,18 @@ spec:
                               description: Warning message displayed on the user dashboard.
                               type: string
                           type: object
+                        logLevel:
+                          default: ERROR
+                          description: The log level for the Dashboard.
+                          enum:
+                            - DEBUG
+                            - INFO
+                            - WARN
+                            - ERROR
+                            - FATAL
+                            - TRACE
+                            - SILENT
+                          type: string
                       type: object
                     devWorkspace:
                       description: DevWorkspace Operator configuration.
@@ -8174,6 +8186,19 @@ spec:
                                     container within the gateway pod. Larger values
                                     represent a higher verbosity. The default value
                                     is `0`.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
+                              type: object
+                            oAuthProxy:
+                              description: Configuration for oauth-proxy within the
+                                Che gateway pod.
+                              properties:
+                                cookieExpireSeconds:
+                                  default: 86400
+                                  description: Expire timeframe for cookie. If set
+                                    to 0, cookie becomes a session-cookie which will
+                                    expire when the browser is closed.
                                   format: int32
                                   minimum: 0
                                   type: integer
