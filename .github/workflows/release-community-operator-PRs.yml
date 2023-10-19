@@ -48,7 +48,6 @@ jobs:
           pip install yq
       - name: Release community operator PR
         run: |
-          hub version
           git config --global user.name "Mykhailo Kuznietsov"
           git config --global user.email "mkuznets@redhat.com"
           export GITHUB_TOKEN=${{ secrets.CHE_INCUBATOR_BOT_GITHUB_TOKEN }}
