@@ -33,6 +33,11 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+      - name: Set up environment
+        run: |
+          sudo apt-get update -y || true
+          sudo apt-get -y -q install curl bash git hub
+          hub --version
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
         with:
