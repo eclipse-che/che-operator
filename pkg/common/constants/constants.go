@@ -66,6 +66,7 @@ const (
 	BitBucketOAuthConfigMountPath              = "/che-conf/oauth/bitbucket"
 	BitBucketOAuthConfigPrivateKeyFileName     = "private.key"
 	BitBucketOAuthConfigConsumerKeyFileName    = "consumer.key"
+	GitHubOAuth                                = "github"
 	GitHubOAuthConfigMountPath                 = "/che-conf/oauth/github"
 	GitHubOAuthConfigClientIdFileName          = "id"
 	GitHubOAuthConfigClientSecretFileName      = "secret"

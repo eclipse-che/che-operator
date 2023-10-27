@@ -268,7 +268,13 @@ func MountBitBucketOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1.D
 }
 
 func MountGitHubOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1.Deployment) error {
-	secrets, err := getAllGitProviderOAuthConfigs(ctx, "github")
+	secrets, err := deploy.GetSecrets(ctx, map[string]string{
+		constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+		constants.KubernetesComponentLabelKey: constants.OAuthScmConfiguration,
+	}, map[string]string{
+		constants.CheEclipseOrgOAuthScmServer: constants.GitHubOAuth,
+	})
+
 	if err != nil {
 		return err
 	}
