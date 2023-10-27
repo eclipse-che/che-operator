@@ -26,20 +26,22 @@ func getComponentName(ctx *chetypes.DeployContext) string {
 }
 
 func getOAuthConfig(ctx *chetypes.DeployContext, oauthProvider string) (*corev1.Secret, error) {
-	secrets, err := deploy.GetSecrets(ctx, map[string]string{
+	if secrets, err := getAllGitProviderOAuthConfigs(ctx, oauthProvider); err != nil {
+		return nil, err
+	} else if len(secrets) == 0 {
+		return nil, nil
+	} else if len(secrets) == 1 {
+		return &secrets[0], nil
+	} else {
+		return nil, fmt.Errorf("More than 1 OAuth %s configuration secrets found", oauthProvider)
+	}
+}
+
+func getAllGitProviderOAuthConfigs(ctx *chetypes.DeployContext, oauthProvider string) ([]corev1.Secret, error) {
+	return deploy.GetSecrets(ctx, map[string]string{
 		constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
 		constants.KubernetesComponentLabelKey: constants.OAuthScmConfiguration,
 	}, map[string]string{
 		constants.CheEclipseOrgOAuthScmServer: oauthProvider,
 	})
-
-	if err != nil {
-		return nil, err
-	} else if len(secrets) == 0 {
-		return nil, nil
-	} else if len(secrets) > 1 {
-		return nil, fmt.Errorf("More than 1 OAuth %s configuration secrets found", oauthProvider)
-	}
-
-	return &secrets[0], nil
 }
