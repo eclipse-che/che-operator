@@ -12,6 +12,10 @@
 package server
 
 import (
+	"sort"
+	"strconv"
+	"strings"
+
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -264,22 +268,37 @@ func MountBitBucketOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1.D
 }
 
 func MountGitHubOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1.Deployment) error {
-	secret, err := getOAuthConfig(ctx, "github")
-	if secret == nil {
+	secrets, err := deploy.GetSecrets(ctx, map[string]string{
+		constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+		constants.KubernetesComponentLabelKey: constants.OAuthScmConfiguration,
+	}, map[string]string{
+		constants.CheEclipseOrgOAuthScmServer: constants.GitHubOAuth,
+	})
+
+	if err != nil {
 		return err
 	}
 
-	mountVolumes(deployment, secret, constants.GitHubOAuthConfigMountPath)
-	mountEnv(deployment, "CHE_OAUTH2_GITHUB_CLIENTID__FILEPATH", constants.GitHubOAuthConfigMountPath+"/"+constants.GitHubOAuthConfigClientIdFileName)
-	mountEnv(deployment, "CHE_OAUTH2_GITHUB_CLIENTSECRET__FILEPATH", constants.GitHubOAuthConfigMountPath+"/"+constants.GitHubOAuthConfigClientSecretFileName)
+	sort.Slice(secrets, func(i, j int) bool {
+		return strings.Compare(secrets[i].Annotations[constants.CheEclipseOrgScmServerEndpoint], secrets[j].Annotations[constants.CheEclipseOrgScmServerEndpoint]) < 0
+	})
 
-	oauthEndpoint := secret.Annotations[constants.CheEclipseOrgScmServerEndpoint]
-	if oauthEndpoint != "" {
-		mountEnv(deployment, "CHE_INTEGRATION_GITHUB_OAUTH__ENDPOINT", oauthEndpoint)
-	}
+	for i := 0; i < len(secrets); i++ {
+		secret := secrets[i]
+		suffix := map[bool]string{false: "__" + strconv.Itoa(i+1), true: ""}[i == 0]
 
-	if secret.Annotations[constants.CheEclipseOrgScmGitHubDisableSubdomainIsolation] != "" {
-		mountEnv(deployment, "CHE_INTEGRATION_GITHUB_DISABLE__SUBDOMAIN__ISOLATION", secret.Annotations[constants.CheEclipseOrgScmGitHubDisableSubdomainIsolation])
+		mountVolumes(deployment, &secret, constants.GitHubOAuthConfigMountPath+suffix)
+		mountEnv(deployment, "CHE_OAUTH2_GITHUB_CLIENTID__FILEPATH"+suffix, constants.GitHubOAuthConfigMountPath+suffix+"/"+constants.GitHubOAuthConfigClientIdFileName)
+		mountEnv(deployment, "CHE_OAUTH2_GITHUB_CLIENTSECRET__FILEPATH"+suffix, constants.GitHubOAuthConfigMountPath+suffix+"/"+constants.GitHubOAuthConfigClientSecretFileName)
+
+		oauthEndpoint := secret.Annotations[constants.CheEclipseOrgScmServerEndpoint]
+		if oauthEndpoint != "" {
+			mountEnv(deployment, "CHE_INTEGRATION_GITHUB_OAUTH__ENDPOINT"+suffix, oauthEndpoint)
+		}
+
+		if secret.Annotations[constants.CheEclipseOrgScmGitHubDisableSubdomainIsolation] != "" {
+			mountEnv(deployment, "CHE_INTEGRATION_GITHUB_DISABLE__SUBDOMAIN__ISOLATION"+suffix, secret.Annotations[constants.CheEclipseOrgScmGitHubDisableSubdomainIsolation])
+		}
 	}
 
 	return nil
