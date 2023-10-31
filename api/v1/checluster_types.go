@@ -1001,7 +1001,7 @@ type CheCluster struct {
 	Status CheClusterStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 // CheClusterList contains a list of CheCluster
 type CheClusterList struct {
 	metav1.TypeMeta `json:",inline"`
