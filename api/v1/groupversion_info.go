@@ -11,8 +11,8 @@
 //
 
 // Package v1 contains API Schema definitions for the org.eclipse.che v1 API group
-//+kubebuilder:object:generate=true
-//+groupName=org.eclipse.che
+// +kubebuilder:object:generate=true
+// +groupName=org.eclipse.che
 package v1
 
 import (

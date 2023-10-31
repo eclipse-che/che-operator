@@ -36,9 +36,9 @@ const (
 // that have been set by the operator in the past as defaults.
 // All those defaults are moved to environment variables in the operator deployment now.
 // The purpose of this are the following:
-// - productization needs, downstream version of the operator can have different defaults
-// - possibility to change defaults, it allows to have new values after upgrading the operator, because
-//   previous ones are not relevant anymore and can't be changed once the CR is created
+//   - productization needs, downstream version of the operator can have different defaults
+//   - possibility to change defaults, it allows to have new values after upgrading the operator, because
+//     previous ones are not relevant anymore and can't be changed once the CR is created
 type CheClusterDefaultsCleaner struct {
 	deploy.Reconcilable
 	cleanUpTasks []CleanUpTask
