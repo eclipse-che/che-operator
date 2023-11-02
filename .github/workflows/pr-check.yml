@@ -77,7 +77,6 @@ jobs:
         fi
     - name: Check format
       run: |
-        PATH=$PATH:$GOROOT/bin
         go install golang.org/x/tools/cmd/goimports@latest
         go install github.com/che-incubator/check-license-header@379ba18fdb906d341ae451ea155cc34f1c4b4f1a
         git reset HEAD --hard
