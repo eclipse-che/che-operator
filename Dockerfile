@@ -52,7 +52,7 @@ RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH=
 # https://registry.access.redhat.com/ubi8-minimal
 FROM registry.access.redhat.com/ubi8-minimal:8.8-1072
 
-RUN microdnf -y -q update && \
+RUN microdnf -y update && \
     microdnf -y clean all && rm -rf /var/cache/yum
 
 COPY --from=builder /tmp/header-rewrite-traefik-plugin /tmp/header-rewrite-traefik-plugin
