@@ -132,19 +132,16 @@ do
 
   echo
   template_file="https://raw.githubusercontent.com/redhat-openshift-ecosystem/community-operators-prod/${base_branch}/docs/pull_request_template.md"
-  HUB=$(command -v hub 2>/dev/null)
+  GH=$(command -v gh 2>/dev/null)
   upstream_org="redhat-openshift-ecosystem"
-  if [[ $HUB ]] && [[ -x $HUB ]]; then
-    echo "   - Use $HUB to generate PR from template: ${template_file}"
+  if [[ $GH ]] && [[ -x $GH ]]; then
+    echo "   - Use $GH to generate PR from template: ${template_file}"
     PRbody=$(curl -sSLo - ${template_file} | \
     sed -r -n '/#+ Updates to existing Operators/,$p' | sed -r -e "s#\[\ \]#[x]#g")
 
-    lastCommitComment="$(git log -1 --pretty=%B)"
-  $HUB pull-request -f -m "${lastCommitComment}
-
-${PRbody}" -b "${upstream_org}:${base_branch}" -h "${fork_org}:${branch}"
+    $GH pr create -b "${PRbody}" -B "${upstream_org}:${base_branch}" -H "${fork_org}:${branch}"
   else
-    echo "hub is not installed. Install it from https://hub.github.com/ or submit PR manually using PR template:
+    echo "gh is not installed. Install it from https://hub.github.com/ or submit PR manually using PR template:
 ${template_file}
 
 ${GIT_REMOTE_FORK_CLEAN}/pull/new/${branch}
