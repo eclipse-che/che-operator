@@ -40,8 +40,7 @@ jobs:
       - name: Set up environment
         run: |
           sudo apt-get update -y || true
-          sudo apt-get -y -q install curl bash git hub
-          hub --version
+          sudo apt-get -y -q install curl bash git
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
         with:

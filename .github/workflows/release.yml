@@ -54,13 +54,12 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: 3.9
-      - name: Install operator courier, yq, hub and base32 wrapper
+      - name: Install operator courier, yq and base32 wrapper
         run: |
           python -m pip install --upgrade pip
           pip install yq
           pip install semver
-          sudo apt-get -y -q install hub
-          hub --version
+          sudo apt-get -y -q install
           # get base32 util from che-release project
           wget https://raw.githubusercontent.com/eclipse/che-release/master/utils/base32
           # copy base32 python-based helper script into dir that's accessed from PATH (so it's accessible to this and other called scripts)
