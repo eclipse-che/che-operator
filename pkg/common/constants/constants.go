@@ -53,12 +53,10 @@ const (
 	DefaultServerTrustStoreConfigMapName   = "ca-certs"
 	DefaultProxyCredentialsSecret          = "proxy-credentials"
 	DefaultGitSelfSignedCertsConfigMapName = "che-git-self-signed-cert"
-	// -Dcom.redhat.fips=false workaround allows to run che-server on OpenShift with FIPS enabled
-	// See https://issues.redhat.com/browse/CRW-3301
-	DefaultJavaOpts                 = "-XX:MaxRAMPercentage=85.0 -Dcom.redhat.fips=false"
-	DefaultSecurityContextFsGroup   = 1724
-	DefaultSecurityContextRunAsUser = 1724
-	DefaultCheServiceAccountName    = "che"
+	DefaultJavaOpts                        = "-XX:MaxRAMPercentage=85.0"
+	DefaultSecurityContextFsGroup          = 1724
+	DefaultSecurityContextRunAsUser        = 1724
+	DefaultCheServiceAccountName           = "che"
 
 	// OAuth
 	BitBucketOAuthConfigClientIdFileName       = "id"
