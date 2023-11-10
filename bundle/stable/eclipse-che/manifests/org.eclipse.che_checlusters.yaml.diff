@@ -1,41 +1,9 @@
---- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che/generated/openshift/org.eclipse.che_checlusters.yaml	2023-10-19 00:08:36.149321105 +0000
-+++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che/manifests/org.eclipse.che_checlusters.yaml	2023-10-19 00:08:36.161321186 +0000
-@@ -4623,6 +4623,18 @@
-                               description: Warning message displayed on the user dashboard.
-                               type: string
-                           type: object
-+                        logLevel:
-+                          default: ERROR
-+                          description: The log level for the Dashboard.
-+                          enum:
-+                            - DEBUG
-+                            - INFO
-+                            - WARN
-+                            - ERROR
-+                            - FATAL
-+                            - TRACE
-+                            - SILENT
-+                          type: string
-                       type: object
-                     devWorkspace:
-                       description: DevWorkspace Operator configuration.
-@@ -8177,6 +8189,19 @@
-                                   format: int32
-                                   minimum: 0
-                                   type: integer
-+                              type: object
-+                            oAuthProxy:
-+                              description: Configuration for oauth-proxy within the
-+                                Che gateway pod.
-+                              properties:
-+                                cookieExpireSeconds:
-+                                  default: 86400
-+                                  description: Expire timeframe for cookie. If set
-+                                    to 0, cookie becomes a session-cookie which will
-+                                    expire when the browser is closed.
-+                                  format: int32
-+                                  minimum: 0
-+                                  type: integer
-                               type: object
-                             traefik:
-                               description: Configuration for Traefik within the Che
+--- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che/generated/openshift/org.eclipse.che_checlusters.yaml	2023-11-10 01:54:42.322268215 +0000
++++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che/manifests/org.eclipse.che_checlusters.yaml	2023-11-10 01:54:42.330268353 +0000
+@@ -1,5 +1,5 @@
+ #
+-# Copyright (c) 2019-2022 Red Hat, Inc.
++# Copyright (c) 2019-2023 Red Hat, Inc.
+ # This program and the accompanying materials are made
+ # available under the terms of the Eclipse Public License 2.0
+ # which is available at https://www.eclipse.org/legal/epl-2.0/
