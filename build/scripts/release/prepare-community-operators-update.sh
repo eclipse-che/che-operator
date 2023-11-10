@@ -139,7 +139,7 @@ do
     PRbody=$(curl -sSLo - ${template_file} | \
     sed -r -n '/#+ Updates to existing Operators/,$p' | sed -r -e "s#\[\ \]#[x]#g")
 
-    $GH pr create -b "${PRbody}" -B "${upstream_org}:${base_branch}" -H "${fork_org}:${branch}"
+    $GH pr create -f -b "${PRbody}" -B "${upstream_org}:${base_branch}" -H "${fork_org}:${branch}"
   else
     echo "gh is not installed. Install it from https://hub.github.com/ or submit PR manually using PR template:
 ${template_file}
