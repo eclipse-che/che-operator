@@ -146,7 +146,79 @@ func TestMountSecret(t *testing.T) {
 			},
 		},
 		{
-			name: "Mount env variable",
+			name: "Mount secret as subpath",
+			initDeployment: &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "che",
+					ResourceVersion: "0",
+				},
+				Spec: appsv1.DeploymentSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{{}},
+						},
+					},
+				},
+			},
+			expectedDeployment: &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "che",
+					ResourceVersion: "0",
+				},
+				Spec: appsv1.DeploymentSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Volumes: []corev1.Volume{
+								{
+									Name: "test-volume",
+									VolumeSource: corev1.VolumeSource{
+										Secret: &corev1.SecretVolumeSource{
+											SecretName: "test-volume",
+										},
+									},
+								},
+							},
+							Containers: []corev1.Container{
+								{
+									VolumeMounts: []corev1.VolumeMount{
+										{
+											Name:      "test-volume",
+											MountPath: "/test-path/key",
+											SubPath:   "key",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			initObjects: []runtime.Object{
+				&corev1.Secret{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "Secret",
+						APIVersion: "v1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-volume",
+						Namespace: "eclipse-che",
+						Labels: map[string]string{
+							constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+							constants.KubernetesComponentLabelKey: "che-secret", // corresponds to deployment name
+						},
+						Annotations: map[string]string{
+							constants.CheEclipseOrgMountAs:   "subpath",
+							constants.CheEclipseOrgMountPath: "/test-path",
+						},
+					},
+					Data: map[string][]byte{
+						"key": []byte("key-data"),
+					},
+				},
+			},
+		},
+		{
+			name: "Mount secret as env variable",
 			initDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "che",
