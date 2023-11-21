@@ -427,6 +427,36 @@ func MountConfigMaps(specDeployment *appsv1.Deployment, deployContext *chetypes.
 			specDeployment.Spec.Template.Spec.Volumes = append(specDeployment.Spec.Template.Spec.Volumes, volume)
 			container.VolumeMounts = append(container.VolumeMounts, volumeMount)
 
+		case "subpath":
+			volumeSource := corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: configMapObj.Name,
+					},
+				},
+			}
+
+			volume := corev1.Volume{
+				Name:         configMapObj.Name,
+				VolumeSource: volumeSource,
+			}
+			specDeployment.Spec.Template.Spec.Volumes = append(specDeployment.Spec.Template.Spec.Volumes, volume)
+
+			for fileName, _ := range configMapObj.Data {
+				mountPath := configMapObj.Annotations[constants.CheEclipseOrgMountPath]
+				if strings.HasSuffix(mountPath, "/") {
+					mountPath += fileName
+				} else {
+					mountPath += "/" + fileName
+				}
+				volumeMount := corev1.VolumeMount{
+					Name:      configMapObj.Name,
+					MountPath: mountPath,
+					SubPath:   fileName,
+				}
+				container.VolumeMounts = append(container.VolumeMounts, volumeMount)
+			}
+
 		case "env":
 			configmap := &corev1.ConfigMap{}
 			exists, err := GetNamespacedObject(deployContext, configMapObj.Name, configmap)
