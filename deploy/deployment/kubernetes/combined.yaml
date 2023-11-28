@@ -7728,6 +7728,38 @@ spec:
                           component: che-gateway-config
                     description: Authentication settings.
                     properties:
+                      advancedAuthorization:
+                        description: Advance authorization settings. Determines which
+                          users and groups are allowed to access Che. User is allowed
+                          to access Che if he/she is either in the `allowedUsers`
+                          or is member of one of group from `allowedGroups` and not
+                          in neither the `disabledUsers` nor is member of one of group
+                          from `disabledGroups`. If `allowedUsers` and `allowedGroups`
+                          are empty, then all users are allowed to access Che by default.
+                          if `disabledUsers` and `disabledGroups` are empty, then
+                          no users are disallowed to access Che by default.
+                        properties:
+                          allowedGroups:
+                            description: List of groups allowed to access Che.
+                            items:
+                              type: string
+                            type: array
+                          allowedUsers:
+                            description: List of users allowed to access Che.
+                            items:
+                              type: string
+                            type: array
+                          disabledGroups:
+                            description: List of groups disabled to access Che.
+                            items:
+                              type: string
+                            type: array
+                          disabledUsers:
+                            description: List of users disabled to access Che.
+                            items:
+                              type: string
+                            type: array
+                        type: object
                       gateway:
                         default:
                           configLabels:
@@ -8432,6 +8464,12 @@ rules:
   verbs:
   - list
   - delete
+- apiGroups:
+  - user.openshift.io
+  resources:
+  - groups
+  verbs:
+  - get
 - apiGroups:
   - user.openshift.io
   resources:

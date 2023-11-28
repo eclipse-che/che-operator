@@ -219,6 +219,14 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 	}
 	err = json.Unmarshal(out, &cheEnv)
 
+	// Advanced authorization
+	if ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization != nil {
+		cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_ALLOWED__USERS"] = strings.Join(ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.AllowedUsers, ",")
+		cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_ALLOWED__GROUPS"] = strings.Join(ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.AllowedGroups, ",")
+		cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_DISABLED__USERS"] = strings.Join(ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.DisabledUsers, ",")
+		cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_DISABLED__GROUPS"] = strings.Join(ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.DisabledGroups, ",")
+	}
+
 	// k8s specific envs
 	if !infrastructure.IsOpenShift() {
 		k8sCheEnv := map[string]string{
@@ -298,7 +306,7 @@ func GetCheConfigMapVersion(deployContext *chetypes.DeployContext) string {
 }
 
 func (s *CheServerReconciler) updateUserClusterRoles(ctx *chetypes.DeployContext, cheEnv map[string]string) {
-	userClusterRoles := strings.Join(s.getUserClusterRoles(ctx), ", ")
+	userClusterRoles := strings.Join(s.getDefaultUserClusterRoles(ctx), ", ")
 
 	for _, role := range strings.Split(cheEnv["CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"], ",") {
 		role := strings.TrimSpace(role)

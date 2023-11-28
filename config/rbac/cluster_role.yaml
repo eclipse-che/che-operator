@@ -67,6 +67,12 @@ rules:
   - apiGroups:
       - user.openshift.io
     resources:
+      - groups
+    verbs:
+      - get
+  - apiGroups:
+      - user.openshift.io
+    resources:
       - identities
     verbs:
       - delete

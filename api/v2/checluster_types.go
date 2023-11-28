@@ -524,6 +524,28 @@ type Auth struct {
 	// +optional
 	// +kubebuilder:default:={configLabels: {app: che, component: che-gateway-config}}
 	Gateway Gateway `json:"gateway,omitempty"`
+	// Advance authorization settings. Determines which users and groups are allowed to access Che.
+	// User is allowed to access Che if he/she is either in the `allowedUsers` or is member of one of group from `allowedGroups`
+	// and not in neither the `disabledUsers` nor is member of one of group from `disabledGroups`.
+	// If `allowedUsers` and `allowedGroups` are empty, then all users are allowed to access Che by default.
+	// if `disabledUsers` and `disabledGroups` are empty, then no users are disallowed to access Che by default.
+	// +optional
+	AdvancedAuthorization *AdvancedAuthorization `json:"advancedAuthorization,omitempty"`
+}
+
+type AdvancedAuthorization struct {
+	// List of users allowed to access Che.
+	// +optional
+	AllowedUsers []string `json:"allowedUsers,omitempty"`
+	// List of groups allowed to access Che.
+	// +optional
+	AllowedGroups []string `json:"allowedGroups,omitempty"`
+	// List of users disabled to access Che.
+	// +optional
+	DisabledUsers []string `json:"disabledUsers,omitempty"`
+	// List of groups disabled to access Che.
+	// +optional
+	DisabledGroups []string `json:"disabledGroups,omitempty"`
 }
 
 // Gateway settings.

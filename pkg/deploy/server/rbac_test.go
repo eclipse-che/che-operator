@@ -68,9 +68,9 @@ func TestSyncPermissions(t *testing.T) {
 			assert.Nil(t, err)
 
 			names := []string{
-				fmt.Sprintf(commonPermissionsTemplateName, ctx.CheCluster.Namespace),
-				fmt.Sprintf(namespacePermissionsTemplateName, ctx.CheCluster.Namespace),
-				fmt.Sprintf(devWorkspacePermissionsTemplateName, ctx.CheCluster.Namespace),
+				fmt.Sprintf(userCommonPermissionsTemplateName, ctx.CheCluster.Namespace),
+				fmt.Sprintf(cheSASpecificPermissionsTemplateName, ctx.CheCluster.Namespace),
+				fmt.Sprintf(userDevWorkspacePermissionsTemplateName, ctx.CheCluster.Namespace),
 			}
 
 			for _, name := range names {
