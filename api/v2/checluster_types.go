@@ -537,13 +537,13 @@ type AdvancedAuthorization struct {
 	// List of users allowed to access Che.
 	// +optional
 	AllowedUsers []string `json:"allowedUsers,omitempty"`
-	// List of groups allowed to access Che.
+	// List of groups allowed to access Che (currently supported for OpenShift only).
 	// +optional
 	AllowedGroups []string `json:"allowedGroups,omitempty"`
 	// List of users disabled to access Che.
 	// +optional
 	DisabledUsers []string `json:"disabledUsers,omitempty"`
-	// List of groups disabled to access Che.
+	// List of groups disabled to access Che (currently supported for OpenShift only).
 	// +optional
 	DisabledGroups []string `json:"disabledGroups,omitempty"`
 }

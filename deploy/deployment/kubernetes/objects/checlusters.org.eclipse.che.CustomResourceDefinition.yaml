@@ -7735,7 +7735,8 @@ spec:
                           no users are disallowed to access Che by default.
                         properties:
                           allowedGroups:
-                            description: List of groups allowed to access Che.
+                            description: List of groups allowed to access Che (currently
+                              supported for OpenShift only).
                             items:
                               type: string
                             type: array
@@ -7745,7 +7746,8 @@ spec:
                               type: string
                             type: array
                           disabledGroups:
-                            description: List of groups disabled to access Che.
+                            description: List of groups disabled to access Che (currently
+                              supported for OpenShift only).
                             items:
                               type: string
                             type: array

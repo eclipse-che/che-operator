@@ -34,11 +34,13 @@ unset CATALOG_IMAGE
 
 init() {
   unset VERBOSE
+  unset CR_PATCH_YAML
 
   while [[ "$#" -gt 0 ]]; do
     case $1 in
       '--help'|'-h') usage; exit;;
       '--verbose'|'-v') VERBOSE=1;;
+      '--cr-patch-yaml') CR_PATCH_YAML=$2; shift 1;;
     esac
     shift 1
   done
@@ -53,10 +55,11 @@ usage () {
   echo "Deploy Eclipse Che from sources"
   echo
 	echo "Usage:"
-	echo -e "\t$0 [--verbose]"
+	echo -e "\t$0 [--verbose] [--cr-patch-yaml <path_to_cr_patch>]"
   echo
   echo "OPTIONS:"
   echo -e "\t-v,--verbose             Verbose mode"
+  echo -e "\t--cr-patch-yaml          CheCluster CR patch yaml file"
   echo
 	echo "Example:"
 	echo -e "\t$0"
@@ -163,8 +166,12 @@ run() {
     VERBOSE=${VERBOSE}
   make wait-pod-running NAMESPACE="${NAMESPACE}" SELECTOR="app.kubernetes.io/component=che-operator"
 
-  if [[ $(oc get checluster -n eclipse-che --no-headers | wc -l) == 0 ]]; then
+  if [[ $(oc get checluster -n "${NAMESPACE}" --no-headers | wc -l) == 0 ]]; then
     getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
+    if [[ -n ${CR_PATCH_YAML} ]]; then
+      patch=$(yq -r "." "${CR_PATCH_YAML}" | tr -d "\n" )
+      oc patch checluster eclipse-che -n "${NAMESPACE}" --type='merge' -p "${patch}"
+    fi
   fi
   make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE="${NAMESPACE}" VERBOSE=${VERBOSE}
 }
