@@ -186,7 +186,7 @@ func (s *CheServerReconciler) getCheSASpecificPolicies() []rbacv1.PolicyRule {
 		{
 			APIGroups: []string{"authorization.openshift.io"},
 			Resources: []string{"rolebindings"},
-			Verbs:     []string{"get", "create", "update"},
+			Verbs:     []string{"get", "create", "update", "delete"},
 		},
 	}
 
