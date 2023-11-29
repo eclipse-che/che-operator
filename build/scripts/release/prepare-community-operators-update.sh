@@ -125,7 +125,8 @@ do
   echo "   - Commit changes"
   cd "${communityOperatorsLocalGitFolder}"
   git add --all
-  git commit -s -m "Update eclipse-che operator to release ${LAST_PACKAGE_VERSION}"
+  commitMsg="Update eclipse-che operator to release ${LAST_PACKAGE_VERSION}"
+  git commit -s -m "${commitMsg}"
   echo
   echo "   - Push branch ${branch} to ${GIT_REMOTE_FORK_CLEAN}"
   git push ${FORCE} origin "${branch}"
@@ -139,7 +140,7 @@ do
     PRbody=$(curl -sSLo - ${template_file} | \
     sed -r -n '/#+ Updates to existing Operators/,$p' | sed -r -e "s#\[\ \]#[x]#g")
 
-    $GH pr create -f -b "${PRbody}" -B "${upstream_org}:${base_branch}" -H "${fork_org}:${branch}"
+    $GH pr create --title "${commitMsg}" --body "${PRbody}" -H "${fork_org}:${branch}"
   else
     echo "gh is not installed. Install it from https://hub.github.com/ or submit PR manually using PR template:
 ${template_file}
