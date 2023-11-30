@@ -221,10 +221,10 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 
 	// Advanced authorization
 	if ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization != nil {
-		cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_ALLOWED__USERS"] = strings.Join(ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.AllowedUsers, ",")
-		cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_ALLOWED__GROUPS"] = strings.Join(ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.AllowedGroups, ",")
-		cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_DISABLED__USERS"] = strings.Join(ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.DisabledUsers, ",")
-		cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_DISABLED__GROUPS"] = strings.Join(ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.DisabledGroups, ",")
+		cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_ALLOW__USERS"] = strings.Join(ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.AllowUsers, ",")
+		cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_ALLOW__GROUPS"] = strings.Join(ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.AllowGroups, ",")
+		cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_DENY__USERS"] = strings.Join(ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.DenyUsers, ",")
+		cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_DENY__GROUPS"] = strings.Join(ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.DenyGroups, ",")
 	}
 
 	// k8s specific envs

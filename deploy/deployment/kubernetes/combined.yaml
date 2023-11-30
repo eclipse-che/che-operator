@@ -7739,25 +7739,25 @@ spec:
                           if `disabledUsers` and `disabledGroups` are empty, then
                           no users are disallowed to access Che by default.
                         properties:
-                          allowedGroups:
+                          allowGroups:
                             description: List of groups allowed to access Che (currently
-                              supported for OpenShift only).
+                              supported in OpenShift only).
                             items:
                               type: string
                             type: array
-                          allowedUsers:
+                          allowUsers:
                             description: List of users allowed to access Che.
                             items:
                               type: string
                             type: array
-                          disabledGroups:
-                            description: List of groups disabled to access Che (currently
-                              supported for OpenShift only).
+                          denyGroups:
+                            description: List of groups denied to access Che (currently
+                              supported in OpenShift only).
                             items:
                               type: string
                             type: array
-                          disabledUsers:
-                            description: List of users disabled to access Che.
+                          denyUsers:
+                            description: List of users denied to access Che.
                             items:
                               type: string
                             type: array
