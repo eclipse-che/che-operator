@@ -28,18 +28,18 @@ import (
 )
 
 const (
-	commonPermissionsTemplateName       = "%s-cheworkspaces-clusterrole"
-	namespacePermissionsTemplateName    = "%s-cheworkspaces-namespaces-clusterrole"
-	devWorkspacePermissionsTemplateName = "%s-cheworkspaces-devworkspace-clusterrole"
+	userCommonPermissionsTemplateName       = "%s-cheworkspaces-clusterrole"
+	userDevWorkspacePermissionsTemplateName = "%s-cheworkspaces-devworkspace-clusterrole"
+	cheSASpecificPermissionsTemplateName    = "%s-cheworkspaces-namespaces-clusterrole"
 )
 
 // Create ClusterRole and ClusterRoleBinding for "che" service account.
 // che-server uses "che" service account for creation RBAC for a user in his namespace.
 func (s *CheServerReconciler) syncPermissions(ctx *chetypes.DeployContext) (bool, error) {
 	policies := map[string][]rbacv1.PolicyRule{
-		fmt.Sprintf(commonPermissionsTemplateName, ctx.CheCluster.Namespace):       s.getCommonPolicies(),
-		fmt.Sprintf(namespacePermissionsTemplateName, ctx.CheCluster.Namespace):    s.getNamespaceEditorPolicies(),
-		fmt.Sprintf(devWorkspacePermissionsTemplateName, ctx.CheCluster.Namespace): s.getDevWorkspacePolicies(),
+		fmt.Sprintf(userCommonPermissionsTemplateName, ctx.CheCluster.Namespace):       s.getUserCommonPolicies(),
+		fmt.Sprintf(cheSASpecificPermissionsTemplateName, ctx.CheCluster.Namespace):    s.getCheSASpecificPolicies(),
+		fmt.Sprintf(userDevWorkspacePermissionsTemplateName, ctx.CheCluster.Namespace): s.getUserDevWorkspacePolicies(),
 	}
 
 	for name, policy := range policies {
@@ -87,9 +87,9 @@ func (s *CheServerReconciler) syncPermissions(ctx *chetypes.DeployContext) (bool
 
 func (s *CheServerReconciler) deletePermissions(ctx *chetypes.DeployContext) bool {
 	names := []string{
-		fmt.Sprintf(commonPermissionsTemplateName, ctx.CheCluster.Namespace),
-		fmt.Sprintf(namespacePermissionsTemplateName, ctx.CheCluster.Namespace),
-		fmt.Sprintf(devWorkspacePermissionsTemplateName, ctx.CheCluster.Namespace),
+		fmt.Sprintf(userCommonPermissionsTemplateName, ctx.CheCluster.Namespace),
+		fmt.Sprintf(cheSASpecificPermissionsTemplateName, ctx.CheCluster.Namespace),
+		fmt.Sprintf(userDevWorkspacePermissionsTemplateName, ctx.CheCluster.Namespace),
 	}
 
 	done := true
@@ -126,7 +126,7 @@ func (s *CheServerReconciler) deletePermissions(ctx *chetypes.DeployContext) boo
 	return done
 }
 
-func (s *CheServerReconciler) getDevWorkspacePolicies() []rbacv1.PolicyRule {
+func (s *CheServerReconciler) getUserDevWorkspacePolicies() []rbacv1.PolicyRule {
 	k8sPolicies := []rbacv1.PolicyRule{
 		{
 			APIGroups: []string{"workspace.devfile.io"},
@@ -138,12 +138,27 @@ func (s *CheServerReconciler) getDevWorkspacePolicies() []rbacv1.PolicyRule {
 	return k8sPolicies
 }
 
-func (s *CheServerReconciler) getNamespaceEditorPolicies() []rbacv1.PolicyRule {
+func (s *CheServerReconciler) getCheSASpecificPolicies() []rbacv1.PolicyRule {
 	k8sPolicies := []rbacv1.PolicyRule{
 		{
 			APIGroups: []string{""},
 			Resources: []string{"namespaces"},
 			Verbs:     []string{"get", "create", "update", "list"},
+		},
+		{
+			APIGroups: []string{""},
+			Resources: []string{"serviceaccounts"},
+			Verbs:     []string{"get", "watch", "create"},
+		},
+		{
+			APIGroups: []string{"rbac.authorization.k8s.io"},
+			Resources: []string{"roles"},
+			Verbs:     []string{"get", "create", "update"},
+		},
+		{
+			APIGroups: []string{"rbac.authorization.k8s.io"},
+			Resources: []string{"rolebindings"},
+			Verbs:     []string{"get", "create", "update", "delete"},
 		},
 	}
 
@@ -158,6 +173,21 @@ func (s *CheServerReconciler) getNamespaceEditorPolicies() []rbacv1.PolicyRule {
 			Resources: []string{"projects"},
 			Verbs:     []string{"get", "list"},
 		},
+		{
+			APIGroups: []string{"user.openshift.io"},
+			Resources: []string{"groups"},
+			Verbs:     []string{"get"},
+		},
+		{
+			APIGroups: []string{"authorization.openshift.io"},
+			Resources: []string{"roles"},
+			Verbs:     []string{"get", "create", "update"},
+		},
+		{
+			APIGroups: []string{"authorization.openshift.io"},
+			Resources: []string{"rolebindings"},
+			Verbs:     []string{"get", "create", "update", "delete"},
+		},
 	}
 
 	if infrastructure.IsOpenShift() {
@@ -166,13 +196,8 @@ func (s *CheServerReconciler) getNamespaceEditorPolicies() []rbacv1.PolicyRule {
 	return k8sPolicies
 }
 
-func (s *CheServerReconciler) getCommonPolicies() []rbacv1.PolicyRule {
+func (s *CheServerReconciler) getUserCommonPolicies() []rbacv1.PolicyRule {
 	k8sPolicies := []rbacv1.PolicyRule{
-		{
-			APIGroups: []string{""},
-			Resources: []string{"serviceaccounts"},
-			Verbs:     []string{"get", "watch", "create"},
-		},
 		{
 			APIGroups: []string{""},
 			Resources: []string{"pods/exec"},
@@ -239,16 +264,6 @@ func (s *CheServerReconciler) getCommonPolicies() []rbacv1.PolicyRule {
 			Verbs:     []string{"get", "list", "watch", "create", "delete"},
 		},
 		{
-			APIGroups: []string{"rbac.authorization.k8s.io"},
-			Resources: []string{"roles"},
-			Verbs:     []string{"get", "create", "update"},
-		},
-		{
-			APIGroups: []string{"rbac.authorization.k8s.io"},
-			Resources: []string{"rolebindings"},
-			Verbs:     []string{"get", "create", "update"},
-		},
-		{
 			APIGroups: []string{"metrics.k8s.io"},
 			Resources: []string{"pods", "nodes"},
 			Verbs:     []string{"get", "list", "watch"},
@@ -271,16 +286,6 @@ func (s *CheServerReconciler) getCommonPolicies() []rbacv1.PolicyRule {
 			Verbs:     []string{"get", "list", "create", "delete"},
 		},
 		{
-			APIGroups: []string{"authorization.openshift.io"},
-			Resources: []string{"roles"},
-			Verbs:     []string{"get", "create", "update"},
-		},
-		{
-			APIGroups: []string{"authorization.openshift.io"},
-			Resources: []string{"rolebindings"},
-			Verbs:     []string{"get", "create", "update"},
-		},
-		{
 			APIGroups: []string{"project.openshift.io"},
 			Resources: []string{"projects"},
 			Verbs:     []string{"get"},
@@ -293,9 +298,9 @@ func (s *CheServerReconciler) getCommonPolicies() []rbacv1.PolicyRule {
 	return k8sPolicies
 }
 
-func (s *CheServerReconciler) getUserClusterRoles(ctx *chetypes.DeployContext) []string {
+func (s *CheServerReconciler) getDefaultUserClusterRoles(ctx *chetypes.DeployContext) []string {
 	return []string{
-		fmt.Sprintf(commonPermissionsTemplateName, ctx.CheCluster.Namespace),
-		fmt.Sprintf(devWorkspacePermissionsTemplateName, ctx.CheCluster.Namespace),
+		fmt.Sprintf(userCommonPermissionsTemplateName, ctx.CheCluster.Namespace),
+		fmt.Sprintf(userDevWorkspacePermissionsTemplateName, ctx.CheCluster.Namespace),
 	}
 }

@@ -21,16 +21,26 @@ che-operator Development Guide: https://github.com/eclipse-che/che-operator/#dev
   - steps to reproduce
  -->
 
+1. Prepare a patch file if needed:
 ```bash
-cat > /tmp/patch.yaml <<EOF
-<PATCH_CONTENT>
+cat > /tmp/cr-patch.yaml <<EOF
+apiVersion: org.eclipse.che/v2
+kind: CheCluster
+spec: {}
 EOF
+```
 
-chectl server:deploy \
-     --installer operator \
-     --platform <PLATFORM_TO_DEPLOY> \
-     --che-operator-image <CUSTOM_OPERATOR_IMAGE> \
-     --che-operator-cr-patch-yaml /tmp/patch.yaml
+2. Deploy the operator:
+ 
+#### OpenShift
+```bash
+./build/scripts/olm/test-catalog-from-sources.sh --cr-patch-yaml /tmp/cr-patch.yaml
+```
+
+#### on Minikube
+
+```bash
+./build/scripts/minikube-tests/test-operator-from-sources.sh --cr-patch-yaml /tmp/cr-patch.yaml
 ```
 
 ### PR Checklist

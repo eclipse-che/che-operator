@@ -7709,6 +7709,40 @@ spec:
                           component: che-gateway-config
                     description: Authentication settings.
                     properties:
+                      advancedAuthorization:
+                        description: Advance authorization settings. Determines which
+                          users and groups are allowed to access Che. User is allowed
+                          to access Che if he/she is either in the `allowUsers` list
+                          or is member of group from `allowGroups` list and not in
+                          neither the `denyUsers` list nor is member of group from
+                          `denyGroups` list. If `allowUsers` and `allowGroups` are
+                          empty, then all users are allowed to access Che. if `denyUsers`
+                          and `denyGroups` are empty, then no users are denied to
+                          access Che.
+                        properties:
+                          allowGroups:
+                            description: List of groups allowed to access Che (currently
+                              supported in OpenShift only).
+                            items:
+                              type: string
+                            type: array
+                          allowUsers:
+                            description: List of users allowed to access Che.
+                            items:
+                              type: string
+                            type: array
+                          denyGroups:
+                            description: List of groups denied to access Che (currently
+                              supported in OpenShift only).
+                            items:
+                              type: string
+                            type: array
+                          denyUsers:
+                            description: List of users denied to access Che.
+                            items:
+                              type: string
+                            type: array
+                        type: object
                       gateway:
                         default:
                           configLabels:
