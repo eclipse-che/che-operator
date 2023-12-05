@@ -142,9 +142,9 @@
        image: quay.io/brancz/kube-rbac-proxy@sha256:738c854322f56d63ebab75de5210abcdd5e0782ce2d30c0ecd4620f63b24694d
        # tag: quay.io/brancz/kube-rbac-proxy:v0.13.1
 @@ -1348,18 +1348,18 @@
-     - name: che--traefik-v2.9.6-bb7be8d50edf73d8d3a812ac8873ef354a0fe9b40d7f3880747b43a3525855d2
+     - name: che--traefik-v2.9.10-8d81a9df1435f9f3d36ac9398465ef2d5d61e671059974db753faaed14b627de
        image: quay.io/eclipse/che--traefik@sha256:bb7be8d50edf73d8d3a812ac8873ef354a0fe9b40d7f3880747b43a3525855d2
-       # tag: quay.io/eclipse/che--traefik:v2.9.6-bb7be8d50edf73d8d3a812ac8873ef354a0fe9b40d7f3880747b43a3525855d2
+       # tag: quay.io/eclipse/che--traefik:v2.9.10-8d81a9df1435f9f3d36ac9398465ef2d5d61e671059974db753faaed14b627de
 -    - name: che-dashboard-7.77.0
 -      image: quay.io/eclipse/che-dashboard@sha256:93fd374541a8afe049da7499c5aad2f1bb0dc154f6cbbc72329ce36064dd8cab
 -      # tag: quay.io/eclipse/che-dashboard:7.77.0
