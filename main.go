@@ -283,9 +283,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	userNamespaceReconciler := usernamespace.NewReconciler()
+	namespacechace := usernamespace.GetNamespaceCache(nonCachingClient)
+
+	userNamespaceReconciler := usernamespace.NewCheUserNamespaceReconciler(mgr.GetClient(), nonCachingClient, mgr.GetScheme(), namespacechace)
 	if err = userNamespaceReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to set up controller", "controller", "CheUserReconciler")
+		os.Exit(1)
+	}
+
+	workspacesConfigReconciler := usernamespace.NewWorkspacesConfigReconciler(mgr.GetClient(), nonCachingClient, mgr.GetScheme(), namespacechace)
+	if err = workspacesConfigReconciler.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to set up controller", "controller", "WorkspacesConfigReconciler")
 		os.Exit(1)
 	}
 

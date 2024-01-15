@@ -54,7 +54,6 @@ import (
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	networking "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 // CheClusterReconciler reconciles a CheCluster object
@@ -251,16 +250,11 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// Fetch the CheCluster instance
-	checluster, err := r.GetCR(req)
-
-	if err != nil {
-		if errors.IsNotFound(err) {
-			r.Log.Info("CheCluster Custom Resource not found.")
-			// Request object not found, could have been deleted after reconcile request.
-			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
-			// Return and don't requeue
-			return ctrl.Result{}, nil
-		}
+	checluster, err := deploy.FindCheClusterCRInNamespace(r.nonCachedClient, req.NamespacedName.Namespace)
+	if checluster == nil {
+		r.Log.Info("CheCluster Custom Resource not found.")
+		return ctrl.Result{}, nil
+	} else if err != nil {
 		// Error reading the object - requeue the request.
 		return ctrl.Result{}, err
 	}
@@ -304,10 +298,4 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		done := r.reconcileManager.FinalizeAll(deployContext)
 		return ctrl.Result{Requeue: !done}, nil
 	}
-}
-
-func (r *CheClusterReconciler) GetCR(request ctrl.Request) (*chev2.CheCluster, error) {
-	checluster := &chev2.CheCluster{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, checluster)
-	return checluster, err
 }

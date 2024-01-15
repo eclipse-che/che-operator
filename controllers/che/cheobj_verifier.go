@@ -16,7 +16,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
-	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -29,11 +28,8 @@ func IsTrustedBundleConfigMap(cl client.Client, watchNamespace string, obj clien
 		return false, ctrl.Request{}
 	}
 
-	checluster, num, _ := deploy.FindCheClusterCRInNamespace(cl, watchNamespace)
-	if num != 1 {
-		if num > 1 {
-			logrus.Warn("More than one checluster Custom Resource found.")
-		}
+	checluster, _ := deploy.FindCheClusterCRInNamespace(cl, watchNamespace)
+	if checluster == nil {
 		return false, ctrl.Request{}
 	}
 
@@ -71,11 +67,8 @@ func IsEclipseCheRelatedObj(cl client.Client, watchNamespace string, obj client.
 		return false, ctrl.Request{}
 	}
 
-	checluster, num, _ := deploy.FindCheClusterCRInNamespace(cl, watchNamespace)
-	if num != 1 {
-		if num > 1 {
-			logrus.Warn("More than one checluster Custom Resource found.")
-		}
+	checluster, _ := deploy.FindCheClusterCRInNamespace(cl, watchNamespace)
+	if checluster == nil {
 		return false, ctrl.Request{}
 	}
 
