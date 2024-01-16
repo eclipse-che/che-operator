@@ -172,6 +172,10 @@ func (r *CheUserNamespaceReconciler) hasCheCluster(ctx context.Context, namespac
 }
 
 func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	if req.Name == "" {
+		return ctrl.Result{}, nil
+	}
+
 	info, err := r.namespaceCache.ExamineNamespace(ctx, req.Name)
 	if err != nil {
 		logrus.Errorf("Failed to examine namespace %s for presence of Che user info labels: %v", req.Name, err)

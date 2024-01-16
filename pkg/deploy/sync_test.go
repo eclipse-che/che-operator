@@ -74,29 +74,6 @@ func TestGet(t *testing.T) {
 	}
 }
 
-func TestCreate(t *testing.T) {
-	cli, deployContext := initDeployContext()
-
-	done, err := Create(deployContext, testObj.DeepCopy())
-	if err != nil {
-		t.Fatalf("Failed to create object: %v", err)
-	}
-
-	if !done {
-		t.Fatalf("Object has not been created")
-	}
-
-	actual := &corev1.Secret{}
-	err = cli.Get(context.TODO(), testKey, actual)
-	if err != nil && !errors.IsNotFound(err) {
-		t.Fatalf("Failed to get object: %v", err)
-	}
-
-	if actual == nil {
-		t.Fatalf("Object not found")
-	}
-}
-
 func TestCreateIfNotExistsShouldReturnTrueIfObjectCreated(t *testing.T) {
 	cli, deployContext := initDeployContext()
 

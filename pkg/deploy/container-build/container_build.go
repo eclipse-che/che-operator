@@ -123,7 +123,7 @@ func (cb *ContainerBuildReconciler) syncSCC(ctx *chetypes.DeployContext) (bool, 
 		}
 	} else {
 		// Create a new SCC. If custom SCC exists then it won't be touched.
-		return deploy.Create(ctx, cb.getSccSpec(ctx))
+		return deploy.CreateIfNotExists(ctx, cb.getSccSpec(ctx))
 	}
 
 	return true, nil

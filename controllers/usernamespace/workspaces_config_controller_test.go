@@ -16,6 +16,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"k8s.io/apimachinery/pkg/api/errors"
 
@@ -75,6 +78,8 @@ func TestSyncConfigMap(t *testing.T) {
 	err := workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace, deployContext)
 	assert.Nil(t, err)
 
+	validateSyncConfig(t, deployContext, 2, &corev1.ConfigMap{})
+
 	// Check ConfigMap in a user namespace
 	cm := &corev1.ConfigMap{}
 	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
@@ -101,6 +106,8 @@ func TestSyncConfigMap(t *testing.T) {
 	// Sync ConfigMap
 	err = workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace, deployContext)
 	assert.Nil(t, err)
+
+	validateSyncConfig(t, deployContext, 2, &corev1.ConfigMap{})
 
 	// Check that destination ConfigMap in a user namespace is updated as well
 	cm = &corev1.ConfigMap{}
@@ -130,6 +137,8 @@ func TestSyncConfigMap(t *testing.T) {
 	err = workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace, deployContext)
 	assert.Nil(t, err)
 
+	validateSyncConfig(t, deployContext, 2, &corev1.ConfigMap{})
+
 	// Check that destination ConfigMap in a user namespace is reverted
 	cm = &corev1.ConfigMap{}
 	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
@@ -149,6 +158,8 @@ func TestSyncConfigMap(t *testing.T) {
 	// Sync ConfigMap
 	err = workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace, deployContext)
 	assert.Nil(t, err)
+
+	validateSyncConfig(t, deployContext, 0, &corev1.ConfigMap{})
 
 	// Check that destination ConfigMap in a user namespace is deleted
 	cm = &corev1.ConfigMap{}
@@ -191,6 +202,8 @@ func TestSyncSecrets(t *testing.T) {
 	err := workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace, deployContext)
 	assert.Nil(t, err)
 
+	validateSyncConfig(t, deployContext, 2, &corev1.Secret{})
+
 	// Check Secret
 	secret := &corev1.Secret{}
 	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
@@ -217,6 +230,8 @@ func TestSyncSecrets(t *testing.T) {
 	// Sync Secret
 	err = workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace, deployContext)
 	assert.Nil(t, err)
+
+	validateSyncConfig(t, deployContext, 2, &corev1.Secret{})
 
 	// Check that destination Secret is updated
 	secret = &corev1.Secret{}
@@ -246,6 +261,8 @@ func TestSyncSecrets(t *testing.T) {
 	err = workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace, deployContext)
 	assert.Nil(t, err)
 
+	validateSyncConfig(t, deployContext, 2, &corev1.Secret{})
+
 	// Check that destination Secret is reverted
 	secret = &corev1.Secret{}
 	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
@@ -265,6 +282,8 @@ func TestSyncSecrets(t *testing.T) {
 	// Sync Secret
 	err = workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace, deployContext)
 	assert.Nil(t, err)
+
+	validateSyncConfig(t, deployContext, 0, &corev1.Secret{})
 
 	// Check that destination Secret in a user namespace is deleted
 	secret = &corev1.Secret{}
@@ -303,9 +322,13 @@ func TestSyncPVC(t *testing.T) {
 		deployContext.ClusterAPI.Scheme,
 		NewNamespaceCache(deployContext.ClusterAPI.NonCachingClient))
 
+	validateSyncConfig(t, deployContext, 0, &corev1.PersistentVolumeClaim{})
+
 	// Sync PVC
 	err := workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace, deployContext)
 	assert.Nil(t, err)
+
+	validateSyncConfig(t, deployContext, 2, &corev1.PersistentVolumeClaim{})
 
 	// Check PVC in a user namespace
 	pvc := &corev1.PersistentVolumeClaim{}
@@ -322,9 +345,21 @@ func TestSyncPVC(t *testing.T) {
 	err = workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace, deployContext)
 	assert.Nil(t, err)
 
+	validateSyncConfig(t, deployContext, 0, &corev1.PersistentVolumeClaim{})
+
 	// Check that destination PersistentVolumeClaim in a user namespace is deleted
 	pvc = &corev1.PersistentVolumeClaim{}
 	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, pvc)
 	assert.NotNil(t, err)
 	assert.True(t, errors.IsNotFound(err))
+}
+
+func validateSyncConfig(t *testing.T, deployContext *chetypes.DeployContext, expectedNumberOfRecords int, blueprint client.Object) {
+	cm, err := getSyncConfig(context.TODO(), userNamespace, deployContext)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedNumberOfRecords, len(cm.Data))
+	if expectedNumberOfRecords == 2 {
+		assert.Contains(t, cm.Data, computeObjectKey(deploy.GetObjectType(blueprint), objectName, userNamespace))
+		assert.Contains(t, cm.Data, computeObjectKey(deploy.GetObjectType(blueprint), objectName, eclipseCheNamespace))
+	}
 }
