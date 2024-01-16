@@ -13,6 +13,7 @@
 package imagepuller
 
 import (
+	"context"
 	goerror "errors"
 	"fmt"
 	"sort"
@@ -102,13 +103,14 @@ func (ip *ImagePuller) uninstallImagePuller(ctx *chetypes.DeployContext) (bool, 
 	}
 
 	if utils.IsK8SResourceServed(ctx.ClusterAPI.DiscoveryClient, resourceName) {
-		if done, err := deploy.DeleteByKeyWithClient(
+		if err := deploy.DeleteByKey(
+			context.TODO(),
 			ctx.ClusterAPI.NonCachingClient,
 			types.NamespacedName{
 				Namespace: ctx.CheCluster.Namespace,
 				Name:      getImagePullerCustomResourceName(ctx)},
 			&chev1alpha1.KubernetesImagePuller{},
-		); !done {
+		); err != nil {
 			return false, err
 		}
 	}

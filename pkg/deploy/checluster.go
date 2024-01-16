@@ -15,6 +15,7 @@ package deploy
 import (
 	"context"
 	"fmt"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"

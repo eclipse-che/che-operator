@@ -283,7 +283,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	namespacechace := usernamespace.GetNamespaceCache(nonCachingClient)
+	namespacechace := usernamespace.NewNamespaceCache(nonCachingClient)
 
 	userNamespaceReconciler := usernamespace.NewCheUserNamespaceReconciler(mgr.GetClient(), nonCachingClient, mgr.GetScheme(), namespacechace)
 	if err = userNamespaceReconciler.SetupWithManager(mgr); err != nil {

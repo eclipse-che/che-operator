@@ -17,6 +17,8 @@ import (
 	"fmt"
 	"reflect"
 
+	ctrl "sigs.k8s.io/controller-runtime"
+
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
@@ -26,6 +28,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+)
+
+var (
+	syncLog = ctrl.Log.WithName("sync")
 )
 
 // Sync syncs the blueprint to the cluster in a generic (as much as Go allows) manner.
@@ -116,20 +122,23 @@ func Create(deployContext *chetypes.DeployContext, blueprint client.Object) (boo
 // Deletes object.
 // Returns true if object deleted or not found otherwise returns false.
 func Delete(deployContext *chetypes.DeployContext, key client.ObjectKey, objectMeta client.Object) (bool, error) {
-	client := getClientForObject(key.Namespace, deployContext)
-	return DeleteByKeyWithClient(client, key, objectMeta)
+	cli := getClientForObject(key.Namespace, deployContext)
+	err := DeleteByKey(context.TODO(), cli, key, objectMeta)
+	return err == nil, err
 }
 
 func DeleteNamespacedObject(deployContext *chetypes.DeployContext, name string, objectMeta client.Object) (bool, error) {
-	client := deployContext.ClusterAPI.Client
+	cli := deployContext.ClusterAPI.Client
 	key := types.NamespacedName{Name: name, Namespace: deployContext.CheCluster.Namespace}
-	return DeleteByKeyWithClient(client, key, objectMeta)
+	err := DeleteByKey(context.TODO(), cli, key, objectMeta)
+	return err == nil, err
 }
 
 func DeleteClusterObject(deployContext *chetypes.DeployContext, name string, objectMeta client.Object) (bool, error) {
-	client := deployContext.ClusterAPI.NonCachingClient
+	cli := deployContext.ClusterAPI.NonCachingClient
 	key := types.NamespacedName{Name: name}
-	return DeleteByKeyWithClient(client, key, objectMeta)
+	err := DeleteByKey(context.TODO(), cli, key, objectMeta)
+	return err == nil, err
 }
 
 // Updates object.
@@ -148,8 +157,8 @@ func UpdateWithClient(client client.Client, deployContext *chetypes.DeployContex
 		}
 
 		if isUpdateUsingDeleteCreate(actual.GetObjectKind().GroupVersionKind().Kind) {
-			done, err := DeleteWithClient(client, actual)
-			if !done {
+			err := doDelete(context.TODO(), client, actual)
+			if err != nil {
 				return false, err
 			}
 			return CreateWithClient(client, deployContext, blueprint, false)
@@ -187,31 +196,34 @@ func CreateWithClient(client client.Client, deployContext *chetypes.DeployContex
 	}
 }
 
-func DeleteByKeyWithClient(cli client.Client, key client.ObjectKey, objectMeta client.Object) (bool, error) {
-	runtimeObject, ok := objectMeta.(runtime.Object)
+// DeleteByKey deletes object by given key.
+// Returns nil if object deleted or not found otherwise returns error.
+func DeleteByKey(context context.Context, cli client.Client, key client.ObjectKey, blueprint client.Object) error {
+	runtimeObj, ok := blueprint.(runtime.Object)
 	if !ok {
-		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
+		return fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObj)
 	}
 
-	actual := runtimeObject.DeepCopyObject().(client.Object)
-	exists, err := GetWithClient(cli, key, actual)
-	if !exists {
-		return true, nil
-	} else if err != nil {
-		return false, err
+	actual := runtimeObj.DeepCopyObject().(client.Object)
+	err := cli.Get(context, key, actual)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		} else {
+			return err
+		}
 	}
 
-	return DeleteWithClient(cli, actual)
+	return doDelete(context, cli, actual)
 }
 
-func DeleteWithClient(client client.Client, actual client.Object) (bool, error) {
-	logrus.Infof("Deleting object: %s, name: %s", GetObjectType(actual), actual.GetName())
-
-	err := client.Delete(context.TODO(), actual)
+func doDelete(context context.Context, cli client.Client, actual client.Object) error {
+	err := cli.Delete(context, actual)
 	if err == nil || errors.IsNotFound(err) {
-		return true, nil
+		syncLog.Info("Object deleted", "kind", GetObjectType(actual), "name", actual.GetName(), "namespace", actual.GetNamespace())
+		return nil
 	} else {
-		return false, err
+		return err
 	}
 }
 

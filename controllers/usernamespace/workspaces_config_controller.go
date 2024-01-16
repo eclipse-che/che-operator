@@ -15,12 +15,15 @@ package usernamespace
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -30,7 +33,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"strings"
 )
 
 const (
@@ -78,6 +80,10 @@ func (r *WorkspacesConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *WorkspacesConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	if req.Namespace == "" {
+		return ctrl.Result{}, nil
+	}
+
 	info, err := r.namespaceCache.ExamineNamespace(ctx, req.Name)
 	if err != nil {
 		log.Error(err, "Failed to examine namespace", "namespace", req.Name)
@@ -146,7 +152,7 @@ func isLabeledAsWorkspacesConfig(obj metav1.Object) bool {
 }
 
 func (r *WorkspacesConfigReconciler) syncWorkspacesConfig(ctx context.Context, targetNs string, deployContext *chetypes.DeployContext) error {
-	syncedConfig, err := getSyncedConfig(ctx, targetNs, deployContext)
+	syncedConfig, err := getSyncConfig(ctx, targetNs, deployContext)
 	if err != nil {
 		log.Error(err, "Failed to get synced config", "namespace", targetNs)
 		return nil
@@ -181,7 +187,7 @@ func (r *WorkspacesConfigReconciler) syncWorkspacesConfig(ctx context.Context, t
 	return nil
 }
 
-func syncConfigMaps(ctx context.Context, targetNs string, deployContext *chetypes.DeployContext, syncedData map[string]string) error {
+func syncConfigMaps(ctx context.Context, targetNs string, deployContext *chetypes.DeployContext, syncConfig map[string]string) error {
 	objs := &corev1.ConfigMapList{}
 	if err := readObjects2Sync(ctx, deployContext, objs); err != nil {
 		return err
@@ -199,15 +205,19 @@ func syncConfigMaps(ctx context.Context, targetNs string, deployContext *chetype
 		dstObj.Labels[dwconstants.DevWorkspaceMountLabel] = "true"
 		addDefaultLabels(dstObj.Labels)
 
-		if err := syncObject(ctx, deployContext, &srcObj, dstObj, syncedData); err != nil {
+		if err := syncObject(ctx, deployContext, &srcObj, dstObj, syncConfig); err != nil {
 			log.Error(err, "Failed to sync ConfigMap", "namespace", dstObj.Namespace, "name", dstObj.Name)
 		}
+	}
+
+	if err := deleteLeftovers(ctx, &corev1.ConfigMap{}, objs, targetNs, deployContext, syncConfig); err != nil {
+		log.Error(err, "Failed to delete ConfigMaps", "namespace", targetNs)
 	}
 
 	return nil
 }
 
-func syncSecrets(ctx context.Context, targetNs string, deployContext *chetypes.DeployContext, syncedData map[string]string) error {
+func syncSecrets(ctx context.Context, targetNs string, deployContext *chetypes.DeployContext, syncConfig map[string]string) error {
 	objs := &corev1.SecretList{}
 	if err := readObjects2Sync(ctx, deployContext, objs); err != nil {
 		return err
@@ -225,15 +235,19 @@ func syncSecrets(ctx context.Context, targetNs string, deployContext *chetypes.D
 		dstObj.Labels[dwconstants.DevWorkspaceMountLabel] = "true"
 		addDefaultLabels(dstObj.Labels)
 
-		if err := syncObject(ctx, deployContext, &srcObj, dstObj, syncedData); err != nil {
+		if err := syncObject(ctx, deployContext, &srcObj, dstObj, syncConfig); err != nil {
 			log.Error(err, "Failed to sync Secret", "namespace", dstObj.Namespace, "name", dstObj.Name)
 		}
+	}
+
+	if err := deleteLeftovers(ctx, &corev1.Secret{}, objs, targetNs, deployContext, syncConfig); err != nil {
+		log.Error(err, "Failed to delete Secrets", "namespace", targetNs)
 	}
 
 	return nil
 }
 
-func syncPVC(ctx context.Context, targetNs string, deployContext *chetypes.DeployContext, syncedData map[string]string) error {
+func syncPVC(ctx context.Context, targetNs string, deployContext *chetypes.DeployContext, syncConfig map[string]string) error {
 	objs := &corev1.PersistentVolumeClaimList{}
 	if err := readObjects2Sync(ctx, deployContext, objs); err != nil {
 		return err
@@ -250,13 +264,16 @@ func syncPVC(ctx context.Context, targetNs string, deployContext *chetypes.Deplo
 		}
 		addDefaultLabels(dstObj.Labels)
 
-		if err := syncObject(ctx, deployContext, &srcObj, dstObj, syncedData); err != nil {
+		if err := syncObject(ctx, deployContext, &srcObj, dstObj, syncConfig); err != nil {
 			log.Error(err, "Failed to sync PersistentVolumeClaim", "namespace", dstObj.Namespace, "name", dstObj.Name)
 		}
 	}
 
-	return nil
+	if err := deleteLeftovers(ctx, &corev1.PersistentVolumeClaim{}, objs, targetNs, deployContext, syncConfig); err != nil {
+		log.Error(err, "Failed to delete PersistentVolumeClaims", "namespace", targetNs)
+	}
 
+	return nil
 }
 
 func readObjects2Sync(ctx context.Context, deployContext *chetypes.DeployContext, objList client.ObjectList) error {
@@ -269,6 +286,48 @@ func readObjects2Sync(ctx context.Context, deployContext *chetypes.DeployContext
 		})
 }
 
+// deleteLeftovers deletes objects that are not synced with source objects.
+func deleteLeftovers(
+	ctx context.Context,
+	blueprint client.Object,
+	objList client.ObjectList,
+	targetNs string,
+	deployContext *chetypes.DeployContext,
+	syncConfig map[string]string) error {
+
+	objs, err := meta.ExtractList(objList)
+	if err != nil {
+		return err
+	}
+
+	actualSyncedObjKeys := make(map[string]bool)
+	for _, obj := range objs {
+		actualSyncedObjKeys[getObjectKey(obj.(client.Object))] = true
+	}
+
+	for syncObjKey, _ := range syncConfig {
+		isObjectOfGivenType := strings.HasPrefix(syncObjKey, deploy.GetObjectType(blueprint))
+		isObjectFromCheNamespace := strings.HasSuffix(syncObjKey, deployContext.CheCluster.GetNamespace())
+		isNotSyncedObj := !actualSyncedObjKeys[syncObjKey]
+
+		if isObjectOfGivenType && isObjectFromCheNamespace && isNotSyncedObj {
+			// delete object from target namespace if it is not synced with source object
+			if err := deploy.DeleteByKey(
+				ctx,
+				deployContext.ClusterAPI.NonCachingClient,
+				types.NamespacedName{
+					Name:      getObjectNameFromKey(syncObjKey),
+					Namespace: targetNs,
+				},
+				blueprint); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 // syncObject syncs source object to destination object if they differ.
 // Returns error if sync failed in a destination namespace.
 func syncObject(
@@ -276,7 +335,7 @@ func syncObject(
 	deployContext *chetypes.DeployContext,
 	srcObj client.Object,
 	dstObj client.Object,
-	syncedData map[string]string) error {
+	syncConfig map[string]string) error {
 
 	existedDstObj, err := deployContext.ClusterAPI.Scheme.New(dstObj.(runtime.Object).GetObjectKind().GroupVersionKind())
 	if err != nil {
@@ -291,15 +350,15 @@ func syncObject(
 		existedDstObj.(client.Object))
 	if err == nil {
 		// destination object exists, update it if it differs from source object
-		srcHasBeenChanged := syncedData[getObjectKey(srcObj)] != srcObj.GetResourceVersion()
-		dstHasBeenChanged := syncedData[getObjectKey(dstObj)] != existedDstObj.(client.Object).GetResourceVersion()
+		srcHasBeenChanged := syncConfig[getObjectKey(srcObj)] != srcObj.GetResourceVersion()
+		dstHasBeenChanged := syncConfig[getObjectKey(dstObj)] != existedDstObj.(client.Object).GetResourceVersion()
 
 		if srcHasBeenChanged || dstHasBeenChanged {
-			return doSyncObject(ctx, deployContext, srcObj, dstObj, existedDstObj.(client.Object), syncedData)
+			return doSyncObject(ctx, deployContext, srcObj, dstObj, existedDstObj.(client.Object), syncConfig)
 		}
 	} else if errors.IsNotFound(err) {
 		// destination object does not exist, so it will be created
-		return doSyncObject(ctx, deployContext, srcObj, dstObj, nil, syncedData)
+		return doSyncObject(ctx, deployContext, srcObj, dstObj, nil, syncConfig)
 	} else {
 		return err
 	}
@@ -315,7 +374,7 @@ func doSyncObject(
 	srcObj client.Object,
 	dstObj client.Object,
 	existedDstObj client.Object,
-	syncedData map[string]string) error {
+	syncConfig map[string]string) error {
 
 	if existedDstObj == nil {
 		if err := deployContext.ClusterAPI.NonCachingClient.Create(ctx, dstObj); err != nil {
@@ -328,17 +387,17 @@ func doSyncObject(
 		}
 	}
 
-	syncedData[getObjectKey(srcObj)] = srcObj.GetResourceVersion()
-	syncedData[getObjectKey(dstObj)] = dstObj.GetResourceVersion()
+	syncConfig[getObjectKey(srcObj)] = srcObj.GetResourceVersion()
+	syncConfig[getObjectKey(dstObj)] = dstObj.GetResourceVersion()
 
 	log.Info("Object has been synced", "namespace", dstObj.GetNamespace(), "name", dstObj.GetName(), "type", deploy.GetObjectType(dstObj))
 
 	return nil
 }
 
-// getSyncedConfig returns ConfigMap with synced objects resource versions.
+// getSyncConfig returns ConfigMap with synced objects resource versions.
 // Returns error if ConfigMap failed to be retrieved.
-func getSyncedConfig(ctx context.Context, targetNs string, deployContext *chetypes.DeployContext) (*corev1.ConfigMap, error) {
+func getSyncConfig(ctx context.Context, targetNs string, deployContext *chetypes.DeployContext) (*corev1.ConfigMap, error) {
 	syncedConfig := &corev1.ConfigMap{}
 	err := deployContext.ClusterAPI.NonCachingClient.Get(ctx,
 		types.NamespacedName{
@@ -375,5 +434,10 @@ func getSyncedConfig(ctx context.Context, targetNs string, deployContext *chetyp
 }
 
 func getObjectKey(object client.Object) string {
-	return strings.ToLower(fmt.Sprintf("%s.%s.%s", deploy.GetObjectType(object), object.GetName(), object.GetNamespace()))
+	return fmt.Sprintf("%s.%s.%s", deploy.GetObjectType(object), object.GetName(), object.GetNamespace())
+}
+
+func getObjectNameFromKey(key string) string {
+	splits := strings.Split(key, ".")
+	return splits[len(splits)-2]
 }
