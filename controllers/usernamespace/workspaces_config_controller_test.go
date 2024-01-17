@@ -152,7 +152,7 @@ func TestSyncConfigMap(t *testing.T) {
 	assert.Equal(t, "test", cm.Annotations["test"])
 
 	// Delete src ConfigMap
-	err = deploy.DeleteByKey(context.TODO(), deployContext.ClusterAPI.NonCachingClient, objectKeyInCheNs, &corev1.ConfigMap{})
+	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.NonCachingClient, objectKeyInCheNs, &corev1.ConfigMap{})
 	assert.Nil(t, err)
 
 	// Sync ConfigMap
@@ -276,7 +276,7 @@ func TestSyncSecrets(t *testing.T) {
 	assert.Equal(t, "test", secret.Annotations["test"])
 
 	// Delete src Secret
-	err = deploy.DeleteByKey(context.TODO(), deployContext.ClusterAPI.NonCachingClient, objectKeyInCheNs, &corev1.Secret{})
+	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.NonCachingClient, objectKeyInCheNs, &corev1.Secret{})
 	assert.Nil(t, err)
 
 	// Sync Secret
@@ -338,7 +338,7 @@ func TestSyncPVC(t *testing.T) {
 	assert.True(t, pvc.Spec.Resources.Requests[corev1.ResourceStorage].Equal(resource.MustParse("1Gi")))
 
 	// Delete src PVC
-	err = deploy.DeleteByKey(context.TODO(), deployContext.ClusterAPI.NonCachingClient, objectKeyInCheNs, &corev1.PersistentVolumeClaim{})
+	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.NonCachingClient, objectKeyInCheNs, &corev1.PersistentVolumeClaim{})
 	assert.Nil(t, err)
 
 	// Sync PVC

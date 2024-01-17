@@ -335,7 +335,7 @@ func doDeleteLeftovers(
 
 	if isObjectOfGivenType && isObjectFromCheNamespace && isNotSyncedInTargetNs {
 		// then delete object from target namespace if it is not synced with source object
-		if err := deploy.DeleteByKey(
+		if err := deploy.DeleteIgnoreIfNotFound(
 			ctx,
 			deployContext.ClusterAPI.NonCachingClient,
 			types.NamespacedName{
