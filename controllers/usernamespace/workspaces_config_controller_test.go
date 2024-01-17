@@ -151,6 +151,26 @@ func TestSyncConfigMap(t *testing.T) {
 	assert.Equal(t, "true", cm.Labels["controller.devfile.io/mount-to-devworkspace"])
 	assert.Equal(t, "test", cm.Annotations["test"])
 
+	// Delete dst ConfigMap in a user namespace
+	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.NonCachingClient, objectKeyInUserNs, &corev1.ConfigMap{})
+	assert.Nil(t, err)
+
+	// Sync ConfigMap
+	err = workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace, deployContext)
+	assert.Nil(t, err)
+
+	// Check that destination ConfigMap in a user namespace is reverted
+	cm = &corev1.ConfigMap{}
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	assert.Nil(t, err)
+	assert.Equal(t, "c", cm.Data["a"])
+	assert.Equal(t, []byte("d"), cm.BinaryData["c"])
+	assert.Equal(t, false, *cm.Immutable)
+	assert.Equal(t, constants.WorkspacesConfig, cm.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, "true", cm.Labels["controller.devfile.io/watch-configmap"])
+	assert.Equal(t, "true", cm.Labels["controller.devfile.io/mount-to-devworkspace"])
+	assert.Equal(t, "test", cm.Annotations["test"])
+
 	// Delete src ConfigMap
 	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.NonCachingClient, objectKeyInCheNs, &corev1.ConfigMap{})
 	assert.Nil(t, err)

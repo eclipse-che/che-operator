@@ -311,7 +311,7 @@ func deleteLeftovers(
 			targetNs,
 			deployContext,
 			syncConfig); err != nil {
-			log.Error(err, "Failed to delete leftovers", "namespace", targetNs, "type", deploy.GetObjectType(blueprint), "name", getObjectNameFromKey(syncObjKey))
+			log.Error(err, "Failed to delete obsolete object", "namespace", targetNs, "kind", deploy.GetObjectType(blueprint), "name", getObjectNameFromKey(syncObjKey))
 		}
 	}
 
@@ -335,11 +335,12 @@ func doDeleteLeftovers(
 
 	if isObjectOfGivenType && isObjectFromCheNamespace && isNotSyncedInTargetNs {
 		// then delete object from target namespace if it is not synced with source object
+		objName := getObjectNameFromKey(syncObjKey)
 		if err := deploy.DeleteIgnoreIfNotFound(
 			ctx,
 			deployContext.ClusterAPI.NonCachingClient,
 			types.NamespacedName{
-				Name:      getObjectNameFromKey(syncObjKey),
+				Name:      objName,
 				Namespace: targetNs,
 			},
 			blueprint); err != nil {
@@ -347,7 +348,7 @@ func doDeleteLeftovers(
 		}
 
 		delete(syncConfig, syncObjKey)
-		delete(syncConfig, computeObjectKey(deploy.GetObjectType(blueprint), getObjectNameFromKey(syncObjKey), targetNs))
+		delete(syncConfig, computeObjectKey(deploy.GetObjectType(blueprint), objName, targetNs))
 	}
 
 	return nil
@@ -415,7 +416,7 @@ func doSyncObject(
 	syncConfig[getObjectKey(srcObj)] = srcObj.GetResourceVersion()
 	syncConfig[getObjectKey(dstObj)] = dstObj.GetResourceVersion()
 
-	log.Info("Object has been synced", "namespace", dstObj.GetNamespace(), "type", deploy.GetObjectType(dstObj), "name", dstObj.GetName())
+	log.Info("Object has been synced", "namespace", dstObj.GetNamespace(), "kind", deploy.GetObjectType(dstObj), "name", dstObj.GetName())
 
 	return nil
 }

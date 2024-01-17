@@ -185,7 +185,7 @@ func CreateWithClient(client client.Client, deployContext *chetypes.DeployContex
 		syncLog.Info("Object created", "namespace", blueprint.GetNamespace(), "kind", GetObjectType(blueprint), "name", blueprint.GetName())
 		return true, nil
 	} else if errors.IsAlreadyExists(err) {
-		return false, nil
+		return returnTrueIfAlreadyExists, nil
 	} else {
 		return false, err
 	}
