@@ -48,8 +48,4 @@ func asReconcileRequestsForNamespaces(obj metav1.Object, rules []eventRule) []re
 
 func addDefaultLabels(labels map[string]string) {
 	utils.AddMap(labels, deploy.GetLabels(constants.WorkspacesConfig))
-
-	// remove the part-of label to avoid object being cached by the operator
-	// see main.go:getCacheFunc() for details
-	delete(labels, constants.KubernetesPartOfLabelKey)
 }

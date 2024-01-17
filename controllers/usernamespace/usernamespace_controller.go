@@ -521,7 +521,7 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 
 func (r *CheUserNamespaceReconciler) reconcileNodeSelectorAndTolerations(ctx context.Context, targetNs string, checluster *chev2.CheCluster, deployContext *chetypes.DeployContext) error {
 	ns := &corev1.Namespace{}
-	if err := r.client.Get(ctx, client.ObjectKey{Name: targetNs}, ns); err != nil {
+	if err := r.nonCachedClient.Get(ctx, client.ObjectKey{Name: targetNs}, ns); err != nil {
 		return err
 	}
 
@@ -565,7 +565,7 @@ func (r *CheUserNamespaceReconciler) reconcileNodeSelectorAndTolerations(ctx con
 
 	ns.SetAnnotations(annos)
 
-	return r.client.Update(ctx, ns)
+	return r.nonCachedClient.Update(ctx, ns)
 }
 
 func (r *CheUserNamespaceReconciler) reconcileSCCPrivileges(username string, targetNs string, checluster *chev2.CheCluster, deployContext *chetypes.DeployContext) error {
