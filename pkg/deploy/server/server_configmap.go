@@ -15,7 +15,6 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
@@ -89,11 +88,6 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 	proxyJavaOpts := ""
 	cheWorkspaceNoProxy := ctx.Proxy.NoProxy
 	if ctx.Proxy.HttpProxy != "" {
-		if ctx.Proxy.NoProxy == "" {
-			cheWorkspaceNoProxy = os.Getenv("KUBERNETES_SERVICE_HOST")
-		} else {
-			cheWorkspaceNoProxy = cheWorkspaceNoProxy + "," + os.Getenv("KUBERNETES_SERVICE_HOST")
-		}
 		proxyJavaOpts, err = deploy.GenerateProxyJavaOpts(ctx.Proxy, cheWorkspaceNoProxy)
 		if err != nil {
 			logrus.Errorf("Failed to generate java proxy options: %v", err)
