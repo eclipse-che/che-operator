@@ -332,19 +332,6 @@ func TestCreatesDataInNamespace(t *testing.T) {
 
 		assert.False(t, res.Requeue, "The reconciliation request should have succeeded but it is requesting a requeue")
 
-		proxySettings := corev1.ConfigMap{}
-		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-proxy-settings", Namespace: namespace.GetName()}, &proxySettings))
-
-		assert.Equal(t, "env", proxySettings.GetAnnotations()[dwconstants.DevWorkspaceMountAsAnnotation],
-			"proxy settings should be annotated as mount as 'env'")
-
-		assert.Equal(t, "true", proxySettings.GetLabels()[dwconstants.DevWorkspaceMountLabel],
-			"proxy settings should be labeled as mounted")
-
-		assert.Equal(t, 2, len(proxySettings.Data), "Expecting 2 elements in the default proxy settings")
-
-		assert.Equal(t, ".svc", proxySettings.Data["NO_PROXY"], "Unexpected proxy settings")
-
 		idleSettings := corev1.ConfigMap{}
 		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-idle-settings", Namespace: namespace.GetName()}, &idleSettings))
 

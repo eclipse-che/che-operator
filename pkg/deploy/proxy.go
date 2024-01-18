@@ -122,7 +122,9 @@ func ReadCheClusterProxyConfiguration(ctx *chetypes.DeployContext) (*chetypes.Pr
 }
 
 func MergeNonProxy(noProxy1 string, noProxy2 string) string {
-	if noProxy1 == "" {
+	if noProxy1 == "" && noProxy2 == "" {
+		return ""
+	} else if noProxy1 == "" {
 		return noProxy2
 	} else if noProxy2 == "" {
 		return noProxy1

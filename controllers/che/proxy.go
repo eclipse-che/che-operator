@@ -13,6 +13,8 @@
 package che
 
 import (
+	"os"
+
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -50,9 +52,15 @@ func GetProxyConfiguration(deployContext *chetypes.DeployContext) (*chetypes.Pro
 			}
 			// Add cluster-wide trusted CA certs, if any
 			cheClusterProxyConf.TrustedCAMapName = clusterWideProxyConf.TrustedCAMapName
+			// Add kubernetes host to the no proxy list.
+			cheClusterProxyConf.NoProxy = deploy.MergeNonProxy(cheClusterProxyConf.NoProxy, os.Getenv("KUBERNETES_SERVICE_HOST"))
 			return cheClusterProxyConf, nil
 		} else {
-			clusterWideProxyConf.NoProxy = deploy.MergeNonProxy(clusterWideProxyConf.NoProxy, cheClusterProxyConf.NoProxy)
+			if clusterWideProxyConf.HttpProxy != "" {
+				// Add kubernetes host to the no proxy list.
+				clusterWideProxyConf.NoProxy = deploy.MergeNonProxy(clusterWideProxyConf.NoProxy, os.Getenv("KUBERNETES_SERVICE_HOST"))
+				clusterWideProxyConf.NoProxy = deploy.MergeNonProxy(clusterWideProxyConf.NoProxy, cheClusterProxyConf.NoProxy)
+			}
 			return clusterWideProxyConf, nil
 		}
 	}
@@ -62,6 +70,10 @@ func GetProxyConfiguration(deployContext *chetypes.DeployContext) (*chetypes.Pro
 	if err != nil {
 		return nil, err
 	}
-	cheClusterProxyConf.NoProxy = deploy.MergeNonProxy(cheClusterProxyConf.NoProxy, ".svc")
+	if cheClusterProxyConf.HttpProxy != "" {
+		// Add kubernetes host to the no proxy list.
+		cheClusterProxyConf.NoProxy = deploy.MergeNonProxy(cheClusterProxyConf.NoProxy, os.Getenv("KUBERNETES_SERVICE_HOST"))
+		cheClusterProxyConf.NoProxy = deploy.MergeNonProxy(cheClusterProxyConf.NoProxy, ".svc")
+	}
 	return cheClusterProxyConf, nil
 }
