@@ -49,12 +49,6 @@ type WorkspacesConfigReconciler struct {
 	namespaceCache  *namespaceCache
 }
 
-type SyncTask struct {
-	newObjectFunc func(srcObject client.Object) client.Object
-	objList       client.ObjectList
-	gkv           schema.GroupVersionKind
-}
-
 var (
 	log = ctrl.Log.WithName("workspaces-config")
 
@@ -313,7 +307,7 @@ func deleteObsoleteObjects(
 	deployContext *chetypes.DeployContext,
 	syncConfig map[string]string,
 ) error {
-	isObjectOfGivenKind := getObjectGVKFromKey(syncObjKey) == gkv2String(gkv)
+	isObjectOfGivenKind := getObjectGVKFromKey(syncObjKey) == gkv2KeyItem(gkv)
 	isObjectFromCheNamespace := getObjectNamespaceFromKey(syncObjKey) == deployContext.CheCluster.GetNamespace()
 	isNotSyncedInTargetNs := !actualSyncedSrcObjKeys[syncObjKey]
 
@@ -451,14 +445,14 @@ func getSyncConfig(ctx context.Context, targetNs string, deployContext *chetypes
 }
 
 func computeObjectKey(gvk schema.GroupVersionKind, name string, namespace string) string {
-	return fmt.Sprintf("%s.%s.%s", gkv2String(gvk), name, namespace)
+	return fmt.Sprintf("%s.%s.%s", gkv2KeyItem(gvk), name, namespace)
 }
 
 func getObjectKey(object client.Object) string {
 	return computeObjectKey(object.GetObjectKind().GroupVersionKind(), object.GetName(), object.GetNamespace())
 }
 
-func gkv2String(gvk schema.GroupVersionKind) string {
+func gkv2KeyItem(gvk schema.GroupVersionKind) string {
 	if gvk.Group == "" {
 		return fmt.Sprintf("%s_%s", gvk.Version, gvk.Kind)
 	}
