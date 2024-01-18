@@ -295,8 +295,12 @@ func doCreate(context context.Context, client client.Client, deployContext *chet
 // Returns error if object cannot be deleted otherwise returns nil.
 func doDeleteIgnoreIfNotFound(context context.Context, cli client.Client, actual client.Object) (bool, error) {
 	err := cli.Delete(context, actual)
-	if err == nil || errors.IsNotFound(err) {
-		syncLog.Info("Object deleted", "namespace", actual.GetNamespace(), "kind", GetObjectType(actual), "name", actual.GetName())
+	if err == nil {
+		if errors.IsNotFound(err) {
+			syncLog.Info("Object not found", "namespace", actual.GetNamespace(), "kind", GetObjectType(actual), "name", actual.GetName())
+		} else {
+			syncLog.Info("Object deleted", "namespace", actual.GetNamespace(), "kind", GetObjectType(actual), "name", actual.GetName())
+		}
 		return true, nil
 	} else {
 		return false, err

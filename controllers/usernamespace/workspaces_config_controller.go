@@ -17,6 +17,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
+
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -157,11 +159,11 @@ func (r *WorkspacesConfigReconciler) syncWorkspacesConfig(ctx context.Context, t
 	defer func() {
 		if syncedConfig != nil {
 			if syncedConfig.GetResourceVersion() == "" {
-				if err := deployContext.ClusterAPI.NonCachingClient.Create(ctx, syncedConfig); err != nil {
+				if err := deployContext.ClusterAPI.Client.Create(ctx, syncedConfig); err != nil {
 					log.Error(err, "Failed to workspace create sync config", "namespace", targetNs)
 				}
 			} else {
-				if err := deployContext.ClusterAPI.NonCachingClient.Update(ctx, syncedConfig); err != nil {
+				if err := deployContext.ClusterAPI.Client.Update(ctx, syncedConfig); err != nil {
 					log.Error(err, "Failed to update workspace sync config", "namespace", targetNs)
 				}
 			}
@@ -403,12 +405,12 @@ func doSyncObject(
 	syncConfig map[string]string) error {
 
 	if existedDstObj == nil {
-		if err := deployContext.ClusterAPI.NonCachingClient.Create(ctx, dstObj); err != nil {
+		if err := deployContext.ClusterAPI.Client.Create(ctx, dstObj); err != nil {
 			return err
 		}
 	} else {
 		dstObj.SetResourceVersion(existedDstObj.GetResourceVersion())
-		if err := deployContext.ClusterAPI.NonCachingClient.Update(ctx, dstObj); err != nil {
+		if err := deployContext.ClusterAPI.Client.Update(ctx, dstObj); err != nil {
 			return err
 		}
 	}
@@ -416,7 +418,7 @@ func doSyncObject(
 	syncConfig[getObjectKey(srcObj)] = srcObj.GetResourceVersion()
 	syncConfig[getObjectKey(dstObj)] = dstObj.GetResourceVersion()
 
-	log.Info("Object has been synced", "namespace", dstObj.GetNamespace(), "kind", deploy.GetObjectType(dstObj), "name", dstObj.GetName())
+	log.Info("Object synced", "namespace", dstObj.GetNamespace(), "kind", deploy.GetObjectType(dstObj), "name", dstObj.GetName())
 
 	return nil
 }
@@ -425,7 +427,7 @@ func doSyncObject(
 // Returns error if ConfigMap failed to be retrieved.
 func getSyncConfig(ctx context.Context, targetNs string, deployContext *chetypes.DeployContext) (*corev1.ConfigMap, error) {
 	syncedConfig := &corev1.ConfigMap{}
-	err := deployContext.ClusterAPI.NonCachingClient.Get(ctx,
+	err := deployContext.ClusterAPI.Client.Get(ctx,
 		types.NamespacedName{
 			Name:      syncedWorkspacesConfig,
 			Namespace: targetNs,
@@ -443,8 +445,8 @@ func getSyncConfig(ctx context.Context, targetNs string, deployContext *chetypes
 					Name:      syncedWorkspacesConfig,
 					Namespace: targetNs,
 					Labels: map[string]string{
+						constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
 						constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
-						constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel(),
 					},
 				},
 				Data: map[string]string{},
@@ -474,4 +476,8 @@ func getObjectNameFromKey(key string) string {
 
 func isLabeledAsWorkspacesConfig(obj metav1.Object) bool {
 	return obj.GetLabels()[constants.KubernetesComponentLabelKey] == constants.WorkspacesConfig
+}
+
+func addDefaultLabels(labels map[string]string) {
+	utils.AddMap(labels, deploy.GetLabels(constants.WorkspacesConfig))
 }

@@ -13,9 +13,6 @@
 package usernamespace
 
 import (
-	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/eclipse-che/che-operator/pkg/common/utils"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -44,8 +41,4 @@ func asReconcileRequestsForNamespaces(obj metav1.Object, rules []eventRule) []re
 	}
 
 	return []reconcile.Request{}
-}
-
-func addDefaultLabels(labels map[string]string) {
-	utils.AddMap(labels, deploy.GetLabels(constants.WorkspacesConfig))
 }
