@@ -351,7 +351,9 @@ func syncObjectToNamespace(
 	newObj client.Object,
 	syncConfig map[string]string) error {
 
-	existedDstObj, err := deployContext.ClusterAPI.Scheme.New(newObj.(runtime.Object).GetObjectKind().GroupVersionKind())
+	gkv := srcObj.GetObjectKind().GroupVersionKind()
+
+	existedDstObj, err := deployContext.ClusterAPI.Scheme.New(gkv)
 	if err != nil {
 		return err
 	}
@@ -365,14 +367,14 @@ func syncObjectToNamespace(
 	if err == nil {
 		// destination object exists, update it if it differs from source object
 		srcHasBeenChanged := syncConfig[getObjectKey(srcObj)] != srcObj.GetResourceVersion()
-		dstHasBeenChanged := syncConfig[getObjectKey(newObj)] != existedDstObj.(client.Object).GetResourceVersion()
+		dstHasBeenChanged := syncConfig[computeObjectKey(gkv, newObj.GetName(), newObj.GetNamespace())] != existedDstObj.(client.Object).GetResourceVersion()
 
 		if srcHasBeenChanged || dstHasBeenChanged {
-			return doSyncObjectToNamespace(ctx, deployContext, srcObj, newObj, existedDstObj.(client.Object).GetResourceVersion(), syncConfig)
+			return doSyncObjectToNamespace(ctx, gkv, deployContext, srcObj, newObj, existedDstObj.(client.Object).GetResourceVersion(), syncConfig)
 		}
 	} else if errors.IsNotFound(err) {
 		// destination object does not exist, so it will be created
-		return doSyncObjectToNamespace(ctx, deployContext, srcObj, newObj, "", syncConfig)
+		return doSyncObjectToNamespace(ctx, gkv, deployContext, srcObj, newObj, "", syncConfig)
 	} else {
 		return err
 	}
@@ -384,6 +386,7 @@ func syncObjectToNamespace(
 // Returns error if sync failed in a destination namespace.
 func doSyncObjectToNamespace(
 	ctx context.Context,
+	gkv schema.GroupVersionKind,
 	deployContext *chetypes.DeployContext,
 	srcObj client.Object,
 	newObj client.Object,
@@ -402,10 +405,9 @@ func doSyncObjectToNamespace(
 	}
 
 	syncConfig[getObjectKey(srcObj)] = srcObj.GetResourceVersion()
-	syncConfig[getObjectKey(newObj)] = newObj.GetResourceVersion()
+	syncConfig[computeObjectKey(gkv, newObj.GetName(), newObj.GetNamespace())] = newObj.GetResourceVersion()
 
-	newObjGKV := newObj.(runtime.Object).GetObjectKind().GroupVersionKind()
-	log.Info("Object synced", "namespace", newObj.GetNamespace(), "kind", newObjGKV, "name", newObj.GetName())
+	log.Info("Object synced", "namespace", newObj.GetNamespace(), "kind", gkv.String(), "name", newObj.GetName())
 
 	return nil
 }
