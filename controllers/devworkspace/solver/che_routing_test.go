@@ -1569,24 +1569,24 @@ func TestReportSubdomainExposedEndpointsLongUsername(t *testing.T) {
 	if e1.Name != "e1" {
 		t.Errorf("The first endpoint should have been e1 but is %s", e1.Name)
 	}
-	if e1.Url != "https://wsid-1.down.on.earth/1/" {
-		t.Errorf("The e1 endpoint should have the following URL: '%s' but has '%s'.", "https://wsid-1.down.on.earth/1/", e1.Url)
+	if e1.Url != "https://wsid-e1.down.on.earth/1/" {
+		t.Errorf("The e1 endpoint should have the following URL: '%s' but has '%s'.", "https://wsid-e1.down.on.earth/1/", e1.Url)
 	}
 
 	e2 := m1[1]
 	if e2.Name != "e2" {
 		t.Errorf("The second endpoint should have been e2 but is %s", e1.Name)
 	}
-	if e2.Url != "https://wsid-2.down.on.earth/2.js" {
-		t.Errorf("The e2 endpoint should have the following URL: '%s' but has '%s'.", "https://wsid-2.down.on.earth/2.js", e2.Url)
+	if e2.Url != "https://wsid-e2.down.on.earth/2.js" {
+		t.Errorf("The e2 endpoint should have the following URL: '%s' but has '%s'.", "https://wsid-e2.down.on.earth/2.js", e2.Url)
 	}
 
 	e3 := m1[2]
 	if e3.Name != "e3" {
 		t.Errorf("The third endpoint should have been e3 but is %s", e1.Name)
 	}
-	if e3.Url != "http://wsid-3.down.on.earth/" {
-		t.Errorf("The e3 endpoint should have the following URL: '%s' but has '%s'.", "https://wsid-3.down.on.earth/", e3.Url)
+	if e3.Url != "http://wsid-e3.down.on.earth/" {
+		t.Errorf("The e3 endpoint should have the following URL: '%s' but has '%s'.", "https://wsid-e3.down.on.earth/", e3.Url)
 	}
 }
 

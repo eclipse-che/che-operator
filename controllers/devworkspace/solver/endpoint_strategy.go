@@ -72,8 +72,10 @@ func (u UsernameWkspName) getEndpointPathPrefix(endpointPath string) string {
 func (u UsernameWkspName) getHostname(endpointInfo *EndpointInfo, baseDomain string) string {
 	subDomain := fmt.Sprintf("%s-%s-%s", u.username, u.workspaceName, endpointInfo.endpointName)
 	if errs := validation.IsValidLabelValue(subDomain); len(errs) > 0 {
-		// if subdomain is not valid, use legacy paths
-		return fmt.Sprintf("%s-%d.%s", u.workspaceID, endpointInfo.order, baseDomain)
+		// If subdomain is not valid (e.g. too long), use alternate format
+		// The below should always be under 63 characters, as endpoint names are limited to 15 characters and workspace IDs are
+		// 25 characters.
+		return fmt.Sprintf("%s-%s.%s", u.workspaceID, endpointInfo.endpointName, baseDomain)
 	}
 
 	return fmt.Sprintf("%s.%s", subDomain, baseDomain)
