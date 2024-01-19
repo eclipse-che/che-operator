@@ -101,7 +101,7 @@ func TestFindCheCRinNamespace(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			deployContext := test.GetDeployContext(testCase.checluster, []runtime.Object{})
-			checluster, err := FindCheClusterCRInNamespace(deployContext.ClusterAPI.NonCachingClient, testCase.namespace)
+			checluster, err := FindCheClusterCRInNamespace(deployContext.ClusterAPI.Client, testCase.namespace)
 			if testCase.found {
 				assert.NoError(t, err)
 				assert.Equal(t, testCase.checluster.Name, checluster.Name)

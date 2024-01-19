@@ -149,7 +149,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	var toTrustedBundleConfigMapRequestMapper handler.MapFunc = func(obj client.Object) []ctrl.Request {
-		isTrusted, reconcileRequest := IsTrustedBundleConfigMap(r.nonCachedClient, r.namespace, obj)
+		isTrusted, reconcileRequest := IsTrustedBundleConfigMap(r.client, r.namespace, obj)
 		if isTrusted {
 			return []ctrl.Request{reconcileRequest}
 		}
@@ -157,7 +157,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	var toEclipseCheRelatedObjRequestMapper handler.MapFunc = func(obj client.Object) []ctrl.Request {
-		isEclipseCheRelatedObj, reconcileRequest := IsEclipseCheRelatedObj(r.nonCachedClient, r.namespace, obj)
+		isEclipseCheRelatedObj, reconcileRequest := IsEclipseCheRelatedObj(r.client, r.namespace, obj)
 		if isEclipseCheRelatedObj {
 			return []ctrl.Request{reconcileRequest}
 		}
@@ -193,10 +193,6 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			OwnerType:    &chev2.CheCluster{},
 		}).
 		Watches(&source.Kind{Type: &appsv1.Deployment{}}, &handler.EnqueueRequestForOwner{
-			IsController: true,
-			OwnerType:    &chev2.CheCluster{},
-		}).
-		Watches(&source.Kind{Type: &corev1.PersistentVolumeClaim{}}, &handler.EnqueueRequestForOwner{
 			IsController: true,
 			OwnerType:    &chev2.CheCluster{},
 		}).
@@ -250,7 +246,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// Fetch the CheCluster instance
-	checluster, err := deploy.FindCheClusterCRInNamespace(r.nonCachedClient, req.NamespacedName.Namespace)
+	checluster, err := deploy.FindCheClusterCRInNamespace(r.client, req.NamespacedName.Namespace)
 	if checluster == nil {
 		r.Log.Info("CheCluster Custom Resource not found.")
 		return ctrl.Result{}, nil

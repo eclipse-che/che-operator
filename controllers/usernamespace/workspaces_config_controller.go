@@ -103,7 +103,7 @@ func (r *WorkspacesConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, nil
 	}
 
-	checluster, err := deploy.FindCheClusterCRInNamespace(r.nonCachedClient, "")
+	checluster, err := deploy.FindCheClusterCRInNamespace(r.client, "")
 	if checluster == nil {
 		// CheCluster is not found or error occurred, requeue the request
 		return ctrl.Result{}, err
@@ -147,7 +147,7 @@ func (r *WorkspacesConfigReconciler) watchRules(ctx context.Context) handler.Eve
 						// reconcile rule when workspace config is modified in a che namespace
 						// to update the config in all users` namespaces
 						check: func(o metav1.Object) bool {
-							cheCluster, _ := deploy.FindCheClusterCRInNamespace(r.nonCachedClient, o.GetNamespace())
+							cheCluster, _ := deploy.FindCheClusterCRInNamespace(r.client, o.GetNamespace())
 							return isLabeledAsWorkspacesConfig(o) && cheCluster != nil
 						},
 						namespaces: func(o metav1.Object) []string { return r.namespaceCache.GetAllKnownNamespaces() },
@@ -237,6 +237,7 @@ func newPVC(src client.Object) client.Object {
 	return dst.(client.Object)
 }
 
+// syncObjects syncs objects from che namespace to target namespace.
 func syncObjects(
 	ctx context.Context,
 	targetNs string,
@@ -255,12 +256,22 @@ func syncObjects(
 		return err
 	}
 
+	newObjVersionAndKind := fmt.Sprintf("%s.%s", gkv.Version, gkv.Kind)
 	for _, srcObj := range srcObjs {
-		dstObj := newObjectFunc(srcObj.(client.Object))
-		dstObj.SetNamespace(targetNs)
+		newObj := newObjectFunc(srcObj.(client.Object))
+		newObj.SetNamespace(targetNs)
 
-		if err := syncObjectToNamespace(ctx, deployContext, srcObj.(client.Object), dstObj, syncConfig); err != nil {
-			log.Error(err, "Failed to sync object", "namespace", dstObj.GetNamespace(), "kind", gkv.String(), "name", dstObj.GetName())
+		if err := syncObjectToNamespace(ctx, deployContext, srcObj.(client.Object), newObj, syncConfig); err != nil {
+			log.Error(err, "Failed to sync object",
+				"namespace", targetNs,
+				"kind", newObjVersionAndKind,
+				"name", newObj.GetName())
+			return err
+		} else {
+			log.Info("Object synced",
+				"namespace", targetNs,
+				"kind", newObjVersionAndKind,
+				"name", newObj.GetName())
 		}
 	}
 
@@ -271,7 +282,7 @@ func syncObjects(
 	}
 
 	for syncObjKey, _ := range syncConfig {
-		if err := deleteObsoleteObjects(
+		if err := deleteObsoleteObjectFromNamespace(
 			ctx,
 			gkv,
 			actualSyncedSrcObjKeys,
@@ -279,7 +290,11 @@ func syncObjects(
 			targetNs,
 			deployContext,
 			syncConfig); err != nil {
-			log.Error(err, "Failed to delete obsolete object", "namespace", targetNs, "kind", gkv.String(), "name", getObjectNameFromKey(syncObjKey))
+			log.Error(err, "Failed to delete obsolete object",
+				"namespace", targetNs,
+				"kind", newObjVersionAndKind,
+				"name", getObjectNameFromKey(syncObjKey))
+			return err
 		}
 	}
 
@@ -296,9 +311,9 @@ func readSrcObjsList(ctx context.Context, deployContext *chetypes.DeployContext,
 		})
 }
 
-// deleteObsoleteObjects deletes objects that are not synced with source objects.
+// deleteObsoleteObjectFromNamespace deletes objects that are not synced with source objects.
 // Returns error if delete failed in a destination namespace.
-func deleteObsoleteObjects(
+func deleteObsoleteObjectFromNamespace(
 	ctx context.Context,
 	gkv schema.GroupVersionKind,
 	actualSyncedSrcObjKeys map[string]bool,
@@ -312,10 +327,7 @@ func deleteObsoleteObjects(
 	isNotSyncedInTargetNs := !actualSyncedSrcObjKeys[syncObjKey]
 
 	if isObjectOfGivenKind && isObjectFromCheNamespace && isNotSyncedInTargetNs {
-		blueprint, err := deployContext.ClusterAPI.Scheme.New(gkv)
-		if err != nil {
-			return err
-		}
+		blueprint, _ := deployContext.ClusterAPI.Scheme.New(gkv)
 
 		// then delete object from target namespace if it is not synced with source object
 		if err := deploy.DeleteIgnoreIfNotFound(
@@ -392,17 +404,32 @@ func doSyncObjectToNamespace(
 			return err
 		}
 	} else {
-		newObj.SetResourceVersion(existedDstObjResourceVersion)
-		if err := deployContext.ClusterAPI.Client.Update(ctx, newObj); err != nil {
-			return err
+		if isUpdateUsingDeleteCreate(gkv.Kind) {
+			blueprint, _ := deployContext.ClusterAPI.Scheme.New(gkv)
+			if err := deploy.DeleteIgnoreIfNotFound(
+				ctx,
+				deployContext.ClusterAPI.Client,
+				types.NamespacedName{
+					Name:      newObj.GetName(),
+					Namespace: newObj.GetNamespace(),
+				},
+				blueprint.(client.Object)); err != nil {
+				return err
+			}
+
+			if err := deployContext.ClusterAPI.Client.Create(ctx, newObj); err != nil {
+				return err
+			}
+		} else {
+			newObj.SetResourceVersion(existedDstObjResourceVersion)
+			if err := deployContext.ClusterAPI.Client.Update(ctx, newObj); err != nil {
+				return err
+			}
 		}
 	}
 
 	syncConfig[getObjectKey(srcObj)] = srcObj.GetResourceVersion()
 	syncConfig[computeObjectKey(gkv, newObj.GetName(), newObj.GetNamespace())] = newObj.GetResourceVersion()
-
-	log.Info("Object synced", "namespace", newObj.GetNamespace(), "kind", gkv.String(), "name", newObj.GetName())
-
 	return nil
 }
 
@@ -442,6 +469,10 @@ func getSyncConfig(ctx context.Context, targetNs string, deployContext *chetypes
 	}
 
 	return syncedConfig, nil
+}
+
+func isUpdateUsingDeleteCreate(kind string) bool {
+	return "PersistentVolumeClaim" == kind
 }
 
 func computeObjectKey(gvk schema.GroupVersionKind, name string, namespace string) string {
