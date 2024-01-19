@@ -267,11 +267,6 @@ func syncObjects(
 				"kind", newObjVersionAndKind,
 				"name", newObj.GetName())
 			return err
-		} else {
-			log.Info("Object synced",
-				"namespace", targetNs,
-				"kind", newObjVersionAndKind,
-				"name", newObj.GetName())
 		}
 	}
 
@@ -430,6 +425,11 @@ func doSyncObjectToNamespace(
 
 	syncConfig[getObjectKey(srcObj)] = srcObj.GetResourceVersion()
 	syncConfig[computeObjectKey(gkv, newObj.GetName(), newObj.GetNamespace())] = newObj.GetResourceVersion()
+
+	log.Info("Object synced",
+		"namespace", newObj.GetNamespace(),
+		"kind", fmt.Sprintf("%s.%s", gkv.Version, gkv.Kind),
+		"name", newObj.GetName())
 	return nil
 }
 
