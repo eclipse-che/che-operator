@@ -19,8 +19,6 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 
-	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
-	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	corev1 "k8s.io/api/core/v1"
@@ -49,17 +47,31 @@ type WorkspacesConfigReconciler struct {
 	namespaceCache  *namespaceCache
 }
 
+// Interface for syncing workspace config objects.
+type workspaceConfigSyncer interface {
+	gkv() schema.GroupVersionKind
+	isExistedObjChanged(newObj client.Object, existedObj client.Object) bool
+	hasReadOnlySpec() bool
+	getObjectList() client.ObjectList
+	newObjectFrom(src client.Object) client.Object
+}
+
+type syncContext struct {
+	dstNamespace string
+	srcNamespace string
+	ctx          context.Context
+	syncer       workspaceConfigSyncer
+	syncConfig   map[string]string
+}
+
 var (
 	log = ctrl.Log.WithName("workspaces-config")
 
-	workspacesConfigSelector = labels.SelectorFromSet(map[string]string{
+	workspacesConfigLabels = map[string]string{
 		constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
 		constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
-	})
-
-	v1SecretGKV    = corev1.SchemeGroupVersion.WithKind("Secret")
-	v1ConfigMapGKV = corev1.SchemeGroupVersion.WithKind("ConfigMap")
-	v1PvcGKV       = corev1.SchemeGroupVersion.WithKind("PersistentVolumeClaim")
+	}
+	workspacesConfigSelector = labels.SelectorFromSet(workspacesConfigLabels)
 )
 
 func NewWorkspacesConfigReconciler(
@@ -103,22 +115,7 @@ func (r *WorkspacesConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, nil
 	}
 
-	checluster, err := deploy.FindCheClusterCRInNamespace(r.client, "")
-	if checluster == nil {
-		// CheCluster is not found or error occurred, requeue the request
-		return ctrl.Result{}, err
-	}
-
-	deployContext := &chetypes.DeployContext{
-		CheCluster: checluster,
-		ClusterAPI: chetypes.ClusterAPI{
-			Client:           r.client,
-			NonCachingClient: r.nonCachedClient,
-			Scheme:           r.scheme,
-		},
-	}
-
-	if err = r.syncWorkspacesConfig(ctx, req.Name, deployContext); err != nil {
+	if err = r.syncWorkspacesConfig(ctx, req.Name); err != nil {
 		log.Error(err, "Failed to sync workspace configs", "namespace", req.Name)
 		return ctrl.Result{}, err
 	}
@@ -155,8 +152,13 @@ func (r *WorkspacesConfigReconciler) watchRules(ctx context.Context) handler.Eve
 		})
 }
 
-func (r *WorkspacesConfigReconciler) syncWorkspacesConfig(ctx context.Context, targetNs string, deployContext *chetypes.DeployContext) error {
-	syncedConfig, err := getSyncConfig(ctx, targetNs, deployContext)
+func (r *WorkspacesConfigReconciler) syncWorkspacesConfig(ctx context.Context, targetNs string) error {
+	checluster, err := deploy.FindCheClusterCRInNamespace(r.client, "")
+	if checluster == nil {
+		return nil
+	}
+
+	syncedConfig, err := r.getSyncConfig(ctx, targetNs)
 	if err != nil {
 		log.Error(err, "Failed to get workspace sync config", "namespace", targetNs)
 		return nil
@@ -165,89 +167,57 @@ func (r *WorkspacesConfigReconciler) syncWorkspacesConfig(ctx context.Context, t
 	defer func() {
 		if syncedConfig != nil {
 			if syncedConfig.GetResourceVersion() == "" {
-				if err := deployContext.ClusterAPI.Client.Create(ctx, syncedConfig); err != nil {
+				if err := r.client.Create(ctx, syncedConfig); err != nil {
 					log.Error(err, "Failed to workspace create sync config", "namespace", targetNs)
 				}
 			} else {
-				if err := deployContext.ClusterAPI.Client.Update(ctx, syncedConfig); err != nil {
+				if err := r.client.Update(ctx, syncedConfig); err != nil {
 					log.Error(err, "Failed to update workspace sync config", "namespace", targetNs)
 				}
 			}
 		}
 	}()
 
-	if err := syncObjects(ctx, targetNs, deployContext, newConfigMap, v1ConfigMapGKV, &corev1.ConfigMapList{}, syncedConfig.Data); err != nil {
+	if err := r.syncObjects(
+		&syncContext{
+			dstNamespace: targetNs,
+			srcNamespace: checluster.GetNamespace(),
+			syncer:       newConfigMapSyncer(),
+			syncConfig:   syncedConfig.Data,
+			ctx:          ctx,
+		}); err != nil {
 		return err
 	}
 
-	if err := syncObjects(ctx, targetNs, deployContext, newSecret, v1SecretGKV, &corev1.SecretList{}, syncedConfig.Data); err != nil {
+	if err := r.syncObjects(
+		&syncContext{
+			dstNamespace: targetNs,
+			srcNamespace: checluster.GetNamespace(),
+			syncer:       newSecretSyncer(),
+			syncConfig:   syncedConfig.Data,
+			ctx:          ctx,
+		}); err != nil {
 		return err
 	}
 
-	if err := syncObjects(ctx, targetNs, deployContext, newPVC, v1PvcGKV, &corev1.PersistentVolumeClaimList{}, syncedConfig.Data); err != nil {
+	if err := r.syncObjects(
+		&syncContext{
+			dstNamespace: targetNs,
+			srcNamespace: checluster.GetNamespace(),
+			syncer:       newPvcSyncer(),
+			syncConfig:   syncedConfig.Data,
+			ctx:          ctx,
+		}); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func newConfigMap(src client.Object) client.Object {
-	dst := src.(runtime.Object).DeepCopyObject()
-	dst.(*corev1.ConfigMap).ObjectMeta = metav1.ObjectMeta{
-		Name:        src.GetName(),
-		Annotations: src.GetAnnotations(),
-		Labels: getWorkspaceConfigObjectLabels(
-			src.GetLabels(),
-			map[string]string{
-				dwconstants.DevWorkspaceWatchConfigMapLabel: "true",
-				dwconstants.DevWorkspaceMountLabel:          "true",
-			},
-		),
-	}
-
-	return dst.(client.Object)
-}
-
-func newSecret(src client.Object) client.Object {
-	dst := src.(runtime.Object).DeepCopyObject()
-	dst.(*corev1.Secret).ObjectMeta = metav1.ObjectMeta{
-		Name:        src.GetName(),
-		Annotations: src.GetAnnotations(),
-		Labels: getWorkspaceConfigObjectLabels(
-			src.GetLabels(),
-			map[string]string{
-				dwconstants.DevWorkspaceWatchSecretLabel: "true",
-				dwconstants.DevWorkspaceMountLabel:       "true",
-			},
-		),
-	}
-
-	return dst.(client.Object)
-}
-
-func newPVC(src client.Object) client.Object {
-	dst := src.(runtime.Object).DeepCopyObject()
-	dst.(*corev1.PersistentVolumeClaim).ObjectMeta = metav1.ObjectMeta{
-		Name:        src.GetName(),
-		Annotations: src.GetAnnotations(),
-		Labels:      src.GetLabels(),
-	}
-	dst.(*corev1.PersistentVolumeClaim).Status = corev1.PersistentVolumeClaimStatus{}
-
-	return dst.(client.Object)
-}
-
 // syncObjects syncs objects from che namespace to target namespace.
-func syncObjects(
-	ctx context.Context,
-	targetNs string,
-	deployContext *chetypes.DeployContext,
-	newObjectFunc func(srcObject client.Object) client.Object,
-	gkv schema.GroupVersionKind,
-	srcObjsList client.ObjectList,
-	syncConfig map[string]string) error {
-
-	if err := readSrcObjsList(ctx, deployContext, srcObjsList); err != nil {
+func (r *WorkspacesConfigReconciler) syncObjects(syncContext *syncContext) error {
+	srcObjsList := syncContext.syncer.getObjectList()
+	if err := r.readSrcObjsList(syncContext.ctx, syncContext.srcNamespace, srcObjsList); err != nil {
 		return err
 	}
 
@@ -256,15 +226,14 @@ func syncObjects(
 		return err
 	}
 
-	newObjVersionAndKind := fmt.Sprintf("%s.%s", gkv.Version, gkv.Kind)
 	for _, srcObj := range srcObjs {
-		newObj := newObjectFunc(srcObj.(client.Object))
-		newObj.SetNamespace(targetNs)
+		newObj := syncContext.syncer.newObjectFrom(srcObj.(client.Object))
+		newObj.SetNamespace(syncContext.dstNamespace)
 
-		if err := syncObjectToNamespace(ctx, deployContext, srcObj.(client.Object), newObj, syncConfig); err != nil {
+		if err := r.syncObjectToNamespace(syncContext, srcObj.(client.Object), newObj); err != nil {
 			log.Error(err, "Failed to sync object",
-				"namespace", targetNs,
-				"kind", newObjVersionAndKind,
+				"namespace", syncContext.dstNamespace,
+				"kind", gvk2String(syncContext.syncer.gkv()),
 				"name", newObj.GetName())
 			return err
 		}
@@ -273,22 +242,15 @@ func syncObjects(
 	actualSyncedSrcObjKeys := make(map[string]bool)
 	for _, srcObj := range srcObjs {
 		// compute actual synced objects keys from che namespace
-		actualSyncedSrcObjKeys[getObjectKey(srcObj.(client.Object))] = true
+		actualSyncedSrcObjKeys[getKey(srcObj.(client.Object))] = true
 	}
 
-	for syncObjKey, _ := range syncConfig {
-		if err := deleteObsoleteObjectFromNamespace(
-			ctx,
-			gkv,
-			actualSyncedSrcObjKeys,
-			syncObjKey,
-			targetNs,
-			deployContext,
-			syncConfig); err != nil {
+	for syncObjKey, _ := range syncContext.syncConfig {
+		if err := r.deleteObsoleteObjectFromNamespace(syncContext, actualSyncedSrcObjKeys, syncObjKey); err != nil {
 			log.Error(err, "Failed to delete obsolete object",
-				"namespace", targetNs,
-				"kind", newObjVersionAndKind,
-				"name", getObjectNameFromKey(syncObjKey))
+				"namespace", syncContext.dstNamespace,
+				"kind", gvk2String(syncContext.syncer.gkv()),
+				"name", getNameElement(syncObjKey))
 			return err
 		}
 	}
@@ -296,48 +258,39 @@ func syncObjects(
 	return nil
 }
 
-func readSrcObjsList(ctx context.Context, deployContext *chetypes.DeployContext, objList client.ObjectList) error {
-	return deployContext.ClusterAPI.Client.List(
-		ctx,
-		objList,
-		&client.ListOptions{
-			Namespace:     deployContext.CheCluster.Namespace,
-			LabelSelector: workspacesConfigSelector,
-		})
-}
-
 // deleteObsoleteObjectFromNamespace deletes objects that are not synced with source objects.
 // Returns error if delete failed in a destination namespace.
-func deleteObsoleteObjectFromNamespace(
-	ctx context.Context,
-	gkv schema.GroupVersionKind,
+func (r *WorkspacesConfigReconciler) deleteObsoleteObjectFromNamespace(
+	syncContext *syncContext,
 	actualSyncedSrcObjKeys map[string]bool,
 	syncObjKey string,
-	targetNs string,
-	deployContext *chetypes.DeployContext,
-	syncConfig map[string]string,
 ) error {
-	isObjectOfGivenKind := getObjectGVKFromKey(syncObjKey) == gkv2KeyItem(gkv)
-	isObjectFromCheNamespace := getObjectNamespaceFromKey(syncObjKey) == deployContext.CheCluster.GetNamespace()
+	isObjectOfGivenKind := getGVKElement(syncObjKey) == gvk2Element(syncContext.syncer.gkv())
+	isObjectFromSrcNamespace := getNamespaceElement(syncObjKey) == syncContext.srcNamespace
 	isNotSyncedInTargetNs := !actualSyncedSrcObjKeys[syncObjKey]
 
-	if isObjectOfGivenKind && isObjectFromCheNamespace && isNotSyncedInTargetNs {
-		blueprint, _ := deployContext.ClusterAPI.Scheme.New(gkv)
+	if isObjectOfGivenKind && isObjectFromSrcNamespace && isNotSyncedInTargetNs {
+		blueprint, _ := r.scheme.New(syncContext.syncer.gkv())
 
 		// then delete object from target namespace if it is not synced with source object
 		if err := deploy.DeleteIgnoreIfNotFound(
-			ctx,
-			deployContext.ClusterAPI.Client,
+			syncContext.ctx,
+			r.client,
 			types.NamespacedName{
-				Name:      getObjectNameFromKey(syncObjKey),
-				Namespace: targetNs,
+				Name:      getNameElement(syncObjKey),
+				Namespace: syncContext.dstNamespace,
 			},
 			blueprint.(client.Object)); err != nil {
 			return err
 		}
 
-		delete(syncConfig, syncObjKey)
-		delete(syncConfig, computeObjectKey(gkv, getObjectNameFromKey(syncObjKey), targetNs))
+		delete(syncContext.syncConfig, syncObjKey)
+		delete(syncContext.syncConfig,
+			buildKey(
+				syncContext.syncer.gkv(),
+				getNameElement(syncObjKey),
+				syncContext.dstNamespace),
+		)
 	}
 
 	return nil
@@ -345,37 +298,36 @@ func deleteObsoleteObjectFromNamespace(
 
 // syncObjectToNamespace syncs source object to destination object if they differ.
 // Returns error if sync failed in a destination namespace.
-func syncObjectToNamespace(
-	ctx context.Context,
-	deployContext *chetypes.DeployContext,
+func (r *WorkspacesConfigReconciler) syncObjectToNamespace(
+	syncContext *syncContext,
 	srcObj client.Object,
-	newObj client.Object,
-	syncConfig map[string]string) error {
+	newObj client.Object) error {
 
-	gkv := srcObj.GetObjectKind().GroupVersionKind()
-
-	existedDstObj, err := deployContext.ClusterAPI.Scheme.New(gkv)
+	existedDstObj, err := r.scheme.New(syncContext.syncer.gkv())
 	if err != nil {
 		return err
 	}
 
-	err = deployContext.ClusterAPI.Client.Get(
-		ctx,
+	err = r.client.Get(
+		syncContext.ctx,
 		types.NamespacedName{
 			Name:      newObj.GetName(),
 			Namespace: newObj.GetNamespace()},
 		existedDstObj.(client.Object))
 	if err == nil {
 		// destination object exists, update it if it differs from source object
-		srcHasBeenChanged := syncConfig[getObjectKey(srcObj)] != srcObj.GetResourceVersion()
-		dstHasBeenChanged := syncConfig[computeObjectKey(gkv, newObj.GetName(), newObj.GetNamespace())] != existedDstObj.(client.Object).GetResourceVersion()
+		srcHasBeenChanged := syncContext.syncConfig[getKey(srcObj)] != srcObj.GetResourceVersion()
+		dstHasBeenChanged := syncContext.syncConfig[buildKey(
+			syncContext.syncer.gkv(),
+			newObj.GetName(),
+			newObj.GetNamespace())] != existedDstObj.(client.Object).GetResourceVersion()
 
 		if srcHasBeenChanged || dstHasBeenChanged {
-			return doSyncObjectToNamespace(ctx, gkv, deployContext, srcObj, newObj, existedDstObj.(client.Object).GetResourceVersion(), syncConfig)
+			return r.doSyncObjectToNamespace(syncContext, srcObj, newObj, existedDstObj.(client.Object))
 		}
 	} else if errors.IsNotFound(err) {
 		// destination object does not exist, so it will be created
-		return doSyncObjectToNamespace(ctx, gkv, deployContext, srcObj, newObj, "", syncConfig)
+		return r.doSyncObjectToNamespace(syncContext, srcObj, newObj, nil)
 	} else {
 		return err
 	}
@@ -385,59 +337,76 @@ func syncObjectToNamespace(
 
 // doSyncObjectToNamespace syncs source object to destination object by updating or creating it.
 // Returns error if sync failed in a destination namespace.
-func doSyncObjectToNamespace(
-	ctx context.Context,
-	gkv schema.GroupVersionKind,
-	deployContext *chetypes.DeployContext,
+func (r *WorkspacesConfigReconciler) doSyncObjectToNamespace(
+	syncContext *syncContext,
 	srcObj client.Object,
 	newObj client.Object,
-	existedDstObjResourceVersion string,
-	syncConfig map[string]string) error {
+	existedObj client.Object) error {
 
-	if existedDstObjResourceVersion == "" {
-		if err := deployContext.ClusterAPI.Client.Create(ctx, newObj); err != nil {
+	if existedObj == nil {
+		if err := r.client.Create(syncContext.ctx, newObj); err != nil {
 			return err
 		}
-	} else {
-		if isUpdateUsingDeleteCreate(gkv.Kind) {
-			blueprint, _ := deployContext.ClusterAPI.Scheme.New(gkv)
-			if err := deploy.DeleteIgnoreIfNotFound(
-				ctx,
-				deployContext.ClusterAPI.Client,
-				types.NamespacedName{
-					Name:      newObj.GetName(),
-					Namespace: newObj.GetNamespace(),
-				},
-				blueprint.(client.Object)); err != nil {
-				return err
-			}
 
-			if err := deployContext.ClusterAPI.Client.Create(ctx, newObj); err != nil {
-				return err
-			}
+		syncContext.syncConfig[getKey(srcObj)] = srcObj.GetResourceVersion()
+		syncContext.syncConfig[buildKey(
+			syncContext.syncer.gkv(),
+			newObj.GetName(),
+			newObj.GetNamespace())] = newObj.GetResourceVersion()
+
+		log.Info("Object created",
+			"namespace", newObj.GetNamespace(),
+			"kind", gvk2String(syncContext.syncer.gkv()),
+			"name", newObj.GetName())
+		return nil
+	} else {
+		if syncContext.syncer.hasReadOnlySpec() {
+			// skip updating objects with readonly spec
+			// admin has to re-create them to update
+			// just update resource versions
+			syncContext.syncConfig[getKey(srcObj)] = srcObj.GetResourceVersion()
+			syncContext.syncConfig[getKey(existedObj)] = existedObj.GetResourceVersion()
+
+			log.Info("Object skipped since has readonly spec, re-create it to update",
+				"namespace", newObj.GetNamespace(),
+				"kind", gvk2String(syncContext.syncer.gkv()),
+				"name", newObj.GetName())
+			return nil
 		} else {
-			newObj.SetResourceVersion(existedDstObjResourceVersion)
-			if err := deployContext.ClusterAPI.Client.Update(ctx, newObj); err != nil {
-				return err
+			if syncContext.syncer.isExistedObjChanged(newObj, existedObj) {
+				newObj.SetResourceVersion(existedObj.GetResourceVersion())
+				if err := r.client.Update(syncContext.ctx, newObj); err != nil {
+					return err
+				}
+
+				syncContext.syncConfig[getKey(srcObj)] = srcObj.GetResourceVersion()
+				syncContext.syncConfig[buildKey(
+					syncContext.syncer.gkv(),
+					newObj.GetName(),
+					newObj.GetNamespace())] = newObj.GetResourceVersion()
+
+				log.Info("Object updated",
+					"namespace", newObj.GetNamespace(),
+					"kind", gvk2String(syncContext.syncer.gkv()),
+					"name", newObj.GetName())
+				return nil
+			} else {
+				// nothing to update objects are equal
+				// just update resource versions
+				syncContext.syncConfig[getKey(srcObj)] = srcObj.GetResourceVersion()
+				syncContext.syncConfig[getKey(existedObj)] = existedObj.GetResourceVersion()
+				return nil
 			}
 		}
 	}
-
-	syncConfig[getObjectKey(srcObj)] = srcObj.GetResourceVersion()
-	syncConfig[computeObjectKey(gkv, newObj.GetName(), newObj.GetNamespace())] = newObj.GetResourceVersion()
-
-	log.Info("Object synced",
-		"namespace", newObj.GetNamespace(),
-		"kind", fmt.Sprintf("%s.%s", gkv.Version, gkv.Kind),
-		"name", newObj.GetName())
-	return nil
 }
 
 // getSyncConfig returns ConfigMap with synced objects resource versions.
 // Returns error if ConfigMap failed to be retrieved.
-func getSyncConfig(ctx context.Context, targetNs string, deployContext *chetypes.DeployContext) (*corev1.ConfigMap, error) {
+func (r *WorkspacesConfigReconciler) getSyncConfig(ctx context.Context, targetNs string) (*corev1.ConfigMap, error) {
 	syncedConfig := &corev1.ConfigMap{}
-	err := deployContext.ClusterAPI.Client.Get(ctx,
+	err := r.client.Get(
+		ctx,
 		types.NamespacedName{
 			Name:      syncedWorkspacesConfig,
 			Namespace: targetNs,
@@ -454,10 +423,7 @@ func getSyncConfig(ctx context.Context, targetNs string, deployContext *chetypes
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      syncedWorkspacesConfig,
 					Namespace: targetNs,
-					Labels: map[string]string{
-						constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
-						constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
-					},
+					Labels:    workspacesConfigLabels,
 				},
 				Data: map[string]string{},
 			}
@@ -471,36 +437,46 @@ func getSyncConfig(ctx context.Context, targetNs string, deployContext *chetypes
 	return syncedConfig, nil
 }
 
-func isUpdateUsingDeleteCreate(kind string) bool {
-	return "PersistentVolumeClaim" == kind
+func (r *WorkspacesConfigReconciler) readSrcObjsList(ctx context.Context, srcNamespace string, objList client.ObjectList) error {
+	return r.client.List(
+		ctx,
+		objList,
+		&client.ListOptions{
+			Namespace:     srcNamespace,
+			LabelSelector: workspacesConfigSelector,
+		})
 }
 
-func computeObjectKey(gvk schema.GroupVersionKind, name string, namespace string) string {
-	return fmt.Sprintf("%s.%s.%s", gkv2KeyItem(gvk), name, namespace)
+func getKey(object client.Object) string {
+	return buildKey(object.GetObjectKind().GroupVersionKind(), object.GetName(), object.GetNamespace())
 }
 
-func getObjectKey(object client.Object) string {
-	return computeObjectKey(object.GetObjectKind().GroupVersionKind(), object.GetName(), object.GetNamespace())
+func buildKey(gvk schema.GroupVersionKind, name string, namespace string) string {
+	return fmt.Sprintf("%s.%s.%s", gvk2Element(gvk), name, namespace)
 }
 
-func gkv2KeyItem(gvk schema.GroupVersionKind) string {
+func gvk2Element(gvk schema.GroupVersionKind) string {
 	if gvk.Group == "" {
 		return fmt.Sprintf("%s_%s", gvk.Version, gvk.Kind)
 	}
 	return fmt.Sprintf("%s_%s_%s", gvk.Group, gvk.Version, gvk.Kind)
 }
 
-func getObjectGVKFromKey(key string) string {
+func gvk2String(gkv schema.GroupVersionKind) string {
+	return fmt.Sprintf("%s.%s", gkv.Version, gkv.Kind)
+}
+
+func getGVKElement(key string) string {
 	splits := strings.Split(key, ".")
 	return splits[0]
 }
 
-func getObjectNameFromKey(key string) string {
+func getNameElement(key string) string {
 	splits := strings.Split(key, ".")
 	return splits[1]
 }
 
-func getObjectNamespaceFromKey(key string) string {
+func getNamespaceElement(key string) string {
 	splits := strings.Split(key, ".")
 	return splits[2]
 }
@@ -510,16 +486,16 @@ func isLabeledAsWorkspacesConfig(obj metav1.Object) bool {
 		obj.GetLabels()[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg
 }
 
-func getWorkspaceConfigObjectLabels(srcLabels map[string]string, newLabels map[string]string) map[string]string {
-	dstLabels := utils.CloneMap(srcLabels)
-	for key, value := range newLabels {
-		dstLabels[key] = value
+func mergeWorkspaceConfigObjectLabels(srcLabels map[string]string, additionalLabels map[string]string) map[string]string {
+	newLabels := utils.CloneMap(srcLabels)
+	for key, value := range additionalLabels {
+		newLabels[key] = value
 	}
 
 	// default labels
 	for key, value := range deploy.GetLabels(constants.WorkspacesConfig) {
-		dstLabels[key] = value
+		newLabels[key] = value
 	}
 
-	return dstLabels
+	return newLabels
 }
