@@ -374,6 +374,11 @@ func (r *WorkspacesConfigReconciler) doSyncObjectToNamespace(
 			return nil
 		} else {
 			if syncContext.syncer.isExistedObjChanged(newObj, existedObj) {
+				// preserve labels and annotations from existed object
+				newObj.SetLabels(preserveExistedMapValues(newObj.GetLabels(), existedObj.GetLabels()))
+				newObj.SetAnnotations(preserveExistedMapValues(newObj.GetAnnotations(), existedObj.GetAnnotations()))
+
+				// set the correct resource version to update object
 				newObj.SetResourceVersion(existedObj.GetResourceVersion())
 				if err := r.client.Update(syncContext.ctx, newObj); err != nil {
 					return err
@@ -495,4 +500,14 @@ func mergeWorkspaceConfigObjectLabels(srcLabels map[string]string, additionalLab
 	}
 
 	return newLabels
+}
+
+func preserveExistedMapValues(newObjMap map[string]string, existedObjMap map[string]string) map[string]string {
+	preservedMap := utils.CloneMap(newObjMap)
+	for key, value := range existedObjMap {
+		if _, ok := preservedMap[key]; !ok {
+			preservedMap[key] = value
+		}
+	}
+	return preservedMap
 }

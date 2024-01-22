@@ -195,3 +195,106 @@ func TestSyncSecrets(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.True(t, errors.IsNotFound(err))
 }
+
+func TestSyncSecretShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
+	deployContext := test.GetDeployContext(nil, []runtime.Object{
+		&corev1.Secret{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Secret",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      objectName,
+				Namespace: "eclipse-che",
+				Labels: map[string]string{
+					"label":                               "label-value",
+					constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+					constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
+				},
+				Annotations: map[string]string{
+					"annotation": "annotation-value",
+				},
+			},
+			StringData: map[string]string{
+				"a": "b",
+			},
+		}})
+
+	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
+		deployContext.ClusterAPI.Client,
+		deployContext.ClusterAPI.NonCachingClient,
+		deployContext.ClusterAPI.Scheme,
+		NewNamespaceCache(deployContext.ClusterAPI.NonCachingClient))
+
+	// Sync Secret
+	err := workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace)
+	assert.Nil(t, err)
+	assertSyncConfig(t, workspaceConfigReconciler, 2, v1SecretGKV)
+
+	// Check Secret in a user namespace is created
+	secret := &corev1.Secret{}
+	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, secret)
+	assert.Nil(t, err)
+	assert.Equal(t, constants.WorkspacesConfig, secret.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, constants.CheEclipseOrg, secret.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, "true", secret.Labels["controller.devfile.io/watch-secret"])
+	assert.Equal(t, "true", secret.Labels["controller.devfile.io/mount-to-devworkspace"])
+	assert.Equal(t, "label-value", secret.Labels["label"])
+	assert.Equal(t, "annotation-value", secret.Annotations["annotation"])
+
+	// Update labels and annotations on dst Secret
+	secret = &corev1.Secret{}
+	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, secret)
+	assert.Nil(t, err)
+	utils.AddMap(secret.Labels, map[string]string{"new-label": "new-label-value"})
+	utils.AddMap(secret.Annotations, map[string]string{"new-annotation": "new-annotation-value"})
+	err = workspaceConfigReconciler.client.Update(context.TODO(), secret)
+	assert.Nil(t, err)
+
+	// Sync Secret
+	err = workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace)
+	assert.Nil(t, err)
+	assertSyncConfig(t, workspaceConfigReconciler, 2, v1SecretGKV)
+
+	// Check that destination Secret is not reverted
+	secret = &corev1.Secret{}
+	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, secret)
+	assert.Nil(t, err)
+	assert.Equal(t, constants.WorkspacesConfig, secret.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, constants.CheEclipseOrg, secret.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, "true", secret.Labels["controller.devfile.io/watch-secret"])
+	assert.Equal(t, "true", secret.Labels["controller.devfile.io/mount-to-devworkspace"])
+	assert.Equal(t, "label-value", secret.Labels["label"])
+	assert.Equal(t, "new-label-value", secret.Labels["new-label"])
+	assert.Equal(t, "annotation-value", secret.Annotations["annotation"])
+	assert.Equal(t, "new-annotation-value", secret.Annotations["new-annotation"])
+
+	// Update src Secret
+	secret = &corev1.Secret{}
+	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInCheNs, secret)
+	assert.Nil(t, err)
+	secret.StringData["a"] = "c"
+	utils.AddMap(secret.Labels, map[string]string{"label": "label-value-2"})
+	utils.AddMap(secret.Annotations, map[string]string{"annotation": "annotation-value-2"})
+	err = workspaceConfigReconciler.client.Update(context.TODO(), secret)
+	assert.Nil(t, err)
+
+	// Sync Secret
+	err = workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace)
+	assert.Nil(t, err)
+	assertSyncConfig(t, workspaceConfigReconciler, 2, v1SecretGKV)
+
+	// Check that destination Secret is updated but old labels and annotations are preserved
+	secret = &corev1.Secret{}
+	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, secret)
+	assert.Nil(t, err)
+	assert.Equal(t, "c", secret.StringData["a"])
+	assert.Equal(t, constants.WorkspacesConfig, secret.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, constants.CheEclipseOrg, secret.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, "true", secret.Labels["controller.devfile.io/watch-secret"])
+	assert.Equal(t, "true", secret.Labels["controller.devfile.io/mount-to-devworkspace"])
+	assert.Equal(t, "label-value-2", secret.Labels["label"])
+	assert.Equal(t, "new-label-value", secret.Labels["new-label"])
+	assert.Equal(t, "annotation-value-2", secret.Annotations["annotation"])
+	assert.Equal(t, "new-annotation-value", secret.Annotations["new-annotation"])
+}

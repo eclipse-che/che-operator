@@ -191,11 +191,114 @@ func TestSyncConfigMap(t *testing.T) {
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 0, v1ConfigMapGKV)
 
-	// Check that destination Secret in a user namespace is deleted
+	// Check that destination ConfigMap in a user namespace is deleted
 	cm = &corev1.ConfigMap{}
 	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.NotNil(t, err)
 	assert.True(t, errors.IsNotFound(err))
+}
+
+func TestSyncConfigMapShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
+	deployContext := test.GetDeployContext(nil, []runtime.Object{
+		&corev1.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ConfigMap",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      objectName,
+				Namespace: "eclipse-che",
+				Labels: map[string]string{
+					"label":                               "label-value",
+					constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+					constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
+				},
+				Annotations: map[string]string{
+					"annotation": "annotation-value",
+				},
+			},
+			Data: map[string]string{
+				"a": "b",
+			},
+		}})
+
+	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
+		deployContext.ClusterAPI.Client,
+		deployContext.ClusterAPI.NonCachingClient,
+		deployContext.ClusterAPI.Scheme,
+		NewNamespaceCache(deployContext.ClusterAPI.NonCachingClient))
+
+	// Sync ConfigMap
+	err := workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace)
+	assert.Nil(t, err)
+	assertSyncConfig(t, workspaceConfigReconciler, 2, v1ConfigMapGKV)
+
+	// Check ConfigMap in a user namespace is created
+	cm := &corev1.ConfigMap{}
+	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, cm)
+	assert.Nil(t, err)
+	assert.Equal(t, constants.WorkspacesConfig, cm.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, constants.CheEclipseOrg, cm.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, "true", cm.Labels["controller.devfile.io/watch-configmap"])
+	assert.Equal(t, "true", cm.Labels["controller.devfile.io/mount-to-devworkspace"])
+	assert.Equal(t, "label-value", cm.Labels["label"])
+	assert.Equal(t, "annotation-value", cm.Annotations["annotation"])
+
+	// Update labels and annotations on dst ConfigMap
+	cm = &corev1.ConfigMap{}
+	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, cm)
+	assert.Nil(t, err)
+	utils.AddMap(cm.Labels, map[string]string{"new-label": "new-label-value"})
+	utils.AddMap(cm.Annotations, map[string]string{"new-annotation": "new-annotation-value"})
+	err = workspaceConfigReconciler.client.Update(context.TODO(), cm)
+	assert.Nil(t, err)
+
+	// Sync ConfigMap
+	err = workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace)
+	assert.Nil(t, err)
+	assertSyncConfig(t, workspaceConfigReconciler, 2, v1ConfigMapGKV)
+
+	// Check that destination ConfigMap is not reverted
+	cm = &corev1.ConfigMap{}
+	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, cm)
+	assert.Nil(t, err)
+	assert.Equal(t, constants.WorkspacesConfig, cm.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, constants.CheEclipseOrg, cm.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, "true", cm.Labels["controller.devfile.io/watch-configmap"])
+	assert.Equal(t, "true", cm.Labels["controller.devfile.io/mount-to-devworkspace"])
+	assert.Equal(t, "label-value", cm.Labels["label"])
+	assert.Equal(t, "new-label-value", cm.Labels["new-label"])
+	assert.Equal(t, "annotation-value", cm.Annotations["annotation"])
+	assert.Equal(t, "new-annotation-value", cm.Annotations["new-annotation"])
+
+	// Update src ConfigMap
+	cm = &corev1.ConfigMap{}
+	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInCheNs, cm)
+	assert.Nil(t, err)
+	cm.Data["a"] = "c"
+	utils.AddMap(cm.Labels, map[string]string{"label": "label-value-2"})
+	utils.AddMap(cm.Annotations, map[string]string{"annotation": "annotation-value-2"})
+	err = workspaceConfigReconciler.client.Update(context.TODO(), cm)
+	assert.Nil(t, err)
+
+	// Sync ConfigMap
+	err = workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace)
+	assert.Nil(t, err)
+	assertSyncConfig(t, workspaceConfigReconciler, 2, v1ConfigMapGKV)
+
+	// Check that destination ConfigMap is updated but old labels and annotations are preserved
+	cm = &corev1.ConfigMap{}
+	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, cm)
+	assert.Nil(t, err)
+	assert.Equal(t, "c", cm.Data["a"])
+	assert.Equal(t, constants.WorkspacesConfig, cm.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, constants.CheEclipseOrg, cm.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, "true", cm.Labels["controller.devfile.io/watch-configmap"])
+	assert.Equal(t, "true", cm.Labels["controller.devfile.io/mount-to-devworkspace"])
+	assert.Equal(t, "label-value-2", cm.Labels["label"])
+	assert.Equal(t, "new-label-value", cm.Labels["new-label"])
+	assert.Equal(t, "annotation-value-2", cm.Annotations["annotation"])
+	assert.Equal(t, "new-annotation-value", cm.Annotations["new-annotation"])
 }
 
 func assertSyncConfig(t *testing.T, workspaceConfigReconciler *WorkspacesConfigReconciler, expectedNumberOfRecords int, gkv schema.GroupVersionKind) {
