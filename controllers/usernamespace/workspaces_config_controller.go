@@ -270,7 +270,10 @@ func (r *WorkspacesConfigReconciler) deleteObsoleteObjectFromNamespace(
 	isNotSyncedInTargetNs := !actualSyncedSrcObjKeys[syncObjKey]
 
 	if isObjectOfGivenKind && isObjectFromSrcNamespace && isNotSyncedInTargetNs {
-		blueprint, _ := r.scheme.New(syncContext.syncer.gkv())
+		blueprint, err := r.scheme.New(syncContext.syncer.gkv())
+		if err != nil {
+			return err
+		}
 
 		// then delete object from target namespace if it is not synced with source object
 		if err := deploy.DeleteIgnoreIfNotFound(
@@ -317,10 +320,7 @@ func (r *WorkspacesConfigReconciler) syncObjectToNamespace(
 	if err == nil {
 		// destination object exists, update it if it differs from source object
 		srcHasBeenChanged := syncContext.syncConfig[getKey(srcObj)] != srcObj.GetResourceVersion()
-		dstHasBeenChanged := syncContext.syncConfig[buildKey(
-			syncContext.syncer.gkv(),
-			newObj.GetName(),
-			newObj.GetNamespace())] != existedDstObj.(client.Object).GetResourceVersion()
+		dstHasBeenChanged := syncContext.syncConfig[getKey(existedDstObj.(client.Object))] != existedDstObj.(client.Object).GetResourceVersion()
 
 		if srcHasBeenChanged || dstHasBeenChanged {
 			return r.doSyncObjectToNamespace(syncContext, srcObj, newObj, existedDstObj.(client.Object))
@@ -380,10 +380,7 @@ func (r *WorkspacesConfigReconciler) doSyncObjectToNamespace(
 				}
 
 				syncContext.syncConfig[getKey(srcObj)] = srcObj.GetResourceVersion()
-				syncContext.syncConfig[buildKey(
-					syncContext.syncer.gkv(),
-					newObj.GetName(),
-					newObj.GetNamespace())] = newObj.GetResourceVersion()
+				syncContext.syncConfig[getKey(existedObj)] = newObj.GetResourceVersion()
 
 				log.Info("Object updated",
 					"namespace", newObj.GetNamespace(),
