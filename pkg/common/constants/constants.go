@@ -128,6 +128,7 @@ const (
 	// common
 	CheFlavor             = "che"
 	CheEclipseOrg         = "che.eclipse.org"
+	WorkspacesConfig      = "workspaces-config"
 	InstallOrUpdateFailed = "InstallOrUpdateFailed"
 	FinalizerSuffix       = "finalizers.che.eclipse.org"
 

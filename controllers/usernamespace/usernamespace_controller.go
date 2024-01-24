@@ -29,7 +29,6 @@ import (
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/controllers/che"
-	"github.com/eclipse-che/che-operator/controllers/devworkspace"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	projectv1 "github.com/openshift/api/project/v1"
@@ -55,27 +54,28 @@ const (
 )
 
 type CheUserNamespaceReconciler struct {
-	client         client.Client
-	scheme         *runtime.Scheme
-	namespaceCache namespaceCache
-}
-
-type eventRule struct {
-	check      func(metav1.Object) bool
-	namespaces func(metav1.Object) []string
+	scheme          *runtime.Scheme
+	client          client.Client
+	nonCachedClient client.Client
+	namespaceCache  *namespaceCache
 }
 
 var _ reconcile.Reconciler = (*CheUserNamespaceReconciler)(nil)
 
-func NewReconciler() *CheUserNamespaceReconciler {
-	return &CheUserNamespaceReconciler{namespaceCache: *NewNamespaceCache()}
+func NewCheUserNamespaceReconciler(
+	client client.Client,
+	noncachedClient client.Client,
+	scheme *runtime.Scheme,
+	namespaceCache *namespaceCache) *CheUserNamespaceReconciler {
+
+	return &CheUserNamespaceReconciler{
+		scheme:          scheme,
+		client:          client,
+		nonCachedClient: noncachedClient,
+		namespaceCache:  namespaceCache}
 }
 
 func (r *CheUserNamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.scheme = mgr.GetScheme()
-	r.client = mgr.GetClient()
-	r.namespaceCache.client = r.client
-
 	var obj client.Object
 	if infrastructure.IsOpenShift() {
 		obj = &projectv1.Project{}
@@ -99,26 +99,6 @@ func (r *CheUserNamespaceReconciler) watchRulesForSecrets(ctx context.Context) h
 		handler.MapFunc(func(obj client.Object) []reconcile.Request {
 			return asReconcileRequestsForNamespaces(obj, rules)
 		}))
-}
-
-func asReconcileRequestsForNamespaces(obj metav1.Object, rules []eventRule) []reconcile.Request {
-	for _, r := range rules {
-		if r.check(obj) {
-			nss := r.namespaces(obj)
-			ret := make([]reconcile.Request, len(nss))
-			for i, n := range nss {
-				ret[i] = reconcile.Request{
-					NamespacedName: types.NamespacedName{
-						Name: n,
-					},
-				}
-			}
-
-			return ret
-		}
-	}
-
-	return []reconcile.Request{}
 }
 
 func (r *CheUserNamespaceReconciler) commonRules(ctx context.Context, namesInCheClusterNamespace ...string) []eventRule {
@@ -192,6 +172,10 @@ func (r *CheUserNamespaceReconciler) hasCheCluster(ctx context.Context, namespac
 }
 
 func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	if req.Name == "" {
+		return ctrl.Result{}, nil
+	}
+
 	info, err := r.namespaceCache.ExamineNamespace(ctx, req.Name)
 	if err != nil {
 		logrus.Errorf("Failed to examine namespace %s for presence of Che user info labels: %v", req.Name, err)
@@ -203,9 +187,10 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, nil
 	}
 
-	checluster := findManagingCheCluster(*info.CheCluster)
-	if checluster == nil {
-		return ctrl.Result{Requeue: true}, nil
+	checluster, err := deploy.FindCheClusterCRInNamespace(r.client, "")
+	if checluster == nil || err != nil {
+		// CheCluster is not found or error occurred, requeue the request
+		return ctrl.Result{}, err
 	}
 
 	// let's construct the deployContext to be able to use methods from v1 operator
@@ -213,8 +198,7 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		CheCluster: checluster,
 		ClusterAPI: chetypes.ClusterAPI{
 			Client:           r.client,
-			NonCachingClient: r.client,
-			DiscoveryClient:  nil,
+			NonCachingClient: r.nonCachedClient,
 			Scheme:           r.scheme,
 		},
 	}
@@ -255,30 +239,6 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	return ctrl.Result{}, nil
-}
-
-func findManagingCheCluster(key types.NamespacedName) *chev2.CheCluster {
-	instances := devworkspace.GetCurrentCheClusterInstances()
-	if len(instances) == 0 {
-		return nil
-	}
-
-	if len(instances) == 1 {
-		for k, v := range instances {
-			if key.Name == "" || (key.Name == k.Name && key.Namespace == k.Namespace) {
-				return &v
-			}
-			return nil
-		}
-	}
-
-	ret, ok := instances[key]
-
-	if ok {
-		return &ret
-	} else {
-		return nil
-	}
 }
 
 func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context, deployContext *chetypes.DeployContext, targetNs string, checluster *chev2.CheCluster) error {

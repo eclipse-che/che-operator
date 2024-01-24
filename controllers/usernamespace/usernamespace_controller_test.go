@@ -160,9 +160,10 @@ func setup(infraType devworkspaceinfra.Type, objs ...runtime.Object) (*runtime.S
 	cl := fake.NewFakeClientWithScheme(scheme, objs...)
 
 	r := &CheUserNamespaceReconciler{
-		client: cl,
-		scheme: scheme,
-		namespaceCache: namespaceCache{
+		client:          cl,
+		nonCachedClient: cl,
+		scheme:          scheme,
+		namespaceCache: &namespaceCache{
 			client:          cl,
 			knownNamespaces: map[string]namespaceInfo{},
 			lock:            sync.Mutex{},
@@ -211,96 +212,6 @@ func TestSkipsUnlabeledNamespaces(t *testing.T) {
 				Name: "prj",
 			},
 		})
-	})
-}
-
-func TestRequiresLabelsToMatchOneOfMultipleCheCluster(t *testing.T) {
-	test := func(t *testing.T, infraType devworkspaceinfra.Type, namespace metav1.Object) {
-		ctx := context.TODO()
-		scheme, cl, r := setup(infraType, namespace.(runtime.Object))
-		setupCheCluster(t, ctx, cl, scheme, "che1", "che")
-		setupCheCluster(t, ctx, cl, scheme, "che2", "che")
-
-		res, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}})
-		assert.NoError(t, err, "Reconciliation should have succeeded.")
-
-		assert.True(t, res.Requeue, "The reconciliation request should have been requeued.")
-	}
-
-	t.Run("k8s", func(t *testing.T) {
-		test(t, devworkspaceinfra.Kubernetes, &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "ns",
-				Labels: map[string]string{
-					workspaceNamespaceOwnerUidLabel: "uid",
-				},
-			},
-		})
-	})
-
-	t.Run("openshift", func(t *testing.T) {
-		test(t, devworkspaceinfra.OpenShiftv4, &projectv1.Project{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "prj",
-				Labels: map[string]string{
-					workspaceNamespaceOwnerUidLabel: "uid",
-				},
-			},
-		})
-	})
-}
-
-func TestMatchingCheClusterCanBeSelectedUsingLabels(t *testing.T) {
-	test := func(t *testing.T, infraType devworkspaceinfra.Type, namespace string, objs ...runtime.Object) {
-		ctx := context.TODO()
-		scheme, cl, r := setup(infraType, objs...)
-		setupCheCluster(t, ctx, cl, scheme, "che1", "che")
-		setupCheCluster(t, ctx, cl, scheme, "che2", "che")
-
-		res, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace}})
-		assert.NoError(t, err, "Reconciliation shouldn't have failed")
-
-		assert.False(t, res.Requeue, "The reconciliation request should have succeeded but is requesting a requeue.")
-	}
-
-	t.Run("k8s", func(t *testing.T) {
-		test(t, devworkspaceinfra.Kubernetes,
-			"ns",
-			&corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "ns",
-					Labels: map[string]string{
-						workspaceNamespaceOwnerUidLabel: "uid",
-						cheNameLabel:                    "che",
-						cheNamespaceLabel:               "che1",
-					},
-				},
-			})
-	})
-
-	t.Run("openshift", func(t *testing.T) {
-		test(t, devworkspaceinfra.OpenShiftv4,
-			"ns",
-			&corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "ns",
-					Labels: map[string]string{
-						workspaceNamespaceOwnerUidLabel: "uid",
-						cheNameLabel:                    "che",
-						cheNamespaceLabel:               "che1",
-					},
-				},
-			},
-			&projectv1.Project{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "prj",
-					Labels: map[string]string{
-						workspaceNamespaceOwnerUidLabel: "uid",
-						cheNameLabel:                    "che",
-						cheNamespaceLabel:               "che1",
-					},
-				},
-			})
 	})
 }
 
