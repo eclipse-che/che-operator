@@ -77,7 +77,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che.v7.81.0-830.next
+  name: eclipse-che.v7.81.0-831.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -925,7 +925,7 @@ spec:
                       - name: RELATED_IMAGE_single_host_gateway
                         value: quay.io/eclipse/che--traefik:v2.9.10-8d81a9df1435f9f3d36ac9398465ef2d5d61e671059974db753faaed14b627de
                       - name: RELATED_IMAGE_single_host_gateway_config_sidecar
-                        value: quay.io/che-incubator/configbump:0.1.4
+                        value: quay.io/che-incubator/configbump:next
                       - name: RELATED_IMAGE_gateway_authentication_sidecar
                         value: quay.io/openshift/origin-oauth-proxy:4.9
                       - name: RELATED_IMAGE_gateway_authorization_sidecar
@@ -1240,7 +1240,7 @@ spec:
   minKubeVersion: 1.19.0
   provider:
     name: Eclipse Foundation
-  version: 7.81.0-830.next
+  version: 7.81.0-831.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1

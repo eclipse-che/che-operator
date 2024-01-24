@@ -8945,7 +8945,7 @@ spec:
         - name: RELATED_IMAGE_single_host_gateway
           value: quay.io/eclipse/che--traefik:v2.9.10-8d81a9df1435f9f3d36ac9398465ef2d5d61e671059974db753faaed14b627de
         - name: RELATED_IMAGE_single_host_gateway_config_sidecar
-          value: quay.io/che-incubator/configbump:0.1.4
+          value: quay.io/che-incubator/configbump:next
         - name: RELATED_IMAGE_gateway_authentication_sidecar
           value: quay.io/openshift/origin-oauth-proxy:4.9
         - name: RELATED_IMAGE_gateway_authorization_sidecar

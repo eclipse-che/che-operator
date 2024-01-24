@@ -105,7 +105,7 @@ checkImageReferences() {
     echo "[ERROR] Unable to find Che server image with version ${RELEASE} in the $filename"; exit 1
   fi
 
-if ! grep -q "value: quay.io/eclipse/che-dashboard:$RELEASE" $filename; then
+  if ! grep -q "value: quay.io/eclipse/che-dashboard:$RELEASE" $filename; then
     echo "[ERROR] Unable to find dashboard image with version ${RELEASE} in the $filename"; exit 1
   fi
 
@@ -117,8 +117,8 @@ if ! grep -q "value: quay.io/eclipse/che-dashboard:$RELEASE" $filename; then
     echo "[ERROR] Unable to find devfile registry image with version ${RELEASE} in the $filename"; exit 1
   fi
 
-  if ! grep -q "value: $RELATED_IMAGE_pvc_jobs" $filename; then
-    echo "[ERROR] Unable to find ubi8_minimal image in the $filename"; exit 1
+  if ! grep -q "value: quay.io/che-incubator/configbump:$RELEASE" $filename; then
+    echo "[ERROR] Unable to find configbump image with version ${RELEASE} in the $filename"; exit 1
   fi
 }
 
@@ -150,11 +150,14 @@ replaceImagesTags() {
   lastDefaultDashboardImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_dashboard\") | .value" "${OPERATOR_YAML}")
   lastDefaultPluginRegistryImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_plugin_registry\") | .value" "${OPERATOR_YAML}")
   lastDefaultDevfileRegistryImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_devfile_registry\") | .value" "${OPERATOR_YAML}")
+  lastDefaultGatewayConfigImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_single_host_gateway_config_sidecar\") | .value" "${OPERATOR_YAML}")
+
 
   CHE_SERVER_IMAGE_REALEASE=$(replaceTag "${lastDefaultCheServerImage}" "${RELEASE}")
   DASHBOARD_IMAGE_REALEASE=$(replaceTag "${lastDefaultDashboardImage}" "${RELEASE}")
   PLUGIN_REGISTRY_IMAGE_RELEASE=$(replaceTag "${lastDefaultPluginRegistryImage}" "${RELEASE}")
   DEVFILE_REGISTRY_IMAGE_RELEASE=$(replaceTag "${lastDefaultDevfileRegistryImage}" "${RELEASE}")
+  GATEWAY_CONFIG_IMAGE_RELEASE=$(replaceTag "${lastDefaultGatewayConfigImage}" "${RELEASE}")
 
   NEW_OPERATOR_YAML="${OPERATOR_YAML}.new"
   # copy licence header
@@ -167,6 +170,7 @@ replaceImagesTags() {
   yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_dashboard\") | .value ) = \"${DASHBOARD_IMAGE_REALEASE}\"" | \
   yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_plugin_registry\") | .value ) = \"${PLUGIN_REGISTRY_IMAGE_RELEASE}\"" | \
   yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_devfile_registry\") | .value ) = \"${DEVFILE_REGISTRY_IMAGE_RELEASE}\"" \
+  yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_single_host_gateway_config_sidecar\") | .value ) = \"${GATEWAY_CONFIG_IMAGE_RELEASE}\"" \
   >> "${NEW_OPERATOR_YAML}"
   mv "${NEW_OPERATOR_YAML}" "${OPERATOR_YAML}"
 }
