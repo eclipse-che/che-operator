@@ -147,7 +147,7 @@ func syncAll(deployContext *chetypes.DeployContext) error {
 	if err != nil {
 		return err
 	}
-	if _, err := deploy.Sync(deployContext, depl, deploy.DefaultDeploymentDiffOpts); err != nil {
+	if _, err := deploy.SyncDeploymentSpecToCluster(deployContext, depl, deploy.DefaultDeploymentDiffOpts); err != nil {
 		// Failed to sync (update), let's delete and create instead
 		if strings.Contains(err.Error(), "field is immutable") {
 			if _, err := deploy.DeleteNamespacedObject(deployContext, depl.Name, &appsv1.Deployment{}); err != nil {

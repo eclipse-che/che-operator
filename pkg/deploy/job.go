@@ -95,7 +95,6 @@ func getJobSpec(
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName:            serviceAccountName,
-					DeprecatedServiceAccount:      serviceAccountName,
 					RestartPolicy:                 "Never",
 					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
 					Containers: []corev1.Container{

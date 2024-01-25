@@ -67,6 +67,10 @@ func SyncDeploymentSpecToCluster(
 		return false, err
 	}
 
+	if err := setDesiredReplicas(deploymentSpec, deployContext); err != nil {
+		return false, err
+	}
+
 	done, err := Sync(deployContext, deploymentSpec, deploymentDiffOpts)
 	if err != nil || !done {
 		// Failed to sync (update), let's delete and create instead
@@ -92,11 +96,11 @@ func SyncDeploymentSpecToCluster(
 		return false, err
 	}
 
-	if actual.Spec.Strategy.Type == appsv1.RollingUpdateDeploymentStrategyType && actual.Status.Replicas > 1 {
+	provisioned := actual.Status.UnavailableReplicas == 0
+	if actual.Spec.Strategy.Type == appsv1.RollingUpdateDeploymentStrategyType && !provisioned {
 		logrus.Infof("Deployment %s is in the rolling update state.", deploymentSpec.Name)
 	}
 
-	provisioned := actual.Status.AvailableReplicas == 1 && actual.Status.Replicas == 1
 	return provisioned, nil
 }
 
@@ -507,5 +511,16 @@ func MountConfigMaps(specDeployment *appsv1.Deployment, deployContext *chetypes.
 		}
 	}
 
+	return nil
+}
+
+// setDesiredReplicas sets replicas count from the actual deployment.
+func setDesiredReplicas(deployment *appsv1.Deployment, deployCtx *chetypes.DeployContext) error {
+	actual := &appsv1.Deployment{}
+	if exists, err := GetNamespacedObject(deployCtx, deployment.ObjectMeta.Name, actual); !exists {
+		return err
+	}
+
+	deployment.Spec.Replicas = actual.Spec.Replicas
 	return nil
 }
