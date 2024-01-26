@@ -56,10 +56,9 @@ func TestSyncAllToCluster(t *testing.T) {
 		Proxy: &chetypes.Proxy{},
 	}
 
-	err := SyncGatewayToCluster(deployContext)
-	if err != nil {
-		t.Fatalf("Failed to sync Gateway: %v", err)
-	}
+	done, err := SyncGatewayToCluster(deployContext)
+	assert.True(t, done)
+	assert.Nil(t, err)
 
 	deployment := &appsv1.Deployment{}
 	err = cli.Get(context.TODO(), types.NamespacedName{Name: GatewayServiceName, Namespace: "eclipse-che"}, deployment)
@@ -101,10 +100,9 @@ func TestNativeUserGateway(t *testing.T) {
 		Proxy: &chetypes.Proxy{},
 	}
 
-	err := SyncGatewayToCluster(deployContext)
-	if err != nil {
-		t.Fatalf("Failed to sync Gateway: %v", err)
-	}
+	done, err := SyncGatewayToCluster(deployContext)
+	assert.True(t, done)
+	assert.Nil(t, err)
 
 	deployment := &appsv1.Deployment{}
 	err = cli.Get(context.TODO(), types.NamespacedName{Name: GatewayServiceName, Namespace: "eclipse-che"}, deployment)

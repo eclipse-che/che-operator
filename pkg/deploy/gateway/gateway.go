@@ -17,7 +17,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
-	"strings"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 
@@ -77,8 +76,8 @@ func NewGatewayReconciler() *GatewayReconciler {
 }
 
 func (p *GatewayReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	err := SyncGatewayToCluster(ctx)
-	if err != nil {
+	done, err := SyncGatewayToCluster(ctx)
+	if !done {
 		return reconcile.Result{}, false, err
 	}
 
@@ -90,88 +89,81 @@ func (p *GatewayReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 }
 
 // SyncGatewayToCluster installs or deletes the gateway based on the custom resource configuration
-func SyncGatewayToCluster(deployContext *chetypes.DeployContext) error {
+func SyncGatewayToCluster(deployContext *chetypes.DeployContext) (bool, error) {
 	return syncAll(deployContext)
 }
 
-func syncAll(deployContext *chetypes.DeployContext) error {
+func syncAll(deployContext *chetypes.DeployContext) (bool, error) {
 	instance := deployContext.CheCluster
 	sa := getGatewayServiceAccountSpec(instance)
-	if _, err := deploy.Sync(deployContext, &sa, serviceAccountDiffOpts); err != nil {
-		return err
+	if done, err := deploy.Sync(deployContext, &sa, serviceAccountDiffOpts); !done {
+		return done, err
 	}
 
 	role := getGatewayRoleSpec(instance)
-	if _, err := deploy.Sync(deployContext, &role, roleDiffOpts); err != nil {
-		return err
+	if done, err := deploy.Sync(deployContext, &role, roleDiffOpts); !done {
+		return done, err
 	}
 
 	roleBinding := getGatewayRoleBindingSpec(instance)
-	if _, err := deploy.Sync(deployContext, &roleBinding, roleBindingDiffOpts); err != nil {
-		return err
+	if done, err := deploy.Sync(deployContext, &roleBinding, roleBindingDiffOpts); !done {
+		return done, err
 	}
 
 	if oauthSecret, err := getGatewaySecretSpec(deployContext); err == nil {
-		if _, err := deploy.Sync(deployContext, oauthSecret, secretDiffOpts); err != nil {
-			return err
+		if done, err := deploy.Sync(deployContext, oauthSecret, secretDiffOpts); !done {
+			return done, err
 		}
+
 		oauthProxyConfig := getGatewayOauthProxyConfigSpec(deployContext, string(oauthSecret.Data["cookie_secret"]))
-		if _, err := deploy.Sync(deployContext, &oauthProxyConfig, configMapDiffOpts); err != nil {
-			return err
+		if done, err := deploy.Sync(deployContext, &oauthProxyConfig, configMapDiffOpts); !done {
+			return done, err
 		}
 	} else {
-		return err
+		return false, err
 	}
 
 	kubeRbacProxyConfig := getGatewayKubeRbacProxyConfigSpec(instance)
-	if _, err := deploy.Sync(deployContext, &kubeRbacProxyConfig, configMapDiffOpts); err != nil {
-		return err
+	if done, err := deploy.Sync(deployContext, &kubeRbacProxyConfig, configMapDiffOpts); !done {
+		return done, err
 	}
 
 	if instance.IsAccessTokenConfigured() {
 		if headerRewritePluginConfig, err := getGatewayHeaderRewritePluginConfigSpec(instance); err == nil {
-			if _, err := deploy.Sync(deployContext, headerRewritePluginConfig, configMapDiffOpts); err != nil {
-				return err
+			if done, err := deploy.Sync(deployContext, headerRewritePluginConfig, configMapDiffOpts); !done {
+				return done, err
 			}
 		} else {
-			return err
+			return false, err
 		}
 	}
 
 	traefikConfig := getGatewayTraefikConfigSpec(instance)
-	if _, err := deploy.Sync(deployContext, &traefikConfig, configMapDiffOpts); err != nil {
-		return err
+	if done, err := deploy.Sync(deployContext, &traefikConfig, configMapDiffOpts); !done {
+		return done, err
 	}
 
 	depl, err := getGatewayDeploymentSpec(deployContext)
 	if err != nil {
-		return err
+		return false, err
 	}
-	if _, err := deploy.SyncDeploymentSpecToCluster(deployContext, depl, deploy.DefaultDeploymentDiffOpts); err != nil {
-		// Failed to sync (update), let's delete and create instead
-		if strings.Contains(err.Error(), "field is immutable") {
-			if _, err := deploy.DeleteNamespacedObject(deployContext, depl.Name, &appsv1.Deployment{}); err != nil {
-				return err
-			}
 
-			// Deleted successfully, return original error
-			return err
-		}
-		return err
+	if done, err := deploy.SyncDeploymentSpecToCluster(deployContext, depl, deploy.DefaultDeploymentDiffOpts); !done {
+		return false, err
 	}
 
 	service := getGatewayServiceSpec(instance)
-	if _, err := deploy.Sync(deployContext, &service, deploy.ServiceDefaultDiffOpts); err != nil {
-		return err
+	if done, err := deploy.Sync(deployContext, &service, deploy.ServiceDefaultDiffOpts); !done {
+		return done, err
 	}
 
 	if serverConfig, cfgErr := getGatewayServerConfigSpec(deployContext); cfgErr == nil {
-		if _, err := deploy.Sync(deployContext, &serverConfig, configMapDiffOpts); err != nil {
-			return err
+		if done, err := deploy.Sync(deployContext, &serverConfig, configMapDiffOpts); !done {
+			return done, err
 		}
 	}
 
-	return nil
+	return true, nil
 }
 
 func getGatewaySecretSpec(deployContext *chetypes.DeployContext) (*corev1.Secret, error) {
