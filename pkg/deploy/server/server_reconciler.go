@@ -102,13 +102,13 @@ func (s *CheServerReconciler) syncActiveChePhase(ctx *chetypes.DeployContext) (b
 	}
 
 	if exists {
-		if cheDeployment.Status.AvailableReplicas < 1 {
+		if cheDeployment.Status.AvailableReplicas == 0 {
 			if ctx.CheCluster.Status.ChePhase != chev2.ClusterPhaseInactive {
 				ctx.CheCluster.Status.ChePhase = chev2.ClusterPhaseInactive
 				err := deploy.UpdateCheCRStatus(ctx, "Phase", chev2.ClusterPhaseInactive)
 				return false, err
 			}
-		} else if cheDeployment.Status.Replicas > 1 {
+		} else if cheDeployment.Status.Replicas != cheDeployment.Status.AvailableReplicas {
 			if ctx.CheCluster.Status.ChePhase != chev2.RollingUpdate {
 				ctx.CheCluster.Status.ChePhase = chev2.RollingUpdate
 				err := deploy.UpdateCheCRStatus(ctx, "Phase", chev2.RollingUpdate)

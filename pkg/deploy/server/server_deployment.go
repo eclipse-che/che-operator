@@ -118,8 +118,7 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName:       "che",
-					DeprecatedServiceAccount: "che",
+					ServiceAccountName: "che",
 					Volumes: []corev1.Volume{
 						customPublicCertsVolume,
 					},
