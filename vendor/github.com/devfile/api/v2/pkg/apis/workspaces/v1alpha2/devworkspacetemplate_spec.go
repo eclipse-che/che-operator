@@ -1,3 +1,19 @@
+//
+//
+// Copyright Red Hat
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package v1alpha2
 
 import attributes "github.com/devfile/api/v2/pkg/attributes"
@@ -62,6 +78,14 @@ type DevWorkspaceTemplateSpecContent struct {
 	// +devfile:overrides:include:omitInPlugin=true,description=Overrides of starterProjects encapsulated in a parent devfile.
 	// +devfile:toplevellist
 	StarterProjects []StarterProject `json:"starterProjects,omitempty" patchStrategy:"merge" patchMergeKey:"name"`
+
+	// Additional projects related to the main project in the devfile, contianing names and sources locations
+	// +optional
+	// +patchMergeKey=name
+	// +patchStrategy=merge
+	// +devfile:overrides:include:omitInPlugin=true,description=Overrides of dependentProjects encapsulated in a parent devfile.
+	// +devfile:toplevellist
+	DependentProjects []Project `json:"dependentProjects,omitempty" patchStrategy:"merge" patchMergeKey:"name"`
 
 	// Predefined, ready-to-use, devworkspace-related commands
 	// +optional
