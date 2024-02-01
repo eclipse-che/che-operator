@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2024 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -49,8 +49,8 @@ var defaultConfig = &v1alpha1.OperatorConfiguration{
 		IdleTimeout:              "15m",
 		ProgressTimeout:          "5m",
 		CleanupOnStop:            pointer.Bool(false),
-		PodSecurityContext:       nil,
-		ContainerSecurityContext: &corev1.SecurityContext{},
+		PodSecurityContext:       nil, // Set per-platform in setDefaultPodSecurityContext()
+		ContainerSecurityContext: nil, // Set per-platform in setDefaultContainerSecurityContext()
 		DefaultTemplate:          nil,
 		ProjectCloneConfig: &v1alpha1.ProjectCloneConfig{
 			Resources: &corev1.ResourceRequirements{
@@ -75,14 +75,26 @@ var defaultConfig = &v1alpha1.OperatorConfiguration{
 	},
 }
 
-var defaultKubernetesPodSecurityContext = &corev1.PodSecurityContext{
-	RunAsUser:    pointer.Int64(1234),
-	RunAsGroup:   pointer.Int64(0),
-	RunAsNonRoot: pointer.Bool(true),
-	FSGroup:      pointer.Int64(1234),
-}
-
-var defaultOpenShiftPodSecurityContext = &corev1.PodSecurityContext{}
+var (
+	defaultKubernetesPodSecurityContext = &corev1.PodSecurityContext{
+		RunAsUser:    pointer.Int64(1234),
+		RunAsGroup:   pointer.Int64(0),
+		RunAsNonRoot: pointer.Bool(true),
+		FSGroup:      pointer.Int64(1234),
+	}
+	defaultKubernetesContainerSecurityContext = &corev1.SecurityContext{}
+	defaultOpenShiftPodSecurityContext        = &corev1.PodSecurityContext{}
+	defaultOpenShiftContainerSecurityContext  = &corev1.SecurityContext{
+		ReadOnlyRootFilesystem:   pointer.Bool(false),
+		RunAsNonRoot:             pointer.Bool(true),
+		AllowPrivilegeEscalation: pointer.Bool(false),
+		Capabilities: &corev1.Capabilities{
+			Drop: []corev1.Capability{
+				"ALL",
+			},
+		},
+	}
+)
 
 // Necessary variables for setting pointer values
 var (
@@ -98,6 +110,18 @@ func setDefaultPodSecurityContext() error {
 		defaultConfig.Workspace.PodSecurityContext = defaultOpenShiftPodSecurityContext
 	} else {
 		defaultConfig.Workspace.PodSecurityContext = defaultKubernetesPodSecurityContext
+	}
+	return nil
+}
+
+func setDefaultContainerSecurityContext() error {
+	if !infrastructure.IsInitialized() {
+		return fmt.Errorf("can not set default container security context, infrastructure not detected")
+	}
+	if infrastructure.IsOpenShift() {
+		defaultConfig.Workspace.ContainerSecurityContext = defaultOpenShiftContainerSecurityContext
+	} else {
+		defaultConfig.Workspace.ContainerSecurityContext = defaultKubernetesContainerSecurityContext
 	}
 	return nil
 }

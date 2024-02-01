@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2024 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -100,6 +100,7 @@ func SetGlobalConfigForTesting(testConfig *controller.OperatorConfiguration) {
 	configMutex.Lock()
 	defer configMutex.Unlock()
 	setDefaultPodSecurityContext()
+	setDefaultContainerSecurityContext()
 	internalConfig = defaultConfig.DeepCopy()
 	mergeConfig(testConfig, internalConfig)
 }
@@ -109,6 +110,9 @@ func SetupControllerConfig(client crclient.Client) error {
 		return fmt.Errorf("internal controller configuration is already set up")
 	}
 	if err := setDefaultPodSecurityContext(); err != nil {
+		return err
+	}
+	if err := setDefaultContainerSecurityContext(); err != nil {
 		return err
 	}
 

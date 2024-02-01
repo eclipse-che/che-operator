@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2024 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -62,7 +62,7 @@ func (r *DevWorkspaceRoutingReconciler) syncServices(routing *controllerv1alpha1
 			servicesInSync = false
 			continue
 		case *sync.UnrecoverableSyncError:
-			return false, nil, t.Cause
+			return false, nil, t
 		default:
 			return false, nil, err
 		}
