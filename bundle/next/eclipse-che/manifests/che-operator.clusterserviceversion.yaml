@@ -77,7 +77,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che.v7.81.0-832.next
+  name: eclipse-che.v7.82.0-835.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -807,6 +807,14 @@ spec:
                 - list
                 - watch
             - apiGroups:
+                - ""
+              resources:
+                - pods/portforward
+              verbs:
+                - get
+                - list
+                - create
+            - apiGroups:
                 - workspace.devfile.io
               resources:
                 - devworkspaces
@@ -1240,7 +1248,7 @@ spec:
   minKubeVersion: 1.19.0
   provider:
     name: Eclipse Foundation
-  version: 7.81.0-832.next
+  version: 7.82.0-835.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1

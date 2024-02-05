@@ -8746,6 +8746,14 @@ rules:
   - list
   - watch
 - apiGroups:
+  - ""
+  resources:
+  - pods/portforward
+  verbs:
+  - get
+  - list
+  - create
+- apiGroups:
   - workspace.devfile.io
   resources:
   - devworkspaces
