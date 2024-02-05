@@ -210,6 +210,11 @@ func (s *CheServerReconciler) getUserCommonPolicies() []rbacv1.PolicyRule {
 		},
 		{
 			APIGroups: []string{""},
+			Resources: []string{"pods/portforward"},
+			Verbs:     []string{"get", "list", "create"},
+		},
+		{
+			APIGroups: []string{""},
 			Resources: []string{"secrets"},
 			Verbs:     []string{"get", "list", "create", "update", "patch", "delete"},
 		},
