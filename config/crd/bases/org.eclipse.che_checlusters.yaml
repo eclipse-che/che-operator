@@ -8019,6 +8019,13 @@ spec:
                                 format: int32
                                 minimum: 0
                                 type: integer
+                              cookieRefreshSeconds:
+                                default: 0
+                                description: Refresh timeframe for cookie. If set
+                                  to 0, disabled.
+                                format: int32
+                                minimum: 0
+                                type: integer
                             type: object
                           traefik:
                             description: Configuration for Traefik within the Che

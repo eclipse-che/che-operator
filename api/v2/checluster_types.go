@@ -579,6 +579,11 @@ type OAuthProxy struct {
 	// +kubebuilder:default:=86400
 	// +kubebuilder:validation:Minimum:=0
 	CookieExpireSeconds *int32 `json:"cookieExpireSeconds,omitempty"`
+	// Refresh timeframe for cookie. If set to 0, disabled.
+	// +optional
+	// +kubebuilder:default:=0
+	// +kubebuilder:validation:Minimum:=0
+	CookieRefreshSeconds *int32 `json:"cookieRefreshSeconds,omitempty"`
 }
 
 // Proxy server configuration.

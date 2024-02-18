@@ -81,6 +81,7 @@ scope = "%s"
 openshift_service_account = "%s"
 cookie_secret = "%s"
 cookie_expire = "%s"
+cookie_refresh = "%s"
 email_domains = "*"
 cookie_httponly = false
 pass_access_token = true
@@ -94,6 +95,7 @@ skip_provider_button = false
 		GatewayServiceName,
 		cookieSecret,
 		cookieExpireAsString(ctx.CheCluster),
+		cookieRefreshAsString(ctx.CheCluster),
 		skipAuthConfig(ctx.CheCluster))
 }
 
@@ -114,6 +116,7 @@ client_id = "%s"
 client_secret = "%s"
 cookie_secret = "%s"
 cookie_expire = "%s"
+cookie_refresh = "%s"
 email_domains = "*"
 cookie_httponly = false
 skip_provider_button = true
@@ -129,6 +132,7 @@ cookie_domains = "%s"
 		ctx.CheCluster.Spec.Networking.Auth.OAuthSecret,
 		cookieSecret,
 		cookieExpireAsString(ctx.CheCluster),
+		cookieRefreshAsString(ctx.CheCluster),
 		utils.Whitelist(ctx.CheHost),
 		utils.Whitelist(ctx.CheHost),
 		skipAuthConfig(ctx.CheCluster),
@@ -248,4 +252,13 @@ func cookieExpireAsString(cheCluster *chev2.CheCluster) string {
 	}
 
 	return fmt.Sprintf("%dh%dm%ds", cookieExpire/3600, cookieExpire%3600/60, cookieExpire%60)
+}
+
+func cookieRefreshAsString(cheCluster *chev2.CheCluster) string {
+	cookieRefresh := constants.DefaultOAuthProxyCookieRefreshSeconds
+	if cheCluster.Spec.Networking.Auth.Gateway.OAuthProxy != nil && cheCluster.Spec.Networking.Auth.Gateway.OAuthProxy.CookieRefreshSeconds != nil {
+		cookieRefresh = *cheCluster.Spec.Networking.Auth.Gateway.OAuthProxy.CookieRefreshSeconds
+	}
+
+	return fmt.Sprintf("%dh%dm%ds", cookieRefresh/3600, cookieRefresh%3600/60, cookieRefresh%60)
 }
