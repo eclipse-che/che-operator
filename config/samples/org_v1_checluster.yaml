@@ -18,8 +18,9 @@ metadata:
 spec:
   server:
     workspaceNamespaceDefault: '<username>-che'
-    externalPluginRegistry: true
-    pluginRegistryUrl: 'https://registry.devfile.io'
+    externalDevfileRegistry: true
+    externalDevfileRegistries:
+      - url: 'https://registry.devfile.io'
   database:
     externalDb: false
   storage:

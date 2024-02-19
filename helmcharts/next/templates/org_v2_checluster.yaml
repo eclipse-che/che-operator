@@ -17,9 +17,9 @@ metadata:
   namespace: eclipse-che
 spec:
   components:
-    pluginRegistry:
+    devfileRegistry:
       disableInternalRegistry: true
-      externalPluginRegistries:
+      externalDevfileRegistries:
         - url: 'https://registry.devfile.io'
   devEnvironments: {}
   networking:
