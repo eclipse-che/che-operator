@@ -14,6 +14,8 @@ package devfileregistry
 
 import (
 	"fmt"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -32,12 +34,6 @@ func NewDevfileRegistryReconciler() *DevfileRegistryReconciler {
 }
 
 func (d *DevfileRegistryReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if ctx.CheCluster.Spec.Components.DevfileRegistry.DisableInternalRegistry {
-		ctx.CheCluster.Status.DevfileRegistryURL = ""
-		err := deploy.UpdateCheCRStatus(ctx, "DevfileRegistryURL", "")
-		return reconcile.Result{}, err == nil, err
-	}
-
 	done, err := d.syncService(ctx)
 	if !done {
 		return reconcile.Result{}, false, err
@@ -71,6 +67,10 @@ func (d *DevfileRegistryReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 }
 
 func (d *DevfileRegistryReconciler) syncService(ctx *chetypes.DeployContext) (bool, error) {
+	if ctx.CheCluster.Spec.Components.DevfileRegistry.DisableInternalRegistry {
+		return deploy.DeleteNamespacedObject(ctx, constants.DevfileRegistryName, &corev1.Service{})
+	}
+
 	return deploy.SyncServiceToCluster(
 		ctx,
 		constants.DevfileRegistryName,
@@ -80,6 +80,10 @@ func (d *DevfileRegistryReconciler) syncService(ctx *chetypes.DeployContext) (bo
 }
 
 func (d *DevfileRegistryReconciler) syncConfigMap(ctx *chetypes.DeployContext) (bool, error) {
+	if ctx.CheCluster.Spec.Components.DevfileRegistry.DisableInternalRegistry {
+		return deploy.DeleteNamespacedObject(ctx, constants.DevfileRegistryName, &corev1.ConfigMap{})
+	}
+
 	data, err := d.getConfigMapData(ctx)
 	if err != nil {
 		return false, err
@@ -88,6 +92,11 @@ func (d *DevfileRegistryReconciler) syncConfigMap(ctx *chetypes.DeployContext) (
 }
 
 func (d *DevfileRegistryReconciler) exposeEndpoint(ctx *chetypes.DeployContext) (string, bool, error) {
+	if ctx.CheCluster.Spec.Components.DevfileRegistry.DisableInternalRegistry {
+		done, err := deploy.DeleteNamespacedObject(ctx, gateway.GatewayConfigMapNamePrefix+constants.DevfileRegistryName, &corev1.ConfigMap{})
+		return "", done, err
+	}
+
 	return expose.Expose(
 		ctx,
 		constants.DevfileRegistryName,
@@ -95,7 +104,11 @@ func (d *DevfileRegistryReconciler) exposeEndpoint(ctx *chetypes.DeployContext) 
 }
 
 func (d *DevfileRegistryReconciler) updateStatus(endpoint string, ctx *chetypes.DeployContext) (bool, error) {
-	devfileRegistryURL := "https://" + endpoint
+	devfileRegistryURL := ""
+	if !ctx.CheCluster.Spec.Components.DevfileRegistry.DisableInternalRegistry {
+		devfileRegistryURL = "https://" + endpoint
+	}
+
 	if devfileRegistryURL != ctx.CheCluster.Status.DevfileRegistryURL {
 		ctx.CheCluster.Status.DevfileRegistryURL = devfileRegistryURL
 		if err := deploy.UpdateCheCRStatus(ctx, "status: Devfile Registry URL", devfileRegistryURL); err != nil {
@@ -107,6 +120,10 @@ func (d *DevfileRegistryReconciler) updateStatus(endpoint string, ctx *chetypes.
 }
 
 func (d *DevfileRegistryReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
+	if ctx.CheCluster.Spec.Components.DevfileRegistry.DisableInternalRegistry {
+		return deploy.DeleteNamespacedObject(ctx, constants.DevfileRegistryName, &appsv1.Deployment{})
+	}
+
 	if spec, err := d.getDevfileRegistryDeploymentSpec(ctx); err != nil {
 		return false, err
 	} else {
