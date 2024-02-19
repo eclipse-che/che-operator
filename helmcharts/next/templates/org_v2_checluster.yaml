@@ -20,7 +20,7 @@ spec:
     pluginRegistry:
       disableInternalRegistry: true
       externalPluginRegistries:
-        - url: https://registry.devfile.io/
+        - url: 'https://registry.devfile.io'
   devEnvironments: {}
   networking:
     tlsSecretName: che-tls
