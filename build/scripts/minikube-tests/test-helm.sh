@@ -86,6 +86,7 @@ runTest() {
 
   # Free up some cpu resources
   kubectl scale deployment che --replicas=0 -n eclipse-che
+  kubectl scale deployment che-dashboard --replicas=0 -n eclipse-che
 
   createDevWorkspace
   startAndWaitDevWorkspace
