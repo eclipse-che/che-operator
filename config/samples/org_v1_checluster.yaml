@@ -17,7 +17,10 @@ metadata:
   namespace: eclipse-che
 spec:
   server:
-    workspaceNamespaceDefault: "<username>-che"
+    workspaceNamespaceDefault: '<username>-che'
+    externalDevfileRegistry: true
+    externalDevfileRegistries:
+      - url: 'https://registry.devfile.io'
   database:
     externalDb: false
   storage:

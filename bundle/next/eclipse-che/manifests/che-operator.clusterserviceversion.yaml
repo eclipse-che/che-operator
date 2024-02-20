@@ -40,6 +40,12 @@ metadata:
               "enable": true
             },
             "server": {
+              "externalDevfileRegistries": [
+                {
+                  "url": "https://registry.devfile.io"
+                }
+              ],
+              "externalDevfileRegistry": true,
               "workspaceNamespaceDefault": "<username>-che"
             },
             "storage": {
@@ -55,7 +61,16 @@ metadata:
             "namespace": "eclipse-che"
           },
           "spec": {
-            "components": {},
+            "components": {
+              "devfileRegistry": {
+                "disableInternalRegistry": true,
+                "externalDevfileRegistries": [
+                  {
+                    "url": "https://registry.devfile.io"
+                  }
+                ]
+              }
+            },
             "containerRegistry": {},
             "devEnvironments": {},
             "gitServices": {},
@@ -77,7 +92,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che.v7.82.0-835.next
+  name: eclipse-che.v7.82.0-842.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1248,7 +1263,7 @@ spec:
   minKubeVersion: 1.19.0
   provider:
     name: Eclipse Foundation
-  version: 7.82.0-835.next
+  version: 7.82.0-842.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1
