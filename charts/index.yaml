@@ -15,6 +15,55 @@ entries:
             name: eclipse-che
             namespace: eclipse-che
           spec:
+            components:
+              devfileRegistry:
+                disableInternalRegistry: true
+                externalDevfileRegistries:
+                  - url: 'https://registry.devfile.io'
+            devEnvironments: {}
+            networking: {}
+            containerRegistry: {}
+            gitServices: {}
+      artifacthub.io/license: EPL-2.0
+      artifacthub.io/links: |
+        - name: repository
+          url: https://github.com/eclipse-che/che-operator
+        - name: web-site
+          url: https://www.eclipse.org/che/
+        - name: docs
+          url: https://www.eclipse.org/che/docs
+        - name: support
+          url: https://github.com/eclipse/che
+      artifacthub.io/maintainers: |
+        - name: Anatolii Bazko
+          email: abazko@redhat.com
+        - name: Oleksandr Andriienko
+          email: oandriie@redhat.com
+      artifacthub.io/operator: "true"
+      artifacthub.io/operatorCapabilities: Seamless Upgrades
+      artifacthub.io/provider: Eclipse Foundation
+    apiVersion: v1
+    created: "2024-02-22T12:57:06.963548834Z"
+    description: A Helm chart for deploying Eclipse Che on a Kubernetes
+    digest: d10533611ec8a26aa499fc4a0006b6b5e3e3801cf9ddd684320079258e94a31c
+    name: eclipse-che
+    urls:
+    - https://eclipse-che.github.io/che-operator/charts/stable/eclipse-che-7.82.0.tgz
+    version: 7.82.0
+  - annotations:
+      artifacthub.io/crds: |-
+        - kind: CheCluster
+          version: v2
+          name: checlusters.org.eclipse.che
+          displayName: CheCluster
+          description: The `CheCluster` custom resource allows defining and managing a Che server installation
+      artifacthub.io/crdsExamples: |
+        - apiVersion: org.eclipse.che/v2
+          kind: CheCluster
+          metadata:
+            name: eclipse-che
+            namespace: eclipse-che
+          spec:
             components: {}
             devEnvironments: {}
             networking: {}
@@ -39,7 +88,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.513725527Z"
+    created: "2024-02-22T12:57:06.961842081Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 7d1d282de8433940cb0a1e5af32f15e1db9a7379aebbcbbaf45574042418e0dc
     name: eclipse-che
@@ -84,7 +133,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.511974471Z"
+    created: "2024-02-22T12:57:06.959154149Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: b2c13ccd34b2b020bb2dfd9436913418a9035054f83adf84611939fc9b47b881
     name: eclipse-che
@@ -129,7 +178,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.510270121Z"
+    created: "2024-02-22T12:57:06.957476861Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 24dd0a0a9f1a3406ed78e2e452aa7dc9dfc078a232abf1faaedea59d42707723
     name: eclipse-che
@@ -174,7 +223,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.507703647Z"
+    created: "2024-02-22T12:57:06.955853162Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: e2f3fcfa37938ef1825a280c0150f37da1ff766e03e7011eb10520f47bf19da0
     name: eclipse-che
@@ -219,7 +268,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.50599501Z"
+    created: "2024-02-22T12:57:06.95417905Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 5849e56ace2adc7479677533653120a6814569e93fb6f2dda32ebed5e380890c
     name: eclipse-che
@@ -264,7 +313,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.504282806Z"
+    created: "2024-02-22T12:57:06.951687786Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 61c8d9fdf7a72976e436c03e5cba0b760a8f1c48e8bc00c8203c3786abb3fd46
     name: eclipse-che
@@ -309,7 +358,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.502447192Z"
+    created: "2024-02-22T12:57:06.949970584Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: b6797d5e1a93844c730fe786eb16fb9840f48217bf05df549c6d9256c99cabca
     name: eclipse-che
@@ -354,7 +403,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.499865786Z"
+    created: "2024-02-22T12:57:06.94829061Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 070f87bccc1befd59bbf47500e5547a8e2d2696fcca42183885cf5a7a440b1f9
     name: eclipse-che
@@ -399,7 +448,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.498193557Z"
+    created: "2024-02-22T12:57:06.946320733Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: bcbde919e50384f79cf648a03ba3cd87afc38159c05a2fbdf04ebef7d77ee153
     name: eclipse-che
@@ -444,7 +493,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.496540964Z"
+    created: "2024-02-22T12:57:06.944036425Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 76e0981c41df88b3b97cd580db2b8e715d60b06f8a26c5c38157d35045850772
     name: eclipse-che
@@ -489,7 +538,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.494723674Z"
+    created: "2024-02-22T12:57:06.942466167Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 99ef530218c9c6d364f89c5f8667eafd8de66dd4edabb760dd467dc8515e8133
     name: eclipse-che
@@ -534,7 +583,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.492626261Z"
+    created: "2024-02-22T12:57:06.940900436Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 053c48e931b601d19cdc64c3d0dbfba321a50ea85f5821692556ce6612c5a270
     name: eclipse-che
@@ -579,7 +628,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.490990941Z"
+    created: "2024-02-22T12:57:06.939099477Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 3ae07e8a8fa7c0071d60749265350a8eecb61c2f9b62b63775b4f101e512c682
     name: eclipse-che
@@ -624,7 +673,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.489395555Z"
+    created: "2024-02-22T12:57:06.936408147Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 6a4dc4903dd14db23fed3cffa6152d54fc3bd0937fe15163ddf39833b3038471
     name: eclipse-che
@@ -669,7 +718,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.487313117Z"
+    created: "2024-02-22T12:57:06.934163801Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 3431db7c538c3ff5f394f9cdccaea7aed17f7c08d35ab90ddd17080b91479175
     name: eclipse-che
@@ -714,7 +763,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.485399086Z"
+    created: "2024-02-22T12:57:06.932594203Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 98a36c3b2c5431600dbd003491e6b4abe45543d3dd9f420e00f087922005320a
     name: eclipse-che
@@ -759,7 +808,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.483716808Z"
+    created: "2024-02-22T12:57:06.931043121Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: f95a9a3cfcaedd83675ff5c5a33b3626f210bd5e6c80f9d66618e859295b495f
     name: eclipse-che
@@ -804,7 +853,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.481028908Z"
+    created: "2024-02-22T12:57:06.929490945Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: e47fc6d0050f7d82a3b544f9727aa3f05834ed16d54482735623b785b9e517d8
     name: eclipse-che
@@ -849,7 +898,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.479425357Z"
+    created: "2024-02-22T12:57:06.927004995Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 69e977b596d0625af8e8247adcd779579bd2399c64fabf5b1f854ef730edbb1f
     name: eclipse-che
@@ -894,7 +943,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.477798121Z"
+    created: "2024-02-22T12:57:06.925374624Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 9fe2bb386721fb7525ba71c1edc5d7ed0df9d1eb56a8f0c60279cfbcb9a1bfaf
     name: eclipse-che
@@ -939,7 +988,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.475084606Z"
+    created: "2024-02-22T12:57:06.923777776Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 089f6dd66a60ed38ea2f92a467ee64d510a2ba03cc61a1b378a480602bf99d19
     name: eclipse-che
@@ -984,7 +1033,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.473427485Z"
+    created: "2024-02-22T12:57:06.922130373Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 709dc479366237b5f4fc3a374450f76cb98f655d2fa59d7148cbc6c8688cb2a2
     name: eclipse-che
@@ -1029,7 +1078,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.471745016Z"
+    created: "2024-02-22T12:57:06.917958382Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 230dd2e04f38d66f18067fe85dae781252e76267986ac911a90c89bf262e7b5d
     name: eclipse-che
@@ -1074,7 +1123,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.470077125Z"
+    created: "2024-02-22T12:57:06.916391529Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: e518b91c147e344f14e2e1e05b95e795da3179a5ae02e35649de2620aa8d3216
     name: eclipse-che
@@ -1119,7 +1168,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.467498859Z"
+    created: "2024-02-22T12:57:06.914796795Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 900467635ba9fae4b2759d951ca73911ef0f2467c87fa8fdc1a22c17aaef2ff6
     name: eclipse-che
@@ -1164,7 +1213,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.46601982Z"
+    created: "2024-02-22T12:57:06.912600368Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 2dbb4677242d4e1f50d68b6058190541501bcc1e5d7d086ed7fe01badc117b1a
     name: eclipse-che
@@ -1209,7 +1258,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.464552112Z"
+    created: "2024-02-22T12:57:06.910059963Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: eff5c853f108bb41389b7890b0f5201badcecbcb4372a1e426c903c24249b2d1
     name: eclipse-che
@@ -1254,7 +1303,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.461967891Z"
+    created: "2024-02-22T12:57:06.908630727Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: cf81c79bfbe503f081b350b122f10a172bf67d44c9115b90d7d95037feeded9d
     name: eclipse-che
@@ -1299,7 +1348,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.460483933Z"
+    created: "2024-02-22T12:57:06.907218813Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: bf7c0c25493880229ebd594299b55145103798a317eb2855bc5a330d3b769f3b
     name: eclipse-che
@@ -1343,7 +1392,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.458968636Z"
+    created: "2024-02-22T12:57:06.905742891Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 49dc3b8aa4ce930af0a1f4d307244602837c57d4da7ee41e7195df2a77379698
     name: eclipse-che
@@ -1387,7 +1436,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.457120078Z"
+    created: "2024-02-22T12:57:06.902711507Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 9dc6919968f49db55145888da69c2edc99861618a080120d5bedb00e621dcae6
     name: eclipse-che
@@ -1431,7 +1480,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.454972222Z"
+    created: "2024-02-22T12:57:06.901135998Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: b77de04966a1519234232c9f661bee2807025bba0d0dda0c2eadd417fd79287c
     name: eclipse-che
@@ -1475,7 +1524,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.453716028Z"
+    created: "2024-02-22T12:57:06.899869236Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 1cc4c007cd3125a98820c831e0fe4e31ee914a8ecd61bcc1c705b7d3b2bf31d4
     name: eclipse-che
@@ -1550,7 +1599,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.45252173Z"
+    created: "2024-02-22T12:57:06.898739288Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 5c3279d2948902df12b2d91d25112c1f44f6568cb058c9207eb1e31e411eff19
     name: eclipse-che
@@ -1640,7 +1689,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.451285561Z"
+    created: "2024-02-22T12:57:06.897562002Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 5c77e651a5ea45ad6374dcc41ea8967bdf0ac6d72e63cc49720b26faa9f82656
     name: eclipse-che
@@ -1730,7 +1779,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.450008358Z"
+    created: "2024-02-22T12:57:06.89592579Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 0dd57c9b9a2aade95953dc1361bea0090cf71df7b34e54a754829ba7e4a75846
     name: eclipse-che
@@ -1820,7 +1869,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.449187216Z"
+    created: "2024-02-22T12:57:06.894567444Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 0250cbfc08cc24832250173aa8fb68a193061c2a2314f49b087f7dc2aba58113
     name: eclipse-che
@@ -1910,7 +1959,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.448345276Z"
+    created: "2024-02-22T12:57:06.893721115Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 9176a85f36a77f63f3d463c19f20dedb725b4ff271eecda6fe419c692873f7ab
     name: eclipse-che
@@ -2000,7 +2049,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.447482406Z"
+    created: "2024-02-22T12:57:06.892923878Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 670cccd3320d65afc4ef477b7243c91f0ddaba400939e45601684f33747e6fad
     name: eclipse-che
@@ -2090,7 +2139,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.446627582Z"
+    created: "2024-02-22T12:57:06.892113536Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 4ff3ef346985af1c8cfd4533a078661b1cac5fb391b61f0612bcf305406ca59b
     name: eclipse-che
@@ -2209,7 +2258,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.445772296Z"
+    created: "2024-02-22T12:57:06.891302394Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: d542903c6fa5ee2737c0c6de31b28f8061792186eff26cbfd45fb6b804600316
     name: eclipse-che
@@ -2344,7 +2393,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.444509334Z"
+    created: "2024-02-22T12:57:06.888942061Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: bef03cff9f0d9a1c4e8695af9f89bace7483b940b19085c5609387b7e9bf36a8
     name: eclipse-che
@@ -2479,7 +2528,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.443085017Z"
+    created: "2024-02-22T12:57:06.888113165Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: ebb32faf3df08bcb1c0220494b9ff2965b22bbe120afa995e426248cebe96f50
     name: eclipse-che
@@ -2614,7 +2663,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.442227838Z"
+    created: "2024-02-22T12:57:06.887245166Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 91c3fee6a8a1985db1458ca8f69f1ce6d4a8c51d247119922c8f06238bd47238
     name: eclipse-che
@@ -2749,7 +2798,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.441519547Z"
+    created: "2024-02-22T12:57:06.886482935Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 485b22612ee63c30e8680fb2fb5e376762deb70487d470d6293c4abf477e5cf9
     name: eclipse-che
@@ -2884,7 +2933,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.440649083Z"
+    created: "2024-02-22T12:57:06.885527743Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 1e47c7db4e8b2056bf65c8cb14f6b1e398bd97f010cd6ccc2db58ea63d92c300
     name: eclipse-che
@@ -3019,7 +3068,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.439547378Z"
+    created: "2024-02-22T12:57:06.884677437Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: a404541c568b784ab11f443eb47441807192477879c1be0f8e09d9a2534f9244
     name: eclipse-che
@@ -3154,11 +3203,11 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2024-02-01T14:18:45.438794363Z"
+    created: "2024-02-22T12:57:06.882653565Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: aa4efbd1168883302315f172124bc11f433131a01b70aaf772e08eec3e3d551b
     name: eclipse-che
     urls:
     - https://eclipse-che.github.io/che-operator/charts/stable/eclipse-che-7.39.2.tgz
     version: 7.39.2
-generated: "2024-02-01T14:18:45.436958395Z"
+generated: "2024-02-22T12:57:06.881683766Z"
