@@ -13,7 +13,7 @@
 apiVersion: v1
 description: A Helm chart for deploying Eclipse Che on a Kubernetes
 name: eclipse-che
-version: 7.81.0
+version: 7.82.0
 annotations:
   artifacthub.io/license: EPL-2.0
   artifacthub.io/links: |
@@ -35,8 +35,10 @@ annotations:
   artifacthub.io/operatorCapabilities: Seamless Upgrades
   artifacthub.io/crdsExamples: "- apiVersion: org.eclipse.che/v2\n  kind: CheCluster\n\
     \  metadata:\n    name: eclipse-che\n    namespace: eclipse-che\n  spec:\n   \
-    \ components: {}\n    devEnvironments: {}\n    networking: {}\n    containerRegistry:\
-    \ {}\n    gitServices: {}\n"
+    \ components:\n      devfileRegistry:\n        disableInternalRegistry: true\n\
+    \        externalDevfileRegistries:\n          - url: 'https://registry.devfile.io'\n\
+    \    devEnvironments: {}\n    networking: {}\n    containerRegistry: {}\n    gitServices:\
+    \ {}\n"
   artifacthub.io/crds: |-
     - kind: CheCluster
       version: v2
