@@ -192,6 +192,13 @@ type CheClusterDevEnvironments struct {
 	// WorkspacesPodAnnotations defines additional annotations for workspace pods.
 	// +optional
 	WorkspacesPodAnnotations map[string]string `json:"workspacesPodAnnotations,omitempty"`
+	// IgnoredUnrecoverableEvents defines a list of Kubernetes event names that should
+	// be ignored when deciding to fail a workspace that is starting. This option should be used
+	// if a transient cluster issue is triggering false-positives (for example, if
+	// the cluster occasionally encounters FailedScheduling events). Events listed
+	// here will not trigger workspace failures.
+	// +optional
+	IgnoredUnrecoverableEvents []string `json:"ignoredUnrecoverableEvents,omitempty"`
 }
 
 // Che components configuration.

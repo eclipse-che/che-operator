@@ -2358,3 +2358,95 @@ func TestReconcileDevWorkspaceAnnotations(t *testing.T) {
 		})
 	}
 }
+
+func TestReconcileDevWorkspaceIgnoredUnrecoverableEvents(t *testing.T) {
+	type testCase struct {
+		name                   string
+		cheCluster             *chev2.CheCluster
+		existedObjects         []runtime.Object
+		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
+	}
+
+	var testCases = []testCase{
+		{
+			name: "Set events",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						IgnoredUnrecoverableEvents: []string{
+							"value1",
+							"value2",
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					IgnoredUnrecoverableEvents: []string{
+						"value1",
+						"value2",
+					},
+				},
+			},
+		},
+		{
+			name: "Remove events",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						IgnoredUnrecoverableEvents: nil,
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					IgnoredUnrecoverableEvents: nil,
+				},
+			},
+			existedObjects: []runtime.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							IgnoredUnrecoverableEvents: []string{
+								"value1",
+								"value2",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			deployContext := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
+			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
+			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
+			assert.NoError(t, err)
+
+			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
+			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			assert.NoError(t, err)
+			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.IgnoredUnrecoverableEvents, dwoc.Config.Workspace.IgnoredUnrecoverableEvents)
+		})
+	}
+}
