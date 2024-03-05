@@ -55,10 +55,13 @@ rules:
     resources:
       - consolelinks
     verbs:
-      - get
       - create
-      - update
       - delete
+      - get
+      - update
+      - patch
+      - watch
+      - list
   - apiGroups:
       - rbac.authorization.k8s.io
     resources:
@@ -334,3 +337,10 @@ rules:
       - limitranges
     verbs:
       - list
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - servicemonitors
+    verbs:
+      - get
+      - create

@@ -92,7 +92,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che.v7.83.0-856.next
+  name: eclipse-che.v7.83.0-857.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -533,10 +533,13 @@ spec:
               resources:
                 - consolelinks
               verbs:
-                - get
                 - create
-                - update
                 - delete
+                - get
+                - update
+                - patch
+                - watch
+                - list
             - apiGroups:
                 - rbac.authorization.k8s.io
               resources:
@@ -812,6 +815,13 @@ spec:
                 - limitranges
               verbs:
                 - list
+            - apiGroups:
+                - monitoring.coreos.com
+              resources:
+                - servicemonitors
+              verbs:
+                - get
+                - create
           serviceAccountName: che-operator
       deployments:
         - name: che-operator
@@ -1011,7 +1021,7 @@ spec:
   minKubeVersion: 1.19.0
   provider:
     name: Eclipse Foundation
-  version: 7.83.0-856.next
+  version: 7.83.0-857.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1
