@@ -21,49 +21,17 @@ metadata:
     app.kubernetes.io/component: che-operator
 rules:
   - apiGroups:
-      - ""
-    resources:
-      - nodes
-    verbs:
-      - get
-  - apiGroups:
       - oauth.openshift.io
     resources:
       - oauthclients
     verbs:
       - create
       - delete
-      - deletecollection
       - get
       - list
       - patch
       - update
       - watch
-  - apiGroups:
-      - config.openshift.io
-    resources:
-      - oauths
-    verbs:
-      - get
-      - list
-      - watch
-      - patch
-  - apiGroups:
-      - config.openshift.io
-    resources:
-      - infrastructures
-      - proxies
-    verbs:
-      - get
-      - list
-      - watch
-  - apiGroups:
-      - user.openshift.io
-    resources:
-      - users
-    verbs:
-      - list
-      - delete
   - apiGroups:
       - user.openshift.io
     resources:
@@ -71,29 +39,51 @@ rules:
     verbs:
       - get
   - apiGroups:
-      - user.openshift.io
-    resources:
-      - identities
-    verbs:
-      - delete
-  - apiGroups:
       - console.openshift.io
     resources:
       - consolelinks
     verbs:
       - get
-      - list
       - create
       - update
-      - patch
+      - delete
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - roles
+    verbs:
+      - list
+      - create
+      - watch
+      - update
+      - get
+      - delete
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - rolebindings
+    verbs:
+      - list
+      - create
+      - watch
+      - update
+      - get
+      - delete
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterroles
+    verbs:
+      - list
+      - create
+      - watch
+      - update
+      - get
       - delete
   - apiGroups:
       - rbac.authorization.k8s.io
     resources:
       - clusterrolebindings
-      - clusterroles
-      - roles
-      - rolebindings
     verbs:
       - list
       - create
@@ -104,7 +94,6 @@ rules:
   - apiGroups:
       - authorization.openshift.io
     resources:
-      - roles
       - rolebindings
     verbs:
       - get
@@ -112,14 +101,13 @@ rules:
       - update
       - delete
   - apiGroups:
-      - org.eclipse.che
+      - authorization.openshift.io
     resources:
-      - checlusters
-      - checlusters/status
-      - checlusters/finalizers
-      - checlusters/status
+      - roles
     verbs:
-      - '*'
+      - get
+      - create
+      - update
   - apiGroups:
       - project.openshift.io
     resources:
@@ -134,9 +122,6 @@ rules:
     verbs:
       - get
       - list
-      - watch
-      - create
-      - update
   - apiGroups:
       - ""
     resources:
@@ -148,63 +133,37 @@ rules:
       - update
       - watch
   - apiGroups:
-      - ''
-    resources:
-      - pods/exec
-    verbs:
-      - create
-      - get
-  - apiGroups:
       - apps
     resources:
-      - secrets
+      - replicasets
     verbs:
-      - list
-  - apiGroups:
-      - ''
-    resources:
-      - secrets
-    verbs:
-      - list
       - get
-      - create
-      - update
+      - list
       - patch
       - delete
   - apiGroups:
-      - ''
-    resources:
-      - persistentvolumeclaims
-    verbs:
-      - create
-      - get
-      - list
-      - watch
-      - delete
-  - apiGroups:
-      - ''
-    resources:
-      - pods
-    verbs:
-      - get
-      - list
-      - create
-      - watch
-      - delete
-  - apiGroups:
       - apps
-      - extensions
     resources:
       - deployments
-      - replicasets
     verbs:
-      - '*'
+      - list
+      - create
+      - watch
+      - update
+      - get
+      - patch
+      - delete
   - apiGroups:
       - route.openshift.io
     resources:
       - routes
     verbs:
-      - '*'
+      - list
+      - create
+      - watch
+      - update
+      - get
+      - delete
   - apiGroups:
       - route.openshift.io
     resources:
@@ -219,67 +178,32 @@ rules:
       - list
       - watch
   - apiGroups:
-      - apps
-    resources:
-      - replicasets
-    verbs:
-      - list
-      - get
-      - patch
-      - delete
-  - apiGroups:
-      - extensions
-    resources:
-      - ingresses
-    verbs:
-      - '*'
-  - apiGroups:
       - networking.k8s.io
     resources:
       - ingresses
     verbs:
-      - '*'
-  - apiGroups:
-      - apiextensions.k8s.io
-    resources:
-      - customresourcedefinitions
-    verbs:
-      - get
-      - create
-      - update
-  - apiGroups:
-      - operators.coreos.com
-    resources:
-      - subscriptions
-    verbs:
-      - get
-  - apiGroups:
-      - operators.coreos.com
-    resources:
-      - clusterserviceversions
-    verbs:
       - list
-      - get
+      - create
       - watch
+      - update
+      - get
+      - delete
   - apiGroups:
       - metrics.k8s.io
     resources:
       - pods
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - metrics.k8s.io
+    resources:
       - nodes
     verbs:
       - get
       - list
       - watch
-  - apiGroups:
-      - cert-manager.io
-    resources:
-      - issuers
-      - certificates
-    verbs:
-      - create
-      - get
-      - list
-      - update
   - apiGroups:
       - ''
     resources:
@@ -291,14 +215,6 @@ rules:
       - services
     verbs:
       - '*'
-  - apiGroups:
-      - apps
-    resourceNames:
-      - che-operator
-    resources:
-      - deployments/finalizers
-    verbs:
-      - update
   - apiGroups:
       - batch
     resources:
@@ -317,6 +233,14 @@ rules:
     verbs:
       - create
       - get
+  - apiGroups:
+      - org.eclipse.che
+    resources:
+      - checlusters
+      - checlusters/status
+      - checlusters/finalizers
+    verbs:
+      - '*'
   - nonResourceURLs:
       - /metrics
     verbs:
@@ -326,11 +250,23 @@ rules:
     resources:
       - kubernetesimagepullers
     verbs:
-      - '*'
+      - create
+      - delete
+      - get
+      - update
+      - list
   - apiGroups:
       - config.openshift.io
     resources:
       - consoles
+    resourceNames:
+      - cluster
+    verbs:
+      - get
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - proxies
     resourceNames:
       - cluster
     verbs:
@@ -352,9 +288,27 @@ rules:
       - list
       - create
   - apiGroups:
+      - ''
+    resources:
+      - pods/exec
+    verbs:
+      - create
+      - get
+  - apiGroups:
       - workspace.devfile.io
     resources:
       - devworkspaces
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+      - patch
+      - update
+  - apiGroups:
+      - workspace.devfile.io
+    resources:
       - devworkspacetemplates
     verbs:
       - get
@@ -368,6 +322,17 @@ rules:
      - controller.devfile.io
     resources:
       - devworkspaceroutings
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+      - patch
+      - update
+  - apiGroups:
+      - controller.devfile.io
+    resources:
       - devworkspaceoperatorconfigs
     verbs:
       - get
