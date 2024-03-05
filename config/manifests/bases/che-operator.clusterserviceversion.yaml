@@ -447,7 +447,7 @@ spec:
   - java
   links:
   - name: Product Page
-    url: http://www.eclipse.org/che
+    url: https://www.eclipse.org/che
   - name: Documentation
     url: https://www.eclipse.org/che/docs
   - name: Operator GitHub Repo

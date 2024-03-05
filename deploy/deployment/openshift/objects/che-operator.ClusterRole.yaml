@@ -21,6 +21,18 @@ metadata:
   name: che-operator
 rules:
 - apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - create
+  - delete
+  - get
+  - update
+  - patch
+  - watch
+  - list
+- apiGroups:
   - oauth.openshift.io
   resources:
   - oauthclients
@@ -28,10 +40,10 @@ rules:
   - create
   - delete
   - get
-  - list
-  - patch
   - update
+  - patch
   - watch
+  - list
 - apiGroups:
   - user.openshift.io
   resources:
@@ -51,46 +63,17 @@ rules:
   - rbac.authorization.k8s.io
   resources:
   - roles
-  verbs:
-  - list
-  - create
-  - watch
-  - update
-  - get
-  - delete
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
   - rolebindings
-  verbs:
-  - list
-  - create
-  - watch
-  - update
-  - get
-  - delete
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
   - clusterroles
-  verbs:
-  - list
-  - create
-  - watch
-  - update
-  - get
-  - delete
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
   - clusterrolebindings
   verbs:
-  - list
   - create
-  - watch
-  - update
-  - get
   - delete
+  - get
+  - update
+  - patch
+  - watch
+  - list
 - apiGroups:
   - authorization.openshift.io
   resources:
@@ -158,12 +141,13 @@ rules:
   resources:
   - routes
   verbs:
-  - list
   - create
-  - watch
-  - update
-  - get
   - delete
+  - get
+  - update
+  - patch
+  - watch
+  - list
 - apiGroups:
   - route.openshift.io
   resources:
@@ -182,23 +166,17 @@ rules:
   resources:
   - ingresses
   verbs:
-  - list
   - create
-  - watch
-  - update
-  - get
   - delete
+  - get
+  - update
+  - patch
+  - watch
+  - list
 - apiGroups:
   - metrics.k8s.io
   resources:
   - pods
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - metrics.k8s.io
-  resources:
   - nodes
   verbs:
   - get
@@ -214,25 +192,13 @@ rules:
   - serviceaccounts
   - services
   verbs:
-  - '*'
-- apiGroups:
-  - batch
-  resources:
-  - jobs
-  verbs:
   - create
   - delete
   - get
   - update
+  - patch
   - watch
   - list
-- apiGroups:
-  - monitoring.coreos.com
-  resources:
-  - servicemonitors
-  verbs:
-  - create
-  - get
 - apiGroups:
   - org.eclipse.che
   resources:
@@ -240,7 +206,13 @@ rules:
   - checlusters/status
   - checlusters/finalizers
   verbs:
-  - '*'
+  - create
+  - delete
+  - get
+  - update
+  - patch
+  - watch
+  - list
 - nonResourceURLs:
   - /metrics
   verbs:
@@ -298,50 +270,28 @@ rules:
   - workspace.devfile.io
   resources:
   - devworkspaces
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - delete
-  - patch
-  - update
-- apiGroups:
-  - workspace.devfile.io
-  resources:
   - devworkspacetemplates
   verbs:
-  - get
-  - list
-  - watch
   - create
   - delete
-  - patch
+  - get
   - update
+  - patch
+  - watch
+  - list
 - apiGroups:
   - controller.devfile.io
   resources:
   - devworkspaceroutings
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - delete
-  - patch
-  - update
-- apiGroups:
-  - controller.devfile.io
-  resources:
   - devworkspaceoperatorconfigs
   verbs:
-  - get
-  - list
-  - watch
   - create
   - delete
-  - patch
+  - get
   - update
+  - patch
+  - watch
+  - list
 - apiGroups:
   - controller.devfile.io
   resources:
