@@ -26,7 +26,6 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	extensions "k8s.io/api/extensions/v1beta1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/api/node/v1alpha1"
 	rbac "k8s.io/api/rbac/v1"
@@ -42,7 +41,6 @@ import (
 func createTestScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(v1alpha1.AddToScheme(scheme))
-	utilruntime.Must(extensions.AddToScheme(scheme))
 	utilruntime.Must(corev1.AddToScheme(scheme))
 	utilruntime.Must(appsv1.AddToScheme(scheme))
 	utilruntime.Must(rbac.AddToScheme(scheme))
