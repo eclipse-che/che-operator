@@ -43,6 +43,9 @@ runTest() {
   # Free up some cpu resources
   kubectl scale deployment che --replicas=0 -n eclipse-che
 
+  # Free up storage
+  rm -rf ${OPERATOR_REPO}/tmp
+
   createDevWorkspace
   startAndWaitDevWorkspace
   stopAndWaitDevWorkspace
