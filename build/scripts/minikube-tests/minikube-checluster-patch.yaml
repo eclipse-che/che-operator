@@ -16,6 +16,9 @@ metadata:
     che.eclipse.org/checluster-defaults-cleanup: '{"spec.components.pluginRegistry.openVSXURL":"true"}'
 spec:
   devEnvironments:
+    storage:
+      perUserStrategyPvcConfig:
+        claimSize: 100Mi
     gatewayContainer:
       resources:
         request:
