@@ -31,11 +31,8 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	console "github.com/openshift/api/console/v1"
 	oauthv1 "github.com/openshift/api/oauth/v1"
-	userv1 "github.com/openshift/api/user/v1"
-	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	crdv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -191,16 +188,11 @@ func GetDeployContext(cheCluster *chev2.CheCluster, initObjs []runtime.Object) *
 
 	scheme := scheme.Scheme
 	chev2.SchemeBuilder.AddToScheme(scheme)
-	scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.Subscription{})
 	scheme.AddKnownTypes(controllerv1alpha1.SchemeBuilder.GroupVersion, &controllerv1alpha1.DevWorkspaceOperatorConfig{})
-	scheme.AddKnownTypes(crdv1.SchemeGroupVersion, &crdv1.CustomResourceDefinition{})
-	scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.Subscription{})
 	scheme.AddKnownTypes(oauthv1.GroupVersion, &oauthv1.OAuthClient{})
 	scheme.AddKnownTypes(oauthv1.GroupVersion, &oauthv1.OAuthClientList{})
-	scheme.AddKnownTypes(userv1.GroupVersion, &userv1.UserList{}, &userv1.User{}, &userv1.Identity{})
-	scheme.AddKnownTypes(configv1.GroupVersion, &configv1.OAuth{}, &configv1.Proxy{}, &configv1.Console{})
+	scheme.AddKnownTypes(configv1.GroupVersion, &configv1.Proxy{}, &configv1.Console{})
 	scheme.AddKnownTypes(routev1.GroupVersion, &routev1.Route{})
-	scheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.Secret{})
 	scheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.Secret{})
 	scheme.AddKnownTypes(console.GroupVersion, &console.ConsoleLink{})
 	scheme.AddKnownTypes(chev1alpha1.GroupVersion, &chev1alpha1.KubernetesImagePuller{})

@@ -215,6 +215,8 @@ spec:
     - name: ide
       uri: http://plugin-registry.eclipse-che.svc:8080/v3/plugins/che-incubator/che-code/insiders/devfile.yaml
   template:
+    attributes:
+      controller.devfile.io/storage-type: ephemeral
     components:
       - name: tooling-container
         container:

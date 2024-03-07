@@ -16,6 +16,9 @@ set -e
 OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
 source "${OPERATOR_REPO}/build/scripts/minikube-tests/common.sh"
 
+# Stop execution on any error
+trap "catchFinish" EXIT SIGINT
+
 init() {
   unset CR_PATCH_YAML
 

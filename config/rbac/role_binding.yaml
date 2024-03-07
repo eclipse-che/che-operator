@@ -25,5 +25,5 @@ roleRef:
   kind: Role
   name: che-operator
 subjects:
-- kind: ServiceAccount
-  name: che-operator
+  - kind: ServiceAccount
+    name: che-operator

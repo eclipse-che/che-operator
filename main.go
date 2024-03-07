@@ -68,7 +68,6 @@ import (
 	operatorsv1 "github.com/operator-framework/api/pkg/operators/v1"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	packagesv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	image_puller_api "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
 	projectv1 "github.com/openshift/api/project/v1"
@@ -131,7 +130,6 @@ func init() {
 	//+kubebuilder:scaffold:scheme
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(admissionregistrationv1.AddToScheme(scheme))
-	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
 	utilruntime.Must(rbacv1.AddToScheme(scheme))
 
 	// Setup Scheme for all resources

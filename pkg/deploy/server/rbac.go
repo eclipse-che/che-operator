@@ -239,16 +239,6 @@ func (s *CheServerReconciler) getUserCommonPolicies() []rbacv1.PolicyRule {
 			Verbs:     []string{"get", "list", "create", "update", "patch", "delete"},
 		},
 		{
-			APIGroups: []string{""},
-			Resources: []string{"events"},
-			Verbs:     []string{"watch"},
-		},
-		{
-			APIGroups: []string{"apps"},
-			Resources: []string{"secrets"},
-			Verbs:     []string{"list"},
-		},
-		{
 			APIGroups: []string{"apps"},
 			Resources: []string{"deployments"},
 			Verbs:     []string{"get", "list", "watch", "create", "patch", "delete"},
@@ -257,11 +247,6 @@ func (s *CheServerReconciler) getUserCommonPolicies() []rbacv1.PolicyRule {
 			APIGroups: []string{"apps"},
 			Resources: []string{"replicasets"},
 			Verbs:     []string{"get", "list", "patch", "delete"},
-		},
-		{
-			APIGroups: []string{"extensions"},
-			Resources: []string{"ingresses"},
-			Verbs:     []string{"get", "list", "watch", "create", "delete"},
 		},
 		{
 			APIGroups: []string{"networking.k8s.io"},
