@@ -22,169 +22,33 @@ metadata:
   namespace: eclipse-che
 rules:
 - apiGroups:
-  - extensions
-  resources:
-  - ingresses
-  verbs:
-  - '*'
-- apiGroups:
-  - networking.k8s.io
-  resources:
-  - ingresses
-  verbs:
-  - '*'
-- apiGroups:
-  - batch
-  resources:
-  - jobs
-  verbs:
-  - create
-  - delete
-  - get
-  - update
-  - watch
-  - list
-- apiGroups:
-  - route.openshift.io
-  resources:
-  - routes
-  - routes/custom-host
-  verbs:
-  - '*'
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
-  - roles
-  - rolebindings
-  - clusterroles
-  - clusterrolebindings
-  verbs:
-  - list
-  - create
-  - watch
-  - update
-  - get
-  - delete
-- apiGroups:
   - ""
   resources:
-  - pods
-  - services
-  - serviceaccounts
-  - endpoints
-  - persistentvolumeclaims
-  - events
   - configmaps
-  - secrets
-  - pods/exec
-  - pods/log
   verbs:
-  - '*'
-- apiGroups:
-  - ""
-  resources:
-  - namespaces
-  verbs:
-  - get
-- apiGroups:
-  - apps
-  - extensions
-  resources:
-  - deployments
-  - replicasets
-  verbs:
-  - '*'
-- apiGroups:
-  - monitoring.coreos.com
-  resources:
-  - servicemonitors
-  verbs:
-  - get
   - create
-- apiGroups:
-  - org.eclipse.che
-  resources:
-  - checlusters
-  - checlusters/status
-  - checlusters/finalizers
-  verbs:
-  - '*'
-- apiGroups:
-  - metrics.k8s.io
-  resources:
-  - pods
-  - nodes
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - operators.coreos.com
-  resources:
-  - subscriptions
-  - clusterserviceversions
-  - operatorgroups
-  verbs:
-  - '*'
-- apiGroups:
-  - packages.operators.coreos.com
-  resources:
-  - packagemanifests
-  verbs:
-  - get
-  - list
-- apiGroups:
-  - ""
-  resources:
-  - configmaps/status
-  verbs:
+  - delete
   - get
   - update
   - patch
+  - watch
+  - list
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - create
+  - delete
+  - get
+  - update
+  - patch
+  - watch
+  - list
 - apiGroups:
   - ""
   resources:
   - events
   verbs:
   - create
-- apiGroups:
-  - apps
-  resourceNames:
-  - che-operator
-  resources:
-  - deployments/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - controller.devfile.io
-  resources:
-  - devworkspaceroutings
-  verbs:
-  - '*'
-- apiGroups:
-  - controller.devfile.io
-  resources:
-  - devworkspaceroutings/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - controller.devfile.io
-  resources:
-  - devworkspaceroutings/status
-  verbs:
-  - get
   - patch
-  - update
-- apiGroups:
-  - oauth.openshift.io
-  resources:
-  - oauthclients
-  verbs:
-  - create
-  - delete
-  - deletecollection
-  - get
-  - list
-  - patch
-  - update
-  - watch
