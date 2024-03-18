@@ -81,18 +81,26 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Developer Tools
     certified: "false"
-    containerImage: quay.io/eclipse/che-operator@sha256:36393d2781e7441c04a78a4069c113cbbd82265591b271c782d85ca86ee2a836
-    createdAt: "2024-02-21T21:09:52Z"
+    containerImage: quay.io/eclipse/che-operator@sha256:c7728e9547aaa0f6da8055319d7cc8a162794632c3e8fec35d9fe46692933ae1
+    createdAt: "2024-03-15T19:43:24Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
+    features.operators.openshift.io/cnf: "false"
+    features.operators.openshift.io/cni: "false"
+    features.operators.openshift.io/csi: "false"
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "true"
+    features.operators.openshift.io/proxy-aware: "true"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
     operatorframework.io/suggested-namespace: openshift-operators
-    operators.openshift.io/infrastructure-features: '["disconnected", "proxy-aware",
-      "fips"]'
     operators.operatorframework.io/builder: operator-sdk-v1.9.0+git
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che.v7.82.0
+  name: eclipse-che.v7.83.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -499,11 +507,17 @@ spec:
       clusterPermissions:
         - rules:
             - apiGroups:
-                - ""
+                - batch
               resources:
-                - nodes
+                - jobs
               verbs:
+                - create
+                - delete
                 - get
+                - update
+                - patch
+                - watch
+                - list
             - apiGroups:
                 - oauth.openshift.io
               resources:
@@ -511,37 +525,11 @@ spec:
               verbs:
                 - create
                 - delete
-                - deletecollection
                 - get
-                - list
-                - patch
                 - update
-                - watch
-            - apiGroups:
-                - config.openshift.io
-              resources:
-                - oauths
-              verbs:
-                - get
-                - list
-                - watch
                 - patch
-            - apiGroups:
-                - config.openshift.io
-              resources:
-                - infrastructures
-                - proxies
-              verbs:
-                - get
-                - list
                 - watch
-            - apiGroups:
-                - user.openshift.io
-              resources:
-                - users
-              verbs:
                 - list
-                - delete
             - apiGroups:
                 - user.openshift.io
               resources:
@@ -549,55 +537,49 @@ spec:
               verbs:
                 - get
             - apiGroups:
-                - user.openshift.io
-              resources:
-                - identities
-              verbs:
-                - delete
-            - apiGroups:
                 - console.openshift.io
               resources:
                 - consolelinks
               verbs:
-                - get
-                - list
                 - create
+                - delete
+                - get
                 - update
                 - patch
-                - delete
+                - watch
+                - list
             - apiGroups:
                 - rbac.authorization.k8s.io
               resources:
-                - clusterrolebindings
-                - clusterroles
                 - roles
                 - rolebindings
+                - clusterroles
+                - clusterrolebindings
               verbs:
-                - list
                 - create
-                - watch
-                - update
+                - delete
                 - get
+                - update
+                - patch
+                - watch
+                - list
+            - apiGroups:
+                - authorization.openshift.io
+              resources:
+                - rolebindings
+              verbs:
+                - get
+                - create
+                - update
                 - delete
             - apiGroups:
                 - authorization.openshift.io
               resources:
                 - roles
-                - rolebindings
               verbs:
                 - get
                 - create
                 - update
-                - delete
-            - apiGroups:
-                - org.eclipse.che
-              resources:
-                - checlusters
-                - checlusters/status
-                - checlusters/finalizers
-                - checlusters/status
-              verbs:
-                - '*'
             - apiGroups:
                 - project.openshift.io
               resources:
@@ -626,63 +608,38 @@ spec:
                 - update
                 - watch
             - apiGroups:
-                - ""
-              resources:
-                - pods/exec
-              verbs:
-                - create
-                - get
-            - apiGroups:
                 - apps
               resources:
-                - secrets
+                - replicasets
               verbs:
-                - list
-            - apiGroups:
-                - ""
-              resources:
-                - secrets
-              verbs:
-                - list
                 - get
-                - create
-                - update
+                - list
                 - patch
                 - delete
             - apiGroups:
-                - ""
-              resources:
-                - persistentvolumeclaims
-              verbs:
-                - create
-                - get
-                - list
-                - watch
-                - delete
-            - apiGroups:
-                - ""
-              resources:
-                - pods
-              verbs:
-                - get
-                - list
-                - create
-                - watch
-                - delete
-            - apiGroups:
                 - apps
-                - extensions
               resources:
                 - deployments
-                - replicasets
               verbs:
-                - '*'
+                - list
+                - create
+                - watch
+                - update
+                - get
+                - patch
+                - delete
             - apiGroups:
                 - route.openshift.io
               resources:
                 - routes
               verbs:
-                - '*'
+                - create
+                - delete
+                - get
+                - update
+                - patch
+                - watch
+                - list
             - apiGroups:
                 - route.openshift.io
               resources:
@@ -697,48 +654,17 @@ spec:
                 - list
                 - watch
             - apiGroups:
-                - apps
-              resources:
-                - replicasets
-              verbs:
-                - list
-                - get
-                - patch
-                - delete
-            - apiGroups:
-                - extensions
-              resources:
-                - ingresses
-              verbs:
-                - '*'
-            - apiGroups:
                 - networking.k8s.io
               resources:
                 - ingresses
               verbs:
-                - '*'
-            - apiGroups:
-                - apiextensions.k8s.io
-              resources:
-                - customresourcedefinitions
-              verbs:
-                - get
                 - create
+                - delete
+                - get
                 - update
-            - apiGroups:
-                - operators.coreos.com
-              resources:
-                - subscriptions
-              verbs:
-                - get
-            - apiGroups:
-                - operators.coreos.com
-              resources:
-                - clusterserviceversions
-              verbs:
-                - list
-                - get
+                - patch
                 - watch
+                - list
             - apiGroups:
                 - metrics.k8s.io
               resources:
@@ -749,16 +675,6 @@ spec:
                 - list
                 - watch
             - apiGroups:
-                - cert-manager.io
-              resources:
-                - issuers
-                - certificates
-              verbs:
-                - create
-                - get
-                - list
-                - update
-            - apiGroups:
                 - ""
               resources:
                 - configmaps
@@ -768,33 +684,27 @@ spec:
                 - serviceaccounts
                 - services
               verbs:
-                - '*'
-            - apiGroups:
-                - apps
-              resourceNames:
-                - che-operator
-              resources:
-                - deployments/finalizers
-              verbs:
+                - create
+                - delete
+                - get
                 - update
+                - patch
+                - watch
+                - list
             - apiGroups:
-                - batch
+                - org.eclipse.che
               resources:
-                - jobs
+                - checlusters
+                - checlusters/status
+                - checlusters/finalizers
               verbs:
                 - create
                 - delete
                 - get
                 - update
+                - patch
                 - watch
                 - list
-            - apiGroups:
-                - monitoring.coreos.com
-              resources:
-                - servicemonitors
-              verbs:
-                - create
-                - get
             - nonResourceURLs:
                 - /metrics
               verbs:
@@ -804,13 +714,25 @@ spec:
               resources:
                 - kubernetesimagepullers
               verbs:
-                - '*'
+                - create
+                - delete
+                - get
+                - update
+                - list
             - apiGroups:
                 - config.openshift.io
               resourceNames:
                 - cluster
               resources:
                 - consoles
+              verbs:
+                - get
+            - apiGroups:
+                - config.openshift.io
+              resourceNames:
+                - cluster
+              resources:
+                - proxies
               verbs:
                 - get
             - apiGroups:
@@ -830,31 +752,38 @@ spec:
                 - list
                 - create
             - apiGroups:
+                - ""
+              resources:
+                - pods/exec
+              verbs:
+                - create
+                - get
+            - apiGroups:
                 - workspace.devfile.io
               resources:
                 - devworkspaces
                 - devworkspacetemplates
               verbs:
-                - get
-                - list
-                - watch
                 - create
                 - delete
-                - patch
+                - get
                 - update
+                - patch
+                - watch
+                - list
             - apiGroups:
                 - controller.devfile.io
               resources:
                 - devworkspaceroutings
                 - devworkspaceoperatorconfigs
               verbs:
-                - get
-                - list
-                - watch
                 - create
                 - delete
-                - patch
+                - get
                 - update
+                - patch
+                - watch
+                - list
             - apiGroups:
                 - controller.devfile.io
               resources:
@@ -897,6 +826,13 @@ spec:
                 - limitranges
               verbs:
                 - list
+            - apiGroups:
+                - monitoring.coreos.com
+              resources:
+                - servicemonitors
+              verbs:
+                - get
+                - create
           serviceAccountName: che-operator
       deployments:
         - name: che-operator
@@ -934,21 +870,21 @@ spec:
                       - name: OPERATOR_NAME
                         value: che-operator
                       - name: CHE_VERSION
-                        value: 7.82.0
+                        value: 7.83.0
                       - name: RELATED_IMAGE_che_server
-                        value: quay.io/eclipse/che-server@sha256:637142354a13a3212e1f32c574d0daef3c5cc59a7871d3a4271df917ff05b521
+                        value: quay.io/eclipse/che-server@sha256:321ea820a713cfc592736659f032afbbe10e575bce8fc0d976e939a82b5de71a
                       - name: RELATED_IMAGE_dashboard
-                        value: quay.io/eclipse/che-dashboard@sha256:8a8740ff102b3b78bc5efbfcad38261141c7c0778e928a9a4184d51c94f8bbfe
+                        value: quay.io/eclipse/che-dashboard@sha256:af5f80a6ef81c39d9d1baa5fc7d20c5595730e7cd5997be371ae9acbdc635337
                       - name: RELATED_IMAGE_plugin_registry
-                        value: quay.io/eclipse/che-plugin-registry@sha256:3f4583e1ca4e51a1a01d94fe61177eaf2a7fb297d521a482cecd7cdd94f64961
+                        value: quay.io/eclipse/che-plugin-registry@sha256:560e10ae5f659a6a7668671a728d6439479a8628b9d67b17049d4151b1651f25
                       - name: RELATED_IMAGE_devfile_registry
-                        value: quay.io/eclipse/che-devfile-registry@sha256:194000a7aef7f6d7b65d42acb97dfbcf89922c98a3c37cd518c1f81073cb22ce
+                        value: quay.io/eclipse/che-devfile-registry@sha256:745d0aa37e59f97bd5e0909b2e96a4bcde5302ca8ac19095ea627d4b464d53a3
                       - name: RELATED_IMAGE_che_tls_secrets_creation_job
                         value: quay.io/eclipse/che-tls-secret-creator@sha256:54df0ccf598d230e278d512c3b44bdf24edb280f71da32643db46e0120bfaee0
                       - name: RELATED_IMAGE_single_host_gateway
                         value: quay.io/eclipse/che--traefik@sha256:8d81a9df1435f9f3d36ac9398465ef2d5d61e671059974db753faaed14b627de
                       - name: RELATED_IMAGE_single_host_gateway_config_sidecar
-                        value: quay.io/che-incubator/configbump@sha256:2b02cd4bdedf50465b3c2375ae23fbdf6971008d1ccf5673e46766573085c959
+                        value: quay.io/che-incubator/configbump@sha256:46fc5a58061b22f36e1b851c04f530223a612ae9fa8fe2ebe066d28006062ea7
                       - name: RELATED_IMAGE_gateway_authentication_sidecar
                         value: quay.io/openshift/origin-oauth-proxy@sha256:870bfe92a4663720775c0dfe5728ecbb10a17f0644eef5f57276ec135034c6a1
                       - name: RELATED_IMAGE_gateway_authorization_sidecar
@@ -976,7 +912,7 @@ spec:
                         value: che-incubator/che-code/latest
                       - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTCOMPONENTS
                         value: '[{"name": "universal-developer-image", "container":
-                          {"image": "quay.io/devfile/universal-developer-image@sha256:75034f0dad7a6df3db53e20fc3597b68f2311e556164d47aa9151d3b3584bbce"}}]'
+                          {"image": "quay.io/devfile/universal-developer-image@sha256:85516cb612d46ce37759a045b82fbbcc37391c8fa27729418f79592e522db2a5"}}]'
                       - name: CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL
                         value: https://open-vsx.org
                       - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DISABLECONTAINERBUILDCAPABILITIES
@@ -993,11 +929,11 @@ spec:
                       - name: RELATED_IMAGE_code_server_plugin_registry_image_IBZWQYJSGU3DUZLGGA3TEOBRGAYDIOJQHFRGEMTDGIZDQNBSGJSGMMTFHE4WCNLCME2WKNBVGBTGGZJXGU2DMYRYMZQTCOBWHA2TEZRSGNRGMNRXGUYQ____
                         value: index.docker.io/codercom/code-server@sha256:ef07281004909bb2c228422df2e99a5ba5e450fce7546b8fa186852f23bf6751
                       - name: RELATED_IMAGE_che_code_plugin_registry_image_NFXHG2LEMVZHG___
-                        value: quay.io/che-incubator/che-code@sha256:18dff27b9976b9b35bf9c2f2dad8791d5787562e652bc4d13b4e0213d2dd4412
-                      - name: RELATED_IMAGE_universal_developer_image_plugin_registry_image_IBZWQYJSGU3DUNZVGAZTIZRQMRQWIN3BGZSGMM3EMI2TGZJSGBTGGMZVHE3WENRYMYZDGMJRMU2TKNRRGY2GINBXMFQTSMJVGFSDGYRTGU4DIYTCMNSQ____
-                        value: quay.io/devfile/universal-developer-image@sha256:75034f0dad7a6df3db53e20fc3597b68f2311e556164d47aa9151d3b3584bbce
-                      - name: RELATED_IMAGE_che_code_plugin_registry_image_IBZWQYJSGU3DUNZRGVRTMNJYGY4TQMJRMUYWMODBMUZWMMZTG5QWMMBRGRTGCOJQMVRDMNDFHE4TAOLDGZSDIMRWMVSWCOJZGBRTKNJWGNQWKOJSMM3A____
-                        value: quay.io/che-incubator/che-code@sha256:715c65869811e1f8ae3f337af014fa90eb64e9909c6d426eea990c5563ae92c6
+                        value: quay.io/che-incubator/che-code@sha256:ddccbea64052fad6d1d0f60b406678313b6e55a1d50c348c187a9fcb54f3e633
+                      - name: RELATED_IMAGE_universal_developer_image_plugin_registry_image_IBZWQYJSGU3DUOBVGUYTMY3CGYYTEZBUGZRWKMZXG42TSYJQGQ2WEOBSMZRGEY3DGM3TGOJRMM4GMYJSG43TEOJUGE4GMNZZGU4TEZJVGIZGIYRSME2Q____
+                        value: quay.io/devfile/universal-developer-image@sha256:85516cb612d46ce37759a045b82fbbcc37391c8fa27729418f79592e522db2a5
+                      - name: RELATED_IMAGE_che_code_plugin_registry_image_IBZWQYJSGU3DUYLCMI3WEZTDGY2DGMBUMM3WCZDDGQYDGZBYHFSWEYLFHEYWCZBWMU4DEOJRGRTGEZTGGMZTEMTFGYZWIODFGYZTIZJZMU2WGNJYGQ2Q____
+                        value: quay.io/che-incubator/che-code@sha256:abb7bfc64304c7adc403d89ebae91ad6e82914fbff3322e63d8e634e9e5c5845
                       - name: RELATED_IMAGE_che_idea_plugin_registry_image_NZSXQ5A_
                         value: quay.io/che-incubator/che-idea@sha256:5d6e1bf45bb705b1928409588a2a723841289201057ea6c43b233657c6913f03
                       - name: RELATED_IMAGE_che_idea_plugin_registry_image_IBZWQYJSGU3DUODBMFSTMOLEMM2GEMDDGEZDENBZGFQTONJUGAYDMMZZMFTDAZTFHEZGENLFGIYTIYZWMU3DQYLDHE3WGZDBGI4WMYRVHBRDINBRGUYQ____
@@ -1007,19 +943,19 @@ spec:
                       - name: RELATED_IMAGE_che_pycharm_plugin_registry_image_IBZWQYJSGU3DUN3DGBSTGZLBMJSDMMRUHE2TEMBRMNTDKYTBGBQTSMJTG43TMZBZG4ZGCMLFGZTGEOLDMYYWEY3EMM3TQYLGMNTDIZBXGI2TMYLGGQ3Q____
                         value: quay.io/che-incubator/che-pycharm@sha256:7c0e3eabd62495201cf5ba0a913776d972a1e6fb9cf1bcdc78afcf4d7256af47
                       - name: RELATED_IMAGE_che_idea_dev_server_plugin_registry_image_NZSXQ5A_
-                        value: quay.io/che-incubator/che-idea-dev-server@sha256:c07087a28a48d86791d4a902b84638cada88af755b0752e0e89a67dc9ab2abfc
+                        value: quay.io/che-incubator/che-idea-dev-server@sha256:35eb57fb750a0044f8f3b034693f77e66f82b0470832aa45f6f9d3ffeca92c19
                       - name: RELATED_IMAGE_che_idea_dev_server_plugin_registry_image_IBZWQYJSGU3DUNJVMQ2DGMZWGQ2WIZLDGU3GKYJRG44GIZRQGNTDINRWGYZDGZJQGQ2WMZDFGA2DMZJRMNRDIM3CGM3TIOJTHE4TSYTEMI4TIOJUMRSQ____
                         value: quay.io/che-incubator/che-idea-dev-server@sha256:55d433645dec56ea178df03f466623e045fde046e1cb43b37493999bdb9494de
                       - name: RELATED_IMAGE_che_code_devfile_registry_image_NFXHG2LEMVZHG___
-                        value: quay.io/che-incubator/che-code@sha256:18dff27b9976b9b35bf9c2f2dad8791d5787562e652bc4d13b4e0213d2dd4412
-                      - name: RELATED_IMAGE_che_code_devfile_registry_image_IBZWQYJSGU3DUNZRGVRTMNJYGY4TQMJRMUYWMODBMUZWMMZTG5QWMMBRGRTGCOJQMVRDMNDFHE4TAOLDGZSDIMRWMVSWCOJZGBRTKNJWGNQWKOJSMM3A____
-                        value: quay.io/che-incubator/che-code@sha256:715c65869811e1f8ae3f337af014fa90eb64e9909c6d426eea990c5563ae92c6
+                        value: quay.io/che-incubator/che-code@sha256:ddccbea64052fad6d1d0f60b406678313b6e55a1d50c348c187a9fcb54f3e633
+                      - name: RELATED_IMAGE_che_code_devfile_registry_image_IBZWQYJSGU3DUYLCMI3WEZTDGY2DGMBUMM3WCZDDGQYDGZBYHFSWEYLFHEYWCZBWMU4DEOJRGRTGEZTGGMZTEMTFGYZWIODFGYZTIZJZMU2WGNJYGQ2Q____
+                        value: quay.io/che-incubator/che-code@sha256:abb7bfc64304c7adc403d89ebae91ad6e82914fbff3322e63d8e634e9e5c5845
                       - name: RELATED_IMAGE_che_idea_devfile_registry_image_NZSXQ5A_
                         value: quay.io/che-incubator/che-idea@sha256:5d6e1bf45bb705b1928409588a2a723841289201057ea6c43b233657c6913f03
                       - name: RELATED_IMAGE_universal_developer_image_devfile_registry_image_OVRGSOBNNRQXIZLTOQ______
-                        value: quay.io/devfile/universal-developer-image@sha256:75034f0dad7a6df3db53e20fc3597b68f2311e556164d47aa9151d3b3584bbce
-                      - name: RELATED_IMAGE_universal_developer_image_devfile_registry_image_IBZWQYJSGU3DUNZVGAZTIZRQMRQWIN3BGZSGMM3EMI2TGZJSGBTGGMZVHE3WENRYMYZDGMJRMU2TKNRRGY2GINBXMFQTSMJVGFSDGYRTGU4DIYTCMNSQ____
-                        value: quay.io/devfile/universal-developer-image@sha256:75034f0dad7a6df3db53e20fc3597b68f2311e556164d47aa9151d3b3584bbce
+                        value: quay.io/devfile/universal-developer-image@sha256:85516cb612d46ce37759a045b82fbbcc37391c8fa27729418f79592e522db2a5
+                      - name: RELATED_IMAGE_universal_developer_image_devfile_registry_image_IBZWQYJSGU3DUOBVGUYTMY3CGYYTEZBUGZRWKMZXG42TSYJQGQ2WEOBSMZRGEY3DGM3TGOJRMM4GMYJSG43TEOJUGE4GMNZZGU4TEZJVGIZGIYRSME2Q____
+                        value: quay.io/devfile/universal-developer-image@sha256:85516cb612d46ce37759a045b82fbbcc37391c8fa27729418f79592e522db2a5
                       - name: RELATED_IMAGE_che__centos__mongodb_36_centos7_devfile_registry_image_NRQXIZLTOQWWCOJRGVSGEN3CMVRWCOBXGE4TQZTDMQ3TQNRQGA4DMOJYHFTGKODBGMZDOYJRME2GMNRVGA4DAMRVMI3DIYLCGI4GMY3DG42DEM3CGI______
                         value: quay.io/eclipse/che--centos--mongodb-36-centos7@sha256:a915db7beca87198fcd7860086989fe8a327a1a4f6508025b64ab28fcc7423b2
                       - name: RELATED_IMAGE_che__centos__mongodb_36_centos7_devfile_registry_image_NRQXIZLTOQWWMZTEMYZDIMZRMJRGGNTEHFQTSZBSMEYDGZJZGVRGEYTFHBQWIYRUHFQWEOLFMFRTGMBRMYZDMODBGM2TAMZYMM4DIMRYHAZDKOLDGE______
@@ -1030,7 +966,7 @@ spec:
                         value: quay.io/eclipse/che--mariadb@sha256:5a8009369ee57c85b6f4a08406147bd9c505cde6b8250d16a27d2a5febfdead7
                       - name: RELATED_IMAGE_ubi_minimal_devfile_registry_image_
                         value: registry.access.redhat.com/ubi8/ubi-minimal@sha256:8bedbe742f140108897fb3532068e8316900d9814f399d676ac78b46e740e34e
-                    image: quay.io/eclipse/che-operator@sha256:36393d2781e7441c04a78a4069c113cbbd82265591b271c782d85ca86ee2a836
+                    image: quay.io/eclipse/che-operator@sha256:c7728e9547aaa0f6da8055319d7cc8a162794632c3e8fec35d9fe46692933ae1
                     imagePullPolicy: IfNotPresent
                     livenessProbe:
                       failureThreshold: 10
@@ -1080,196 +1016,29 @@ spec:
       permissions:
         - rules:
             - apiGroups:
-                - extensions
-              resources:
-                - ingresses
-              verbs:
-                - '*'
-            - apiGroups:
-                - networking.k8s.io
-              resources:
-                - ingresses
-              verbs:
-                - '*'
-            - apiGroups:
-                - batch
-              resources:
-                - jobs
-              verbs:
-                - create
-                - delete
-                - get
-                - update
-                - watch
-                - list
-            - apiGroups:
-                - route.openshift.io
-              resources:
-                - routes
-                - routes/custom-host
-              verbs:
-                - '*'
-            - apiGroups:
-                - rbac.authorization.k8s.io
-              resources:
-                - roles
-                - rolebindings
-                - clusterroles
-                - clusterrolebindings
-              verbs:
-                - list
-                - create
-                - watch
-                - update
-                - get
-                - delete
-            - apiGroups:
-                - ""
-              resources:
-                - pods
-                - services
-                - serviceaccounts
-                - endpoints
-                - persistentvolumeclaims
-                - events
-                - configmaps
-                - secrets
-                - pods/exec
-                - pods/log
-              verbs:
-                - '*'
-            - apiGroups:
-                - ""
-              resources:
-                - namespaces
-              verbs:
-                - get
-            - apiGroups:
-                - apps
-                - extensions
-              resources:
-                - deployments
-                - replicasets
-              verbs:
-                - '*'
-            - apiGroups:
-                - monitoring.coreos.com
-              resources:
-                - servicemonitors
-              verbs:
-                - get
-                - create
-            - apiGroups:
-                - org.eclipse.che
-              resources:
-                - checlusters
-                - checlusters/status
-                - checlusters/finalizers
-              verbs:
-                - '*'
-            - apiGroups:
-                - metrics.k8s.io
-              resources:
-                - pods
-                - nodes
-              verbs:
-                - get
-                - list
-                - watch
-            - apiGroups:
-                - operators.coreos.com
-              resources:
-                - subscriptions
-                - clusterserviceversions
-                - operatorgroups
-              verbs:
-                - '*'
-            - apiGroups:
-                - packages.operators.coreos.com
-              resources:
-                - packagemanifests
-              verbs:
-                - get
-                - list
-            - apiGroups:
-                - ""
-              resources:
-                - configmaps/status
-              verbs:
-                - get
-                - update
-                - patch
-            - apiGroups:
-                - ""
-              resources:
-                - events
-              verbs:
-                - create
-            - apiGroups:
-                - apps
-              resourceNames:
-                - che-operator
-              resources:
-                - deployments/finalizers
-              verbs:
-                - update
-            - apiGroups:
-                - controller.devfile.io
-              resources:
-                - devworkspaceroutings
-              verbs:
-                - '*'
-            - apiGroups:
-                - controller.devfile.io
-              resources:
-                - devworkspaceroutings/finalizers
-              verbs:
-                - update
-            - apiGroups:
-                - controller.devfile.io
-              resources:
-                - devworkspaceroutings/status
-              verbs:
-                - get
-                - patch
-                - update
-            - apiGroups:
-                - oauth.openshift.io
-              resources:
-                - oauthclients
-              verbs:
-                - create
-                - delete
-                - deletecollection
-                - get
-                - list
-                - patch
-                - update
-                - watch
-            - apiGroups:
                 - ""
               resources:
                 - configmaps
               verbs:
-                - get
-                - list
-                - watch
                 - create
+                - delete
+                - get
                 - update
                 - patch
-                - delete
+                - watch
+                - list
             - apiGroups:
                 - coordination.k8s.io
               resources:
                 - leases
               verbs:
-                - get
-                - list
-                - watch
                 - create
+                - delete
+                - get
                 - update
                 - patch
-                - delete
+                - watch
+                - list
             - apiGroups:
                 - ""
               resources:
@@ -1297,7 +1066,7 @@ spec:
     - java
   links:
     - name: Product Page
-      url: http://www.eclipse.org/che
+      url: https://www.eclipse.org/che
     - name: Documentation
       url: https://www.eclipse.org/che/docs
     - name: Operator GitHub Repo
@@ -1309,7 +1078,7 @@ spec:
   minKubeVersion: 1.19.0
   provider:
     name: Eclipse Foundation
-  version: 7.82.0
+  version: 7.83.0
   webhookdefinitions:
     - admissionReviewVersions:
         - v1
@@ -1366,33 +1135,33 @@ spec:
       type: ConversionWebhook
       webhookPath: /convert
   relatedImages:
-    - name: che-operator-7.82.0
-      image: quay.io/eclipse/che-operator@sha256:36393d2781e7441c04a78a4069c113cbbd82265591b271c782d85ca86ee2a836
-      # tag: quay.io/eclipse/che-operator:7.82.0
+    - name: che-operator-7.83.0
+      image: quay.io/eclipse/che-operator@sha256:c7728e9547aaa0f6da8055319d7cc8a162794632c3e8fec35d9fe46692933ae1
+      # tag: quay.io/eclipse/che-operator:7.83.0
     - name: kube-rbac-proxy-v0.13.1
       image: quay.io/brancz/kube-rbac-proxy@sha256:738c854322f56d63ebab75de5210abcdd5e0782ce2d30c0ecd4620f63b24694d
       # tag: quay.io/brancz/kube-rbac-proxy:v0.13.1
-    - name: configbump-7.82.0
-      image: quay.io/che-incubator/configbump@sha256:2b02cd4bdedf50465b3c2375ae23fbdf6971008d1ccf5673e46766573085c959
-      # tag: quay.io/che-incubator/configbump:7.82.0
+    - name: configbump-7.83.0
+      image: quay.io/che-incubator/configbump@sha256:46fc5a58061b22f36e1b851c04f530223a612ae9fa8fe2ebe066d28006062ea7
+      # tag: quay.io/che-incubator/configbump:7.83.0
     - name: header-rewrite-proxy-latest
       image: quay.io/che-incubator/header-rewrite-proxy@sha256:bd7873b8feef35f218f54c6251ea224bea2c8bf202a328230019a0ba2941245d
       # tag: quay.io/che-incubator/header-rewrite-proxy:latest
     - name: che--traefik-v2.9.10-8d81a9df1435f9f3d36ac9398465ef2d5d61e671059974db753faaed14b627de
       image: quay.io/eclipse/che--traefik@sha256:8d81a9df1435f9f3d36ac9398465ef2d5d61e671059974db753faaed14b627de
       # tag: quay.io/eclipse/che--traefik:v2.9.10-8d81a9df1435f9f3d36ac9398465ef2d5d61e671059974db753faaed14b627de
-    - name: che-dashboard-7.82.0
-      image: quay.io/eclipse/che-dashboard@sha256:8a8740ff102b3b78bc5efbfcad38261141c7c0778e928a9a4184d51c94f8bbfe
-      # tag: quay.io/eclipse/che-dashboard:7.82.0
-    - name: che-devfile-registry-7.82.0
-      image: quay.io/eclipse/che-devfile-registry@sha256:194000a7aef7f6d7b65d42acb97dfbcf89922c98a3c37cd518c1f81073cb22ce
-      # tag: quay.io/eclipse/che-devfile-registry:7.82.0
-    - name: che-plugin-registry-7.82.0
-      image: quay.io/eclipse/che-plugin-registry@sha256:3f4583e1ca4e51a1a01d94fe61177eaf2a7fb297d521a482cecd7cdd94f64961
-      # tag: quay.io/eclipse/che-plugin-registry:7.82.0
-    - name: che-server-7.82.0
-      image: quay.io/eclipse/che-server@sha256:637142354a13a3212e1f32c574d0daef3c5cc59a7871d3a4271df917ff05b521
-      # tag: quay.io/eclipse/che-server:7.82.0
+    - name: che-dashboard-7.83.0
+      image: quay.io/eclipse/che-dashboard@sha256:af5f80a6ef81c39d9d1baa5fc7d20c5595730e7cd5997be371ae9acbdc635337
+      # tag: quay.io/eclipse/che-dashboard:7.83.0
+    - name: che-devfile-registry-7.83.0
+      image: quay.io/eclipse/che-devfile-registry@sha256:745d0aa37e59f97bd5e0909b2e96a4bcde5302ca8ac19095ea627d4b464d53a3
+      # tag: quay.io/eclipse/che-devfile-registry:7.83.0
+    - name: che-plugin-registry-7.83.0
+      image: quay.io/eclipse/che-plugin-registry@sha256:560e10ae5f659a6a7668671a728d6439479a8628b9d67b17049d4151b1651f25
+      # tag: quay.io/eclipse/che-plugin-registry:7.83.0
+    - name: che-server-7.83.0
+      image: quay.io/eclipse/che-server@sha256:321ea820a713cfc592736659f032afbbe10e575bce8fc0d976e939a82b5de71a
+      # tag: quay.io/eclipse/che-server:7.83.0
     - name: che-tls-secret-creator-alpine-01a4c34
       image: quay.io/eclipse/che-tls-secret-creator@sha256:54df0ccf598d230e278d512c3b44bdf24edb280f71da32643db46e0120bfaee0
       # tag: quay.io/eclipse/che-tls-secret-creator:alpine-01a4c34
@@ -1418,14 +1187,14 @@ spec:
       image: index.docker.io/codercom/code-server@sha256:ef07281004909bb2c228422df2e99a5ba5e450fce7546b8fa186852f23bf6751
       # tag: index.docker.io/codercom/code-server@sha256:ef07281004909bb2c228422df2e99a5ba5e450fce7546b8fa186852f23bf6751
     - name: che-code-insiders
-      image: quay.io/che-incubator/che-code@sha256:18dff27b9976b9b35bf9c2f2dad8791d5787562e652bc4d13b4e0213d2dd4412
+      image: quay.io/che-incubator/che-code@sha256:ddccbea64052fad6d1d0f60b406678313b6e55a1d50c348c187a9fcb54f3e633
       # tag: quay.io/che-incubator/che-code:insiders
-    - name: universal-developer-image-@sha256:75034f0dad7a6df3db53e20fc3597b68f2311e556164d47aa9151d3b3584bbce
-      image: quay.io/devfile/universal-developer-image@sha256:75034f0dad7a6df3db53e20fc3597b68f2311e556164d47aa9151d3b3584bbce
-      # tag: quay.io/devfile/universal-developer-image@sha256:75034f0dad7a6df3db53e20fc3597b68f2311e556164d47aa9151d3b3584bbce
-    - name: che-code-@sha256:715c65869811e1f8ae3f337af014fa90eb64e9909c6d426eea990c5563ae92c6
-      image: quay.io/che-incubator/che-code@sha256:715c65869811e1f8ae3f337af014fa90eb64e9909c6d426eea990c5563ae92c6
-      # tag: quay.io/che-incubator/che-code@sha256:715c65869811e1f8ae3f337af014fa90eb64e9909c6d426eea990c5563ae92c6
+    - name: universal-developer-image-@sha256:85516cb612d46ce37759a045b82fbbcc37391c8fa27729418f79592e522db2a5
+      image: quay.io/devfile/universal-developer-image@sha256:85516cb612d46ce37759a045b82fbbcc37391c8fa27729418f79592e522db2a5
+      # tag: quay.io/devfile/universal-developer-image@sha256:85516cb612d46ce37759a045b82fbbcc37391c8fa27729418f79592e522db2a5
+    - name: che-code-@sha256:abb7bfc64304c7adc403d89ebae91ad6e82914fbff3322e63d8e634e9e5c5845
+      image: quay.io/che-incubator/che-code@sha256:abb7bfc64304c7adc403d89ebae91ad6e82914fbff3322e63d8e634e9e5c5845
+      # tag: quay.io/che-incubator/che-code@sha256:abb7bfc64304c7adc403d89ebae91ad6e82914fbff3322e63d8e634e9e5c5845
     - name: che-idea-next
       image: quay.io/che-incubator/che-idea@sha256:5d6e1bf45bb705b1928409588a2a723841289201057ea6c43b233657c6913f03
       # tag: quay.io/che-incubator/che-idea:next
@@ -1439,13 +1208,13 @@ spec:
       image: quay.io/che-incubator/che-pycharm@sha256:7c0e3eabd62495201cf5ba0a913776d972a1e6fb9cf1bcdc78afcf4d7256af47
       # tag: quay.io/che-incubator/che-pycharm@sha256:7c0e3eabd62495201cf5ba0a913776d972a1e6fb9cf1bcdc78afcf4d7256af47
     - name: che-idea-dev-server-next
-      image: quay.io/che-incubator/che-idea-dev-server@sha256:c07087a28a48d86791d4a902b84638cada88af755b0752e0e89a67dc9ab2abfc
+      image: quay.io/che-incubator/che-idea-dev-server@sha256:35eb57fb750a0044f8f3b034693f77e66f82b0470832aa45f6f9d3ffeca92c19
       # tag: quay.io/che-incubator/che-idea-dev-server:next
     - name: che-idea-dev-server-@sha256:55d433645dec56ea178df03f466623e045fde046e1cb43b37493999bdb9494de
       image: quay.io/che-incubator/che-idea-dev-server@sha256:55d433645dec56ea178df03f466623e045fde046e1cb43b37493999bdb9494de
       # tag: quay.io/che-incubator/che-idea-dev-server@sha256:55d433645dec56ea178df03f466623e045fde046e1cb43b37493999bdb9494de
     - name: universal-developer-image-ubi8-latest
-      image: quay.io/devfile/universal-developer-image@sha256:75034f0dad7a6df3db53e20fc3597b68f2311e556164d47aa9151d3b3584bbce
+      image: quay.io/devfile/universal-developer-image@sha256:85516cb612d46ce37759a045b82fbbcc37391c8fa27729418f79592e522db2a5
       # tag: quay.io/devfile/universal-developer-image:ubi8-latest
     - name: che--centos--mongodb-36-centos7-latest-a915db7beca87198fcd7860086989fe8a327a1a4f6508025b64ab28fcc7423b2
       image: quay.io/eclipse/che--centos--mongodb-36-centos7@sha256:a915db7beca87198fcd7860086989fe8a327a1a4f6508025b64ab28fcc7423b2
