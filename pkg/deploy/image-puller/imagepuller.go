@@ -215,10 +215,11 @@ func sortImages(images map[string]bool) []string {
 func convertToSpecField(images []string) string {
 	specField := ""
 	for index, image := range images {
-		imageEntries := strings.Split(image, "/")
-		name, err := convertToRFC1123(imageEntries[len(imageEntries)-1])
+		imageName, _ := utils.GetImageNameAndTag(image)
+		imageNameEntries := strings.Split(imageName, "/")
+		name, err := convertToRFC1123(imageNameEntries[len(imageNameEntries)-1])
 		if err != nil {
-			name = fmt.Sprintf("image-%d", index)
+			name = "image"
 		}
 
 		// Adding index make the name unique
