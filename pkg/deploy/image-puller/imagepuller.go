@@ -20,6 +20,8 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/validation"
+
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
@@ -141,18 +143,20 @@ func getImagePullerCustomResourceName(ctx *chetypes.DeployContext) string {
 }
 
 func getDefaultImages(ctx *chetypes.DeployContext) string {
-	urls := collectUrls(ctx)
-	allImages := fetchImages(urls, ctx)
+	urls := collectRegistriesUrls(ctx)
+	allImages := fetchImagesFromRegistries(urls, ctx)
+
+	// having them sorted, prevents from constant changing CR spec
 	sortedImages := sortImages(allImages)
-	return images2string(sortedImages)
+	return convertToSpecField(sortedImages)
 }
 
-func collectUrls(ctx *chetypes.DeployContext) []string {
-	urls2fetch := make([]string, 0)
+func collectRegistriesUrls(ctx *chetypes.DeployContext) []string {
+	urls := make([]string, 0)
 
 	if ctx.CheCluster.Status.PluginRegistryURL != "" {
-		urls2fetch = append(
-			urls2fetch,
+		urls = append(
+			urls,
 			fmt.Sprintf(
 				"http://%s.%s.svc:8080/v3/%s",
 				constants.PluginRegistryName,
@@ -163,8 +167,8 @@ func collectUrls(ctx *chetypes.DeployContext) []string {
 	}
 
 	if ctx.CheCluster.Status.DevfileRegistryURL != "" {
-		urls2fetch = append(
-			urls2fetch,
+		urls = append(
+			urls,
 			fmt.Sprintf(
 				"http://%s.%s.svc:8080/%s",
 				constants.DevfileRegistryName,
@@ -174,10 +178,11 @@ func collectUrls(ctx *chetypes.DeployContext) []string {
 		)
 	}
 
-	return urls2fetch
+	return urls
 }
 
-func fetchImages(urls []string, ctx *chetypes.DeployContext) map[string]bool {
+func fetchImagesFromRegistries(urls []string, ctx *chetypes.DeployContext) map[string]bool {
+	// return as map to make the list unique
 	allImages := make(map[string]bool)
 
 	for _, url := range urls {
@@ -207,18 +212,23 @@ func sortImages(images map[string]bool) []string {
 	return sortedImages
 }
 
-func images2string(images []string) string {
-	imagesAsString := ""
+func convertToSpecField(images []string) string {
+	specField := ""
 	for index, image := range images {
-		imagesAsString += fmt.Sprintf("image-%d=%s;", index, image)
+		imageEntries := strings.Split(image, "/")
+		name, err := convertToRFC1123(imageEntries[len(imageEntries)-1])
+		if err != nil {
+			name = fmt.Sprintf("image-%d", index)
+		}
+
+		// Adding index make the name unique
+		specField += fmt.Sprintf("%s-%d=%s;", name, index, image)
 	}
 
-	return imagesAsString
+	return specField
 }
 
 func fetchImagesFromUrl(url string, ctx *chetypes.DeployContext) (map[string]bool, error) {
-	images := make(map[string]bool)
-
 	transport := &http.Transport{}
 	if ctx.Proxy.HttpProxy != "" {
 		deploy.ConfigureProxy(ctx, transport)
@@ -231,20 +241,20 @@ func fetchImagesFromUrl(url string, ctx *chetypes.DeployContext) (map[string]boo
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return images, err
+		return map[string]bool{}, err
 	}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return images, err
+		return map[string]bool{}, err
 	}
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		_ = resp.Body.Close()
-		return images, err
+		return map[string]bool{}, err
 	}
 
+	images := make(map[string]bool)
 	for _, image := range strings.Split(string(data), "\n") {
 		image = strings.TrimSpace(image)
 		if image != "" {
@@ -252,5 +262,36 @@ func fetchImagesFromUrl(url string, ctx *chetypes.DeployContext) (map[string]boo
 		}
 	}
 
+	if err = resp.Body.Close(); err != nil {
+		log.Error(err, "Failed to close a body response")
+	}
+
 	return images, nil
+}
+
+// convertToRFC1123 converts input string to RFC 1123 format ([a-z0-9]([-a-z0-9]*[a-z0-9])?) max 63 characters, if possible
+func convertToRFC1123(str string) (string, error) {
+	result := strings.ToLower(str)
+	if len(str) > validation.DNS1123LabelMaxLength {
+		result = result[:validation.DNS1123LabelMaxLength]
+	}
+
+	// Remove illegal trailing characters
+	i := len(result) - 1
+	for i >= 0 && !isRFC1123Char(result[i]) {
+		i -= 1
+	}
+	result = result[:i+1]
+
+	result = strings.ReplaceAll(result, "_", "-")
+
+	if errs := validation.IsDNS1123Label(result); len(errs) > 0 {
+		return "", fmt.Errorf("cannot convert the following string to RFC 1123 format: %s", str)
+	}
+	return result, nil
+}
+
+func isRFC1123Char(ch byte) bool {
+	errs := validation.IsDNS1123Label(string(ch))
+	return len(errs) == 0
 }
