@@ -13,38 +13,32 @@
 package imagepuller
 
 import (
-	goerror "errors"
 	"fmt"
+	"io"
+	"net/http"
 	"sort"
 	"strings"
+	"time"
 
+	"k8s.io/apimachinery/pkg/util/validation"
+
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/google/go-cmp/cmp"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
-	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/validation"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 var (
-	log                  = ctrl.Log.WithName("image-puller")
-	defaultImagePatterns = [...]string{
-		"^RELATED_IMAGE_.*_theia.*",
-		"^RELATED_IMAGE_.*_code.*",
-		"^RELATED_IMAGE_.*_idea.*",
-		"^RELATED_IMAGE_.*_machine(_)?exec(_.*)?_plugin_registry_image.*",
-		"^RELATED_IMAGE_.*_kubernetes(_.*)?_plugin_registry_image.*",
-		"^RELATED_IMAGE_.*_openshift(_.*)?_plugin_registry_image.*",
-		"^RELATED_IMAGE_universal(_)?developer(_)?image(_.*)?_devfile_registry_image.*",
-	}
+	log                           = ctrl.Log.WithName("image-puller")
 	kubernetesImagePullerDiffOpts = cmp.Options{
 		cmpopts.IgnoreFields(chev1alpha1.KubernetesImagePuller{}, "TypeMeta", "ObjectMeta", "Status"),
 	}
@@ -58,8 +52,6 @@ const (
 	defaultDeploymentName   = "kubernetes-image-puller"
 	defaultImagePullerImage = "quay.io/eclipse/kubernetes-image-puller:next"
 )
-
-type Images2Pull = map[string]string
 
 type ImagePuller struct {
 	deploy.Reconcilable
@@ -77,11 +69,11 @@ func (ip *ImagePuller) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result,
 		}
 
 		if done, err := ip.syncKubernetesImagePuller(ctx); !done {
-			return reconcile.Result{}, false, err
+			return reconcile.Result{Requeue: true}, false, err
 		}
 	} else {
 		if done, err := ip.uninstallImagePuller(ctx); !done {
-			return reconcile.Result{}, false, err
+			return reconcile.Result{Requeue: true}, false, err
 		}
 	}
 	return reconcile.Result{}, true, nil
@@ -139,7 +131,9 @@ func (ip *ImagePuller) syncKubernetesImagePuller(ctx *chetypes.DeployContext) (b
 	imagePuller.Spec.ConfigMapName = utils.GetValue(imagePuller.Spec.ConfigMapName, defaultConfigMapName)
 	imagePuller.Spec.DeploymentName = utils.GetValue(imagePuller.Spec.DeploymentName, defaultDeploymentName)
 	imagePuller.Spec.ImagePullerImage = utils.GetValue(imagePuller.Spec.ImagePullerImage, defaultImagePullerImage)
-	imagePuller.Spec.Images = utils.GetValue(imagePuller.Spec.Images, getDefaultImages())
+	if strings.TrimSpace(imagePuller.Spec.Images) == "" {
+		imagePuller.Spec.Images = getDefaultImages(ctx)
+	}
 
 	return deploy.SyncWithClient(ctx.ClusterAPI.NonCachingClient, ctx, imagePuller, kubernetesImagePullerDiffOpts)
 }
@@ -148,22 +142,132 @@ func getImagePullerCustomResourceName(ctx *chetypes.DeployContext) string {
 	return ctx.CheCluster.Name + "-image-puller"
 }
 
-// imagesToString returns a string representation of the provided image slice,
-// suitable for the imagePuller.spec.images field
-func imagesToString(images Images2Pull) string {
-	imageNames := make([]string, 0, len(images))
-	for k := range images {
-		imageNames = append(imageNames, k)
-	}
-	sort.Strings(imageNames)
+func getDefaultImages(ctx *chetypes.DeployContext) string {
+	urls := collectRegistriesUrls(ctx)
+	allImages := fetchImagesFromRegistries(urls, ctx)
 
-	imagesAsString := ""
-	for _, imageName := range imageNames {
-		if name, err := convertToRFC1123(imageName); err == nil {
-			imagesAsString += name + "=" + images[imageName] + ";"
+	// having them sorted, prevents from constant changing CR spec
+	sortedImages := sortImages(allImages)
+	return convertToSpecField(sortedImages)
+}
+
+func collectRegistriesUrls(ctx *chetypes.DeployContext) []string {
+	urls := make([]string, 0)
+
+	if ctx.CheCluster.Status.PluginRegistryURL != "" {
+		urls = append(
+			urls,
+			fmt.Sprintf(
+				"http://%s.%s.svc:8080/v3/%s",
+				constants.PluginRegistryName,
+				ctx.CheCluster.Namespace,
+				"external_images.txt",
+			),
+		)
+	}
+
+	if ctx.CheCluster.Status.DevfileRegistryURL != "" {
+		urls = append(
+			urls,
+			fmt.Sprintf(
+				"http://%s.%s.svc:8080/%s",
+				constants.DevfileRegistryName,
+				ctx.CheCluster.Namespace,
+				"devfiles/external_images.txt",
+			),
+		)
+	}
+
+	return urls
+}
+
+func fetchImagesFromRegistries(urls []string, ctx *chetypes.DeployContext) map[string]bool {
+	// return as map to make the list unique
+	allImages := make(map[string]bool)
+
+	for _, url := range urls {
+		images, err := fetchImagesFromUrl(url, ctx)
+		if err != nil {
+			log.Error(err, fmt.Sprintf("Failed to fetch images from %s", url))
+		} else {
+			for image := range images {
+				allImages[image] = true
+			}
 		}
 	}
-	return imagesAsString
+
+	return allImages
+}
+
+func sortImages(images map[string]bool) []string {
+	sortedImages := make([]string, len(images))
+
+	i := 0
+	for image := range images {
+		sortedImages[i] = image
+		i++
+	}
+
+	sort.Strings(sortedImages)
+	return sortedImages
+}
+
+func convertToSpecField(images []string) string {
+	specField := ""
+	for index, image := range images {
+		imageName, _ := utils.GetImageNameAndTag(image)
+		imageNameEntries := strings.Split(imageName, "/")
+		name, err := convertToRFC1123(imageNameEntries[len(imageNameEntries)-1])
+		if err != nil {
+			name = "image"
+		}
+
+		// Adding index make the name unique
+		specField += fmt.Sprintf("%s-%d=%s;", name, index, image)
+	}
+
+	return specField
+}
+
+func fetchImagesFromUrl(url string, ctx *chetypes.DeployContext) (map[string]bool, error) {
+	transport := &http.Transport{}
+	if ctx.Proxy.HttpProxy != "" {
+		deploy.ConfigureProxy(ctx, transport)
+	}
+
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   time.Second * 3,
+	}
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return map[string]bool{}, err
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return map[string]bool{}, err
+	}
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return map[string]bool{}, err
+	}
+
+	images := make(map[string]bool)
+	for _, image := range strings.Split(string(data), "\n") {
+		image = strings.TrimSpace(image)
+		if image != "" {
+			images[image] = true
+		}
+	}
+
+	if err = resp.Body.Close(); err != nil {
+		log.Error(err, "Failed to close a body response")
+	}
+
+	return images, nil
 }
 
 // convertToRFC1123 converts input string to RFC 1123 format ([a-z0-9]([-a-z0-9]*[a-z0-9])?) max 63 characters, if possible
@@ -183,7 +287,7 @@ func convertToRFC1123(str string) (string, error) {
 	result = strings.ReplaceAll(result, "_", "-")
 
 	if errs := validation.IsDNS1123Label(result); len(errs) > 0 {
-		return "", goerror.New("Cannot convert the following string to RFC 1123 format: " + str)
+		return "", fmt.Errorf("cannot convert the following string to RFC 1123 format: %s", str)
 	}
 	return result, nil
 }
@@ -191,20 +295,4 @@ func convertToRFC1123(str string) (string, error) {
 func isRFC1123Char(ch byte) bool {
 	errs := validation.IsDNS1123Label(string(ch))
 	return len(errs) == 0
-}
-
-// GetDefaultImages returns the current default images from the environment variables
-func getDefaultImages() string {
-	images := map[string]string{}
-	for _, pattern := range defaultImagePatterns {
-		matches := utils.GetGetArchitectureDependentEnvsByRegExp(pattern)
-		sort.SliceStable(matches, func(i, j int) bool {
-			return strings.Compare(matches[i].Name, matches[j].Name) < 0
-		})
-
-		for _, match := range matches {
-			images[match.Name[len("RELATED_IMAGE_"):]] = match.Value
-		}
-	}
-	return imagesToString(images)
 }
