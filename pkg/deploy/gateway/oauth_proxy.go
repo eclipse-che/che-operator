@@ -16,6 +16,8 @@ import (
 	"fmt"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/util/intstr"
+
 	identityprovider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -187,6 +189,8 @@ func getOauthProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		Args: []string{
 			"--config=/etc/oauth-proxy/oauth-proxy.cfg",
+			"--ping-path=/ping",
+			"--exclude-logging-path=/ping",
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
@@ -224,6 +228,40 @@ func getOauthProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
 				Name:  "CM_REVISION",
 				Value: configMapRevision,
 			},
+		},
+		ReadinessProbe: &corev1.Probe{
+			ProbeHandler: corev1.ProbeHandler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path: "/ping",
+					Port: intstr.IntOrString{
+						Type:   intstr.Int,
+						IntVal: int32(8080),
+					},
+					Scheme: corev1.URISchemeHTTP,
+				},
+			},
+			InitialDelaySeconds: 5,
+			TimeoutSeconds:      5,
+			PeriodSeconds:       5,
+			SuccessThreshold:    1,
+			FailureThreshold:    5,
+		},
+		LivenessProbe: &corev1.Probe{
+			ProbeHandler: corev1.ProbeHandler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path: "/ping",
+					Port: intstr.IntOrString{
+						Type:   intstr.Int,
+						IntVal: int32(8080),
+					},
+					Scheme: corev1.URISchemeHTTP,
+				},
+			},
+			InitialDelaySeconds: 15,
+			TimeoutSeconds:      5,
+			PeriodSeconds:       5,
+			SuccessThreshold:    1,
+			FailureThreshold:    5,
 		},
 	}
 }

@@ -15,6 +15,8 @@ package gateway
 import (
 	"strconv"
 
+	"k8s.io/apimachinery/pkg/util/intstr"
+
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -82,6 +84,40 @@ func getKubeRbacProxyContainerSpec(instance *chev2.CheCluster) corev1.Container 
 				corev1.ResourceMemory: resource.MustParse("64Mi"),
 				corev1.ResourceCPU:    resource.MustParse("0.1"),
 			},
+		},
+		ReadinessProbe: &corev1.Probe{
+			ProbeHandler: corev1.ProbeHandler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path: "/ping",
+					Port: intstr.IntOrString{
+						Type:   intstr.Int,
+						IntVal: int32(8090),
+					},
+					Scheme: corev1.URISchemeHTTP,
+				},
+			},
+			InitialDelaySeconds: 5,
+			TimeoutSeconds:      5,
+			PeriodSeconds:       5,
+			SuccessThreshold:    1,
+			FailureThreshold:    5,
+		},
+		LivenessProbe: &corev1.Probe{
+			ProbeHandler: corev1.ProbeHandler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path: "/ping",
+					Port: intstr.IntOrString{
+						Type:   intstr.Int,
+						IntVal: int32(8090),
+					},
+					Scheme: corev1.URISchemeHTTP,
+				},
+			},
+			InitialDelaySeconds: 15,
+			TimeoutSeconds:      5,
+			PeriodSeconds:       5,
+			SuccessThreshold:    1,
+			FailureThreshold:    5,
 		},
 	}
 }
