@@ -197,6 +197,40 @@ func (c *CheRoutingSolver) provisionPodAdditions(objs *solvers.RoutingObjects, c
 				corev1.ResourceCPU:    resource.MustParse(constants.DefaultGatewayCpuRequest),
 			},
 		},
+		ReadinessProbe: &corev1.Probe{
+			ProbeHandler: corev1.ProbeHandler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path: "/ping",
+					Port: intstr.IntOrString{
+						Type:   intstr.Int,
+						IntVal: int32(8090),
+					},
+					Scheme: corev1.URISchemeHTTP,
+				},
+			},
+			InitialDelaySeconds: 5,
+			TimeoutSeconds:      5,
+			PeriodSeconds:       5,
+			SuccessThreshold:    1,
+			FailureThreshold:    5,
+		},
+		LivenessProbe: &corev1.Probe{
+			ProbeHandler: corev1.ProbeHandler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path: "/ping",
+					Port: intstr.IntOrString{
+						Type:   intstr.Int,
+						IntVal: int32(8090),
+					},
+					Scheme: corev1.URISchemeHTTP,
+				},
+			},
+			InitialDelaySeconds: 15,
+			TimeoutSeconds:      5,
+			PeriodSeconds:       5,
+			SuccessThreshold:    1,
+			FailureThreshold:    5,
+		},
 	}
 
 	if err := deploy.OverrideContainer(routing.GetNamespace(), gatewayContainer, cheCluster.Spec.DevEnvironments.GatewayContainer); err != nil {
