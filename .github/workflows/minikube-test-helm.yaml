@@ -26,7 +26,7 @@ jobs:
     - name: Install yq
       run: sudo pip install yq
     - name: Install chectl
-      run: bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=next
+      run: bash <(curl -sL https://che-incubator.github.io/chectl/install.sh) --channel=next
     - name: Run tests
       run: /bin/bash build/scripts/minikube-tests/test-helm.sh
     - uses: actions/upload-artifact@v3

@@ -24,4 +24,4 @@ RUN yum install --assumeyes -d1 python3-pip nodejs && \
     curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && \
     chmod +x ./kubectl && \
     mv ./kubectl /usr/local/bin && \
-    bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=next
+    bash <(curl -sL https://che-incubator.github.io/chectl/install.sh) --channel=next
