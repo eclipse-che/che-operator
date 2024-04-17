@@ -491,6 +491,40 @@ func getContainersSpec(ctx *chetypes.DeployContext) []corev1.Container {
 					corev1.ResourceCPU:    resource.MustParse("0.1"),
 				},
 			},
+			ReadinessProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/ping",
+						Port: intstr.IntOrString{
+							Type:   intstr.Int,
+							IntVal: int32(8090),
+						},
+						Scheme: corev1.URISchemeHTTP,
+					},
+				},
+				InitialDelaySeconds: 5,
+				TimeoutSeconds:      5,
+				PeriodSeconds:       5,
+				SuccessThreshold:    1,
+				FailureThreshold:    5,
+			},
+			LivenessProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/ping",
+						Port: intstr.IntOrString{
+							Type:   intstr.Int,
+							IntVal: int32(8090),
+						},
+						Scheme: corev1.URISchemeHTTP,
+					},
+				},
+				InitialDelaySeconds: 15,
+				TimeoutSeconds:      5,
+				PeriodSeconds:       5,
+				SuccessThreshold:    1,
+				FailureThreshold:    5,
+			},
 		},
 		{
 			Name:            "configbump",
@@ -530,6 +564,30 @@ func getContainersSpec(ctx *chetypes.DeployContext) []corev1.Container {
 						},
 					},
 				},
+			},
+			ReadinessProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{"configbump", "--version"},
+					},
+				},
+				InitialDelaySeconds: 5,
+				TimeoutSeconds:      5,
+				PeriodSeconds:       5,
+				SuccessThreshold:    1,
+				FailureThreshold:    5,
+			},
+			LivenessProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{"configbump", "--version"},
+					},
+				},
+				InitialDelaySeconds: 15,
+				TimeoutSeconds:      5,
+				PeriodSeconds:       5,
+				SuccessThreshold:    1,
+				FailureThreshold:    5,
 			},
 		},
 	}
