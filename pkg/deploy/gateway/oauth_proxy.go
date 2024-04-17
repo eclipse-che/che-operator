@@ -187,11 +187,15 @@ func getOauthProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
 		Name:            "oauth-proxy",
 		Image:           defaults.GetGatewayAuthenticationSidecarImage(ctx.CheCluster),
 		ImagePullPolicy: corev1.PullIfNotPresent,
-		Args: []string{
-			"--config=/etc/oauth-proxy/oauth-proxy.cfg",
-			"--ping-path=/ping",
-			"--exclude-logging-path=/ping",
-		},
+		Args: map[bool][]string{
+			true: {
+				"--config=/etc/oauth-proxy/oauth-proxy.cfg",
+			},
+			false: {
+				"--config=/etc/oauth-proxy/oauth-proxy.cfg",
+				"--ping-path=/ping",
+				"--exclude-logging-path=/ping"},
+		}[infrastructure.IsOpenShift()],
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      "oauth-proxy-config",
@@ -232,7 +236,7 @@ func getOauthProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
 		ReadinessProbe: &corev1.Probe{
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
-					Path: "/ping",
+					Path: map[bool]string{true: "/oauth/healthz", false: "/ping"}[infrastructure.IsOpenShift()],
 					Port: intstr.IntOrString{
 						Type:   intstr.Int,
 						IntVal: int32(8080),
@@ -249,7 +253,7 @@ func getOauthProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
 		LivenessProbe: &corev1.Probe{
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
-					Path: "/ping",
+					Path: map[bool]string{true: "/oauth/healthz", false: "/ping"}[infrastructure.IsOpenShift()],
 					Port: intstr.IntOrString{
 						Type:   intstr.Int,
 						IntVal: int32(8080),
