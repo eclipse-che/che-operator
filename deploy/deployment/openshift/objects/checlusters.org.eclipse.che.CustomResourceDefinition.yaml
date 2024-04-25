@@ -4230,7 +4230,7 @@ spec:
                               in a custom resource leads to merging non-proxy hosts
                               lists from the cluster proxy configuration, and the
                               ones defined in the custom resources. See the following
-                              page: https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html.'
+                              page: https://docs.openshift.com/container-platform/latest/networking/enable-cluster-wide-proxy.html.'
                             items:
                               type: string
                             type: array
@@ -4243,7 +4243,7 @@ spec:
                               Operator respects OpenShift cluster-wide proxy configuration,
                               defining `url` in a custom resource leads to overriding
                               the cluster proxy configuration. See the following page:
-                              https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html.'
+                              https://docs.openshift.com/container-platform/latest/networking/enable-cluster-wide-proxy.html.'
                             type: string
                         type: object
                     type: object
