@@ -586,7 +586,7 @@ type Proxy struct {
 	// URL (protocol+hostname) of the proxy server.
 	// Use only when a proxy configuration is required. The Operator respects OpenShift cluster-wide proxy configuration,
 	// defining `url` in a custom resource leads to overriding the cluster proxy configuration.
-	// See the following page: https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html.
+	// See the following page: https://docs.openshift.com/container-platform/latest/networking/enable-cluster-wide-proxy.html.
 	// +optional
 	Url string `json:"url,omitempty"`
 	// Proxy server port.
@@ -599,7 +599,7 @@ type Proxy struct {
 	//    - 123.42.12.32
 	// Use only when a proxy configuration is required. The Operator respects OpenShift cluster-wide proxy configuration,
 	// defining `nonProxyHosts` in a custom resource leads to merging non-proxy hosts lists from the cluster proxy configuration, and the ones defined in the custom resources.
-	// See the following page: https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html.
+	// See the following page: https://docs.openshift.com/container-platform/latest/networking/enable-cluster-wide-proxy.html.
 	// +optional
 	NonProxyHosts []string `json:"nonProxyHosts,omitempty"`
 	// The secret name that contains `user` and `password` for a proxy server.
