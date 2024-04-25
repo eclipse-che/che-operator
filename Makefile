@@ -439,7 +439,7 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 	printf "\nLABEL com.redhat.openshift.versions=\"v4.8\"" >> $${BUNDLE_PATH}/bundle.Dockerfile
 
 	# Update annotations.yaml correspondingly to bundle.Dockerfile
-	printf "\n  com.redhat.openshift.versions: \"v4.8\"" >> $${BUNDLE_PATH}/metadata/annotations.yaml
+	printf "\n  com.redhat.openshift.versions: \"v4.8\"\n" >> $${BUNDLE_PATH}/metadata/annotations.yaml
 
 	# Base cluster service version file has got correctly sorted CRDs.
 	# They are sorted with help of annotation markers in the api type files ("api/v1" folder).
