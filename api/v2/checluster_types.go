@@ -501,8 +501,8 @@ type Auth struct {
 	OAuthClientName string `json:"oAuthClientName,omitempty"`
 	// Name of the secret set in the OpenShift `OAuthClient` resource used to set up identity federation on the OpenShift side.
 	// For Kubernetes, this can either be the plain text oAuthSecret value, or the name of a kubernetes secret which contains a
-	// key 'oAuthSecret' and the value is the secret. NOTE: this secret must exist in the same namespace as the CheCluster
-	// resource and contain the label app.kubernetes.io/part-of=che.eclipse.org.
+	// key `oAuthSecret` and the value is the secret. NOTE: this secret must exist in the same namespace as the `CheCluster`
+	// resource and contain the label `app.kubernetes.io/part-of=che.eclipse.org`.
 	// +optional
 	OAuthSecret string `json:"oAuthSecret,omitempty"`
 	// Access Token Scope.
