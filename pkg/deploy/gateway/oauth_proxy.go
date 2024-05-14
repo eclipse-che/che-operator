@@ -101,24 +101,20 @@ skip_provider_button = false
 
 func getSecretValue(ctx *chetypes.DeployContext) string {
 	secret := &corev1.Secret{}
-	exists, err := deploy.GetNamespacedObject(ctx, ctx.CheCluster.Spec.Networking.Auth.OAuthSecret, secret)
-	if err != nil {
-		logrus.Debug(err)
-	}
+	exists, _ := deploy.GetNamespacedObject(ctx, ctx.CheCluster.Spec.Networking.Auth.OAuthSecret, secret)
 	if !exists {
-		logrus.Infof("Kubernetes secret with name '%s' not found. Assuming oAuthSecret provided is the actual secret.", ctx.CheCluster.Spec.Networking.Auth.OAuthSecret)
+		// Kubernetes secret provided name not found. Assuming oAuthSecret provided is the actual secret.
 		return ctx.CheCluster.Spec.Networking.Auth.OAuthSecret
 	}
 
 	// Retrieve the value associated with the key "oAuthSecret"
 	value, found := secret.Data["oAuthSecret"]
 	if !found {
-		logrus.Warn("Key 'oAuthSecret' not found. Assuming oAuthSecret provided is the actual secret.")
+		// Key 'oAuthSecret' not found. Assuming oAuthSecret provided is the actual secret.
 		return ctx.CheCluster.Spec.Networking.Auth.OAuthSecret
 	}
 
 	// Convert the byte slice to a string
-	logrus.Infof("Using oAuthSecret found in Kubernetes secret %s", ctx.CheCluster.Spec.Networking.Auth.OAuthSecret)
 	secretValue := string(value)
 	return secretValue
 }
