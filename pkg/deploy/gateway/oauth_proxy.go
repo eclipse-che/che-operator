@@ -99,6 +99,26 @@ skip_provider_button = false
 		skipAuthConfig(ctx.CheCluster))
 }
 
+func getSecretValue(ctx *chetypes.DeployContext) string {
+	secret := &corev1.Secret{}
+	exists, _ := deploy.GetNamespacedObject(ctx, ctx.CheCluster.Spec.Networking.Auth.OAuthSecret, secret)
+	if !exists {
+		// Kubernetes secret provided name not found. Assuming oAuthSecret provided is the actual secret.
+		return ctx.CheCluster.Spec.Networking.Auth.OAuthSecret
+	}
+
+	// Retrieve the value associated with the key "oAuthSecret"
+	value, found := secret.Data["oAuthSecret"]
+	if !found {
+		// Key 'oAuthSecret' not found. Assuming oAuthSecret provided is the actual secret.
+		return ctx.CheCluster.Spec.Networking.Auth.OAuthSecret
+	}
+
+	// Convert the byte slice to a string
+	secretValue := string(value)
+	return secretValue
+}
+
 func kubernetesOauthProxyConfig(ctx *chetypes.DeployContext, cookieSecret string) string {
 	return fmt.Sprintf(`
 proxy_prefix = "/oauth"
@@ -128,7 +148,7 @@ cookie_domains = "%s"
 		ctx.CheHost,
 		ctx.CheCluster.Spec.Networking.Auth.IdentityProviderURL,
 		ctx.CheCluster.Spec.Networking.Auth.OAuthClientName,
-		ctx.CheCluster.Spec.Networking.Auth.OAuthSecret,
+		getSecretValue(ctx),
 		cookieSecret,
 		cookieExpireAsString(ctx.CheCluster),
 		utils.Whitelist(ctx.CheHost),
