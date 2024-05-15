@@ -124,6 +124,7 @@ const (
 	GatewayAuthenticationContainerName = "oauth-proxy"
 	GatewayAuthorizationContainerName  = "kube-rbac-proxy"
 	KubernetesImagePullerComponentName = "kubernetes-image-puller"
+	EditorDefinitionComponentName      = "editor-definition"
 
 	// common
 	CheFlavor             = "che"
