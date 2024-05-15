@@ -94,7 +94,7 @@ do
     tagOrDigest="${source#*:}"
   fi
 
-  if [[ ${imageLabel} == "plugin-registry-image" ]] || [[ ${imageLabel} == "devfile-registry-image" ]]; then
+  if [[ ${imageLabel} == "devfile-registry-image" ]]; then
     # Image tag could contains invalid for Env variable name characters, so let's encode it using base32.
     # But alphabet of base32 uses one invalid for env variable name character '=' at the end of the line, so let's replace it by '_'.
     # To recovery original tag should be done opposite actions: replace '_' to '=', and decode string using 'base32 -d'.
