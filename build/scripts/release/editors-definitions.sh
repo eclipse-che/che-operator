@@ -74,7 +74,7 @@ init "$@"
 pushd "${OPERATOR_REPO}" >/dev/null
 case $COMMAND in
       'release') release;;
-      'add-env-vars') release;;
+      'add-env-vars') addEnvVars;;
       *) usage; exit 1;;
 esac
 popd >/dev/null
