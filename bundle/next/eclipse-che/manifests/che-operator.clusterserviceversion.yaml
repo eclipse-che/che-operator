@@ -100,7 +100,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che.v7.86.0-866.next
+  name: eclipse-che.v7.86.0-867.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -492,11 +492,11 @@ spec:
     * Bundled Plugin and Devfile registries
 
     Use `oc edit checluster/eclipse-che -n eclipse-che` to update Eclipse Che default installation options.
-    See more in the [Installation guide](https://www.eclipse.org/che/docs/che-7/installation-guide/configuring-the-che-installation/).
+    See more in the [Installation guide](https://www.eclipse.org/che/docs/stable/administration-guide/configuring-che/).
 
     ### Certificates
     Operator uses a default router certificate to secure Eclipse Che routes.
-    Follow the [guide](https://www.eclipse.org/che/docs/che-7/installation-guide/importing-untrusted-tls-certificates/)
+    Follow the [guide](https://www.eclipse.org/che/docs/stable/administration-guide/importing-untrusted-tls-certificates/)
     to import certificates into Eclipse Che.
   displayName: Eclipse Che
   icon:
@@ -1032,7 +1032,7 @@ spec:
   minKubeVersion: 1.19.0
   provider:
     name: Eclipse Foundation
-  version: 7.86.0-866.next
+  version: 7.86.0-867.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1
