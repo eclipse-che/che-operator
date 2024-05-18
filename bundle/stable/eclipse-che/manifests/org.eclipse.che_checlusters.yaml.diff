@@ -1,0 +1,36 @@
+--- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che/generated/openshift/org.eclipse.che_checlusters.yaml	2024-05-18 01:37:20.651415769 +0000
++++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che/manifests/org.eclipse.che_checlusters.yaml	2024-05-18 01:37:20.659415818 +0000
+@@ -4348,7 +4348,7 @@
+                                 defining `nonProxyHosts` in a custom resource leads
+                                 to merging non-proxy hosts lists from the cluster
+                                 proxy configuration, and the ones defined in the custom
+-                                resources. See the following page: https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html.'
++                                resources. See the following page: https://docs.openshift.com/container-platform/latest/networking/enable-cluster-wide-proxy.html.'
+                               items:
+                                 type: string
+                               type: array
+@@ -4361,7 +4361,7 @@
+                                 Operator respects OpenShift cluster-wide proxy configuration,
+                                 defining `url` in a custom resource leads to overriding
+                                 the cluster proxy configuration. See the following
+-                                page: https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html.'
++                                page: https://docs.openshift.com/container-platform/latest/networking/enable-cluster-wide-proxy.html.'
+                               type: string
+                           type: object
+                       type: object
+@@ -8293,9 +8293,13 @@
+                             for OpenShift.
+                           type: string
+                         oAuthSecret:
+-                          description: Name of the secret set in the OpenShift `OAuthClient`
++                          description: 'Name of the secret set in the OpenShift `OAuthClient`
+                             resource used to set up identity federation on the OpenShift
+-                            side.
++                            side. For Kubernetes, this can either be the plain text
++                            oAuthSecret value, or the name of a kubernetes secret
++                            which contains a key `oAuthSecret` and the value is the
++                            secret. NOTE: this secret must exist in the same namespace
++                            as the `CheCluster` resource and contain the label `app.kubernetes.io/part-of=che.eclipse.org`.'
+                           type: string
+                       type: object
+                     domain:
