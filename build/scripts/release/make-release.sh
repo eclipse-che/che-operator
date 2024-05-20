@@ -179,6 +179,17 @@ replaceTag() {
     echo "${1}" | sed -e "s/\(.*:\).*/\1${2}/"
 }
 
+releaseEditorsDefinitions() {
+  echo "[INFO] Releasing editor definitions"
+
+  . "${OPERATOR_REPO}/build/scripts/release/editors-definitions.sh" release --version "${RELEASE}"
+  . "${OPERATOR_REPO}/build/scripts/release/editors-definitions.sh" add-env-vars
+
+  git add editors-definitions
+  git add "${OPERATOR_REPO}/config/manager/manager.yaml"
+  git commit -m "ci: Release editors definitions to $RELEASE" --signoff
+}
+
 updateVersionFile() {
   echo "[INFO] updating version.go file"
   # change version/version.go file
@@ -268,7 +279,7 @@ createPRToMainBranch() {
   resetChanges main
   local tmpBranch="copy-csv-to-main"
   git checkout -B $tmpBranch
-  git diff refs/heads/${BRANCH}...refs/heads/${RELEASE_BRANCH} ':(exclude)config/manager/manager.yaml' ':(exclude)deploy' ':(exclude)Dockerfile' | git apply -3
+  git diff refs/heads/${BRANCH}...refs/heads/${RELEASE_BRANCH} ':(exclude)config/manager/manager.yaml' ':(exclude)deploy' ':(exclude)editors-definitions' ':(exclude)Dockerfile' | git apply -3
   if git status --porcelain; then
     git add -A || true # add new generated CSV files in olm/ folder
     git commit -am "ci: Copy "$RELEASE" csv to main" --signoff
@@ -291,6 +302,7 @@ run() {
 
   checkoutToReleaseBranch
   updateVersionFile
+  releaseEditorsDefinitions
   releaseOperatorCode
   if [[ $RELEASE_OLM_FILES == "true" ]]; then
     releaseOlmFiles

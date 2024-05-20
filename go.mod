@@ -7,7 +7,6 @@ require (
 	github.com/devfile/api/v2 v2.2.2
 	github.com/devfile/devworkspace-operator v0.25.0
 	github.com/go-logr/logr v1.2.4
-	github.com/golang/mock v1.5.0
 	github.com/google/go-cmp v0.6.0
 	github.com/openshift/api v0.0.0-20200331152225-585af27e34fd
 	github.com/operator-framework/api v0.10.0

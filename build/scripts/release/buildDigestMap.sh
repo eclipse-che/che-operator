@@ -50,13 +50,6 @@ setOperatorImage() {
     OPERATOR_IMAGE=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[0].image' "${CSV}")
 }
 
-setPluginRegistryList() {
-    registry=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | select(.name | test("RELATED_IMAGE_.*plugin_registry"; "g")) | .value' "${CSV}")
-    setRegistryImages "${registry}"
-
-    PLUGIN_REGISTRY_LIST=${registryImages}
-}
-
 setDevfileRegistryList() {
     registry=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | select(.name | test("RELATED_IMAGE_.*devfile_registry"; "g")) | .value' "${CSV}")
 
@@ -150,9 +143,6 @@ setImagesFromDeploymentEnv
 setOperatorImage
 echo "${OPERATOR_IMAGE}"
 
-setPluginRegistryList
-echo "${PLUGIN_REGISTRY_LIST}"
-
 setDevfileRegistryList
 echo "${DEVFILE_REGISTRY_LIST}"
 
@@ -164,10 +154,6 @@ writeDigest "${OPERATOR_IMAGE}" "operator-image"
 
 for image in ${REQUIRED_IMAGES}; do
   writeDigest "${image}" "required-image"
-done
-
-for image in ${PLUGIN_REGISTRY_LIST}; do
-  writeDigest "${image}" "plugin-registry-image"
 done
 
 for image in ${DEVFILE_REGISTRY_LIST}; do

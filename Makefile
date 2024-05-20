@@ -359,7 +359,7 @@ genenerate-env:
 	cat $(BASH_ENV_FILE)
 
 install-che-operands: SHELL := /bin/bash
-install-che-operands: generate manifests download-kustomize download-gateway-resources
+install-che-operands: generate manifests download-kustomize download-gateway-resources copy-editors-definitions
 	echo "[INFO] Running on $(PLATFORM)"
 	if [[ ! "$$($(K8S_CLI) get checluster eclipse-che -n $(ECLIPSE_CHE_NAMESPACE) || false )" ]]; then
 		[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
@@ -377,6 +377,12 @@ install-che-operands: generate manifests download-kustomize download-gateway-res
 
 	$(MAKE) store_tls_cert
 	$(MAKE) create-checluster-cr
+
+
+# Copy editors definitions to /tmp/editors-definitions
+copy-editors-definitions:
+	mkdir -p /tmp/editors-definitions
+	cp -r $(PROJECT_DIR)/editors-definitions/* /tmp/editors-definitions
 
 # Downloads Gateway resources
 download-gateway-resources:

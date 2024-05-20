@@ -10,13 +10,16 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-apiVersion: v1
-kind: ServiceAccount
+schemaVersion: 2.2.2
 metadata:
-  labels:
-    app.kubernetes.io/component: che-operator
-    app.kubernetes.io/instance: che
-    app.kubernetes.io/name: che
-    app.kubernetes.io/part-of: che.eclipse.org
-  name: che-operator
-  namespace: eclipse-che
+  name: che-code
+  attributes:
+    version: 1.2.3
+components:
+  - name: component-a
+    container:
+      image: image-a
+  - name: component-b
+    container:
+      image: image-b
+  - name: component-c

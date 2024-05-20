@@ -37,11 +37,11 @@ COPY go.sum go.sum
 # Copy the go source
 COPY main.go main.go
 COPY vendor/ vendor/
-COPY mocks/ mocks/
 COPY api/ api/
 COPY config/ config/
 COPY controllers/ controllers/
 COPY pkg/ pkg/
+COPY editors-definitions /tmp/editors-definitions
 
 # build operator
 # to test FIPS compliance, run https://github.com/openshift/check-payload#scan-a-container-or-operator-image against a built image
@@ -53,6 +53,7 @@ RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH=
 FROM registry.access.redhat.com/ubi8-minimal:8.9-1161
 
 COPY --from=builder /tmp/header-rewrite-traefik-plugin /tmp/header-rewrite-traefik-plugin
+COPY --from=builder /tmp/editors-definitions /tmp/editors-definitions
 COPY --from=builder /che-operator/che-operator /manager
 
 ENTRYPOINT ["/manager"]

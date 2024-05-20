@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2023 Red Hat, Inc.
+# Copyright (c) 2019-2024 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -100,7 +100,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che.v7.86.0-867.next
+  name: eclipse-che.v7.87.0-869.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1032,7 +1032,7 @@ spec:
   minKubeVersion: 1.19.0
   provider:
     name: Eclipse Foundation
-  version: 7.86.0-867.next
+  version: 7.87.0-869.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1
