@@ -37,7 +37,6 @@ func TestPluginRegistryReconcile(t *testing.T) {
 
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.Service{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "editors-definitions", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 	assert.NotEmpty(t, ctx.CheCluster.Status.PluginRegistryURL)
 }

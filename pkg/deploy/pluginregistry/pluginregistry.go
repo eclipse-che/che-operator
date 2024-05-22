@@ -37,10 +37,10 @@ func NewPluginRegistryReconciler() *PluginRegistryReconciler {
 }
 
 func (p *PluginRegistryReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if ctx.CheCluster.Spec.Components.PluginRegistry.DisableInternalRegistry {
+	if ctx.CheCluster.Spec.Components.PluginRegistry.DisableInternalRegistry ||
+		!ctx.CheCluster.IsEmbeddedOpenVSXRegistryConfigured() {
 		_, _ = deploy.DeleteNamespacedObject(ctx, constants.PluginRegistryName, &corev1.Service{})
 		_, _ = deploy.DeleteNamespacedObject(ctx, constants.PluginRegistryName, &corev1.ConfigMap{})
-		_, _ = deploy.DeleteNamespacedObject(ctx, editorsDefinitionsConfigMapName, &corev1.ConfigMap{})
 		_, _ = deploy.DeleteNamespacedObject(ctx, gateway.GatewayConfigMapNamePrefix+constants.PluginRegistryName, &corev1.ConfigMap{})
 		_, _ = deploy.DeleteNamespacedObject(ctx, constants.PluginRegistryName, &appsv1.Deployment{})
 
@@ -51,12 +51,7 @@ func (p *PluginRegistryReconciler) Reconcile(ctx *chetypes.DeployContext) (recon
 		}
 	}
 
-	done, err := p.syncEditors(ctx)
-	if !done {
-		return reconcile.Result{}, false, err
-	}
-
-	done, err = p.syncService(ctx)
+	done, err := p.syncService(ctx)
 	if !done {
 		return reconcile.Result{}, false, err
 	}

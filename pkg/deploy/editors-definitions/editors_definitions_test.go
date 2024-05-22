@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package pluginregistry
+package editorsdefinitions
 
 import (
 	"os"
@@ -61,6 +61,7 @@ func TestSyncEditorDefinitions(t *testing.T) {
 	editorDefinitions, err := readEditorDefinitions()
 	assert.NoError(t, err)
 	assert.NotEmpty(t, editorDefinitions)
+	assert.Len(t, editorDefinitions, 1)
 
 	done, err := syncEditorDefinitions(ctx, editorDefinitions)
 	assert.NoError(t, err)

@@ -94,8 +94,7 @@ func (c *CertificatesReconciler) syncTrustStoreConfigMapToCluster(ctx *chetypes.
 
 	if !exists {
 		// We have to create an empty config map with the specific labels
-		done, err := deploy.Create(ctx, configMapSpec)
-		return done, err
+		return deploy.CreateIgnoreIfExists(ctx, configMapSpec)
 	}
 
 	if actual.ObjectMeta.Labels[injector] != "true" ||

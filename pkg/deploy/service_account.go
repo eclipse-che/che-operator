@@ -20,14 +20,7 @@ import (
 )
 
 func SyncServiceAccountToCluster(deployContext *chetypes.DeployContext, name string) (bool, error) {
-	saSpec := getServiceAccountSpec(deployContext, name)
-	_, err := CreateIfNotExists(deployContext, saSpec)
-	return err == nil, err
-}
-
-func getServiceAccountSpec(deployContext *chetypes.DeployContext, name string) *corev1.ServiceAccount {
-	labels := GetLabels(defaults.GetCheFlavor())
-	serviceAccount := &corev1.ServiceAccount{
+	sa := &corev1.ServiceAccount{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ServiceAccount",
 			APIVersion: "v1",
@@ -35,9 +28,9 @@ func getServiceAccountSpec(deployContext *chetypes.DeployContext, name string) *
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: deployContext.CheCluster.Namespace,
-			Labels:    labels,
+			Labels:    GetLabels(defaults.GetCheFlavor()),
 		},
 	}
 
-	return serviceAccount
+	return CreateIgnoreIfExists(deployContext, sa)
 }

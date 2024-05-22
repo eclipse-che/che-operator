@@ -14,6 +14,7 @@ package deploy
 
 import (
 	"context"
+	"github.com/stretchr/testify/assert"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
@@ -74,68 +75,28 @@ func TestGet(t *testing.T) {
 	}
 }
 
-func TestCreate(t *testing.T) {
+func TestCreateIgnoreIfExistsShouldReturnTrueIfObjectCreated(t *testing.T) {
 	cli, deployContext := initDeployContext()
 
-	done, err := Create(deployContext, testObj.DeepCopy())
-	if err != nil {
-		t.Fatalf("Failed to create object: %v", err)
-	}
-
-	if !done {
-		t.Fatalf("Object has not been created")
-	}
+	done, err := CreateIgnoreIfExists(deployContext, testObj.DeepCopy())
+	assert.NoError(t, err)
+	assert.True(t, done)
 
 	actual := &corev1.Secret{}
 	err = cli.Get(context.TODO(), testKey, actual)
-	if err != nil && !errors.IsNotFound(err) {
-		t.Fatalf("Failed to get object: %v", err)
-	}
-
-	if actual == nil {
-		t.Fatalf("Object not found")
-	}
+	assert.NoError(t, err)
+	assert.NotNil(t, actual)
 }
 
-func TestCreateIfNotExistsShouldReturnTrueIfObjectCreated(t *testing.T) {
-	cli, deployContext := initDeployContext()
-
-	done, err := CreateIfNotExists(deployContext, testObj.DeepCopy())
-	if err != nil {
-		t.Fatalf("Failed to create object: %v", err)
-	}
-
-	if !done {
-		t.Fatalf("Object has not been created")
-	}
-
-	actual := &corev1.Secret{}
-	err = cli.Get(context.TODO(), testKey, actual)
-	if err != nil && !errors.IsNotFound(err) {
-		t.Fatalf("Failed to get object: %v", err)
-	}
-
-	if actual == nil {
-		t.Fatalf("Object not found")
-	}
-}
-
-func TestCreateIfNotExistsShouldReturnFalseIfObjectExist(t *testing.T) {
+func TestCreateIgnoreIfExistsShouldReturnTrueIfObjectExist(t *testing.T) {
 	cli, deployContext := initDeployContext()
 
 	err := cli.Create(context.TODO(), testObj.DeepCopy())
-	if err != nil {
-		t.Fatalf("Failed to create object: %v", err)
-	}
+	assert.NoError(t, err)
 
-	isCreated, err := CreateIfNotExists(deployContext, testObj.DeepCopy())
-	if err != nil {
-		t.Fatalf("Failed to create object: %v", err)
-	}
-
-	if isCreated {
-		t.Fatalf("Object has been created")
-	}
+	done, err := CreateIgnoreIfExists(deployContext, testObj.DeepCopy())
+	assert.NoError(t, err)
+	assert.True(t, done)
 }
 
 func TestUpdate(t *testing.T) {
@@ -152,7 +113,7 @@ func TestUpdate(t *testing.T) {
 		t.Fatalf("Failed to get object: %v", err)
 	}
 
-	_, err = UpdateWithClient(cli, deployContext, actual, testObjLabeled.DeepCopy(), cmp.Options{})
+	_, err = doUpdate(cli, deployContext, actual, testObjLabeled.DeepCopy(), cmp.Options{})
 	if err != nil {
 		t.Fatalf("Failed to update object: %v", err)
 	}

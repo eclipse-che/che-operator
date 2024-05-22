@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package pluginregistry
+package editorsdefinitions
 
 import (
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
@@ -23,4 +23,6 @@ func init() {
 
 	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 	defaults.InitializeForTesting("../../../config/manager/manager.yaml")
+
+	editorsDefinitionsDir = "./test-editors-definitions"
 }
