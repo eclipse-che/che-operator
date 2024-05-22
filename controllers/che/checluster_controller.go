@@ -14,6 +14,7 @@ package che
 
 import (
 	"context"
+
 	editorsdefinitions "github.com/eclipse-che/che-operator/pkg/deploy/editors-definitions"
 
 	"github.com/eclipse-che/che-operator/pkg/common/test"

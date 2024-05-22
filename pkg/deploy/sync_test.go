@@ -14,6 +14,7 @@ package deploy
 
 import (
 	"context"
+
 	"github.com/stretchr/testify/assert"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
