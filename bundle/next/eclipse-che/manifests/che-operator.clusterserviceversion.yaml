@@ -46,6 +46,7 @@ metadata:
                 }
               ],
               "externalDevfileRegistry": true,
+              "externalPluginRegistry": true,
               "workspaceNamespaceDefault": "<username>-che"
             },
             "storage": {
@@ -69,6 +70,9 @@ metadata:
                     "url": "https://registry.devfile.io"
                   }
                 ]
+              },
+              "pluginRegistry": {
+                "disableInternalRegistry": true
               }
             },
             "containerRegistry": {},
