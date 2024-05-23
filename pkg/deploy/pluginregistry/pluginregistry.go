@@ -49,6 +49,8 @@ func (p *PluginRegistryReconciler) Reconcile(ctx *chetypes.DeployContext) (recon
 			err := deploy.UpdateCheCRStatus(ctx, "PluginRegistryURL", "")
 			return reconcile.Result{}, err == nil, err
 		}
+
+		return reconcile.Result{}, true, nil
 	}
 
 	done, err := p.syncService(ctx)
