@@ -143,6 +143,15 @@ func syncAll(deployContext *chetypes.DeployContext) (bool, error) {
 		return done, err
 	}
 
+	fallbackConfig, err := createGatewayFallbackConfig(deployContext)
+	if err != nil {
+		return false, err
+	}
+
+	if done, err := deploy.Sync(deployContext, &fallbackConfig, configMapDiffOpts); !done {
+		return false, err
+	}
+
 	depl, err := getGatewayDeploymentSpec(deployContext)
 	if err != nil {
 		return false, err
@@ -230,7 +239,7 @@ func getGatewayServerConfigSpec(deployContext *chetypes.DeployContext) (corev1.C
 	cfg := CreateCommonTraefikConfig(
 		serverComponentName,
 		"PathPrefix(`/api`, `/swagger`, `/_app`)",
-		1,
+		10,
 		"http://"+deploy.CheServiceName+":8080",
 		[]string{})
 
@@ -422,6 +431,26 @@ experimental:
 			"traefik.yml": data,
 		},
 	}
+}
+
+func createGatewayFallbackConfig(ctx *chetypes.DeployContext) (corev1.ConfigMap, error) {
+	cfg := CreateEmptyTraefikConfig()
+
+	// clear services to prevent the following error fom traefik pod:
+	// "services cannot be a standalone element (type map[string]*dynamic.Service)"
+	cfg.HTTP.Services = nil
+
+	noopComponent := "che-no-op"
+	cfg.HTTP.Routers[noopComponent] = &TraefikConfigRouter{
+		Rule:        "PathPrefix(`/`)",
+		Service:     "noop@internal", // traefik internal no-op service
+		Middlewares: []string{},
+		Priority:    1,
+	}
+	closeHeader := map[string]string{"Connection": "close"}
+	cfg.AddResponseHeaders(noopComponent, closeHeader)
+
+	return GetConfigmapForGatewayConfig(ctx, "fallback", cfg)
 }
 
 func getGatewayDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
