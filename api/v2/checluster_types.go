@@ -106,7 +106,7 @@ type CheClusterDevEnvironments struct {
 	// +optional
 	TrustedCerts *TrustedCerts `json:"trustedCerts,omitempty"`
 	// The default editor to workspace create with. It could be a plugin ID or a URI.
-	// The plugin ID must have `publisher/plugin/version` format.
+	// The plugin ID must have `publisher/name/version` format.
 	// The URI must start from `http://` or `https://`.
 	// +optional
 	DefaultEditor string `json:"defaultEditor,omitempty"`
@@ -473,6 +473,7 @@ type PersistentHomeConfig struct {
 
 type WorkspaceDefaultPlugins struct {
 	// The editor ID to specify default plug-ins for.
+	// The plugin ID must have `publisher/name/version` format.
 	Editor string `json:"editor,omitempty"`
 	// Default plug-in URIs for the specified editor.
 	Plugins []string `json:"plugins,omitempty"`
