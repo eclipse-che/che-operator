@@ -14,12 +14,8 @@ package pluginregistry
 
 import (
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
-	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,24 +27,7 @@ import (
 func TestPluginRegistryReconcile(t *testing.T) {
 	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 
-	ctx := test.GetDeployContext(
-		&chev2.CheCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "eclipse-che",
-				Namespace: "eclipse-che",
-			},
-			Spec: chev2.CheClusterSpec{
-				Components: chev2.CheClusterComponents{
-					PluginRegistry: chev2.PluginRegistry{
-						OpenVSXURL: pointer.String(""),
-					},
-				},
-			},
-			Status: chev2.CheClusterStatus{
-				CheURL: "https://che-host",
-			},
-		},
-		[]runtime.Object{})
+	ctx := test.GetDeployContext(nil, []runtime.Object{})
 
 	pluginregistry := NewPluginRegistryReconciler()
 	_, done, err := pluginregistry.Reconcile(ctx)

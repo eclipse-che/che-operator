@@ -119,52 +119,6 @@ func DeleteClusterObject(deployContext *chetypes.DeployContext, name string, obj
 	return DeleteByKeyWithClient(client, key, objectMeta)
 }
 
-// doUpdate updates object.
-// Returns true if object is up-to-date otherwise return false
-func doUpdate(
-	client client.Client,
-	deployContext *chetypes.DeployContext,
-	actual client.Object,
-	blueprint client.Object,
-	diffOpts ...cmp.Option,
-) (bool, error) {
-	actualMeta, ok := actual.(metav1.Object)
-	if !ok {
-		return false, fmt.Errorf("object %T is not a metav1.Object. Cannot sync it", actualMeta)
-	}
-
-	diff := cmp.Diff(actual, blueprint, diffOpts...)
-	if len(diff) > 0 {
-		// don't print difference if there are no diffOpts mainly to avoid huge output
-		if len(diffOpts) != 0 {
-			fmt.Printf("Difference:\n%s", diff)
-		}
-
-		if isUpdateUsingDeleteCreate(actual.GetObjectKind().GroupVersionKind().Kind) {
-			done, err := doDeleteIgnoreIfNotFound(context.TODO(), client, actual)
-			if !done {
-				return false, err
-			}
-			return doCreate(context.TODO(), client, deployContext, blueprint, false)
-		} else {
-			err := setOwnerReferenceIfNeeded(deployContext, blueprint)
-			if err != nil {
-				return false, err
-			}
-
-			// to be able to update, we need to set the resource version of the object that we know of
-			blueprint.(metav1.Object).SetResourceVersion(actualMeta.GetResourceVersion())
-			err = client.Update(context.TODO(), blueprint)
-			if err == nil {
-				syncLog.Info("Object updated", "namespace", actual.GetNamespace(), "kind", GetObjectType(actual), "name", actual.GetName())
-			}
-			return false, err
-		}
-	}
-
-	return true, nil
-}
-
 func DeleteByKeyWithClient(cli client.Client, key client.ObjectKey, objectMeta client.Object) (bool, error) {
 	runtimeObject, ok := objectMeta.(runtime.Object)
 	if !ok {
@@ -218,7 +172,13 @@ func GetObjectType(obj interface{}) string {
 
 // DeleteIgnoreIfNotFound deletes object.
 // Returns nil if object deleted or not found otherwise returns error.
-func DeleteIgnoreIfNotFound(context context.Context, cli client.Client, key client.ObjectKey, blueprint client.Object) error {
+// Return error if object cannot be deleted otherwise returns nil.
+func DeleteIgnoreIfNotFound(
+	context context.Context,
+	cli client.Client,
+	key client.ObjectKey,
+	blueprint client.Object,
+) error {
 	runtimeObj, ok := blueprint.(runtime.Object)
 	if !ok {
 		return fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObj)
@@ -236,7 +196,7 @@ func DeleteIgnoreIfNotFound(context context.Context, cli client.Client, key clie
 }
 
 // doCreate creates object.
-// Throws error if object cannot be created otherwise returns nil.
+// Return error if object cannot be created otherwise returns nil.
 func doCreate(
 	context context.Context,
 	client client.Client,
@@ -298,4 +258,50 @@ func doGet(
 	} else {
 		return false, err
 	}
+}
+
+// doUpdate updates object.
+// Returns true if object is up-to-date otherwise return false
+func doUpdate(
+	cli client.Client,
+	deployContext *chetypes.DeployContext,
+	actual client.Object,
+	blueprint client.Object,
+	diffOpts ...cmp.Option,
+) (bool, error) {
+	actualMeta, ok := actual.(metav1.Object)
+	if !ok {
+		return false, fmt.Errorf("object %T is not a metav1.Object. Cannot sync it", actualMeta)
+	}
+
+	diff := cmp.Diff(actual, blueprint, diffOpts...)
+	if len(diff) > 0 {
+		// don't print difference if there are no diffOpts mainly to avoid huge output
+		if len(diffOpts) != 0 {
+			fmt.Printf("Difference:\n%s", diff)
+		}
+
+		if isUpdateUsingDeleteCreate(actual.GetObjectKind().GroupVersionKind().Kind) {
+			done, err := doDeleteIgnoreIfNotFound(context.TODO(), cli, actual)
+			if !done {
+				return false, err
+			}
+			return doCreate(context.TODO(), cli, deployContext, blueprint, false)
+		} else {
+			err := setOwnerReferenceIfNeeded(deployContext, blueprint)
+			if err != nil {
+				return false, err
+			}
+
+			// to be able to update, we need to set the resource version of the object that we know of
+			blueprint.(metav1.Object).SetResourceVersion(actualMeta.GetResourceVersion())
+			err = cli.Update(context.TODO(), blueprint)
+			if err == nil {
+				syncLog.Info("Object updated", "namespace", actual.GetNamespace(), "kind", GetObjectType(actual), "name", actual.GetName())
+			}
+			return false, err
+		}
+	}
+
+	return true, nil
 }

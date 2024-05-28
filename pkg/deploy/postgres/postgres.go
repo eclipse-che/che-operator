@@ -37,37 +37,15 @@ func NewPostgresReconciler() *PostgresReconciler {
 
 func (p *PostgresReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	// PostgreSQL component is not used anymore
-	_, _ = p.syncDeployment(ctx)
-	_, _ = p.syncPVC(ctx)
-	_, _ = p.syncCredentials(ctx)
-	_, _ = p.syncService(ctx)
-
-	// Backup server component is not used anymore
-	_, _ = p.syncBackupDeployment(ctx)
+	_, _ = deploy.DeleteNamespacedObject(ctx, postgresComponentName, &appsv1.Deployment{})
+	_, _ = deploy.DeleteNamespacedObject(ctx, backupServerComponentName, &appsv1.Deployment{})
+	_, _ = deploy.DeleteNamespacedObject(ctx, defaultPostgresVolumeClaimName, &corev1.PersistentVolumeClaim{})
+	_, _ = deploy.DeleteNamespacedObject(ctx, defaultPostgresCredentialsSecret, &corev1.Secret{})
+	_, _ = deploy.DeleteNamespacedObject(ctx, postgresComponentName, &corev1.Service{})
 
 	return reconcile.Result{}, true, nil
 }
 
 func (p *PostgresReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	return true
-}
-
-func (p *PostgresReconciler) syncService(ctx *chetypes.DeployContext) (bool, error) {
-	return deploy.DeleteNamespacedObject(ctx, postgresComponentName, &corev1.Service{})
-}
-
-func (p *PostgresReconciler) syncPVC(ctx *chetypes.DeployContext) (bool, error) {
-	return deploy.DeleteNamespacedObject(ctx, defaultPostgresVolumeClaimName, &corev1.PersistentVolumeClaim{})
-}
-
-func (p *PostgresReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
-	return deploy.DeleteNamespacedObject(ctx, postgresComponentName, &appsv1.Deployment{})
-}
-
-func (p *PostgresReconciler) syncCredentials(ctx *chetypes.DeployContext) (bool, error) {
-	return deploy.DeleteNamespacedObject(ctx, defaultPostgresCredentialsSecret, &corev1.Secret{})
-}
-
-func (p *PostgresReconciler) syncBackupDeployment(ctx *chetypes.DeployContext) (bool, error) {
-	return deploy.DeleteNamespacedObject(ctx, backupServerComponentName, &appsv1.Deployment{})
 }
