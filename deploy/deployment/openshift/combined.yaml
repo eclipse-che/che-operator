@@ -6583,7 +6583,7 @@ spec:
                     type: array
                   defaultEditor:
                     description: The default editor to workspace create with. It could
-                      be a plugin ID or a URI. The plugin ID must have `publisher/plugin/version`
+                      be a plugin ID or a URI. The plugin ID must have `publisher/name/version`
                       format. The URI must start from `http://` or `https://`.
                     type: string
                   defaultNamespace:
@@ -6613,6 +6613,7 @@ spec:
                       properties:
                         editor:
                           description: The editor ID to specify default plug-ins for.
+                            The plugin ID must have `publisher/name/version` format.
                           type: string
                         plugins:
                           description: Default plug-in URIs for the specified editor.

@@ -23,8 +23,8 @@ metadata:
     title: JetBrains IntelliJ IDEA Community IDE for Eclipse Che - next
     repository: https://github.com/che-incubator/jetbrains-editor-images
     firstPublicationDate: '2022-01-11'
-    icon-mediatype: image/svg+xml
-    icon-data: |
+    iconMediatype: image/svg+xml
+    iconData: |
       <svg xmlns="http://www.w3.org/2000/svg" width="70" height="70" fill="none" viewBox="0 0 70 70">
         <defs>
           <linearGradient id="a" x1="5.17435" x2="40.0136" y1="39.8894" y2="38.1233" gradientUnits="userSpaceOnUse">
