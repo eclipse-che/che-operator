@@ -15,6 +15,7 @@ metadata:
   name: che-code
   attributes:
     version: 1.2.3
+    publisher: test
 components:
   - name: component-a
     container:

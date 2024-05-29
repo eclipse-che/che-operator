@@ -183,10 +183,12 @@ releaseEditorsDefinitions() {
   echo "[INFO] Releasing editor definitions"
 
   . "${OPERATOR_REPO}/build/scripts/release/editors-definitions.sh" release --version "${RELEASE}"
-  . "${OPERATOR_REPO}/build/scripts/release/editors-definitions.sh" add-env-vars
+  . "${OPERATOR_REPO}/build/scripts/release/editors-definitions.sh" update-manager-yaml
+  make bundle CHANNEL=stable
 
   git add editors-definitions
   git add "${OPERATOR_REPO}/config/manager/manager.yaml"
+  git add "${OPERATOR_REPO}/bundle/stable"
   git commit -m "ci: Release editors definitions to $RELEASE" --signoff
 }
 

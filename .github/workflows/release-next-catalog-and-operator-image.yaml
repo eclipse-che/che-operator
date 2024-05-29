@@ -78,7 +78,7 @@ jobs:
           registry: quay.io
       - name: Build catalog source
         run: |
-          ./build/scripts/release/editors-definitions.sh add-env-vars
+          ./build/scripts/release/editors-definitions.sh update-manager-yaml
           make update-dev-resources
           ./build/scripts/release/addDigests.sh -s $(make csv-path CHANNEL=next) -t next
           ./build/scripts/olm/release-catalog.sh \
