@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package pluginregistry
+package editorsdefinitions
 
 import (
 	"fmt"
@@ -18,21 +18,47 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/yaml"
+
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 )
 
 var (
 	editorsDefinitionsDir           = "/tmp/editors-definitions"
 	editorsDefinitionsConfigMapName = "editors-definitions"
+	logger                          = ctrl.Log.WithName("editorsdefinitions")
 )
 
-func (p *PluginRegistryReconciler) syncEditors(ctx *chetypes.DeployContext) (bool, error) {
+type EditorsDefinitionsReconciler struct {
+	deploy.Reconcilable
+}
+
+func NewEditorsDefinitionsReconciler() *EditorsDefinitionsReconciler {
+	return &EditorsDefinitionsReconciler{}
+}
+
+func (p *EditorsDefinitionsReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
+	done, err := p.syncEditors(ctx)
+	if !done {
+		return reconcile.Result{}, false, err
+	}
+
+	return reconcile.Result{}, true, nil
+}
+
+func (p *EditorsDefinitionsReconciler) Finalize(ctx *chetypes.DeployContext) bool {
+	return true
+}
+
+func (p *EditorsDefinitionsReconciler) syncEditors(ctx *chetypes.DeployContext) (bool, error) {
 	editorDefinitions, err := readEditorDefinitions()
 	if err != nil {
 		return false, err
@@ -66,11 +92,11 @@ func readEditorDefinitions() (map[string][]byte, error) {
 			var devfile map[string]interface{}
 			err = yaml.Unmarshal(editorContent, &devfile)
 			if err != nil {
-				return editorDefinitions, err
+				logger.Error(err, "Failed to unmarshal editor definition", "file", fileName)
+				continue
 			}
 
-			updateEditorDefinitionImageFromEnv(devfile)
-
+			updateEditorDefinitionImages(devfile)
 			editorContent, err = yaml.Marshal(devfile)
 			if err != nil {
 				return editorDefinitions, err
@@ -83,7 +109,7 @@ func readEditorDefinitions() (map[string][]byte, error) {
 	return editorDefinitions, nil
 }
 
-func updateEditorDefinitionImageFromEnv(devfile map[string]interface{}) {
+func updateEditorDefinitionImages(devfile map[string]interface{}) {
 	notAllowedCharsReg, _ := regexp.Compile("[^a-zA-Z0-9]+")
 
 	metadata := devfile["metadata"].(map[string]interface{})

@@ -17,6 +17,8 @@ metadata:
   namespace: eclipse-che
 spec:
   components:
+    pluginRegistry:
+      disableInternalRegistry: true
     devfileRegistry:
       disableInternalRegistry: true
       externalDevfileRegistries:

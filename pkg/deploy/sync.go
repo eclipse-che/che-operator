@@ -54,7 +54,7 @@ func SyncWithClient(cli client.Client, deployContext *chetypes.DeployContext, bl
 	}
 
 	key := types.NamespacedName{Name: blueprint.GetName(), Namespace: blueprint.GetNamespace()}
-	exists, err := GetWithClient(cli, key, actual.(client.Object))
+	exists, err := doGet(context.TODO(), cli, key, actual.(client.Object))
 	if err != nil {
 		return false, err
 	}
@@ -62,17 +62,18 @@ func SyncWithClient(cli client.Client, deployContext *chetypes.DeployContext, bl
 	// set GroupVersionKind (it might be empty)
 	actual.GetObjectKind().SetGroupVersionKind(runtimeObject.GetObjectKind().GroupVersionKind())
 	if !exists {
-		return CreateWithClient(cli, deployContext, blueprint, false)
+		return doCreate(context.TODO(), cli, deployContext, blueprint, false)
 	}
 
-	return UpdateWithClient(cli, deployContext, actual.(client.Object), blueprint, diffOpts...)
+	return doUpdate(cli, deployContext, actual.(client.Object), blueprint, diffOpts...)
 }
 
-// Gets object by key.
+// Get gets object.
 // Returns true if object exists otherwise returns false.
+// Returns error if object cannot be retrieved otherwise returns nil.
 func Get(deployContext *chetypes.DeployContext, key client.ObjectKey, actual client.Object) (bool, error) {
 	cli := getClientForObject(key.Namespace, deployContext)
-	return GetWithClient(cli, key, actual)
+	return doGet(context.TODO(), cli, key, actual)
 }
 
 // Gets namespaced scope object by name
@@ -80,7 +81,7 @@ func Get(deployContext *chetypes.DeployContext, key client.ObjectKey, actual cli
 func GetNamespacedObject(deployContext *chetypes.DeployContext, name string, actual client.Object) (bool, error) {
 	client := deployContext.ClusterAPI.Client
 	key := types.NamespacedName{Name: name, Namespace: deployContext.CheCluster.Namespace}
-	return GetWithClient(client, key, actual)
+	return doGet(context.TODO(), client, key, actual)
 }
 
 // Gets cluster scope object by name
@@ -88,34 +89,15 @@ func GetNamespacedObject(deployContext *chetypes.DeployContext, name string, act
 func GetClusterObject(deployContext *chetypes.DeployContext, name string, actual client.Object) (bool, error) {
 	client := deployContext.ClusterAPI.NonCachingClient
 	key := types.NamespacedName{Name: name}
-	return GetWithClient(client, key, actual)
+	return doGet(context.TODO(), client, key, actual)
 }
 
-// Creates object.
-// Return true if a new object is created, false if it has been already created or error occurred.
-func CreateIfNotExists(deployContext *chetypes.DeployContext, blueprint client.Object) (isCreated bool, err error) {
+// CreateIgnoreIfExists creates object.
+// Return true if a new object is created or object already exists, otherwise returns false.
+// Throws error if object cannot be created otherwise returns nil.
+func CreateIgnoreIfExists(deployContext *chetypes.DeployContext, blueprint client.Object) (bool, error) {
 	cli := getClientForObject(blueprint.GetNamespace(), deployContext)
-	return CreateIfNotExistsWithClient(cli, deployContext, blueprint)
-}
-
-func CreateIfNotExistsWithClient(cli client.Client, deployContext *chetypes.DeployContext, blueprint client.Object) (isCreated bool, err error) {
-	key := types.NamespacedName{Name: blueprint.GetName(), Namespace: blueprint.GetNamespace()}
-	actual := blueprint.DeepCopyObject().(client.Object)
-	exists, err := GetWithClient(cli, key, actual)
-	if exists {
-		return false, nil
-	} else if err != nil {
-		return false, err
-	}
-
-	return CreateWithClient(cli, deployContext, blueprint, false)
-}
-
-// Creates object.
-// Return true if a new object is created otherwise returns false.
-func Create(deployContext *chetypes.DeployContext, blueprint client.Object) (bool, error) {
-	client := getClientForObject(blueprint.GetNamespace(), deployContext)
-	return CreateWithClient(client, deployContext, blueprint, false)
+	return doCreate(context.TODO(), cli, deployContext, blueprint, true)
 }
 
 // Deletes object.
@@ -137,60 +119,6 @@ func DeleteClusterObject(deployContext *chetypes.DeployContext, name string, obj
 	return DeleteByKeyWithClient(client, key, objectMeta)
 }
 
-// Updates object.
-// Returns true if object is up to date otherwiser return false
-func UpdateWithClient(client client.Client, deployContext *chetypes.DeployContext, actual client.Object, blueprint client.Object, diffOpts ...cmp.Option) (bool, error) {
-	actualMeta, ok := actual.(metav1.Object)
-	if !ok {
-		return false, fmt.Errorf("object %T is not a metav1.Object. Cannot sync it", actualMeta)
-	}
-
-	diff := cmp.Diff(actual, blueprint, diffOpts...)
-	if len(diff) > 0 {
-		// don't print difference if there are no diffOpts mainly to avoid huge output
-		if len(diffOpts) != 0 {
-			fmt.Printf("Difference:\n%s", diff)
-		}
-
-		if isUpdateUsingDeleteCreate(actual.GetObjectKind().GroupVersionKind().Kind) {
-			done, err := doDeleteIgnoreIfNotFound(context.TODO(), client, actual)
-			if !done {
-				return false, err
-			}
-			return CreateWithClient(client, deployContext, blueprint, false)
-		} else {
-			err := setOwnerReferenceIfNeeded(deployContext, blueprint)
-			if err != nil {
-				return false, err
-			}
-
-			// to be able to update, we need to set the resource version of the object that we know of
-			blueprint.(metav1.Object).SetResourceVersion(actualMeta.GetResourceVersion())
-			err = client.Update(context.TODO(), blueprint)
-			syncLog.Info("Object updated", "namespace", actual.GetNamespace(), "kind", GetObjectType(actual), "name", actual.GetName())
-			return false, err
-		}
-	}
-	return true, nil
-}
-
-func CreateWithClient(client client.Client, deployContext *chetypes.DeployContext, blueprint client.Object, returnTrueIfAlreadyExists bool) (bool, error) {
-	err := setOwnerReferenceIfNeeded(deployContext, blueprint)
-	if err != nil {
-		return false, err
-	}
-
-	err = client.Create(context.TODO(), blueprint)
-	if err == nil {
-		syncLog.Info("Object created", "namespace", blueprint.GetNamespace(), "kind", GetObjectType(blueprint), "name", blueprint.GetName())
-		return true, nil
-	} else if errors.IsAlreadyExists(err) {
-		return returnTrueIfAlreadyExists, nil
-	} else {
-		return false, err
-	}
-}
-
 func DeleteByKeyWithClient(cli client.Client, key client.ObjectKey, objectMeta client.Object) (bool, error) {
 	runtimeObject, ok := objectMeta.(runtime.Object)
 	if !ok {
@@ -198,7 +126,7 @@ func DeleteByKeyWithClient(cli client.Client, key client.ObjectKey, objectMeta c
 	}
 
 	actual := runtimeObject.DeepCopyObject().(client.Object)
-	exists, err := GetWithClient(cli, key, actual)
+	exists, err := doGet(context.TODO(), cli, key, actual)
 	if !exists {
 		return true, nil
 	} else if err != nil {
@@ -206,17 +134,6 @@ func DeleteByKeyWithClient(cli client.Client, key client.ObjectKey, objectMeta c
 	}
 
 	return doDeleteIgnoreIfNotFound(context.TODO(), cli, actual)
-}
-
-func GetWithClient(client client.Client, key client.ObjectKey, object client.Object) (bool, error) {
-	err := client.Get(context.TODO(), key, object)
-	if err == nil {
-		return true, nil
-	} else if errors.IsNotFound(err) {
-		return false, nil
-	} else {
-		return false, err
-	}
 }
 
 func isUpdateUsingDeleteCreate(kind string) bool {
@@ -255,7 +172,13 @@ func GetObjectType(obj interface{}) string {
 
 // DeleteIgnoreIfNotFound deletes object.
 // Returns nil if object deleted or not found otherwise returns error.
-func DeleteIgnoreIfNotFound(context context.Context, cli client.Client, key client.ObjectKey, blueprint client.Object) error {
+// Return error if object cannot be deleted otherwise returns nil.
+func DeleteIgnoreIfNotFound(
+	context context.Context,
+	cli client.Client,
+	key client.ObjectKey,
+	blueprint client.Object,
+) error {
 	runtimeObj, ok := blueprint.(runtime.Object)
 	if !ok {
 		return fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObj)
@@ -273,9 +196,14 @@ func DeleteIgnoreIfNotFound(context context.Context, cli client.Client, key clie
 }
 
 // doCreate creates object.
-// Returns true if object created otherwise returns false.
-// Throws error if object cannot be created or already exists otherwise returns nil.
-func doCreate(context context.Context, client client.Client, deployContext *chetypes.DeployContext, blueprint client.Object) (bool, error) {
+// Return error if object cannot be created otherwise returns nil.
+func doCreate(
+	context context.Context,
+	client client.Client,
+	deployContext *chetypes.DeployContext,
+	blueprint client.Object,
+	returnTrueIfAlreadyExists bool,
+) (bool, error) {
 	err := setOwnerReferenceIfNeeded(deployContext, blueprint)
 	if err != nil {
 		return false, err
@@ -285,6 +213,8 @@ func doCreate(context context.Context, client client.Client, deployContext *chet
 	if err == nil {
 		syncLog.Info("Object created", "namespace", blueprint.GetNamespace(), "kind", GetObjectType(blueprint), "name", blueprint.GetName())
 		return true, nil
+	} else if errors.IsAlreadyExists(err) {
+		return returnTrueIfAlreadyExists, nil
 	} else {
 		return false, err
 	}
@@ -293,7 +223,11 @@ func doCreate(context context.Context, client client.Client, deployContext *chet
 // doDeleteIgnoreIfNotFound deletes object.
 // Returns true if object deleted or not found otherwise returns false.
 // Returns error if object cannot be deleted otherwise returns nil.
-func doDeleteIgnoreIfNotFound(context context.Context, cli client.Client, actual client.Object) (bool, error) {
+func doDeleteIgnoreIfNotFound(
+	context context.Context,
+	cli client.Client,
+	actual client.Object,
+) (bool, error) {
 	err := cli.Delete(context, actual)
 	if err == nil {
 		if errors.IsNotFound(err) {
@@ -310,7 +244,12 @@ func doDeleteIgnoreIfNotFound(context context.Context, cli client.Client, actual
 // doGet gets object.
 // Returns true if object exists otherwise returns false.
 // Returns error if object cannot be retrieved otherwise returns nil.
-func doGet(context context.Context, cli client.Client, key client.ObjectKey, object client.Object) (bool, error) {
+func doGet(
+	context context.Context,
+	cli client.Client,
+	key client.ObjectKey,
+	object client.Object,
+) (bool, error) {
 	err := cli.Get(context, key, object)
 	if err == nil {
 		return true, nil
@@ -319,4 +258,50 @@ func doGet(context context.Context, cli client.Client, key client.ObjectKey, obj
 	} else {
 		return false, err
 	}
+}
+
+// doUpdate updates object.
+// Returns true if object is up-to-date otherwise return false
+func doUpdate(
+	cli client.Client,
+	deployContext *chetypes.DeployContext,
+	actual client.Object,
+	blueprint client.Object,
+	diffOpts ...cmp.Option,
+) (bool, error) {
+	actualMeta, ok := actual.(metav1.Object)
+	if !ok {
+		return false, fmt.Errorf("object %T is not a metav1.Object. Cannot sync it", actualMeta)
+	}
+
+	diff := cmp.Diff(actual, blueprint, diffOpts...)
+	if len(diff) > 0 {
+		// don't print difference if there are no diffOpts mainly to avoid huge output
+		if len(diffOpts) != 0 {
+			fmt.Printf("Difference:\n%s", diff)
+		}
+
+		if isUpdateUsingDeleteCreate(actual.GetObjectKind().GroupVersionKind().Kind) {
+			done, err := doDeleteIgnoreIfNotFound(context.TODO(), cli, actual)
+			if !done {
+				return false, err
+			}
+			return doCreate(context.TODO(), cli, deployContext, blueprint, false)
+		} else {
+			err := setOwnerReferenceIfNeeded(deployContext, blueprint)
+			if err != nil {
+				return false, err
+			}
+
+			// to be able to update, we need to set the resource version of the object that we know of
+			blueprint.(metav1.Object).SetResourceVersion(actualMeta.GetResourceVersion())
+			err = cli.Update(context.TODO(), blueprint)
+			if err == nil {
+				syncLog.Info("Object updated", "namespace", actual.GetNamespace(), "kind", GetObjectType(actual), "name", actual.GetName())
+			}
+			return false, err
+		}
+	}
+
+	return true, nil
 }

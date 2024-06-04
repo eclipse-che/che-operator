@@ -37,17 +37,15 @@ usage () {
   echo
 	echo "Usage:"
 	echo -e "\t$0 release --version RELEASE_VERSION"
-	echo -e "\t$0 add-env-vars"
+	echo -e "\t$0 update-manager-yaml"
 }
 
 release() {
   if [[ ! ${VERSION} ]]; then usage; exit 1; fi
-
-  yq -riY ".metadata.attributes.version = \"${VERSION}\"" "${EDITORS_DEFINITIONS_DIR}/che-code-latest.yaml"
   yq -riY "(.components[] | select(.name==\"che-code-injector\") | .container.image) = \"quay.io/che-incubator/che-code:${VERSION}\"" "${EDITORS_DEFINITIONS_DIR}/che-code-latest.yaml"
 }
 
-addEnvVars() {
+updateManagerYaml() {
   for EDITOR_DEFINITION_FILE in $(find "${EDITORS_DEFINITIONS_DIR}" -name "*.yaml"); do
       NAME=$(yq -r '.metadata.name' "${EDITOR_DEFINITION_FILE}")
       VERSION=$(yq -r '.metadata.attributes.version' "${EDITOR_DEFINITION_FILE}")
@@ -74,7 +72,7 @@ init "$@"
 pushd "${OPERATOR_REPO}" >/dev/null
 case $COMMAND in
       'release') release;;
-      'add-env-vars') addEnvVars;;
+      'update-manager-yaml'|'add-env-vars') updateManagerYaml;;
       *) usage; exit 1;;
 esac
 popd >/dev/null

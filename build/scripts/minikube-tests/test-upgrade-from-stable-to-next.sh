@@ -53,7 +53,6 @@ runTest() {
   popd
 
   # Free up some resources
-  minikube image rm quay.io/eclipse/che-plugin-registry:${LAST_PACKAGE_VERSION}
   minikube image rm quay.io/eclipse/che-dashboard:${LAST_PACKAGE_VERSION}
   minikube image rm quay.io/eclipse/che-server:${LAST_PACKAGE_VERSION}
   minikube image rm quay.io/eclipse/che-operator:${LAST_PACKAGE_VERSION}

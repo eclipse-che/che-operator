@@ -143,8 +143,10 @@ func getImagePullerCustomResourceName(ctx *chetypes.DeployContext) string {
 }
 
 func getDefaultImages(ctx *chetypes.DeployContext) string {
-	urls := collectRegistriesUrls(ctx)
-	allImages := fetchImagesFromRegistries(urls, ctx)
+	allImages := make(map[string]bool)
+
+	addImagesFromRegistries(ctx, allImages)
+	addImagesFromEditorsDefinitions(allImages)
 
 	// having them sorted, prevents from constant changing CR spec
 	sortedImages := sortImages(allImages)
@@ -153,18 +155,6 @@ func getDefaultImages(ctx *chetypes.DeployContext) string {
 
 func collectRegistriesUrls(ctx *chetypes.DeployContext) []string {
 	urls := make([]string, 0)
-
-	if ctx.CheCluster.Status.PluginRegistryURL != "" {
-		urls = append(
-			urls,
-			fmt.Sprintf(
-				"http://%s.%s.svc:8080/v3/%s",
-				constants.PluginRegistryName,
-				ctx.CheCluster.Namespace,
-				"external_images.txt",
-			),
-		)
-	}
 
 	if ctx.CheCluster.Status.DevfileRegistryURL != "" {
 		urls = append(
@@ -181,9 +171,8 @@ func collectRegistriesUrls(ctx *chetypes.DeployContext) []string {
 	return urls
 }
 
-func fetchImagesFromRegistries(urls []string, ctx *chetypes.DeployContext) map[string]bool {
-	// return as map to make the list unique
-	allImages := make(map[string]bool)
+func addImagesFromRegistries(ctx *chetypes.DeployContext, allImages map[string]bool) {
+	urls := collectRegistriesUrls(ctx)
 
 	for _, url := range urls {
 		images, err := fetchImagesFromUrl(url, ctx)
@@ -195,8 +184,13 @@ func fetchImagesFromRegistries(urls []string, ctx *chetypes.DeployContext) map[s
 			}
 		}
 	}
+}
 
-	return allImages
+func addImagesFromEditorsDefinitions(allImages map[string]bool) {
+	envs := utils.GetEnvsByRegExp("RELATED_IMAGE_editor_definition_.*")
+	for _, env := range envs {
+		allImages[env.Value] = true
+	}
 }
 
 func sortImages(images map[string]bool) []string {

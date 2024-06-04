@@ -15,6 +15,8 @@ package che
 import (
 	"context"
 
+	editorsdefinitions "github.com/eclipse-che/che-operator/pkg/deploy/editors-definitions"
+
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	containerbuild "github.com/eclipse-che/che-operator/pkg/deploy/container-build"
 
@@ -110,6 +112,7 @@ func NewReconciler(
 	}
 	reconcileManager.RegisterReconciler(devfileregistry.NewDevfileRegistryReconciler())
 	reconcileManager.RegisterReconciler(pluginregistry.NewPluginRegistryReconciler())
+	reconcileManager.RegisterReconciler(editorsdefinitions.NewEditorsDefinitionsReconciler())
 	reconcileManager.RegisterReconciler(dashboard.NewDashboardReconciler())
 	reconcileManager.RegisterReconciler(gateway.NewGatewayReconciler())
 	reconcileManager.RegisterReconciler(server.NewCheServerReconciler())
