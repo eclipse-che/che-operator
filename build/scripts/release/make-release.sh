@@ -28,7 +28,6 @@ init() {
   OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
   FORCE_UPDATE=""
   BUILDX_PLATFORMS="linux/amd64,linux/ppc64le"
-  STABLE_CHANNELS=("stable")
 
   if [[ $# -lt 1 ]]; then usage; exit; fi
 
@@ -52,6 +51,7 @@ init() {
   command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] skopeo is not installed. Abort."; exit 1; }
   REQUIRED_OPERATOR_SDK=$(yq -r ".\"operator-sdk\"" "${OPERATOR_REPO}/REQUIREMENTS")
   [[ $(operator-sdk version) =~ .*${REQUIRED_OPERATOR_SDK}.* ]] || { echo "[ERROR] operator-sdk ${REQUIRED_OPERATOR_SDK} is required. Abort."; exit 1; }
+  make download-addlicense
 }
 
 usage () {
@@ -133,7 +133,7 @@ releaseOperatorCode() {
 
   echo "[INFO] releaseOperatorCode :: Commit changes"
   if git status --porcelain; then
-    git add -A || true # add new generated CSV files in olm/ folder
+    git add -A || true # add new generated files
     git commit -am "ci: Update defaults tags to "$RELEASE --signoff
   fi
   echo "[INFO] releaseOperatorCode :: Login to quay.io..."
@@ -179,28 +179,6 @@ replaceTag() {
     echo "${1}" | sed -e "s/\(.*:\).*/\1${2}/"
 }
 
-releaseEditorsDefinitions() {
-  echo "[INFO] Releasing editor definitions"
-
-  . "${OPERATOR_REPO}/build/scripts/release/editors-definitions.sh" release --version "${RELEASE}"
-  . "${OPERATOR_REPO}/build/scripts/release/editors-definitions.sh" update-manager-yaml
-  make bundle CHANNEL=stable
-
-  git add editors-definitions
-  git add "${OPERATOR_REPO}/config/manager/manager.yaml"
-  git add "${OPERATOR_REPO}/bundle/stable"
-  git commit -m "ci: Release editors definitions to $RELEASE" --signoff
-}
-
-removeYamlDiffs() {
-  echo "[INFO] removal *.yaml.diff files"
-  BUNDLE_PATH=$(make bundle-path CHANNEL=stable)
-  rm "${BUNDLE_PATH}"/manifests/*.yaml.diff
-
-  git add "${BUNDLE_PATH}"
-  git commit -m "ci: removal *.yaml.diff files" --signoff
-}
-
 updateVersionFile() {
   echo "[INFO] updating version.go file"
   # change version/version.go file
@@ -217,6 +195,15 @@ releaseHelmPackage() {
   git commit -m "ci: Update Helm Charts to $RELEASE" --signoff
 }
 
+updateManagerYamlWithEditorsImages() {
+  echo "[INFO] releaseDeploymentFiles :: release deployment files"
+
+  . "${OPERATOR_REPO}/build/scripts/release/editors-definitions.sh" update-manager-yaml
+
+  git add -A "${OPERATOR_REPO}/config/manager/manager.yaml"
+  git commit -m "ci: Update manager.yaml with editors images" --signoff
+}
+
 releaseDeploymentFiles() {
   echo "[INFO] releaseDeploymentFiles :: release deployment files"
   make gen-deployment
@@ -225,24 +212,65 @@ releaseDeploymentFiles() {
   git commit -m "ci: Update Deployment Files" --signoff
 }
 
+releaseEditorsDefinitions() {
+  echo "[INFO] releaseEditorsDefinitions :: Releasing editor definitions"
+
+  . "${OPERATOR_REPO}/build/scripts/release/editors-definitions.sh" release --version "${RELEASE}"
+  . "${OPERATOR_REPO}/build/scripts/release/editors-definitions.sh" update-manager-yaml
+
+  git add editors-definitions
+  git commit -m "ci: Release editors definitions to $RELEASE" --signoff
+}
+
 releaseOlmFiles() {
   echo "[INFO] releaseOlmFiles :: Release OLM files"
-  echo "[INFO] releaseOlmFiles :: Launch 'build/scripts/release/release-olm-files.sh' script"
-  for channel in "${STABLE_CHANNELS[@]}"
-  do
-    pushd ${OPERATOR_REPO}/build/scripts/release
-    . release-olm-files.sh --release-version $RELEASE --channel $channel
-    popd
-    local openshift=${OPERATOR_REPO}/bundle/$channel/eclipse-che/manifests
 
-    echo "[INFO] releaseOlmFiles :: Validate changes"
-    grep -q "version: "$RELEASE $openshift/che-operator.clusterserviceversion.yaml
-    test -f $openshift/org.eclipse.che_checlusters.yaml
-  done
-  echo "[INFO] releaseOlmFiles :: Commit changes"
+  local csvPath=$(make csv-path CHANNEL=stable)
+  local nextBundlePath=$(make bundle-path CHANNEL="next")
+  local stableBundlePath=$(make bundle-path CHANNEL="stable")
+  local currentBundleVersion=$(make bundle-version CHANNEL="stable")
+
+  make bundle CHANNEL=stable INCREMENT_BUNDLE_VERSION=false
+
+  local operatorImage=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[0].image' "${csvPath}" | sed 's|next|'${RELEASE}'|g')
+  local cheServerImage=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_che_server") | .value' "${csvPath}" | sed 's|next|'${RELEASE}'|g')
+  local cheDashboardImage=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_dashboard") | .value' "${csvPath}" | sed 's|next|'${RELEASE}'|g')
+  local chePluginRegistryImage=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_plugin_registry") | .value' "${csvPath}" | sed 's|next|'${RELEASE}'|g')
+  local cheDevfileRegistryImage=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_devfile_registry") | .value' "${csvPath}" | sed 's|next|'${RELEASE}'|g')
+  local cheGatewayImage=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="R RELATED_IMAGE_single_host_gateway_config_sidecar") | .value' "${csvPath}" | sed 's|next|'${RELEASE}'|g')
+
+  yq -riY '(.spec.install.spec.deployments[].spec.template.spec.containers[0].imagePullPolicy) = "IfNotPresent"' "${csvPath}"
+
+  yq -riY '(.spec.version) = "'${RELEASE}'"' "${csvPath}"
+  yq -riY '(.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="CHE_VERSION") | .value) = "'${RELEASE}'"' "${csvPath}"
+  yq -riY '(.spec.install.spec.deployments[].spec.template.spec.containers[0].image) = "'${operatorImage}'"' "${csvPath}"
+  yq -riY '(.metadata.annotations.containerImage) = "'${operatorImage}'"' "${csvPath}"
+  yq -riY '(.metadata.annotations.createdAt) = "'$(date -u +%FT%TZ)'"' "${csvPath}"
+  yq -riY '(.metadata.name) = "eclipse-che.v'${RELEASE}'"' "${csvPath}"
+
+  yq -riY '(.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_che_server") | .value) = "'${cheServerImage}'"' "${csvPath}"
+  yq -riY '(.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_dashboard") | .value) = "'${cheDashboardImage}'"' "${csvPath}"
+  yq -riY '(.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_plugin_registry") | .value) = "'${chePluginRegistryImage}'"' "${csvPath}"
+  yq -riY '(.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_devfile_registry") | .value) = "'${cheDevfileRegistryImage}'"' "${csvPath}"
+  yq -riY '(.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_single_host_gateway_config_sidecar") | .value) = "'${cheGatewayImage}'"' "${csvPath}"
+
   if git status --porcelain; then
-    git add -A || true # add new generated CSV files in olm/ folder
+    git add -A || true # add new generated CSV files
     git commit -am "ci: Release OLM files to "$RELEASE --signoff
+  fi
+}
+
+addDigests() {
+  echo "[INFO] addDigests :: Pin images to digests"
+
+  . "${OPERATOR_REPO}/build/scripts/release/addDigests.sh" \
+                -t "${RELEASE}" \
+                -s "$(make csv-path CHANNEL=stable)" \
+                -o "${OPERATOR_REPO}/config/manager/manager.yaml"
+
+  if git status --porcelain; then
+    git add -A || true
+    git commit -am "ci: Add images digests" --signoff
   fi
 }
 
@@ -292,7 +320,7 @@ createPRToMainBranch() {
   git checkout -B $tmpBranch
   git diff refs/heads/${BRANCH}...refs/heads/${RELEASE_BRANCH} ':(exclude)config/manager/manager.yaml' ':(exclude)deploy' ':(exclude)editors-definitions' ':(exclude)Dockerfile' | git apply -3
   if git status --porcelain; then
-    git add -A || true # add new generated CSV files in olm/ folder
+    git add -A || true # add new generated files
     git commit -am "ci: Copy "$RELEASE" csv to main" --signoff
   fi
   git push origin $tmpBranch -f
@@ -312,12 +340,12 @@ run() {
   fi
 
   checkoutToReleaseBranch
-  removeYamlDiffs
   updateVersionFile
   releaseEditorsDefinitions
   releaseOperatorCode
   if [[ $RELEASE_OLM_FILES == "true" ]]; then
     releaseOlmFiles
+    addDigests
   fi
   # Must be done after launching `addDigest.sh`
   releaseDeploymentFiles
