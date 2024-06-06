@@ -51,6 +51,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 				DeploymentName:   defaultDeploymentName,
 				ConfigMapName:    defaultConfigMapName,
 				ImagePullerImage: defaultImagePullerImage,
+				Images:           getDefaultImages(test.GetDeployContext(nil, []runtime.Object{})),
 			}),
 		},
 		{
@@ -86,6 +87,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 				DeploymentName:   defaultDeploymentName,
 				ConfigMapName:    defaultConfigMapName,
 				ImagePullerImage: defaultImagePullerImage,
+				Images:           getDefaultImages(test.GetDeployContext(nil, []runtime.Object{})),
 			}),
 		},
 		{
