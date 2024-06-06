@@ -195,15 +195,6 @@ releaseHelmPackage() {
   git commit -m "ci: Update Helm Charts to $RELEASE" --signoff
 }
 
-updateManagerYamlWithEditorsImages() {
-  echo "[INFO] releaseDeploymentFiles :: release deployment files"
-
-  . "${OPERATOR_REPO}/build/scripts/release/editors-definitions.sh" update-manager-yaml
-
-  git add -A "${OPERATOR_REPO}/config/manager/manager.yaml"
-  git commit -m "ci: Update manager.yaml with editors images" --signoff
-}
-
 releaseDeploymentFiles() {
   echo "[INFO] releaseDeploymentFiles :: release deployment files"
   make gen-deployment
@@ -237,7 +228,7 @@ releaseOlmFiles() {
   local cheDashboardImage=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_dashboard") | .value' "${csvPath}" | sed 's|next|'${RELEASE}'|g')
   local chePluginRegistryImage=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_plugin_registry") | .value' "${csvPath}" | sed 's|next|'${RELEASE}'|g')
   local cheDevfileRegistryImage=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_devfile_registry") | .value' "${csvPath}" | sed 's|next|'${RELEASE}'|g')
-  local cheGatewayImage=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="R RELATED_IMAGE_single_host_gateway_config_sidecar") | .value' "${csvPath}" | sed 's|next|'${RELEASE}'|g')
+  local cheGatewayImage=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_single_host_gateway_config_sidecar") | .value' "${csvPath}" | sed 's|next|'${RELEASE}'|g')
 
   yq -riY '(.spec.install.spec.deployments[].spec.template.spec.containers[0].imagePullPolicy) = "IfNotPresent"' "${csvPath}"
 
