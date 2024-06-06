@@ -190,6 +190,15 @@ releaseEditorsDefinitions() {
   git commit -m "ci: Release editors definitions to $RELEASE" --signoff
 }
 
+removeYamlDiffs() {
+  echo "[INFO] removal *.yaml.diff files"
+  BUNDLE_PATH=$(make bundle-path CHANNEL=stable)
+  rm "${BUNDLE_PATH}"/manifests/*.yaml.diff
+
+  git add "${BUNDLE_PATH}"
+  git commit -m "ci: removal *.yaml.diff files" --signoff
+}
+
 updateVersionFile() {
   echo "[INFO] updating version.go file"
   # change version/version.go file
@@ -301,6 +310,7 @@ run() {
   fi
 
   checkoutToReleaseBranch
+  removeYamlDiffs
   updateVersionFile
   releaseEditorsDefinitions
   releaseOperatorCode
