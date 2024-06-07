@@ -29,12 +29,8 @@ command -v yq >/dev/null 2>&1 || { echo "yq is not installed. Aborting."; exit 1
 command -v skopeo > /dev/null 2>&1 || { echo "skopeo is not installed. Aborting."; exit 1; }
 
 excludedImages=(
-                "quay.io/eclipse/che-theia:next"
-                "quay.io/eclipse/che-theia-dev:next"
-                "quay.io/eclipse/che-theia-endpoint-runtime-binary:next"
-                "quay.io/eclipse/che-sidecar-workspace-data-sync:latest"
-                "quay.io/eclipse/che-machine-exec:nightly"
-                "quay.io/eclipse/che-machine-exec:next"
+                "quay.io/che-incubator/che-idea:next"
+                "quay.io/che-incubator/che-idea-dev-server:next"
                )
 
 usage () {
