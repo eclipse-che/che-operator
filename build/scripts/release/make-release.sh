@@ -105,7 +105,7 @@ releaseManagerYaml() {
   yq -riY '(.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_single_host_gateway_config_sidecar") | .value) = "'${CHE_GATEWAY_IMAGE}'"' "${MANAGER_YAML}"
 
   echo "[INFO] releaseManagerYaml :: Update editors definitions images"
-  . "${OPERATOR_REPO}"/build/scripts/release/editors-definitions.sh update-manager-yaml
+  . "${OPERATOR_REPO}/build/scripts/release/editors-definitions.sh" update-manager-yaml
 
   echo "[INFO] releaseManagerYaml :: Ensure license header"
   make license "${MANAGER_YAML}"
@@ -173,7 +173,7 @@ releaseOlmFiles() {
   yq -riY '(.metadata.name) = "eclipse-che.v'${RELEASE}'"' "${CSV_STABLE_PATH}"
 
   echo "[INFO] releaseOlmFiles :: Ensure license header"
-  make license "$(make bundle-path CHANNEL=stable)"
+  make fmt
 
   echo "[INFO] releaseOlmFiles :: Commit changes"
   if git status --porcelain; then
