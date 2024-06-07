@@ -15,6 +15,7 @@ set -e
 
 init() {
   RELEASE="$1"
+  DRY_RUN=false
   BRANCH=$(echo $RELEASE | sed 's/.$/x/')
   RELEASE_BRANCH="${RELEASE}-release"
   GIT_REMOTE_UPSTREAM="https://github.com/eclipse-che/che-operator.git"
@@ -42,6 +43,7 @@ init() {
   while [[ "$#" -gt 0 ]]; do
     case $1 in
       '--release') RUN_RELEASE=true; shift 0;;
+      '--dry-run') DRY_RUN=true; shift 0;;
       '--push-olm-bundles') PUSH_OLM_BUNDLES=true; shift 0;;
       '--push-git-changes') PUSH_GIT_CHANGES=true; shift 0;;
       '--pull-requests') CREATE_PULL_REQUESTS=true; shift 0;;
@@ -262,7 +264,11 @@ run() {
   updateVersionFile
   releaseEditorsDefinitions
   releaseManagerYaml
-  buildOperatorImage
+  if [[ $DRY_RUN == "false" ]]; then
+    buildOperatorImage
+  else
+    echo "[INFO] Dry run is enabled. Skipping buildOperatorImage"
+  fi
   if [[ $RELEASE_OLM_FILES == "true" ]]; then
     releaseOlmFiles
     addDigests
@@ -280,7 +286,11 @@ if [[ $RUN_RELEASE == "true" ]]; then
 fi
 
 if [[ $PUSH_OLM_BUNDLES == "true" ]]; then
-  pushOlmBundlesToQuayIo
+  if [[ $DRY_RUN == "false" ]]; then
+    pushOlmBundlesToQuayIo
+  else
+    echo "[INFO] Dry run is enabled. Skipping pushOlmBundlesToQuayIo"
+  fi
 fi
 
 if [[ $PUSH_GIT_CHANGES == "true" ]]; then
@@ -293,5 +303,9 @@ if [[ $CREATE_PULL_REQUESTS == "true" ]]; then
 fi
 
 if [[ $PREPARE_COMMUNITY_OPERATORS_UPDATE == "true" ]]; then
-  prepareCommunityOperatorsUpdate
+  if [[ $DRY_RUN == "false" ]]; then
+    prepareCommunityOperatorsUpdate
+  else
+    echo "[INFO] Dry run is enabled. Skipping prepareCommunityOperatorsUpdate"
+  fi
 fi
