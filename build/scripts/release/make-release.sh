@@ -28,6 +28,14 @@ init() {
   OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
   FORCE_UPDATE=""
   BUILDX_PLATFORMS="linux/amd64,linux/ppc64le"
+  CSV_STABLE_PATH=$(make csv-path CHANNEL=stable)
+  MANAGER_YAML=${OPERATOR_REPO}/config/manager/manager.yaml
+  CHE_OPERATOR_IMAGE=$(yq -r '.spec.template.spec.containers[0].image' "${MANAGER_YAML}" | sed -e "s/\(.*:\).*/\1${RELEASE}/")
+  CHE_SERVER_IMAGE=$(yq -r '.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_che_server") | .value' "${MANAGER_YAML}" | sed -e "s/\(.*:\).*/\1${RELEASE}/")
+  CHE_DASHBOARD_IMAGE=$(yq -r '.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_dashboard") | .value' "${MANAGER_YAML}" | sed -e "s/\(.*:\).*/\1${RELEASE}/")
+  CHE_PLUGIN_REGISTRY_IMAGE=$(yq -r '.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_plugin_registry") | .value' "${MANAGER_YAML}" | sed -e "s/\(.*:\).*/\1${RELEASE}/")
+  CHE_DEVFILE_REGISTRY_IMAGE=$(yq -r '.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_devfile_registry") | .value' "${MANAGER_YAML}" | sed -e "s/\(.*:\).*/\1${RELEASE}/")
+  CHE_GATEWAY_IMAGE=$(yq -r '.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_single_host_gateway_config_sidecar") | .value' "${MANAGER_YAML}" | sed -e "s/\(.*:\).*/\1${RELEASE}/")
 
   if [[ $# -lt 1 ]]; then usage; exit; fi
 
@@ -84,99 +92,37 @@ checkoutToReleaseBranch() {
   git checkout -B $RELEASE_BRANCH
 }
 
-getPropertyValue() {
-  local file=$1
-  local key=$2
-  echo $(cat $file | grep -m1 "$key" | tr -d ' ' | tr -d '\t' | cut -d = -f2)
-}
+releaseManagerYaml() {
+  echo "[INFO] releaseManagerYaml :: Update manager.yaml"
 
-checkImageReferences() {
-  local filename=$1
+  yq -riY '(.spec.template.spec.containers[0].env[]  | select(.name == "CHE_VERSION") | .value ) = "'${RELEASE}'"' "${MANAGER_YAML}"
+  yq -riY '(.spec.template.spec.containers[0].image) = "'${CHE_OPERATOR_IMAGE}'"' "${MANAGER_YAML}"
+  yq -riY '(.spec.template.spec.containers[0].imagePullPolicy) = "IfNotPresent"' "${MANAGER_YAML}"
+  yq -riY '(.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_che_server") | .value) = "'${CHE_SERVER_IMAGE}'"' "${MANAGER_YAML}"
+  yq -riY '(.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_dashboard") | .value) = "'${CHE_DASHBOARD_IMAGE}'"' "${MANAGER_YAML}"
+  yq -riY '(.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_plugin_registry") | .value) = "'${CHE_PLUGIN_REGISTRY_IMAGE}'"' "${MANAGER_YAML}"
+  yq -riY '(.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_devfile_registry") | .value) = "'${CHE_DEVFILE_REGISTRY_IMAGE}'"' "${MANAGER_YAML}"
+  yq -riY '(.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_single_host_gateway_config_sidecar") | .value) = "'${CHE_GATEWAY_IMAGE}'"' "${MANAGER_YAML}"
 
-  if ! grep -q "value: ${RELEASE}" $filename; then
-    echo "[ERROR] Unable to find Che version ${RELEASE} in the $filename"; exit 1
-  fi
+  echo "[INFO] releaseManagerYaml :: Update editors definitions images"
+  . "${OPERATOR_REPO}"/build/scripts/release/editors-definitions.sh update-manager-yaml
 
-  if ! grep -q "image: quay.io/eclipse/che-operator:$RELEASE" $filename; then
-    echo "[ERROR] Unable to find Che operator image with version ${RELEASE} in the $filename"; exit 1
-  fi
+  echo "[INFO] releaseManagerYaml :: Ensure license header"
+  make license "${MANAGER_YAML}"
 
-  if ! grep -q "value: quay.io/eclipse/che-server:$RELEASE" $filename; then
-    echo "[ERROR] Unable to find Che server image with version ${RELEASE} in the $filename"; exit 1
-  fi
-
-  if ! grep -q "value: quay.io/eclipse/che-dashboard:$RELEASE" $filename; then
-    echo "[ERROR] Unable to find dashboard image with version ${RELEASE} in the $filename"; exit 1
-  fi
-
-  if ! grep -q "value: quay.io/eclipse/che-plugin-registry:$RELEASE" $filename; then
-    echo "[ERROR] Unable to find plugin registry image with version ${RELEASE} in the $filename"; exit 1
-  fi
-
-  if ! grep -q "value: quay.io/eclipse/che-devfile-registry:$RELEASE" $filename; then
-    echo "[ERROR] Unable to find devfile registry image with version ${RELEASE} in the $filename"; exit 1
-  fi
-
-  if ! grep -q "value: quay.io/che-incubator/configbump:$RELEASE" $filename; then
-    echo "[ERROR] Unable to find configbump image with version ${RELEASE} in the $filename"; exit 1
-  fi
-}
-
-releaseOperatorCode() {
-  echo "[INFO] releaseOperatorCode :: Release operator code"
-  echo "[INFO] releaseOperatorCode :: Replacing tags"
-  replaceImagesTags
-
-  local operatorYaml=${OPERATOR_REPO}/config/manager/manager.yaml
-  echo "[INFO] releaseOperatorCode :: Validate changes for $operatorYaml"
-  checkImageReferences $operatorYaml
-
-  echo "[INFO] releaseOperatorCode :: Commit changes"
+  echo "[INFO] releaseManagerYaml :: Commit changes"
   if git status --porcelain; then
-    git add -A || true # add new generated files
-    git commit -am "ci: Update defaults tags to "$RELEASE --signoff
+    git add "${MANAGER_YAML}"
+    git commit -m "ci: Update manager.yaml" --signoff
   fi
+}
+
+buildOperatorImage() {
   echo "[INFO] releaseOperatorCode :: Login to quay.io..."
   docker login quay.io -u "${QUAY_ECLIPSE_CHE_USERNAME}" -p "${QUAY_ECLIPSE_CHE_PASSWORD}"
 
   echo "[INFO] releaseOperatorCode :: Build operator image in platforms: $BUILDX_PLATFORMS"
-  docker buildx build --platform "$BUILDX_PLATFORMS" --push -t "quay.io/eclipse/che-operator:${RELEASE}" .
-}
-
-replaceImagesTags() {
-  OPERATOR_YAML="${OPERATOR_REPO}/config/manager/manager.yaml"
-
-  lastDefaultCheServerImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_che_server\") | .value" "${OPERATOR_YAML}")
-  lastDefaultDashboardImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_dashboard\") | .value" "${OPERATOR_YAML}")
-  lastDefaultPluginRegistryImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_plugin_registry\") | .value" "${OPERATOR_YAML}")
-  lastDefaultDevfileRegistryImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_devfile_registry\") | .value" "${OPERATOR_YAML}")
-  lastDefaultGatewayConfigImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_single_host_gateway_config_sidecar\") | .value" "${OPERATOR_YAML}")
-
-
-  CHE_SERVER_IMAGE_REALEASE=$(replaceTag "${lastDefaultCheServerImage}" "${RELEASE}")
-  DASHBOARD_IMAGE_REALEASE=$(replaceTag "${lastDefaultDashboardImage}" "${RELEASE}")
-  PLUGIN_REGISTRY_IMAGE_RELEASE=$(replaceTag "${lastDefaultPluginRegistryImage}" "${RELEASE}")
-  DEVFILE_REGISTRY_IMAGE_RELEASE=$(replaceTag "${lastDefaultDevfileRegistryImage}" "${RELEASE}")
-  GATEWAY_CONFIG_IMAGE_RELEASE=$(replaceTag "${lastDefaultGatewayConfigImage}" "${RELEASE}")
-
-  NEW_OPERATOR_YAML="${OPERATOR_YAML}.new"
-  # copy licence header
-  eval head -10 "${OPERATOR_YAML}" > ${NEW_OPERATOR_YAML}
-
-  cat "${OPERATOR_YAML}" | \
-  yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\") | .image ) = \"quay.io/eclipse/che-operator:${RELEASE}\"" | \
-  yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"CHE_VERSION\") | .value ) = \"${RELEASE}\"" | \
-  yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_server\") | .value ) = \"${CHE_SERVER_IMAGE_REALEASE}\"" | \
-  yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_dashboard\") | .value ) = \"${DASHBOARD_IMAGE_REALEASE}\"" | \
-  yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_plugin_registry\") | .value ) = \"${PLUGIN_REGISTRY_IMAGE_RELEASE}\"" | \
-  yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_devfile_registry\") | .value ) = \"${DEVFILE_REGISTRY_IMAGE_RELEASE}\"" | \
-  yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_single_host_gateway_config_sidecar\") | .value ) = \"${GATEWAY_CONFIG_IMAGE_RELEASE}\"" \
-  >> "${NEW_OPERATOR_YAML}"
-  mv "${NEW_OPERATOR_YAML}" "${OPERATOR_YAML}"
-}
-
-replaceTag() {
-    echo "${1}" | sed -e "s/\(.*:\).*/\1${2}/"
+  docker buildx build --platform "$BUILDX_PLATFORMS" --push -t "${CHE_OPERATOR_IMAGE}" .
 }
 
 updateVersionFile() {
@@ -205,63 +151,45 @@ releaseDeploymentFiles() {
 
 releaseEditorsDefinitions() {
   echo "[INFO] releaseEditorsDefinitions :: Releasing editor definitions"
-
   . "${OPERATOR_REPO}/build/scripts/release/editors-definitions.sh" release --version "${RELEASE}"
-  . "${OPERATOR_REPO}/build/scripts/release/editors-definitions.sh" update-manager-yaml
 
+  echo "[INFO] releaseEditorsDefinitions :: Ensure license header"
+  make license editors-definitions
+
+  echo "[INFO] releaseEditorsDefinitions :: Commit changes"
   git add editors-definitions
   git commit -m "ci: Release editors definitions to $RELEASE" --signoff
 }
 
 releaseOlmFiles() {
-  echo "[INFO] releaseOlmFiles :: Release OLM files"
-
-  local csvPath=$(make csv-path CHANNEL=stable)
-  local nextBundlePath=$(make bundle-path CHANNEL="next")
-  local stableBundlePath=$(make bundle-path CHANNEL="stable")
-  local currentBundleVersion=$(make bundle-version CHANNEL="stable")
-
+  echo "[INFO] releaseOlmFiles :: Make new bundle"
   make bundle CHANNEL=stable INCREMENT_BUNDLE_VERSION=false
 
-  local operatorImage=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[0].image' "${csvPath}" | sed 's|next|'${RELEASE}'|g')
-  local cheServerImage=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_che_server") | .value' "${csvPath}" | sed 's|next|'${RELEASE}'|g')
-  local cheDashboardImage=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_dashboard") | .value' "${csvPath}" | sed 's|next|'${RELEASE}'|g')
-  local chePluginRegistryImage=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_plugin_registry") | .value' "${csvPath}" | sed 's|next|'${RELEASE}'|g')
-  local cheDevfileRegistryImage=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_devfile_registry") | .value' "${csvPath}" | sed 's|next|'${RELEASE}'|g')
-  local cheGatewayImage=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_single_host_gateway_config_sidecar") | .value' "${csvPath}" | sed 's|next|'${RELEASE}'|g')
+  echo "[INFO] releaseOlmFiles :: Update che-operator.clusterserviceversion.yaml"
+  yq -riY '(.spec.install.spec.deployments[].spec.template.spec.containers[0].image) = "'${CHE_OPERATOR_IMAGE}'"' "${CSV_STABLE_PATH}"
+  yq -riY '(.metadata.annotations.containerImage) = "'${CHE_OPERATOR_IMAGE}'"' "${CSV_STABLE_PATH}"
+  yq -riY '(.metadata.annotations.createdAt) = "'$(date -u +%FT%TZ)'"' "${CSV_STABLE_PATH}"
+  yq -riY '(.spec.version) = "'${RELEASE}'"' "${CSV_STABLE_PATH}"
+  yq -riY '(.metadata.name) = "eclipse-che.v'${RELEASE}'"' "${CSV_STABLE_PATH}"
 
-  yq -riY '(.spec.install.spec.deployments[].spec.template.spec.containers[0].imagePullPolicy) = "IfNotPresent"' "${csvPath}"
+  echo "[INFO] releaseOlmFiles :: Ensure license header"
+  make license "$(make bundle-path CHANNEL=stable)"
 
-  yq -riY '(.spec.version) = "'${RELEASE}'"' "${csvPath}"
-  yq -riY '(.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="CHE_VERSION") | .value) = "'${RELEASE}'"' "${csvPath}"
-  yq -riY '(.spec.install.spec.deployments[].spec.template.spec.containers[0].image) = "'${operatorImage}'"' "${csvPath}"
-  yq -riY '(.metadata.annotations.containerImage) = "'${operatorImage}'"' "${csvPath}"
-  yq -riY '(.metadata.annotations.createdAt) = "'$(date -u +%FT%TZ)'"' "${csvPath}"
-  yq -riY '(.metadata.name) = "eclipse-che.v'${RELEASE}'"' "${csvPath}"
-
-  yq -riY '(.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_che_server") | .value) = "'${cheServerImage}'"' "${csvPath}"
-  yq -riY '(.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_dashboard") | .value) = "'${cheDashboardImage}'"' "${csvPath}"
-  yq -riY '(.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_plugin_registry") | .value) = "'${chePluginRegistryImage}'"' "${csvPath}"
-  yq -riY '(.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_devfile_registry") | .value) = "'${cheDevfileRegistryImage}'"' "${csvPath}"
-  yq -riY '(.spec.install.spec.deployments[].spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_single_host_gateway_config_sidecar") | .value) = "'${cheGatewayImage}'"' "${csvPath}"
-
+  echo "[INFO] releaseOlmFiles :: Commit changes"
   if git status --porcelain; then
-    git add -A || true # add new generated CSV files
-    git commit -am "ci: Release OLM files to "$RELEASE --signoff
+    git add -A || true
+    git commit -am "ci: OLM bundle" --signoff
   fi
 }
 
 addDigests() {
   echo "[INFO] addDigests :: Pin images to digests"
+  . "${OPERATOR_REPO}/build/scripts/release/addDigests.sh" -t "${RELEASE}" -s "${CSV_STABLE_PATH}" -o "${MANAGER_YAML}"
 
-  . "${OPERATOR_REPO}/build/scripts/release/addDigests.sh" \
-                -t "${RELEASE}" \
-                -s "$(make csv-path CHANNEL=stable)" \
-                -o "${OPERATOR_REPO}/config/manager/manager.yaml"
-
+  echo "[INFO] addDigests :: Commit changes"
   if git status --porcelain; then
     git add -A || true
-    git commit -am "ci: Add images digests" --signoff
+    git commit -am "ci: Pin images to digests" --signoff
   fi
 }
 
@@ -333,7 +261,8 @@ run() {
   checkoutToReleaseBranch
   updateVersionFile
   releaseEditorsDefinitions
-  releaseOperatorCode
+  releaseManagerYaml
+  buildOperatorImage
   if [[ $RELEASE_OLM_FILES == "true" ]]; then
     releaseOlmFiles
     addDigests
