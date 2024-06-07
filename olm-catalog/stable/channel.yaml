@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2023 Red Hat, Inc.
+# Copyright (c) 2019-2024 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -79,3 +79,5 @@ entries:
     replaces: eclipse-che.v7.84.0
   - name: eclipse-che.v7.86.0
     replaces: eclipse-che.v7.85.0
+  - name: eclipse-che.v7.87.0
+    replaces: eclipse-che.v7.86.0
