@@ -61,7 +61,6 @@ init() {
   command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] skopeo is not installed. Abort."; exit 1; }
   REQUIRED_OPERATOR_SDK=$(yq -r ".\"operator-sdk\"" "${OPERATOR_REPO}/REQUIREMENTS")
   [[ $(operator-sdk version) =~ .*${REQUIRED_OPERATOR_SDK}.* ]] || { echo "[ERROR] operator-sdk ${REQUIRED_OPERATOR_SDK} is required. Abort."; exit 1; }
-  make download-addlicense
 }
 
 usage () {
@@ -114,8 +113,8 @@ releaseManagerYaml() {
 
   echo "[INFO] releaseManagerYaml :: Commit changes"
   if git status --porcelain; then
-    git add "${MANAGER_YAML}"
-    git commit -m "ci: Update manager.yaml" --signoff
+    git add -A || true
+    git commit -am "ci: Update manager.yaml to $RELEASE" --signoff
   fi
 }
 
@@ -131,24 +130,30 @@ updateVersionFile() {
   echo "[INFO] updating version.go file"
   # change version/version.go file
   sed -i version/version.go -r -e 's#(Version = ")([0-9.]+)(")#\1'"${RELEASE}"'\3#g'
-  git add version/version.go
-  git commit -m "ci: Update VERSION to $RELEASE" --signoff
+  if git status --porcelain; then
+    git add -A || true
+    git commit -am "ci: Update version.go to $RELEASE" --signoff
+  fi
 }
 
 releaseHelmPackage() {
   echo "[INFO] releaseHelmPackage :: release Helm package"
   yq -rYi ".version=\"${RELEASE}\"" "${OPERATOR_REPO}/helmcharts/stable/Chart.yaml"
   make update-helmcharts CHANNEL=stable
-  git add -A helmcharts/stable
-  git commit -m "ci: Update Helm Charts to $RELEASE" --signoff
+  if git status --porcelain; then
+    git add -A || true
+    git commit -am "ci: Update Helm Charts to $RELEASE" --signoff
+  fi
 }
 
 releaseDeploymentFiles() {
-  echo "[INFO] releaseDeploymentFiles :: release deployment files"
+  echo "[INFO] releaseDeploymentFiles :: Release Kubernetes resources"
   make gen-deployment
-  make fmt
-  git add -A deploy
-  git commit -m "ci: Update Deployment Files" --signoff
+
+  if git status --porcelain; then
+    git add -A || true
+    git commit -am "ci: Update Kubernetes resources to $RELEASE" --signoff
+  fi
 }
 
 releaseEditorsDefinitions() {
@@ -159,8 +164,10 @@ releaseEditorsDefinitions() {
   make license editors-definitions
 
   echo "[INFO] releaseEditorsDefinitions :: Commit changes"
-  git add editors-definitions
-  git commit -m "ci: Release editors definitions to $RELEASE" --signoff
+  if git status --porcelain; then
+    git add -A || true
+    git commit -am "ci: Release editors definitions to $RELEASE" --signoff
+  fi
 }
 
 releaseOlmFiles() {
@@ -173,9 +180,6 @@ releaseOlmFiles() {
   yq -riY '(.metadata.annotations.createdAt) = "'$(date -u +%FT%TZ)'"' "${CSV_STABLE_PATH}"
   yq -riY '(.spec.version) = "'${RELEASE}'"' "${CSV_STABLE_PATH}"
   yq -riY '(.metadata.name) = "eclipse-che.v'${RELEASE}'"' "${CSV_STABLE_PATH}"
-
-  echo "[INFO] releaseOlmFiles :: Ensure license header"
-  make fmt
 
   echo "[INFO] releaseOlmFiles :: Commit changes"
   if git status --porcelain; then
@@ -198,12 +202,14 @@ addDigests() {
 pushOlmBundlesToQuayIo() {
   echo "[INFO] releaseOperatorCode :: Login to quay.io..."
   docker login quay.io -u "${QUAY_ECLIPSE_CHE_USERNAME}" -p "${QUAY_ECLIPSE_CHE_PASSWORD}"
-  echo "[INFO] Push OLM bundles to quay.io"
 
+  echo "[INFO] Push OLM bundles to quay.io"
   . "${OPERATOR_REPO}/build/scripts/olm/release-catalog.sh" -c stable -i quay.io/eclipse/eclipse-che-olm-catalog:stable
 
-  git add -A olm-catalog/stable
-  git commit -m "ci: Add new bundle to a catalog" --signoff
+  if git status --porcelain; then
+    git add -A || true
+    git commit -am "ci: Add new $RELEASE bundle to a catalog" --signoff
+  fi
 }
 
 pushGitChanges() {
