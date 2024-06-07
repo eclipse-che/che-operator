@@ -1,15 +1,3 @@
-#
-# Copyright (c) 2019-2024 Red Hat, Inc.
-# This program and the accompanying materials are made
-# available under the terms of the Eclipse Public License 2.0
-# which is available at https://www.eclipse.org/legal/epl-2.0/
-#
-# SPDX-License-Identifier: EPL-2.0
-#
-# Contributors:
-#   Red Hat, Inc. - initial API and implementation
-#
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -135,6 +123,24 @@ spec:
               value: quay.io/devfile/universal-developer-image:latest
             - name: RELATED_IMAGE_editor_definition_che_idea_next_che_idea_injector
               value: quay.io/che-incubator/che-idea:next
+            - name: RELATED_IMAGE_che_code_devfile_registry_image_NFXHG2LEMVZHG___
+              value: quay.io/che-incubator/che-code@sha256:cbe12949b86a78c2584d8015ff026945cb85f352c76003f56844ec9a7e3f7a7d
+            - name: RELATED_IMAGE_che_code_devfile_registry_image_IBZWQYJSGU3DUNBZGFRTKMRTHBSDEMRRGBSWKMZRHFQTIN3CGVRWGMJVGUYTCZLGMZTGCNLFMRTDIZBQMNSTONJYGQZTKNBVGU2TAZBQGQZGEYRQHA3A____
+              value: quay.io/che-incubator/che-code@sha256:491c5238d2210ee319a47b5cc15511efffa5edf4d0ce75843545550d042bb086
+            - name: RELATED_IMAGE_universal_developer_image_devfile_registry_image_OVRGSOBNNRQXIZLTOQ______
+              value: quay.io/devfile/universal-developer-image@sha256:218b635aa3ea06cc766d287925e650dc32483e1b2d85da2fac00582d1baf0a9c
+            - name: RELATED_IMAGE_universal_developer_image_devfile_registry_image_IBZWQYJSGU3DUMRRHBRDMMZVMFQTGZLBGA3GGYZXGY3GIMRYG44TENLFGY2TAZDDGMZDIOBTMUYWEMTEHA2WIYJSMZQWGMBQGU4DEZBRMJQWMMDBHFRQ____
+              value: quay.io/devfile/universal-developer-image@sha256:218b635aa3ea06cc766d287925e650dc32483e1b2d85da2fac00582d1baf0a9c
+            - name: RELATED_IMAGE_che__centos__mongodb_36_centos7_devfile_registry_image_NRQXIZLTOQWWCOJRGVSGEN3CMVRWCOBXGE4TQZTDMQ3TQNRQGA4DMOJYHFTGKODBGMZDOYJRME2GMNRVGA4DAMRVMI3DIYLCGI4GMY3DG42DEM3CGI______
+              value: quay.io/eclipse/che--centos--mongodb-36-centos7@sha256:a915db7beca87198fcd7860086989fe8a327a1a4f6508025b64ab28fcc7423b2
+            - name: RELATED_IMAGE_che__centos__mongodb_36_centos7_devfile_registry_image_NRQXIZLTOQWWMZTEMYZDIMZRMJRGGNTEHFQTSZBSMEYDGZJZGVRGEYTFHBQWIYRUHFQWEOLFMFRTGMBRMYZDMODBGM2TAMZYMM4DIMRYHAZDKOLDGE______
+              value: quay.io/eclipse/che--centos--mongodb-36-centos7@sha256:ffdf2431bbc6d9a9d2a03e95bbbe8adb49ab9eac301f268a35038c84288259c1
+            - name: RELATED_IMAGE_che__centos__mysql_57_centos7_devfile_registry_image_NRQXIZLTOQWWKMBYMVSTIZBUGNRDOMZVGY3DANZWHA2WENRZMJSGKNRTGM2WKMRXMNTDEMDDGAZDAZRTGQ2WENTDGZRTKOJUGAYDCOBTHA4DENZWGQ______
+              value: quay.io/eclipse/che--centos--mysql-57-centos7@sha256:e08ee4d43b7356607685b69bde6335e27cf20c020f345b6c6c59400183882764
+            - name: RELATED_IMAGE_che__mariadb_devfile_registry_image_GEYC4NZOGEWTKYJYGAYDSMZWHFSWKNJXMM4DKYRWMY2GCMBYGQYDMMJUG5RGIOLDGUYDKY3EMU3GEOBSGUYGIMJWMEZDOZBSME2WMZLCMZSGKYLEG4______
+              value: quay.io/eclipse/che--mariadb@sha256:5a8009369ee57c85b6f4a08406147bd9c505cde6b8250d16a27d2a5febfdead7
+            - name: RELATED_IMAGE_ubi_minimal_devfile_registry_image_
+              value: registry.access.redhat.com/ubi8/ubi-minimal@sha256:5f1cd3422d5d46aea35dac80825dbcbd58213eef49c317f42a394345fb4e8ff1
           livenessProbe:
             httpGet:
               path: /healthz
