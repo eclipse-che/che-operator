@@ -82,9 +82,9 @@ jobs:
           IMAGE_REGISTRY_USER_NAME: eclipse
         run: |
           CHE_VERSION=${{ github.event.inputs.version }}
-          DRY_RUN=${{ github.event.inputs.dryRun }}
-          DRY_RUN_FLAG=[[ ${DRY_RUN} == "true" ]] && DRY_RUN_FLAG="--dry-run"
+          if [[ ${{ github.event.inputs.dryRun }} == "true" ]]; then DRY_RUN_FLAG="--dry-run"; fi
           echo "CHE_VERSION=${CHE_VERSION}"
+          echo "DRY_RUN_FLAG=${DRY_RUN_FLAG}"
           BRANCH=${CHE_VERSION%.*}.x
           echo "BRANCH=${BRANCH}"
           git config --global user.name "Mykhailo Kuznietsov"
