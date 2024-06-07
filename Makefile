@@ -167,7 +167,7 @@ update-dev-resources: validate-requirements ## Update development resources
 	$(MAKE) fmt
 
 gen-deployment: SHELL := /bin/bash
-gen-deployment: manifests download-kustomize kustomize-operator-image ## Generate Eclipse Che k8s deployment resources
+gen-deployment: manifests download-kustomize kustomize-operator-image download-addlicense ## Generate Eclipse Che k8s deployment resources
 	rm -rf $(DEPLOYMENT_DIR)
 	for TARGET_PLATFORM in kubernetes openshift; do
 		PLATFORM_DIR=$(DEPLOYMENT_DIR)/$${TARGET_PLATFORM}
@@ -188,6 +188,8 @@ gen-deployment: manifests download-kustomize kustomize-operator-image ## Generat
 
 		echo "[INFO] Deployments resources generated into $${PLATFORM_DIR}"
 	done
+
+	$(MAKE) license deploy
 
 update-helmcharts: SHELL := /bin/bash
 update-helmcharts: ## Update Helm Charts based on deployment resources
@@ -323,7 +325,7 @@ update-go-dependencies:  ## Update golang dependencies
 	go mod tidy
 	go mod vendor
 
-license: ## Add license to the files
+license: download-addlicense ## Add license to the files
 	FILES=$$(echo $(filter-out $@,$(MAKECMDGOALS)))
 	$(ADD_LICENSE) -f hack/license-header.txt $${FILES}
 
@@ -471,7 +473,12 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 	# Format file
 	yq -riY "." "$${BUNDLE_PATH}/manifests/org.eclipse.che_checlusters.yaml"
 
-	$(MAKE) license $$(find $${BUNDLE_PATH} -name "*.yaml")
+	$(MAKE) license $${BUNDLE_PATH}
+	$(MAKE) license config/manifests/bases
+
+	# Fix formating
+	goimports -w ./api
+	go fmt -x ./api
 
 	$(OPERATOR_SDK) bundle validate $${BUNDLE_PATH} --select-optional name=operatorhub --optional-values=k8s-version=1.19
 
