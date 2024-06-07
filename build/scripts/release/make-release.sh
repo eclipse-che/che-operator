@@ -181,16 +181,23 @@ releaseOlmFiles() {
   yq -riY '(.spec.version) = "'${RELEASE}'"' "${CSV_STABLE_PATH}"
   yq -riY '(.metadata.name) = "eclipse-che.v'${RELEASE}'"' "${CSV_STABLE_PATH}"
 
+  echo "[INFO] releaseOlmFiles :: Ensure license header"
+  make license "${CSV_STABLE_PATH}"
+
   echo "[INFO] releaseOlmFiles :: Commit changes"
   if git status --porcelain; then
     git add -A || true
-    git commit -am "ci: OLM bundle" --signoff
+    git commit -am "ci: New OLM $RELEASE bundle" --signoff
   fi
 }
 
 addDigests() {
   echo "[INFO] addDigests :: Pin images to digests"
   . "${OPERATOR_REPO}/build/scripts/release/addDigests.sh" -t "${RELEASE}" -s "${CSV_STABLE_PATH}" -o "${MANAGER_YAML}"
+
+  echo "[INFO] addDigests :: Ensure license header"
+  make license "${CSV_STABLE_PATH}"
+  make license "${MANAGER_YAML}"
 
   echo "[INFO] addDigests :: Commit changes"
   if git status --porcelain; then
