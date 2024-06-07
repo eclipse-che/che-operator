@@ -22,6 +22,11 @@ on:
         description: If true, tags will be recreated. Use with caution
         required: false
         default: 'false'
+      dryRun:
+        description: If true, dry run will be performed. No changes will be pushed to the repository
+        required: false
+        default: 'false'
+
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -77,6 +82,8 @@ jobs:
           IMAGE_REGISTRY_USER_NAME: eclipse
         run: |
           CHE_VERSION=${{ github.event.inputs.version }}
+          DRY_RUN=${{ github.event.inputs.dryRun }}
+          DRY_RUN_FLAG=[[ ${DRY_RUN} == "true" ]] && DRY_RUN_FLAG="--dry-run"
           echo "CHE_VERSION=${CHE_VERSION}"
           BRANCH=${CHE_VERSION%.*}.x
           echo "BRANCH=${BRANCH}"
@@ -96,10 +103,10 @@ jobs:
           export QUAY_ECLIPSE_CHE_PASSWORD=${{ secrets.QUAY_PASSWORD }}
 
           if [[ ${CHE_VERSION} == *".0" ]]; then
-            build/scripts/release/make-release.sh ${CHE_VERSION} --release --check-resources --release-olm-files
+            build/scripts/release/make-release.sh ${CHE_VERSION} --release --check-resources --release-olm-files ${DRY_RUN_FLAG}
           else
             git checkout ${BRANCH}
-            build/scripts/release/make-release.sh ${CHE_VERSION} --release --release-olm-files
+            build/scripts/release/make-release.sh ${CHE_VERSION} --release --release-olm-files ${DRY_RUN_FLAG}
           fi
 
           # default robot account on quay does not have permissions for application repos
@@ -113,14 +120,14 @@ jobs:
           # echo "[DEBUG] QUAY_USERNAME_OS = ${QUAY_USERNAME_OS}"
 
           git checkout ${CHE_VERSION}-release
-          build/scripts/release/make-release.sh ${CHE_VERSION} --push-olm-bundles
+          build/scripts/release/make-release.sh ${CHE_VERSION} --push-olm-bundles ${DRY_RUN_FLAG}
 
           # perform extra checkouts to ensure branches exist locally
           git checkout ${BRANCH}
           git checkout ${CHE_VERSION}-release
           force_update=""
           if [[ ${{ github.event.inputs.forceRecreateTags }} == "true" ]]; then force_update="--force"; fi
-          build/scripts/release/make-release.sh ${CHE_VERSION} --push-git-changes --pull-requests ${force_update}
+          build/scripts/release/make-release.sh ${CHE_VERSION} --push-git-changes --pull-requests ${force_update} ${DRY_RUN_FLAG}
       #- name: Create failure MM message
         #if: ${{ failure() }}
         #run: |
