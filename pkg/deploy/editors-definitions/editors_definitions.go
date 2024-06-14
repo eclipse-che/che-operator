@@ -31,6 +31,10 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 )
 
+const (
+	editorDefinitionEnvNamePrefix = "RELATED_IMAGE_editor_definition"
+)
+
 var (
 	editorsDefinitionsDir           = "/tmp/editors-definitions"
 	editorsDefinitionsConfigMapName = "editors-definitions"
@@ -121,7 +125,7 @@ func updateEditorDefinitionImages(devfile map[string]interface{}) {
 	for _, component := range components {
 		componentName := component.(map[string]interface{})["name"].(string)
 		if container, ok := component.(map[string]interface{})["container"].(map[string]interface{}); ok {
-			imageEnvName := fmt.Sprintf("RELATED_IMAGE_%s_%s_%s", devfileName, devfileVersion, componentName)
+			imageEnvName := fmt.Sprintf("%s_%s_%s_%s", editorDefinitionEnvNamePrefix, devfileName, devfileVersion, componentName)
 			imageEnvName = notAllowedCharsReg.ReplaceAllString(imageEnvName, "_")
 			imageEnvName = utils.GetArchitectureDependentEnvName(imageEnvName)
 

@@ -23,11 +23,11 @@ import (
 )
 
 func TestReadEditorDefinitions(t *testing.T) {
-	err := os.Setenv("RELATED_IMAGE_che_code_1_2_3_component_a", "image-new-a")
+	err := os.Setenv("RELATED_IMAGE_editor_definition_che_code_1_2_3_component_a", "image-new-a")
 	assert.NoError(t, err)
 
 	defer func() {
-		_ = os.Setenv("RELATED_IMAGE_che_code_1_2_3_component_a", "")
+		_ = os.Setenv("RELATED_IMAGE_editor_definition_che_code_1_2_3_component_a", "")
 	}()
 
 	editorDefinitions, err := readEditorDefinitions()
