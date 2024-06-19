@@ -189,6 +189,9 @@ type CheClusterDevEnvironments struct {
 	// +optional
 	// +kubebuilder:validation:Enum=Always;IfNotPresent;Never
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+	// WorkspacesPodAnnotations defines additional annotations for workspace pods.
+	// +optional
+	WorkspacesPodAnnotations map[string]string `json:"workspacesPodAnnotations,omitempty"`
 }
 
 // Che components configuration.
