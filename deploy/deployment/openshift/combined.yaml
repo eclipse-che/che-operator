@@ -7762,6 +7762,12 @@ spec:
                           type: string
                         type: array
                     type: object
+                  workspacesPodAnnotations:
+                    additionalProperties:
+                      type: string
+                    description: WorkspacesPodAnnotations defines additional annotations
+                      for workspace pods.
+                    type: object
                 type: object
               gitServices:
                 description: A configuration that allows users to work with remote

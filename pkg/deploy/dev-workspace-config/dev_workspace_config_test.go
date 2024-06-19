@@ -2266,3 +2266,95 @@ func TestReconcileDevWorkspaceImagePullPolicy(t *testing.T) {
 		})
 	}
 }
+
+func TestReconcileDevWorkspaceAnnotations(t *testing.T) {
+	type testCase struct {
+		name                   string
+		cheCluster             *chev2.CheCluster
+		existedObjects         []runtime.Object
+		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
+	}
+
+	var testCases = []testCase{
+		{
+			name: "Set specific annotations",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						WorkspacesPodAnnotations: map[string]string{
+							"key1": "value1",
+							"key2": "value2",
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					PodAnnotations: map[string]string{
+						"key1": "value1",
+						"key2": "value2",
+					},
+				},
+			},
+		},
+		{
+			name: "Remove annotations",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						WorkspacesPodAnnotations: nil,
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					PodAnnotations: nil,
+				},
+			},
+			existedObjects: []runtime.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							PodAnnotations: map[string]string{
+								"key1": "value1",
+								"key2": "value2",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			deployContext := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
+			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
+			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
+			assert.NoError(t, err)
+
+			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
+			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			assert.NoError(t, err)
+			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.PodAnnotations, dwoc.Config.Workspace.PodAnnotations)
+		})
+	}
+}
