@@ -61,6 +61,9 @@ type RoutingConfig struct {
 	// DevWorkspaces. However, changing the proxy configuration for the DevWorkspace Operator itself
 	// requires restarting the controller deployment.
 	ProxyConfig *Proxy `json:"proxyConfig,omitempty"`
+	// TLSCertificateConfigmapRef defines the name and namespace of the configmap with a certificate to inject into the
+	// HTTP client.
+	TLSCertificateConfigmapRef *ConfigmapReference `json:"tlsCertificateConfigmapRef,omitempty"`
 }
 
 type WorkspaceConfig struct {
@@ -144,6 +147,8 @@ type WorkspaceConfig struct {
 	// the value "0" should be used. By default, the memory limit is 128Mi and the memory request is 64Mi.
 	// No CPU limit or request is added by default.
 	DefaultContainerResources *corev1.ResourceRequirements `json:"defaultContainerResources,omitempty"`
+	// PodAnnotations defines the metadata.annotations for DevWorkspace pods created by the DevWorkspace Operator.
+	PodAnnotations map[string]string `json:"podAnnotations,omitempty"`
 }
 
 type PersistentHomeConfig struct {
@@ -152,6 +157,12 @@ type PersistentHomeConfig struct {
 	// Must be used with the 'per-user'/'common' or 'per-workspace' storage class in order to take effect.
 	// Disabled by default.
 	Enabled *bool `json:"enabled,omitempty"`
+	// Determines whether the init container that initializes the persistent home directory should be disabled.
+	// When the `/home/user` directory is persisted, the init container is used to initialize the directory before
+	// the workspace starts. If set to true, the init container will not be created.
+	// This field is not used if the `workspace.persistUserHome.enabled` field is set to false.
+	// Enabled by default.
+	DisableInitContainer *bool `json:"disableInitContainer,omitempty"`
 }
 
 type Proxy struct {
@@ -238,6 +249,13 @@ type ProjectCloneConfig struct {
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 	// Env allows defining additional environment variables for the project clone container.
 	Env []corev1.EnvVar `json:"env,omitempty"`
+}
+
+type ConfigmapReference struct {
+	// Name is the name of the configmap
+	Name string `json:"name"`
+	// Namespace is the namespace of the configmap
+	Namespace string `json:"namespace"`
 }
 
 // DevWorkspaceOperatorConfig is the Schema for the devworkspaceoperatorconfigs API
