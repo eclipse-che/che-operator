@@ -23,28 +23,30 @@ import (
 )
 
 func TestReadEditorDefinitions(t *testing.T) {
-	err := os.Setenv("RELATED_IMAGE_editor_definition_che_code_1_2_3_component_a", "image-new-a")
+	err := os.Setenv("RELATED_IMAGE_editor_definition_che_code_1_2_3_component_a", "image-new-1_2_3-a")
+	err = os.Setenv("RELATED_IMAGE_editor_definition_che_code_2022_1_component_a", "image-new-2022_1-a")
 	assert.NoError(t, err)
 
 	defer func() {
 		_ = os.Setenv("RELATED_IMAGE_editor_definition_che_code_1_2_3_component_a", "")
+		_ = os.Setenv("RELATED_IMAGE_editor_definition_che_code_2022_1_component_a", "")
 	}()
 
 	editorDefinitions, err := readEditorDefinitions()
 	assert.NoError(t, err)
 	assert.NotEmpty(t, editorDefinitions)
-	assert.Equal(t, 1, len(editorDefinitions))
-	assert.Contains(t, editorDefinitions, "devfile.yaml")
+	assert.Equal(t, 2, len(editorDefinitions))
+	assert.Contains(t, editorDefinitions, "devfile-1.yaml")
+	assert.Contains(t, editorDefinitions, "devfile-2.yaml")
 
 	var devfile map[string]interface{}
-	err = yaml.Unmarshal(editorDefinitions["devfile.yaml"], &devfile)
+	err = yaml.Unmarshal(editorDefinitions["devfile-1.yaml"], &devfile)
 	assert.NoError(t, err)
 
 	components := devfile["components"].([]interface{})
-
 	component := components[0].(map[string]interface{})
 	container := component["container"].(map[string]interface{})
-	assert.Equal(t, "image-new-a", container["image"])
+	assert.Equal(t, "image-new-1_2_3-a", container["image"])
 
 	component = components[1].(map[string]interface{})
 	container = component["container"].(map[string]interface{})
@@ -53,6 +55,14 @@ func TestReadEditorDefinitions(t *testing.T) {
 	component = components[2].(map[string]interface{})
 	container, ok := component["container"].(map[string]interface{})
 	assert.False(t, ok)
+
+	err = yaml.Unmarshal(editorDefinitions["devfile-2.yaml"], &devfile)
+	assert.NoError(t, err)
+
+	components = devfile["components"].([]interface{})
+	component = components[0].(map[string]interface{})
+	container = component["container"].(map[string]interface{})
+	assert.Equal(t, "image-new-2022_1-a", container["image"])
 }
 
 func TestSyncEditorDefinitions(t *testing.T) {
@@ -61,7 +71,7 @@ func TestSyncEditorDefinitions(t *testing.T) {
 	editorDefinitions, err := readEditorDefinitions()
 	assert.NoError(t, err)
 	assert.NotEmpty(t, editorDefinitions)
-	assert.Len(t, editorDefinitions, 1)
+	assert.Len(t, editorDefinitions, 2)
 
 	done, err := syncEditorDefinitions(ctx, editorDefinitions)
 	assert.NoError(t, err)

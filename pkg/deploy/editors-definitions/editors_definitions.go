@@ -119,7 +119,7 @@ func updateEditorDefinitionImages(devfile map[string]interface{}) {
 	metadata := devfile["metadata"].(map[string]interface{})
 	devfileName := metadata["name"].(string)
 	attributes := metadata["attributes"].(map[string]interface{})
-	devfileVersion := attributes["version"].(string)
+	devfileVersion := fmt.Sprintf("%v", attributes["version"])
 
 	components := devfile["components"].([]interface{})
 	for _, component := range components {
