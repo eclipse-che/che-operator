@@ -7010,6 +7010,16 @@ spec:
                               type: object
                           type: object
                       type: object
+                    ignoredUnrecoverableEvents:
+                      description: |-
+                        IgnoredUnrecoverableEvents defines a list of Kubernetes event names that should
+                        be ignored when deciding to fail a workspace that is starting. This option should be used
+                        if a transient cluster issue is triggering false-positives (for example, if
+                        the cluster occasionally encounters FailedScheduling events). Events listed
+                        here will not trigger workspace failures.
+                      items:
+                        type: string
+                      type: array
                     imagePullPolicy:
                       description: ImagePullPolicy defines the imagePullPolicy used
                         for containers in a DevWorkspace.

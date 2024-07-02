@@ -107,6 +107,8 @@ func updateWorkspaceConfig(ctx *chetypes.DeployContext, operatorConfig *controll
 
 	updateAnnotations(devEnvironments.WorkspacesPodAnnotations, operatorConfig.Workspace)
 
+	updateIgnoredUnrecoverableEvents(devEnvironments.IgnoredUnrecoverableEvents, operatorConfig.Workspace)
+
 	// If the CheCluster has a configured proxy, or if the Che Operator has detected a proxy configuration,
 	// we need to disable automatic proxy handling in the DevWorkspace Operator as its implementation collides
 	// with ours -- they set environment variables the deployment spec explicitly, which overrides the proxy-settings
@@ -198,6 +200,10 @@ func updateWorkspaceImagePullPolicy(imagePullPolicy corev1.PullPolicy, workspace
 
 func updateAnnotations(annotations map[string]string, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
 	workspaceConfig.PodAnnotations = annotations
+}
+
+func updateIgnoredUnrecoverableEvents(ignoredUnrecoverableEvents []string, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
+	workspaceConfig.IgnoredUnrecoverableEvents = ignoredUnrecoverableEvents
 }
 
 func updateWorkspaceServiceAccountConfig(devEnvironments *chev2.CheClusterDevEnvironments, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
