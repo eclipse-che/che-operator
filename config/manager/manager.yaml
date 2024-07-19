@@ -135,6 +135,24 @@ spec:
               value: quay.io/che-incubator/che-code:insiders
             - name: RELATED_IMAGE_editor_definition_che_code_insiders_che_code_runtime_description
               value: quay.io/devfile/universal-developer-image:latest
+            - name: RELATED_IMAGE_che_code_devfile_registry_image_NFXHG2LEMVZHG___
+              value: quay.io/che-incubator/che-code@sha256:7c1c02015fc0009d1659a21a929a8334bec57e4ff1a259f5d7e5d3ef17ab4fe8
+            - name: RELATED_IMAGE_che_code_devfile_registry_image_IBZWQYJSGU3DUNTEMUYWMYRYG5TDOYTDMI3GGMBQG4YGGNJWG43GKNRTHA3GKMDGME2WKNZZGU4DGMJYMU3DKOJTHBTDKZJQMNSTAZRSMVSDIMBRGNSQ____
+              value: quay.io/che-incubator/che-code@sha256:6de1fb87f7bcb6c0070c5676e6386e0fa5e7958318e65938f5e0ce0f2ed4013e
+            - name: RELATED_IMAGE_universal_developer_image_devfile_registry_image_OVRGSOBNNRQXIZLTOQ______
+              value: quay.io/devfile/universal-developer-image@sha256:3042c191da06ed2b566d1a5dd7ef382bbc548d98b3676bdbade0c39ae060821f
+            - name: RELATED_IMAGE_universal_developer_image_devfile_registry_image_IBZWQYJSGU3DUMZQGQZGGMJZGFSGCMBWMVSDEYRVGY3GIMLBGVSGIN3FMYZTQMTCMJRTKNBYMQ4TQYRTGY3TMYTEMJQWIZJQMMZTSYLFGA3DAOBSGFTA____
+              value: quay.io/devfile/universal-developer-image@sha256:3042c191da06ed2b566d1a5dd7ef382bbc548d98b3676bdbade0c39ae060821f
+            - name: RELATED_IMAGE_che__centos__mongodb_36_centos7_devfile_registry_image_NRQXIZLTOQWWCOJRGVSGEN3CMVRWCOBXGE4TQZTDMQ3TQNRQGA4DMOJYHFTGKODBGMZDOYJRME2GMNRVGA4DAMRVMI3DIYLCGI4GMY3DG42DEM3CGI______
+              value: quay.io/eclipse/che--centos--mongodb-36-centos7@sha256:a915db7beca87198fcd7860086989fe8a327a1a4f6508025b64ab28fcc7423b2
+            - name: RELATED_IMAGE_che__centos__mongodb_36_centos7_devfile_registry_image_NRQXIZLTOQWWMZTEMYZDIMZRMJRGGNTEHFQTSZBSMEYDGZJZGVRGEYTFHBQWIYRUHFQWEOLFMFRTGMBRMYZDMODBGM2TAMZYMM4DIMRYHAZDKOLDGE______
+              value: quay.io/eclipse/che--centos--mongodb-36-centos7@sha256:ffdf2431bbc6d9a9d2a03e95bbbe8adb49ab9eac301f268a35038c84288259c1
+            - name: RELATED_IMAGE_che__centos__mysql_57_centos7_devfile_registry_image_NRQXIZLTOQWWKMBYMVSTIZBUGNRDOMZVGY3DANZWHA2WENRZMJSGKNRTGM2WKMRXMNTDEMDDGAZDAZRTGQ2WENTDGZRTKOJUGAYDCOBTHA4DENZWGQ______
+              value: quay.io/eclipse/che--centos--mysql-57-centos7@sha256:e08ee4d43b7356607685b69bde6335e27cf20c020f345b6c6c59400183882764
+            - name: RELATED_IMAGE_che__mariadb_devfile_registry_image_GEYC4NZOGEWTKYJYGAYDSMZWHFSWKNJXMM4DKYRWMY2GCMBYGQYDMMJUG5RGIOLDGUYDKY3EMU3GEOBSGUYGIMJWMEZDOZBSME2WMZLCMZSGKYLEG4______
+              value: quay.io/eclipse/che--mariadb@sha256:5a8009369ee57c85b6f4a08406147bd9c505cde6b8250d16a27d2a5febfdead7
+            - name: RELATED_IMAGE_ubi_minimal_devfile_registry_image_
+              value: registry.access.redhat.com/ubi8/ubi-minimal@sha256:de2a0a20c1c3b39c3de829196de9694d09f97cd18fda1004de855ed2b4c841ba
           livenessProbe:
             httpGet:
               path: /healthz
