@@ -54,21 +54,21 @@ spec:
         - name: OPERATOR_NAME
           value: che-operator
         - name: CHE_VERSION
-          value: 7.88.0
+          value: 7.89.0
         - name: RELATED_IMAGE_che_server
-          value: quay.io/eclipse/che-server:7.88.0
+          value: quay.io/eclipse/che-server:7.89.0
         - name: RELATED_IMAGE_dashboard
-          value: quay.io/eclipse/che-dashboard:7.88.0
+          value: quay.io/eclipse/che-dashboard:7.89.0
         - name: RELATED_IMAGE_plugin_registry
-          value: quay.io/eclipse/che-plugin-registry:7.88.0
+          value: quay.io/eclipse/che-plugin-registry:7.89.0
         - name: RELATED_IMAGE_devfile_registry
-          value: quay.io/eclipse/che-devfile-registry:7.88.0
+          value: quay.io/eclipse/che-devfile-registry:7.89.0
         - name: RELATED_IMAGE_che_tls_secrets_creation_job
           value: quay.io/eclipse/che-tls-secret-creator:alpine-01a4c34
         - name: RELATED_IMAGE_single_host_gateway
           value: quay.io/eclipse/che--traefik:v2.9.10-8d81a9df1435f9f3d36ac9398465ef2d5d61e671059974db753faaed14b627de
         - name: RELATED_IMAGE_single_host_gateway_config_sidecar
-          value: quay.io/che-incubator/configbump:7.88.0
+          value: quay.io/che-incubator/configbump:7.89.0
         - name: RELATED_IMAGE_gateway_authentication_sidecar
           value: quay.io/openshift/origin-oauth-proxy:4.9
         - name: RELATED_IMAGE_gateway_authorization_sidecar
@@ -104,13 +104,9 @@ spec:
         - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_CONTAINERSECURITYCONTEXT
           value: '{"allowPrivilegeEscalation": true,"capabilities": {"add": ["SETGID",
             "SETUID"]}}'
-        - name: RELATED_IMAGE_editor_definition_che_idea_next_che_idea_runtime_description
-          value: quay.io/devfile/universal-developer-image:latest
-        - name: RELATED_IMAGE_editor_definition_che_idea_next_che_idea_injector
-          value: quay.io/che-incubator/che-idea:next
-        - name: RELATED_IMAGE_editor_definition_che_code_insiders_che_code_injector
-          value: quay.io/che-incubator/che-code:insiders
-        - name: RELATED_IMAGE_editor_definition_che_code_insiders_che_code_runtime_description
+        - name: RELATED_IMAGE_editor_definition_che_code_latest_che_code_injector
+          value: quay.io/che-incubator/che-code:7.89.0
+        - name: RELATED_IMAGE_editor_definition_che_code_latest_che_code_runtime_description
           value: quay.io/devfile/universal-developer-image:latest
         - name: RELATED_IMAGE_editor_definition_che_idea_latest_che_idea_runtime_description
           value: quay.io/devfile/universal-developer-image:latest
@@ -120,22 +116,26 @@ spec:
           value: quay.io/che-incubator/che-idea-dev-server:next
         - name: RELATED_IMAGE_editor_definition_che_idea_server_next_editor_runtime
           value: quay.io/devfile/universal-developer-image:latest
+        - name: RELATED_IMAGE_editor_definition_che_idea_next_che_idea_runtime_description
+          value: quay.io/devfile/universal-developer-image:latest
+        - name: RELATED_IMAGE_editor_definition_che_idea_next_che_idea_injector
+          value: quay.io/che-incubator/che-idea:next
         - name: RELATED_IMAGE_editor_definition_che_idea_server_latest_editor_injector
           value: quay.io/che-incubator/che-idea-dev-server:latest
         - name: RELATED_IMAGE_editor_definition_che_idea_server_latest_editor_runtime
           value: quay.io/devfile/universal-developer-image:latest
-        - name: RELATED_IMAGE_editor_definition_che_code_latest_che_code_injector
-          value: quay.io/che-incubator/che-code:7.88.0
-        - name: RELATED_IMAGE_editor_definition_che_code_latest_che_code_runtime_description
+        - name: RELATED_IMAGE_editor_definition_che_code_insiders_che_code_injector
+          value: quay.io/che-incubator/che-code:insiders
+        - name: RELATED_IMAGE_editor_definition_che_code_insiders_che_code_runtime_description
           value: quay.io/devfile/universal-developer-image:latest
         - name: RELATED_IMAGE_che_code_devfile_registry_image_NFXHG2LEMVZHG___
-          value: quay.io/che-incubator/che-code@sha256:f24b9538fd50d63f665fec700e1d0f02ae451e103b138b600bd0fd944f51abbf
-        - name: RELATED_IMAGE_che_code_devfile_registry_image_IBZWQYJSGU3DUNZUGZTDOMZVHE2DGMBSGU2DOM3BMEZWCMBWGAZGINBYGQYWGYLDMYYDSYZWMQ2TMMRWGEYDAYZRMM2DQNRVMQ3TKNJQMNRTCY3DHBSQ____
-          value: quay.io/che-incubator/che-code@sha256:746f735943025473aa3a0602d4841cacf09c6d5626100c1c4865d7550cc1cc8e
+          value: quay.io/che-incubator/che-code@sha256:7c1c02015fc0009d1659a21a929a8334bec57e4ff1a259f5d7e5d3ef17ab4fe8
+        - name: RELATED_IMAGE_che_code_devfile_registry_image_IBZWQYJSGU3DUNTEMUYWMYRYG5TDOYTDMI3GGMBQG4YGGNJWG43GKNRTHA3GKMDGME2WKNZZGU4DGMJYMU3DKOJTHBTDKZJQMNSTAZRSMVSDIMBRGNSQ____
+          value: quay.io/che-incubator/che-code@sha256:6de1fb87f7bcb6c0070c5676e6386e0fa5e7958318e65938f5e0ce0f2ed4013e
         - name: RELATED_IMAGE_universal_developer_image_devfile_registry_image_OVRGSOBNNRQXIZLTOQ______
-          value: quay.io/devfile/universal-developer-image@sha256:742bf25cb1429d9c2177b611f516e9053c8858d0fa90cc6a561bdf822ae9539e
-        - name: RELATED_IMAGE_universal_developer_image_devfile_registry_image_IBZWQYJSGU3DUNZUGJRGMMRVMNRDCNBSHFSDSYZSGE3TOYRWGEYWMNJRGZSTSMBVGNRTQOBVHBSDAZTBHEYGGYZWME2TMMLCMRTDQMRSMFSTSNJTHFSQ____
-          value: quay.io/devfile/universal-developer-image@sha256:742bf25cb1429d9c2177b611f516e9053c8858d0fa90cc6a561bdf822ae9539e
+          value: quay.io/devfile/universal-developer-image@sha256:3042c191da06ed2b566d1a5dd7ef382bbc548d98b3676bdbade0c39ae060821f
+        - name: RELATED_IMAGE_universal_developer_image_devfile_registry_image_IBZWQYJSGU3DUMZQGQZGGMJZGFSGCMBWMVSDEYRVGY3GIMLBGVSGIN3FMYZTQMTCMJRTKNBYMQ4TQYRTGY3TMYTEMJQWIZJQMMZTSYLFGA3DAOBSGFTA____
+          value: quay.io/devfile/universal-developer-image@sha256:3042c191da06ed2b566d1a5dd7ef382bbc548d98b3676bdbade0c39ae060821f
         - name: RELATED_IMAGE_che__centos__mongodb_36_centos7_devfile_registry_image_NRQXIZLTOQWWCOJRGVSGEN3CMVRWCOBXGE4TQZTDMQ3TQNRQGA4DMOJYHFTGKODBGMZDOYJRME2GMNRVGA4DAMRVMI3DIYLCGI4GMY3DG42DEM3CGI______
           value: quay.io/eclipse/che--centos--mongodb-36-centos7@sha256:a915db7beca87198fcd7860086989fe8a327a1a4f6508025b64ab28fcc7423b2
         - name: RELATED_IMAGE_che__centos__mongodb_36_centos7_devfile_registry_image_NRQXIZLTOQWWMZTEMYZDIMZRMJRGGNTEHFQTSZBSMEYDGZJZGVRGEYTFHBQWIYRUHFQWEOLFMFRTGMBRMYZDMODBGM2TAMZYMM4DIMRYHAZDKOLDGE______
@@ -145,8 +145,8 @@ spec:
         - name: RELATED_IMAGE_che__mariadb_devfile_registry_image_GEYC4NZOGEWTKYJYGAYDSMZWHFSWKNJXMM4DKYRWMY2GCMBYGQYDMMJUG5RGIOLDGUYDKY3EMU3GEOBSGUYGIMJWMEZDOZBSME2WMZLCMZSGKYLEG4______
           value: quay.io/eclipse/che--mariadb@sha256:5a8009369ee57c85b6f4a08406147bd9c505cde6b8250d16a27d2a5febfdead7
         - name: RELATED_IMAGE_ubi_minimal_devfile_registry_image_
-          value: registry.access.redhat.com/ubi8/ubi-minimal@sha256:5f1cd3422d5d46aea35dac80825dbcbd58213eef49c317f42a394345fb4e8ff1
-        image: quay.io/eclipse/che-operator:7.88.0
+          value: registry.access.redhat.com/ubi8/ubi-minimal@sha256:de2a0a20c1c3b39c3de829196de9694d09f97cd18fda1004de855ed2b4c841ba
+        image: quay.io/eclipse/che-operator:7.89.0
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 10
