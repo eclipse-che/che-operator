@@ -630,6 +630,7 @@ func add5XXErrorHandling(cfg *gateway.TraefikConfig, dwId string) {
 			DialTimeout: "2500ms",
 		},
 	}
+	// TODO: Add retry for the health endpoint with a little more time between
 	cfg.AddRetry(dwId, 2, "500ms")
 	cfg.HTTP.Services[dwId].LoadBalancer.ServersTransport = dwId
 }
