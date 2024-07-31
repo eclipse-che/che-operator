@@ -19,6 +19,7 @@ const (
 	ErrorsMiddlewareSuffix        = "-errors"
 	HeadersMiddlewareSuffix       = "-headers"
 	RetryMiddlewareSuffix         = "-retry"
+	RetryHealthzMiddlewareSuffix  = "-retry-healthz"
 )
 
 func CreateEmptyTraefikConfig() *TraefikConfig {
@@ -130,7 +131,15 @@ func (cfg *TraefikConfig) AddResponseHeaders(componentName string, headers map[s
 }
 
 func (cfg *TraefikConfig) AddRetry(componentName string, attempts int, initialInterval string) {
-	middlewareName := componentName + RetryMiddlewareSuffix
+	cfg.addRetry(componentName, RetryMiddlewareSuffix, attempts, initialInterval)
+}
+
+func (cfg *TraefikConfig) AddRetryHealthz(componentName string, attempts int, initialInterval string) {
+	cfg.addRetry(componentName, RetryHealthzMiddlewareSuffix, attempts, initialInterval)
+}
+
+func (cfg *TraefikConfig) addRetry(componentName, suffix string, attempts int, initialInterval string) {
+	middlewareName := componentName + suffix
 	cfg.HTTP.Routers[componentName].Middlewares = append(cfg.HTTP.Routers[componentName].Middlewares, middlewareName)
 	cfg.HTTP.Middlewares[middlewareName] = &TraefikConfigMiddleware{
 		Retry: &TraefikConfigRetry{

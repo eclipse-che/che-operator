@@ -340,7 +340,7 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 		wsid := "wsid-m1-9999"
 		assert.Contains(t, workspaceConfig.HTTP.Routers, wsid)
 		assert.Len(t, workspaceConfig.HTTP.Routers[wsid].Middlewares, 2)
-		assert.Len(t, workspaceConfig.HTTP.Middlewares, 3)
+		assert.Len(t, workspaceConfig.HTTP.Middlewares, 4)
 
 		mwares := []string{wsid + gateway.StripPrefixMiddlewareSuffix}
 		for _, mware := range mwares {
@@ -356,7 +356,7 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 
 		workspaceMainConfig := gateway.TraefikConfig{}
 		assert.NoError(t, yaml.Unmarshal([]byte(traefikMainWorkspaceConfig), &workspaceMainConfig))
-		assert.Len(t, workspaceMainConfig.HTTP.Middlewares, 5)
+		assert.Len(t, workspaceMainConfig.HTTP.Middlewares, 6)
 
 		wsid = "wsid"
 		mwares = []string{
@@ -402,6 +402,7 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 			assert.NotContains(t, workspaceMainConfig.HTTP.Routers[healthzName].Middlewares, "wsid"+gateway.AuthMiddlewareSuffix)
 			assert.Contains(t, workspaceMainConfig.HTTP.Routers[healthzName].Middlewares, "wsid"+gateway.StripPrefixMiddlewareSuffix)
 			assert.NotContains(t, workspaceMainConfig.HTTP.Routers[healthzName].Middlewares, "wsid"+gateway.HeaderRewriteMiddlewareSuffix)
+			assert.Contains(t, workspaceMainConfig.HTTP.Routers[healthzName].Middlewares, healthzName+gateway.RetryHealthzMiddlewareSuffix)
 		})
 
 		t.Run("testHealthzEndpointInWorkspaceRoute", func(t *testing.T) {
@@ -411,6 +412,7 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 			assert.Equal(t, workspaceConfig.HTTP.Routers[healthzName].Rule, "Path(`/9999/healthz`)")
 			assert.NotContains(t, workspaceConfig.HTTP.Routers[healthzName].Middlewares, healthzName+gateway.AuthMiddlewareSuffix)
 			assert.Contains(t, workspaceConfig.HTTP.Routers[healthzName].Middlewares, healthzName+gateway.StripPrefixMiddlewareSuffix)
+			assert.Contains(t, workspaceConfig.HTTP.Routers[healthzName].Middlewares, healthzName+gateway.RetryHealthzMiddlewareSuffix)
 		})
 
 	})
@@ -477,7 +479,7 @@ func TestCreateRelocatedObjectsK8SLegacy(t *testing.T) {
 		wsid := "wsid-m1-9999"
 		assert.Contains(t, workspaceConfig.HTTP.Routers, wsid)
 		assert.Len(t, workspaceConfig.HTTP.Routers[wsid].Middlewares, 2)
-		assert.Len(t, workspaceConfig.HTTP.Middlewares, 3)
+		assert.Len(t, workspaceConfig.HTTP.Middlewares, 4)
 
 		mwares := []string{wsid + gateway.StripPrefixMiddlewareSuffix}
 		for _, mware := range mwares {
@@ -493,7 +495,7 @@ func TestCreateRelocatedObjectsK8SLegacy(t *testing.T) {
 
 		workspaceMainConfig := gateway.TraefikConfig{}
 		assert.NoError(t, yaml.Unmarshal([]byte(traefikMainWorkspaceConfig), &workspaceMainConfig))
-		assert.Len(t, workspaceMainConfig.HTTP.Middlewares, 5)
+		assert.Len(t, workspaceMainConfig.HTTP.Middlewares, 6)
 
 		wsid = "wsid"
 		mwares = []string{
@@ -541,6 +543,7 @@ func TestCreateRelocatedObjectsK8SLegacy(t *testing.T) {
 			assert.NotContains(t, workspaceMainConfig.HTTP.Routers[healthzName].Middlewares, "wsid"+gateway.AuthMiddlewareSuffix)
 			assert.Contains(t, workspaceMainConfig.HTTP.Routers[healthzName].Middlewares, "wsid"+gateway.StripPrefixMiddlewareSuffix)
 			assert.NotContains(t, workspaceMainConfig.HTTP.Routers[healthzName].Middlewares, "wsid"+gateway.HeaderRewriteMiddlewareSuffix)
+
 		})
 
 		t.Run("testHealthzEndpointInWorkspaceRoute", func(t *testing.T) {
@@ -551,6 +554,7 @@ func TestCreateRelocatedObjectsK8SLegacy(t *testing.T) {
 			assert.Equal(t, workspaceConfig.HTTP.Routers[healthzName].Priority, 101+len("/m1/9999"))
 			assert.NotContains(t, workspaceConfig.HTTP.Routers[healthzName].Middlewares, healthzName+gateway.AuthMiddlewareSuffix)
 			assert.Contains(t, workspaceConfig.HTTP.Routers[healthzName].Middlewares, healthzName+gateway.StripPrefixMiddlewareSuffix)
+			assert.Contains(t, workspaceConfig.HTTP.Routers[healthzName].Middlewares, healthzName+gateway.RetryHealthzMiddlewareSuffix)
 		})
 
 	})
@@ -606,7 +610,7 @@ func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 
 		workspaceMainConfig := gateway.TraefikConfig{}
 		assert.NoError(t, yaml.Unmarshal([]byte(traefikMainWorkspaceConfig), &workspaceMainConfig))
-		assert.Len(t, workspaceMainConfig.HTTP.Middlewares, 6)
+		assert.Len(t, workspaceMainConfig.HTTP.Middlewares, 7)
 
 		wsid = "wsid"
 		mwares := []string{
@@ -714,7 +718,7 @@ func TestCreateRelocatedObjectsOpenshiftLegacy(t *testing.T) {
 
 		workspaceMainConfig := gateway.TraefikConfig{}
 		assert.NoError(t, yaml.Unmarshal([]byte(traefikMainWorkspaceConfig), &workspaceMainConfig))
-		assert.Len(t, workspaceMainConfig.HTTP.Middlewares, 6)
+		assert.Len(t, workspaceMainConfig.HTTP.Middlewares, 7)
 
 		wsid = "wsid"
 		mwares := []string{
