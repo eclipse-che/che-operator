@@ -55,6 +55,7 @@ type EndpointInfo struct {
 	port          int32
 	scheme        string
 	service       *corev1.Service
+	annotations   map[string]string
 }
 
 // This method is used compose the object names (both Kubernetes objects and "objects" within Traefik configuration)
@@ -155,7 +156,7 @@ func (e *RouteExposer) getRouteForService(endpoint *EndpointInfo, endpointStrate
 			Name:            getEndpointExposingObjectName(endpoint.componentName, e.devWorkspaceID, endpoint.port, endpoint.endpointName),
 			Namespace:       endpoint.service.Namespace,
 			Labels:          labels,
-			Annotations:     routeAnnotations(endpoint.componentName, endpoint.endpointName),
+			Annotations:     routeAnnotations(endpoint.annotations, endpoint.componentName, endpoint.endpointName),
 			OwnerReferences: endpoint.service.OwnerReferences,
 		},
 		Spec: routev1.RouteSpec{
@@ -197,7 +198,7 @@ func (e *IngressExposer) getIngressForService(endpoint *EndpointInfo, endpointSt
 				dwconstants.DevWorkspaceIDLabel:    e.devWorkspaceID,
 				constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
 			},
-			Annotations:     finalizeIngressAnnotations(e.ingressAnnotations, endpoint.componentName, endpoint.endpointName),
+			Annotations:     finalizeIngressAnnotations(e.ingressAnnotations, endpoint.annotations, endpoint.componentName, endpoint.endpointName),
 			OwnerReferences: endpoint.service.OwnerReferences,
 		},
 		Spec: networkingv1.IngressSpec{
@@ -239,16 +240,22 @@ func (e *IngressExposer) getIngressForService(endpoint *EndpointInfo, endpointSt
 	return ingress
 }
 
-func routeAnnotations(machineName string, endpointName string) map[string]string {
-	return map[string]string{
-		defaults.ConfigAnnotationEndpointName:  endpointName,
-		defaults.ConfigAnnotationComponentName: machineName,
+func routeAnnotations(endpointAnnotations map[string]string, machineName string, endpointName string) map[string]string {
+	annos := map[string]string{}
+	for k, v := range endpointAnnotations {
+		annos[k] = v
 	}
+	annos[defaults.ConfigAnnotationEndpointName] = endpointName
+	annos[defaults.ConfigAnnotationComponentName] = machineName
+	return annos
 }
 
-func finalizeIngressAnnotations(ingressAnnotations map[string]string, machineName string, endpointName string) map[string]string {
+func finalizeIngressAnnotations(ingressAnnotations, endpointAnnotations map[string]string, machineName string, endpointName string) map[string]string {
 	annos := map[string]string{}
 	for k, v := range ingressAnnotations {
+		annos[k] = v
+	}
+	for k, v := range endpointAnnotations {
 		annos[k] = v
 	}
 	annos[defaults.ConfigAnnotationEndpointName] = endpointName
