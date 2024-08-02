@@ -11,7 +11,7 @@
 #
 schemaVersion: 2.3.0
 attributes:
-  controller.devfile.io/storage-type: ephemeral
+  controller.devfile.io/storage-type: per-workspace
 metadata:
   name: che-operator
 components:
