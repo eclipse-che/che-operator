@@ -514,6 +514,7 @@ func exposeAllEndpoints(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceR
 					port:          int32(e.TargetPort),
 					scheme:        determineEndpointScheme(e),
 					service:       commonService,
+					annotations:   e.Annotations,
 				})
 				order = order + 1
 			}
