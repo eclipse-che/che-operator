@@ -71,6 +71,12 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployCon
 
 	envVars = append(envVars,
 		corev1.EnvVar{
+			Name:  "CHE_DASHBOARD_INTERNAL_URL",
+			Value: fmt.Sprintf("http://%s.%s.svc:8080", d.getComponentName(ctx), ctx.CheCluster.Namespace)},
+	)
+
+	envVars = append(envVars,
+		corev1.EnvVar{
 			Name:  "CHE_INTERNAL_URL",
 			Value: fmt.Sprintf("http://%s.%s.svc:8080/api", deploy.CheServiceName, ctx.CheCluster.Namespace)},
 	)
