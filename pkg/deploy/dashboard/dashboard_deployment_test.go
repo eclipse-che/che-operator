@@ -13,6 +13,7 @@
 package dashboard
 
 import (
+	"fmt"
 	"os"
 
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -170,6 +171,10 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 					Value: "eclipse-che",
 				},
 				{
+					Name:  "CHE_DASHBOARD_INTERNAL_URL",
+					Value: fmt.Sprintf("http://%s-dashboard.eclipse-che.svc:8080", defaults.GetCheFlavor()),
+				},
+				{
 					Name:  "CHE_INTERNAL_URL",
 					Value: "http://che-host.eclipse-che.svc:8080/api",
 				},
@@ -248,6 +253,10 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 				{
 					Name:  "CHECLUSTER_CR_NAME",
 					Value: "eclipse-che",
+				},
+				{
+					Name:  "CHE_DASHBOARD_INTERNAL_URL",
+					Value: fmt.Sprintf("http://%s-dashboard.eclipse-che.svc:8080", defaults.GetCheFlavor()),
 				},
 				{
 					Name:  "CHE_INTERNAL_URL",
