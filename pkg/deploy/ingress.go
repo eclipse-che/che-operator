@@ -187,8 +187,6 @@ func GetIngressSpec(
 // and endpoint path (one which client should use during endpoint accessing)
 func evaluatePath(component string) (endpointPath, ingressPath string) {
 	switch component {
-	case constants.DevfileRegistryName:
-		fallthrough
 	case constants.PluginRegistryName:
 		endpointPath = "/" + component
 		ingressPath = endpointPath + "/(.*)"

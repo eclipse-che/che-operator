@@ -59,7 +59,7 @@ runTest() {
   CHECLUSTER_CR="${HELMCHART_DIR}"/templates/org_v2_checluster.yaml
   yq -riY '.spec.components = null' ${CHECLUSTER_CR}
   yq -riY '.spec.components.pluginRegistry.openVSXURL = "https://open-vsx.org"' ${CHECLUSTER_CR}
-  for component in pluginRegistry devfileRegistry dashboard; do
+  for component in pluginRegistry dashboard; do
     yq -riY '.spec.components.'${component}'.deployment.containers[0].resources = {limits: {cpu: "50m"}, request: {cpu: "50m"}}' ${CHECLUSTER_CR}
   done
   yq -riY '.spec.components.cheServer.deployment.containers[0].resources.limits.cpu = "500m"' ${CHECLUSTER_CR}

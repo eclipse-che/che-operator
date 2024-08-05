@@ -104,7 +104,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che.v7.89.0-876.next
+  name: eclipse-che.v7.90.0-877.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -112,10 +112,9 @@ spec:
     owned:
       - description: 'The `CheCluster` custom resource allows defining and managing
           Eclipse Che server installation. Based on these settings, the  Operator
-          automatically creates and maintains several ConfigMaps: `che`, `plugin-registry`,
-          `devfile-registry` that will contain the appropriate environment variables
-          of the various components of the installation. These generated ConfigMaps
-          must NOT be updated manually.'
+          automatically creates and maintains several ConfigMaps: `che`, `plugin-registry`
+          that will contain the appropriate environment variables of the various components
+          of the installation. These generated ConfigMaps must NOT be updated manually.'
         displayName: Eclipse Che instance Specification
         kind: CheCluster
         name: checlusters.org.eclipse.che
@@ -881,8 +880,6 @@ spec:
                         value: quay.io/eclipse/che-dashboard:next
                       - name: RELATED_IMAGE_plugin_registry
                         value: quay.io/eclipse/che-plugin-registry:next
-                      - name: RELATED_IMAGE_devfile_registry
-                        value: quay.io/eclipse/che-devfile-registry:next
                       - name: RELATED_IMAGE_che_tls_secrets_creation_job
                         value: quay.io/eclipse/che-tls-secret-creator:alpine-01a4c34
                       - name: RELATED_IMAGE_single_host_gateway
@@ -1036,7 +1033,7 @@ spec:
   minKubeVersion: 1.19.0
   provider:
     name: Eclipse Foundation
-  version: 7.89.0-876.next
+  version: 7.90.0-877.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1

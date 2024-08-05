@@ -32,7 +32,6 @@ var (
 	defaultCheServerImage                                   string
 	defaultDashboardImage                                   string
 	defaultPluginRegistryImage                              string
-	defaultDevfileRegistryImage                             string
 	defaultCheTLSSecretsCreationJobImage                    string
 	defaultSingleHostGatewayImage                           string
 	defaultSingleHostGatewayConfigSidecarImage              string
@@ -87,7 +86,6 @@ func Initialize() {
 	defaultCheServerImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_che_server"))
 	defaultDashboardImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_dashboard"))
 	defaultPluginRegistryImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_plugin_registry"))
-	defaultDevfileRegistryImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_devfile_registry"))
 	defaultSingleHostGatewayImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_single_host_gateway"))
 	defaultSingleHostGatewayConfigSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_single_host_gateway_config_sidecar"))
 	defaultGatewayAuthenticationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authentication_sidecar"))
@@ -150,14 +148,6 @@ func GetPluginRegistryImage(checluster interface{}) string {
 	}
 
 	return PatchDefaultImageName(checluster, defaultPluginRegistryImage)
-}
-
-func GetDevfileRegistryImage(checluster interface{}) string {
-	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
-	}
-
-	return PatchDefaultImageName(checluster, defaultDevfileRegistryImage)
 }
 
 func GetGatewayImage(checluster interface{}) string {

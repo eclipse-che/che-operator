@@ -4016,7 +4016,7 @@ spec:
         description: |-
           The `CheCluster` custom resource allows defining and managing Eclipse Che server installation.
           Based on these settings, the  Operator automatically creates and maintains several ConfigMaps:
-          `che`, `plugin-registry`, `devfile-registry` that will contain the appropriate environment variables
+          `che`, `plugin-registry` that will contain the appropriate environment variables
           of the various components of the installation. These generated ConfigMaps must NOT be updated manually.
         properties:
           apiVersion:
@@ -4611,7 +4611,7 @@ spec:
                       used by the Che installation.
                     properties:
                       deployment:
-                        description: Deployment override options.
+                        description: Deprecated deployment override options.
                         properties:
                           containers:
                             description: List of containers belonging to the pod.
@@ -8833,8 +8833,6 @@ spec:
           value: quay.io/eclipse/che-dashboard:next
         - name: RELATED_IMAGE_plugin_registry
           value: quay.io/eclipse/che-plugin-registry:next
-        - name: RELATED_IMAGE_devfile_registry
-          value: quay.io/eclipse/che-devfile-registry:next
         - name: RELATED_IMAGE_che_tls_secrets_creation_job
           value: quay.io/eclipse/che-tls-secret-creator:alpine-01a4c34
         - name: RELATED_IMAGE_single_host_gateway

@@ -368,7 +368,7 @@ type PluginRegistry struct {
 // Configuration settings related to the devfile registry used by the Che installation.
 // +k8s:openapi-gen=true
 type DevfileRegistry struct {
-	// Deployment override options.
+	// Deprecated deployment override options.
 	// +optional
 	Deployment *Deployment `json:"deployment,omitempty"`
 	// Disables internal devfile registry.
@@ -893,7 +893,7 @@ type CheClusterStatus struct {
 
 // The `CheCluster` custom resource allows defining and managing Eclipse Che server installation.
 // Based on these settings, the  Operator automatically creates and maintains several ConfigMaps:
-// `che`, `plugin-registry`, `devfile-registry` that will contain the appropriate environment variables
+// `che`, `plugin-registry` that will contain the appropriate environment variables
 // of the various components of the installation. These generated ConfigMaps must NOT be updated manually.
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:object:root=true
