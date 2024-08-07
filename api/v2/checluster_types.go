@@ -857,7 +857,7 @@ type CheClusterStatus struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="ChePhase"
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors="urn:alm:descriptor:text"
 	ChePhase CheClusterPhase `json:"chePhase,omitempty"`
-	// The public URL of the internal devfile registry.
+	// Deprecated the public URL of the internal devfile registry.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Devfile registry URL"

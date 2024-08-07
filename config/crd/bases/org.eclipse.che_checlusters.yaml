@@ -8285,7 +8285,7 @@ spec:
                 description: Currently installed Che version.
                 type: string
               devfileRegistryURL:
-                description: The public URL of the internal devfile registry.
+                description: Deprecated the public URL of the internal devfile registry.
                 type: string
               gatewayPhase:
                 description: Specifies the current phase of the gateway deployment.

@@ -154,7 +154,7 @@ spec:
         path: cheVersion
         x-descriptors:
         - urn:alm:descriptor:text
-      - description: The public URL of the internal devfile registry.
+      - description: Deprecated the public URL of the internal devfile registry.
         displayName: Devfile registry URL
         path: devfileRegistryURL
         x-descriptors:

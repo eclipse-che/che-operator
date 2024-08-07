@@ -47,6 +47,7 @@ var (
 	defaultDevEnvironmentsContainerSecurityContext          string
 	defaultPluginRegistryOpenVSXURL                         string
 	defaultDashboardHeaderMessageText                       string
+	defaultDevfileRegistryExternalDevfileRegistries         string
 
 	initialized = false
 )
@@ -82,6 +83,7 @@ func Initialize() {
 	defaultDevEnvironmentsDefaultEditor = os.Getenv("CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTEDITOR")
 	defaultPluginRegistryOpenVSXURL = os.Getenv("CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL")
 	defaultDashboardHeaderMessageText = os.Getenv("CHE_DEFAULT_SPEC_COMPONENTS_DASHBOARD_HEADERMESSAGE_TEXT")
+	defaultDevfileRegistryExternalDevfileRegistries = os.Getenv("CHE_DEFAULT_SPEC_COMPONENTS_DEVFILEREGISTRY_EXTERNAL_DEVFILE_REGISTRIES")
 
 	defaultCheServerImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_che_server"))
 	defaultDashboardImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_dashboard"))
@@ -220,6 +222,14 @@ func GetConsoleLinkImage() string {
 	}
 
 	return defaultsConsoleLinkImage
+}
+
+func GetDevfileRegistryExternalDevfileRegistries() string {
+	if !initialized {
+		logrus.Fatalf("Operator defaults are not initialized.")
+	}
+
+	return defaultDevfileRegistryExternalDevfileRegistries
 }
 
 func GetPluginRegistryOpenVSXURL() string {

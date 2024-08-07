@@ -198,6 +198,10 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 					Value: defaults.GetDevEnvironmentsDefaultComponents(),
 				},
 				{
+					Name:  "CHE_DEFAULT_SPEC_COMPONENTS_DEVFILEREGISTRY_EXTERNAL_DEVFILE_REGISTRIES",
+					Value: defaults.GetDevfileRegistryExternalDevfileRegistries(),
+				},
+				{
 					Name:  "CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL",
 					Value: defaults.GetPluginRegistryOpenVSXURL(),
 				},
@@ -261,6 +265,10 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 				{
 					Name:  "CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL",
 					Value: "http://plugin-registry.eclipse-che.svc:8080/v3",
+				},
+				{
+					Name:  "CHE_DEFAULT_SPEC_COMPONENTS_DEVFILEREGISTRY_EXTERNAL_DEVFILE_REGISTRIES",
+					Value: defaults.GetDevfileRegistryExternalDevfileRegistries(),
 				},
 				{
 					Name:  "OPENSHIFT_CONSOLE_URL",
