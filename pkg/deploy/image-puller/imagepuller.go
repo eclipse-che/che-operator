@@ -14,11 +14,8 @@ package imagepuller
 
 import (
 	"fmt"
-	"io"
-	"net/http"
 	"sort"
 	"strings"
-	"time"
 
 	"k8s.io/apimachinery/pkg/util/validation"
 
@@ -132,7 +129,7 @@ func (ip *ImagePuller) syncKubernetesImagePuller(ctx *chetypes.DeployContext) (b
 	imagePuller.Spec.DeploymentName = utils.GetValue(imagePuller.Spec.DeploymentName, defaultDeploymentName)
 	imagePuller.Spec.ImagePullerImage = utils.GetValue(imagePuller.Spec.ImagePullerImage, defaultImagePullerImage)
 	if strings.TrimSpace(imagePuller.Spec.Images) == "" {
-		imagePuller.Spec.Images = getDefaultImages(ctx)
+		imagePuller.Spec.Images = getDefaultImages()
 	}
 
 	return deploy.SyncWithClient(ctx.ClusterAPI.NonCachingClient, ctx, imagePuller, kubernetesImagePullerDiffOpts)
@@ -142,48 +139,14 @@ func getImagePullerCustomResourceName(ctx *chetypes.DeployContext) string {
 	return ctx.CheCluster.Name + "-image-puller"
 }
 
-func getDefaultImages(ctx *chetypes.DeployContext) string {
+func getDefaultImages() string {
 	allImages := make(map[string]bool)
 
-	addImagesFromRegistries(ctx, allImages)
 	addImagesFromEditorsDefinitions(allImages)
 
 	// having them sorted, prevents from constant changing CR spec
 	sortedImages := sortImages(allImages)
 	return convertToSpecField(sortedImages)
-}
-
-func collectRegistriesUrls(ctx *chetypes.DeployContext) []string {
-	urls := make([]string, 0)
-
-	if ctx.CheCluster.Status.DevfileRegistryURL != "" {
-		urls = append(
-			urls,
-			fmt.Sprintf(
-				"http://%s.%s.svc:8080/%s",
-				constants.DevfileRegistryName,
-				ctx.CheCluster.Namespace,
-				"devfiles/external_images.txt",
-			),
-		)
-	}
-
-	return urls
-}
-
-func addImagesFromRegistries(ctx *chetypes.DeployContext, allImages map[string]bool) {
-	urls := collectRegistriesUrls(ctx)
-
-	for _, url := range urls {
-		images, err := fetchImagesFromUrl(url, ctx)
-		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to fetch images from %s", url))
-		} else {
-			for image := range images {
-				allImages[image] = true
-			}
-		}
-	}
 }
 
 func addImagesFromEditorsDefinitions(allImages map[string]bool) {
@@ -221,47 +184,6 @@ func convertToSpecField(images []string) string {
 	}
 
 	return specField
-}
-
-func fetchImagesFromUrl(url string, ctx *chetypes.DeployContext) (map[string]bool, error) {
-	transport := &http.Transport{}
-	if ctx.Proxy.HttpProxy != "" {
-		deploy.ConfigureProxy(ctx, transport)
-	}
-
-	client := &http.Client{
-		Transport: transport,
-		Timeout:   time.Second * 3,
-	}
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return map[string]bool{}, err
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return map[string]bool{}, err
-	}
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return map[string]bool{}, err
-	}
-
-	images := make(map[string]bool)
-	for _, image := range strings.Split(string(data), "\n") {
-		image = strings.TrimSpace(image)
-		if image != "" {
-			images[image] = true
-		}
-	}
-
-	if err = resp.Body.Close(); err != nil {
-		log.Error(err, "Failed to close a body response")
-	}
-
-	return images, nil
 }
 
 // convertToRFC1123 converts input string to RFC 1123 format ([a-z0-9]([-a-z0-9]*[a-z0-9])?) max 63 characters, if possible

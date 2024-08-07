@@ -179,10 +179,6 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 					Value: "http://che-host.eclipse-che.svc:8080/api",
 				},
 				{
-					Name:  "CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL",
-					Value: "http://devfile-registry.eclipse-che.svc:8080",
-				},
-				{
 					Name:  "CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL",
 					Value: "http://plugin-registry.eclipse-che.svc:8080/v3",
 				},
@@ -200,6 +196,10 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 				{
 					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTCOMPONENTS",
 					Value: defaults.GetDevEnvironmentsDefaultComponents(),
+				},
+				{
+					Name:  "CHE_DEFAULT_SPEC_COMPONENTS_DEVFILEREGISTRY_EXTERNAL_DEVFILE_REGISTRIES",
+					Value: defaults.GetDevfileRegistryExternalDevfileRegistries(),
 				},
 				{
 					Name:  "CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL",
@@ -263,12 +263,12 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 					Value: "http://che-host.eclipse-che.svc:8080/api",
 				},
 				{
-					Name:  "CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL",
-					Value: "http://devfile-registry.eclipse-che.svc:8080",
-				},
-				{
 					Name:  "CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL",
 					Value: "http://plugin-registry.eclipse-che.svc:8080/v3",
+				},
+				{
+					Name:  "CHE_DEFAULT_SPEC_COMPONENTS_DEVFILEREGISTRY_EXTERNAL_DEVFILE_REGISTRIES",
+					Value: defaults.GetDevfileRegistryExternalDevfileRegistries(),
 				},
 				{
 					Name:  "OPENSHIFT_CONSOLE_URL",

@@ -43,9 +43,9 @@ spec:
     owned:
     - description: 'The `CheCluster` custom resource allows defining and managing
         Eclipse Che server installation. Based on these settings, the  Operator automatically
-        creates and maintains several ConfigMaps: `che`, `plugin-registry`, `devfile-registry`
-        that will contain the appropriate environment variables of the various components
-        of the installation. These generated ConfigMaps must NOT be updated manually.'
+        creates and maintains several ConfigMaps: `che`, `plugin-registry` that will
+        contain the appropriate environment variables of the various components of
+        the installation. These generated ConfigMaps must NOT be updated manually.'
       displayName: Eclipse Che instance Specification
       kind: CheCluster
       name: checlusters.org.eclipse.che
@@ -154,7 +154,7 @@ spec:
         path: cheVersion
         x-descriptors:
         - urn:alm:descriptor:text
-      - description: The public URL of the internal devfile registry.
+      - description: Deprecated the public URL of the internal devfile registry.
         displayName: Devfile registry URL
         path: devfileRegistryURL
         x-descriptors:

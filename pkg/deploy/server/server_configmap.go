@@ -62,8 +62,6 @@ type CheConfigMap struct {
 	JavaOpts                             string `json:"JAVA_OPTS"`
 	PluginRegistryUrl                    string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__URL,omitempty"`
 	PluginRegistryInternalUrl            string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL,omitempty"`
-	DevfileRegistryUrl                   string `json:"CHE_WORKSPACE_DEVFILE__REGISTRY__URL,omitempty"`
-	DevfileRegistryInternalUrl           string `json:"CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL,omitempty"`
 	CheJGroupsKubernetesLabels           string `json:"KUBERNETES_LABELS,omitempty"`
 	CheTrustedCABundlesConfigMap         string `json:"CHE_TRUSTED__CA__BUNDLES__CONFIGMAP,omitempty"`
 	ServerStrategy                       string `json:"CHE_INFRA_KUBERNETES_SERVER__STRATEGY"`
@@ -112,16 +110,6 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 
 	ingressClass := utils.GetValue(ctx.CheCluster.Spec.Networking.Annotations["kubernetes.io/ingress.class"], constants.DefaultIngressClass)
 
-	// grab first the devfile registry url which is deployed by operator
-	devfileRegistryURL := ctx.CheCluster.Status.DevfileRegistryURL
-
-	for _, r := range ctx.CheCluster.Spec.Components.DevfileRegistry.ExternalDevfileRegistries {
-		if strings.Index(devfileRegistryURL, r.Url) == -1 {
-			devfileRegistryURL += " " + r.Url
-		}
-	}
-	devfileRegistryURL = strings.TrimSpace(devfileRegistryURL)
-
 	pluginRegistryURL := ctx.CheCluster.Status.PluginRegistryURL
 	for _, r := range ctx.CheCluster.Spec.Components.PluginRegistry.ExternalPluginRegistries {
 		if strings.Index(pluginRegistryURL, r.Url) == -1 {
@@ -152,12 +140,7 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 	}
 
 	cheAPI := "https://" + ctx.CheHost + "/api"
-	var pluginRegistryInternalURL, devfileRegistryInternalURL string
-
-	// If there is a devfile registry deployed by operator
-	if !ctx.CheCluster.Spec.Components.DevfileRegistry.DisableInternalRegistry {
-		devfileRegistryInternalURL = fmt.Sprintf("http://%s.%s.svc:8080", constants.DevfileRegistryName, ctx.CheCluster.Namespace)
-	}
+	var pluginRegistryInternalURL string
 
 	if !ctx.CheCluster.Spec.Components.PluginRegistry.DisableInternalRegistry {
 		pluginRegistryInternalURL = fmt.Sprintf("http://%s.%s.svc:8080/v3", constants.PluginRegistryName, ctx.CheCluster.Namespace)
@@ -188,8 +171,6 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 		JavaOpts:                             constants.DefaultJavaOpts + " " + proxyJavaOpts,
 		PluginRegistryUrl:                    pluginRegistryURL,
 		PluginRegistryInternalUrl:            pluginRegistryInternalURL,
-		DevfileRegistryUrl:                   devfileRegistryURL,
-		DevfileRegistryInternalUrl:           devfileRegistryInternalURL,
 		CheJGroupsKubernetesLabels:           cheLabels,
 		CheMetricsEnabled:                    cheMetrics,
 		CheTrustedCABundlesConfigMap:         deploytls.CheAllCACertsConfigMapName,

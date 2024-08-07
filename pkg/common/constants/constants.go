@@ -36,12 +36,6 @@ const (
 	DefaultPluginRegistryCpuLimit                             = "500m"
 	DefaultPluginRegistryCpuRequest                           = "100m"
 
-	// DevfileRegistry
-	DefaultDevfileRegistryMemoryLimit   = "256Mi"
-	DefaultDevfileRegistryMemoryRequest = "32Mi"
-	DefaultDevfileRegistryCpuLimit      = "500m"
-	DefaultDevfileRegistryCpuRequest    = "100m"
-
 	// Server
 	DefaultServerMemoryLimit               = "1024Mi"
 	DefaultServerMemoryRequest             = "512Mi"

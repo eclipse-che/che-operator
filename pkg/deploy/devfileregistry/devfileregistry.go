@@ -13,17 +13,24 @@
 package devfileregistry
 
 import (
-	"fmt"
+	"context"
+	"encoding/json"
 
+	v2 "github.com/eclipse-che/che-operator/api/v2"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+)
+
+var (
+	logger = ctrl.Log.WithName("devfile-registry")
 )
 
 type DevfileRegistryReconciler struct {
@@ -35,44 +42,45 @@ func NewDevfileRegistryReconciler() *DevfileRegistryReconciler {
 }
 
 func (d *DevfileRegistryReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if ctx.CheCluster.Spec.Components.DevfileRegistry.DisableInternalRegistry {
-		_, _ = deploy.DeleteNamespacedObject(ctx, constants.DevfileRegistryName, &corev1.Service{})
-		_, _ = deploy.DeleteNamespacedObject(ctx, constants.DevfileRegistryName, &corev1.ConfigMap{})
-		_, _ = deploy.DeleteNamespacedObject(ctx, gateway.GatewayConfigMapNamePrefix+constants.DevfileRegistryName, &corev1.ConfigMap{})
-		_, _ = deploy.DeleteNamespacedObject(ctx, constants.DevfileRegistryName, &appsv1.Deployment{})
+	_, _ = deploy.DeleteNamespacedObject(ctx, constants.DevfileRegistryName, &corev1.Service{})
+	_, _ = deploy.DeleteNamespacedObject(ctx, constants.DevfileRegistryName, &corev1.ConfigMap{})
+	_, _ = deploy.DeleteNamespacedObject(ctx, gateway.GatewayConfigMapNamePrefix+constants.DevfileRegistryName, &corev1.ConfigMap{})
+	_, _ = deploy.DeleteNamespacedObject(ctx, constants.DevfileRegistryName, &appsv1.Deployment{})
 
-		if ctx.CheCluster.Status.DevfileRegistryURL != "" {
-			ctx.CheCluster.Status.DevfileRegistryURL = ""
-			err := deploy.UpdateCheCRStatus(ctx, "DevfileRegistryURL", "")
-			return reconcile.Result{}, err == nil, err
+	if ctx.CheCluster.Status.DevfileRegistryURL != "" {
+		var externalDevfileRegistries []v2.ExternalDevfileRegistry
+		if err := json.Unmarshal([]byte(defaults.GetDevfileRegistryExternalDevfileRegistries()), &externalDevfileRegistries); err == nil {
+
+			// Add default external devfile registries to the CheCluster CR
+			for _, newRegistry := range externalDevfileRegistries {
+				newRegistryAlreadyExists := false
+				for _, existedRegistry := range ctx.CheCluster.Spec.Components.DevfileRegistry.ExternalDevfileRegistries {
+					if existedRegistry.Url == newRegistry.Url {
+						newRegistryAlreadyExists = true
+						break
+					}
+				}
+
+				if !newRegistryAlreadyExists {
+					logger.Info("Adding external devfile registry to the CheCluster CR", "Url", newRegistry.Url)
+					ctx.CheCluster.Spec.Components.DevfileRegistry.ExternalDevfileRegistries =
+						append(ctx.CheCluster.Spec.Components.DevfileRegistry.ExternalDevfileRegistries, newRegistry)
+				}
+			}
+
+			if err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster); err != nil {
+				return reconcile.Result{}, false, err
+			}
+		} else {
+			logger.Error(
+				err, "Failed to unmarshal environment variable",
+				"key", "CHE_OPERATOR_DEFAULTS_DEVFILE_REGISTRY_EXTERNAL_DEVFILE_REGISTRIES",
+				"value", defaults.GetDevfileRegistryExternalDevfileRegistries(),
+			)
 		}
 
-		return reconcile.Result{}, true, nil
-	}
-
-	done, err := d.syncService(ctx)
-	if !done {
-		return reconcile.Result{}, false, err
-	}
-
-	endpoint, done, err := d.exposeEndpoint(ctx)
-	if !done {
-		return reconcile.Result{}, false, err
-	}
-
-	done, err = d.updateStatus(endpoint, ctx)
-	if !done {
-		return reconcile.Result{}, false, err
-	}
-
-	done, err = d.syncConfigMap(ctx)
-	if !done {
-		return reconcile.Result{}, false, err
-	}
-
-	done, err = d.syncDeployment(ctx)
-	if !done {
-		return reconcile.Result{}, false, err
+		ctx.CheCluster.Status.DevfileRegistryURL = ""
+		_ = deploy.UpdateCheCRStatus(ctx, "DevfileRegistryURL", "")
 	}
 
 	return reconcile.Result{}, true, nil
@@ -80,60 +88,4 @@ func (d *DevfileRegistryReconciler) Reconcile(ctx *chetypes.DeployContext) (reco
 
 func (d *DevfileRegistryReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	return true
-}
-
-func (d *DevfileRegistryReconciler) syncService(ctx *chetypes.DeployContext) (bool, error) {
-	return deploy.SyncServiceToCluster(
-		ctx,
-		constants.DevfileRegistryName,
-		[]string{"http"},
-		[]int32{8080},
-		constants.DevfileRegistryName)
-}
-
-func (d *DevfileRegistryReconciler) syncConfigMap(ctx *chetypes.DeployContext) (bool, error) {
-	data, err := d.getConfigMapData(ctx)
-	if err != nil {
-		return false, err
-	}
-	return deploy.SyncConfigMapDataToCluster(ctx, constants.DevfileRegistryName, data, constants.DevfileRegistryName)
-}
-
-func (d *DevfileRegistryReconciler) exposeEndpoint(ctx *chetypes.DeployContext) (string, bool, error) {
-	return expose.Expose(
-		ctx,
-		constants.DevfileRegistryName,
-		d.createGatewayConfig())
-}
-
-func (d *DevfileRegistryReconciler) updateStatus(endpoint string, ctx *chetypes.DeployContext) (bool, error) {
-	devfileRegistryURL := "https://" + endpoint
-	if devfileRegistryURL != ctx.CheCluster.Status.DevfileRegistryURL {
-		ctx.CheCluster.Status.DevfileRegistryURL = devfileRegistryURL
-		if err := deploy.UpdateCheCRStatus(ctx, "status: Devfile Registry URL", devfileRegistryURL); err != nil {
-			return false, err
-		}
-	}
-
-	return true, nil
-}
-
-func (d *DevfileRegistryReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
-	if spec, err := d.getDevfileRegistryDeploymentSpec(ctx); err != nil {
-		return false, err
-	} else {
-		return deploy.SyncDeploymentSpecToCluster(ctx, spec, deploy.DefaultDeploymentDiffOpts)
-	}
-}
-
-func (d *DevfileRegistryReconciler) createGatewayConfig() *gateway.TraefikConfig {
-	pathPrefix := "/" + constants.DevfileRegistryName
-	cfg := gateway.CreateCommonTraefikConfig(
-		constants.DevfileRegistryName,
-		fmt.Sprintf("PathPrefix(`%s`)", pathPrefix),
-		10,
-		"http://"+constants.DevfileRegistryName+":8080",
-		[]string{pathPrefix})
-
-	return cfg
 }
