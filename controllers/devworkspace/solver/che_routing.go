@@ -651,6 +651,8 @@ func routeForHealthzEndpoint(cfg *gateway.TraefikConfig, dwId string, endpoints 
 					Middlewares: middlewares,
 					Priority:    priority,
 				}
+
+				cfg.AddRetryHealthz(routerName, 2, "500ms")
 			}
 		}
 	}
@@ -687,6 +689,7 @@ func addEndpointToTraefikConfig(componentName string, e dwo.Endpoint, cfg *gatew
 			priority+1,
 			fmt.Sprintf("http://127.0.0.1:%d", e.TargetPort),
 			[]string{prefix})
+		cfg.AddRetryHealthz(healthzName, 2, "500ms")
 	}
 }
 
