@@ -14,7 +14,7 @@ package constants
 
 const (
 	// Dashboard
-	DefaultDashboardMemoryLimit   = "256Mi"
+	DefaultDashboardMemoryLimit   = "1024Mi"
 	DefaultDashboardMemoryRequest = "32Mi"
 	DefaultDashboardCpuLimit      = "500m"
 	DefaultDashboardCpuRequest    = "100m"
