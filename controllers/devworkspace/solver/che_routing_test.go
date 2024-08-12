@@ -50,6 +50,10 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+var (
+	devfileEndpointAnnotations = map[string]string{"annotation-1": "value-1", "annotation-2": "value-2"}
+)
+
 func createTestScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(networkingv1.AddToScheme(scheme))
@@ -176,6 +180,54 @@ func subdomainDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 						Name:       "e3",
 						TargetPort: 9999,
 						Exposure:   dwo.PublicEndpointExposure,
+					},
+				},
+			},
+		},
+	}
+}
+
+func endpointAnnotationDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
+	return &dwo.DevWorkspaceRouting{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "routing",
+			Namespace: "ws",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: "workspace.devfile.io/v1alpha2",
+					Kind:       "DevWorkspace",
+					Name:       "my-workspace",
+					UID:        "uid",
+				},
+			},
+		},
+		Spec: dwo.DevWorkspaceRoutingSpec{
+			DevWorkspaceId: "wsid",
+			RoutingClass:   "che",
+			Endpoints: map[string]dwo.EndpointList{
+				"m1": {
+					{
+						Name:        "e1",
+						TargetPort:  9999,
+						Exposure:    dwo.PublicEndpointExposure,
+						Protocol:    "https",
+						Path:        "/1/",
+						Annotations: devfileEndpointAnnotations,
+					},
+					{
+						Name:        "e2",
+						TargetPort:  9999,
+						Exposure:    dwo.PublicEndpointExposure,
+						Protocol:    "http",
+						Path:        "/2.js",
+						Secure:      true,
+						Annotations: devfileEndpointAnnotations,
+					},
+					{
+						Name:        "e3",
+						TargetPort:  9999,
+						Exposure:    dwo.PublicEndpointExposure,
+						Annotations: devfileEndpointAnnotations,
 					},
 				},
 			},
@@ -1731,7 +1783,99 @@ func TestUsesIngressAnnotationsForWorkspaceEndpointIngresses(t *testing.T) {
 	}
 
 	if ingress.Annotations["a"] != "b" {
-		t.Errorf("Unexpected value of the custom endpoint ingress annotation")
+		t.Errorf("Unexpected value of the custom Che Cluster endpoint ingress annotation")
+	}
+}
+
+func TestUsesEndpointAnnotationsForWorkspaceEndpointIngresses(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
+	mgr := &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "che",
+			Namespace:  "ns",
+			Finalizers: []string{controller.FinalizerName},
+		},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Hostname: "over.the.rainbow",
+				Domain:   "down.on.earth",
+				Annotations: map[string]string{
+					"a": "b",
+				},
+			},
+		},
+	}
+
+	_, _, objs := getSpecObjectsForManager(t, mgr, endpointAnnotationDevWorkspaceRouting(), userProfileSecret("username"))
+
+	if len(objs.Ingresses) != 3 {
+		t.Fatalf("Unexpected number of generated ingresses: %d", len(objs.Ingresses))
+	}
+
+	for _, ingress := range objs.Ingresses {
+		if len(ingress.Annotations) != 5 {
+			// 5 annotations - a => b, endpoint-name, component-name and 2 devfile endpoint annotations
+			t.Fatalf("Unexpected number of annotations on the generated ingress: %d", len(ingress.Annotations))
+		}
+
+		if ingress.Annotations["a"] != "b" {
+			t.Errorf("Unexpected value of the Che Cluster custom endpoint ingress annotation")
+		}
+
+		for key, expectedValue := range devfileEndpointAnnotations {
+			if actualValue, ok := ingress.Annotations[key]; !ok {
+				t.Fatalf("Missing devfile endpoint annotation '%s' in ingress annotations", key)
+			} else {
+				if actualValue != expectedValue {
+					t.Errorf("Unexpected value of the ingress annotation. Expected '%s' but got '%s'", expectedValue, actualValue)
+				}
+			}
+		}
+	}
+}
+
+func TestUsesEndpointAnnotationsForWorkspaceEndpointRoutes(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+	mgr := &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "che",
+			Namespace:  "ns",
+			Finalizers: []string{controller.FinalizerName},
+		},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Hostname: "over.the.rainbow",
+				Domain:   "down.on.earth",
+				Annotations: map[string]string{
+					"a": "b",
+				},
+			},
+		},
+	}
+
+	_, _, objs := getSpecObjectsForManager(t, mgr, endpointAnnotationDevWorkspaceRouting(), userProfileSecret("username"))
+
+	if len(objs.Routes) != 3 {
+		t.Fatalf("Unexpected number of generated routes: %d", len(objs.Ingresses))
+	}
+
+	for _, route := range objs.Routes {
+		if len(route.Annotations) != 4 {
+			// 4 annotations - endpoint-name, component-name and 2 devfile endpoint annotations
+			t.Fatalf("Unexpected number of annotations on the generated route: %d", len(route.Annotations))
+		}
+
+		for key, expectedValue := range devfileEndpointAnnotations {
+			if actualValue, ok := route.Annotations[key]; !ok {
+				t.Fatalf("Missing devfile endpoint annotation '%s' in route annotations", key)
+			} else {
+				if actualValue != expectedValue {
+					t.Errorf("Unexpected value of the route annotation. Expected '%s' but got '%s'", expectedValue, actualValue)
+				}
+			}
+		}
 	}
 }
 
