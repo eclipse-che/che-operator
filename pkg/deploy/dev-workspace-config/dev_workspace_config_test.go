@@ -1642,6 +1642,95 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 			},
 		},
 		{
+			name: "Set DevWorkspaceOperatorConfig PersistUserHome disableInitContainer to true",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						PersistUserHome: &chev2.PersistentHomeConfig{
+							Enabled:              pointer.Bool(true),
+							DisableInitContainer: pointer.Bool(true),
+						},
+					},
+				},
+			},
+			existedObjects: []runtime.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							PersistUserHome: &controllerv1alpha1.PersistentHomeConfig{
+								Enabled: pointer.Bool(false),
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					PersistUserHome: &controllerv1alpha1.PersistentHomeConfig{
+						Enabled:              pointer.Bool(true),
+						DisableInitContainer: pointer.Bool(true),
+					},
+				},
+			},
+		},
+		{
+			name: "Set DevWorkspaceOperatorConfig PersistUserHome disableInitContainer to false when initially true",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						PersistUserHome: &chev2.PersistentHomeConfig{
+							Enabled:              pointer.Bool(true),
+							DisableInitContainer: pointer.Bool(false),
+						},
+					},
+				},
+			},
+			existedObjects: []runtime.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							PersistUserHome: &controllerv1alpha1.PersistentHomeConfig{
+								Enabled:              pointer.Bool(true),
+								DisableInitContainer: pointer.Bool(true),
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					PersistUserHome: &controllerv1alpha1.PersistentHomeConfig{
+						Enabled:              pointer.Bool(true),
+						DisableInitContainer: pointer.Bool(false),
+					},
+				},
+			},
+		},
+		{
 			name: "Set DevWorkspaceOperatorConfig PersistUserHome disabled when PersistUserHome is disabled",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{

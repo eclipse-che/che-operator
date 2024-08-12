@@ -191,6 +191,7 @@ func updatePersistUserHomeConfig(persistentHomeConfig *chev2.PersistentHomeConfi
 	if persistentHomeConfig != nil {
 		workspaceConfig.PersistUserHome = &controllerv1alpha1.PersistentHomeConfig{}
 		workspaceConfig.PersistUserHome.Enabled = persistentHomeConfig.Enabled
+		workspaceConfig.PersistUserHome.DisableInitContainer = persistentHomeConfig.DisableInitContainer
 	}
 }
 
