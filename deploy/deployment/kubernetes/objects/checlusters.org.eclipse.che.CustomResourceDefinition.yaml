@@ -7028,8 +7028,9 @@ spec:
                           Determines whether the init container that initializes the persistent home directory should be disabled.
                           When the `/home/user` directory is persisted, the init container is used to initialize the directory before
                           the workspace starts. If set to true, the init container will not be created.
+                          Disabling the init container allows home persistence to be initialized by the entrypoint present in the workspace's first container component.
                           This field is not used if the `devEnvironments.persistUserHome.enabled` field is set to false.
-                          Enabled by default.
+                          The init container is enabled by default.
                         type: boolean
                       enabled:
                         description: |-
