@@ -111,30 +111,6 @@ spec:
             - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_CONTAINERSECURITYCONTEXT
               value: '{"allowPrivilegeEscalation": true,"capabilities": {"add": ["SETGID",
                 "SETUID"]}}'
-            - name: RELATED_IMAGE_editor_definition_che_code_latest_che_code_injector
-              value: quay.io/che-incubator/che-code:7.90.0
-            - name: RELATED_IMAGE_editor_definition_che_code_latest_che_code_runtime_description
-              value: quay.io/devfile/universal-developer-image:latest
-            - name: RELATED_IMAGE_editor_definition_che_idea_next_che_idea_runtime_description
-              value: quay.io/devfile/universal-developer-image:latest
-            - name: RELATED_IMAGE_editor_definition_che_idea_next_che_idea_injector
-              value: quay.io/che-incubator/che-idea:next
-            - name: RELATED_IMAGE_editor_definition_che_idea_server_next_editor_injector
-              value: quay.io/che-incubator/che-idea-dev-server:next
-            - name: RELATED_IMAGE_editor_definition_che_idea_server_next_editor_runtime
-              value: quay.io/devfile/universal-developer-image:latest
-            - name: RELATED_IMAGE_editor_definition_che_idea_server_latest_editor_injector
-              value: quay.io/che-incubator/che-idea-dev-server:latest
-            - name: RELATED_IMAGE_editor_definition_che_idea_server_latest_editor_runtime
-              value: quay.io/devfile/universal-developer-image:latest
-            - name: RELATED_IMAGE_editor_definition_che_idea_latest_che_idea_runtime_description
-              value: quay.io/devfile/universal-developer-image:latest
-            - name: RELATED_IMAGE_editor_definition_che_idea_latest_che_idea_injector
-              value: quay.io/che-incubator/che-idea:latest
-            - name: RELATED_IMAGE_editor_definition_che_code_insiders_che_code_injector
-              value: quay.io/che-incubator/che-code:insiders
-            - name: RELATED_IMAGE_editor_definition_che_code_insiders_che_code_runtime_description
-              value: quay.io/devfile/universal-developer-image:latest
           livenessProbe:
             httpGet:
               path: /healthz
