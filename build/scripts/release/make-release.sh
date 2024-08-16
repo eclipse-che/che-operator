@@ -105,7 +105,7 @@ releaseManagerYaml() {
 
   echo "[INFO] releaseManagerYaml :: Update editors definitions images"
   . "${OPERATOR_REPO}/build/scripts/release/editors-definitions.sh" update-manager-yaml \
-      -yaml-path "${OPERATOR_REPO}/config/manager/manager.yaml"
+      --yaml-path "${OPERATOR_REPO}/config/manager/manager.yaml"
 
   echo "[INFO] releaseManagerYaml :: Update samples images"
   . "${OPERATOR_REPO}/build/scripts/release/samples.sh" update-manager-yaml \
