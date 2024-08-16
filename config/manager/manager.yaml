@@ -1,15 +1,3 @@
-#
-# Copyright (c) 2019-2023 Red Hat, Inc.
-# This program and the accompanying materials are made
-# available under the terms of the Eclipse Public License 2.0
-# which is available at https://www.eclipse.org/legal/epl-2.0/
-#
-# SPDX-License-Identifier: EPL-2.0
-#
-# Contributors:
-#   Red Hat, Inc. - initial API and implementation
-#
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -100,7 +88,8 @@ spec:
             - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTEDITOR
               value: che-incubator/che-code/latest
             - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTCOMPONENTS
-              value: '[{"name": "universal-developer-image", "container": {"image": "quay.io/devfile/universal-developer-image:ubi8-latest"}}]'
+              value: '[{"name": "universal-developer-image", "container": {"image":
+                "quay.io/devfile/universal-developer-image:ubi8-latest"}}]'
             - name: CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL
               value: https://open-vsx.org
             - name: CHE_DEFAULT_SPEC_COMPONENTS_DEVFILEREGISTRY_EXTERNAL_DEVFILE_REGISTRIES
@@ -108,7 +97,8 @@ spec:
             - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DISABLECONTAINERBUILDCAPABILITIES
               value: 'false'
             - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_CONTAINERSECURITYCONTEXT
-              value: '{"allowPrivilegeEscalation": true,"capabilities": {"add": ["SETGID", "SETUID"]}}'
+              value: '{"allowPrivilegeEscalation": true,"capabilities": {"add": ["SETGID",
+                "SETUID"]}}'
           livenessProbe:
             httpGet:
               path: /healthz

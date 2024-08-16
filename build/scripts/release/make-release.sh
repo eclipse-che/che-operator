@@ -104,10 +104,13 @@ releaseManagerYaml() {
   yq -riY '(.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_single_host_gateway_config_sidecar") | .value) = "'${CHE_GATEWAY_IMAGE}'"' "${MANAGER_YAML}"
 
   echo "[INFO] releaseManagerYaml :: Update editors definitions images"
-  . "${OPERATOR_REPO}/build/scripts/release/editors-definitions.sh" update-manager-yaml --yaml-path "${OPERATOR_REPO}/config/manager/manager.yaml"
+  . "${OPERATOR_REPO}/build/scripts/release/editors-definitions.sh" update-manager-yaml \
+      -yaml-path "${OPERATOR_REPO}/config/manager/manager.yaml"
 
   echo "[INFO] releaseManagerYaml :: Update samples images"
-  . "${OPERATOR_REPO}/build/scripts/release/samples.sh" update-manager-yaml --yaml-path "${OPERATOR_REPO}/config/manager/manager.yaml"
+  . "${OPERATOR_REPO}/build/scripts/release/samples.sh" update-manager-yaml \
+      --yaml-path "${OPERATOR_REPO}/config/manager/manager.yaml" \
+      --index-json-url "https://raw.githubusercontent.com/eclipse-che/che-dashboard/${RELEASE}/packages/devfile-registry/air-gap/index.json"
 
   echo "[INFO] releaseManagerYaml :: Ensure license header"
   make license "${MANAGER_YAML}"
