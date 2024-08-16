@@ -46,17 +46,6 @@ setOperatorImage() {
     OPERATOR_IMAGE=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[0].image' "${CSV}")
 }
 
-setRegistryImages() {
-    registry="${1}"
-    registry="${registry/\@sha256:*/:${IMAGE_TAG}}" # remove possible existing @sha256:... and use current tag instead
-
-    echo -n "[INFO] Pull container ${registry} ..."
-    ${PODMAN} pull ${registry} ${QUIET}
-
-    registryImages="$(${PODMAN} run --rm  --entrypoint /bin/sh "${registry}" -c "cat /var/www/html/*/external_images.txt")"
-    echo "[INFO] Found $(echo "${registryImages}" | wc -l) images in registry"
-}
-
 writeDigest() {
   image=$1
 
