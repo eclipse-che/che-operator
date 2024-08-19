@@ -35,7 +35,7 @@ func TestDevfileRegistryReconciler(t *testing.T) {
 	_ = os.Setenv("CHE_DEFAULT_SPEC_COMPONENTS_DEVFILEREGISTRY_EXTERNAL_DEVFILE_REGISTRIES", "[{\"url\": \"https://registry.devfile.io\"}]")
 
 	// re initialize defaults with new env var
-	defaults.InitializeForTesting("../../../config/manager/manager.yaml")
+	defaults.Initialize()
 
 	type testCase struct {
 		name                              string
