@@ -13,7 +13,10 @@
 package devfileregistry
 
 import (
+	"os"
 	"testing"
+
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -24,6 +27,16 @@ import (
 )
 
 func TestDevfileRegistryReconciler(t *testing.T) {
+	defaultExternalDevfileRegistriesEnvVar := os.Getenv("CHE_DEFAULT_SPEC_COMPONENTS_DEVFILEREGISTRY_EXTERNAL_DEVFILE_REGISTRIES")
+	defer func() {
+		_ = os.Setenv("CHE_DEFAULT_SPEC_COMPONENTS_DEVFILEREGISTRY_EXTERNAL_DEVFILE_REGISTRIES", defaultExternalDevfileRegistriesEnvVar)
+	}()
+
+	_ = os.Setenv("CHE_DEFAULT_SPEC_COMPONENTS_DEVFILEREGISTRY_EXTERNAL_DEVFILE_REGISTRIES", "[{\"url\": \"https://registry.devfile.io\"}]")
+
+	// re initialize defaults with new env var
+	defaults.Initialize()
+
 	type testCase struct {
 		name                              string
 		cheCluster                        *chev2.CheCluster
