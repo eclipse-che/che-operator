@@ -40,7 +40,6 @@ const (
 func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
 	var volumes []corev1.Volume
 	var volumeMounts []corev1.VolumeMount
-	var envVars []corev1.EnvVar
 
 	volumes, volumeMounts = d.provisionCustomPublicCA(volumes, volumeMounts)
 
@@ -52,6 +51,9 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployCon
 		volumes, volumeMounts = d.provisionCheSelfSignedCA(volumes, volumeMounts)
 	}
 
+	// Get all env vars that are related to the sample components and add them to the deployment.
+	// They are used to replace images with tags on images with digests.
+	envVars := utils.GetGetArchitectureDependentEnvsByRegExp("^RELATED_IMAGE_sample_.*$")
 	envVars = append(envVars,
 		// todo handle HTTP_PROXY related env vars
 		// CHE_HOST is here for backward compatibility. Replaced with CHE_URL
