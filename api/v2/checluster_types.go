@@ -182,6 +182,12 @@ type CheClusterDevEnvironments struct {
 	// +kubebuilder:validation:Minimum:=-1
 	// +optional
 	MaxNumberOfRunningWorkspacesPerUser *int64 `json:"maxNumberOfRunningWorkspacesPerUser,omitempty"`
+	// The maximum number of concurrently running workspaces across the entire Kubernetes cluster.
+	// This applies to all users in the system. If the value is set to -1, it means there is
+	// no limit on the number of running workspaces.
+	// +kubebuilder:validation:Minimum:=-1
+	// +optional
+	MaxNumberOfRunningWorkspacesPerCluster *int64 `json:"maxNumberOfRunningWorkspacesPerCluster,omitempty"`
 	// User configuration.
 	// +optional
 	User *UserConfiguration `json:"user,omitempty"`
