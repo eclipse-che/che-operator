@@ -6997,6 +6997,14 @@ spec:
                     - IfNotPresent
                     - Never
                     type: string
+                  maxNumberOfRunningWorkspacesPerCluster:
+                    description: |-
+                      The maximum number of concurrently running workspaces across the entire Kubernetes cluster.
+                      This applies to all users in the system. If the value is set to -1, it means there is
+                      no limit on the number of running workspaces.
+                    format: int64
+                    minimum: -1
+                    type: integer
                   maxNumberOfRunningWorkspacesPerUser:
                     description: |-
                       The maximum number of running workspaces per user.
