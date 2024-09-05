@@ -5148,6 +5148,29 @@ spec:
                     pvcStrategy: per-user
                 description: Development environment default configuration options.
                 properties:
+                  allowedSource:
+                    description: AllowedSource defines the allowed sources on which
+                      workspaces can be started.
+                    properties:
+                      urls:
+                        description: |-
+                          The list of approved URLs for starting Cloud Development Environments (CDEs). CDEs can only be
+                          initiated from these URLs.
+                        items:
+                          type: string
+                        type: array
+                      warningLevel:
+                        default: WARN
+                        description: |-
+                          Specifies the level of alerts triggered when a workspace is started from unapproved sources.
+                          This property can have the following values:
+                          `WARN`: Displays a warning dialog to notify the user about the unapproved source.
+                          `ERROR`: Displays an error dialog that may prevent the workspace from starting due to the unapproved source.
+                        enum:
+                        - WARN
+                        - ERROR
+                        type: string
+                    type: object
                   containerBuildConfiguration:
                     description: Container build configuration.
                     properties:
