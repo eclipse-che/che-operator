@@ -833,14 +833,6 @@ type AllowedSources struct {
 	// initiated from these URLs.
 	// +optional
 	Urls []string `json:"urls,omitempty"`
-	// Specifies the level of alerts triggered when a workspace is started from unapproved sources.
-	// This property can have the following values:
-	// `WARN`: Displays a warning dialog to notify the user about the unapproved source.
-	// `ERROR`: Displays an error dialog that may prevent the workspace from starting due to the unapproved source.
-	// +kubebuilder:default:="WARN"
-	// +kubebuilder:validation:Enum=WARN;ERROR
-	// +optional
-	WarningLevel string `json:"warningLevel,omitempty"`
 }
 
 // GatewayPhase describes the different phases of the Che gateway lifecycle.

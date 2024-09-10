@@ -5180,17 +5180,6 @@ spec:
                         items:
                           type: string
                         type: array
-                      warningLevel:
-                        default: WARN
-                        description: |-
-                          Specifies the level of alerts triggered when a workspace is started from unapproved sources.
-                          This property can have the following values:
-                          `WARN`: Displays a warning dialog to notify the user about the unapproved source.
-                          `ERROR`: Displays an error dialog that may prevent the workspace from starting due to the unapproved source.
-                        enum:
-                        - WARN
-                        - ERROR
-                        type: string
                     type: object
                   containerBuildConfiguration:
                     description: Container build configuration.
