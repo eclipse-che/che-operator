@@ -630,7 +630,7 @@ func add5XXErrorHandling(cfg *gateway.TraefikConfig, dwId string) {
 			DialTimeout: "2500ms",
 		},
 	}
-	cfg.AddRetry(dwId, 2, "2500ms")
+	cfg.AddRetry(dwId, 2, "500ms")
 	cfg.HTTP.Services[dwId].LoadBalancer.ServersTransport = dwId
 }
 
@@ -652,7 +652,7 @@ func routeForHealthzEndpoint(cfg *gateway.TraefikConfig, dwId string, endpoints 
 					Priority:    priority,
 				}
 
-				cfg.AddRetryHealthz(routerName, 2, "500ms")
+				cfg.AddRetryHealthz(routerName, 4, "2500ms")
 			}
 		}
 	}
