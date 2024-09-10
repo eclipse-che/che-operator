@@ -4016,7 +4016,7 @@ spec:
         description: |-
           The `CheCluster` custom resource allows defining and managing Eclipse Che server installation.
           Based on these settings, the  Operator automatically creates and maintains several ConfigMaps:
-          `che`, `plugin-registry`, `devfile-registry` that will contain the appropriate environment variables
+          `che`, `plugin-registry` that will contain the appropriate environment variables
           of the various components of the installation. These generated ConfigMaps must NOT be updated manually.
         properties:
           apiVersion:
@@ -4611,7 +4611,7 @@ spec:
                       used by the Che installation.
                     properties:
                       deployment:
-                        description: Deployment override options.
+                        description: Deprecated deployment override options.
                         properties:
                           containers:
                             description: List of containers belonging to the pod.
@@ -7002,6 +7002,14 @@ spec:
                     - IfNotPresent
                     - Never
                     type: string
+                  maxNumberOfRunningWorkspacesPerCluster:
+                    description: |-
+                      The maximum number of concurrently running workspaces across the entire Kubernetes cluster.
+                      This applies to all users in the system. If the value is set to -1, it means there is
+                      no limit on the number of running workspaces.
+                    format: int64
+                    minimum: -1
+                    type: integer
                   maxNumberOfRunningWorkspacesPerUser:
                     description: |-
                       The maximum number of running workspaces per user.
@@ -7028,6 +7036,15 @@ spec:
                       PersistUserHome defines configuration options for persisting the
                       user home directory in workspaces.
                     properties:
+                      disableInitContainer:
+                        description: |-
+                          Determines whether the init container that initializes the persistent home directory should be disabled.
+                          When the `/home/user` directory is persisted, the init container is used to initialize the directory before
+                          the workspace starts. If set to true, the init container will not be created.
+                          Disabling the init container allows home persistence to be initialized by the entrypoint present in the workspace's first container component.
+                          This field is not used if the `devEnvironments.persistUserHome.enabled` field is set to false.
+                          The init container is enabled by default.
+                        type: boolean
                       enabled:
                         description: |-
                           Determines whether the user home directory in workspaces should persist between
@@ -8306,7 +8323,7 @@ spec:
                 description: Currently installed Che version.
                 type: string
               devfileRegistryURL:
-                description: The public URL of the internal devfile registry.
+                description: Deprecated the public URL of the internal devfile registry.
                 type: string
               gatewayPhase:
                 description: Specifies the current phase of the gateway deployment.
@@ -8831,8 +8848,6 @@ spec:
           value: quay.io/eclipse/che-dashboard:next
         - name: RELATED_IMAGE_plugin_registry
           value: quay.io/eclipse/che-plugin-registry:next
-        - name: RELATED_IMAGE_devfile_registry
-          value: quay.io/eclipse/che-devfile-registry:next
         - name: RELATED_IMAGE_che_tls_secrets_creation_job
           value: quay.io/eclipse/che-tls-secret-creator:alpine-01a4c34
         - name: RELATED_IMAGE_single_host_gateway
@@ -8869,6 +8884,8 @@ spec:
           value: '[{"name": "universal-developer-image", "container": {"image": "quay.io/devfile/universal-developer-image:ubi8-latest"}}]'
         - name: CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL
           value: https://open-vsx.org
+        - name: CHE_DEFAULT_SPEC_COMPONENTS_DEVFILEREGISTRY_EXTERNAL_DEVFILE_REGISTRIES
+          value: '[{"url": "https://registry.devfile.io"}]'
         - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DISABLECONTAINERBUILDCAPABILITIES
           value: "false"
         - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_CONTAINERSECURITYCONTEXT

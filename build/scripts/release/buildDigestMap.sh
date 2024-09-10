@@ -46,24 +46,6 @@ setOperatorImage() {
     OPERATOR_IMAGE=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[0].image' "${CSV}")
 }
 
-setDevfileRegistryList() {
-    registry=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | select(.name | test("RELATED_IMAGE_.*devfile_registry"; "g")) | .value' "${CSV}")
-
-    setRegistryImages "${registry}"
-    DEVFILE_REGISTRY_LIST=${registryImages}
-}
-
-setRegistryImages() {
-    registry="${1}"
-    registry="${registry/\@sha256:*/:${IMAGE_TAG}}" # remove possible existing @sha256:... and use current tag instead
-
-    echo -n "[INFO] Pull container ${registry} ..."
-    ${PODMAN} pull ${registry} ${QUIET}
-
-    registryImages="$(${PODMAN} run --rm  --entrypoint /bin/sh "${registry}" -c "cat /var/www/html/*/external_images.txt")"
-    echo "[INFO] Found $(echo "${registryImages}" | wc -l) images in registry"
-}
-
 writeDigest() {
   image=$1
 
@@ -139,9 +121,6 @@ setImagesFromDeploymentEnv
 setOperatorImage
 echo "${OPERATOR_IMAGE}"
 
-setDevfileRegistryList
-echo "${DEVFILE_REGISTRY_LIST}"
-
 DIGEST_FILE=${SCRIPTS_DIR}/generated/digests-mapping.txt
 rm -Rf "${DIGEST_FILE}"
 touch "${DIGEST_FILE}"
@@ -150,8 +129,4 @@ writeDigest "${OPERATOR_IMAGE}" "operator-image"
 
 for image in ${REQUIRED_IMAGES}; do
   writeDigest "${image}" "required-image"
-done
-
-for image in ${DEVFILE_REGISTRY_LIST}; do
-  writeDigest "${image}" "devfile-registry-image"
 done

@@ -13,14 +13,15 @@
 package dashboard
 
 import (
+	"fmt"
 	"os"
 
-	"k8s.io/apimachinery/pkg/api/resource"
 	fakeDiscovery "k8s.io/client-go/discovery/fake"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
@@ -140,188 +141,159 @@ func TestDashboardDeploymentResources(t *testing.T) {
 }
 
 func TestDashboardDeploymentEnvVars(t *testing.T) {
+	_ = os.Setenv("RELATED_IMAGE_sample_image", "sample_image")
+	_ = os.Setenv("RELATED_IMAGE_sample_encoded_image", "sample_encoded_image")
+
+	defer func() {
+		_ = os.Unsetenv("RELATED_IMAGE_sample_image")
+		_ = os.Unsetenv("RELATED_IMAGE_sample_encoded_")
+	}()
+
 	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-
-	type resourcesTestCase struct {
-		name        string
-		initObjects []runtime.Object
-		envVars     []corev1.EnvVar
-		cheCluster  *chev2.CheCluster
-	}
-	testCases := []resourcesTestCase{
-		{
-			name:        "Test provisioning Che URLs",
-			initObjects: []runtime.Object{},
-			envVars: []corev1.EnvVar{
-				{
-					Name:  "CHE_HOST",
-					Value: "https://che-host",
-				},
-				{
-					Name:  "CHE_URL",
-					Value: "https://che-host",
-				},
-				{
-					Name:  "CHECLUSTER_CR_NAMESPACE",
-					Value: "eclipse-che",
-				},
-				{
-					Name:  "CHECLUSTER_CR_NAME",
-					Value: "eclipse-che",
-				},
-				{
-					Name:  "CHE_INTERNAL_URL",
-					Value: "http://che-host.eclipse-che.svc:8080/api",
-				},
-				{
-					Name:  "CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL",
-					Value: "http://devfile-registry.eclipse-che.svc:8080",
-				},
-				{
-					Name:  "CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL",
-					Value: "http://plugin-registry.eclipse-che.svc:8080/v3",
-				},
-				{
-					Name: "OPENSHIFT_CONSOLE_URL",
-				},
-				{
-					Name:  "CHE_DEFAULT_SPEC_COMPONENTS_DASHBOARD_HEADERMESSAGE_TEXT",
-					Value: defaults.GetDashboardHeaderMessageText(),
-				},
-				{
-					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTEDITOR",
-					Value: defaults.GetDevEnvironmentsDefaultEditor(),
-				},
-				{
-					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTCOMPONENTS",
-					Value: defaults.GetDevEnvironmentsDefaultComponents(),
-				},
-				{
-					Name:  "CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL",
-					Value: defaults.GetPluginRegistryOpenVSXURL(),
-				},
-				{
-					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DISABLECONTAINERBUILDCAPABILITIES",
-					Value: defaults.GetDevEnvironmentsDisableContainerBuildCapabilities(),
-				},
-				{
-					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_CONTAINERSECURITYCONTEXT",
-					Value: defaults.GetDevEnvironmentsContainerSecurityContext(),
-				},
-			},
-			cheCluster: &chev2.CheCluster{
+	ctx := test.GetDeployContext(
+		nil,
+		[]runtime.Object{
+			&configv1.Console{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-					Name:      "eclipse-che",
+					Name:      "cluster",
+					Namespace: "openshift-console",
 				},
-				Status: chev2.CheClusterStatus{
-					CheURL: "https://che-host",
-				},
-			},
-		},
-		{
-			name: "Test provisioning OpenShift Console URL",
-			initObjects: []runtime.Object{
-				&configv1.Console{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "cluster",
-						Namespace: "openshift-console",
-					},
-					Status: configv1.ConsoleStatus{
-						ConsoleURL: "https://console-openshift-console.apps.my-host/",
-					},
+				Status: configv1.ConsoleStatus{
+					ConsoleURL: "https://console-openshift-console.apps.my-host/",
 				},
 			},
-			envVars: []corev1.EnvVar{
-				{
-					Name:  "CHE_HOST",
-					Value: "https://che-host",
-				},
-				{
-					Name:  "CHE_URL",
-					Value: "https://che-host",
-				},
-				{
-					Name:  "CHECLUSTER_CR_NAMESPACE",
-					Value: "eclipse-che",
-				},
-				{
-					Name:  "CHECLUSTER_CR_NAME",
-					Value: "eclipse-che",
-				},
-				{
-					Name:  "CHE_INTERNAL_URL",
-					Value: "http://che-host.eclipse-che.svc:8080/api",
-				},
-				{
-					Name:  "CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL",
-					Value: "http://devfile-registry.eclipse-che.svc:8080",
-				},
-				{
-					Name:  "CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL",
-					Value: "http://plugin-registry.eclipse-che.svc:8080/v3",
-				},
-				{
-					Name:  "OPENSHIFT_CONSOLE_URL",
-					Value: "https://console-openshift-console.apps.my-host/",
-				},
-				{
-					Name:  "CHE_DEFAULT_SPEC_COMPONENTS_DASHBOARD_HEADERMESSAGE_TEXT",
-					Value: defaults.GetDashboardHeaderMessageText(),
-				},
-				{
-					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTEDITOR",
-					Value: defaults.GetDevEnvironmentsDefaultEditor(),
-				},
-				{
-					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTCOMPONENTS",
-					Value: defaults.GetDevEnvironmentsDefaultComponents(),
-				},
-				{
-					Name:  "CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL",
-					Value: defaults.GetPluginRegistryOpenVSXURL(),
-				},
-				{
-					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DISABLECONTAINERBUILDCAPABILITIES",
-					Value: defaults.GetDevEnvironmentsDisableContainerBuildCapabilities(),
-				},
-				{
-					Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_CONTAINERSECURITYCONTEXT",
-					Value: defaults.GetDevEnvironmentsContainerSecurityContext(),
-				},
-			},
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-					Name:      "eclipse-che",
-				},
-				Status: chev2.CheClusterStatus{
-					CheURL: "https://che-host",
-				},
-			},
-		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			ctx := test.GetDeployContext(testCase.cheCluster, testCase.initObjects)
-			ctx.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
-				{
-					APIResources: []metav1.APIResource{
-						{Name: ConsoleLinksResourceName},
-					},
-				},
-			}
-
-			dashboard := NewDashboardReconciler()
-			deployment, err := dashboard.getDashboardDeploymentSpec(ctx)
-
-			assert.Nil(t, err)
-			assert.Equal(t, len(deployment.Spec.Template.Spec.Containers), 1)
-			test.AssertEqualEnvVars(t, testCase.envVars, deployment.Spec.Template.Spec.Containers[0].Env)
 		})
+	ctx.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
+		{
+			APIResources: []metav1.APIResource{
+				{Name: ConsoleLinksResourceName},
+			},
+		},
 	}
+
+	deployment, err := NewDashboardReconciler().getDashboardDeploymentSpec(ctx)
+
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(deployment.Spec.Template.Spec.Containers))
+	assert.Contains(
+		t,
+		deployment.Spec.Template.Spec.Containers[0].Env,
+		corev1.EnvVar{
+			Name:  "CHE_HOST",
+			Value: "https://che-host",
+		})
+	assert.Contains(
+		t,
+		deployment.Spec.Template.Spec.Containers[0].Env,
+		corev1.EnvVar{
+			Name:  "CHE_URL",
+			Value: "https://che-host",
+		})
+	assert.Contains(
+		t,
+		deployment.Spec.Template.Spec.Containers[0].Env,
+		corev1.EnvVar{
+			Name:  "CHE_HOST",
+			Value: "https://che-host",
+		})
+	assert.Contains(
+		t,
+		deployment.Spec.Template.Spec.Containers[0].Env,
+		corev1.EnvVar{
+			Name:  "CHECLUSTER_CR_NAMESPACE",
+			Value: "eclipse-che",
+		})
+	assert.Contains(
+		t,
+		deployment.Spec.Template.Spec.Containers[0].Env,
+		corev1.EnvVar{
+			Name:  "CHECLUSTER_CR_NAME",
+			Value: "eclipse-che",
+		})
+	assert.Contains(
+		t,
+		deployment.Spec.Template.Spec.Containers[0].Env,
+		corev1.EnvVar{
+			Name:  "CHE_INTERNAL_URL",
+			Value: "http://che-host.eclipse-che.svc:8080/api",
+		})
+	assert.Contains(
+		t,
+		deployment.Spec.Template.Spec.Containers[0].Env,
+		corev1.EnvVar{
+			Name:  "CHE_DASHBOARD_INTERNAL_URL",
+			Value: fmt.Sprintf("http://%s-dashboard.eclipse-che.svc:8080", defaults.GetCheFlavor()),
+		})
+	assert.Contains(
+		t,
+		deployment.Spec.Template.Spec.Containers[0].Env,
+		corev1.EnvVar{
+			Name:  "CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL",
+			Value: "http://plugin-registry.eclipse-che.svc:8080/v3",
+		})
+	assert.Contains(
+		t,
+		deployment.Spec.Template.Spec.Containers[0].Env,
+		corev1.EnvVar{
+			Name:  "CHE_DEFAULT_SPEC_COMPONENTS_DASHBOARD_HEADERMESSAGE_TEXT",
+			Value: defaults.GetDashboardHeaderMessageText(),
+		})
+	assert.Contains(
+		t,
+		deployment.Spec.Template.Spec.Containers[0].Env,
+		corev1.EnvVar{
+			Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTEDITOR",
+			Value: defaults.GetDevEnvironmentsDefaultEditor(),
+		})
+	assert.Contains(
+		t,
+		deployment.Spec.Template.Spec.Containers[0].Env,
+		corev1.EnvVar{
+			Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTCOMPONENTS",
+			Value: defaults.GetDevEnvironmentsDefaultComponents(),
+		})
+	assert.Contains(
+		t,
+		deployment.Spec.Template.Spec.Containers[0].Env,
+		corev1.EnvVar{
+			Name:  "CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL",
+			Value: defaults.GetPluginRegistryOpenVSXURL(),
+		})
+	assert.Contains(
+		t,
+		deployment.Spec.Template.Spec.Containers[0].Env,
+		corev1.EnvVar{
+			Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DISABLECONTAINERBUILDCAPABILITIES",
+			Value: defaults.GetDevEnvironmentsDisableContainerBuildCapabilities(),
+		})
+	assert.Contains(
+		t,
+		deployment.Spec.Template.Spec.Containers[0].Env,
+		corev1.EnvVar{
+			Name:  "CHE_DEFAULT_SPEC_DEVENVIRONMENTS_CONTAINERSECURITYCONTEXT",
+			Value: defaults.GetDevEnvironmentsContainerSecurityContext(),
+		})
+	assert.Contains(
+		t,
+		deployment.Spec.Template.Spec.Containers[0].Env,
+		corev1.EnvVar{
+			Name:  "OPENSHIFT_CONSOLE_URL",
+			Value: "https://console-openshift-console.apps.my-host/",
+		})
+	assert.Contains(
+		t,
+		deployment.Spec.Template.Spec.Containers[0].Env,
+		corev1.EnvVar{
+			Name:  "RELATED_IMAGE_sample_image",
+			Value: "sample_image",
+		})
+	assert.Contains(
+		t,
+		deployment.Spec.Template.Spec.Containers[0].Env,
+		corev1.EnvVar{
+			Name:  "RELATED_IMAGE_sample_encoded_image",
+			Value: "sample_encoded_image",
+		})
 }
 
 func TestDashboardDeploymentVolumes(t *testing.T) {

@@ -182,6 +182,12 @@ type CheClusterDevEnvironments struct {
 	// +kubebuilder:validation:Minimum:=-1
 	// +optional
 	MaxNumberOfRunningWorkspacesPerUser *int64 `json:"maxNumberOfRunningWorkspacesPerUser,omitempty"`
+	// The maximum number of concurrently running workspaces across the entire Kubernetes cluster.
+	// This applies to all users in the system. If the value is set to -1, it means there is
+	// no limit on the number of running workspaces.
+	// +kubebuilder:validation:Minimum:=-1
+	// +optional
+	MaxNumberOfRunningWorkspacesPerCluster *int64 `json:"maxNumberOfRunningWorkspacesPerCluster,omitempty"`
 	// User configuration.
 	// +optional
 	User *UserConfiguration `json:"user,omitempty"`
@@ -368,7 +374,7 @@ type PluginRegistry struct {
 // Configuration settings related to the devfile registry used by the Che installation.
 // +k8s:openapi-gen=true
 type DevfileRegistry struct {
-	// Deployment override options.
+	// Deprecated deployment override options.
 	// +optional
 	Deployment *Deployment `json:"deployment,omitempty"`
 	// Disables internal devfile registry.
@@ -479,6 +485,13 @@ type PersistentHomeConfig struct {
 	// Must be used with the 'per-user' or 'per-workspace' PVC strategy in order to take effect.
 	// Disabled by default.
 	Enabled *bool `json:"enabled,omitempty"`
+	// Determines whether the init container that initializes the persistent home directory should be disabled.
+	// When the `/home/user` directory is persisted, the init container is used to initialize the directory before
+	// the workspace starts. If set to true, the init container will not be created.
+	// Disabling the init container allows home persistence to be initialized by the entrypoint present in the workspace's first container component.
+	// This field is not used if the `devEnvironments.persistUserHome.enabled` field is set to false.
+	// The init container is enabled by default.
+	DisableInitContainer *bool `json:"disableInitContainer,omitempty"`
 }
 
 type WorkspaceDefaultPlugins struct {
@@ -857,7 +870,7 @@ type CheClusterStatus struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="ChePhase"
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors="urn:alm:descriptor:text"
 	ChePhase CheClusterPhase `json:"chePhase,omitempty"`
-	// The public URL of the internal devfile registry.
+	// Deprecated the public URL of the internal devfile registry.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Devfile registry URL"
@@ -893,7 +906,7 @@ type CheClusterStatus struct {
 
 // The `CheCluster` custom resource allows defining and managing Eclipse Che server installation.
 // Based on these settings, the  Operator automatically creates and maintains several ConfigMaps:
-// `che`, `plugin-registry`, `devfile-registry` that will contain the appropriate environment variables
+// `che`, `plugin-registry` that will contain the appropriate environment variables
 // of the various components of the installation. These generated ConfigMaps must NOT be updated manually.
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:object:root=true

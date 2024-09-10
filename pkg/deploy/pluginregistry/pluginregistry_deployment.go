@@ -28,7 +28,7 @@ func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(ctx *chetypes
 	registryType := "plugin"
 	registryImage := defaults.GetPluginRegistryImage(ctx.CheCluster)
 	registryImagePullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(registryImage))
-	probePath := "/v3/plugins/"
+	probePath := "/openvsx/api/version"
 	pluginImagesEnv := utils.GetGetArchitectureDependentEnvsByRegExp("^.*plugin_registry_image.*$")
 
 	resources := corev1.ResourceRequirements{

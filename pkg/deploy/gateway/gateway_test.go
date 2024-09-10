@@ -153,9 +153,6 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 						PluginRegistry: chev2.PluginRegistry{
 							DisableInternalRegistry: true,
 						},
-						DevfileRegistry: chev2.DevfileRegistry{
-							DisableInternalRegistry: true,
-						},
 					}},
 			}, nil)
 
@@ -166,37 +163,13 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 		}
 	})
 
-	t.Run("no devfile-registry auth", func(t *testing.T) {
-		ctx := test.GetDeployContext(
-			&chev2.CheCluster{
-				Spec: chev2.CheClusterSpec{
-					Components: chev2.CheClusterComponents{
-						PluginRegistry: chev2.PluginRegistry{
-							DisableInternalRegistry: true,
-						},
-						DevfileRegistry: chev2.DevfileRegistry{
-							DisableInternalRegistry: false,
-						},
-					}},
-			}, nil)
-
-		configmap := getGatewayOauthProxyConfigSpec(ctx, "blabol")
-		config := configmap.Data["oauth-proxy.cfg"]
-		if !strings.Contains(config, "skip_auth_regex = \"^/devfile-registry|^/$|/healthz$|^/dashboard/static/preload|^/dashboard/assets/branding/loader.svg$\"") {
-			t.Error("oauth config should skip auth for devfile registry", config)
-		}
-	})
-
-	t.Run("skip plugin-registry auth", func(t *testing.T) {
+	t.Run("skip plugin registry", func(t *testing.T) {
 		ctx := test.GetDeployContext(
 			&chev2.CheCluster{
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
 						PluginRegistry: chev2.PluginRegistry{
 							DisableInternalRegistry: false,
-						},
-						DevfileRegistry: chev2.DevfileRegistry{
-							DisableInternalRegistry: true,
 						},
 					}},
 			}, nil)
@@ -204,27 +177,6 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 		configmap := getGatewayOauthProxyConfigSpec(ctx, "blabol")
 		config := configmap.Data["oauth-proxy.cfg"]
 		if !strings.Contains(config, "skip_auth_regex = \"^/plugin-registry|^/$|/healthz$|^/dashboard/static/preload|^/dashboard/assets/branding/loader.svg$\"") {
-			t.Error("oauth config should skip auth for plugin registry", config)
-		}
-	})
-
-	t.Run("skip both registries auth", func(t *testing.T) {
-		ctx := test.GetDeployContext(
-			&chev2.CheCluster{
-				Spec: chev2.CheClusterSpec{
-					Components: chev2.CheClusterComponents{
-						PluginRegistry: chev2.PluginRegistry{
-							DisableInternalRegistry: false,
-						},
-						DevfileRegistry: chev2.DevfileRegistry{
-							DisableInternalRegistry: false,
-						},
-					}},
-			}, nil)
-
-		configmap := getGatewayOauthProxyConfigSpec(ctx, "blabol")
-		config := configmap.Data["oauth-proxy.cfg"]
-		if !strings.Contains(config, "skip_auth_regex = \"^/plugin-registry|^/devfile-registry|^/$|/healthz$|^/dashboard/static/preload|^/dashboard/assets/branding/loader.svg$\"") {
 			t.Error("oauth config should skip auth for plugin and devfile registry.", config)
 		}
 	})

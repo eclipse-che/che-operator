@@ -140,7 +140,6 @@ func cleanUpContainersResources(ctx *chetypes.DeployContext) (bool, error) {
 	deployments := []*chev2.Deployment{
 		ctx.CheCluster.Spec.Components.CheServer.Deployment,
 		ctx.CheCluster.Spec.Components.PluginRegistry.Deployment,
-		ctx.CheCluster.Spec.Components.DevfileRegistry.Deployment,
 		ctx.CheCluster.Spec.Components.Dashboard.Deployment,
 		ctx.CheCluster.Spec.Networking.Auth.Gateway.Deployment,
 	}

@@ -297,6 +297,11 @@ func (in *CheClusterDevEnvironments) DeepCopyInto(out *CheClusterDevEnvironments
 		*out = new(int64)
 		**out = **in
 	}
+	if in.MaxNumberOfRunningWorkspacesPerCluster != nil {
+		in, out := &in.MaxNumberOfRunningWorkspacesPerCluster, &out.MaxNumberOfRunningWorkspacesPerCluster
+		*out = new(int64)
+		**out = **in
+	}
 	if in.User != nil {
 		in, out := &in.User, &out.User
 		*out = new(UserConfiguration)
@@ -874,6 +879,11 @@ func (in *PersistentHomeConfig) DeepCopyInto(out *PersistentHomeConfig) {
 	*out = *in
 	if in.Enabled != nil {
 		in, out := &in.Enabled, &out.Enabled
+		*out = new(bool)
+		**out = **in
+	}
+	if in.DisableInitContainer != nil {
+		in, out := &in.DisableInitContainer, &out.DisableInitContainer
 		*out = new(bool)
 		**out = **in
 	}

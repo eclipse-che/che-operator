@@ -100,6 +100,10 @@ func readEditorDefinitions() (map[string][]byte, error) {
 				continue
 			}
 
+			if len(devfile) == 0 {
+				continue
+			}
+
 			updateEditorDefinitionImages(devfile)
 			editorContent, err = yaml.Marshal(devfile)
 			if err != nil {

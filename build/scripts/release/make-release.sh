@@ -35,7 +35,6 @@ init() {
   CHE_SERVER_IMAGE=$(yq -r '.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_che_server") | .value' "${MANAGER_YAML}" | sed -e "s/\(.*:\).*/\1${RELEASE}/")
   CHE_DASHBOARD_IMAGE=$(yq -r '.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_dashboard") | .value' "${MANAGER_YAML}" | sed -e "s/\(.*:\).*/\1${RELEASE}/")
   CHE_PLUGIN_REGISTRY_IMAGE=$(yq -r '.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_plugin_registry") | .value' "${MANAGER_YAML}" | sed -e "s/\(.*:\).*/\1${RELEASE}/")
-  CHE_DEVFILE_REGISTRY_IMAGE=$(yq -r '.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_devfile_registry") | .value' "${MANAGER_YAML}" | sed -e "s/\(.*:\).*/\1${RELEASE}/")
   CHE_GATEWAY_IMAGE=$(yq -r '.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_single_host_gateway_config_sidecar") | .value' "${MANAGER_YAML}" | sed -e "s/\(.*:\).*/\1${RELEASE}/")
 
   if [[ $# -lt 1 ]]; then usage; exit; fi
@@ -102,11 +101,16 @@ releaseManagerYaml() {
   yq -riY '(.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_che_server") | .value) = "'${CHE_SERVER_IMAGE}'"' "${MANAGER_YAML}"
   yq -riY '(.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_dashboard") | .value) = "'${CHE_DASHBOARD_IMAGE}'"' "${MANAGER_YAML}"
   yq -riY '(.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_plugin_registry") | .value) = "'${CHE_PLUGIN_REGISTRY_IMAGE}'"' "${MANAGER_YAML}"
-  yq -riY '(.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_devfile_registry") | .value) = "'${CHE_DEVFILE_REGISTRY_IMAGE}'"' "${MANAGER_YAML}"
   yq -riY '(.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_single_host_gateway_config_sidecar") | .value) = "'${CHE_GATEWAY_IMAGE}'"' "${MANAGER_YAML}"
 
   echo "[INFO] releaseManagerYaml :: Update editors definitions images"
-  . "${OPERATOR_REPO}/build/scripts/release/editors-definitions.sh" update-manager-yaml
+  . "${OPERATOR_REPO}/build/scripts/release/editors-definitions.sh" update-manager-yaml \
+      --yaml-path "${OPERATOR_REPO}/config/manager/manager.yaml"
+
+  echo "[INFO] releaseManagerYaml :: Update samples images"
+  . "${OPERATOR_REPO}/build/scripts/release/samples.sh" update-manager-yaml \
+      --yaml-path "${OPERATOR_REPO}/config/manager/manager.yaml" \
+      --index-json-url "https://raw.githubusercontent.com/eclipse-che/che-dashboard/${RELEASE}/packages/devfile-registry/air-gap/index.json"
 
   echo "[INFO] releaseManagerYaml :: Ensure license header"
   make license "${MANAGER_YAML}"

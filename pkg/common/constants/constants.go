@@ -14,7 +14,7 @@ package constants
 
 const (
 	// Dashboard
-	DefaultDashboardMemoryLimit   = "256Mi"
+	DefaultDashboardMemoryLimit   = "1024Mi"
 	DefaultDashboardMemoryRequest = "32Mi"
 	DefaultDashboardCpuLimit      = "500m"
 	DefaultDashboardCpuRequest    = "100m"
@@ -35,12 +35,6 @@ const (
 	DefaultPluginRegistryMemoryRequestEmbeddedOpenVSXRegistry = "512Mi"
 	DefaultPluginRegistryCpuLimit                             = "500m"
 	DefaultPluginRegistryCpuRequest                           = "100m"
-
-	// DevfileRegistry
-	DefaultDevfileRegistryMemoryLimit   = "256Mi"
-	DefaultDevfileRegistryMemoryRequest = "32Mi"
-	DefaultDevfileRegistryCpuLimit      = "500m"
-	DefaultDevfileRegistryCpuRequest    = "100m"
 
 	// Server
 	DefaultServerMemoryLimit               = "1024Mi"

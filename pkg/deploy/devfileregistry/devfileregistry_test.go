@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2024 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -13,112 +13,175 @@
 package devfileregistry
 
 import (
+	"os"
+	"testing"
+
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-
-	"testing"
 )
 
-func TestDevfileRegistryReconcile(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+func TestDevfileRegistryReconciler(t *testing.T) {
+	defaultExternalDevfileRegistriesEnvVar := os.Getenv("CHE_DEFAULT_SPEC_COMPONENTS_DEVFILEREGISTRY_EXTERNAL_DEVFILE_REGISTRIES")
+	defer func() {
+		_ = os.Setenv("CHE_DEFAULT_SPEC_COMPONENTS_DEVFILEREGISTRY_EXTERNAL_DEVFILE_REGISTRIES", defaultExternalDevfileRegistriesEnvVar)
+	}()
 
-	ctx := test.GetDeployContext(nil, []runtime.Object{})
+	_ = os.Setenv("CHE_DEFAULT_SPEC_COMPONENTS_DEVFILEREGISTRY_EXTERNAL_DEVFILE_REGISTRIES", "[{\"url\": \"https://registry.devfile.io\"}]")
 
-	devfileregistry := NewDevfileRegistryReconciler()
-	_, done, err := devfileregistry.Reconcile(ctx)
-	assert.True(t, done)
-	assert.Nil(t, err)
+	// re initialize defaults with new env var
+	defaults.Initialize()
 
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "devfile-registry", Namespace: "eclipse-che"}, &corev1.Service{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "devfile-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "devfile-registry", Namespace: "eclipse-che"}, &appsv1.Deployment{}))
-	assert.NotEmpty(t, ctx.CheCluster.Status.DevfileRegistryURL)
-}
-
-func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 	type testCase struct {
-		name                       string
-		initObjects                []runtime.Object
-		cheCluster                 *chev2.CheCluster
-		expectedDevfileRegistryURL string
+		name                              string
+		cheCluster                        *chev2.CheCluster
+		expectedDisableInternalRegistry   bool
+		expectedExternalDevfileRegistries []chev2.ExternalDevfileRegistry
+		expectedDevfileRegistryURL        string
 	}
 
 	testCases := []testCase{
 		{
-			name: "Test Status.DevfileRegistryURL #1",
+			name: "DisableInternalRegistry=false #1",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
 					Name:      "eclipse-che",
-				},
-				Status: chev2.CheClusterStatus{
-					CheURL: "https://che-host",
-				},
-			},
-			expectedDevfileRegistryURL: "https://che-host/devfile-registry",
-		},
-		{
-			name: "Test Status.DevfileRegistryURL #2",
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
-					Name:      "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
 						DevfileRegistry: chev2.DevfileRegistry{
+							DisableInternalRegistry: false,
+						},
+					},
+				},
+				Status: chev2.CheClusterStatus{
+					DevfileRegistryURL: "http://devfile-registry:8080",
+				},
+			},
+			expectedDisableInternalRegistry:   false,
+			expectedExternalDevfileRegistries: []chev2.ExternalDevfileRegistry{{Url: "https://registry.devfile.io"}},
+			expectedDevfileRegistryURL:        "",
+		},
+		{
+			name: "DisableInternalRegistry=false #2",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						DevfileRegistry: chev2.DevfileRegistry{
+							DisableInternalRegistry: false,
 							ExternalDevfileRegistries: []chev2.ExternalDevfileRegistry{
-								{Url: "https://devfile-registry.external.2"},
+								{Url: "my-external-registry"},
 							},
 						},
 					},
 				},
 				Status: chev2.CheClusterStatus{
-					CheURL: "https://che-host",
+					DevfileRegistryURL: "http://devfile-registry:8080",
 				},
 			},
-			expectedDevfileRegistryURL: "https://che-host/devfile-registry",
+			expectedDisableInternalRegistry: false,
+			expectedExternalDevfileRegistries: []chev2.ExternalDevfileRegistry{
+				{Url: "my-external-registry"},
+				{Url: "https://registry.devfile.io"},
+			},
+			expectedDevfileRegistryURL: "",
 		},
 		{
-			name: "Test Status.DevfileRegistryURL #3",
+			name: "DisableInternalRegistry=false #3",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
 					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						DevfileRegistry: chev2.DevfileRegistry{
+							DisableInternalRegistry: false,
+							ExternalDevfileRegistries: []chev2.ExternalDevfileRegistry{
+								{Url: "https://registry.devfile.io"},
+							},
+						},
+					},
+				},
+				Status: chev2.CheClusterStatus{
+					DevfileRegistryURL: "http://devfile-registry:8080",
+				},
+			},
+			expectedDisableInternalRegistry: false,
+			expectedExternalDevfileRegistries: []chev2.ExternalDevfileRegistry{
+				{Url: "https://registry.devfile.io"},
+			},
+			expectedDevfileRegistryURL: "",
+		},
+		{
+			name: "DisableInternalRegistry=true #1",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
 						DevfileRegistry: chev2.DevfileRegistry{
 							DisableInternalRegistry: true,
-							ExternalDevfileRegistries: []chev2.ExternalDevfileRegistry{
-								{Url: "https://devfile-registry.external.2"},
-							},
 						},
 					},
 				},
-				Status: chev2.CheClusterStatus{
-					CheURL: "https://che-host",
-				},
+				Status: chev2.CheClusterStatus{},
 			},
-			expectedDevfileRegistryURL: "",
+			expectedDisableInternalRegistry:   true,
+			expectedExternalDevfileRegistries: nil,
+			expectedDevfileRegistryURL:        "",
+		},
+		{
+			name: "DisableInternalRegistry=true #2",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						DevfileRegistry: chev2.DevfileRegistry{
+							DisableInternalRegistry:   true,
+							ExternalDevfileRegistries: []chev2.ExternalDevfileRegistry{{Url: "my-external-registry"}},
+						},
+					},
+				},
+				Status: chev2.CheClusterStatus{},
+			},
+			expectedDisableInternalRegistry:   true,
+			expectedExternalDevfileRegistries: []chev2.ExternalDevfileRegistry{{Url: "my-external-registry"}},
+			expectedDevfileRegistryURL:        "",
 		},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
+			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
 
-			devfileregistry := NewDevfileRegistryReconciler()
-			devfileregistry.Reconcile(ctx)
+			devfileRegistryReconciler := NewDevfileRegistryReconciler()
+			for i := 0; i < 2; i++ {
+				_, done, err := devfileRegistryReconciler.Reconcile(ctx)
+				assert.True(t, done)
+				assert.Nil(t, err)
+			}
 
-			assert.Equal(t, ctx.CheCluster.Status.DevfileRegistryURL, testCase.expectedDevfileRegistryURL)
+			assert.Equal(t, testCase.expectedDevfileRegistryURL, ctx.CheCluster.Status.DevfileRegistryURL)
+			assert.Equal(t, testCase.expectedDisableInternalRegistry, ctx.CheCluster.Spec.Components.DevfileRegistry.DisableInternalRegistry)
+			assert.Equal(t, len(testCase.expectedExternalDevfileRegistries), len(ctx.CheCluster.Spec.Components.DevfileRegistry.ExternalDevfileRegistries))
+			assert.Equal(t, testCase.expectedExternalDevfileRegistries, ctx.CheCluster.Spec.Components.DevfileRegistry.ExternalDevfileRegistries)
 		})
 	}
 }
