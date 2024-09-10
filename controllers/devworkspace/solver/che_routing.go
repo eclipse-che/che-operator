@@ -630,7 +630,7 @@ func add5XXErrorHandling(cfg *gateway.TraefikConfig, dwId string) {
 			DialTimeout: "2500ms",
 		},
 	}
-	cfg.AddRetry(dwId, 2, "500ms")
+	cfg.AddRetry(dwId, 2, "2500ms")
 	cfg.HTTP.Services[dwId].LoadBalancer.ServersTransport = dwId
 }
 
