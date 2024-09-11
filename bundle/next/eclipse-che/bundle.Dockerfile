@@ -33,4 +33,3 @@ COPY metadata /metadata/
 COPY tests/scorecard /tests/scorecard/
 
 LABEL com.redhat.openshift.versions="v4.8"
-LABEL com.redhat.openshift.versions="v4.8"
