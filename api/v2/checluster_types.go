@@ -205,6 +205,9 @@ type CheClusterDevEnvironments struct {
 	// here will not trigger workspace failures.
 	// +optional
 	IgnoredUnrecoverableEvents []string `json:"ignoredUnrecoverableEvents,omitempty"`
+	// AllowedSource defines the allowed sources on which workspaces can be started.
+	// +optional
+	AllowedSource AllowedSources `json:"allowedSource,omitempty"`
 }
 
 // Che components configuration.
@@ -823,6 +826,13 @@ type KubeRbacProxy struct {
 	// +kubebuilder:default:=0
 	// +kubebuilder:validation:Minimum:=0
 	LogLevel *int32 `json:"logLevel,omitempty"`
+}
+
+type AllowedSources struct {
+	// The list of approved URLs for starting Cloud Development Environments (CDEs). CDEs can only be
+	// initiated from these URLs.
+	// +optional
+	Urls []string `json:"urls,omitempty"`
 }
 
 // GatewayPhase describes the different phases of the Che gateway lifecycle.
