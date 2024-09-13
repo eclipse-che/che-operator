@@ -302,6 +302,11 @@ func (in *CheClusterDevEnvironments) DeepCopyInto(out *CheClusterDevEnvironments
 		*out = make([]v1alpha1.ServiceAccountToken, len(*in))
 		copy(*out, *in)
 	}
+	if in.RuntimeClassName != nil {
+		in, out := &in.RuntimeClassName, &out.RuntimeClassName
+		*out = new(string)
+		**out = **in
+	}
 	if in.StartTimeoutSeconds != nil {
 		in, out := &in.StartTimeoutSeconds, &out.StartTimeoutSeconds
 		*out = new(int32)

@@ -7262,6 +7262,10 @@ spec:
                             type: object
                         type: object
                     type: object
+                  runtimeClassName:
+                    description: RuntimeClassName specifies the spec.runtimeClassName
+                      for workspace pods.
+                    type: string
                   secondsOfInactivityBeforeIdling:
                     default: 1800
                     description: |-
