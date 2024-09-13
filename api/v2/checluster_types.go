@@ -155,6 +155,9 @@ type CheClusterDevEnvironments struct {
 	// If not specified, the pod scheduler is set to the default scheduler on the cluster.
 	// +optional
 	PodSchedulerName string `json:"podSchedulerName,omitempty"`
+	// RuntimeClassName specifies the spec.runtimeClassName for workspace pods.
+	// +optional
+	RuntimeClassName *string `json:"runtimeClassName,omitempty"`
 	// StartTimeoutSeconds determines the maximum duration (in seconds) that a workspace can take to start
 	// before it is automatically failed.
 	// If not specified, the default value of 300 seconds (5 minutes) is used.

@@ -93,6 +93,8 @@ func updateWorkspaceConfig(ctx *chetypes.DeployContext, operatorConfig *controll
 
 	updateWorkspacePodSchedulerNameConfig(devEnvironments, operatorConfig.Workspace)
 
+	updateWorkspaceRuntimeClassNameConfig(devEnvironments, operatorConfig.Workspace)
+
 	updateProjectCloneConfig(devEnvironments, operatorConfig.Workspace)
 
 	if err := updateSecurityContext(operatorConfig, cheCluster); err != nil {
@@ -220,6 +222,10 @@ func updateWorkspaceServiceAccountConfig(devEnvironments *chev2.CheClusterDevEnv
 
 func updateWorkspacePodSchedulerNameConfig(devEnvironments *chev2.CheClusterDevEnvironments, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
 	workspaceConfig.SchedulerName = devEnvironments.PodSchedulerName
+}
+
+func updateWorkspaceRuntimeClassNameConfig(devEnvironments *chev2.CheClusterDevEnvironments, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
+	workspaceConfig.RuntimeClassName = devEnvironments.RuntimeClassName
 }
 
 func updateProjectCloneConfig(devEnvironments *chev2.CheClusterDevEnvironments, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
