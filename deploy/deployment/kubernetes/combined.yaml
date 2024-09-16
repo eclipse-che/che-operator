@@ -5169,14 +5169,16 @@ spec:
                     pvcStrategy: per-user
                 description: Development environment default configuration options.
                 properties:
-                  allowedSource:
-                    description: AllowedSource defines the allowed sources on which
+                  allowedSources:
+                    description: AllowedSources defines the allowed sources on which
                       workspaces can be started.
                     properties:
                       urls:
                         description: |-
                           The list of approved URLs for starting Cloud Development Environments (CDEs). CDEs can only be
-                          initiated from these URLs.
+                          initiated from these URLs. Wildcards `*` are supported in URLs, allowing flexible matching for
+                          specific URL patterns. For instance, `https://example.com/*` would allow CDEs to be initiated
+                          from any path within 'example.com'.
                         items:
                           type: string
                         type: array
