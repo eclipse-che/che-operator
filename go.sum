@@ -712,8 +712,8 @@ github.com/deislabs/oras v0.8.1/go.mod h1:Mx0rMSbBNaNfY9hjpccEnxkOqJL6KGjtxNHPLC
 github.com/denisenkom/go-mssqldb v0.0.0-20190204142019-df6d76eb9289/go.mod h1:xN/JuLBIz4bjkxNmByTiV1IbhfnYb6oo99phBn4Eqhc=
 github.com/devfile/api/v2 v2.2.2 h1:DXRCPWFlZhTIE38Of2jzTRjQHadfbxBC8GS+m+EjoCU=
 github.com/devfile/api/v2 v2.2.2/go.mod h1:qp8jcw12y1JdCsxjK/7LJ7uWaJOxcY1s2LUk5PhbkbM=
-github.com/devfile/devworkspace-operator v0.29.0 h1:SB46ueI7LEA6vYv8qH4nsyUiG67XDZkvvyLyL2yeWO8=
-github.com/devfile/devworkspace-operator v0.29.0/go.mod h1:b2fBHTA6szY4uN46w0PlPKLJO/dzA8N2vvepBxSFmYk=
+github.com/devfile/devworkspace-operator v0.31.0 h1:mrlBqo1wRR3dzhJm2IL3FmX3eHp8N8z/DobP6goN1qY=
+github.com/devfile/devworkspace-operator v0.31.0/go.mod h1:b2fBHTA6szY4uN46w0PlPKLJO/dzA8N2vvepBxSFmYk=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/dhui/dktest v0.3.2/go.mod h1:l1/ib23a/CmxAe7yixtrYPc8Iy90Zy2udyaHINM5p58=
 github.com/docker/cli v0.0.0-20200130152716-5d0cf8839492 h1:FwssHbCDJD025h+BchanCwE1Q8fyMgqDr2mOQAWOLGw=
