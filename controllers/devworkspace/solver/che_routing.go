@@ -474,6 +474,31 @@ func getCommonService(objs *solvers.RoutingObjects, dwId string) *corev1.Service
 	return nil
 }
 
+func getServiceForEndpoint(objs *solvers.RoutingObjects, endpoint dwo.Endpoint) *corev1.Service {
+	endpointServiceName := common.EndpointName(endpoint.Name)
+	for _, svc := range objs.Services {
+		if svc.Name == endpointServiceName {
+			return &svc
+		}
+	}
+	return nil
+}
+
+// Returns the appropriate service to use when exposing an endpoint.
+// Endpoints with the "discoverable" attribute set have their own service that should be used.
+// Endpoints that do not set the "discoverable" attribute should use the common service associated with the workspace.
+func determineEndpointService(objs *solvers.RoutingObjects, endpoint dwo.Endpoint, commonService *corev1.Service) *corev1.Service {
+	if endpoint.Attributes.GetBoolean(string(dwo.DiscoverableAttribute), nil) {
+		endpointService := getServiceForEndpoint(objs, endpoint)
+		if endpointService == nil {
+			return endpointService
+		} else {
+			logger.Error(fmt.Errorf("could not find endpoint-specfic service for endpoint '%s'", endpoint.Name), "Using common service instead.")
+		}
+	}
+	return commonService
+}
+
 func exposeAllEndpoints(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects, ingressExpose func(*EndpointInfo), endpointStrategy EndpointStrategy) *corev1.ConfigMap {
 	wsRouteConfig := gateway.CreateEmptyTraefikConfig()
 
@@ -507,13 +532,14 @@ func exposeAllEndpoints(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceR
 			if e.Attributes.GetString(urlRewriteSupportedEndpointAttributeName, nil) == "true" {
 				addEndpointToTraefikConfig(componentName, e, wsRouteConfig, cheCluster, routing, endpointStrategy)
 			} else {
+				service := determineEndpointService(objs, e, commonService)
 				ingressExpose(&EndpointInfo{
 					order:         order,
 					componentName: componentName,
 					endpointName:  e.Name,
 					port:          int32(e.TargetPort),
 					scheme:        determineEndpointScheme(e),
-					service:       commonService,
+					service:       service,
 					annotations:   e.Annotations,
 				})
 				order = order + 1
