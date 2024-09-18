@@ -6994,6 +6994,8 @@ spec:
                         type: object
                     type: object
                   ignoredUnrecoverableEvents:
+                    default:
+                    - FailedScheduling
                     description: |-
                       IgnoredUnrecoverableEvents defines a list of Kubernetes event names that should
                       be ignored when deciding to fail a workspace that is starting. This option should be used

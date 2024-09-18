@@ -203,8 +203,9 @@ type CheClusterDevEnvironments struct {
 	// if a transient cluster issue is triggering false-positives (for example, if
 	// the cluster occasionally encounters FailedScheduling events). Events listed
 	// here will not trigger workspace failures.
+	// +kubebuilder:default:={"FailedScheduling"}
 	// +optional
-	IgnoredUnrecoverableEvents []string `json:"ignoredUnrecoverableEvents,omitempty"`
+	IgnoredUnrecoverableEvents []string `json:"ignoredUnrecoverableEvents"`
 	// AllowedSources defines the allowed sources on which workspaces can be started.
 	// +optional
 	AllowedSources *AllowedSources `json:"allowedSources,omitempty"`
