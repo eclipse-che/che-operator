@@ -1,0 +1,103 @@
+#
+# Copyright (c) 2024 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Red Hat, Inc. - initial API and implementation
+#
+
+schemaVersion: 2.2.2
+metadata:
+  name: che-pycharm-server
+  displayName: PyCharm (desktop)
+  description: JetBrains PyCharm for Eclipse Che - latest
+  tags:
+    - Tech-Preview
+  attributes:
+    publisher: che-incubator
+    version: latest
+    title: JetBrains PyCharm for Eclipse Che - latest
+    repository: https://github.com/che-incubator/che-idea-dev-server
+    firstPublicationDate: '2024-18-09'
+    iconMediatype: image/svg+xml
+    iconData: |
+      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <g clip-path="url(#clip0_4372_11288)">
+      <path d="M5.81885 48.0521L5.82059 59.9276C5.82059 62.1769 7.64401 63.9998 9.89332 63.9998H21.3999C22.5886 63.9998 23.7185 63.4802 24.4923 62.5778L57.2015 24.4164C57.834 23.678 58.1819 22.7378 58.1819 21.7656V9.89011C58.1819 7.6408 56.3585 5.81738 54.1092 5.81738H42.6008C41.4122 5.81738 40.2823 6.33695 39.5084 7.23935L6.79921 45.4008C6.16619 46.1391 5.81885 47.0793 5.81885 48.0521Z" fill="#00D886"/>
+      <path d="M5.81836 49.4806V59.9271C5.81836 62.1764 7.64178 63.9999 9.89109 63.9999H22.9837C23.1763 63.9999 23.3689 63.9859 23.5597 63.9591L60.5035 58.682C62.5101 58.3952 64.0002 56.6771 64.0002 54.65V38.977C64.0002 36.7271 62.1762 34.9037 59.9263 34.9043L41.3878 34.909C40.9503 34.909 40.5157 34.9794 40.1008 35.1178L8.60294 45.6173C6.9401 46.1718 5.81836 47.7282 5.81836 49.4812V49.4806Z" fill="url(#paint0_linear_4372_11288)"/>
+      <path d="M0 4.07273V38.041C0 39.6701 0.971054 41.1427 2.46807 41.7844L39.9587 57.8525C40.4655 58.0695 41.0118 58.1818 41.5633 58.1818H59.9273C62.1766 58.1818 64 56.3584 64 54.1091V36.1431C64 35.3385 63.7615 34.5519 63.3146 33.8822L41.9119 1.81353C41.1561 0.681309 39.8854 0.00174545 38.5245 0.00174545L4.07273 0C1.82342 0 0 1.82342 0 4.07273Z" fill="url(#paint1_linear_4372_11288)"/>
+      <path d="M52 12H12V52H52V12Z" fill="black"/>
+      <path d="M17.1001 16.9666H23.542C24.5922 16.9666 25.5178 17.1596 26.3183 17.5454C27.1187 17.9313 27.7331 18.4739 28.162 19.1744C28.5978 19.8749 28.816 20.6857 28.816 21.6073C28.816 22.5289 28.5944 23.3649 28.1517 24.0723C27.7159 24.7797 27.0906 25.3304 26.2758 25.7231C25.4685 26.109 24.5285 26.3019 23.457 26.3019H20.0274V31.9721H17.1012V16.9666H17.1001ZM23.3485 23.8696C23.8418 23.8696 24.2701 23.7801 24.6347 23.6015C25.0062 23.4154 25.2922 23.1553 25.492 22.8189C25.6918 22.4761 25.7923 22.0793 25.7923 21.6291C25.7923 21.1789 25.6924 20.7782 25.492 20.4503C25.2916 20.1138 25.0062 19.8566 24.6347 19.6786C24.2701 19.4925 23.8418 19.4001 23.3485 19.4001H20.0256V23.8696H23.3485ZM37.2895 32.23C35.8534 32.23 34.5528 31.8935 33.3878 31.2222C32.2228 30.543 31.3086 29.6145 30.6437 28.4357C29.9794 27.2499 29.6469 25.9276 29.6469 24.4697C29.6469 23.0118 29.9794 21.6934 30.6437 20.5146C31.3081 19.3289 32.2228 18.3993 33.3878 17.728C34.5523 17.0487 35.8528 16.71 37.2895 16.71C38.5039 16.71 39.619 16.935 40.6336 17.3852C41.6482 17.8354 42.4911 18.4676 43.1629 19.2824C43.8417 20.0903 44.2953 21.0187 44.5244 22.069H41.4587C41.2583 21.5263 40.9586 21.0509 40.5584 20.6432C40.1651 20.2292 39.6902 19.9105 39.1327 19.6895C38.5751 19.4684 37.9676 19.357 37.3107 19.357C36.4247 19.357 35.6243 19.5781 34.91 20.0214C34.1951 20.4646 33.6347 21.0756 33.227 21.8542C32.8268 22.6259 32.627 23.4981 32.627 24.4697C32.627 25.4412 32.8268 26.3174 33.227 27.0955C33.6341 27.8672 34.1951 28.4741 34.91 28.9174C35.6243 29.3607 36.4247 29.5818 37.3107 29.5818C37.9682 29.5818 38.5757 29.4704 39.1327 29.2493C39.6896 29.0282 40.1651 28.7136 40.5584 28.3059C40.9586 27.8919 41.2583 27.4124 41.4587 26.8698H44.5244C44.2958 27.92 43.8417 28.8525 43.1629 29.6673C42.4911 30.4752 41.6482 31.1034 40.6336 31.5536C39.619 32.0037 38.5039 32.2288 37.2895 32.2288V32.23Z" fill="white"/>
+      <path d="M33 44H17V47H33V44Z" fill="white"/>
+      </g>
+      <defs>
+      <linearGradient id="paint0_linear_4372_11288" x1="7.62141" y1="64.7172" x2="61.2476" y2="39.8538" gradientUnits="userSpaceOnUse">
+      <stop offset="0.1" stop-color="#00D886"/>
+      <stop offset="0.59" stop-color="#F0EB18"/>
+      </linearGradient>
+      <linearGradient id="paint1_linear_4372_11288" x1="60.0186" y1="59.7778" x2="1.31317" y2="1.07229" gradientUnits="userSpaceOnUse">
+      <stop offset="0.3" stop-color="#F0EB18"/>
+      <stop offset="0.7" stop-color="#00C4F4"/>
+      </linearGradient>
+      <clipPath id="clip0_4372_11288">
+      <rect width="64" height="64" fill="white"/>
+      </clipPath>
+      </defs>
+      </svg>
+commands:
+  - id: inject-editor
+    apply:
+      component: editor-injector
+  - id: start-ide-server
+    exec:
+      component: editor-runtime
+      commandLine: nohup /idea-server/entrypoint-volume.sh > /idea-server/std.out
+        2>&1 &
+events:
+  preStart:
+    - inject-editor
+  postStart:
+    - start-ide-server
+components:
+  - name: idea-server
+    volume: {}
+  - name: editor-injector
+    container:
+      image: quay.io/che-incubator/che-idea-dev-server:latest
+      command: ['/entrypoint-init-container.sh', 'pycharm']
+      volumeMounts:
+        - name: idea-server
+          path: /idea-server
+      memoryLimit: 256Mi
+      memoryRequest: 32Mi
+      cpuLimit: 500m
+      cpuRequest: 30m
+  - name: editor-runtime
+    container:
+      image: quay.io/devfile/universal-developer-image:latest
+      memoryLimit: 6144Mi
+      memoryRequest: 2048Mi
+      cpuLimit: 2000m
+      cpuRequest: 1500m
+      volumeMounts:
+        - name: idea-server
+          path: /idea-server
+      endpoints:
+        - name: idea-server
+          attributes:
+            type: main
+            cookiesAuthEnabled: true
+            discoverable: false
+            urlRewriteSupported: true
+          targetPort: 3400
+          exposure: public
+          secure: true
+          protocol: https
+    attributes:
+      app.kubernetes.io/component: editor-runtime
+      app.kubernetes.io/part-of: ide-server.eclipse.org
+      controller.devfile.io/container-contribution: true
