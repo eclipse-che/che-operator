@@ -25,6 +25,7 @@ import (
 	"github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 
+	dwCommon "github.com/devfile/devworkspace-operator/pkg/common"
 	dwConstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -228,6 +229,60 @@ func endpointAnnotationDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 						TargetPort:  9999,
 						Exposure:    dwo.PublicEndpointExposure,
 						Annotations: devfileEndpointAnnotations,
+					},
+				},
+			},
+		},
+	}
+}
+
+func discoverableEndpointDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
+	return &dwo.DevWorkspaceRouting{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "routing",
+			Namespace: "ws",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: "workspace.devfile.io/v1alpha2",
+					Kind:       "DevWorkspace",
+					Name:       "my-workspace",
+					UID:        "uid",
+				},
+			},
+		},
+		Spec: dwo.DevWorkspaceRoutingSpec{
+			DevWorkspaceId: "wsid",
+			RoutingClass:   "che",
+			Endpoints: map[string]dwo.EndpointList{
+				"m1": {
+					{
+						Name:       "e1",
+						TargetPort: 8080,
+						Exposure:   dwo.PublicEndpointExposure,
+						Protocol:   "http",
+						Path:       "/1/",
+						Attributes: dwo.Attributes{
+							string(dwo.DiscoverableAttribute): apiext.JSON{Raw: []byte("\"true\"")},
+						},
+					},
+					{
+						Name:       "e2",
+						TargetPort: 9999,
+						Exposure:   dwo.PublicEndpointExposure,
+						Protocol:   "https",
+						Path:       "/2.js",
+						Secure:     true,
+						Attributes: dwo.Attributes{
+							string(dwo.DiscoverableAttribute): apiext.JSON{Raw: []byte("\"true\"")},
+						},
+					},
+					{
+						Name:       "e3",
+						TargetPort: 9999,
+						Exposure:   dwo.PublicEndpointExposure,
+						Protocol:   "https",
+						Path:       "/3.js",
+						Secure:     true,
 					},
 				},
 			},
@@ -1873,6 +1928,102 @@ func TestUsesEndpointAnnotationsForWorkspaceEndpointRoutes(t *testing.T) {
 			} else {
 				if actualValue != expectedValue {
 					t.Errorf("Unexpected value of the route annotation. Expected '%s' but got '%s'", expectedValue, actualValue)
+				}
+			}
+		}
+	}
+}
+
+func TestUsesEndpointServiceWithDiscoverableAttributeSetRoutes(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+	mgr := &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "che",
+			Namespace:  "ns",
+			Finalizers: []string{controller.FinalizerName},
+		},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Hostname: "over.the.rainbow",
+				Domain:   "down.on.earth",
+			},
+		},
+	}
+	dwr := discoverableEndpointDevWorkspaceRouting()
+
+	_, _, objs := getSpecObjectsForManager(t, mgr, dwr, userProfileSecret("username"))
+
+	if len(objs.Routes) != 3 {
+		t.Fatalf("Unexpected number of generated routes: %d", len(objs.Ingresses))
+	}
+
+	for _, route := range objs.Routes {
+		for _, endpoint := range dwr.Spec.Endpoints["m1"] {
+			if route.Name == getEndpointExposingObjectName("m1", "wsid", int32(endpoint.TargetPort), endpoint.Name) {
+				assert.NotNil(t, route.Spec.To.Name)
+
+				actualServiceName := route.Spec.To.Name
+				expectedServiceName := dwCommon.ServiceName("wsid")
+				if endpoint.Attributes.GetBoolean(string(dwo.DiscoverableAttribute), nil) {
+					// Discoverable routes use the endpoint-specific service instead of the common service
+					expectedServiceName = dwCommon.EndpointName(endpoint.Name)
+				}
+
+				if actualServiceName != expectedServiceName {
+					t.Errorf("Expected service to be '%s' but got '%s'", expectedServiceName, actualServiceName)
+				}
+			}
+		}
+	}
+}
+
+func TestUsesEndpointServiceWithDiscoverableAttributeSetIngresses(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
+	mgr := &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "che",
+			Namespace:  "ns",
+			Finalizers: []string{controller.FinalizerName},
+		},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Hostname: "over.the.rainbow",
+				Domain:   "down.on.earth",
+			},
+		},
+	}
+	dwr := discoverableEndpointDevWorkspaceRouting()
+
+	_, _, objs := getSpecObjectsForManager(t, mgr, dwr, userProfileSecret("username"))
+
+	if len(objs.Ingresses) != 3 {
+		t.Fatalf("Unexpected number of generated ingresses: %d", len(objs.Ingresses))
+	}
+
+	for _, ingress := range objs.Ingresses {
+		for _, endpoint := range dwr.Spec.Endpoints["m1"] {
+			if ingress.Name == getEndpointExposingObjectName("m1", "wsid", int32(endpoint.TargetPort), endpoint.Name) {
+				assert.NotNil(t, ingress.Spec.Rules)
+				assert.Len(t, ingress.Spec.Rules, 1)
+
+				ingressRule := ingress.Spec.Rules[0]
+				assert.NotNil(t, ingressRule.HTTP.Paths)
+				assert.Len(t, ingressRule.HTTP.Paths, 1)
+
+				path := ingressRule.HTTP.Paths[0]
+				assert.NotNil(t, path.Backend.Service)
+
+				actualServiceName := path.Backend.Service.Name
+				expectedServiceName := dwCommon.ServiceName("wsid")
+				if endpoint.Attributes.GetBoolean(string(dwo.DiscoverableAttribute), nil) {
+					// Discoverable routes use the endpoint-specific service instead of the common service
+					expectedServiceName = dwCommon.EndpointName(endpoint.Name)
+				}
+
+				if actualServiceName != expectedServiceName {
+					t.Errorf("Expected service to be '%s' but got '%s'", expectedServiceName, actualServiceName)
 				}
 			}
 		}
