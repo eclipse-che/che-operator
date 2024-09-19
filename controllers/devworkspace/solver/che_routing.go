@@ -344,7 +344,9 @@ func (c *CheRoutingSolver) getGatewayConfigsAndFillRoutingObjects(cheCluster *ch
 	if infraExposer, err := c.getInfraSpecificExposer(cheCluster, routing, objs, endpointStrategy); err != nil {
 		return nil, err
 	} else {
-		if workspaceConfig := exposeAllEndpoints(cheCluster, routing, objs, infraExposer, endpointStrategy); workspaceConfig != nil {
+		if workspaceConfig, err := exposeAllEndpoints(cheCluster, routing, objs, infraExposer, endpointStrategy); err != nil {
+			return nil, err
+		} else if workspaceConfig != nil {
 			configs = append(configs, *workspaceConfig)
 		}
 	}
@@ -485,26 +487,27 @@ func getServiceForEndpoint(objs *solvers.RoutingObjects, endpoint dwo.Endpoint) 
 }
 
 // Returns the appropriate service to use when exposing an endpoint.
+// If the appropriate service could not be found in the given routing objects, an error is returned.
+//
 // Endpoints with the "discoverable" attribute set have their own service that should be used.
 // Endpoints that do not set the "discoverable" attribute should use the common service associated with the workspace.
-func determineEndpointService(objs *solvers.RoutingObjects, endpoint dwo.Endpoint, commonService *corev1.Service) *corev1.Service {
+func determineEndpointService(objs *solvers.RoutingObjects, endpoint dwo.Endpoint, commonService *corev1.Service) (*corev1.Service, error) {
 	if endpoint.Attributes.GetBoolean(string(dwo.DiscoverableAttribute), nil) {
 		endpointService := getServiceForEndpoint(objs, endpoint)
 		if endpointService == nil {
-			return endpointService
-		} else {
-			logger.Error(fmt.Errorf("could not find endpoint-specfic service for endpoint '%s'", endpoint.Name), "Using common service instead.")
+			return nil, fmt.Errorf("could not find endpoint-specfic service for endpoint '%s'", endpoint.Name)
 		}
+		return endpointService, nil
 	}
-	return commonService
+	return commonService, nil
 }
 
-func exposeAllEndpoints(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects, ingressExpose func(*EndpointInfo), endpointStrategy EndpointStrategy) *corev1.ConfigMap {
+func exposeAllEndpoints(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects, ingressExpose func(*EndpointInfo), endpointStrategy EndpointStrategy) (*corev1.ConfigMap, error) {
 	wsRouteConfig := gateway.CreateEmptyTraefikConfig()
 
 	commonService := getCommonService(objs, routing.Spec.DevWorkspaceId)
 	if commonService == nil {
-		return nil
+		return nil, fmt.Errorf("could not find the common service for workspace '%s'", routing.Spec.DevWorkspaceId)
 	}
 
 	order := 1
@@ -532,7 +535,10 @@ func exposeAllEndpoints(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceR
 			if e.Attributes.GetString(urlRewriteSupportedEndpointAttributeName, nil) == "true" {
 				addEndpointToTraefikConfig(componentName, e, wsRouteConfig, cheCluster, routing, endpointStrategy)
 			} else {
-				service := determineEndpointService(objs, e, commonService)
+				service, err := determineEndpointService(objs, e, commonService)
+				if err != nil {
+					return nil, err
+				}
 				ingressExpose(&EndpointInfo{
 					order:         order,
 					componentName: componentName,
@@ -550,6 +556,7 @@ func exposeAllEndpoints(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceR
 	contents, err := yaml.Marshal(wsRouteConfig)
 	if err != nil {
 		logger.Error(err, "can't serialize traefik config")
+		return nil, err
 	}
 
 	wsConfigMap := &corev1.ConfigMap{
@@ -581,7 +588,7 @@ providers:
 log:
   level: "INFO"`, wsGatewayPort)
 
-	return wsConfigMap
+	return wsConfigMap, nil
 }
 
 func containPort(service *corev1.Service, port int32) bool {
