@@ -1,0 +1,103 @@
+#
+# Copyright (c) 2024 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Red Hat, Inc. - initial API and implementation
+#
+
+schemaVersion: 2.2.2
+metadata:
+  name: che-webstorm-server
+  displayName: WebStorm (desktop)
+  description: JetBrains WebStorm for Eclipse Che - next
+  tags:
+    - Tech-Preview
+  attributes:
+    publisher: che-incubator
+    version: next
+    title: JetBrains WebStorm for Eclipse Che - next
+    repository: https://github.com/che-incubator/che-idea-dev-server
+    firstPublicationDate: '2024-18-09'
+    iconMediatype: image/svg+xml
+    iconData: |
+      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <g clip-path="url(#clip0_4372_13111)">
+      <path d="M5.81836 48.0521L5.8201 59.9276C5.8201 62.1769 7.64352 63.9998 9.89283 63.9998H21.3994C22.5881 63.9998 23.718 63.4802 24.4918 62.5778L57.2016 24.4164C57.8341 23.678 58.182 22.7378 58.182 21.7656V9.89011C58.182 7.6408 56.3586 5.81738 54.1093 5.81738H42.6009C41.4122 5.81738 40.2823 6.33695 39.5085 7.23935L6.79872 45.4008C6.1657 46.1391 5.81836 47.0793 5.81836 48.0521Z" fill="#F0EB18"/>
+      <path d="M5.81836 49.4806V59.9271C5.81836 62.1764 7.64178 63.9999 9.89109 63.9999H22.9837C23.1763 63.9999 23.3689 63.9859 23.5597 63.9591L60.5034 58.682C62.5101 58.3952 64.0002 56.6771 64.0002 54.65V38.977C64.0002 36.7271 62.1762 34.9037 59.9263 34.9043L41.3878 34.909C40.9503 34.909 40.5157 34.9794 40.1008 35.1178L8.60294 45.6173C6.9401 46.1718 5.81836 47.7282 5.81836 49.4812V49.4806Z" fill="url(#paint0_linear_4372_13111)"/>
+      <path d="M0 4.07273V38.041C0 39.6701 0.971054 41.1427 2.46807 41.7844L39.9587 57.8525C40.4654 58.0695 41.0118 58.1818 41.5633 58.1818H59.9273C62.1766 58.1818 64 56.3584 64 54.1091V36.1431C64 35.3385 63.7614 34.5518 63.3146 33.8822L41.9113 1.81353C41.1561 0.681309 39.8854 0.00174545 38.5239 0.00174545L4.07273 0C1.82342 0 0 1.82342 0 4.07273Z" fill="url(#paint1_linear_4372_13111)"/>
+      <path d="M52 12H12V52H52V12Z" fill="black"/>
+      <path d="M18.8222 17.0078L21.2445 27.961L23.8277 17.0078H26.7857L29.4865 27.961L31.8337 17.0078H34.8027L31.1585 32.0122H27.8255L25.2964 21.1124L22.735 32.0122H19.4124L15.79 17.0078H18.8233H18.8222ZM41.123 32.27C40.0367 32.27 39.0721 32.0731 38.2292 31.6804C37.3933 31.2876 36.7358 30.737 36.257 30.0297C35.7856 29.3223 35.5428 28.5076 35.5284 27.5861H38.4652C38.4652 28.0213 38.5795 28.4048 38.808 28.7327C39.0365 29.0611 39.3546 29.3183 39.7617 29.5043C40.1687 29.6903 40.6367 29.7828 41.1655 29.7828C41.6943 29.7828 42.1157 29.7013 42.4946 29.5365C42.8805 29.3648 43.1767 29.1294 43.384 28.8291C43.5982 28.5288 43.7055 28.1861 43.7055 27.8002C43.7055 27.3219 43.5591 26.9252 43.2663 26.6106C42.9804 26.2959 42.5842 26.0789 42.0767 25.9566L39.4292 25.3669C38.715 25.2102 38.0932 24.9421 37.5644 24.5631C37.0356 24.1773 36.625 23.7019 36.3316 23.1375C36.0388 22.5737 35.8924 21.9369 35.8924 21.2296C35.8924 20.3724 36.114 19.6047 36.5567 18.9255C37 18.2394 37.6178 17.7077 38.4107 17.3288C39.2036 16.9429 40.1039 16.75 41.1115 16.75C42.1191 16.75 43.0441 16.936 43.8445 17.3075C44.6449 17.6784 45.2661 18.1969 45.7093 18.8617C46.1595 19.5197 46.388 20.2765 46.3955 21.1337H43.4696C43.4696 20.7691 43.3731 20.4436 43.1802 20.1582C42.9873 19.8648 42.7122 19.6397 42.3551 19.483C42.0049 19.3182 41.6013 19.2367 41.1442 19.2367C40.6872 19.2367 40.283 19.3159 39.9333 19.4727C39.5906 19.6225 39.3224 19.8372 39.1295 20.1157C38.9366 20.3879 38.8401 20.7054 38.8401 21.0694C38.8401 21.4833 38.9722 21.8261 39.2369 22.0983C39.5085 22.3704 39.8765 22.5633 40.341 22.677L42.892 23.2345C43.628 23.3844 44.2814 23.6697 44.8533 24.0917C45.432 24.5057 45.8822 25.0202 46.2037 25.6351C46.5252 26.242 46.686 26.9063 46.686 27.6285C46.686 28.5139 46.45 29.3114 45.9786 30.0188C45.5141 30.7192 44.8602 31.2687 44.0173 31.6695C43.1744 32.0702 42.2099 32.2695 41.1236 32.2695L41.123 32.27Z" fill="white"/>
+      <path d="M33 44H17V47H33V44Z" fill="white"/>
+      </g>
+      <defs>
+      <linearGradient id="paint0_linear_4372_13111" x1="7.62141" y1="64.7172" x2="61.2476" y2="39.8544" gradientUnits="userSpaceOnUse">
+      <stop offset="0.22" stop-color="#F0EB18"/>
+      <stop offset="0.59" stop-color="#00C4F4"/>
+      </linearGradient>
+      <linearGradient id="paint1_linear_4372_13111" x1="60.0186" y1="59.7777" x2="1.31316" y2="1.07287" gradientUnits="userSpaceOnUse">
+      <stop offset="0.19" stop-color="#00C4F4"/>
+      <stop offset="0.83" stop-color="#007DFE"/>
+      </linearGradient>
+      <clipPath id="clip0_4372_13111">
+      <rect width="64" height="64" fill="white"/>
+      </clipPath>
+      </defs>
+      </svg>
+commands:
+  - id: inject-editor
+    apply:
+      component: editor-injector
+  - id: start-ide-server
+    exec:
+      component: editor-runtime
+      commandLine: nohup /idea-server/entrypoint-volume.sh > /idea-server/std.out
+        2>&1 &
+events:
+  preStart:
+    - inject-editor
+  postStart:
+    - start-ide-server
+components:
+  - name: idea-server
+    volume: {}
+  - name: editor-injector
+    container:
+      image: quay.io/che-incubator/che-idea-dev-server:next
+      command: ['/entrypoint-init-container.sh', 'webstorm']
+      volumeMounts:
+        - name: idea-server
+          path: /idea-server
+      memoryLimit: 256Mi
+      memoryRequest: 32Mi
+      cpuLimit: 500m
+      cpuRequest: 30m
+  - name: editor-runtime
+    container:
+      image: quay.io/devfile/universal-developer-image:latest
+      memoryLimit: 6144Mi
+      memoryRequest: 2048Mi
+      cpuLimit: 2000m
+      cpuRequest: 1500m
+      volumeMounts:
+        - name: idea-server
+          path: /idea-server
+      endpoints:
+        - name: idea-server
+          attributes:
+            type: main
+            cookiesAuthEnabled: true
+            discoverable: false
+            urlRewriteSupported: true
+          targetPort: 3400
+          exposure: public
+          secure: true
+          protocol: https
+    attributes:
+      app.kubernetes.io/component: editor-runtime
+      app.kubernetes.io/part-of: ide-server.eclipse.org
+      controller.devfile.io/container-contribution: true
