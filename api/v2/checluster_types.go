@@ -674,6 +674,12 @@ type Deployment struct {
 	// Security options the pod should run with.
 	// +optional
 	SecurityContext *PodSecurityContext `json:"securityContext,omitempty"`
+	// The node selector limits the nodes that can run the pod.
+	// +optional
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	// The pod tolerations of the component pod limit where the pod can run.
+	// +optional
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 }
 
 // Container custom settings.

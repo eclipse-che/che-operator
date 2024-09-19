@@ -132,6 +132,22 @@ func OverrideDeployment(
 		}
 	}
 
+	if overrideDeploymentSettings != nil {
+		if len(overrideDeploymentSettings.NodeSelector) > 0 {
+			deployment.Spec.Template.Spec.NodeSelector = make(map[string]string, len(overrideDeploymentSettings.NodeSelector))
+			for i, s := range overrideDeploymentSettings.NodeSelector {
+				deployment.Spec.Template.Spec.NodeSelector[i] = s
+			}
+		}
+
+		if len(overrideDeploymentSettings.Tolerations) > 0 {
+			deployment.Spec.Template.Spec.Tolerations = make([]corev1.Toleration, len(overrideDeploymentSettings.Tolerations))
+			for i, t := range overrideDeploymentSettings.Tolerations {
+				deployment.Spec.Template.Spec.Tolerations[i] = t
+			}
+		}
+	}
+
 	if !infrastructure.IsOpenShift() {
 		if overrideDeploymentSettings != nil {
 			if overrideDeploymentSettings.SecurityContext != nil {
