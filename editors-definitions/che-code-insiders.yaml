@@ -116,27 +116,6 @@ components:
           exposure: public
           secure: true
           protocol: https
-        - name: code-redirect-1
-          targetPort: 13131
-          exposure: public
-          protocol: https
-          attributes:
-            discoverable: false
-            urlRewriteSupported: false
-        - name: code-redirect-2
-          targetPort: 13132
-          exposure: public
-          protocol: https
-          attributes:
-            discoverable: false
-            urlRewriteSupported: false
-        - name: code-redirect-3
-          targetPort: 13133
-          exposure: public
-          protocol: https
-          attributes:
-            discoverable: false
-            urlRewriteSupported: false
     attributes:
       app.kubernetes.io/component: che-code-runtime
       app.kubernetes.io/part-of: che-code.eclipse.org
