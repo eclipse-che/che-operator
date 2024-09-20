@@ -1189,3 +1189,75 @@ func TestOverrideContainerCpuLimit(t *testing.T) {
 		})
 	}
 }
+
+func TestOverrideNodeSelector(t *testing.T) {
+	ctx := test.GetDeployContext(nil, []runtime.Object{})
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "eclipse-che",
+		},
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name: "test",
+						},
+					},
+				},
+			},
+		},
+	}
+	overrideDeployment := &chev2.Deployment{
+		NodeSelector: map[string]string{
+			"a": "b",
+			"c": "d",
+		},
+	}
+
+	err := OverrideDeployment(ctx, deployment, overrideDeployment)
+	assert.NoError(t, err)
+	assert.Equal(t, overrideDeployment.NodeSelector, deployment.Spec.Template.Spec.NodeSelector)
+}
+
+func TestOverrideTolerations(t *testing.T) {
+	ctx := test.GetDeployContext(nil, []runtime.Object{})
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "eclipse-che",
+		},
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name: "test",
+						},
+					},
+				},
+			},
+		},
+	}
+	overrideDeployment := &chev2.Deployment{
+		Tolerations: []corev1.Toleration{
+			{
+				Key:      "a",
+				Operator: corev1.TolerationOpEqual,
+				Value:    "b",
+				Effect:   corev1.TaintEffectNoSchedule,
+			},
+			{
+				Key:      "b",
+				Operator: corev1.TolerationOpExists,
+				Value:    "c",
+				Effect:   corev1.TaintEffectNoExecute,
+			},
+		},
+	}
+
+	err := OverrideDeployment(ctx, deployment, overrideDeployment)
+	assert.NoError(t, err)
+	assert.Equal(t, overrideDeployment.Tolerations, deployment.Spec.Template.Spec.Tolerations)
+}
