@@ -4268,6 +4268,12 @@ spec:
                                   type: object
                               type: object
                             type: array
+                          nodeSelector:
+                            additionalProperties:
+                              type: string
+                            description: The node selector limits the nodes that can
+                              run the pod.
+                            type: object
                           securityContext:
                             description: Security options the pod should run with.
                             properties:
@@ -4283,6 +4289,46 @@ spec:
                                 format: int64
                                 type: integer
                             type: object
+                          tolerations:
+                            description: The pod tolerations of the component pod
+                              limit where the pod can run.
+                            items:
+                              description: |-
+                                The pod this Toleration is attached to tolerates any taint that matches
+                                the triple <key,value,effect> using the matching operator <operator>.
+                              properties:
+                                effect:
+                                  description: |-
+                                    Effect indicates the taint effect to match. Empty means match all taint effects.
+                                    When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+                                  type: string
+                                key:
+                                  description: |-
+                                    Key is the taint key that the toleration applies to. Empty means match all taint keys.
+                                    If the key is empty, operator must be Exists; this combination means to match all values and all keys.
+                                  type: string
+                                operator:
+                                  description: |-
+                                    Operator represents a key's relationship to the value.
+                                    Valid operators are Exists and Equal. Defaults to Equal.
+                                    Exists is equivalent to wildcard for value, so that a pod can
+                                    tolerate all taints of a particular category.
+                                  type: string
+                                tolerationSeconds:
+                                  description: |-
+                                    TolerationSeconds represents the period of time the toleration (which must be
+                                    of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+                                    it is not set, which means tolerate the taint forever (do not evict). Zero and
+                                    negative values will be treated as 0 (evict immediately) by the system.
+                                  format: int64
+                                  type: integer
+                                value:
+                                  description: |-
+                                    Value is the taint value the toleration matches to.
+                                    If the operator is Exists, the value should be empty, otherwise just a regular string.
+                                  type: string
+                              type: object
+                            type: array
                         type: object
                       extraProperties:
                         additionalProperties:
@@ -4553,6 +4599,12 @@ spec:
                                   type: object
                               type: object
                             type: array
+                          nodeSelector:
+                            additionalProperties:
+                              type: string
+                            description: The node selector limits the nodes that can
+                              run the pod.
+                            type: object
                           securityContext:
                             description: Security options the pod should run with.
                             properties:
@@ -4568,6 +4620,46 @@ spec:
                                 format: int64
                                 type: integer
                             type: object
+                          tolerations:
+                            description: The pod tolerations of the component pod
+                              limit where the pod can run.
+                            items:
+                              description: |-
+                                The pod this Toleration is attached to tolerates any taint that matches
+                                the triple <key,value,effect> using the matching operator <operator>.
+                              properties:
+                                effect:
+                                  description: |-
+                                    Effect indicates the taint effect to match. Empty means match all taint effects.
+                                    When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+                                  type: string
+                                key:
+                                  description: |-
+                                    Key is the taint key that the toleration applies to. Empty means match all taint keys.
+                                    If the key is empty, operator must be Exists; this combination means to match all values and all keys.
+                                  type: string
+                                operator:
+                                  description: |-
+                                    Operator represents a key's relationship to the value.
+                                    Valid operators are Exists and Equal. Defaults to Equal.
+                                    Exists is equivalent to wildcard for value, so that a pod can
+                                    tolerate all taints of a particular category.
+                                  type: string
+                                tolerationSeconds:
+                                  description: |-
+                                    TolerationSeconds represents the period of time the toleration (which must be
+                                    of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+                                    it is not set, which means tolerate the taint forever (do not evict). Zero and
+                                    negative values will be treated as 0 (evict immediately) by the system.
+                                  format: int64
+                                  type: integer
+                                value:
+                                  description: |-
+                                    Value is the taint value the toleration matches to.
+                                    If the operator is Exists, the value should be empty, otherwise just a regular string.
+                                  type: string
+                              type: object
+                            type: array
                         type: object
                       headerMessage:
                         description: Dashboard header message.
@@ -4806,6 +4898,12 @@ spec:
                                   type: object
                               type: object
                             type: array
+                          nodeSelector:
+                            additionalProperties:
+                              type: string
+                            description: The node selector limits the nodes that can
+                              run the pod.
+                            type: object
                           securityContext:
                             description: Security options the pod should run with.
                             properties:
@@ -4821,6 +4919,46 @@ spec:
                                 format: int64
                                 type: integer
                             type: object
+                          tolerations:
+                            description: The pod tolerations of the component pod
+                              limit where the pod can run.
+                            items:
+                              description: |-
+                                The pod this Toleration is attached to tolerates any taint that matches
+                                the triple <key,value,effect> using the matching operator <operator>.
+                              properties:
+                                effect:
+                                  description: |-
+                                    Effect indicates the taint effect to match. Empty means match all taint effects.
+                                    When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+                                  type: string
+                                key:
+                                  description: |-
+                                    Key is the taint key that the toleration applies to. Empty means match all taint keys.
+                                    If the key is empty, operator must be Exists; this combination means to match all values and all keys.
+                                  type: string
+                                operator:
+                                  description: |-
+                                    Operator represents a key's relationship to the value.
+                                    Valid operators are Exists and Equal. Defaults to Equal.
+                                    Exists is equivalent to wildcard for value, so that a pod can
+                                    tolerate all taints of a particular category.
+                                  type: string
+                                tolerationSeconds:
+                                  description: |-
+                                    TolerationSeconds represents the period of time the toleration (which must be
+                                    of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+                                    it is not set, which means tolerate the taint forever (do not evict). Zero and
+                                    negative values will be treated as 0 (evict immediately) by the system.
+                                  format: int64
+                                  type: integer
+                                value:
+                                  description: |-
+                                    Value is the taint value the toleration matches to.
+                                    If the operator is Exists, the value should be empty, otherwise just a regular string.
+                                  type: string
+                              type: object
+                            type: array
                         type: object
                       disableInternalRegistry:
                         description: Disables internal devfile registry.
@@ -5099,6 +5237,12 @@ spec:
                                   type: object
                               type: object
                             type: array
+                          nodeSelector:
+                            additionalProperties:
+                              type: string
+                            description: The node selector limits the nodes that can
+                              run the pod.
+                            type: object
                           securityContext:
                             description: Security options the pod should run with.
                             properties:
@@ -5114,6 +5258,46 @@ spec:
                                 format: int64
                                 type: integer
                             type: object
+                          tolerations:
+                            description: The pod tolerations of the component pod
+                              limit where the pod can run.
+                            items:
+                              description: |-
+                                The pod this Toleration is attached to tolerates any taint that matches
+                                the triple <key,value,effect> using the matching operator <operator>.
+                              properties:
+                                effect:
+                                  description: |-
+                                    Effect indicates the taint effect to match. Empty means match all taint effects.
+                                    When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+                                  type: string
+                                key:
+                                  description: |-
+                                    Key is the taint key that the toleration applies to. Empty means match all taint keys.
+                                    If the key is empty, operator must be Exists; this combination means to match all values and all keys.
+                                  type: string
+                                operator:
+                                  description: |-
+                                    Operator represents a key's relationship to the value.
+                                    Valid operators are Exists and Equal. Defaults to Equal.
+                                    Exists is equivalent to wildcard for value, so that a pod can
+                                    tolerate all taints of a particular category.
+                                  type: string
+                                tolerationSeconds:
+                                  description: |-
+                                    TolerationSeconds represents the period of time the toleration (which must be
+                                    of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+                                    it is not set, which means tolerate the taint forever (do not evict). Zero and
+                                    negative values will be treated as 0 (evict immediately) by the system.
+                                  format: int64
+                                  type: integer
+                                value:
+                                  description: |-
+                                    Value is the taint value the toleration matches to.
+                                    If the operator is Exists, the value should be empty, otherwise just a regular string.
+                                  type: string
+                              type: object
+                            type: array
                         type: object
                       disableInternalRegistry:
                         description: Disables internal plug-in registry.
@@ -5164,6 +5348,20 @@ spec:
                     pvcStrategy: per-user
                 description: Development environment default configuration options.
                 properties:
+                  allowedSources:
+                    description: AllowedSources defines the allowed sources on which
+                      workspaces can be started.
+                    properties:
+                      urls:
+                        description: |-
+                          The list of approved URLs for starting Cloud Development Environments (CDEs). CDEs can only be
+                          initiated from these URLs. Wildcards `*` are supported in URLs, allowing flexible matching for
+                          specific URL patterns. For instance, `https://example.com/*` would allow CDEs to be initiated
+                          from any path within 'example.com'.
+                        items:
+                          type: string
+                        type: array
+                    type: object
                   containerBuildConfiguration:
                     description: Container build configuration.
                     properties:
@@ -6980,6 +7178,8 @@ spec:
                         type: object
                     type: object
                   ignoredUnrecoverableEvents:
+                    default:
+                    - FailedScheduling
                     description: |-
                       IgnoredUnrecoverableEvents defines a list of Kubernetes event names that should
                       be ignored when deciding to fail a workspace that is starting. This option should be used
@@ -7241,6 +7441,10 @@ spec:
                             type: object
                         type: object
                     type: object
+                  runtimeClassName:
+                    description: RuntimeClassName specifies the spec.runtimeClassName
+                      for workspace pods.
+                    type: string
                   secondsOfInactivityBeforeIdling:
                     default: 1800
                     description: |-
@@ -8170,6 +8374,12 @@ spec:
                                       type: object
                                   type: object
                                 type: array
+                              nodeSelector:
+                                additionalProperties:
+                                  type: string
+                                description: The node selector limits the nodes that
+                                  can run the pod.
+                                type: object
                               securityContext:
                                 description: Security options the pod should run with.
                                 properties:
@@ -8186,6 +8396,46 @@ spec:
                                     format: int64
                                     type: integer
                                 type: object
+                              tolerations:
+                                description: The pod tolerations of the component
+                                  pod limit where the pod can run.
+                                items:
+                                  description: |-
+                                    The pod this Toleration is attached to tolerates any taint that matches
+                                    the triple <key,value,effect> using the matching operator <operator>.
+                                  properties:
+                                    effect:
+                                      description: |-
+                                        Effect indicates the taint effect to match. Empty means match all taint effects.
+                                        When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+                                      type: string
+                                    key:
+                                      description: |-
+                                        Key is the taint key that the toleration applies to. Empty means match all taint keys.
+                                        If the key is empty, operator must be Exists; this combination means to match all values and all keys.
+                                      type: string
+                                    operator:
+                                      description: |-
+                                        Operator represents a key's relationship to the value.
+                                        Valid operators are Exists and Equal. Defaults to Equal.
+                                        Exists is equivalent to wildcard for value, so that a pod can
+                                        tolerate all taints of a particular category.
+                                      type: string
+                                    tolerationSeconds:
+                                      description: |-
+                                        TolerationSeconds represents the period of time the toleration (which must be
+                                        of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+                                        it is not set, which means tolerate the taint forever (do not evict). Zero and
+                                        negative values will be treated as 0 (evict immediately) by the system.
+                                      format: int64
+                                      type: integer
+                                    value:
+                                      description: |-
+                                        Value is the taint value the toleration matches to.
+                                        If the operator is Exists, the value should be empty, otherwise just a regular string.
+                                      type: string
+                                  type: object
+                                type: array
                             type: object
                           kubeRbacProxy:
                             description: Configuration for kube-rbac-proxy within
