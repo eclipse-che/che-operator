@@ -466,42 +466,6 @@ func (c *CheRoutingSolver) getInfraSpecificExposer(cheCluster *chev2.CheCluster,
 	}
 }
 
-func getCommonService(objs *solvers.RoutingObjects, dwId string) *corev1.Service {
-	commonServiceName := common.ServiceName(dwId)
-	for i, svc := range objs.Services {
-		if svc.Name == commonServiceName {
-			return &objs.Services[i]
-		}
-	}
-	return nil
-}
-
-func getServiceForEndpoint(objs *solvers.RoutingObjects, endpoint dwo.Endpoint) *corev1.Service {
-	endpointServiceName := common.EndpointName(endpoint.Name)
-	for _, svc := range objs.Services {
-		if svc.Name == endpointServiceName {
-			return &svc
-		}
-	}
-	return nil
-}
-
-// Returns the appropriate service to use when exposing an endpoint.
-// If the appropriate service could not be found in the given routing objects, an error is returned.
-//
-// Endpoints with the "discoverable" attribute set have their own service that should be used.
-// Endpoints that do not set the "discoverable" attribute should use the common service associated with the workspace.
-func determineEndpointService(objs *solvers.RoutingObjects, endpoint dwo.Endpoint, commonService *corev1.Service) (*corev1.Service, error) {
-	if endpoint.Attributes.GetBoolean(string(dwo.DiscoverableAttribute), nil) {
-		endpointService := getServiceForEndpoint(objs, endpoint)
-		if endpointService == nil {
-			return nil, fmt.Errorf("could not find endpoint-specfic service for endpoint '%s'", endpoint.Name)
-		}
-		return endpointService, nil
-	}
-	return commonService, nil
-}
-
 func exposeAllEndpoints(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects, ingressExpose func(*EndpointInfo), endpointStrategy EndpointStrategy) (*corev1.ConfigMap, error) {
 	wsRouteConfig := gateway.CreateEmptyTraefikConfig()
 
@@ -589,6 +553,42 @@ log:
   level: "INFO"`, wsGatewayPort)
 
 	return wsConfigMap, nil
+}
+
+func getCommonService(objs *solvers.RoutingObjects, dwId string) *corev1.Service {
+	commonServiceName := common.ServiceName(dwId)
+	for i, svc := range objs.Services {
+		if svc.Name == commonServiceName {
+			return &objs.Services[i]
+		}
+	}
+	return nil
+}
+
+func getServiceForEndpoint(objs *solvers.RoutingObjects, endpoint dwo.Endpoint) *corev1.Service {
+	endpointServiceName := common.EndpointName(endpoint.Name)
+	for _, svc := range objs.Services {
+		if svc.Name == endpointServiceName {
+			return &svc
+		}
+	}
+	return nil
+}
+
+// Returns the appropriate service to use when exposing an endpoint.
+// If the appropriate service could not be found in the given routing objects, an error is returned.
+//
+// Endpoints with the "discoverable" attribute set have their own service that should be used.
+// Endpoints that do not set the "discoverable" attribute should use the common service associated with the workspace.
+func getEndpointService(objs *solvers.RoutingObjects, endpoint dwo.Endpoint, commonService *corev1.Service) (*corev1.Service, error) {
+	if endpoint.Attributes.GetBoolean(string(dwo.DiscoverableAttribute), nil) {
+		endpointService := getServiceForEndpoint(objs, endpoint)
+		if endpointService == nil {
+			return nil, fmt.Errorf("could not find endpoint-specfic service for endpoint '%s'", endpoint.Name)
+		}
+		return endpointService, nil
+	}
+	return commonService, nil
 }
 
 func containPort(service *corev1.Service, port int32) bool {
