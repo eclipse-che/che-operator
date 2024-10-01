@@ -16,7 +16,7 @@ metadata:
   displayName: IntelliJ IDEA Community
   description: JetBrains IntelliJ IDEA Community IDE for Eclipse Che
   tags:
-    - Tech-Preview
+    - Deprecated
   attributes:
     publisher: che-incubator
     version: latest
