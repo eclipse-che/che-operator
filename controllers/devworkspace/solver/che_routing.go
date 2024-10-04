@@ -565,7 +565,7 @@ func getCommonService(objs *solvers.RoutingObjects, dwId string) *corev1.Service
 	return nil
 }
 
-func getServiceForEndpoint(objs *solvers.RoutingObjects, endpoint dwo.Endpoint) *corev1.Service {
+func getEndpointService(objs *solvers.RoutingObjects, endpoint dwo.Endpoint) *corev1.Service {
 	endpointServiceName := common.EndpointName(endpoint.Name)
 	for _, svc := range objs.Services {
 		if svc.Name == endpointServiceName {
@@ -580,9 +580,9 @@ func getServiceForEndpoint(objs *solvers.RoutingObjects, endpoint dwo.Endpoint) 
 //
 // Endpoints with the "discoverable" attribute set have their own service that should be used.
 // Endpoints that do not set the "discoverable" attribute should use the common service associated with the workspace.
-func getEndpointService(objs *solvers.RoutingObjects, endpoint dwo.Endpoint, commonService *corev1.Service) (*corev1.Service, error) {
+func determineEndpointService(objs *solvers.RoutingObjects, endpoint dwo.Endpoint, commonService *corev1.Service) (*corev1.Service, error) {
 	if endpoint.Attributes.GetBoolean(string(dwo.DiscoverableAttribute), nil) {
-		endpointService := getServiceForEndpoint(objs, endpoint)
+		endpointService := getEndpointService(objs, endpoint)
 		if endpointService == nil {
 			return nil, fmt.Errorf("could not find endpoint-specfic service for endpoint '%s'", endpoint.Name)
 		}
