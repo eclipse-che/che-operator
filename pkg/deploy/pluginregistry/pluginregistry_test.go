@@ -14,20 +14,35 @@ package pluginregistry
 
 import (
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
 
 	"testing"
 )
 
-func TestPluginRegistryReconcile(t *testing.T) {
+func TestShouldDeployPluginRegistry(t *testing.T) {
 	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 
-	ctx := test.GetDeployContext(nil, []runtime.Object{})
+	ctx := test.GetDeployContext(&chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+		Spec: chev2.CheClusterSpec{
+			Components: chev2.CheClusterComponents{
+				PluginRegistry: chev2.PluginRegistry{
+					OpenVSXURL: pointer.String(""),
+				},
+			},
+		},
+	}, []runtime.Object{})
 
 	pluginregistry := NewPluginRegistryReconciler()
 	_, done, err := pluginregistry.Reconcile(ctx)
@@ -38,4 +53,32 @@ func TestPluginRegistryReconcile(t *testing.T) {
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 	assert.NotEmpty(t, ctx.CheCluster.Status.PluginRegistryURL)
+}
+
+func TestShouldNotDeployPluginRegistryIfOpenVSXConfigured(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+	ctx := test.GetDeployContext(&chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+		Spec: chev2.CheClusterSpec{
+			Components: chev2.CheClusterComponents{
+				PluginRegistry: chev2.PluginRegistry{
+					OpenVSXURL: pointer.String("https://openvsx.org"),
+				},
+			},
+		},
+	}, []runtime.Object{})
+
+	pluginregistry := NewPluginRegistryReconciler()
+	_, done, err := pluginregistry.Reconcile(ctx)
+	assert.True(t, done)
+	assert.Nil(t, err)
+
+	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.Service{}))
+	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
+	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &appsv1.Deployment{}))
+	assert.Empty(t, ctx.CheCluster.Status.PluginRegistryURL)
 }

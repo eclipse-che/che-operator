@@ -14,6 +14,8 @@ package pluginregistry
 
 import (
 	"fmt"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
@@ -34,7 +36,12 @@ func NewPluginRegistryReconciler() *PluginRegistryReconciler {
 }
 
 func (p *PluginRegistryReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if ctx.CheCluster.Spec.Components.PluginRegistry.DisableInternalRegistry {
+	if ctx.CheCluster.Spec.Components.PluginRegistry.DisableInternalRegistry || ctx.CheCluster.GetOpenVSXURL() != "" {
+		_, _ = deploy.DeleteNamespacedObject(ctx, constants.PluginRegistryName, &corev1.Service{})
+		_, _ = deploy.DeleteNamespacedObject(ctx, constants.PluginRegistryName, &corev1.ConfigMap{})
+		_, _ = deploy.DeleteNamespacedObject(ctx, gateway.GatewayConfigMapNamePrefix+constants.PluginRegistryName, &corev1.ConfigMap{})
+		_, _ = deploy.DeleteNamespacedObject(ctx, constants.PluginRegistryName, &appsv1.Deployment{})
+
 		if ctx.CheCluster.Status.PluginRegistryURL != "" {
 			ctx.CheCluster.Status.PluginRegistryURL = ""
 			err := deploy.UpdateCheCRStatus(ctx, "PluginRegistryURL", "")
