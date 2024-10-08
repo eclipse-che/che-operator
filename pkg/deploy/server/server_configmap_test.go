@@ -15,6 +15,8 @@ package server
 import (
 	"testing"
 
+	"k8s.io/utils/pointer"
+
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
@@ -348,6 +350,14 @@ func TestShouldSetUpCorrectlyPluginRegistryURL(t *testing.T) {
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						PluginRegistry: chev2.PluginRegistry{
+							DisableInternalRegistry: false,
+							OpenVSXURL:              pointer.String(""),
+						},
+					},
 				},
 				Status: chev2.CheClusterStatus{
 					PluginRegistryURL: "internal-plugin-registry",
