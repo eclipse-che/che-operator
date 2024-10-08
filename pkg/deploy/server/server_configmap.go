@@ -142,7 +142,7 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 	cheAPI := "https://" + ctx.CheHost + "/api"
 	var pluginRegistryInternalURL string
 
-	if !ctx.CheCluster.Spec.Components.PluginRegistry.DisableInternalRegistry {
+	if !ctx.CheCluster.IsInternalPluginRegistryDisabled() {
 		pluginRegistryInternalURL = fmt.Sprintf("http://%s.%s.svc:8080/v3", constants.PluginRegistryName, ctx.CheCluster.Namespace)
 	}
 

@@ -83,7 +83,7 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployCon
 			Value: fmt.Sprintf("http://%s.%s.svc:8080/api", deploy.CheServiceName, ctx.CheCluster.Namespace)},
 	)
 
-	if !ctx.CheCluster.Spec.Components.PluginRegistry.DisableInternalRegistry {
+	if !ctx.CheCluster.IsInternalPluginRegistryDisabled() {
 		envVars = append(envVars,
 			corev1.EnvVar{
 				Name:  "CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL",

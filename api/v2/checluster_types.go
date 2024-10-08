@@ -1034,11 +1034,14 @@ func (c *CheCluster) IsCheFlavor() bool {
 // IsEmbeddedOpenVSXRegistryConfigured returns true if the Open VSX Registry is configured to be embedded
 // only if only the `Spec.Components.PluginRegistry.OpenVSXURL` is empty.
 func (c *CheCluster) IsEmbeddedOpenVSXRegistryConfigured() bool {
-	openVSXURL := defaults.GetPluginRegistryOpenVSXURL()
 	if c.Spec.Components.PluginRegistry.OpenVSXURL != nil {
-		openVSXURL = *c.Spec.Components.PluginRegistry.OpenVSXURL
+		return *c.Spec.Components.PluginRegistry.OpenVSXURL == ""
 	}
-	return openVSXURL == ""
+	return defaults.GetPluginRegistryOpenVSXURL() == ""
+}
+
+func (c *CheCluster) IsInternalPluginRegistryDisabled() bool {
+	return c.Spec.Components.PluginRegistry.DisableInternalRegistry || !c.IsEmbeddedOpenVSXRegistryConfigured()
 }
 
 // IsCheBeingInstalled returns true if the Che version is not set in the status.

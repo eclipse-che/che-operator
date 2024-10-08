@@ -160,7 +160,7 @@ cookie_domains = "%s"
 
 func skipAuthConfig(instance *chev2.CheCluster) string {
 	var skipAuthPaths []string
-	if !instance.Spec.Components.PluginRegistry.DisableInternalRegistry {
+	if !instance.IsInternalPluginRegistryDisabled() {
 		skipAuthPaths = append(skipAuthPaths, "^/"+constants.PluginRegistryName)
 	}
 	skipAuthPaths = append(skipAuthPaths, "^/$")

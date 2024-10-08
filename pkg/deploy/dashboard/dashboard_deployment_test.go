@@ -228,13 +228,6 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 		t,
 		deployment.Spec.Template.Spec.Containers[0].Env,
 		corev1.EnvVar{
-			Name:  "CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL",
-			Value: "http://plugin-registry.eclipse-che.svc:8080/v3",
-		})
-	assert.Contains(
-		t,
-		deployment.Spec.Template.Spec.Containers[0].Env,
-		corev1.EnvVar{
 			Name:  "CHE_DEFAULT_SPEC_COMPONENTS_DASHBOARD_HEADERMESSAGE_TEXT",
 			Value: defaults.GetDashboardHeaderMessageText(),
 		})
