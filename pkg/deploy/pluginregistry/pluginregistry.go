@@ -37,7 +37,7 @@ func NewPluginRegistryReconciler() *PluginRegistryReconciler {
 }
 
 func (p *PluginRegistryReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if ctx.CheCluster.Spec.Components.PluginRegistry.DisableInternalRegistry || !ctx.CheCluster.IsEmbeddedOpenVSXRegistryConfigured() {
+	if ctx.CheCluster.IsInternalPluginRegistryDisabled() {
 		_, _ = deploy.DeleteNamespacedObject(ctx, constants.PluginRegistryName, &corev1.Service{})
 		_, _ = deploy.DeleteNamespacedObject(ctx, constants.PluginRegistryName, &corev1.ConfigMap{})
 		_, _ = deploy.DeleteNamespacedObject(ctx, gateway.GatewayConfigMapNamePrefix+constants.PluginRegistryName, &corev1.ConfigMap{})

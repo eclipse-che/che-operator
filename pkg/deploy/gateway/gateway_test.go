@@ -18,6 +18,8 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/utils/pointer"
+
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
@@ -170,6 +172,7 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 					Components: chev2.CheClusterComponents{
 						PluginRegistry: chev2.PluginRegistry{
 							DisableInternalRegistry: false,
+							OpenVSXURL:              pointer.String(""),
 						},
 					}},
 			}, nil)
