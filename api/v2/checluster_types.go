@@ -629,11 +629,13 @@ type Proxy struct {
 	// A list of hosts that can be reached directly, bypassing the proxy.
 	// Specify wild card domain use the following form `.<DOMAIN>`, for example:
 	//    - localhost
+	//    - 127.0.0.1
 	//    - my.host.com
 	//    - 123.42.12.32
 	// Use only when a proxy configuration is required. The Operator respects OpenShift cluster-wide proxy configuration,
 	// defining `nonProxyHosts` in a custom resource leads to merging non-proxy hosts lists from the cluster proxy configuration, and the ones defined in the custom resources.
 	// See the following page: https://docs.openshift.com/container-platform/latest/networking/enable-cluster-wide-proxy.html.
+	// In some proxy configurations, localhost may not translate to 127.0.0.1. This can cause the proxy to block the editor's idler requests and shut down running workspaces prematurely.
 	// +optional
 	NonProxyHosts []string `json:"nonProxyHosts,omitempty"`
 	// The secret name that contains `user` and `password` for a proxy server.
