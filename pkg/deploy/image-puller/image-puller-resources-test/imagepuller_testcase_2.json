@@ -1,0 +1,21 @@
+[
+  {
+    "components": [
+      {
+        "container": {
+          "image": "image_2"
+        }
+      },
+      {
+        "container": {
+          "image": "image_1"
+        }
+      },
+      {
+        "container": {
+          "image": "image_3"
+        }
+      }
+    ]
+  }
+]
