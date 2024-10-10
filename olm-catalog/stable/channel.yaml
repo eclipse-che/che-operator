@@ -91,3 +91,5 @@ entries:
     replaces: eclipse-che.v7.90.0
   - name: eclipse-che.v7.92.0
     replaces: eclipse-che.v7.91.0
+  - name: eclipse-che.v7.93.0
+    replaces: eclipse-che.v7.92.0
