@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2024 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -14,6 +14,7 @@ package imagepuller
 
 import (
 	"context"
+	"os"
 
 	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -38,6 +39,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 		name                string
 		cheCluster          *chev2.CheCluster
 		initObjects         []runtime.Object
+		testCaseFilePath    string
 		expectedImagePuller *chev1alpha1.KubernetesImagePuller
 	}
 
@@ -47,11 +49,12 @@ func TestImagePullerConfiguration(t *testing.T) {
 			cheCluster: InitCheCluster(chev2.ImagePuller{
 				Enable: true,
 			}),
+			testCaseFilePath: "image-puller-resources-test/imagepuller_testcase_1.json",
 			expectedImagePuller: InitImagePuller(chev1alpha1.KubernetesImagePullerSpec{
 				DeploymentName:   defaultDeploymentName,
 				ConfigMapName:    defaultConfigMapName,
 				ImagePullerImage: defaultImagePullerImage,
-				Images:           getDefaultImages(),
+				Images:           "image-1-0=image_1;image-2-1=image_2;",
 			}),
 		},
 		{
@@ -64,6 +67,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 					DeploymentName:   "custom-deployment",
 					Images:           "image=image_url;",
 				}}),
+			testCaseFilePath: "image-puller-resources-test/imagepuller_testcase_1.json",
 			expectedImagePuller: InitImagePuller(chev1alpha1.KubernetesImagePullerSpec{
 				ConfigMapName:    "custom-config-map",
 				ImagePullerImage: "custom-image",
@@ -76,6 +80,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 			cheCluster: InitCheCluster(chev2.ImagePuller{
 				Enable: true,
 			}),
+			testCaseFilePath: "image-puller-resources-test/imagepuller_testcase_2.json",
 			initObjects: []runtime.Object{
 				InitImagePuller(chev1alpha1.KubernetesImagePullerSpec{
 					DeploymentName:   defaultDeploymentName,
@@ -87,7 +92,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 				DeploymentName:   defaultDeploymentName,
 				ConfigMapName:    defaultConfigMapName,
 				ImagePullerImage: defaultImagePullerImage,
-				Images:           getDefaultImages(),
+				Images:           "image-1-0=image_1;image-2-1=image_2;image-3-2=image_3;",
 			}),
 		},
 		{
@@ -100,6 +105,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 					DeploymentName:   "custom-deployment",
 					Images:           "image=image_url;",
 				}}),
+			testCaseFilePath: "image-puller-resources-test/imagepuller_testcase_1.json",
 			initObjects: []runtime.Object{
 				InitImagePuller(chev1alpha1.KubernetesImagePullerSpec{
 					DeploymentName:   defaultDeploymentName,
@@ -119,6 +125,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 			cheCluster: InitCheCluster(chev2.ImagePuller{
 				Enable: false,
 			}),
+			testCaseFilePath: "image-puller-resources-test/imagepuller_testcase_1.json",
 			initObjects: []runtime.Object{
 				InitImagePuller(chev1alpha1.KubernetesImagePullerSpec{
 					DeploymentName:   defaultDeploymentName,
@@ -143,7 +150,13 @@ func TestImagePullerConfiguration(t *testing.T) {
 				},
 			}
 
-			ip := NewImagePuller()
+			ip := &ImagePuller{
+				imageProvider: &DashboardApiDefaultImagesProvider{
+					requestRawDataFunc: func(url string) ([]byte, error) {
+						return os.ReadFile(testCase.testCaseFilePath)
+					},
+				},
+			}
 			_, _, err := ip.Reconcile(ctx)
 			assert.NoError(t, err)
 
