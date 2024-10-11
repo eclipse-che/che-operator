@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2024 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -14,10 +14,7 @@ package imagepuller
 
 import (
 	"fmt"
-	"sort"
 	"strings"
-
-	"k8s.io/apimachinery/pkg/util/validation"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -25,6 +22,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/google/go-cmp/cmp"
@@ -35,7 +33,7 @@ import (
 )
 
 var (
-	log                           = ctrl.Log.WithName("image-puller")
+	logger                        = ctrl.Log.WithName("image-puller")
 	kubernetesImagePullerDiffOpts = cmp.Options{
 		cmpopts.IgnoreFields(chev1alpha1.KubernetesImagePuller{}, "TypeMeta", "ObjectMeta", "Status"),
 	}
@@ -48,24 +46,47 @@ const (
 	defaultConfigMapName    = "k8s-image-puller"
 	defaultDeploymentName   = "kubernetes-image-puller"
 	defaultImagePullerImage = "quay.io/eclipse/kubernetes-image-puller:next"
+
+	externalImagesFilePath = "/tmp/external_images.txt"
 )
 
 type ImagePuller struct {
 	deploy.Reconcilable
+	imageProvider DefaultImagesProvider
 }
 
 func NewImagePuller() *ImagePuller {
-	return &ImagePuller{}
+	return &ImagePuller{
+		imageProvider: NewDashboardApiDefaultImagesProvider(),
+	}
 }
 
 func (ip *ImagePuller) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
+	defaultImages, err := ip.imageProvider.get(ctx.CheCluster.Namespace)
+	if err != nil {
+		logger.Error(err, "Failed to get default images", "error", err)
+
+		// Don't block the reconciliation if we can't get the default images
+		return reconcile.Result{}, true, nil
+	}
+
+	// Always fetch and persist the default images before actual sync.
+	// The purpose is to ability read them from the file on demand by admin (should be documented)
+	err = ip.imageProvider.persist(defaultImages, externalImagesFilePath)
+	if err != nil {
+		logger.Error(err, "Failed to save default images", "error", err)
+
+		// Don't block the reconciliation if we can't save the default images on FS
+		return reconcile.Result{}, true, nil
+	}
+
 	if ctx.CheCluster.Spec.Components.ImagePuller.Enable {
 		if !utils.IsK8SResourceServed(ctx.ClusterAPI.DiscoveryClient, resourceName) {
 			errMsg := "Kubernetes Image Puller is not installed, in order to enable the property admin should install the operator first"
 			return reconcile.Result{}, false, fmt.Errorf(errMsg)
 		}
 
-		if done, err := ip.syncKubernetesImagePuller(ctx); !done {
+		if done, err := ip.syncKubernetesImagePuller(defaultImages, ctx); !done {
 			return reconcile.Result{Requeue: true}, false, err
 		}
 	} else {
@@ -79,7 +100,7 @@ func (ip *ImagePuller) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result,
 func (ip *ImagePuller) Finalize(ctx *chetypes.DeployContext) bool {
 	done, err := ip.uninstallImagePuller(ctx)
 	if err != nil {
-		log.Error(err, "Failed to uninstall Kubernetes Image Puller")
+		logger.Error(err, "Failed to uninstall Kubernetes Image Puller")
 	}
 	return done
 }
@@ -105,7 +126,7 @@ func (ip *ImagePuller) uninstallImagePuller(ctx *chetypes.DeployContext) (bool, 
 	return true, nil
 }
 
-func (ip *ImagePuller) syncKubernetesImagePuller(ctx *chetypes.DeployContext) (bool, error) {
+func (ip *ImagePuller) syncKubernetesImagePuller(defaultImages []string, ctx *chetypes.DeployContext) (bool, error) {
 	imagePuller := &chev1alpha1.KubernetesImagePuller{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: chev1alpha1.GroupVersion.String(),
@@ -129,7 +150,7 @@ func (ip *ImagePuller) syncKubernetesImagePuller(ctx *chetypes.DeployContext) (b
 	imagePuller.Spec.DeploymentName = utils.GetValue(imagePuller.Spec.DeploymentName, defaultDeploymentName)
 	imagePuller.Spec.ImagePullerImage = utils.GetValue(imagePuller.Spec.ImagePullerImage, defaultImagePullerImage)
 	if strings.TrimSpace(imagePuller.Spec.Images) == "" {
-		imagePuller.Spec.Images = getDefaultImages()
+		imagePuller.Spec.Images = convertToSpecField(defaultImages)
 	}
 
 	return deploy.SyncWithClient(ctx.ClusterAPI.NonCachingClient, ctx, imagePuller, kubernetesImagePullerDiffOpts)
@@ -137,36 +158,6 @@ func (ip *ImagePuller) syncKubernetesImagePuller(ctx *chetypes.DeployContext) (b
 
 func getImagePullerCustomResourceName(ctx *chetypes.DeployContext) string {
 	return ctx.CheCluster.Name + "-image-puller"
-}
-
-func getDefaultImages() string {
-	allImages := make(map[string]bool)
-
-	addImagesFromEditorsDefinitions(allImages)
-
-	// having them sorted, prevents from constant changing CR spec
-	sortedImages := sortImages(allImages)
-	return convertToSpecField(sortedImages)
-}
-
-func addImagesFromEditorsDefinitions(allImages map[string]bool) {
-	envs := utils.GetEnvsByRegExp("RELATED_IMAGE_editor_definition_.*")
-	for _, env := range envs {
-		allImages[env.Value] = true
-	}
-}
-
-func sortImages(images map[string]bool) []string {
-	sortedImages := make([]string, len(images))
-
-	i := 0
-	for image := range images {
-		sortedImages[i] = image
-		i++
-	}
-
-	sort.Strings(sortedImages)
-	return sortedImages
 }
 
 func convertToSpecField(images []string) string {

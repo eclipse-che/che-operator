@@ -1,0 +1,35 @@
+[
+  {
+    "components": [
+      {
+        "container": {
+          "image": "image_2"
+        }
+      },
+      {
+        "name": "checode",
+        "volume": {}
+      }
+    ]
+  },
+  {
+    "components": [
+      {
+        "container": {
+          "image": "image_1"
+        }
+      }
+    ]
+  },
+  {
+    "components": [
+      {
+        "container": {}
+      }
+    ]
+  },
+  {
+    "components": []
+  },
+  {}
+]
