@@ -318,18 +318,32 @@ func MountAzureDevOpsOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1
 }
 
 func MountGitLabOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1.Deployment) error {
-	secret, err := getOAuthConfig(ctx, "gitlab")
-	if secret == nil {
+	secrets, err := deploy.GetSecrets(ctx, map[string]string{
+		constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+		constants.KubernetesComponentLabelKey: constants.OAuthScmConfiguration,
+	}, map[string]string{
+		constants.CheEclipseOrgOAuthScmServer: constants.GitlabOAuth,
+	})
+	if err != nil {
 		return err
 	}
 
-	mountVolumes(deployment, secret, constants.GitLabOAuthConfigMountPath)
-	mountEnv(deployment, "CHE_OAUTH2_GITLAB_CLIENTID__FILEPATH", constants.GitLabOAuthConfigMountPath+"/"+constants.GitLabOAuthConfigClientIdFileName)
-	mountEnv(deployment, "CHE_OAUTH2_GITLAB_CLIENTSECRET__FILEPATH", constants.GitLabOAuthConfigMountPath+"/"+constants.GitLabOAuthConfigClientSecretFileName)
+	sort.Slice(secrets, func(i, j int) bool {
+		return strings.Compare(secrets[i].Annotations[constants.CheEclipseOrgScmServerEndpoint], secrets[j].Annotations[constants.CheEclipseOrgScmServerEndpoint]) < 0
+	})
 
-	oauthEndpoint := secret.Annotations[constants.CheEclipseOrgScmServerEndpoint]
-	if oauthEndpoint != "" {
-		mountEnv(deployment, "CHE_INTEGRATION_GITLAB_OAUTH__ENDPOINT", oauthEndpoint)
+	for i := 0; i < len(secrets); i++ {
+		secret := secrets[i]
+		suffix := map[bool]string{false: "__" + strconv.Itoa(i+1), true: ""}[i == 0]
+
+		mountVolumes(deployment, &secret, constants.GitLabOAuthConfigMountPath+suffix)
+		mountEnv(deployment, "CHE_OAUTH2_GITLAB_CLIENTID__FILEPATH"+suffix, constants.GitLabOAuthConfigMountPath+suffix+"/"+constants.GitLabOAuthConfigClientIdFileName)
+		mountEnv(deployment, "CHE_OAUTH2_GITLAB_CLIENTSECRET__FILEPATH"+suffix, constants.GitLabOAuthConfigMountPath+suffix+"/"+constants.GitLabOAuthConfigClientSecretFileName)
+
+		oauthEndpoint := secret.Annotations[constants.CheEclipseOrgScmServerEndpoint]
+		if oauthEndpoint != "" {
+			mountEnv(deployment, "CHE_INTEGRATION_GITLAB_OAUTH__ENDPOINT"+suffix, oauthEndpoint)
+		}
 	}
 	return nil
 }
