@@ -153,7 +153,7 @@ func (ip *ImagePuller) syncKubernetesImagePuller(defaultImages []string, ctx *ch
 		imagePuller.Spec.Images = convertToSpecField(defaultImages)
 	}
 
-	return deploy.SyncWithClient(ctx.ClusterAPI.NonCachingClient, ctx, imagePuller, kubernetesImagePullerDiffOpts)
+	return deploy.SyncForClient(ctx.ClusterAPI.NonCachingClient, ctx, imagePuller, kubernetesImagePullerDiffOpts)
 }
 
 func getImagePullerCustomResourceName(ctx *chetypes.DeployContext) string {

@@ -119,7 +119,7 @@ func (r *CheUserNamespaceReconciler) commonRules(ctx context.Context, namesInChe
 }
 
 func (r *CheUserNamespaceReconciler) watchRulesForConfigMaps(ctx context.Context) handler.EventHandler {
-	rules := r.commonRules(ctx, tls.CheAllCACertsConfigMapName)
+	rules := r.commonRules(ctx, tls.CheMergedCABundleCertsCMName)
 	return handler.EnqueueRequestsFromMapFunc(
 		handler.MapFunc(func(obj client.Object) []reconcile.Request {
 			return asReconcileRequestsForNamespaces(obj, rules)
@@ -306,7 +306,7 @@ func (r *CheUserNamespaceReconciler) reconcileTrustedCerts(ctx context.Context, 
 	}
 
 	sourceMap := &corev1.ConfigMap{}
-	if err := r.client.Get(ctx, client.ObjectKey{Name: tls.CheAllCACertsConfigMapName, Namespace: checluster.Namespace}, sourceMap); err != nil {
+	if err := r.client.Get(ctx, client.ObjectKey{Name: tls.CheMergedCABundleCertsCMName, Namespace: checluster.Namespace}, sourceMap); err != nil {
 		if !errors.IsNotFound(err) {
 			return err
 		}

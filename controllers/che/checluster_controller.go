@@ -15,6 +15,8 @@ package che
 import (
 	"context"
 
+	imagepuller "github.com/eclipse-che/che-operator/pkg/deploy/image-puller"
+
 	editorsdefinitions "github.com/eclipse-che/che-operator/pkg/deploy/editors-definitions"
 
 	"github.com/eclipse-che/che-operator/pkg/common/test"
@@ -30,7 +32,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy/devfileregistry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	identityprovider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
-	imagepuller "github.com/eclipse-che/che-operator/pkg/deploy/image-puller"
 	"github.com/eclipse-che/che-operator/pkg/deploy/migration"
 	"github.com/eclipse-che/che-operator/pkg/deploy/pluginregistry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/postgres"
@@ -96,7 +97,6 @@ func NewReconciler(
 		reconcileManager.RegisterReconciler(migration.NewCheClusterDefaultsCleaner())
 		reconcileManager.RegisterReconciler(NewCheClusterValidator())
 	}
-	reconcileManager.RegisterReconciler(imagepuller.NewImagePuller())
 
 	reconcileManager.RegisterReconciler(tls.NewCertificatesReconciler())
 	reconcileManager.RegisterReconciler(tls.NewTlsSecretReconciler())
@@ -116,6 +116,7 @@ func NewReconciler(
 	reconcileManager.RegisterReconciler(dashboard.NewDashboardReconciler())
 	reconcileManager.RegisterReconciler(gateway.NewGatewayReconciler())
 	reconcileManager.RegisterReconciler(server.NewCheServerReconciler())
+	reconcileManager.RegisterReconciler(imagepuller.NewImagePuller())
 
 	if infrastructure.IsOpenShift() {
 		reconcileManager.RegisterReconciler(containerbuild.NewContainerBuildReconciler())

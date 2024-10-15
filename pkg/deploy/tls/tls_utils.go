@@ -505,12 +505,12 @@ func deleteJob(ctx *chetypes.DeployContext, job *batchv1.Job) {
 	}
 }
 
-// GetCACertsConfigMaps returns list of config maps with additional CA certificates that should be trusted by Che
+// GetCheCABundles returns list of config maps with additional CA certificates that should be trusted by Che
 // The selection is based on the specific label
-func GetCACertsConfigMaps(client k8sclient.Client, namespace string) ([]corev1.ConfigMap, error) {
+func GetCheCABundles(client k8sclient.Client, namespace string) ([]corev1.ConfigMap, error) {
 	CACertsConfigMapList := &corev1.ConfigMapList{}
 
-	caBundleLabelSelectorRequirement, _ := labels.NewRequirement(constants.KubernetesComponentLabelKey, selection.Equals, []string{CheCACertsConfigMapLabelValue})
+	caBundleLabelSelectorRequirement, _ := labels.NewRequirement(constants.KubernetesComponentLabelKey, selection.Equals, []string{constants.CheCABundle})
 	cheComponetLabelSelectorRequirement, _ := labels.NewRequirement(constants.KubernetesPartOfLabelKey, selection.Equals, []string{constants.CheEclipseOrg})
 	listOptions := &k8sclient.ListOptions{
 		LabelSelector: labels.NewSelector().Add(*cheComponetLabelSelectorRequirement).Add(*caBundleLabelSelectorRequirement),
@@ -526,7 +526,7 @@ func GetCACertsConfigMaps(client k8sclient.Client, namespace string) ([]corev1.C
 // GetAdditionalCACertsConfigMapVersion returns revision of merged additional CA certs config map
 func GetAdditionalCACertsConfigMapVersion(ctx *chetypes.DeployContext) string {
 	trustStoreConfigMap := &corev1.ConfigMap{}
-	exists, _ := deploy.GetNamespacedObject(ctx, CheAllCACertsConfigMapName, trustStoreConfigMap)
+	exists, _ := deploy.GetNamespacedObject(ctx, CheMergedCABundleCertsCMName, trustStoreConfigMap)
 	if exists {
 		return trustStoreConfigMap.ResourceVersion
 	}
@@ -545,6 +545,7 @@ func CreateTLSSecret(ctx *chetypes.DeployContext, name string) (err error) {
 			return err
 		}
 
+		// TODO
 		_, err = deploy.SyncSecretToCluster(ctx, name, ctx.CheCluster.Namespace, map[string][]byte{"ca.crt": crtBytes})
 		if err != nil {
 			return err

@@ -5399,7 +5399,7 @@ spec:
                       type: object
                     defaultComponents:
                       description: |-
-                        Default components applied to DevWorkspaces.
+                        Default components applied to 1spaces.
                         These default components are meant to be used when a Devfile, that does not contain any components.
                       items:
                         properties:
@@ -8003,6 +8003,18 @@ spec:
                     trustedCerts:
                       description: Trusted certificate settings.
                       properties:
+                        caBundleMountPaths:
+                          description: |-
+                            The CA bundle mount paths in the workspace pods.
+                            If not specified, the default is `/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem`.
+                          items:
+                            type: string
+                          type: array
+                        disableMountingCaBundleIntoDevWorkspace:
+                          description: |-
+                            By default, Operator creates and mounts the `ca-certs-merged` ConfigMap containing the CA certificates into
+                            a users` workspaces. This option allows to disable this behavior.
+                          type: boolean
                         gitTrustedCertsConfigMapName:
                           description: |-
                             The ConfigMap contains certificates to propagate to the Che components and to provide a particular configuration for Git.

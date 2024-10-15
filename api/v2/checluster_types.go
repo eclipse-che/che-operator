@@ -110,7 +110,7 @@ type CheClusterDevEnvironments struct {
 	// The URI must start from `http://` or `https://`.
 	// +optional
 	DefaultEditor string `json:"defaultEditor,omitempty"`
-	// Default components applied to DevWorkspaces.
+	// Default components applied to 1spaces.
 	// These default components are meant to be used when a Devfile, that does not contain any components.
 	// +optional
 	DefaultComponents []devfile.Component `json:"defaultComponents,omitempty"`
@@ -453,6 +453,14 @@ type DashboardHeaderMessage struct {
 }
 
 type TrustedCerts struct {
+	// By default, Operator creates and mounts the `ca-certs-merged` ConfigMap containing the CA certificates bundle
+	// into users` workspaces. This option allows to disable this behavior.
+	// +optional
+	DisableMountingCaBundleIntoDevWorkspace *bool `json:"disableMountingCaBundleIntoDevWorkspace,omitempty"`
+	// The CA bundle mount paths in the workspace pods.
+	// If not specified, the default is `/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem`.
+	// +optional
+	CaBundleMountPaths []string `json:"caBundleMountPaths,omitempty"`
 	// The ConfigMap contains certificates to propagate to the Che components and to provide a particular configuration for Git.
 	// See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/deploying-che-with-support-for-git-repositories-with-self-signed-certificates/
 	// The ConfigMap must have a `app.kubernetes.io/part-of=che.eclipse.org` label.

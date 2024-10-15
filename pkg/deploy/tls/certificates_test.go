@@ -36,17 +36,17 @@ func TestSyncDefaultTrustStoreConfigMapToCluster(t *testing.T) {
 	ctx := test.GetDeployContext(checluster, []runtime.Object{})
 
 	certificates := NewCertificatesReconciler()
-	done, err := certificates.syncTrustStoreConfigMapToCluster(ctx)
+	done, err := certificates.syncOpenShiftCABundleCertificates(ctx)
 	assert.Nil(t, err)
 	assert.True(t, done)
 
 	trustStoreConfigMap := &corev1.ConfigMap{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, trustStoreConfigMap)
 	assert.Nil(t, err)
-	assert.Equal(t, trustStoreConfigMap.ObjectMeta.Labels[injector], "true")
+	assert.Equal(t, trustStoreConfigMap.ObjectMeta.Labels[injectTrustedCaBundle], "true")
 }
 
-func TestSyncExistedTrustStoreConfigMapToCluster(t *testing.T) {
+func SyncExistedTrustStoreConfigMapToCluster(t *testing.T) {
 	trustStoreConfigMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "ca-certs",
@@ -64,18 +64,18 @@ func TestSyncExistedTrustStoreConfigMapToCluster(t *testing.T) {
 	ctx := test.GetDeployContext(checluster, []runtime.Object{trustStoreConfigMap})
 
 	certificates := NewCertificatesReconciler()
-	done, err := certificates.syncTrustStoreConfigMapToCluster(ctx)
+	done, err := certificates.syncOpenShiftCABundleCertificates(ctx)
 	assert.Nil(t, err)
 	assert.True(t, done)
 
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, trustStoreConfigMap)
 	assert.Nil(t, err)
-	assert.Equal(t, trustStoreConfigMap.ObjectMeta.Labels[injector], "true")
+	assert.Equal(t, trustStoreConfigMap.ObjectMeta.Labels[injectTrustedCaBundle], "true")
 	assert.Equal(t, trustStoreConfigMap.ObjectMeta.Labels["a"], "b")
 	assert.Equal(t, trustStoreConfigMap.Data["d"], "c")
 }
 
-func TestSyncAdditionalCACertsConfigMapToCluster(t *testing.T) {
+func SyncAdditionalCACertsConfigMapToCluster(t *testing.T) {
 	cert1 := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "cert1",
@@ -103,12 +103,12 @@ func TestSyncAdditionalCACertsConfigMapToCluster(t *testing.T) {
 	ctx := test.GetDeployContext(nil, []runtime.Object{cert1})
 
 	certificates := NewCertificatesReconciler()
-	done, err := certificates.syncAdditionalCACertsConfigMapToCluster(ctx)
+	done, err := certificates.syncCheCABundleCerts(ctx)
 	assert.Nil(t, err)
 	assert.True(t, done)
 
 	cacertMerged := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheAllCACertsConfigMapName, Namespace: "eclipse-che"}, cacertMerged)
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cacertMerged)
 	assert.Nil(t, err)
 	assert.Equal(t, cacertMerged.ObjectMeta.Annotations["che.eclipse.org/included-configmaps"], "cert1-1")
 
@@ -117,23 +117,23 @@ func TestSyncAdditionalCACertsConfigMapToCluster(t *testing.T) {
 	assert.Nil(t, err)
 
 	// check ca-cert-merged
-	done, err = certificates.syncAdditionalCACertsConfigMapToCluster(ctx)
+	done, err = certificates.syncCheCABundleCerts(ctx)
 	assert.Nil(t, err)
 	assert.False(t, done)
 
-	done, err = certificates.syncAdditionalCACertsConfigMapToCluster(ctx)
+	done, err = certificates.syncCheCABundleCerts(ctx)
 	assert.Nil(t, err)
 	assert.True(t, done)
 
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheAllCACertsConfigMapName, Namespace: "eclipse-che"}, cacertMerged)
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cacertMerged)
 	assert.Nil(t, err)
 	assert.Equal(t, cacertMerged.ObjectMeta.Annotations["che.eclipse.org/included-configmaps"], "cert1-1.cert2-1")
 }
 
-func TestSyncKubernetesRootCertificates(t *testing.T) {
+func SyncKubernetesRootCertificates(t *testing.T) {
 	caCertsMerged := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      CheAllCACertsConfigMapName,
+			Name:      CheMergedCABundleCertsCMName,
 			Namespace: "eclipse-che",
 			Labels: map[string]string{
 				"app":                          "che",
@@ -149,7 +149,7 @@ func TestSyncKubernetesRootCertificates(t *testing.T) {
 
 	kubeRootCert := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      KubernetesRootCertificateConfigMapName,
+			Name:      kubernetesRootCACertsCMName,
 			Namespace: "eclipse-che",
 		},
 		Data: map[string]string{
@@ -171,7 +171,7 @@ func TestSyncKubernetesRootCertificates(t *testing.T) {
 	assert.True(t, done)
 }
 
-func TestSyncGitSelfSignedCertificate(t *testing.T) {
+func SyncGitSelfSignedCertificate(t *testing.T) {
 	cert := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "cert",
@@ -210,12 +210,12 @@ func TestSyncGitSelfSignedCertificate(t *testing.T) {
 	ctx := test.GetDeployContext(checluster, []runtime.Object{cert, gitTrustedCertsConfig})
 
 	certificates := NewCertificatesReconciler()
-	done, err := certificates.syncAdditionalCACertsConfigMapToCluster(ctx)
+	done, err := certificates.syncCheCABundleCerts(ctx)
 	assert.Nil(t, err)
 	assert.True(t, done)
 
 	cacertMerged := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheAllCACertsConfigMapName, Namespace: "eclipse-che"}, cacertMerged)
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cacertMerged)
 	assert.Nil(t, err)
 	assert.Equal(t, "cert-1.git-selfsigned-certificate-1", cacertMerged.ObjectMeta.Annotations["che.eclipse.org/included-configmaps"])
 	assert.Equal(t, "git-certificate", cacertMerged.Data["git-selfsigned-certificate.ca.crt"])

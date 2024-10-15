@@ -38,7 +38,7 @@ func SyncSecretToCluster(
 	namespace string,
 	data map[string][]byte) (bool, error) {
 
-	secretSpec := GetSecretSpec(deployContext, name, namespace, data)
+	secretSpec := GetSecretSpec(name, namespace, data)
 	return Sync(deployContext, secretSpec, SecretDiffOpts)
 }
 
@@ -83,7 +83,7 @@ func GetSecrets(deployContext *chetypes.DeployContext, labels map[string]string,
 }
 
 // GetSecretSpec return default secret config for given data
-func GetSecretSpec(deployContext *chetypes.DeployContext, name string, namespace string, data map[string][]byte) *corev1.Secret {
+func GetSecretSpec(name string, namespace string, data map[string][]byte) *corev1.Secret {
 	labels := GetLabels(defaults.GetCheFlavor())
 	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{

@@ -173,7 +173,7 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 		PluginRegistryInternalUrl:            pluginRegistryInternalURL,
 		CheJGroupsKubernetesLabels:           cheLabels,
 		CheMetricsEnabled:                    cheMetrics,
-		CheTrustedCABundlesConfigMap:         deploytls.CheAllCACertsConfigMapName,
+		CheTrustedCABundlesConfigMap:         deploytls.CheMergedCABundleCertsCMName,
 		ServerStrategy:                       "single-host",
 		WorkspaceExposure:                    "gateway",
 		SingleHostGatewayConfigMapLabels:     singleHostGatewayConfigMapLabels,
