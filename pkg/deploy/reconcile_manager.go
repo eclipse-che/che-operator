@@ -14,11 +14,18 @@ package deploy
 
 import (
 	"fmt"
+	"log"
+	"os"
+
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+)
+
+var (
+	reconcilerLogger = ctrl.Log.WithName("reconciler_manager")
 )
 
 const Finalizer = "cluster-resources." + constants.FinalizerSuffix
@@ -33,11 +40,15 @@ type Reconcilable interface {
 type ReconcileManager struct {
 	reconcilers      []Reconcilable
 	failedReconciler Reconcilable
+
+	// track reconciler invocations
+	operationLogger *log.Logger
 }
 
 func NewReconcileManager() *ReconcileManager {
 	return &ReconcileManager{
 		reconcilers:      make([]Reconcilable, 0),
+		operationLogger:  initOperationLogger(),
 		failedReconciler: nil,
 	}
 }
@@ -46,7 +57,7 @@ func (manager *ReconcileManager) RegisterReconciler(reconciler Reconcilable) {
 	manager.reconcilers = append(manager.reconcilers, reconciler)
 }
 
-// Reconcile all objects in a order they have been added
+// ReconcileAll reconciles all objects in an order they have been added.
 // If reconciliation failed then CheCluster status will be updated accordingly.
 func (manager *ReconcileManager) ReconcileAll(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	if err := AppendFinalizer(ctx, Finalizer); err != nil {
@@ -54,21 +65,36 @@ func (manager *ReconcileManager) ReconcileAll(ctx *chetypes.DeployContext) (reco
 	}
 
 	for _, reconciler := range manager.reconcilers {
+		reconcilerName := GetObjectType(reconciler)
+
+		if manager.operationLogger != nil {
+			manager.operationLogger.Printf("Reconciler [%s] started.", reconcilerName)
+		}
+
 		result, done, err := reconciler.Reconcile(ctx)
+
+		if manager.operationLogger != nil {
+			manager.operationLogger.Printf("Reconciler [%s] done: %t, err: %v", reconcilerName, done, err)
+		}
+
 		if err != nil {
+			// set failed reconciler
 			manager.failedReconciler = reconciler
-			reconcilerName := GetObjectType(reconciler)
+
 			errMsg := fmt.Sprintf("Reconciler failed %s, cause: %v", reconcilerName, err)
 			if err := SetStatusDetails(ctx, constants.InstallOrUpdateFailed, errMsg); err != nil {
-				logrus.Errorf("Failed to update checluster status, cause: %v", err)
+				reconcilerLogger.Error(err, "Failed to update checluster status")
 			}
 		} else if manager.failedReconciler == reconciler {
+			// cleanup failed reconciler
 			manager.failedReconciler = nil
+
 			if err := SetStatusDetails(ctx, "", ""); err != nil {
-				logrus.Errorf("Failed to update checluster status, cause: %v", err)
+				reconcilerLogger.Error(err, "Failed to update checluster status")
 			}
 		}
 
+		// don't continue if reconciliation failed
 		if !done {
 			return result, done, err
 		}
@@ -80,20 +106,30 @@ func (manager *ReconcileManager) ReconcileAll(ctx *chetypes.DeployContext) (reco
 func (manager *ReconcileManager) FinalizeAll(ctx *chetypes.DeployContext) (done bool) {
 	done = true
 	for _, reconciler := range manager.reconcilers {
-		if completed := reconciler.Finalize(ctx); !completed {
-			reconcilerName := GetObjectType(reconciler)
-			ctx.CheCluster.Status.Message = fmt.Sprintf("Finalization failed for reconciler: %s", reconcilerName)
-			_ = UpdateCheCRStatus(ctx, "Message", ctx.CheCluster.Status.Message)
+		completed := reconciler.Finalize(ctx)
+		done = done && completed
 
-			done = false
+		if !completed {
+			// don't prevent from invoking other finalizers, just log the error
+			reconcilerLogger.Error(nil, fmt.Sprintf("Finalization failed for reconciler: %s", GetObjectType(reconciler)))
 		}
 	}
 
 	if done {
+		// Removes remaining finalizers not to prevent CheCluster object from being deleted
 		if err := CleanUpAllFinalizers(ctx); err != nil {
 			return false
 		}
 	}
 
 	return done
+}
+
+func initOperationLogger() *log.Logger {
+	logFile, err := os.OpenFile("/tmp/reconciler_manager.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	if err == nil {
+		return log.New(logFile, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
+	}
+
+	return nil
 }
