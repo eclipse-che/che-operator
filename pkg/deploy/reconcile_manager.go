@@ -74,7 +74,7 @@ func (manager *ReconcileManager) ReconcileAll(ctx *chetypes.DeployContext) (reco
 		result, done, err := reconciler.Reconcile(ctx)
 
 		if manager.operationLogger != nil {
-			manager.operationLogger.Printf("Reconciler [%s] done: %t, err: %v", reconcilerName, done, err)
+			manager.operationLogger.Printf("Reconciler [%s] done: %t", reconcilerName, done)
 		}
 
 		if err != nil {
