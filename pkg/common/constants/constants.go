@@ -138,5 +138,4 @@ var (
 		"app":       "che",
 		"component": "che-gateway-config",
 	}
-	DefaultCaBundleMountPaths = []string{"/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"}
 )

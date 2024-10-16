@@ -16,7 +16,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 
@@ -328,26 +327,14 @@ func (c *CertificatesReconciler) syncCheCABundleCerts(ctx *chetypes.DeployContex
 		(ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.DisableMountingCaBundleIntoDevWorkspace != nil &&
 			!*ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.DisableMountingCaBundleIntoDevWorkspace) {
 
-		mountPaths := constants.DefaultCaBundleMountPaths
-		if ctx.CheCluster.Spec.DevEnvironments.TrustedCerts != nil &&
-			len(ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.CaBundleMountPaths) > 0 {
-			mountPaths = ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.CaBundleMountPaths
-		}
+		// Mark ConfigMap as workspace config (will be mounted in all workspace pods)
+		mergedCABundlesCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey] = constants.WorkspacesConfig
 
-		// Mount CA bundle into dev workspaces
-		// TODO rework to create a dedicated CM for every mount path
-		for _, mountPath := range mountPaths {
-			mountDir, mountFileName := filepath.Split(mountPath)
+		// Add annotations to mount certificates in desired path
+		mergedCABundlesCM.ObjectMeta.Annotations["controller.devfile.io/mount-as"] = "subpath"
+		mergedCABundlesCM.ObjectMeta.Annotations["controller.devfile.io/mount-path"] = kubernetesCABundleCertsDir
 
-			// Mark ConfigMap as workspace config (will be mounted in all workspace pods)
-			mergedCABundlesCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey] = constants.WorkspacesConfig
-
-			// Add annotations to mount certificates in desired path
-			mergedCABundlesCM.ObjectMeta.Annotations["controller.devfile.io/mount-as"] = "subpath"
-			mergedCABundlesCM.ObjectMeta.Annotations["controller.devfile.io/mount-path"] = mountDir
-
-			mergedCABundlesCM.Data = map[string]string{mountFileName: cheCABundlesExpectedContent}
-		}
+		mergedCABundlesCM.Data = map[string]string{kubernetesCABundleCertsFile: cheCABundlesExpectedContent}
 	}
 
 	return deploy.Sync(ctx, mergedCABundlesCM, deploy.ConfigMapDiffOpts)
