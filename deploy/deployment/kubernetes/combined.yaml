@@ -7975,17 +7975,15 @@ spec:
                   trustedCerts:
                     description: Trusted certificate settings.
                     properties:
-                      caBundleMountPaths:
+                      disableWorkspaceCaBundleMount:
                         description: |-
-                          The CA bundle mount paths in the workspace pods.
-                          If not specified, the default is `/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem`.
-                        items:
-                          type: string
-                        type: array
-                      disableMountingCaBundleIntoDevWorkspace:
-                        description: |-
-                          By default, Operator creates and mounts the `ca-certs-merged` ConfigMap containing the CA certificates into
-                          a users` workspaces. This option allows to disable this behavior.
+                          By default, the Operator creates and mounts the 'ca-certs-merged' ConfigMap
+                          containing the CA certificate bundle in users' workspaces at two locations:
+                          '/public-certs' and '/etc/pki/ca-trust/extracted/pem'.
+                          The '/etc/pki/ca-trust/extracted/pem' directory is where the system stores extracted CA certificates
+                          for trusted certificate authorities on Red Hat (e.g., CentOS, Fedora).
+                          This option disables mounting the CA bundle to the '/etc/pki/ca-trust/extracted/pem' directory
+                          while still mounting it to '/public-certs'.
                         type: boolean
                       gitTrustedCertsConfigMapName:
                         description: |-

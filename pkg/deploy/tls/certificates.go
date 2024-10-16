@@ -53,10 +53,13 @@ const (
 
 type CertificatesReconciler struct {
 	deploy.Reconcilable
+	readKubernetesCaBundle func() ([]byte, error)
 }
 
 func NewCertificatesReconciler() *CertificatesReconciler {
-	return &CertificatesReconciler{}
+	return &CertificatesReconciler{
+		readKubernetesCaBundle: readKubernetesCaBundle,
+	}
 }
 
 func (c *CertificatesReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
@@ -96,14 +99,34 @@ func (c *CertificatesReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 }
 
 func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(ctx *chetypes.DeployContext) (bool, error) {
-	openShiftCaBundleCM := deploy.GetConfigMapSpec(
-		ctx,
-		constants.DefaultCaBundleCertsCMName,
-		map[string]string{},
-		defaults.GetCheFlavor(),
-	)
+	openShiftCaBundleCMKey := types.NamespacedName{
+		Namespace: ctx.CheCluster.Namespace,
+		Name:      constants.DefaultCaBundleCertsCMName,
+	}
+
+	openShiftCaBundleCM := &corev1.ConfigMap{}
+	exists, err := deploy.Get(ctx, openShiftCaBundleCMKey, openShiftCaBundleCM)
+	if err != nil {
+		return false, err
+	}
+
+	if !exists {
+		openShiftCaBundleCM = &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.DefaultCaBundleCertsCMName,
+				Namespace: ctx.CheCluster.Namespace,
+				Labels:    deploy.GetLabels(constants.CheCABundle),
+			},
+		}
+	}
+
 	openShiftCaBundleCM.ObjectMeta.Labels[injectTrustedCaBundle] = "true"
+	openShiftCaBundleCM.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
 	openShiftCaBundleCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey] = constants.CheCABundle
+	openShiftCaBundleCM.TypeMeta = metav1.TypeMeta{
+		Kind:       "ConfigMap",
+		APIVersion: "v1",
+	}
 
 	return deploy.Sync(
 		ctx,
@@ -120,19 +143,15 @@ func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(ctx *chetypes
 }
 
 func (c *CertificatesReconciler) syncKubernetesCABundleCertificates(ctx *chetypes.DeployContext) (bool, error) {
-	data, err := os.ReadFile(kubernetesCABundleCertsDir + string(os.PathSeparator) + kubernetesCABundleCertsFile)
+	data, err := c.readKubernetesCaBundle()
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return true, nil
-		}
-
 		return false, err
 	}
 
 	kubernetesCaBundleCM := deploy.GetConfigMapSpec(
 		ctx,
 		constants.DefaultCaBundleCertsCMName,
-		map[string]string{"ca.crt": string(data)},
+		map[string]string{kubernetesCABundleCertsFile: string(data)},
 		constants.CheCABundle,
 	)
 
@@ -161,6 +180,10 @@ func (c *CertificatesReconciler) syncGitTrustedCertificates(ctx *chetypes.Deploy
 		gitTrustedCertsCM.TypeMeta = metav1.TypeMeta{
 			Kind:       "ConfigMap",
 			APIVersion: "v1",
+		}
+
+		if gitTrustedCertsCM.GetLabels() == nil {
+			gitTrustedCertsCM.Labels = map[string]string{}
 		}
 
 		// Add necessary labels to the ConfigMap
@@ -323,19 +346,28 @@ func (c *CertificatesReconciler) syncCheCABundleCerts(ctx *chetypes.DeployContex
 	// Add annotations with included config maps revisions
 	mergedCABundlesCM.ObjectMeta.Annotations[cheCABundleIncludedCMRevisions] = cheCABundlesExpectedRevisionsAsString
 
-	if ctx.CheCluster.Spec.DevEnvironments.TrustedCerts == nil ||
-		(ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.DisableMountingCaBundleIntoDevWorkspace != nil &&
-			!*ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.DisableMountingCaBundleIntoDevWorkspace) {
-
+	if !ctx.CheCluster.IsDisableWorkspaceCaBundleMount() {
 		// Mark ConfigMap as workspace config (will be mounted in all workspace pods)
 		mergedCABundlesCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey] = constants.WorkspacesConfig
 
-		// Add annotations to mount certificates in desired path
+		// Set desired mount location
+		mergedCABundlesCM.Data = map[string]string{kubernetesCABundleCertsFile: cheCABundlesExpectedContent}
 		mergedCABundlesCM.ObjectMeta.Annotations["controller.devfile.io/mount-as"] = "subpath"
 		mergedCABundlesCM.ObjectMeta.Annotations["controller.devfile.io/mount-path"] = kubernetesCABundleCertsDir
-
-		mergedCABundlesCM.Data = map[string]string{kubernetesCABundleCertsFile: cheCABundlesExpectedContent}
 	}
 
 	return deploy.Sync(ctx, mergedCABundlesCM, deploy.ConfigMapDiffOpts)
+}
+
+func readKubernetesCaBundle() ([]byte, error) {
+	data, err := os.ReadFile(kubernetesCABundleCertsDir + string(os.PathSeparator) + kubernetesCABundleCertsFile)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	return data, nil
 }
