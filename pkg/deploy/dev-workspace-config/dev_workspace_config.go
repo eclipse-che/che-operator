@@ -67,11 +67,8 @@ func (d *DevWorkspaceConfigReconciler) Reconcile(ctx *chetypes.DeployContext) (r
 		return reconcile.Result{}, false, err
 	}
 
-	if done, err := deploy.Sync(ctx, dwoc); !done {
-		return reconcile.Result{}, false, err
-	}
-
-	return reconcile.Result{}, true, nil
+	done, err := deploy.Sync(ctx, dwoc)
+	return reconcile.Result{Requeue: !done}, done, err
 }
 
 func (d *DevWorkspaceConfigReconciler) Finalize(ctx *chetypes.DeployContext) bool {
