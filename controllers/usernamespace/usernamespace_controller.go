@@ -203,11 +203,19 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		},
 	}
 
+	// Deprecated [CRW-6792].
+	// All certificates are mounted into /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+	// and automatically added to the system trust store.
+	// TODO remove in the future.
 	if err = r.reconcileSelfSignedCert(ctx, deployContext, req.Name, checluster); err != nil {
 		logrus.Errorf("Failed to reconcile self-signed certificate into namespace '%s': %v", req.Name, err)
 		return ctrl.Result{}, err
 	}
 
+	// Deprecated [CRW-6792].
+	// All certificates are mounted into /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+	// and automatically added to the system trust store.
+	// TODO remove in the future.
 	if err = r.reconcileTrustedCerts(ctx, deployContext, req.Name, checluster); err != nil {
 		logrus.Errorf("Failed to reconcile trusted certificates into namespace '%s': %v", req.Name, err)
 		return ctrl.Result{}, err
@@ -218,6 +226,10 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
+	// Deprecated [CRW-6792].
+	// All certificates are mounted into /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+	// and automatically added to the system trust store.
+	// TODO remove in the future.
 	if err = r.reconcileGitTlsCertificate(ctx, req.Name, checluster, deployContext); err != nil {
 		logrus.Errorf("Failed to reconcile Che git TLS certificate  into namespace '%s': %v", req.Name, err)
 		return ctrl.Result{}, err
