@@ -15,7 +15,6 @@ package che
 import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -39,7 +38,7 @@ func IsTrustedBundleConfigMap(cl client.Client, watchNamespace string, obj clien
 	}
 
 	// Check for component
-	if value, exists := obj.GetLabels()[constants.KubernetesComponentLabelKey]; !exists || value != tls.CheCACertsConfigMapLabelValue {
+	if value, exists := obj.GetLabels()[constants.KubernetesComponentLabelKey]; !exists || value != constants.CheCABundle {
 		// Labels do not match
 		return false, ctrl.Request{}
 	}

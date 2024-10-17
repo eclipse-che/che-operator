@@ -114,7 +114,7 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 
 	caCerts := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      tls.CheAllCACertsConfigMapName,
+			Name:      tls.CheMergedCABundleCertsCMName,
 			Namespace: cheNamespaceName,
 		},
 		Data: map[string]string{
@@ -550,7 +550,7 @@ func TestWatchRulesForConfigMapsInOtherNamespaces(t *testing.T) {
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      tls.CheAllCACertsConfigMapName,
+			Name:      tls.CheMergedCABundleCertsCMName,
 			Namespace: "eclipse-che",
 		},
 	}
