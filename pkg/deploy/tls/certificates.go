@@ -13,9 +13,15 @@
 package tls
 
 import (
-	"context"
+	"errors"
+	"fmt"
+	"os"
 	"reflect"
 	"strings"
+
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -23,42 +29,46 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 const (
-	injector = "config.openshift.io/inject-trusted-cabundle"
-	// CheCACertsConfigMapLabelKey is the label value which marks config map with additional CA certificates
-	CheCACertsConfigMapLabelValue = "ca-bundle"
-	// CheAllCACertsConfigMapName is the name of config map which contains all additional trusted by Che TLS CA certificates
-	CheAllCACertsConfigMapName = "ca-certs-merged"
-	// CheMergedCAConfigMapRevisionsAnnotationKey is annotation name which holds versions of included config maps in format: cm-name1=ver1,cm-name2=ver2
-	CheMergedCAConfigMapRevisionsAnnotationKey = "che.eclipse.org/included-configmaps"
+	// OpenShift annotation to inject trusted CA bundle
+	injectTrustedCaBundle       = "config.openshift.io/inject-trusted-cabundle"
+	kubernetesRootCACertsCMName = "kube-root-ca.crt"
+	kubernetesCABundleCertsDir  = "/etc/pki/ca-trust/extracted/pem"
+	kubernetesCABundleCertsFile = "tls-ca-bundle.pem"
 
-	KubernetesRootCertificateConfigMapName = "kube-root-ca.crt"
+	// The ConfigMap name for merged CA bundle certificates
+	CheMergedCABundleCertsCMName = "ca-certs-merged"
 
-	// Local constants
-	// labelEqualSign constant is used as a replacement for '=' symbol in labels because '=' is not allowed there
-	labelEqualSign = "-"
-	// labelCommaSign constant is used as a replacement for ',' symbol in labels because ',' is not allowed there
-	labelCommaSign = "."
+	// Annotation holds revisions of included config maps
+	// in the format: name1#ver1 name2=ver2
+	cheCABundleIncludedCMRevisions = "che.eclipse.org/included-configmaps"
+	entrySplitter                  = " "
+	keyValueSplitter               = "#"
 )
 
 type CertificatesReconciler struct {
 	deploy.Reconcilable
+	readKubernetesCaBundle func() ([]byte, error)
 }
 
 func NewCertificatesReconciler() *CertificatesReconciler {
-	return &CertificatesReconciler{}
+	return &CertificatesReconciler{
+		readKubernetesCaBundle: readKubernetesCaBundle,
+	}
 }
 
 func (c *CertificatesReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if ctx.Proxy.TrustedCAMapName != "" {
-		if done, err := c.syncTrustStoreConfigMapToCluster(ctx); !done {
+	if infrastructure.IsOpenShift() {
+		if done, err := c.syncOpenShiftCABundleCertificates(ctx); !done {
+			return reconcile.Result{}, false, err
+		}
+	} else {
+		if done, err := c.syncKubernetesCABundleCertificates(ctx); !done {
 			return reconcile.Result{}, false, err
 		}
 	}
@@ -67,7 +77,17 @@ func (c *CertificatesReconciler) Reconcile(ctx *chetypes.DeployContext) (reconci
 		return reconcile.Result{}, false, err
 	}
 
-	if done, err := c.syncAdditionalCACertsConfigMapToCluster(ctx); !done {
+	if done, err := c.syncGitTrustedCertificates(ctx); !done {
+		return reconcile.Result{}, false, err
+	}
+
+	if ctx.IsSelfSignedCertificate {
+		if done, err := c.syncSelfSignedCertificates(ctx); !done {
+			return reconcile.Result{}, false, err
+		}
+	}
+
+	if done, err := c.syncCheCABundleCerts(ctx); !done {
 		return reconcile.Result{}, false, err
 	}
 
@@ -78,152 +98,275 @@ func (c *CertificatesReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	return true
 }
 
-func (c *CertificatesReconciler) syncTrustStoreConfigMapToCluster(ctx *chetypes.DeployContext) (bool, error) {
-	configMapSpec := deploy.GetConfigMapSpec(ctx, constants.DefaultServerTrustStoreConfigMapName, map[string]string{}, defaults.GetCheFlavor())
+func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(ctx *chetypes.DeployContext) (bool, error) {
+	openShiftCaBundleCMKey := types.NamespacedName{
+		Namespace: ctx.CheCluster.Namespace,
+		Name:      constants.DefaultCaBundleCertsCMName,
+	}
 
-	// OpenShift will automatically injects all certs into the configmap
-	configMapSpec.ObjectMeta.Labels[injector] = "true"
-	configMapSpec.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
-	configMapSpec.ObjectMeta.Labels[constants.KubernetesComponentLabelKey] = CheCACertsConfigMapLabelValue
-
-	actual := &corev1.ConfigMap{}
-	exists, err := deploy.GetNamespacedObject(ctx, constants.DefaultServerTrustStoreConfigMapName, actual)
+	openShiftCaBundleCM := &corev1.ConfigMap{}
+	exists, err := deploy.Get(ctx, openShiftCaBundleCMKey, openShiftCaBundleCM)
 	if err != nil {
 		return false, err
 	}
 
 	if !exists {
-		// We have to create an empty config map with the specific labels
-		return deploy.CreateIgnoreIfExists(ctx, configMapSpec)
+		openShiftCaBundleCM = &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.DefaultCaBundleCertsCMName,
+				Namespace: ctx.CheCluster.Namespace,
+				Labels:    deploy.GetLabels(constants.CheCABundle),
+			},
+		}
 	}
 
-	if actual.ObjectMeta.Labels[injector] != "true" ||
-		actual.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey] != constants.CheEclipseOrg ||
-		actual.ObjectMeta.Labels[constants.KubernetesComponentLabelKey] != CheCACertsConfigMapLabelValue {
+	openShiftCaBundleCM.ObjectMeta.Labels[injectTrustedCaBundle] = "true"
+	openShiftCaBundleCM.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
+	openShiftCaBundleCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey] = constants.CheCABundle
+	openShiftCaBundleCM.TypeMeta = metav1.TypeMeta{
+		Kind:       "ConfigMap",
+		APIVersion: "v1",
+	}
 
-		actual.ObjectMeta.Labels[injector] = "true"
-		actual.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
-		actual.ObjectMeta.Labels[constants.KubernetesComponentLabelKey] = CheCACertsConfigMapLabelValue
+	return deploy.Sync(
+		ctx,
+		openShiftCaBundleCM,
+		cmp.Options{
+			cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
+			cmpopts.IgnoreFields(corev1.ConfigMap{}, "Data"),
+			cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
+				return x.Labels[injectTrustedCaBundle] == y.Labels[injectTrustedCaBundle] &&
+					x.Labels[constants.KubernetesComponentLabelKey] == y.Labels[constants.KubernetesComponentLabelKey]
+			}),
+		},
+	)
+}
 
-		logrus.Infof("Updating existed object: %s, name: %s", configMapSpec.Kind, configMapSpec.Name)
-		if err := ctx.ClusterAPI.Client.Update(context.TODO(), actual); err != nil {
-			return false, err
+func (c *CertificatesReconciler) syncKubernetesCABundleCertificates(ctx *chetypes.DeployContext) (bool, error) {
+	data, err := c.readKubernetesCaBundle()
+	if err != nil {
+		return false, err
+	}
+
+	kubernetesCaBundleCM := deploy.GetConfigMapSpec(
+		ctx,
+		constants.DefaultCaBundleCertsCMName,
+		map[string]string{kubernetesCABundleCertsFile: string(data)},
+		constants.CheCABundle,
+	)
+
+	return deploy.Sync(ctx, kubernetesCaBundleCM, deploy.ConfigMapDiffOpts)
+}
+
+// syncGitTrustedCertificates adds labels to git trusted certificates ConfigMap
+// to include them into the final bundle
+func (c *CertificatesReconciler) syncGitTrustedCertificates(ctx *chetypes.DeployContext) (bool, error) {
+	if ctx.CheCluster.Spec.DevEnvironments.TrustedCerts == nil || ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName == "" {
+		return true, nil
+	}
+
+	gitTrustedCertsCM := &corev1.ConfigMap{}
+	gitTrustedCertsKey := types.NamespacedName{
+		Namespace: ctx.CheCluster.Namespace,
+		Name:      ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName,
+	}
+
+	exists, err := deploy.Get(ctx, gitTrustedCertsKey, gitTrustedCertsCM)
+	if !exists {
+		return err == nil, err
+	}
+
+	if gitTrustedCertsCM.Data["ca.crt"] != "" {
+		gitTrustedCertsCM.TypeMeta = metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
 		}
+
+		if gitTrustedCertsCM.GetLabels() == nil {
+			gitTrustedCertsCM.Labels = map[string]string{}
+		}
+
+		// Add necessary labels to the ConfigMap
+		gitTrustedCertsCM.Labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
+		gitTrustedCertsCM.Labels[constants.KubernetesComponentLabelKey] = constants.CheCABundle
+
+		return deploy.Sync(
+			ctx,
+			gitTrustedCertsCM,
+			cmp.Options{
+				cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
+				cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
+					return x.Labels[constants.KubernetesPartOfLabelKey] == y.Labels[constants.KubernetesPartOfLabelKey] &&
+						x.Labels[constants.KubernetesComponentLabelKey] == y.Labels[constants.KubernetesComponentLabelKey]
+				}),
+			})
 	}
 
 	return true, nil
 }
 
-// syncAdditionalCACertsConfigMapToCluster adds labels to ConfigMap `kube-root-ca.crt` to propagate
-// Kubernetes root certificates to Che components. It is needed to use NonCachingClient because the map
-// initially is not in the cache.
+// syncSelfSignedCertificates creates a ConfigMap with self-signed certificates and adds labels to it
+// to include them into the final bundle
+func (c *CertificatesReconciler) syncSelfSignedCertificates(ctx *chetypes.DeployContext) (bool, error) {
+	selfSignedCertSecret := &corev1.Secret{}
+	selfSignedCertSecretKey := types.NamespacedName{
+		Name:      constants.DefaultSelfSignedCertificateSecretName,
+		Namespace: ctx.CheCluster.Namespace,
+	}
+
+	exists, err := deploy.Get(ctx, selfSignedCertSecretKey, selfSignedCertSecret)
+	if !exists {
+		return err == nil, err
+	}
+
+	if len(selfSignedCertSecret.Data["ca.crt"]) > 0 {
+		selfSignedCertCM := deploy.GetConfigMapSpec(
+			ctx,
+			constants.DefaultSelfSignedCertificateSecretName,
+			map[string]string{
+				"ca.crt": string(selfSignedCertSecret.Data["ca.crt"]),
+			},
+			constants.CheCABundle)
+
+		return deploy.Sync(ctx, selfSignedCertCM, deploy.ConfigMapDiffOpts)
+	}
+
+	return true, nil
+}
+
+// syncKubernetesRootCertificates adds labels to `kube-root-ca.crt` ConfigMap
+// to include them into the final bundle
 func (c *CertificatesReconciler) syncKubernetesRootCertificates(ctx *chetypes.DeployContext) (bool, error) {
-	kubeRootCertsConfigMap := &corev1.ConfigMap{}
-	if err := ctx.ClusterAPI.NonCachingClient.Get(
-		context.TODO(),
-		types.NamespacedName{
-			Name:      KubernetesRootCertificateConfigMapName,
-			Namespace: ctx.CheCluster.Namespace,
-		},
-		kubeRootCertsConfigMap); err != nil {
-		if errors.IsNotFound(err) {
-			return true, nil
-		} else {
-			return false, err
-		}
+	client := ctx.ClusterAPI.NonCachingClient
+	kubeRootCertsCM := &corev1.ConfigMap{}
+	kubeRootCertsCMKey := types.NamespacedName{
+		Name:      kubernetesRootCACertsCMName,
+		Namespace: ctx.CheCluster.Namespace,
 	}
 
-	if kubeRootCertsConfigMap.GetLabels() == nil {
-		kubeRootCertsConfigMap.SetLabels(map[string]string{})
+	exists, err := deploy.GetForClient(client, kubeRootCertsCMKey, kubeRootCertsCM)
+	if !exists {
+		return err == nil, err
 	}
 
-	kubeRootCertsConfigMap.Labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
-	kubeRootCertsConfigMap.Labels[constants.KubernetesComponentLabelKey] = CheCACertsConfigMapLabelValue
+	if kubeRootCertsCM.GetLabels() == nil {
+		kubeRootCertsCM.SetLabels(map[string]string{})
+	}
 
 	// Set TypeMeta to avoid "cause: no version "" has been registered in scheme" error
-	kubeRootCertsConfigMap.TypeMeta = metav1.TypeMeta{
+	kubeRootCertsCM.TypeMeta = metav1.TypeMeta{
 		Kind:       "ConfigMap",
 		APIVersion: "v1",
 	}
-	return deploy.SyncWithClient(ctx.ClusterAPI.NonCachingClient, ctx, kubeRootCertsConfigMap, deploy.ConfigMapDiffOpts)
+
+	// Add necessary labels to the ConfigMap
+	kubeRootCertsCM.Labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
+	kubeRootCertsCM.Labels[constants.KubernetesComponentLabelKey] = constants.CheCABundle
+
+	return deploy.SyncForClient(
+		client,
+		ctx,
+		kubeRootCertsCM,
+		cmp.Options{
+			cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
+			cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
+				return x.Labels[constants.KubernetesPartOfLabelKey] == y.Labels[constants.KubernetesPartOfLabelKey] &&
+					x.Labels[constants.KubernetesComponentLabelKey] == y.Labels[constants.KubernetesComponentLabelKey]
+			}),
+		})
 }
 
-func (c *CertificatesReconciler) syncAdditionalCACertsConfigMapToCluster(ctx *chetypes.DeployContext) (bool, error) {
-	// Get all source config maps, if any
-	caConfigMaps, err := GetCACertsConfigMaps(ctx.ClusterAPI.Client, ctx.CheCluster.GetNamespace())
+// syncCheCABundleCerts merges all trusted CA certificates into a single ConfigMap `ca-certs-merged`,
+// adds labels and annotations to mount it into dev workspaces.
+func (c *CertificatesReconciler) syncCheCABundleCerts(ctx *chetypes.DeployContext) (bool, error) {
+	// Get all ConfigMaps with trusted CA certificates
+	cheCABundlesCMs, err := GetCheCABundles(ctx.ClusterAPI.Client, ctx.CheCluster.GetNamespace())
 	if err != nil {
 		return false, err
 	}
 
-	mergedCAConfigMap := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: CheAllCACertsConfigMapName}, mergedCAConfigMap)
-	if err == nil {
-		// Merged config map exists. Check if it is up to date.
-		caConfigMapsCurrentRevisions := make(map[string]string)
-		for _, cm := range caConfigMaps {
-			caConfigMapsCurrentRevisions[cm.Name] = cm.ResourceVersion
-		}
+	// Calculated expected revisions and content
+	cheCABundlesExpectedContent := ""
+	cheCABundleExpectedRevisions := make(map[string]string)
+	cheCABundlesExpectedRevisionsAsString := ""
+	for _, cm := range cheCABundlesCMs {
+		cheCABundleExpectedRevisions[cm.Name] = cm.ResourceVersion
+		cheCABundlesExpectedRevisionsAsString +=
+			cm.ObjectMeta.Name + keyValueSplitter + cm.ObjectMeta.ResourceVersion + entrySplitter
 
-		caConfigMapsCachedRevisions := make(map[string]string)
-		if mergedCAConfigMap.ObjectMeta.Annotations != nil {
-			if revisions, exists := mergedCAConfigMap.ObjectMeta.Annotations[CheMergedCAConfigMapRevisionsAnnotationKey]; exists {
-				for _, cmNameRevision := range strings.Split(revisions, labelCommaSign) {
-					nameRevision := strings.Split(cmNameRevision, labelEqualSign)
-					if len(nameRevision) != 2 {
-						// The label value is invalid, recreate merged config map
-						break
+		for dataKey, dataValue := range cm.Data {
+			cheCABundlesExpectedContent += fmt.Sprintf(
+				"# ConfigMap: %s,  Key: %s\n%s\n\n",
+				cm.Name,
+				dataKey,
+				dataValue,
+			)
+		}
+	}
+
+	// Calculated actual revisions
+	mergedCABundlesCM := &corev1.ConfigMap{}
+	mergedCABundlesCMKey := types.NamespacedName{
+		Name:      CheMergedCABundleCertsCMName,
+		Namespace: ctx.CheCluster.Namespace,
+	}
+
+	exists, err := deploy.Get(ctx, mergedCABundlesCMKey, mergedCABundlesCM)
+	if err != nil {
+		return false, err
+	}
+
+	if exists {
+		cheCABundleCMActualRevisions := make(map[string]string)
+		if mergedCABundlesCM.GetAnnotations() != nil {
+			if revs, ok := mergedCABundlesCM.ObjectMeta.Annotations[cheCABundleIncludedCMRevisions]; ok {
+				for _, rev := range strings.Split(revs, entrySplitter) {
+					item := strings.Split(rev, keyValueSplitter)
+					if len(item) == 2 {
+						cheCABundleCMActualRevisions[item[0]] = item[1]
 					}
-					caConfigMapsCachedRevisions[nameRevision[0]] = nameRevision[1]
 				}
 			}
 		}
 
-		if reflect.DeepEqual(caConfigMapsCurrentRevisions, caConfigMapsCachedRevisions) {
-			// Existing merged config map is up to date, do nothing
+		// Compare actual and expected revisions to check if we need to update the ConfigMap
+		if reflect.DeepEqual(cheCABundleExpectedRevisions, cheCABundleCMActualRevisions) {
 			return true, nil
 		}
-	} else {
-		if !errors.IsNotFound(err) {
-			return false, err
-		}
-		// Merged config map doesn't exist. Create it.
 	}
 
-	// Merged config map is out of date or doesn't exist
-	// Merge all config maps into single one to mount inside Che components and workspaces
-	data := make(map[string]string)
-	revisions := ""
-	for _, cm := range caConfigMaps {
-		// Copy data
-		for key, dataRecord := range cm.Data {
-			data[cm.ObjectMeta.Name+"."+key] = dataRecord
-		}
+	// Sync a new ConfigMap with all trusted CA certificates
+	mergedCABundlesCM = deploy.GetConfigMapSpec(
+		ctx,
+		CheMergedCABundleCertsCMName,
+		map[string]string{kubernetesCABundleCertsFile: cheCABundlesExpectedContent},
+		defaults.GetCheFlavor(),
+	)
 
-		// Save source config map revision
-		if revisions != "" {
-			revisions += labelCommaSign
-		}
-		revisions += cm.ObjectMeta.Name + labelEqualSign + cm.ObjectMeta.ResourceVersion
+	// Add annotations with included config maps revisions
+	mergedCABundlesCM.ObjectMeta.Annotations[cheCABundleIncludedCMRevisions] = cheCABundlesExpectedRevisionsAsString
+
+	if !ctx.CheCluster.IsDisableWorkspaceCaBundleMount() {
+		// Mark ConfigMap as workspace config (will be mounted in all workspace pods)
+		mergedCABundlesCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey] = constants.WorkspacesConfig
+
+		// Set desired mount location
+		mergedCABundlesCM.ObjectMeta.Annotations["controller.devfile.io/mount-as"] = "subpath"
+		mergedCABundlesCM.ObjectMeta.Annotations["controller.devfile.io/mount-path"] = kubernetesCABundleCertsDir
 	}
 
-	// Add SelfSigned certificate for a git repository to the bundle
-	if ctx.CheCluster.Spec.DevEnvironments.TrustedCerts != nil && ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName != "" {
-		gitTrustedCertsConfig := &corev1.ConfigMap{}
-		exists, err := deploy.GetNamespacedObject(ctx, ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName, gitTrustedCertsConfig)
-		if err != nil {
-			return false, err
-		} else if exists && gitTrustedCertsConfig.Data["ca.crt"] != "" {
-			if revisions != "" {
-				revisions += labelCommaSign
-			}
-			revisions += gitTrustedCertsConfig.Name + labelEqualSign + gitTrustedCertsConfig.ResourceVersion
+	return deploy.Sync(ctx, mergedCABundlesCM, deploy.ConfigMapDiffOpts)
+}
 
-			data[gitTrustedCertsConfig.Name+".ca.crt"] = gitTrustedCertsConfig.Data["ca.crt"]
+func readKubernetesCaBundle() ([]byte, error) {
+	data, err := os.ReadFile(kubernetesCABundleCertsDir + string(os.PathSeparator) + kubernetesCABundleCertsFile)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil
 		}
+
+		return nil, err
 	}
 
-	mergedCAConfigMapSpec := deploy.GetConfigMapSpec(ctx, CheAllCACertsConfigMapName, data, defaults.GetCheFlavor())
-	mergedCAConfigMapSpec.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
-	mergedCAConfigMapSpec.ObjectMeta.Annotations[CheMergedCAConfigMapRevisionsAnnotationKey] = revisions
-	return deploy.SyncConfigMapSpecToCluster(ctx, mergedCAConfigMapSpec)
+	return data, nil
 }

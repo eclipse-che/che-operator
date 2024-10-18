@@ -8003,6 +8003,16 @@ spec:
                     trustedCerts:
                       description: Trusted certificate settings.
                       properties:
+                        disableWorkspaceCaBundleMount:
+                          description: |-
+                            By default, the Operator creates and mounts the 'ca-certs-merged' ConfigMap
+                            containing the CA certificate bundle in users' workspaces at two locations:
+                            '/public-certs' and '/etc/pki/ca-trust/extracted/pem'.
+                            The '/etc/pki/ca-trust/extracted/pem' directory is where the system stores extracted CA certificates
+                            for trusted certificate authorities on Red Hat (e.g., CentOS, Fedora).
+                            This option disables mounting the CA bundle to the '/etc/pki/ca-trust/extracted/pem' directory
+                            while still mounting it to '/public-certs'.
+                          type: boolean
                         gitTrustedCertsConfigMapName:
                           description: |-
                             The ConfigMap contains certificates to propagate to the Che components and to provide a particular configuration for Git.

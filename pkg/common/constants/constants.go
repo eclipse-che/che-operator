@@ -44,7 +44,7 @@ const (
 	DefaultServerLogLevel                  = "INFO"
 	DefaultServerMetricsPort               = int32(8087)
 	DefaultServerDebugPort                 = int32(8000)
-	DefaultServerTrustStoreConfigMapName   = "ca-certs"
+	DefaultCaBundleCertsCMName             = "ca-certs"
 	DefaultProxyCredentialsSecret          = "proxy-credentials"
 	DefaultGitSelfSignedCertsConfigMapName = "che-git-self-signed-cert"
 	DefaultJavaOpts                        = "-XX:MaxRAMPercentage=85.0"
@@ -119,6 +119,7 @@ const (
 	GatewayAuthorizationContainerName  = "kube-rbac-proxy"
 	KubernetesImagePullerComponentName = "kubernetes-image-puller"
 	EditorDefinitionComponentName      = "editor-definition"
+	CheCABundle                        = "ca-bundle"
 
 	// common
 	CheFlavor             = "che"

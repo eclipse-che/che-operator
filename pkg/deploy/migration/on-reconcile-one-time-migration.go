@@ -119,7 +119,7 @@ func addPartOfCheLabeltoUserDefinedObjects(ctx *chetypes.DeployContext) error {
 	}
 
 	// Legacy config map with additional CA certificates
-	if err := addPartOfCheLabelToConfigMap(ctx, constants.DefaultServerTrustStoreConfigMapName); err != nil {
+	if err := addPartOfCheLabelToConfigMap(ctx, constants.DefaultCaBundleCertsCMName); err != nil {
 		return err
 	}
 

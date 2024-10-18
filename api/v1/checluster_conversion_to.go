@@ -522,17 +522,17 @@ func createCredentialsSecret(username string, password string, secretName string
 // Since we API V2 does not have `server.ServerTrustStoreConfigMapName` field, we need to create
 // the same ConfigMap but with a default name to be correctly handled by a controller.
 func renameTrustStoreConfigMapToDefault(trustStoreConfigMapName string, namespace string) error {
-	if trustStoreConfigMapName == constants.DefaultServerTrustStoreConfigMapName {
+	if trustStoreConfigMapName == constants.DefaultCaBundleCertsCMName {
 		// Already in default name
 		return nil
 	}
 
 	k8sHelper := k8shelper.New()
 
-	_, err := k8sHelper.GetClientset().CoreV1().ConfigMaps(namespace).Get(context.TODO(), constants.DefaultServerTrustStoreConfigMapName, metav1.GetOptions{})
+	_, err := k8sHelper.GetClientset().CoreV1().ConfigMaps(namespace).Get(context.TODO(), constants.DefaultCaBundleCertsCMName, metav1.GetOptions{})
 	if err == nil {
 		// ConfigMap with a default name already exists, we can't proceed
-		return fmt.Errorf("TrustStore ConfigMap %s already exists", constants.DefaultServerTrustStoreConfigMapName)
+		return fmt.Errorf("TrustStore ConfigMap %s already exists", constants.DefaultCaBundleCertsCMName)
 	}
 
 	existedTrustStoreConfigMap, err := k8sHelper.GetClientset().CoreV1().ConfigMaps(namespace).Get(context.TODO(), trustStoreConfigMapName, metav1.GetOptions{})
@@ -556,7 +556,7 @@ func renameTrustStoreConfigMapToDefault(trustStoreConfigMapName string, namespac
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.DefaultServerTrustStoreConfigMapName,
+			Name:      constants.DefaultCaBundleCertsCMName,
 			Namespace: namespace,
 			Labels:    labels.Merge(newTrustStoreConfigMapLabels, existedTrustStoreConfigMap.Labels),
 		},
@@ -573,7 +573,7 @@ func renameTrustStoreConfigMapToDefault(trustStoreConfigMapName string, namespac
 		return err
 	}
 
-	logger.Info("TrustStore ConfigMap '" + constants.DefaultServerTrustStoreConfigMapName + "' created.")
+	logger.Info("TrustStore ConfigMap '" + constants.DefaultCaBundleCertsCMName + "' created.")
 	return nil
 }
 

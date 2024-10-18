@@ -453,6 +453,15 @@ type DashboardHeaderMessage struct {
 }
 
 type TrustedCerts struct {
+	// By default, the Operator creates and mounts the 'ca-certs-merged' ConfigMap
+	// containing the CA certificate bundle in users' workspaces at two locations:
+	// '/public-certs' and '/etc/pki/ca-trust/extracted/pem'.
+	// The '/etc/pki/ca-trust/extracted/pem' directory is where the system stores extracted CA certificates
+	// for trusted certificate authorities on Red Hat (e.g., CentOS, Fedora).
+	// This option disables mounting the CA bundle to the '/etc/pki/ca-trust/extracted/pem' directory
+	// while still mounting it to '/public-certs'.
+	// +optional
+	DisableWorkspaceCaBundleMount *bool `json:"disableWorkspaceCaBundleMount,omitempty"`
 	// The ConfigMap contains certificates to propagate to the Che components and to provide a particular configuration for Git.
 	// See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/deploying-che-with-support-for-git-repositories-with-self-signed-certificates/
 	// The ConfigMap must have a `app.kubernetes.io/part-of=che.eclipse.org` label.
@@ -1048,4 +1057,10 @@ func (c *CheCluster) IsInternalPluginRegistryDisabled() bool {
 // Basically it means that the Che is being installed since the Che version is set only after the installation.
 func (c *CheCluster) IsCheBeingInstalled() bool {
 	return c.Status.CheVersion == ""
+}
+
+func (c *CheCluster) IsDisableWorkspaceCaBundleMount() bool {
+	return c.Spec.DevEnvironments.TrustedCerts != nil &&
+		c.Spec.DevEnvironments.TrustedCerts.DisableWorkspaceCaBundleMount != nil &&
+		*c.Spec.DevEnvironments.TrustedCerts.DisableWorkspaceCaBundleMount
 }

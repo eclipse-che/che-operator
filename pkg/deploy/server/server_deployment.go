@@ -51,7 +51,7 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 		VolumeSource: corev1.VolumeSource{
 			ConfigMap: &corev1.ConfigMapVolumeSource{
 				LocalObjectReference: corev1.LocalObjectReference{
-					Name: tls.CheAllCACertsConfigMapName,
+					Name: tls.CheMergedCABundleCertsCMName,
 				},
 			},
 		},
