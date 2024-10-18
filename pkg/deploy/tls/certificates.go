@@ -339,7 +339,7 @@ func (c *CertificatesReconciler) syncCheCABundleCerts(ctx *chetypes.DeployContex
 	mergedCABundlesCM = deploy.GetConfigMapSpec(
 		ctx,
 		CheMergedCABundleCertsCMName,
-		map[string]string{"ca.crt": cheCABundlesExpectedContent},
+		map[string]string{kubernetesCABundleCertsFile: cheCABundlesExpectedContent},
 		defaults.GetCheFlavor(),
 	)
 
@@ -351,7 +351,6 @@ func (c *CertificatesReconciler) syncCheCABundleCerts(ctx *chetypes.DeployContex
 		mergedCABundlesCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey] = constants.WorkspacesConfig
 
 		// Set desired mount location
-		mergedCABundlesCM.Data = map[string]string{kubernetesCABundleCertsFile: cheCABundlesExpectedContent}
 		mergedCABundlesCM.ObjectMeta.Annotations["controller.devfile.io/mount-as"] = "subpath"
 		mergedCABundlesCM.ObjectMeta.Annotations["controller.devfile.io/mount-path"] = kubernetesCABundleCertsDir
 	}
