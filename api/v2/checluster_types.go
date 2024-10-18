@@ -110,7 +110,7 @@ type CheClusterDevEnvironments struct {
 	// The URI must start from `http://` or `https://`.
 	// +optional
 	DefaultEditor string `json:"defaultEditor,omitempty"`
-	// Default components applied to 1spaces.
+	// Default components applied to DevWorkspaces.
 	// These default components are meant to be used when a Devfile, that does not contain any components.
 	// +optional
 	DefaultComponents []devfile.Component `json:"defaultComponents,omitempty"`
