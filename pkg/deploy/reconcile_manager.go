@@ -14,8 +14,6 @@ package deploy
 
 import (
 	"fmt"
-	"log"
-	"os"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -40,15 +38,11 @@ type Reconcilable interface {
 type ReconcileManager struct {
 	reconcilers      []Reconcilable
 	failedReconciler Reconcilable
-
-	// track reconciler invocations
-	operationLogger *log.Logger
 }
 
 func NewReconcileManager() *ReconcileManager {
 	return &ReconcileManager{
 		reconcilers:      make([]Reconcilable, 0),
-		operationLogger:  initOperationLogger(),
 		failedReconciler: nil,
 	}
 }
@@ -67,15 +61,9 @@ func (manager *ReconcileManager) ReconcileAll(ctx *chetypes.DeployContext) (reco
 	for _, reconciler := range manager.reconcilers {
 		reconcilerName := GetObjectType(reconciler)
 
-		if manager.operationLogger != nil {
-			manager.operationLogger.Printf("Reconciler [%s] started.", reconcilerName)
-		}
-
+		reconcilerLogger.Info("Reconciling started", "reconciler", reconcilerName)
 		result, done, err := reconciler.Reconcile(ctx)
-
-		if manager.operationLogger != nil {
-			manager.operationLogger.Printf("Reconciler [%s] done: %t", reconcilerName, done)
-		}
+		reconcilerLogger.Info("Reconciled completed", "reconciler", reconcilerName, "done", done)
 
 		if err != nil {
 			// set failed reconciler
@@ -123,13 +111,4 @@ func (manager *ReconcileManager) FinalizeAll(ctx *chetypes.DeployContext) (done 
 	}
 
 	return done
-}
-
-func initOperationLogger() *log.Logger {
-	logFile, err := os.OpenFile("/tmp/reconciler_manager.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
-	if err == nil {
-		return log.New(logFile, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
-	}
-
-	return nil
 }
