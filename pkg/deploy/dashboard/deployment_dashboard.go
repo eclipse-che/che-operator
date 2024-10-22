@@ -248,7 +248,7 @@ func (d *DashboardReconciler) provisionCustomPublicCA(volumes []corev1.Volume, v
 		VolumeSource: corev1.VolumeSource{
 			ConfigMap: &corev1.ConfigMapVolumeSource{
 				LocalObjectReference: corev1.LocalObjectReference{
-					Name: tls.CheAllCACertsConfigMapName,
+					Name: tls.CheMergedCABundleCertsCMName,
 				},
 			},
 		},

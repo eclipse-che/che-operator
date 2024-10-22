@@ -37,10 +37,10 @@ var (
 // Returns true if object is up-to-date otherwise returns false
 func Sync(deployContext *chetypes.DeployContext, blueprint client.Object, diffOpts ...cmp.Option) (bool, error) {
 	cli := getClientForObject(blueprint.GetNamespace(), deployContext)
-	return SyncWithClient(cli, deployContext, blueprint, diffOpts...)
+	return SyncForClient(cli, deployContext, blueprint, diffOpts...)
 }
 
-func SyncWithClient(cli client.Client, deployContext *chetypes.DeployContext, blueprint client.Object, diffOpts ...cmp.Option) (bool, error) {
+func SyncForClient(cli client.Client, deployContext *chetypes.DeployContext, blueprint client.Object, diffOpts ...cmp.Option) (bool, error) {
 	runtimeObject, ok := blueprint.(runtime.Object)
 	if !ok {
 		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
@@ -73,6 +73,13 @@ func SyncWithClient(cli client.Client, deployContext *chetypes.DeployContext, bl
 // Returns error if object cannot be retrieved otherwise returns nil.
 func Get(deployContext *chetypes.DeployContext, key client.ObjectKey, actual client.Object) (bool, error) {
 	cli := getClientForObject(key.Namespace, deployContext)
+	return doGet(context.TODO(), cli, key, actual)
+}
+
+// Get gets object.
+// Returns true if object exists otherwise returns false.
+// Returns error if object cannot be retrieved otherwise returns nil.
+func GetForClient(cli client.Client, key client.ObjectKey, actual client.Object) (bool, error) {
 	return doGet(context.TODO(), cli, key, actual)
 }
 
