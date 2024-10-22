@@ -13,7 +13,7 @@
 schemaVersion: 2.2.2
 metadata:
   name: che-webstorm-server
-  displayName: WebStorm (desktop)
+  displayName: Jet Brains WebStorm (desktop)
   description: JetBrains WebStorm for Eclipse Che - latest
   tags:
     - Tech-Preview
