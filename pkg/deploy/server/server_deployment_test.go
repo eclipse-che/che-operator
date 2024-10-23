@@ -476,87 +476,103 @@ func TestMountAzureDevOpsOAuthEnvVar(t *testing.T) {
 }
 
 func TestMountGitLabOAuthEnvVar(t *testing.T) {
-	type testCase struct {
-		name                  string
-		initObjects           []runtime.Object
-		expectedIdKeyPath     string
-		expectedSecretKeyPath string
-		expectedOAuthEndpoint string
-		expectedVolume        corev1.Volume
-		expectedVolumeMount   corev1.VolumeMount
-	}
-
-	testCases := []testCase{
-		{
-			name: "Test",
-			initObjects: []runtime.Object{
-				&corev1.Secret{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "Secret",
-						APIVersion: "v1",
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "gitlab-oauth-config",
-						Namespace: "eclipse-che",
-						Labels: map[string]string{
-							"app.kubernetes.io/part-of":   "che.eclipse.org",
-							"app.kubernetes.io/component": "oauth-scm-configuration",
-						},
-						Annotations: map[string]string{
-							"che.eclipse.org/oauth-scm-server":    "gitlab",
-							"che.eclipse.org/scm-server-endpoint": "endpoint_1",
-						},
-					},
-					Data: map[string][]byte{
-						"id":     []byte("some_id"),
-						"secret": []byte("some_secret"),
-					},
-				},
+	secret1 := &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "gitlab-oauth-config",
+			Namespace: "eclipse-che",
+			Labels: map[string]string{
+				"app.kubernetes.io/part-of":   "che.eclipse.org",
+				"app.kubernetes.io/component": "oauth-scm-configuration",
 			},
-			expectedIdKeyPath:     "/che-conf/oauth/gitlab/id",
-			expectedSecretKeyPath: "/che-conf/oauth/gitlab/secret",
-			expectedOAuthEndpoint: "endpoint_1",
-			expectedVolume: corev1.Volume{
-				Name: "gitlab-oauth-config",
-				VolumeSource: corev1.VolumeSource{
-					Secret: &corev1.SecretVolumeSource{
-						SecretName: "gitlab-oauth-config",
-					},
-				},
+			Annotations: map[string]string{
+				"che.eclipse.org/oauth-scm-server":                       "gitlab",
+				"che.eclipse.org/scm-server-endpoint":                    "endpoint_1",
+				"che.eclipse.org/scm-gitlab-disable-subdomain-isolation": "true",
 			},
-			expectedVolumeMount: corev1.VolumeMount{
-				Name:      "gitlab-oauth-config",
-				MountPath: "/che-conf/oauth/gitlab",
-			},
+		},
+		Data: map[string][]byte{
+			"id":     []byte("some_id_1"),
+			"secret": []byte("some_secret_1"),
 		},
 	}
 
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.GetDeployContext(nil, testCase.initObjects)
-
-			server := NewCheServerReconciler()
-			deployment, err := server.getDeploymentSpec(ctx)
-			assert.Nil(t, err, "Unexpected error %v", err)
-
-			container := &deployment.Spec.Template.Spec.Containers[0]
-
-			value := utils.GetEnvByName("CHE_OAUTH2_GITLAB_CLIENTID__FILEPATH", container.Env)
-			assert.Equal(t, testCase.expectedIdKeyPath, value)
-
-			value = utils.GetEnvByName("CHE_OAUTH2_GITLAB_CLIENTSECRET__FILEPATH", container.Env)
-			assert.Equal(t, testCase.expectedSecretKeyPath, value)
-
-			value = utils.GetEnvByName("CHE_INTEGRATION_GITLAB_OAUTH__ENDPOINT", container.Env)
-			assert.Equal(t, testCase.expectedOAuthEndpoint, value)
-
-			volume := test.FindVolume(deployment.Spec.Template.Spec.Volumes, "gitlab-oauth-config")
-			assert.NotNil(t, volume)
-			assert.Equal(t, testCase.expectedVolume, volume)
-
-			volumeMount := test.FindVolumeMount(container.VolumeMounts, "gitlab-oauth-config")
-			assert.NotNil(t, volumeMount)
-			assert.Equal(t, testCase.expectedVolumeMount, volumeMount)
-		})
+	secret2 := &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "gitlab-oauth-config_2",
+			Namespace: "eclipse-che",
+			Labels: map[string]string{
+				"app.kubernetes.io/part-of":   "che.eclipse.org",
+				"app.kubernetes.io/component": "oauth-scm-configuration",
+			},
+			Annotations: map[string]string{
+				"che.eclipse.org/oauth-scm-server":    "gitlab",
+				"che.eclipse.org/scm-server-endpoint": "endpoint_2",
+			},
+		},
+		Data: map[string][]byte{
+			"id":     []byte("some_id_2"),
+			"secret": []byte("some_secret_2"),
+		},
 	}
+
+	ctx := test.GetDeployContext(nil, []runtime.Object{secret1, secret2})
+
+	server := NewCheServerReconciler()
+	deployment, err := server.getDeploymentSpec(ctx)
+	assert.Nil(t, err, "Unexpected error %v", err)
+
+	container := &deployment.Spec.Template.Spec.Containers[0]
+
+	assert.Equal(t, "/che-conf/oauth/gitlab/id", utils.GetEnvByName("CHE_OAUTH2_GITLAB_CLIENTID__FILEPATH", container.Env))
+	assert.Equal(t, "/che-conf/oauth/gitlab__2/id", utils.GetEnvByName("CHE_OAUTH2_GITLAB_CLIENTID__FILEPATH__2", container.Env))
+
+	assert.Equal(t, "/che-conf/oauth/gitlab/secret", utils.GetEnvByName("CHE_OAUTH2_GITLAB_CLIENTSECRET__FILEPATH", container.Env))
+	assert.Equal(t, "/che-conf/oauth/gitlab__2/secret", utils.GetEnvByName("CHE_OAUTH2_GITLAB_CLIENTSECRET__FILEPATH__2", container.Env))
+
+	assert.Equal(t, "endpoint_1", utils.GetEnvByName("CHE_INTEGRATION_GITLAB_OAUTH__ENDPOINT", container.Env))
+	assert.Equal(t, "endpoint_2", utils.GetEnvByName("CHE_INTEGRATION_GITLAB_OAUTH__ENDPOINT__2", container.Env))
+
+	assert.Equal(t,
+		corev1.Volume{
+			Name: "gitlab-oauth-config",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: "gitlab-oauth-config",
+				},
+			},
+		},
+		test.FindVolume(deployment.Spec.Template.Spec.Volumes, "gitlab-oauth-config"))
+
+	assert.Equal(t,
+		corev1.Volume{
+			Name: "gitlab-oauth-config_2",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: "gitlab-oauth-config_2",
+				},
+			},
+		},
+		test.FindVolume(deployment.Spec.Template.Spec.Volumes, "gitlab-oauth-config_2"))
+
+	assert.Equal(t,
+		corev1.VolumeMount{
+			Name:      "gitlab-oauth-config",
+			MountPath: "/che-conf/oauth/gitlab",
+		},
+		test.FindVolumeMount(container.VolumeMounts, "gitlab-oauth-config"))
+
+	assert.Equal(t,
+		corev1.VolumeMount{
+			Name:      "gitlab-oauth-config_2",
+			MountPath: "/che-conf/oauth/gitlab__2",
+		},
+		test.FindVolumeMount(container.VolumeMounts, "gitlab-oauth-config_2"))
 }
