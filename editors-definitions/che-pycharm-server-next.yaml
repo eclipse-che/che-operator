@@ -13,14 +13,15 @@
 schemaVersion: 2.2.2
 metadata:
   name: che-pycharm-server
-  displayName: PyCharm (desktop)
-  description: JetBrains PyCharm for Eclipse Che - next
+  displayName: Jet Brains PyCharm Professional Edition 2024.2.3 (desktop)
+  description: JetBrains PyCharm Professional Edition for Eclipse Che - next
   tags:
     - Tech-Preview
   attributes:
     publisher: che-incubator
     version: next
-    title: JetBrains PyCharm for Eclipse Che - next
+    provider: Provided by [Jet Brains](https://www.jetbrains.com/) under [License](https://www.jetbrains.com/legal/docs/toolbox/user/)
+    title: JetBrains PyCharm Professional Edition for Eclipse Che - next
     repository: https://github.com/che-incubator/che-idea-dev-server
     firstPublicationDate: '2024-18-09'
     iconMediatype: image/svg+xml
