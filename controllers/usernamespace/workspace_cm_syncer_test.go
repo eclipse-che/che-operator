@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2024 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -67,12 +67,11 @@ func TestSyncConfigMap(t *testing.T) {
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
 		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.NonCachingClient,
 		deployContext.ClusterAPI.Scheme,
 		NewNamespaceCache(deployContext.ClusterAPI.NonCachingClient))
 
 	// Sync ConfigMap
-	err := workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace)
+	err := workspaceConfigReconciler.syncWorkspace(context.TODO(), userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1ConfigMapGKV)
 
@@ -96,7 +95,7 @@ func TestSyncConfigMap(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Sync ConfigMap
-	err = workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace)
+	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1ConfigMapGKV)
 
@@ -120,7 +119,7 @@ func TestSyncConfigMap(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Sync ConfigMap
-	err = workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace)
+	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1ConfigMapGKV)
 
@@ -145,7 +144,7 @@ func TestSyncConfigMap(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Sync ConfigMap
-	err = workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace)
+	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1ConfigMapGKV)
 
@@ -167,7 +166,7 @@ func TestSyncConfigMap(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Sync ConfigMap
-	err = workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace)
+	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1ConfigMapGKV)
 
@@ -187,7 +186,7 @@ func TestSyncConfigMap(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Sync ConfigMap
-	err = workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace)
+	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 0, v1ConfigMapGKV)
 
@@ -224,12 +223,11 @@ func TestSyncConfigMapShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
 		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.NonCachingClient,
 		deployContext.ClusterAPI.Scheme,
 		NewNamespaceCache(deployContext.ClusterAPI.NonCachingClient))
 
 	// Sync ConfigMap
-	err := workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace)
+	err := workspaceConfigReconciler.syncWorkspace(context.TODO(), userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1ConfigMapGKV)
 
@@ -254,7 +252,7 @@ func TestSyncConfigMapShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Sync ConfigMap
-	err = workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace)
+	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1ConfigMapGKV)
 
@@ -282,7 +280,7 @@ func TestSyncConfigMapShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Sync ConfigMap
-	err = workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace)
+	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1ConfigMapGKV)
 

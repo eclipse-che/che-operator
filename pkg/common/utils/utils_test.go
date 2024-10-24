@@ -15,6 +15,8 @@ package utils
 import (
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGeneratePasswd(t *testing.T) {
@@ -82,4 +84,24 @@ func TestWhitelist(t *testing.T) {
 			t.Errorf("Test Failed. Expected '%s', but got '%s'", test.whitelistedHost, actual)
 		}
 	}
+}
+
+func TestMergeMaps(t *testing.T) {
+	map1 := map[string]string{
+		"key1": "value1",
+		"key2": "value2",
+	}
+	map2 := map[string]string{
+		"key3": "value3",
+		"key4": "value4",
+	}
+	expected := map[string]string{
+		"key1": "value1",
+		"key2": "value2",
+		"key3": "value3",
+		"key4": "value4",
+	}
+
+	actual := MergeMaps([]map[string]string{nil, map1, nil, map2, make(map[string]string)})
+	assert.Equal(t, expected, actual)
 }

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2024 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -17,13 +17,16 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	templatev1 "github.com/openshift/api/template/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -41,50 +44,45 @@ const (
 )
 
 type WorkspacesConfigReconciler struct {
-	scheme          *runtime.Scheme
-	client          client.Client
-	nonCachedClient client.Client
-	namespaceCache  *namespaceCache
+	scheme         *runtime.Scheme
+	client         client.Client
+	namespaceCache *namespaceCache
 }
 
-// Interface for syncing workspace config objects.
-type workspaceConfigSyncer interface {
-	gkv() schema.GroupVersionKind
-	isExistedObjChanged(newObj client.Object, existedObj client.Object) bool
-	hasReadOnlySpec() bool
-	getObjectList() client.ObjectList
-	newObjectFrom(src client.Object) client.Object
+type WorkspaceSyncObject interface {
+	hasROSpec() bool
+	getSrcObject() client.Object
+	getSrcObjectGKV() schema.GroupVersionKind
+	getSrcObjectVersion() string
+	newDstObject() client.Object
 }
 
 type syncContext struct {
 	dstNamespace string
 	srcNamespace string
 	ctx          context.Context
-	syncer       workspaceConfigSyncer
+	wsSyncObject WorkspaceSyncObject
 	syncConfig   map[string]string
 }
 
 var (
-	log = ctrl.Log.WithName("workspaces-config")
-
-	workspacesConfigLabels = map[string]string{
+	logger                  = ctrl.Log.WithName("workspaces-config")
+	wsConfigComponentLabels = map[string]string{
 		constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
 		constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
 	}
-	workspacesConfigSelector = labels.SelectorFromSet(workspacesConfigLabels)
+	wsConfigComponentSelector = labels.SelectorFromSet(wsConfigComponentLabels)
 )
 
 func NewWorkspacesConfigReconciler(
 	client client.Client,
-	noncachedClient client.Client,
 	scheme *runtime.Scheme,
 	namespaceCache *namespaceCache) *WorkspacesConfigReconciler {
 
 	return &WorkspacesConfigReconciler{
-		scheme:          scheme,
-		client:          client,
-		nonCachedClient: noncachedClient,
-		namespaceCache:  namespaceCache,
+		scheme:         scheme,
+		client:         client,
+		namespaceCache: namespaceCache,
 	}
 }
 
@@ -92,9 +90,15 @@ func (r *WorkspacesConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	ctx := context.Background()
 	bld := ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.Namespace{}).
-		Watches(&source.Kind{Type: &corev1.PersistentVolumeClaim{}}, r.watchRules(ctx)).
-		Watches(&source.Kind{Type: &corev1.Secret{}}, r.watchRules(ctx)).
-		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, r.watchRules(ctx))
+		Watches(&source.Kind{Type: &corev1.PersistentVolumeClaim{}}, r.watchRules(ctx, true, true)).
+		Watches(&source.Kind{Type: &corev1.Secret{}}, r.watchRules(ctx, true, true)).
+		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, r.watchRules(ctx, true, true)).
+		Watches(&source.Kind{Type: &corev1.ResourceQuota{}}, r.watchRules(ctx, false, true)).
+		Watches(&source.Kind{Type: &corev1.LimitRange{}}, r.watchRules(ctx, false, true))
+
+	if infrastructure.IsOpenShift() {
+		bld.Watches(&source.Kind{Type: &templatev1.Template{}}, r.watchRules(ctx, true, false))
+	}
 
 	return bld.Complete(r)
 }
@@ -106,7 +110,7 @@ func (r *WorkspacesConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	info, err := r.namespaceCache.ExamineNamespace(ctx, req.Name)
 	if err != nil {
-		log.Error(err, "Failed to examine namespace", "namespace", req.Name)
+		logger.Error(err, "Failed to examine namespace", "namespace", req.Name)
 		return ctrl.Result{}, err
 	}
 
@@ -115,399 +119,631 @@ func (r *WorkspacesConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, nil
 	}
 
-	if err = r.syncWorkspacesConfig(ctx, req.Name); err != nil {
-		log.Error(err, "Failed to sync workspace configs", "namespace", req.Name)
+	if err = r.syncWorkspace(ctx, req.Name); err != nil {
+		logger.Error(err, "Failed to sync workspace configs", "namespace", req.Name)
 		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *WorkspacesConfigReconciler) watchRules(ctx context.Context) handler.EventHandler {
+// Establish watch rules for object.
+// cheNamespaceRule - if true, then watch changes in che namespace (source namespace)
+// userNamespaceRule - if true, then watch changes in user namespaces (destination namespaces)
+func (r *WorkspacesConfigReconciler) watchRules(
+	ctx context.Context,
+	cheNamespaceRule bool,
+	userNamespaceRule bool,
+) handler.EventHandler {
 	return handler.EnqueueRequestsFromMapFunc(
 		func(obj client.Object) []reconcile.Request {
-			return asReconcileRequestsForNamespaces(obj,
-				[]eventRule{
-					{
+			var eventRules []eventRule
+
+			if cheNamespaceRule {
+				eventRules = append(eventRules,
+					eventRule{
+						// reconcile rule when workspace config is modified in a che namespace
+						// to update the config in all users` namespaces
+						check: func(o metav1.Object) bool {
+							cheCluster, _ := deploy.FindCheClusterCRInNamespace(r.client, o.GetNamespace())
+							return hasWSConfigComponentLabels(o) && cheCluster != nil
+						},
+						namespaces: func(o metav1.Object) []string { return r.namespaceCache.GetAllKnownNamespaces() },
+					},
+				)
+			}
+
+			if userNamespaceRule {
+				eventRules = append(eventRules,
+					eventRule{
 						// reconcile rule when workspace config is modified in a user namespace
 						// to revert the config
 						check: func(o metav1.Object) bool {
 							workspaceInfo, _ := r.namespaceCache.GetNamespaceInfo(ctx, o.GetNamespace())
-							return isLabeledAsWorkspacesConfig(o) &&
+							return hasWSConfigComponentLabels(o) &&
 								o.GetName() != syncedWorkspacesConfig &&
 								workspaceInfo != nil &&
 								workspaceInfo.IsWorkspaceNamespace
 						},
 						namespaces: func(o metav1.Object) []string { return []string{o.GetNamespace()} },
 					},
-					{
-						// reconcile rule when workspace config is modified in a che namespace
-						// to update the config in all users` namespaces
-						check: func(o metav1.Object) bool {
-							cheCluster, _ := deploy.FindCheClusterCRInNamespace(r.client, o.GetNamespace())
-							return isLabeledAsWorkspacesConfig(o) && cheCluster != nil
-						},
-						namespaces: func(o metav1.Object) []string { return r.namespaceCache.GetAllKnownNamespaces() },
-					}})
+				)
+			}
+
+			return asReconcileRequestsForNamespaces(obj, eventRules)
 		})
 }
 
-func (r *WorkspacesConfigReconciler) syncWorkspacesConfig(ctx context.Context, targetNs string) error {
+// syncWorkspace sync user namespace.
+// Iterates over all objects in the source namespace labeled as `app.kubernetes.io/component=workspaces-config`
+// and syncs them to the target user namespace.
+func (r *WorkspacesConfigReconciler) syncWorkspace(ctx context.Context, dstNamespace string) error {
 	checluster, err := deploy.FindCheClusterCRInNamespace(r.client, "")
 	if checluster == nil {
+		// There is no CheCluster CR, the source namespace is unknown
 		return nil
 	}
 
-	syncedConfig, err := r.getSyncConfig(ctx, targetNs)
+	syncConfig, err := r.getSyncConfig(ctx, dstNamespace)
 	if err != nil {
-		log.Error(err, "Failed to get workspace sync config", "namespace", targetNs)
+		logger.Error(err, "Failed to get workspace sync config", "namespace", dstNamespace)
 		return nil
 	}
 
 	defer func() {
-		if syncedConfig != nil {
-			if syncedConfig.GetResourceVersion() == "" {
-				if err := r.client.Create(ctx, syncedConfig); err != nil {
-					log.Error(err, "Failed to workspace create sync config", "namespace", targetNs)
+		// Update sync config in the end of the reconciliation
+		// despite the result of the reconciliation
+		if syncConfig != nil {
+			if syncConfig.GetResourceVersion() == "" {
+				if err := r.client.Create(ctx, syncConfig); err != nil {
+					logger.Error(err, "Failed to workspace create sync config", "namespace", dstNamespace)
 				}
 			} else {
-				if err := r.client.Update(ctx, syncedConfig); err != nil {
-					log.Error(err, "Failed to update workspace sync config", "namespace", targetNs)
+				if err := r.client.Update(ctx, syncConfig); err != nil {
+					logger.Error(err, "Failed to update workspace sync config", "namespace", dstNamespace)
 				}
 			}
 		}
 	}()
 
-	if err := r.syncObjects(
-		&syncContext{
-			dstNamespace: targetNs,
-			srcNamespace: checluster.GetNamespace(),
-			syncer:       newConfigMapSyncer(),
-			syncConfig:   syncedConfig.Data,
-			ctx:          ctx,
-		}); err != nil {
+	// Contains keys of objects that are synced with source objects
+	syncedSrcObjKeys := make(map[string]bool)
+
+	if infrastructure.IsOpenShift() {
+		if err = r.syncTemplates(
+			ctx,
+			checluster.Namespace,
+			dstNamespace,
+			syncConfig.Data,
+			syncedSrcObjKeys,
+		); err != nil {
+			return err
+		}
+	}
+
+	if err = r.syncConfigMaps(
+		ctx,
+		checluster.Namespace,
+		dstNamespace,
+		syncConfig.Data,
+		syncedSrcObjKeys,
+	); err != nil {
 		return err
 	}
 
-	if err := r.syncObjects(
-		&syncContext{
-			dstNamespace: targetNs,
-			srcNamespace: checluster.GetNamespace(),
-			syncer:       newSecretSyncer(),
-			syncConfig:   syncedConfig.Data,
-			ctx:          ctx,
-		}); err != nil {
+	if err = r.syncSecretes(
+		ctx,
+		checluster.Namespace,
+		dstNamespace,
+		syncConfig.Data,
+		syncedSrcObjKeys,
+	); err != nil {
 		return err
 	}
 
-	if err := r.syncObjects(
-		&syncContext{
-			dstNamespace: targetNs,
-			srcNamespace: checluster.GetNamespace(),
-			syncer:       newPvcSyncer(),
-			syncConfig:   syncedConfig.Data,
-			ctx:          ctx,
-		}); err != nil {
+	if err = r.syncPVCs(
+		ctx,
+		checluster.Namespace,
+		dstNamespace,
+		syncConfig.Data,
+		syncedSrcObjKeys,
+	); err != nil {
+		return err
+	}
+
+	// Iterates over sync config and deletes obsolete objects, if so.
+	// It means that object key presents in sync config, but the object is not synced with source object.
+	for objKey, _ := range syncConfig.Data {
+		if err := r.deleteIfObjectIsObsolete(
+			objKey,
+			ctx,
+			checluster.Namespace,
+			dstNamespace,
+			syncConfig.Data,
+			syncedSrcObjKeys); err != nil {
+
+			logger.Error(err, "Failed to delete obsolete object", "namespace", dstNamespace,
+				"kind", gvk2PrintString(item2gkv(getGkvItem(objKey))),
+				"name", getNameItem(objKey))
+			return err
+		}
+	}
+
+	return nil
+}
+
+// syncConfigMaps syncs all ConfigMaps labeled as `app.kubernetes.io/component=workspaces-config`
+// from source namespace to a target user namespace.
+func (r *WorkspacesConfigReconciler) syncConfigMaps(
+	ctx context.Context,
+	srcNamespace string,
+	dstNamespace string,
+	syncConfig map[string]string,
+	syncedSrcObjKeys map[string]bool) error {
+
+	cmList := &corev1.ConfigMapList{}
+	opts := &client.ListOptions{
+		Namespace:     srcNamespace,
+		LabelSelector: wsConfigComponentSelector,
+	}
+	if err := r.client.List(ctx, cmList, opts); err != nil {
+		return err
+	}
+
+	for _, cm := range cmList.Items {
+		if err := r.syncObject(
+			&syncContext{
+				dstNamespace: dstNamespace,
+				srcNamespace: srcNamespace,
+				wsSyncObject: newCMWorkspaceSyncObject(&cm),
+				syncConfig:   syncConfig,
+				ctx:          ctx,
+			}); err != nil {
+			return err
+		}
+
+		srcObjKey := buildKey(cm.GroupVersionKind(), cm.GetName(), srcNamespace)
+		syncedSrcObjKeys[srcObjKey] = true
+	}
+
+	return nil
+}
+
+// syncSecretes syncs all Secrets labeled as `app.kubernetes.io/component=workspaces-config`
+// from source namespace to a target user namespace.
+func (r *WorkspacesConfigReconciler) syncSecretes(
+	ctx context.Context,
+	srcNamespace string,
+	dstNamespace string,
+	syncConfig map[string]string,
+	syncedSrcObjKeys map[string]bool) error {
+
+	secretList := &corev1.SecretList{}
+	opts := &client.ListOptions{
+		Namespace:     srcNamespace,
+		LabelSelector: wsConfigComponentSelector,
+	}
+	if err := r.client.List(ctx, secretList, opts); err != nil {
+		return err
+	}
+
+	for _, secret := range secretList.Items {
+		if err := r.syncObject(
+			&syncContext{
+				dstNamespace: dstNamespace,
+				srcNamespace: srcNamespace,
+				wsSyncObject: newSecretWorkspaceSyncObject(&secret),
+				syncConfig:   syncConfig,
+				ctx:          ctx,
+			}); err != nil {
+			return err
+		}
+
+		srcObjKey := buildKey(secret.GroupVersionKind(), secret.GetName(), srcNamespace)
+		syncedSrcObjKeys[srcObjKey] = true
+	}
+
+	return nil
+}
+
+// syncPVCs syncs all PVCs labeled as `app.kubernetes.io/component=workspaces-config`
+// from source namespace to a target user namespace.
+func (r *WorkspacesConfigReconciler) syncPVCs(
+	ctx context.Context,
+	srcNamespace string,
+	dstNamespace string,
+	syncConfig map[string]string,
+	syncedSrcObjKeys map[string]bool) error {
+
+	pvcList := &corev1.PersistentVolumeClaimList{}
+	opts := &client.ListOptions{
+		Namespace:     srcNamespace,
+		LabelSelector: wsConfigComponentSelector,
+	}
+	if err := r.client.List(ctx, pvcList, opts); err != nil {
+		return err
+	}
+
+	for _, pvc := range pvcList.Items {
+		if err := r.syncObject(
+			&syncContext{
+				dstNamespace: dstNamespace,
+				srcNamespace: srcNamespace,
+				wsSyncObject: newPvcWorkspaceSyncObject(&pvc),
+				syncConfig:   syncConfig,
+				ctx:          ctx,
+			}); err != nil {
+			return err
+		}
+
+		srcObjKey := buildKey(pvc.GroupVersionKind(), pvc.GetName(), srcNamespace)
+		syncedSrcObjKeys[srcObjKey] = true
+	}
+
+	return nil
+}
+
+// syncTemplates syncs all objects declared in the template labeled as `app.kubernetes.io/component=workspaces-config`
+// from source namespace to a target user namespace.
+func (r *WorkspacesConfigReconciler) syncTemplates(
+	ctx context.Context,
+	srcNamespace string,
+	dstNamespace string,
+	syncConfig map[string]string,
+	syncedSrcObjKeys map[string]bool) error {
+
+	templates := &templatev1.TemplateList{}
+	opts := &client.ListOptions{
+		Namespace:     srcNamespace,
+		LabelSelector: wsConfigComponentSelector,
+	}
+	if err := r.client.List(ctx, templates, opts); err != nil {
+		return err
+	}
+
+	nsInfo, err := r.namespaceCache.GetNamespaceInfo(ctx, dstNamespace)
+	if err != nil {
+		return nil
+	}
+
+	for _, template := range templates.Items {
+		for _, object := range template.Objects {
+			wsSyncObject, err := newUnstructuredSyncer(object.Raw, nsInfo.Username, dstNamespace)
+			if err != nil {
+				return err
+			}
+
+			if err = r.syncObject(
+				&syncContext{
+					dstNamespace: dstNamespace,
+					srcNamespace: srcNamespace,
+					wsSyncObject: wsSyncObject,
+					syncConfig:   syncConfig,
+					ctx:          ctx,
+				}); err != nil {
+				return err
+			}
+
+			srcObjKey := buildKey(wsSyncObject.getSrcObjectGKV(), wsSyncObject.getSrcObject().GetName(), srcNamespace)
+			syncedSrcObjKeys[srcObjKey] = true
+		}
+	}
+
+	return nil
+}
+
+// syncObject syncs object to a user destination namespace.
+// Returns error if sync failed in a destination namespace.
+func (r *WorkspacesConfigReconciler) syncObject(syncContext *syncContext) error {
+	dstObj := syncContext.wsSyncObject.newDstObject()
+	dstObj.SetNamespace(syncContext.dstNamespace)
+	// ensure the name is the same as the source object
+	dstObj.SetName(syncContext.wsSyncObject.getSrcObject().GetName())
+	dstObj.SetLabels(utils.MergeMaps(
+		[]map[string]string{
+			dstObj.GetLabels(),
+			{
+				constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+				constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
+				constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel(),
+			},
+		}))
+
+	if err := r.syncObjectIfDiffers(syncContext, dstObj); err != nil {
+		logger.Error(err, "Failed to sync object",
+			"namespace", syncContext.dstNamespace,
+			"kind", gvk2PrintString(syncContext.wsSyncObject.getSrcObjectGKV()),
+			"name", dstObj.GetName())
 		return err
 	}
 
 	return nil
 }
 
-// syncObjects syncs objects from che namespace to target namespace.
-func (r *WorkspacesConfigReconciler) syncObjects(syncContext *syncContext) error {
-	srcObjsList := syncContext.syncer.getObjectList()
-	if err := r.readSrcObjsList(syncContext.ctx, syncContext.srcNamespace, srcObjsList); err != nil {
-		return err
-	}
+// syncObjectIfDiffers syncs object to a user destination namespace if it differs from the source object.
+// Returns error if sync failed in a destination namespace.
+func (r *WorkspacesConfigReconciler) syncObjectIfDiffers(
+	syncContext *syncContext,
+	dstObj client.Object) error {
 
-	srcObjs, err := meta.ExtractList(srcObjsList)
+	existedDstObj, err := r.scheme.New(syncContext.wsSyncObject.getSrcObjectGKV())
 	if err != nil {
 		return err
 	}
-
-	for _, srcObj := range srcObjs {
-		newObj := syncContext.syncer.newObjectFrom(srcObj.(client.Object))
-		newObj.SetNamespace(syncContext.dstNamespace)
-
-		if err := r.syncObjectToNamespace(syncContext, srcObj.(client.Object), newObj); err != nil {
-			log.Error(err, "Failed to sync object",
-				"namespace", syncContext.dstNamespace,
-				"kind", gvk2String(syncContext.syncer.gkv()),
-				"name", newObj.GetName())
-			return err
-		}
+	existedDstObjKey := types.NamespacedName{
+		Name:      dstObj.GetName(),
+		Namespace: dstObj.GetNamespace(),
 	}
 
-	actualSyncedSrcObjKeys := make(map[string]bool)
-	for _, srcObj := range srcObjs {
-		// compute actual synced objects keys from che namespace
-		actualSyncedSrcObjKeys[getKey(srcObj.(client.Object))] = true
-	}
+	err = r.client.Get(syncContext.ctx, existedDstObjKey, existedDstObj.(client.Object))
+	if err == nil {
+		srcObj := syncContext.wsSyncObject.getSrcObject()
 
-	for syncObjKey, _ := range syncContext.syncConfig {
-		if err := r.deleteObsoleteObjectFromNamespace(syncContext, actualSyncedSrcObjKeys, syncObjKey); err != nil {
-			log.Error(err, "Failed to delete obsolete object",
-				"namespace", syncContext.dstNamespace,
-				"kind", gvk2String(syncContext.syncer.gkv()),
-				"name", getNameElement(syncObjKey))
-			return err
+		srcObjKey := buildKey(syncContext.wsSyncObject.getSrcObjectGKV(), srcObj.GetName(), syncContext.srcNamespace)
+		dstObjKey := buildKey(syncContext.wsSyncObject.getSrcObjectGKV(), dstObj.GetName(), syncContext.dstNamespace)
+
+		srcHasBeenChanged := syncContext.syncConfig[srcObjKey] != syncContext.wsSyncObject.getSrcObjectVersion()
+		dstHasBeenChanged := syncContext.syncConfig[dstObjKey] != existedDstObj.(client.Object).GetResourceVersion()
+
+		if srcHasBeenChanged || dstHasBeenChanged {
+			// destination object exists, and it differs from the source object,
+			// so it will be updated
+			if syncContext.wsSyncObject.hasROSpec() {
+				// Skip updating objects with readonly spec.
+				// Admin has to re-create them to update just update resource versions
+				logger.Info("Object skipped since has readonly spec, re-create it to update",
+					"namespace", dstObj.GetNamespace(),
+					"kind", gvk2PrintString(syncContext.wsSyncObject.getSrcObjectGKV()),
+					"name", dstObj.GetName())
+
+				r.doUpdateSyncConfig(syncContext, existedDstObj.(client.Object))
+				return nil
+			} else {
+				if isDiff(dstObj, existedDstObj.(client.Object)) {
+					return r.doUpdateObject(syncContext, dstObj, existedDstObj.(client.Object))
+				} else {
+					// nothing to update objects are equal just update resource versions
+					r.doUpdateSyncConfig(syncContext, existedDstObj.(client.Object))
+					return nil
+				}
+			}
 		}
+	} else if errors.IsNotFound(err) {
+		// destination object does not exist, so it will be created
+		return r.doCreateObject(syncContext, dstObj)
+	} else {
+		return err
 	}
 
 	return nil
 }
 
-// deleteObsoleteObjectFromNamespace deletes objects that are not synced with source objects.
-// Returns error if delete failed in a destination namespace.
-func (r *WorkspacesConfigReconciler) deleteObsoleteObjectFromNamespace(
+// doCreateObject creates object in a user destination namespace.
+func (r *WorkspacesConfigReconciler) doCreateObject(
 	syncContext *syncContext,
-	actualSyncedSrcObjKeys map[string]bool,
-	syncObjKey string,
-) error {
-	isObjectOfGivenKind := getGVKElement(syncObjKey) == gvk2Element(syncContext.syncer.gkv())
-	isObjectFromSrcNamespace := getNamespaceElement(syncObjKey) == syncContext.srcNamespace
-	isNotSyncedInTargetNs := !actualSyncedSrcObjKeys[syncObjKey]
+	dstObj client.Object) error {
 
-	if isObjectOfGivenKind && isObjectFromSrcNamespace && isNotSyncedInTargetNs {
-		blueprint, err := r.scheme.New(syncContext.syncer.gkv())
+	if err := r.client.Create(syncContext.ctx, dstObj); err != nil {
+		return err
+	}
+
+	logger.Info("Object created", "namespace", dstObj.GetNamespace(),
+		"kind", gvk2PrintString(syncContext.wsSyncObject.getSrcObjectGKV()),
+		"name", dstObj.GetName())
+
+	r.doUpdateSyncConfig(syncContext, dstObj)
+	return nil
+}
+
+// doUpdateObject updates object in a user destination namespace.
+func (r *WorkspacesConfigReconciler) doUpdateObject(
+	syncContext *syncContext,
+	dstObj client.Object,
+	existedDstObj client.Object) error {
+
+	// preserve labels and annotations from existed object
+	dstObj.SetLabels(utils.MergeMaps(
+		[]map[string]string{
+			existedDstObj.GetLabels(),
+			dstObj.GetLabels(),
+		},
+	))
+	dstObj.SetAnnotations(utils.MergeMaps(
+		[]map[string]string{
+			existedDstObj.GetAnnotations(),
+			dstObj.GetAnnotations(),
+		},
+	))
+
+	// set the current resource version to update object
+	dstObj.SetResourceVersion(existedDstObj.GetResourceVersion())
+
+	if err := r.client.Update(syncContext.ctx, dstObj); err != nil {
+		return err
+	}
+
+	logger.Info("Object updated", "namespace", dstObj.GetNamespace(),
+		"kind", gvk2PrintString(syncContext.wsSyncObject.getSrcObjectGKV()),
+		"name", dstObj.GetName())
+
+	r.doUpdateSyncConfig(syncContext, dstObj)
+	return nil
+}
+
+// doUpdateSyncConfig updates sync config with resource versions of synced objects.
+func (r *WorkspacesConfigReconciler) doUpdateSyncConfig(syncContext *syncContext, dstObj client.Object) {
+	srcObj := syncContext.wsSyncObject.getSrcObject()
+
+	srcObjKey := buildKey(syncContext.wsSyncObject.getSrcObjectGKV(), srcObj.GetName(), syncContext.srcNamespace)
+	dstObjKey := buildKey(syncContext.wsSyncObject.getSrcObjectGKV(), dstObj.GetName(), syncContext.dstNamespace)
+
+	syncContext.syncConfig[srcObjKey] = syncContext.wsSyncObject.getSrcObjectVersion()
+	syncContext.syncConfig[dstObjKey] = dstObj.GetResourceVersion()
+}
+
+// deleteIfObjectIsObsolete deletes obsolete objects.
+// Returns error if delete failed in a destination namespace.
+func (r *WorkspacesConfigReconciler) deleteIfObjectIsObsolete(
+	objKey string,
+	ctx context.Context,
+	srcNamespace string,
+	dstNamespace string,
+	syncConfig map[string]string,
+	syncedSrcObjKeys map[string]bool) error {
+
+	isSrcObject := getNamespaceItem(objKey) == srcNamespace
+	isNotSyncedInDstNamespace := !syncedSrcObjKeys[objKey]
+
+	if isSrcObject && isNotSyncedInDstNamespace {
+		objName := getNameItem(objKey)
+		gkv := item2gkv(getGkvItem(objKey))
+
+		blueprint, err := r.scheme.New(gkv)
 		if err != nil {
 			return err
 		}
 
-		// then delete object from target namespace if it is not synced with source object
+		// delete object from destination namespace
 		if err := deploy.DeleteIgnoreIfNotFound(
-			syncContext.ctx,
+			ctx,
 			r.client,
 			types.NamespacedName{
-				Name:      getNameElement(syncObjKey),
-				Namespace: syncContext.dstNamespace,
+				Name:      objName,
+				Namespace: dstNamespace,
 			},
 			blueprint.(client.Object)); err != nil {
 			return err
 		}
 
-		delete(syncContext.syncConfig, syncObjKey)
-		delete(syncContext.syncConfig,
-			buildKey(
-				syncContext.syncer.gkv(),
-				getNameElement(syncObjKey),
-				syncContext.dstNamespace),
-		)
+		dstObjKey := buildKey(gkv, objName, dstNamespace)
+		delete(syncConfig, objKey)
+		delete(syncConfig, dstObjKey)
 	}
 
 	return nil
 }
 
-// syncObjectToNamespace syncs source object to destination object if they differ.
-// Returns error if sync failed in a destination namespace.
-func (r *WorkspacesConfigReconciler) syncObjectToNamespace(
-	syncContext *syncContext,
-	srcObj client.Object,
-	newObj client.Object) error {
-
-	existedDstObj, err := r.scheme.New(syncContext.syncer.gkv())
-	if err != nil {
-		return err
-	}
-
-	err = r.client.Get(
-		syncContext.ctx,
-		types.NamespacedName{
-			Name:      newObj.GetName(),
-			Namespace: newObj.GetNamespace()},
-		existedDstObj.(client.Object))
-	if err == nil {
-		// destination object exists, update it if it differs from source object
-		srcHasBeenChanged := syncContext.syncConfig[getKey(srcObj)] != srcObj.GetResourceVersion()
-		dstHasBeenChanged := syncContext.syncConfig[getKey(existedDstObj.(client.Object))] != existedDstObj.(client.Object).GetResourceVersion()
-
-		if srcHasBeenChanged || dstHasBeenChanged {
-			return r.doSyncObjectToNamespace(syncContext, srcObj, newObj, existedDstObj.(client.Object))
-		}
-	} else if errors.IsNotFound(err) {
-		// destination object does not exist, so it will be created
-		return r.doSyncObjectToNamespace(syncContext, srcObj, newObj, nil)
-	} else {
-		return err
-	}
-
-	return nil
-}
-
-// doSyncObjectToNamespace syncs source object to destination object by updating or creating it.
-// Returns error if sync failed in a destination namespace.
-func (r *WorkspacesConfigReconciler) doSyncObjectToNamespace(
-	syncContext *syncContext,
-	srcObj client.Object,
-	newObj client.Object,
-	existedObj client.Object) error {
-
-	if existedObj == nil {
-		if err := r.client.Create(syncContext.ctx, newObj); err != nil {
-			return err
-		}
-
-		syncContext.syncConfig[getKey(srcObj)] = srcObj.GetResourceVersion()
-		syncContext.syncConfig[buildKey(
-			syncContext.syncer.gkv(),
-			newObj.GetName(),
-			newObj.GetNamespace())] = newObj.GetResourceVersion()
-
-		log.Info("Object created",
-			"namespace", newObj.GetNamespace(),
-			"kind", gvk2String(syncContext.syncer.gkv()),
-			"name", newObj.GetName())
-		return nil
-	} else {
-		if syncContext.syncer.hasReadOnlySpec() {
-			// skip updating objects with readonly spec
-			// admin has to re-create them to update
-			// just update resource versions
-			syncContext.syncConfig[getKey(srcObj)] = srcObj.GetResourceVersion()
-			syncContext.syncConfig[getKey(existedObj)] = existedObj.GetResourceVersion()
-
-			log.Info("Object skipped since has readonly spec, re-create it to update",
-				"namespace", newObj.GetNamespace(),
-				"kind", gvk2String(syncContext.syncer.gkv()),
-				"name", newObj.GetName())
-			return nil
-		} else {
-			if syncContext.syncer.isExistedObjChanged(newObj, existedObj) {
-				// preserve labels and annotations from existed object
-				newObj.SetLabels(preserveExistedMapValues(newObj.GetLabels(), existedObj.GetLabels()))
-				newObj.SetAnnotations(preserveExistedMapValues(newObj.GetAnnotations(), existedObj.GetAnnotations()))
-
-				// set the correct resource version to update object
-				newObj.SetResourceVersion(existedObj.GetResourceVersion())
-				if err := r.client.Update(syncContext.ctx, newObj); err != nil {
-					return err
-				}
-
-				syncContext.syncConfig[getKey(srcObj)] = srcObj.GetResourceVersion()
-				syncContext.syncConfig[getKey(existedObj)] = newObj.GetResourceVersion()
-
-				log.Info("Object updated",
-					"namespace", newObj.GetNamespace(),
-					"kind", gvk2String(syncContext.syncer.gkv()),
-					"name", newObj.GetName())
-				return nil
-			} else {
-				// nothing to update objects are equal
-				// just update resource versions
-				syncContext.syncConfig[getKey(srcObj)] = srcObj.GetResourceVersion()
-				syncContext.syncConfig[getKey(existedObj)] = existedObj.GetResourceVersion()
-				return nil
+// isDiff checks if the given objects are different.
+// The rules are following:
+//   - if labels of the source object are absent in the destination object,
+//     then the objects considered different
+//   - if annotations of the source object are absent in the destination object,
+//     then the objects considered different
+//   - if the rest fields of the objects are different,
+//     then the objects considered different
+func isDiff(src client.Object, dst client.Object) bool {
+	if src.GetLabels() != nil {
+		for key, value := range src.GetLabels() {
+			if dst.GetLabels()[key] != value {
+				return true
 			}
 		}
 	}
+
+	if src.GetAnnotations() != nil {
+		for key, value := range src.GetAnnotations() {
+			if dst.GetAnnotations()[key] != value {
+				return true
+			}
+		}
+	}
+
+	return cmp.Diff(
+		src,
+		dst,
+		cmp.Options{
+			cmpopts.IgnoreTypes(metav1.ObjectMeta{}),
+			cmpopts.IgnoreTypes(metav1.TypeMeta{}),
+		}) != ""
 }
 
 // getSyncConfig returns ConfigMap with synced objects resource versions.
 // Returns error if ConfigMap failed to be retrieved.
-func (r *WorkspacesConfigReconciler) getSyncConfig(ctx context.Context, targetNs string) (*corev1.ConfigMap, error) {
-	syncedConfig := &corev1.ConfigMap{}
-	err := r.client.Get(
-		ctx,
-		types.NamespacedName{
-			Name:      syncedWorkspacesConfig,
-			Namespace: targetNs,
-		},
-		syncedConfig)
+func (r *WorkspacesConfigReconciler) getSyncConfig(ctx context.Context, namespace string) (*corev1.ConfigMap, error) {
+	syncCM := &corev1.ConfigMap{}
+	syncCMKey := types.NamespacedName{
+		Name:      syncedWorkspacesConfig,
+		Namespace: namespace,
+	}
 
+	err := r.client.Get(ctx, syncCMKey, syncCM)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			syncedConfig = &corev1.ConfigMap{
+			syncCM = &corev1.ConfigMap{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "ConfigMap",
 					APIVersion: "v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      syncedWorkspacesConfig,
-					Namespace: targetNs,
-					Labels:    workspacesConfigLabels,
+					Namespace: namespace,
+					Labels: utils.MergeMaps([]map[string]string{
+						wsConfigComponentLabels,
+						{constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel()}}),
 				},
 				Data: map[string]string{},
 			}
 		} else {
 			return nil, err
 		}
-	} else if syncedConfig.Data == nil {
-		syncedConfig.Data = map[string]string{}
+	} else if syncCM.Data == nil {
+		syncCM.Data = map[string]string{}
 	}
 
-	return syncedConfig, nil
+	return syncCM, nil
 }
 
-func (r *WorkspacesConfigReconciler) readSrcObjsList(ctx context.Context, srcNamespace string, objList client.ObjectList) error {
-	return r.client.List(
-		ctx,
-		objList,
-		&client.ListOptions{
-			Namespace:     srcNamespace,
-			LabelSelector: workspacesConfigSelector,
-		})
-}
-
-func getKey(object client.Object) string {
-	return buildKey(object.GetObjectKind().GroupVersionKind(), object.GetName(), object.GetNamespace())
-}
-
+// buildKey returns a key for ConfigMap.
+// The key is built from items of GroupVersionKind, name and namespace.
 func buildKey(gvk schema.GroupVersionKind, name string, namespace string) string {
-	return fmt.Sprintf("%s.%s.%s", gvk2Element(gvk), name, namespace)
+	return fmt.Sprintf("%s.%s.%s", gvk2Item(gvk), name, namespace)
 }
 
-func gvk2Element(gvk schema.GroupVersionKind) string {
+func getGkvItem(key string) string {
+	splits := strings.Split(key, ".")
+	return splits[0]
+}
+
+func getNameItem(key string) string {
+	splits := strings.Split(key, ".")
+	return splits[1]
+}
+
+func getNamespaceItem(key string) string {
+	splits := strings.Split(key, ".")
+	return splits[2]
+}
+
+// gvk2Item returns a key item for GroupVersionKind.
+func gvk2Item(gvk schema.GroupVersionKind) string {
 	if gvk.Group == "" {
 		return fmt.Sprintf("%s_%s", gvk.Version, gvk.Kind)
 	}
 	return fmt.Sprintf("%s_%s_%s", gvk.Group, gvk.Version, gvk.Kind)
 }
 
-func gvk2String(gkv schema.GroupVersionKind) string {
+func item2gkv(item string) schema.GroupVersionKind {
+	splits := strings.Split(item, "_")
+	if len(splits) == 3 {
+		return schema.GroupVersionKind{
+			Group:   splits[0],
+			Version: splits[1],
+			Kind:    splits[2],
+		}
+	}
+
+	return schema.GroupVersionKind{
+		Version: splits[0],
+		Kind:    splits[1],
+	}
+}
+
+// gvk2PrintString returns a string representation of GroupVersionKind.
+func gvk2PrintString(gkv schema.GroupVersionKind) string {
 	return fmt.Sprintf("%s.%s", gkv.Version, gkv.Kind)
 }
 
-func getGVKElement(key string) string {
-	splits := strings.Split(key, ".")
-	return splits[0]
-}
-
-func getNameElement(key string) string {
-	splits := strings.Split(key, ".")
-	return splits[1]
-}
-
-func getNamespaceElement(key string) string {
-	splits := strings.Split(key, ".")
-	return splits[2]
-}
-
-func isLabeledAsWorkspacesConfig(obj metav1.Object) bool {
+func hasWSConfigComponentLabels(obj metav1.Object) bool {
 	return obj.GetLabels()[constants.KubernetesComponentLabelKey] == constants.WorkspacesConfig &&
 		obj.GetLabels()[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg
-}
-
-func mergeWorkspaceConfigObjectLabels(srcLabels map[string]string, additionalLabels map[string]string) map[string]string {
-	newLabels := utils.CloneMap(srcLabels)
-	for key, value := range additionalLabels {
-		newLabels[key] = value
-	}
-
-	// default labels
-	for key, value := range deploy.GetLabels(constants.WorkspacesConfig) {
-		newLabels[key] = value
-	}
-
-	return newLabels
-}
-
-func preserveExistedMapValues(newObjMap map[string]string, existedObjMap map[string]string) map[string]string {
-	preservedMap := utils.CloneMap(newObjMap)
-	for key, value := range existedObjMap {
-		if _, ok := preservedMap[key]; !ok {
-			preservedMap[key] = value
-		}
-	}
-	return preservedMap
 }

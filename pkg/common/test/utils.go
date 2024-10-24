@@ -31,6 +31,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	console "github.com/openshift/api/console/v1"
 	oauthv1 "github.com/openshift/api/oauth/v1"
+	templatev1 "github.com/openshift/api/template/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -189,9 +190,9 @@ func GetDeployContext(cheCluster *chev2.CheCluster, initObjs []runtime.Object) *
 	scheme := scheme.Scheme
 	chev2.SchemeBuilder.AddToScheme(scheme)
 	scheme.AddKnownTypes(controllerv1alpha1.SchemeBuilder.GroupVersion, &controllerv1alpha1.DevWorkspaceOperatorConfig{})
-	scheme.AddKnownTypes(oauthv1.GroupVersion, &oauthv1.OAuthClient{})
-	scheme.AddKnownTypes(oauthv1.GroupVersion, &oauthv1.OAuthClientList{})
+	scheme.AddKnownTypes(oauthv1.GroupVersion, &oauthv1.OAuthClient{}, &oauthv1.OAuthClientList{})
 	scheme.AddKnownTypes(configv1.GroupVersion, &configv1.Proxy{}, &configv1.Console{})
+	scheme.AddKnownTypes(templatev1.GroupVersion, &templatev1.Template{}, &templatev1.TemplateList{})
 	scheme.AddKnownTypes(routev1.GroupVersion, &routev1.Route{})
 	scheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.Secret{})
 	scheme.AddKnownTypes(console.GroupVersion, &console.ConsoleLink{})

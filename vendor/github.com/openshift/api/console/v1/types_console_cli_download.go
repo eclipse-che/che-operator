@@ -7,11 +7,14 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ConsoleCLIDownload is an extension for configuring openshift web console command line interface (CLI) downloads.
+//
+// Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=2
 type ConsoleCLIDownload struct {
-	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              ConsoleCLIDownloadSpec `json:"spec"`
+
+	Spec ConsoleCLIDownloadSpec `json:"spec"`
 }
 
 // ConsoleCLIDownloadSpec is the desired cli download configuration.
@@ -21,14 +24,25 @@ type ConsoleCLIDownloadSpec struct {
 	// description is the description of the CLI download (can include markdown).
 	Description string `json:"description"`
 	// links is a list of objects that provide CLI download link details.
-	Links []Link `json:"links"`
+	Links []CLIDownloadLink `json:"links"`
+}
+
+type CLIDownloadLink struct {
+	// text is the display text for the link
+	// +optional
+	Text string `json:"text"`
+	// href is the absolute secure URL for the link (must use https)
+	// +kubebuilder:validation:Pattern=`^https://`
+	Href string `json:"href"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+// Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=2
 type ConsoleCLIDownloadList struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
 	metav1.ListMeta `json:"metadata"`
-	Items           []ConsoleCLIDownload `json:"items"`
+
+	Items []ConsoleCLIDownload `json:"items"`
 }
