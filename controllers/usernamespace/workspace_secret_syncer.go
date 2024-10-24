@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2024 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -14,11 +14,9 @@ package usernamespace
 
 import (
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -27,64 +25,45 @@ var (
 	v1SecretGKV = corev1.SchemeGroupVersion.WithKind("Secret")
 )
 
-type secretSyncer struct {
-	workspaceConfigSyncer
+type secretWorkspaceSyncObject struct {
+	WorkspaceSyncObject
+	secret *corev1.Secret
 }
 
-func newSecretSyncer() *secretSyncer {
-	return &secretSyncer{}
+func newSecretWorkspaceSyncObject(secret *corev1.Secret) *secretWorkspaceSyncObject {
+	return &secretWorkspaceSyncObject{
+		secret: secret,
+	}
 }
 
-func (p *secretSyncer) gkv() schema.GroupVersionKind {
+func (p *secretWorkspaceSyncObject) getSrcObjectGKV() schema.GroupVersionKind {
 	return v1SecretGKV
 }
 
-func (p *secretSyncer) newObjectFrom(src client.Object) client.Object {
-	dst := src.(runtime.Object).DeepCopyObject()
+func (p *secretWorkspaceSyncObject) getSrcObject() client.Object {
+	return p.secret
+}
+
+func (p *secretWorkspaceSyncObject) newDstObject() client.Object {
+	dst := p.secret.DeepCopyObject()
 	dst.(*corev1.Secret).ObjectMeta = metav1.ObjectMeta{
-		Name:        src.GetName(),
-		Annotations: src.GetAnnotations(),
-		Labels: mergeWorkspaceConfigObjectLabels(
-			src.GetLabels(),
-			map[string]string{
+		Name:        p.secret.GetName(),
+		Annotations: p.secret.GetAnnotations(),
+		Labels: utils.MergeMaps([]map[string]string{
+			p.secret.GetLabels(),
+			{
 				dwconstants.DevWorkspaceWatchSecretLabel: "true",
 				dwconstants.DevWorkspaceMountLabel:       "true",
-			},
-		),
+			}}),
 	}
 
 	return dst.(client.Object)
 }
 
-func (p *secretSyncer) isExistedObjChanged(newObj client.Object, existedObj client.Object) bool {
-	if newObj.GetLabels() != nil {
-		for key, value := range newObj.GetLabels() {
-			if existedObj.GetLabels()[key] != value {
-				return true
-			}
-		}
-	}
-
-	if newObj.GetAnnotations() != nil {
-		for key, value := range newObj.GetAnnotations() {
-			if existedObj.GetAnnotations()[key] != value {
-				return true
-			}
-		}
-	}
-
-	return cmp.Diff(
-		newObj,
-		existedObj,
-		cmp.Options{
-			cmpopts.IgnoreFields(corev1.Secret{}, "TypeMeta", "ObjectMeta"),
-		}) != ""
+func (p *secretWorkspaceSyncObject) getSrcObjectVersion() string {
+	return p.secret.GetResourceVersion()
 }
 
-func (p *secretSyncer) getObjectList() client.ObjectList {
-	return &corev1.SecretList{}
-}
-
-func (p *secretSyncer) hasReadOnlySpec() bool {
+func (p *secretWorkspaceSyncObject) hasROSpec() bool {
 	return false
 }
