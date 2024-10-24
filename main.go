@@ -57,6 +57,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	consolev1 "github.com/openshift/api/console/v1"
 	oauthv1 "github.com/openshift/api/oauth/v1"
+	templatev1 "github.com/openshift/api/template/v1"
 
 	checontroller "github.com/eclipse-che/che-operator/controllers/che"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
@@ -81,7 +82,6 @@ import (
 
 	chev1 "github.com/eclipse-che/che-operator/api/v1"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
-	//+kubebuilder:scaffold:imports
 )
 
 var (
@@ -137,16 +137,17 @@ func init() {
 	utilruntime.Must(packagesv1.AddToScheme(scheme))
 	utilruntime.Must(operatorsv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(operatorsv1.AddToScheme(scheme))
+	utilruntime.Must(corev1.AddToScheme(scheme))
 
 	if infrastructure.IsOpenShift() {
 		utilruntime.Must(routev1.AddToScheme(scheme))
 		utilruntime.Must(oauthv1.AddToScheme(scheme))
 		utilruntime.Must(userv1.AddToScheme(scheme))
 		utilruntime.Must(configv1.AddToScheme(scheme))
-		utilruntime.Must(corev1.AddToScheme(scheme))
 		utilruntime.Must(consolev1.AddToScheme(scheme))
 		utilruntime.Must(projectv1.AddToScheme(scheme))
 		utilruntime.Must(securityv1.Install(scheme))
+		utilruntime.Must(templatev1.Install(scheme))
 	}
 }
 
@@ -289,7 +290,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	workspacesConfigReconciler := usernamespace.NewWorkspacesConfigReconciler(mgr.GetClient(), nonCachingClient, mgr.GetScheme(), namespacechace)
+	workspacesConfigReconciler := usernamespace.NewWorkspacesConfigReconciler(mgr.GetClient(), mgr.GetScheme(), namespacechace)
 	if err = workspacesConfigReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to set up controller", "controller", "WorkspacesConfigReconciler")
 		os.Exit(1)
@@ -346,8 +347,6 @@ func getCacheFunc() (cache.NewCacheFunc, error) {
 
 	logrus.Infof("Limit cache by selector: %s", partOfCheObjectSelector.String())
 
-	routeKey := &routev1.Route{}
-	oauthKey := &oauthv1.OAuthClient{}
 	selectors := cache.SelectorsByObject{
 		&appsv1.Deployment{}: {
 			Label: partOfCheObjectSelector,
@@ -362,9 +361,6 @@ func getCacheFunc() (cache.NewCacheFunc, error) {
 			Label: partOfCheObjectSelector,
 		},
 		&networkingv1.Ingress{}: {
-			Label: partOfCheObjectSelector,
-		},
-		routeKey: {
 			Label: partOfCheObjectSelector,
 		},
 		&corev1.ConfigMap{}: {
@@ -391,14 +387,18 @@ func getCacheFunc() (cache.NewCacheFunc, error) {
 		&corev1.PersistentVolumeClaim{}: {
 			Label: partOfCheObjectSelector,
 		},
-		oauthKey: {
+		&corev1.LimitRange{}: {
+			Label: partOfCheObjectSelector,
+		},
+		&corev1.ResourceQuota{}: {
 			Label: partOfCheObjectSelector,
 		},
 	}
 
-	if !infrastructure.IsOpenShift() {
-		delete(selectors, routeKey)
-		delete(selectors, oauthKey)
+	if infrastructure.IsOpenShift() {
+		selectors[&oauthv1.OAuthClient{}] = cache.ObjectSelector{Label: partOfCheObjectSelector}
+		selectors[&routev1.Route{}] = cache.ObjectSelector{Label: partOfCheObjectSelector}
+		selectors[&templatev1.Template{}] = cache.ObjectSelector{Label: partOfCheObjectSelector}
 	}
 
 	return cache.BuilderWithOptions(cache.Options{

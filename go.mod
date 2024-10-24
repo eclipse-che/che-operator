@@ -8,7 +8,7 @@ require (
 	github.com/devfile/devworkspace-operator v0.31.0
 	github.com/go-logr/logr v1.2.4
 	github.com/google/go-cmp v0.6.0
-	github.com/openshift/api v0.0.0-20200331152225-585af27e34fd
+	github.com/openshift/api v0.0.0-20230120182048-88b476f987ed
 	github.com/operator-framework/api v0.10.0
 	github.com/operator-framework/operator-lifecycle-manager v0.18.1
 	github.com/sirupsen/logrus v1.8.1
@@ -366,7 +366,7 @@ replace (
 	github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
 	github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.0-rc2.0.20190611121236-6cc515888830
 	github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v1.0.0
-	github.com/openshift/api => github.com/openshift/api v0.0.0-20190924102528-32369d4db2ad
+	github.com/openshift/api => github.com/openshift/api v0.0.0-20230120182048-88b476f987ed
 	github.com/openshift/client-go => github.com/openshift/client-go v0.0.0-20200326155132-2a6cd50aedd0
 	github.com/opentracing/opentracing-go => github.com/opentracing/opentracing-go v1.1.0
 	github.com/operator-framework/operator-registry => github.com/operator-framework/operator-registry v1.13.6

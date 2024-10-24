@@ -219,6 +219,18 @@ func AddMap(a map[string]string, b map[string]string) {
 	}
 }
 
+// MergeMaps merges maps into a single one.
+// If a key is present in multiple maps, the value from the last map is used.
+func MergeMaps(maps []map[string]string) map[string]string {
+	result := make(map[string]string)
+	for _, m := range maps {
+		for k, v := range m {
+			result[k] = v
+		}
+	}
+	return result
+}
+
 // Converts label map into plain string
 func FormatLabels(m map[string]string) string {
 	if len(m) == 0 {

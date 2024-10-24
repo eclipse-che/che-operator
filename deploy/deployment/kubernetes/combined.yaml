@@ -8997,7 +8997,33 @@ rules:
   resources:
   - limitranges
   verbs:
+  - create
+  - delete
+  - get
+  - update
+  - patch
+  - watch
   - list
+- apiGroups:
+  - ""
+  resources:
+  - resourcequotas
+  verbs:
+  - create
+  - delete
+  - get
+  - update
+  - patch
+  - watch
+  - list
+- apiGroups:
+  - template.openshift.io
+  resources:
+  - templates
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - monitoring.coreos.com
   resources:

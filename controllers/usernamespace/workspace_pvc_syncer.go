@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2024 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -24,19 +24,22 @@ var (
 	v1PvcGKV = corev1.SchemeGroupVersion.WithKind("PersistentVolumeClaim")
 )
 
-type pvcSyncer struct {
-	workspaceConfigSyncer
+type pvcWorkspaceSyncObject struct {
+	WorkspaceSyncObject
+	pvc *corev1.PersistentVolumeClaim
 }
 
-func newPvcSyncer() *pvcSyncer {
-	return &pvcSyncer{}
+func newPvcWorkspaceSyncObject(pvc *corev1.PersistentVolumeClaim) *pvcWorkspaceSyncObject {
+	return &pvcWorkspaceSyncObject{
+		pvc: pvc,
+	}
 }
 
-func (p *pvcSyncer) gkv() schema.GroupVersionKind {
+func (p *pvcWorkspaceSyncObject) getSrcObjectGKV() schema.GroupVersionKind {
 	return v1PvcGKV
 }
 
-func (p *pvcSyncer) newObjectFrom(src client.Object) client.Object {
+func (p *pvcWorkspaceSyncObject) newDstObj(src client.Object) client.Object {
 	dst := src.(runtime.Object).DeepCopyObject()
 	dst.(*corev1.PersistentVolumeClaim).ObjectMeta = metav1.ObjectMeta{
 		Name:        src.GetName(),
@@ -48,14 +51,26 @@ func (p *pvcSyncer) newObjectFrom(src client.Object) client.Object {
 	return dst.(client.Object)
 }
 
-func (p *pvcSyncer) isExistedObjChanged(newObj client.Object, existedObj client.Object) bool {
-	return false
+func (p *pvcWorkspaceSyncObject) getSrcObject() client.Object {
+	return p.pvc
 }
 
-func (p *pvcSyncer) getObjectList() client.ObjectList {
-	return &corev1.PersistentVolumeClaimList{}
+func (p *pvcWorkspaceSyncObject) newDstObject() client.Object {
+	dst := p.pvc.DeepCopyObject()
+	dst.(*corev1.PersistentVolumeClaim).ObjectMeta = metav1.ObjectMeta{
+		Name:        p.pvc.GetName(),
+		Annotations: p.pvc.GetAnnotations(),
+		Labels:      p.pvc.GetLabels(),
+	}
+	dst.(*corev1.PersistentVolumeClaim).Status = corev1.PersistentVolumeClaimStatus{}
+
+	return dst.(client.Object)
 }
 
-func (p *pvcSyncer) hasReadOnlySpec() bool {
+func (p *pvcWorkspaceSyncObject) getSrcObjectVersion() string {
+	return p.pvc.GetResourceVersion()
+}
+
+func (p *pvcWorkspaceSyncObject) hasROSpec() bool {
 	return true
 }

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2024 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -54,14 +54,13 @@ func TestSyncPVC(t *testing.T) {
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
 		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.NonCachingClient,
 		deployContext.ClusterAPI.Scheme,
 		NewNamespaceCache(deployContext.ClusterAPI.NonCachingClient))
 
 	assertSyncConfig(t, workspaceConfigReconciler, 0, v1PvcGKV)
 
 	// Sync PVC to a user namespace
-	err := workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace)
+	err := workspaceConfigReconciler.syncWorkspace(context.TODO(), userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1PvcGKV)
 
@@ -81,7 +80,7 @@ func TestSyncPVC(t *testing.T) {
 	err = workspaceConfigReconciler.client.Update(context.TODO(), pvc)
 
 	// Sync PVC
-	err = workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace)
+	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1PvcGKV)
 
@@ -98,7 +97,7 @@ func TestSyncPVC(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Sync PVC
-	err = workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace)
+	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1PvcGKV)
 
@@ -115,7 +114,7 @@ func TestSyncPVC(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Sync PVC
-	err = workspaceConfigReconciler.syncWorkspacesConfig(context.TODO(), userNamespace)
+	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 0, v1PvcGKV)
 

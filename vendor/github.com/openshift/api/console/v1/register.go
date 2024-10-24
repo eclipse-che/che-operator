@@ -39,6 +39,12 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ConsoleNotificationList{},
 		&ConsoleExternalLogLink{},
 		&ConsoleExternalLogLinkList{},
+		&ConsoleYAMLSample{},
+		&ConsoleYAMLSampleList{},
+		&ConsoleQuickStart{},
+		&ConsoleQuickStartList{},
+		&ConsolePlugin{},
+		&ConsolePluginList{},
 	)
 	metav1.AddToGroupVersion(scheme, GroupVersion)
 	return nil
