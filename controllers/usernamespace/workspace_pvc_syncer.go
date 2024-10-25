@@ -35,7 +35,7 @@ func newPvcWorkspaceSyncObject(pvc *corev1.PersistentVolumeClaim) *pvcWorkspaceS
 	}
 }
 
-func (p *pvcWorkspaceSyncObject) getSrcObjectGKV() schema.GroupVersionKind {
+func (p *pvcWorkspaceSyncObject) getGKV() schema.GroupVersionKind {
 	return v1PvcGKV
 }
 

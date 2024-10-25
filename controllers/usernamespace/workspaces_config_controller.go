@@ -17,6 +17,8 @@ import (
 	"fmt"
 	"strings"
 
+	rbacv1 "k8s.io/api/rbac/v1"
+
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/google/go-cmp/cmp"
@@ -50,9 +52,9 @@ type WorkspacesConfigReconciler struct {
 }
 
 type WorkspaceSyncObject interface {
+	getGKV() schema.GroupVersionKind
 	hasROSpec() bool
 	getSrcObject() client.Object
-	getSrcObjectGKV() schema.GroupVersionKind
 	getSrcObjectVersion() string
 	newDstObject() client.Object
 }
@@ -94,7 +96,10 @@ func (r *WorkspacesConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&source.Kind{Type: &corev1.Secret{}}, r.watchRules(ctx, true, true)).
 		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, r.watchRules(ctx, true, true)).
 		Watches(&source.Kind{Type: &corev1.ResourceQuota{}}, r.watchRules(ctx, false, true)).
-		Watches(&source.Kind{Type: &corev1.LimitRange{}}, r.watchRules(ctx, false, true))
+		Watches(&source.Kind{Type: &corev1.LimitRange{}}, r.watchRules(ctx, false, true)).
+		Watches(&source.Kind{Type: &corev1.ServiceAccount{}}, r.watchRules(ctx, false, true)).
+		Watches(&source.Kind{Type: &rbacv1.Role{}}, r.watchRules(ctx, false, true)).
+		Watches(&source.Kind{Type: &rbacv1.RoleBinding{}}, r.watchRules(ctx, false, true))
 
 	if infrastructure.IsOpenShift() {
 		bld.Watches(&source.Kind{Type: &templatev1.Template{}}, r.watchRules(ctx, true, false))
@@ -424,7 +429,7 @@ func (r *WorkspacesConfigReconciler) syncTemplates(
 				return err
 			}
 
-			srcObjKey := buildKey(wsSyncObject.getSrcObjectGKV(), wsSyncObject.getSrcObject().GetName(), srcNamespace)
+			srcObjKey := buildKey(wsSyncObject.getGKV(), wsSyncObject.getSrcObject().GetName(), srcNamespace)
 			syncedSrcObjKeys[srcObjKey] = true
 		}
 	}
@@ -452,7 +457,7 @@ func (r *WorkspacesConfigReconciler) syncObject(syncContext *syncContext) error 
 	if err := r.syncObjectIfDiffers(syncContext, dstObj); err != nil {
 		logger.Error(err, "Failed to sync object",
 			"namespace", syncContext.dstNamespace,
-			"kind", gvk2PrintString(syncContext.wsSyncObject.getSrcObjectGKV()),
+			"kind", gvk2PrintString(syncContext.wsSyncObject.getGKV()),
 			"name", dstObj.GetName())
 		return err
 	}
@@ -466,7 +471,7 @@ func (r *WorkspacesConfigReconciler) syncObjectIfDiffers(
 	syncContext *syncContext,
 	dstObj client.Object) error {
 
-	existedDstObj, err := r.scheme.New(syncContext.wsSyncObject.getSrcObjectGKV())
+	existedDstObj, err := r.scheme.New(syncContext.wsSyncObject.getGKV())
 	if err != nil {
 		return err
 	}
@@ -479,8 +484,8 @@ func (r *WorkspacesConfigReconciler) syncObjectIfDiffers(
 	if err == nil {
 		srcObj := syncContext.wsSyncObject.getSrcObject()
 
-		srcObjKey := buildKey(syncContext.wsSyncObject.getSrcObjectGKV(), srcObj.GetName(), syncContext.srcNamespace)
-		dstObjKey := buildKey(syncContext.wsSyncObject.getSrcObjectGKV(), dstObj.GetName(), syncContext.dstNamespace)
+		srcObjKey := buildKey(syncContext.wsSyncObject.getGKV(), srcObj.GetName(), syncContext.srcNamespace)
+		dstObjKey := buildKey(syncContext.wsSyncObject.getGKV(), dstObj.GetName(), syncContext.dstNamespace)
 
 		srcHasBeenChanged := syncContext.syncConfig[srcObjKey] != syncContext.wsSyncObject.getSrcObjectVersion()
 		dstHasBeenChanged := syncContext.syncConfig[dstObjKey] != existedDstObj.(client.Object).GetResourceVersion()
@@ -493,7 +498,7 @@ func (r *WorkspacesConfigReconciler) syncObjectIfDiffers(
 				// Admin has to re-create them to update just update resource versions
 				logger.Info("Object skipped since has readonly spec, re-create it to update",
 					"namespace", dstObj.GetNamespace(),
-					"kind", gvk2PrintString(syncContext.wsSyncObject.getSrcObjectGKV()),
+					"kind", gvk2PrintString(syncContext.wsSyncObject.getGKV()),
 					"name", dstObj.GetName())
 
 				r.doUpdateSyncConfig(syncContext, existedDstObj.(client.Object))
@@ -528,7 +533,7 @@ func (r *WorkspacesConfigReconciler) doCreateObject(
 	}
 
 	logger.Info("Object created", "namespace", dstObj.GetNamespace(),
-		"kind", gvk2PrintString(syncContext.wsSyncObject.getSrcObjectGKV()),
+		"kind", gvk2PrintString(syncContext.wsSyncObject.getGKV()),
 		"name", dstObj.GetName())
 
 	r.doUpdateSyncConfig(syncContext, dstObj)
@@ -563,7 +568,7 @@ func (r *WorkspacesConfigReconciler) doUpdateObject(
 	}
 
 	logger.Info("Object updated", "namespace", dstObj.GetNamespace(),
-		"kind", gvk2PrintString(syncContext.wsSyncObject.getSrcObjectGKV()),
+		"kind", gvk2PrintString(syncContext.wsSyncObject.getGKV()),
 		"name", dstObj.GetName())
 
 	r.doUpdateSyncConfig(syncContext, dstObj)
@@ -574,8 +579,8 @@ func (r *WorkspacesConfigReconciler) doUpdateObject(
 func (r *WorkspacesConfigReconciler) doUpdateSyncConfig(syncContext *syncContext, dstObj client.Object) {
 	srcObj := syncContext.wsSyncObject.getSrcObject()
 
-	srcObjKey := buildKey(syncContext.wsSyncObject.getSrcObjectGKV(), srcObj.GetName(), syncContext.srcNamespace)
-	dstObjKey := buildKey(syncContext.wsSyncObject.getSrcObjectGKV(), dstObj.GetName(), syncContext.dstNamespace)
+	srcObjKey := buildKey(syncContext.wsSyncObject.getGKV(), srcObj.GetName(), syncContext.srcNamespace)
+	dstObjKey := buildKey(syncContext.wsSyncObject.getGKV(), dstObj.GetName(), syncContext.dstNamespace)
 
 	syncContext.syncConfig[srcObjKey] = syncContext.wsSyncObject.getSrcObjectVersion()
 	syncContext.syncConfig[dstObjKey] = dstObj.GetResourceVersion()

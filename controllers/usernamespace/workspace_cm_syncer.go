@@ -38,7 +38,7 @@ func (p *cmWorkspaceSyncObject) getSrcObject() client.Object {
 	return p.cm
 }
 
-func (p *cmWorkspaceSyncObject) getSrcObjectGKV() schema.GroupVersionKind {
+func (p *cmWorkspaceSyncObject) getGKV() schema.GroupVersionKind {
 	return v1ConfigMapGKV
 }
 

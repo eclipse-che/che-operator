@@ -13,15 +13,13 @@
 package usernamespace
 
 import (
+	"strings"
+
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
-	"strings"
 )
 
 const (
@@ -66,37 +64,12 @@ func (p *unstructuredSyncer) getSrcObject() client.Object {
 	return p.srcObj
 }
 
-func (p *unstructuredSyncer) getSrcObjectGKV() schema.GroupVersionKind {
+func (p *unstructuredSyncer) getGKV() schema.GroupVersionKind {
 	return p.srcObj.GetObjectKind().GroupVersionKind()
 }
 
 func (p *unstructuredSyncer) newDstObject() client.Object {
 	return p.dstObj.DeepCopyObject().(client.Object)
-}
-
-func (p *unstructuredSyncer) isExistedObjChanged(dstObj client.Object, existedDstObj client.Object) bool {
-	if dstObj.GetLabels() != nil {
-		for key, value := range dstObj.GetLabels() {
-			if existedDstObj.GetLabels()[key] != value {
-				return true
-			}
-		}
-	}
-
-	if dstObj.GetAnnotations() != nil {
-		for key, value := range dstObj.GetAnnotations() {
-			if existedDstObj.GetAnnotations()[key] != value {
-				return true
-			}
-		}
-	}
-
-	return cmp.Diff(
-		dstObj,
-		existedDstObj,
-		cmp.Options{
-			cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta", "ObjectMeta"),
-		}) != ""
 }
 
 func (p *unstructuredSyncer) getSrcObjectVersion() string {

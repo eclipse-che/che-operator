@@ -36,7 +36,7 @@ func newSecretWorkspaceSyncObject(secret *corev1.Secret) *secretWorkspaceSyncObj
 	}
 }
 
-func (p *secretWorkspaceSyncObject) getSrcObjectGKV() schema.GroupVersionKind {
+func (p *secretWorkspaceSyncObject) getGKV() schema.GroupVersionKind {
 	return v1SecretGKV
 }
 

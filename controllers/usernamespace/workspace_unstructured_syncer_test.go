@@ -14,9 +14,10 @@ package usernamespace
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/types"
 	"sync"
 	"testing"
+
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
