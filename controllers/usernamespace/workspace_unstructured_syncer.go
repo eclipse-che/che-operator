@@ -26,8 +26,8 @@ import (
 
 const (
 	// Supported templates parameters
-	PROJECT_REQUESTING_USER = "${PROJECT_REQUESTING_USER}"
-	PROJECT_NAME            = "${PROJECT_NAME}"
+	PROJECT_USER = "${PROJECT_USER}"
+	PROJECT_NAME = "${PROJECT_NAME}"
 )
 
 type unstructuredSyncer struct {
@@ -46,7 +46,7 @@ func newUnstructuredSyncer(
 	hash := utils.ComputeHash256(raw)
 
 	objAsString := string(raw)
-	objAsString = strings.ReplaceAll(objAsString, PROJECT_REQUESTING_USER, user)
+	objAsString = strings.ReplaceAll(objAsString, PROJECT_USER, user)
 	objAsString = strings.ReplaceAll(objAsString, PROJECT_NAME, project)
 
 	srcObj := &unstructured.Unstructured{}

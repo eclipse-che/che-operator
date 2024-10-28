@@ -65,7 +65,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{
 							Name: objectName,
 							Labels: map[string]string{
-								"user":      "${PROJECT_REQUESTING_USER}",
+								"user":      "${PROJECT_USER}",
 								"namespace": "${PROJECT_NAME}",
 							},
 						},

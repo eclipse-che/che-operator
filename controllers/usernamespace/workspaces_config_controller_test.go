@@ -14,7 +14,11 @@ package usernamespace
 
 import (
 	"context"
+	"fmt"
 	"testing"
+
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
@@ -141,4 +145,60 @@ func TestIsDiff(t *testing.T) {
 
 	changed := isDiff(src, dst)
 	assert.False(t, changed)
+}
+
+func TestBuildKey(t *testing.T) {
+	type testCase struct {
+		name      string
+		namespace string
+		gkv       schema.GroupVersionKind
+	}
+
+	testCases := []testCase{
+		{
+			name:      "test",
+			namespace: "eclipse-che",
+			gkv:       corev1.SchemeGroupVersion.WithKind("ConfigMap"),
+		},
+		{
+			name:      "test.test",
+			namespace: "eclipse-che",
+			gkv:       corev1.SchemeGroupVersion.WithKind("ConfigMap"),
+		},
+		{
+			name:      "test",
+			namespace: "eclipse-che",
+			gkv:       corev1.SchemeGroupVersion.WithKind("Secret"),
+		},
+		{
+			name:      "test",
+			namespace: "eclipse-che",
+			gkv:       corev1.SchemeGroupVersion.WithKind("PersistentVolumeClaim"),
+		},
+		{
+			name:      "test",
+			namespace: "eclipse-che",
+			gkv:       rbacv1.SchemeGroupVersion.WithKind("Role"),
+		},
+		{
+			name:      "test",
+			namespace: "eclipse-che",
+			gkv:       rbacv1.SchemeGroupVersion.WithKind("ClusterRole"),
+		},
+		{
+			name:      "test.test",
+			namespace: "eclipse-che",
+			gkv:       rbacv1.SchemeGroupVersion.WithKind("ClusterRole"),
+		},
+	}
+
+	for i, testCase := range testCases {
+		t.Run(fmt.Sprintf("case #%d", i), func(t *testing.T) {
+			key := buildKey(testCase.gkv, testCase.name, testCase.namespace)
+
+			assert.Equal(t, testCase.name, getNameItem(key))
+			assert.Equal(t, testCase.namespace, getNamespaceItem(key))
+			assert.Equal(t, testCase.gkv.String(), item2gkv(getGkvItem(key)).String())
+		})
+	}
 }

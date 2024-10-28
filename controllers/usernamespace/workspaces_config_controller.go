@@ -722,17 +722,17 @@ func buildKey(gvk schema.GroupVersionKind, name string, namespace string) string
 
 func getGkvItem(key string) string {
 	splits := strings.Split(key, ".")
-	return splits[0]
+	return strings.ReplaceAll(splits[0], "#", ".")
 }
 
 func getNameItem(key string) string {
 	splits := strings.Split(key, ".")
-	return splits[1]
+	return strings.Join(splits[1:len(splits)-1], ".")
 }
 
 func getNamespaceItem(key string) string {
 	splits := strings.Split(key, ".")
-	return splits[2]
+	return splits[len(splits)-1]
 }
 
 // gvk2Item returns a key item for GroupVersionKind.
@@ -740,7 +740,7 @@ func gvk2Item(gvk schema.GroupVersionKind) string {
 	if gvk.Group == "" {
 		return fmt.Sprintf("%s_%s", gvk.Version, gvk.Kind)
 	}
-	return fmt.Sprintf("%s_%s_%s", gvk.Group, gvk.Version, gvk.Kind)
+	return fmt.Sprintf("%s_%s_%s", strings.ReplaceAll(gvk.Group, ".", "#"), gvk.Version, gvk.Kind)
 }
 
 func item2gkv(item string) schema.GroupVersionKind {
