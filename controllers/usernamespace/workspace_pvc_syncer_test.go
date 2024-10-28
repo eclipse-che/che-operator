@@ -14,7 +14,10 @@ package usernamespace
 
 import (
 	"context"
+	"sync"
 	"testing"
+
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -55,7 +58,17 @@ func TestSyncPVC(t *testing.T) {
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Scheme,
-		NewNamespaceCache(deployContext.ClusterAPI.NonCachingClient))
+		&namespaceCache{
+			client: deployContext.ClusterAPI.Client,
+			knownNamespaces: map[string]namespaceInfo{
+				userNamespace: {
+					IsWorkspaceNamespace: true,
+					Username:             "user",
+					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
+				},
+			},
+			lock: sync.Mutex{},
+		})
 
 	assertSyncConfig(t, workspaceConfigReconciler, 0, v1PvcGKV)
 

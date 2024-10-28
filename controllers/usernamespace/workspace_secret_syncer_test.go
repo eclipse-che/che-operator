@@ -14,7 +14,10 @@ package usernamespace
 
 import (
 	"context"
+	"sync"
 	"testing"
+
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 
@@ -57,7 +60,17 @@ func TestSyncSecrets(t *testing.T) {
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Scheme,
-		NewNamespaceCache(deployContext.ClusterAPI.NonCachingClient))
+		&namespaceCache{
+			client: deployContext.ClusterAPI.Client,
+			knownNamespaces: map[string]namespaceInfo{
+				userNamespace: {
+					IsWorkspaceNamespace: true,
+					Username:             "user",
+					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
+				},
+			},
+			lock: sync.Mutex{},
+		})
 
 	// Sync Secret
 	err := workspaceConfigReconciler.syncWorkspace(context.TODO(), userNamespace)
@@ -222,7 +235,17 @@ func TestSyncSecretShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Scheme,
-		NewNamespaceCache(deployContext.ClusterAPI.NonCachingClient))
+		&namespaceCache{
+			client: deployContext.ClusterAPI.Client,
+			knownNamespaces: map[string]namespaceInfo{
+				userNamespace: {
+					IsWorkspaceNamespace: true,
+					Username:             "user",
+					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
+				},
+			},
+			lock: sync.Mutex{},
+		})
 
 	// Sync Secret
 	err := workspaceConfigReconciler.syncWorkspace(context.TODO(), userNamespace)

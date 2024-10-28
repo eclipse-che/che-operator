@@ -46,6 +46,8 @@ func (p *secretWorkspaceSyncObject) getSrcObject() client.Object {
 
 func (p *secretWorkspaceSyncObject) newDstObject() client.Object {
 	dst := p.secret.DeepCopyObject()
+	// We have to set the ObjectMeta fields explicitly, because
+	// existed object contains unnecessary fields that we don't want to copy
 	dst.(*corev1.Secret).ObjectMeta = metav1.ObjectMeta{
 		Name:        p.secret.GetName(),
 		Annotations: p.secret.GetAnnotations(),

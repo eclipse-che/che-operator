@@ -15,7 +15,6 @@ package usernamespace
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -39,24 +38,14 @@ func (p *pvcWorkspaceSyncObject) getGKV() schema.GroupVersionKind {
 	return v1PvcGKV
 }
 
-func (p *pvcWorkspaceSyncObject) newDstObj(src client.Object) client.Object {
-	dst := src.(runtime.Object).DeepCopyObject()
-	dst.(*corev1.PersistentVolumeClaim).ObjectMeta = metav1.ObjectMeta{
-		Name:        src.GetName(),
-		Annotations: src.GetAnnotations(),
-		Labels:      src.GetLabels(),
-	}
-	dst.(*corev1.PersistentVolumeClaim).Status = corev1.PersistentVolumeClaimStatus{}
-
-	return dst.(client.Object)
-}
-
 func (p *pvcWorkspaceSyncObject) getSrcObject() client.Object {
 	return p.pvc
 }
 
 func (p *pvcWorkspaceSyncObject) newDstObject() client.Object {
 	dst := p.pvc.DeepCopyObject()
+	// We have to set the ObjectMeta fields explicitly, because
+	// existed object contains unnecessary fields that we don't want to copy
 	dst.(*corev1.PersistentVolumeClaim).ObjectMeta = metav1.ObjectMeta{
 		Name:        p.pvc.GetName(),
 		Annotations: p.pvc.GetAnnotations(),

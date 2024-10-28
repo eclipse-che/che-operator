@@ -44,6 +44,8 @@ func (p *cmWorkspaceSyncObject) getGKV() schema.GroupVersionKind {
 
 func (p *cmWorkspaceSyncObject) newDstObject() client.Object {
 	dst := p.cm.DeepCopyObject()
+	// We have to set the ObjectMeta fields explicitly, because
+	// existed object contains unnecessary fields that we don't want to copy
 	dst.(*corev1.ConfigMap).ObjectMeta = metav1.ObjectMeta{
 		Name:        p.cm.GetName(),
 		Annotations: p.cm.GetAnnotations(),

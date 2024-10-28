@@ -14,6 +14,7 @@ package usernamespace
 
 import (
 	"context"
+	"sync"
 	"testing"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -68,7 +69,17 @@ func TestSyncConfigMap(t *testing.T) {
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Scheme,
-		NewNamespaceCache(deployContext.ClusterAPI.NonCachingClient))
+		&namespaceCache{
+			client: deployContext.ClusterAPI.Client,
+			knownNamespaces: map[string]namespaceInfo{
+				userNamespace: {
+					IsWorkspaceNamespace: true,
+					Username:             "user",
+					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
+				},
+			},
+			lock: sync.Mutex{},
+		})
 
 	// Sync ConfigMap
 	err := workspaceConfigReconciler.syncWorkspace(context.TODO(), userNamespace)
@@ -224,7 +235,17 @@ func TestSyncConfigMapShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Scheme,
-		NewNamespaceCache(deployContext.ClusterAPI.NonCachingClient))
+		&namespaceCache{
+			client: deployContext.ClusterAPI.Client,
+			knownNamespaces: map[string]namespaceInfo{
+				userNamespace: {
+					IsWorkspaceNamespace: true,
+					Username:             "user",
+					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
+				},
+			},
+			lock: sync.Mutex{},
+		})
 
 	// Sync ConfigMap
 	err := workspaceConfigReconciler.syncWorkspace(context.TODO(), userNamespace)

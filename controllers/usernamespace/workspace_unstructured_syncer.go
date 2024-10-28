@@ -15,6 +15,8 @@ package usernamespace
 import (
 	"strings"
 
+	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
+
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -23,6 +25,7 @@ import (
 )
 
 const (
+	// Supported templates parameters
 	PROJECT_REQUESTING_USER = "${PROJECT_REQUESTING_USER}"
 	PROJECT_NAME            = "${PROJECT_NAME}"
 )
@@ -69,7 +72,30 @@ func (p *unstructuredSyncer) getGKV() schema.GroupVersionKind {
 }
 
 func (p *unstructuredSyncer) newDstObject() client.Object {
-	return p.dstObj.DeepCopyObject().(client.Object)
+	dstObj := p.dstObj.DeepCopyObject().(client.Object)
+
+	switch dstObj.GetObjectKind().GroupVersionKind().String() {
+	case v1ConfigMapGKV.String():
+		dstObj.SetLabels(utils.MergeMaps([]map[string]string{
+			dstObj.GetLabels(),
+			{
+				dwconstants.DevWorkspaceWatchConfigMapLabel: "true",
+				dwconstants.DevWorkspaceMountLabel:          "true",
+			}}),
+		)
+		break
+	case v1SecretGKV.String():
+		dstObj.SetLabels(utils.MergeMaps([]map[string]string{
+			dstObj.GetLabels(),
+			{
+				dwconstants.DevWorkspaceWatchSecretLabel: "true",
+				dwconstants.DevWorkspaceMountLabel:       "true",
+			}}),
+		)
+		break
+	}
+
+	return dstObj
 }
 
 func (p *unstructuredSyncer) getSrcObjectVersion() string {
@@ -77,5 +103,9 @@ func (p *unstructuredSyncer) getSrcObjectVersion() string {
 }
 
 func (p *unstructuredSyncer) hasROSpec() bool {
+	switch p.dstObj.GetObjectKind().GroupVersionKind().String() {
+	case v1PvcGKV.String():
+		return true
+	}
 	return false
 }

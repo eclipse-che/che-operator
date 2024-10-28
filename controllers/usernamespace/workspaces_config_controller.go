@@ -191,7 +191,16 @@ func (r *WorkspacesConfigReconciler) syncWorkspace(ctx context.Context, dstNames
 
 	syncConfig, err := r.getSyncConfig(ctx, dstNamespace)
 	if err != nil {
-		logger.Error(err, "Failed to get workspace sync config", "namespace", dstNamespace)
+		return err
+	}
+
+	info, err := r.namespaceCache.GetNamespaceInfo(context.TODO(), dstNamespace)
+	if err != nil {
+		return err
+	}
+
+	if info.Username == "" {
+		logger.Info("Username is not set for the namespace", "namespace", dstNamespace)
 		return nil
 	}
 
@@ -444,6 +453,7 @@ func (r *WorkspacesConfigReconciler) syncObject(syncContext *syncContext) error 
 	dstObj.SetNamespace(syncContext.dstNamespace)
 	// ensure the name is the same as the source object
 	dstObj.SetName(syncContext.wsSyncObject.getSrcObject().GetName())
+	// set mandatory labels
 	dstObj.SetLabels(utils.MergeMaps(
 		[]map[string]string{
 			dstObj.GetLabels(),
@@ -505,7 +515,11 @@ func (r *WorkspacesConfigReconciler) syncObjectIfDiffers(
 				return nil
 			} else {
 				if isDiff(dstObj, existedDstObj.(client.Object)) {
-					return r.doUpdateObject(syncContext, dstObj, existedDstObj.(client.Object))
+					if err = r.doUpdateObject(syncContext, dstObj, existedDstObj.(client.Object)); err != nil {
+						return err
+					}
+					r.doUpdateSyncConfig(syncContext, dstObj)
+					return nil
 				} else {
 					// nothing to update objects are equal just update resource versions
 					r.doUpdateSyncConfig(syncContext, existedDstObj.(client.Object))
@@ -515,7 +529,11 @@ func (r *WorkspacesConfigReconciler) syncObjectIfDiffers(
 		}
 	} else if errors.IsNotFound(err) {
 		// destination object does not exist, so it will be created
-		return r.doCreateObject(syncContext, dstObj)
+		if err = r.doCreateObject(syncContext, dstObj); err != nil {
+			return err
+		}
+		r.doUpdateSyncConfig(syncContext, dstObj)
+		return nil
 	} else {
 		return err
 	}
@@ -536,7 +554,6 @@ func (r *WorkspacesConfigReconciler) doCreateObject(
 		"kind", gvk2PrintString(syncContext.wsSyncObject.getGKV()),
 		"name", dstObj.GetName())
 
-	r.doUpdateSyncConfig(syncContext, dstObj)
 	return nil
 }
 
@@ -571,7 +588,6 @@ func (r *WorkspacesConfigReconciler) doUpdateObject(
 		"kind", gvk2PrintString(syncContext.wsSyncObject.getGKV()),
 		"name", dstObj.GetName())
 
-	r.doUpdateSyncConfig(syncContext, dstObj)
 	return nil
 }
 
