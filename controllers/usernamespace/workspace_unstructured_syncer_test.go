@@ -65,7 +65,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{
 							Name: objectName,
 							Labels: map[string]string{
-								"user":      "${PROJECT_USER}",
+								"user":      "${PROJECT_ADMIN_USER}",
 								"namespace": "${PROJECT_NAME}",
 							},
 						},
@@ -97,7 +97,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 		})
 
 	// Sync Template
-	err := workspaceConfigReconciler.syncWorkspace(context.TODO(), userNamespace)
+	err := workspaceConfigReconciler.syncWorkspace(context.TODO(), eclipseCheNamespace, userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1LimitRangeGKV)
 
@@ -139,7 +139,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Sync Template
-	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), userNamespace)
+	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), eclipseCheNamespace, userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1LimitRangeGKV)
 
@@ -160,7 +160,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Sync Template
-	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), userNamespace)
+	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), eclipseCheNamespace, userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1LimitRangeGKV)
 
@@ -182,7 +182,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Sync Template
-	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), userNamespace)
+	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), eclipseCheNamespace, userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1LimitRangeGKV)
 
@@ -201,7 +201,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Sync Template
-	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), userNamespace)
+	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), eclipseCheNamespace, userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1LimitRangeGKV)
 
@@ -218,7 +218,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Sync Template
-	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), userNamespace)
+	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), eclipseCheNamespace, userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 0, v1LimitRangeGKV)
 

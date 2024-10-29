@@ -198,7 +198,7 @@ func TestBuildKey(t *testing.T) {
 
 			assert.Equal(t, testCase.name, getNameItem(key))
 			assert.Equal(t, testCase.namespace, getNamespaceItem(key))
-			assert.Equal(t, testCase.gkv.String(), item2gkv(getGkvItem(key)).String())
+			assert.Equal(t, testCase.gkv, item2gkv(getGkvItem(key)))
 		})
 	}
 }

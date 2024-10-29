@@ -26,8 +26,8 @@ import (
 
 const (
 	// Supported templates parameters
-	PROJECT_USER = "${PROJECT_USER}"
-	PROJECT_NAME = "${PROJECT_NAME}"
+	PROJECT_ADMIN_USER = "${PROJECT_ADMIN_USER}"
+	PROJECT_NAME       = "${PROJECT_NAME}"
 )
 
 type unstructuredSyncer struct {
@@ -40,14 +40,14 @@ type unstructuredSyncer struct {
 
 func newUnstructuredSyncer(
 	raw []byte,
-	user string,
-	project string) (*unstructuredSyncer, error) {
+	userName string,
+	namespaceName string) (*unstructuredSyncer, error) {
 
 	hash := utils.ComputeHash256(raw)
 
 	objAsString := string(raw)
-	objAsString = strings.ReplaceAll(objAsString, PROJECT_USER, user)
-	objAsString = strings.ReplaceAll(objAsString, PROJECT_NAME, project)
+	objAsString = strings.ReplaceAll(objAsString, PROJECT_ADMIN_USER, userName)
+	objAsString = strings.ReplaceAll(objAsString, PROJECT_NAME, namespaceName)
 
 	srcObj := &unstructured.Unstructured{}
 	if err := yaml.Unmarshal([]byte(objAsString), srcObj); err != nil {
@@ -74,8 +74,8 @@ func (p *unstructuredSyncer) getGKV() schema.GroupVersionKind {
 func (p *unstructuredSyncer) newDstObject() client.Object {
 	dstObj := p.dstObj.DeepCopyObject().(client.Object)
 
-	switch dstObj.GetObjectKind().GroupVersionKind().String() {
-	case v1ConfigMapGKV.String():
+	switch dstObj.GetObjectKind().GroupVersionKind() {
+	case v1ConfigMapGKV:
 		dstObj.SetLabels(utils.MergeMaps([]map[string]string{
 			dstObj.GetLabels(),
 			{
@@ -84,7 +84,7 @@ func (p *unstructuredSyncer) newDstObject() client.Object {
 			}}),
 		)
 		break
-	case v1SecretGKV.String():
+	case v1SecretGKV:
 		dstObj.SetLabels(utils.MergeMaps([]map[string]string{
 			dstObj.GetLabels(),
 			{
@@ -103,9 +103,5 @@ func (p *unstructuredSyncer) getSrcObjectVersion() string {
 }
 
 func (p *unstructuredSyncer) hasROSpec() bool {
-	switch p.dstObj.GetObjectKind().GroupVersionKind().String() {
-	case v1PvcGKV.String():
-		return true
-	}
-	return false
+	return p.dstObj.GetObjectKind().GroupVersionKind() == v1PvcGKV
 }

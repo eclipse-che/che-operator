@@ -113,6 +113,12 @@ func (r *WorkspacesConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, nil
 	}
 
+	checluster, err := deploy.FindCheClusterCRInNamespace(r.client, "")
+	if checluster == nil {
+		// There is no CheCluster CR, the source namespace is unknown
+		return ctrl.Result{}, nil
+	}
+
 	info, err := r.namespaceCache.ExamineNamespace(ctx, req.Name)
 	if err != nil {
 		logger.Error(err, "Failed to examine namespace", "namespace", req.Name)
@@ -124,7 +130,12 @@ func (r *WorkspacesConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, nil
 	}
 
-	if err = r.syncWorkspace(ctx, req.Name); err != nil {
+	if info.Username == "" {
+		logger.Info("Username is not set for the namespace", "namespace", req.Name)
+		return ctrl.Result{}, nil
+	}
+
+	if err = r.syncWorkspace(ctx, checluster.Namespace, req.Name); err != nil {
 		logger.Error(err, "Failed to sync workspace configs", "namespace", req.Name)
 		return ctrl.Result{}, err
 	}
@@ -182,26 +193,14 @@ func (r *WorkspacesConfigReconciler) watchRules(
 // syncWorkspace sync user namespace.
 // Iterates over all objects in the source namespace labeled as `app.kubernetes.io/component=workspaces-config`
 // and syncs them to the target user namespace.
-func (r *WorkspacesConfigReconciler) syncWorkspace(ctx context.Context, dstNamespace string) error {
-	checluster, err := deploy.FindCheClusterCRInNamespace(r.client, "")
-	if checluster == nil {
-		// There is no CheCluster CR, the source namespace is unknown
-		return nil
-	}
-
+func (r *WorkspacesConfigReconciler) syncWorkspace(
+	ctx context.Context,
+	srcNamespace string,
+	dstNamespace string,
+) error {
 	syncConfig, err := r.getSyncConfig(ctx, dstNamespace)
 	if err != nil {
 		return err
-	}
-
-	info, err := r.namespaceCache.GetNamespaceInfo(context.TODO(), dstNamespace)
-	if err != nil {
-		return err
-	}
-
-	if info.Username == "" {
-		logger.Info("Username is not set for the namespace", "namespace", dstNamespace)
-		return nil
 	}
 
 	defer func() {
@@ -226,7 +225,7 @@ func (r *WorkspacesConfigReconciler) syncWorkspace(ctx context.Context, dstNames
 	if infrastructure.IsOpenShift() {
 		if err = r.syncTemplates(
 			ctx,
-			checluster.Namespace,
+			srcNamespace,
 			dstNamespace,
 			syncConfig.Data,
 			syncedSrcObjKeys,
@@ -237,7 +236,7 @@ func (r *WorkspacesConfigReconciler) syncWorkspace(ctx context.Context, dstNames
 
 	if err = r.syncConfigMaps(
 		ctx,
-		checluster.Namespace,
+		srcNamespace,
 		dstNamespace,
 		syncConfig.Data,
 		syncedSrcObjKeys,
@@ -247,7 +246,7 @@ func (r *WorkspacesConfigReconciler) syncWorkspace(ctx context.Context, dstNames
 
 	if err = r.syncSecretes(
 		ctx,
-		checluster.Namespace,
+		srcNamespace,
 		dstNamespace,
 		syncConfig.Data,
 		syncedSrcObjKeys,
@@ -257,7 +256,7 @@ func (r *WorkspacesConfigReconciler) syncWorkspace(ctx context.Context, dstNames
 
 	if err = r.syncPVCs(
 		ctx,
-		checluster.Namespace,
+		srcNamespace,
 		dstNamespace,
 		syncConfig.Data,
 		syncedSrcObjKeys,
@@ -271,7 +270,7 @@ func (r *WorkspacesConfigReconciler) syncWorkspace(ctx context.Context, dstNames
 		if err := r.deleteIfObjectIsObsolete(
 			objKey,
 			ctx,
-			checluster.Namespace,
+			srcNamespace,
 			dstNamespace,
 			syncConfig.Data,
 			syncedSrcObjKeys); err != nil {
