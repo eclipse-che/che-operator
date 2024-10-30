@@ -166,6 +166,22 @@ func TestBuildKey(t *testing.T) {
 			gkv:       corev1.SchemeGroupVersion.WithKind("ConfigMap"),
 		},
 		{
+			name:      "test_test",
+			namespace: "eclipse-che",
+			gkv:       corev1.SchemeGroupVersion.WithKind("ConfigMap"),
+		},
+		{
+			name:      "test-test",
+			namespace: "eclipse-che",
+			gkv:       corev1.SchemeGroupVersion.WithKind("ConfigMap"),
+		},
+		{
+			name:      "test-test_test.test-test_test.test",
+			namespace: "eclipse-che",
+			gkv:       corev1.SchemeGroupVersion.WithKind("ConfigMap"),
+		},
+
+		{
 			name:      "test",
 			namespace: "eclipse-che",
 			gkv:       corev1.SchemeGroupVersion.WithKind("Secret"),
@@ -187,6 +203,21 @@ func TestBuildKey(t *testing.T) {
 		},
 		{
 			name:      "test.test",
+			namespace: "eclipse-che",
+			gkv:       rbacv1.SchemeGroupVersion.WithKind("ClusterRole"),
+		},
+		{
+			name:      "test_test",
+			namespace: "eclipse-che",
+			gkv:       rbacv1.SchemeGroupVersion.WithKind("ClusterRole"),
+		},
+		{
+			name:      "test-test",
+			namespace: "eclipse-che",
+			gkv:       rbacv1.SchemeGroupVersion.WithKind("ClusterRole"),
+		},
+		{
+			name:      "test-test_test.test-test_test.test",
 			namespace: "eclipse-che",
 			gkv:       rbacv1.SchemeGroupVersion.WithKind("ClusterRole"),
 		},

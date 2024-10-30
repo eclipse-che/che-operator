@@ -721,7 +721,7 @@ func buildKey(gvk schema.GroupVersionKind, name string, namespace string) string
 
 func getGkvItem(key string) string {
 	splits := strings.Split(key, ".")
-	return strings.ReplaceAll(splits[0], "#", ".")
+	return strings.ReplaceAll(splits[0], "-", ".")
 }
 
 func getNameItem(key string) string {
@@ -739,7 +739,7 @@ func gvk2Item(gvk schema.GroupVersionKind) string {
 	if gvk.Group == "" {
 		return fmt.Sprintf("%s_%s", gvk.Version, gvk.Kind)
 	}
-	return fmt.Sprintf("%s_%s_%s", strings.ReplaceAll(gvk.Group, ".", "#"), gvk.Version, gvk.Kind)
+	return fmt.Sprintf("%s_%s_%s", strings.ReplaceAll(gvk.Group, ".", "-"), gvk.Version, gvk.Kind)
 }
 
 func item2gkv(item string) schema.GroupVersionKind {
