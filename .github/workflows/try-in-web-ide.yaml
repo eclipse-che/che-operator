@@ -18,11 +18,11 @@ on:
     types: [opened, synchronize]
 
 jobs:
-  add-web-ide-link:
+  add-link:
     runs-on: ubuntu-22.04
     steps:
       - name: Web IDE Pull Request Check
+        id: try-in-web-ide
         uses: redhat-actions/try-in-web-ide@v1
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          add_comment: false
+          github_token: ${{ secrets.CHE_BOT_GITHUB_TOKEN }}
