@@ -13,14 +13,14 @@
 schemaVersion: 2.2.2
 metadata:
   name: che-webstorm-server
-  displayName: Jet Brains WebStorm 2024.2.3 (desktop)
+  displayName: JetBrains WebStorm 2024.2.3 (desktop)
   description: JetBrains WebStorm for Eclipse Che - latest
   tags:
     - Tech-Preview
   attributes:
     publisher: che-incubator
     version: latest
-    provider: Provided by [Jet Brains](https://www.jetbrains.com/) under [License](https://www.jetbrains.com/legal/docs/toolbox/user/)
+    provider: Provided by [JetBrains](https://www.jetbrains.com/) under [License](https://www.jetbrains.com/legal/docs/toolbox/user/)
     title: JetBrains WebStorm for Eclipse Che - latest
     repository: https://github.com/che-incubator/che-idea-dev-server
     firstPublicationDate: '2024-18-09'

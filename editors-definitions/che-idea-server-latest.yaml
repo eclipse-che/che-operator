@@ -13,14 +13,14 @@
 schemaVersion: 2.2.2
 metadata:
   name: che-idea-server
-  displayName: Jet Brains IntelliJ IDEA Ultimate 2024.2.3 (desktop)
+  displayName: JetBrains IntelliJ IDEA Ultimate 2024.2.3 (desktop)
   description: JetBrains IntelliJ IDEA Ultimate dev server for Eclipse Che - latest
   tags:
     - Tech-Preview
   attributes:
     publisher: che-incubator
     version: latest
-    provider: Provided by [Jet Brains](https://www.jetbrains.com/) under [License](https://www.jetbrains.com/legal/docs/toolbox/user/)
+    provider: Provided by [JetBrains](https://www.jetbrains.com/) under [License](https://www.jetbrains.com/legal/docs/toolbox/user/)
     title: JetBrains IntelliJ IDEA Ultimate dev server for Eclipse Che - latest
     repository: https://github.com/che-incubator/che-idea-dev-server
     firstPublicationDate: '2023-30-11'
