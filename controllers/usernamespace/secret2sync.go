@@ -15,6 +15,8 @@ package usernamespace
 import (
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -25,26 +27,26 @@ var (
 	v1SecretGKV = corev1.SchemeGroupVersion.WithKind("Secret")
 )
 
-type secretWorkspaceSyncObject struct {
-	WorkspaceSyncObject
+type secret2Sync struct {
+	Object2Sync
 	secret *corev1.Secret
 }
 
-func newSecretWorkspaceSyncObject(secret *corev1.Secret) *secretWorkspaceSyncObject {
-	return &secretWorkspaceSyncObject{
+func newSecret2Sync(secret *corev1.Secret) *secret2Sync {
+	return &secret2Sync{
 		secret: secret,
 	}
 }
 
-func (p *secretWorkspaceSyncObject) getGKV() schema.GroupVersionKind {
+func (p *secret2Sync) getGKV() schema.GroupVersionKind {
 	return v1SecretGKV
 }
 
-func (p *secretWorkspaceSyncObject) getSrcObject() client.Object {
+func (p *secret2Sync) getSrcObject() client.Object {
 	return p.secret
 }
 
-func (p *secretWorkspaceSyncObject) newDstObject() client.Object {
+func (p *secret2Sync) newDstObject() client.Object {
 	dst := p.secret.DeepCopyObject()
 	// We have to set the ObjectMeta fields explicitly, because
 	// existed object contains unnecessary fields that we don't want to copy
@@ -62,10 +64,21 @@ func (p *secretWorkspaceSyncObject) newDstObject() client.Object {
 	return dst.(client.Object)
 }
 
-func (p *secretWorkspaceSyncObject) getSrcObjectVersion() string {
+func (p *secret2Sync) getSrcObjectVersion() string {
 	return p.secret.GetResourceVersion()
 }
 
-func (p *secretWorkspaceSyncObject) hasROSpec() bool {
+func (p *secret2Sync) hasROSpec() bool {
 	return false
+}
+
+func (p *secret2Sync) isDiff(obj client.Object) bool {
+	return isLabelsOrAnnotationsDiff(p.secret, obj) ||
+		cmp.Diff(
+			p.secret,
+			obj,
+			cmp.Options{
+				cmpopts.IgnoreTypes(metav1.ObjectMeta{}),
+				cmpopts.IgnoreTypes(metav1.TypeMeta{}),
+			}) != ""
 }

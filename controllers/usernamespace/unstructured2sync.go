@@ -30,18 +30,18 @@ const (
 	PROJECT_NAME       = "${PROJECT_NAME}"
 )
 
-type unstructuredSyncer struct {
-	WorkspaceSyncObject
+type unstructured2Sync struct {
+	Object2Sync
 
 	srcObj client.Object
 	dstObj client.Object
 	hash   string
 }
 
-func newUnstructuredSyncer(
+func newUnstructured2Sync(
 	raw []byte,
 	userName string,
-	namespaceName string) (*unstructuredSyncer, error) {
+	namespaceName string) (*unstructured2Sync, error) {
 
 	hash := utils.ComputeHash256(raw)
 
@@ -56,22 +56,22 @@ func newUnstructuredSyncer(
 
 	dstObj := srcObj.DeepCopyObject()
 
-	return &unstructuredSyncer{
+	return &unstructured2Sync{
 		srcObj: srcObj,
 		dstObj: dstObj.(client.Object),
 		hash:   hash,
 	}, nil
 }
 
-func (p *unstructuredSyncer) getSrcObject() client.Object {
+func (p *unstructured2Sync) getSrcObject() client.Object {
 	return p.srcObj
 }
 
-func (p *unstructuredSyncer) getGKV() schema.GroupVersionKind {
+func (p *unstructured2Sync) getGKV() schema.GroupVersionKind {
 	return p.srcObj.GetObjectKind().GroupVersionKind()
 }
 
-func (p *unstructuredSyncer) newDstObject() client.Object {
+func (p *unstructured2Sync) newDstObject() client.Object {
 	dstObj := p.dstObj.DeepCopyObject().(client.Object)
 
 	switch dstObj.GetObjectKind().GroupVersionKind() {
@@ -98,10 +98,14 @@ func (p *unstructuredSyncer) newDstObject() client.Object {
 	return dstObj
 }
 
-func (p *unstructuredSyncer) getSrcObjectVersion() string {
+func (p *unstructured2Sync) getSrcObjectVersion() string {
 	return p.hash
 }
 
-func (p *unstructuredSyncer) hasROSpec() bool {
+func (p *unstructured2Sync) hasROSpec() bool {
 	return p.dstObj.GetObjectKind().GroupVersionKind() == v1PvcGKV
+}
+
+func (p *unstructured2Sync) isDiff(obj client.Object) bool {
+	return isLabelsOrAnnotationsDiff(p.srcObj, obj) || isUnstructuredDiff(p.srcObj, obj)
 }

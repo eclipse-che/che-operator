@@ -116,37 +116,6 @@ func TestGetEmptySyncConfig(t *testing.T) {
 	assert.Equal(t, deploy.GetManagedByLabel(), cm.Labels[constants.KubernetesManagedByLabelKey])
 }
 
-func TestIsDiff(t *testing.T) {
-	src := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        "test",
-			Namespace:   "eclipse-che",
-			Labels:      map[string]string{},
-			Annotations: map[string]string{},
-		},
-	}
-
-	dst := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        "test",
-			Namespace:   "eclipse-che",
-			Labels:      map[string]string{"a": "b"},
-			Annotations: map[string]string{"c": "d"},
-		},
-	}
-
-	changed := isDiff(src, dst)
-	assert.False(t, changed)
-}
-
 func TestBuildKey(t *testing.T) {
 	type testCase struct {
 		name      string

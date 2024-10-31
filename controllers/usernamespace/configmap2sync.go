@@ -15,6 +15,8 @@ package usernamespace
 import (
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -25,24 +27,24 @@ var (
 	v1ConfigMapGKV = corev1.SchemeGroupVersion.WithKind("ConfigMap")
 )
 
-type cmWorkspaceSyncObject struct {
-	WorkspaceSyncObject
+type configMap2Sync struct {
+	Object2Sync
 	cm *corev1.ConfigMap
 }
 
-func newCMWorkspaceSyncObject(cm *corev1.ConfigMap) *cmWorkspaceSyncObject {
-	return &cmWorkspaceSyncObject{cm: cm}
+func newCM2Sync(cm *corev1.ConfigMap) *configMap2Sync {
+	return &configMap2Sync{cm: cm}
 }
 
-func (p *cmWorkspaceSyncObject) getSrcObject() client.Object {
+func (p *configMap2Sync) getSrcObject() client.Object {
 	return p.cm
 }
 
-func (p *cmWorkspaceSyncObject) getGKV() schema.GroupVersionKind {
+func (p *configMap2Sync) getGKV() schema.GroupVersionKind {
 	return v1ConfigMapGKV
 }
 
-func (p *cmWorkspaceSyncObject) newDstObject() client.Object {
+func (p *configMap2Sync) newDstObject() client.Object {
 	dst := p.cm.DeepCopyObject()
 	// We have to set the ObjectMeta fields explicitly, because
 	// existed object contains unnecessary fields that we don't want to copy
@@ -60,10 +62,21 @@ func (p *cmWorkspaceSyncObject) newDstObject() client.Object {
 	return dst.(client.Object)
 }
 
-func (p *cmWorkspaceSyncObject) getSrcObjectVersion() string {
+func (p *configMap2Sync) getSrcObjectVersion() string {
 	return p.cm.GetResourceVersion()
 }
 
-func (p *cmWorkspaceSyncObject) hasROSpec() bool {
+func (p *configMap2Sync) hasROSpec() bool {
 	return false
+}
+
+func (p *configMap2Sync) isDiff(obj client.Object) bool {
+	return isLabelsOrAnnotationsDiff(p.cm, obj) ||
+		cmp.Diff(
+			p.cm,
+			obj,
+			cmp.Options{
+				cmpopts.IgnoreTypes(metav1.ObjectMeta{}),
+				cmpopts.IgnoreTypes(metav1.TypeMeta{}),
+			}) != ""
 }

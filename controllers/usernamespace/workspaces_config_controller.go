@@ -20,11 +20,8 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
-	"github.com/eclipse-che/che-operator/pkg/common/utils"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
-
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	templatev1 "github.com/openshift/api/template/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -51,19 +48,20 @@ type WorkspacesConfigReconciler struct {
 	namespaceCache *namespaceCache
 }
 
-type WorkspaceSyncObject interface {
+type Object2Sync interface {
 	getGKV() schema.GroupVersionKind
 	hasROSpec() bool
 	getSrcObject() client.Object
 	getSrcObjectVersion() string
 	newDstObject() client.Object
+	isDiff(obj client.Object) bool
 }
 
 type syncContext struct {
 	dstNamespace string
 	srcNamespace string
 	ctx          context.Context
-	wsSyncObject WorkspaceSyncObject
+	object2Sync  Object2Sync
 	syncConfig   map[string]string
 }
 
@@ -308,7 +306,7 @@ func (r *WorkspacesConfigReconciler) syncConfigMaps(
 			&syncContext{
 				dstNamespace: dstNamespace,
 				srcNamespace: srcNamespace,
-				wsSyncObject: newCMWorkspaceSyncObject(&cm),
+				object2Sync:  newCM2Sync(&cm),
 				syncConfig:   syncConfig,
 				ctx:          ctx,
 			}); err != nil {
@@ -345,7 +343,7 @@ func (r *WorkspacesConfigReconciler) syncSecretes(
 			&syncContext{
 				dstNamespace: dstNamespace,
 				srcNamespace: srcNamespace,
-				wsSyncObject: newSecretWorkspaceSyncObject(&secret),
+				object2Sync:  newSecret2Sync(&secret),
 				syncConfig:   syncConfig,
 				ctx:          ctx,
 			}); err != nil {
@@ -382,7 +380,7 @@ func (r *WorkspacesConfigReconciler) syncPVCs(
 			&syncContext{
 				dstNamespace: dstNamespace,
 				srcNamespace: srcNamespace,
-				wsSyncObject: newPvcWorkspaceSyncObject(&pvc),
+				object2Sync:  newPvc2Sync(&pvc),
 				syncConfig:   syncConfig,
 				ctx:          ctx,
 			}); err != nil {
@@ -421,7 +419,7 @@ func (r *WorkspacesConfigReconciler) syncTemplates(
 
 	for _, template := range templates.Items {
 		for _, object := range template.Objects {
-			wsSyncObject, err := newUnstructuredSyncer(object.Raw, nsInfo.Username, dstNamespace)
+			object2Sync, err := newUnstructured2Sync(object.Raw, nsInfo.Username, dstNamespace)
 			if err != nil {
 				return err
 			}
@@ -430,14 +428,14 @@ func (r *WorkspacesConfigReconciler) syncTemplates(
 				&syncContext{
 					dstNamespace: dstNamespace,
 					srcNamespace: srcNamespace,
-					wsSyncObject: wsSyncObject,
+					object2Sync:  object2Sync,
 					syncConfig:   syncConfig,
 					ctx:          ctx,
 				}); err != nil {
 				return err
 			}
 
-			srcObjKey := buildKey(wsSyncObject.getGKV(), wsSyncObject.getSrcObject().GetName(), srcNamespace)
+			srcObjKey := buildKey(object2Sync.getGKV(), object2Sync.getSrcObject().GetName(), srcNamespace)
 			syncedSrcObjKeys[srcObjKey] = true
 		}
 	}
@@ -448,10 +446,10 @@ func (r *WorkspacesConfigReconciler) syncTemplates(
 // syncObject syncs object to a user destination namespace.
 // Returns error if sync failed in a destination namespace.
 func (r *WorkspacesConfigReconciler) syncObject(syncContext *syncContext) error {
-	dstObj := syncContext.wsSyncObject.newDstObject()
+	dstObj := syncContext.object2Sync.newDstObject()
 	dstObj.SetNamespace(syncContext.dstNamespace)
 	// ensure the name is the same as the source object
-	dstObj.SetName(syncContext.wsSyncObject.getSrcObject().GetName())
+	dstObj.SetName(syncContext.object2Sync.getSrcObject().GetName())
 	// set mandatory labels
 	dstObj.SetLabels(utils.MergeMaps(
 		[]map[string]string{
@@ -466,7 +464,7 @@ func (r *WorkspacesConfigReconciler) syncObject(syncContext *syncContext) error 
 	if err := r.syncObjectIfDiffers(syncContext, dstObj); err != nil {
 		logger.Error(err, "Failed to sync object",
 			"namespace", syncContext.dstNamespace,
-			"kind", gvk2PrintString(syncContext.wsSyncObject.getGKV()),
+			"kind", gvk2PrintString(syncContext.object2Sync.getGKV()),
 			"name", dstObj.GetName())
 		return err
 	}
@@ -480,7 +478,7 @@ func (r *WorkspacesConfigReconciler) syncObjectIfDiffers(
 	syncContext *syncContext,
 	dstObj client.Object) error {
 
-	existedDstObj, err := r.scheme.New(syncContext.wsSyncObject.getGKV())
+	existedDstObj, err := r.scheme.New(syncContext.object2Sync.getGKV())
 	if err != nil {
 		return err
 	}
@@ -491,23 +489,23 @@ func (r *WorkspacesConfigReconciler) syncObjectIfDiffers(
 
 	err = r.client.Get(syncContext.ctx, existedDstObjKey, existedDstObj.(client.Object))
 	if err == nil {
-		srcObj := syncContext.wsSyncObject.getSrcObject()
+		srcObj := syncContext.object2Sync.getSrcObject()
 
-		srcObjKey := buildKey(syncContext.wsSyncObject.getGKV(), srcObj.GetName(), syncContext.srcNamespace)
-		dstObjKey := buildKey(syncContext.wsSyncObject.getGKV(), dstObj.GetName(), syncContext.dstNamespace)
+		srcObjKey := buildKey(syncContext.object2Sync.getGKV(), srcObj.GetName(), syncContext.srcNamespace)
+		dstObjKey := buildKey(syncContext.object2Sync.getGKV(), dstObj.GetName(), syncContext.dstNamespace)
 
-		srcHasBeenChanged := syncContext.syncConfig[srcObjKey] != syncContext.wsSyncObject.getSrcObjectVersion()
+		srcHasBeenChanged := syncContext.syncConfig[srcObjKey] != syncContext.object2Sync.getSrcObjectVersion()
 		dstHasBeenChanged := syncContext.syncConfig[dstObjKey] != existedDstObj.(client.Object).GetResourceVersion()
 
 		if srcHasBeenChanged || dstHasBeenChanged {
 			// destination object exists, and it differs from the source object,
 			// so it will be updated
-			if syncContext.wsSyncObject.hasROSpec() {
+			if syncContext.object2Sync.hasROSpec() {
 				// Skip updating objects with readonly spec.
 				// Admin has to re-create them to update just update resource versions
 				logger.Info("Object skipped since has readonly spec, re-create it to update",
 					"namespace", dstObj.GetNamespace(),
-					"kind", gvk2PrintString(syncContext.wsSyncObject.getGKV()),
+					"kind", gvk2PrintString(syncContext.object2Sync.getGKV()),
 					"name", dstObj.GetName())
 
 				r.doUpdateSyncConfig(syncContext, existedDstObj.(client.Object))
@@ -550,7 +548,7 @@ func (r *WorkspacesConfigReconciler) doCreateObject(
 	}
 
 	logger.Info("Object created", "namespace", dstObj.GetNamespace(),
-		"kind", gvk2PrintString(syncContext.wsSyncObject.getGKV()),
+		"kind", gvk2PrintString(syncContext.object2Sync.getGKV()),
 		"name", dstObj.GetName())
 
 	return nil
@@ -584,7 +582,7 @@ func (r *WorkspacesConfigReconciler) doUpdateObject(
 	}
 
 	logger.Info("Object updated", "namespace", dstObj.GetNamespace(),
-		"kind", gvk2PrintString(syncContext.wsSyncObject.getGKV()),
+		"kind", gvk2PrintString(syncContext.object2Sync.getGKV()),
 		"name", dstObj.GetName())
 
 	return nil
@@ -592,12 +590,12 @@ func (r *WorkspacesConfigReconciler) doUpdateObject(
 
 // doUpdateSyncConfig updates sync config with resource versions of synced objects.
 func (r *WorkspacesConfigReconciler) doUpdateSyncConfig(syncContext *syncContext, dstObj client.Object) {
-	srcObj := syncContext.wsSyncObject.getSrcObject()
+	srcObj := syncContext.object2Sync.getSrcObject()
 
-	srcObjKey := buildKey(syncContext.wsSyncObject.getGKV(), srcObj.GetName(), syncContext.srcNamespace)
-	dstObjKey := buildKey(syncContext.wsSyncObject.getGKV(), dstObj.GetName(), syncContext.dstNamespace)
+	srcObjKey := buildKey(syncContext.object2Sync.getGKV(), srcObj.GetName(), syncContext.srcNamespace)
+	dstObjKey := buildKey(syncContext.object2Sync.getGKV(), dstObj.GetName(), syncContext.dstNamespace)
 
-	syncContext.syncConfig[srcObjKey] = syncContext.wsSyncObject.getSrcObjectVersion()
+	syncContext.syncConfig[srcObjKey] = syncContext.object2Sync.getSrcObjectVersion()
 	syncContext.syncConfig[dstObjKey] = dstObj.GetResourceVersion()
 }
 
@@ -641,40 +639,6 @@ func (r *WorkspacesConfigReconciler) deleteIfObjectIsObsolete(
 	}
 
 	return nil
-}
-
-// isDiff checks if the given objects are different.
-// The rules are following:
-//   - if labels of the source object are absent in the destination object,
-//     then the objects considered different
-//   - if annotations of the source object are absent in the destination object,
-//     then the objects considered different
-//   - if the rest fields of the objects are different,
-//     then the objects considered different
-func isDiff(src client.Object, dst client.Object) bool {
-	if src.GetLabels() != nil {
-		for key, value := range src.GetLabels() {
-			if dst.GetLabels()[key] != value {
-				return true
-			}
-		}
-	}
-
-	if src.GetAnnotations() != nil {
-		for key, value := range src.GetAnnotations() {
-			if dst.GetAnnotations()[key] != value {
-				return true
-			}
-		}
-	}
-
-	return cmp.Diff(
-		src,
-		dst,
-		cmp.Options{
-			cmpopts.IgnoreTypes(metav1.ObjectMeta{}),
-			cmpopts.IgnoreTypes(metav1.TypeMeta{}),
-		}) != ""
 }
 
 // getSyncConfig returns ConfigMap with synced objects resource versions.
