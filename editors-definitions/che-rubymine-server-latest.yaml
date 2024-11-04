@@ -1,0 +1,105 @@
+#
+# Copyright (c) 2024 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Red Hat, Inc. - initial API and implementation
+#
+
+schemaVersion: 2.2.2
+metadata:
+  name: che-rubymine-server
+  displayName: JetBrains RubyMine 2024.2.3 (desktop)
+  description: JetBrains RubyMine for Eclipse Che - latest
+  tags:
+    - Tech-Preview
+  attributes:
+    publisher: che-incubator
+    version: latest
+    provider: Provided by [JetBrains](https://www.jetbrains.com/) under [License](https://www.jetbrains.com/legal/docs/toolbox/user/)
+    title: JetBrains RubyMine for Eclipse Che - latest
+    repository: https://github.com/che-incubator/che-idea-dev-server
+    firstPublicationDate: '2024-04-11'
+    iconMediatype: image/svg+xml
+    iconData: |
+      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <g clip-path="url(#clip0_4372_12782)">
+      <path d="M59.9275 0H25.9592C24.3301 0 22.8575 0.971054 22.2157 2.46807L6.14767 39.9587C5.93065 40.4655 5.81836 41.0118 5.81836 41.5633V59.9273C5.81836 62.1766 7.64178 64 9.89109 64H27.8571C28.6617 64 29.4483 63.7615 30.118 63.3146L62.1866 41.9113C63.3189 41.1561 63.9984 39.8848 63.9984 38.5239L64.0002 4.07273C64.0002 1.82342 62.1768 0 59.9275 0Z" fill="url(#paint0_linear_4372_12782)"/>
+      <path d="M14.5193 5.81836H4.07273C1.82342 5.81836 0 7.64178 0 9.89109V22.9837C0 23.1763 0.0139636 23.3689 0.0407273 23.5597L5.31782 60.5035C5.60465 62.5101 7.32276 64.0002 9.34982 64.0002H25.0228C27.2727 64.0002 29.0961 62.1762 29.0956 59.9263L29.0909 41.3878C29.0909 40.9503 29.0205 40.5157 28.882 40.1008L18.3831 8.60294C17.8287 6.9401 16.2723 5.81836 14.5193 5.81836Z" fill="url(#paint1_linear_4372_12782)"/>
+      <path d="M15.9476 5.81836L4.07215 5.8201C1.82342 5.82069 0 7.6441 0 9.89283V21.3994C0 22.5881 0.519564 23.718 1.42196 24.4918L39.5828 57.2016C40.3212 57.8341 41.2614 58.182 42.2336 58.182H54.1091C56.3584 58.182 58.1818 56.3586 58.1818 54.1093V42.6009C58.1818 41.4123 57.6623 40.2824 56.7599 39.5085L18.599 6.7993C17.8607 6.16629 16.9204 5.81894 15.9476 5.81894V5.81836Z" fill="#FF8100"/>
+      <path d="M52 12H12V52H52V12Z" fill="black"/>
+      <path d="M26.2721 25.7535C27.0865 25.3609 27.711 24.8105 28.1472 24.1034C28.5897 23.3894 28.8113 22.5675 28.8113 21.6388C28.8113 20.7101 28.5932 19.9071 28.1575 19.2069C27.7288 18.5067 27.1146 17.9643 26.3145 17.5786C25.5144 17.1929 24.5898 17 23.5394 17H17.1001V31.9994H20.025V26.3315H22.5453L25.779 31.9994H29.1327L25.558 25.99C25.798 25.9137 26.0522 25.8586 26.2721 25.7535ZM20.0262 19.4319H23.3477C23.8407 19.4319 24.2689 19.5243 24.6334 19.7103C25.0047 19.8882 25.2906 20.1459 25.4903 20.4817C25.6901 20.8094 25.7905 21.2031 25.7905 21.66C25.7905 22.1169 25.6906 22.5066 25.4903 22.8493C25.2906 23.1856 25.0047 23.4451 24.6334 23.6316C24.2689 23.8095 23.8407 23.8996 23.3477 23.8996H20.0262V19.4319Z" fill="white"/>
+      <path d="M41.9009 17L38.9226 26.8464L38.6976 28.1321L38.4405 26.8464L35.3548 17H31.2837V32H34.1656V21.2967L34.1225 20.5896L37.5726 32H39.694L43.1866 20.5144L43.1441 21.2967V32H46.0369V17H41.9009Z" fill="white"/>
+      <path d="M33 44H17V47H33V44Z" fill="white"/>
+      </g>
+      <defs>
+      <linearGradient id="paint0_linear_4372_12782" x1="4.22243" y1="60.0186" x2="62.9273" y2="1.31316" gradientUnits="userSpaceOnUse">
+      <stop offset="0.29" stop-color="#FF2358"/>
+      <stop offset="0.75" stop-color="#7256FF"/>
+      </linearGradient>
+      <linearGradient id="paint1_linear_4372_12782" x1="-0.717382" y1="7.622" x2="24.1455" y2="61.2476" gradientUnits="userSpaceOnUse">
+      <stop offset="0.29" stop-color="#FF8100"/>
+      <stop offset="0.56" stop-color="#FF2358"/>
+      </linearGradient>
+      <clipPath id="clip0_4372_12782">
+      <rect width="64" height="64" fill="white"/>
+      </clipPath>
+      </defs>
+      </svg>
+commands:
+  - id: inject-editor
+    apply:
+      component: editor-injector
+  - id: start-ide-server
+    exec:
+      component: editor-runtime
+      commandLine: nohup /idea-server/entrypoint-volume.sh > /idea-server/std.out
+        2>&1 &
+events:
+  preStart:
+    - inject-editor
+  postStart:
+    - start-ide-server
+components:
+  - name: idea-server
+    volume: {}
+  - name: editor-injector
+    container:
+      image: quay.io/che-incubator/che-idea-dev-server:latest
+      command: ['/entrypoint-init-container.sh', 'rubymine']
+      volumeMounts:
+        - name: idea-server
+          path: /idea-server
+      memoryLimit: 256Mi
+      memoryRequest: 32Mi
+      cpuLimit: 500m
+      cpuRequest: 30m
+  - name: editor-runtime
+    container:
+      image: quay.io/devfile/universal-developer-image:latest
+      memoryLimit: 6144Mi
+      memoryRequest: 2048Mi
+      cpuLimit: 2000m
+      cpuRequest: 1500m
+      volumeMounts:
+        - name: idea-server
+          path: /idea-server
+      endpoints:
+        - name: idea-server
+          attributes:
+            type: main
+            cookiesAuthEnabled: true
+            discoverable: false
+            urlRewriteSupported: true
+          targetPort: 3400
+          exposure: public
+          secure: true
+          protocol: https
+    attributes:
+      app.kubernetes.io/component: editor-runtime
+      app.kubernetes.io/part-of: ide-server.eclipse.org
+      controller.devfile.io/container-contribution: true
