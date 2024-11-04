@@ -73,7 +73,7 @@ func TestSyncSecrets(t *testing.T) {
 		})
 
 	// Sync Secret
-	err := workspaceConfigReconciler.syncWorkspace(context.TODO(), eclipseCheNamespace, userNamespace)
+	err := workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1SecretGKV)
 
@@ -101,7 +101,7 @@ func TestSyncSecrets(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Sync Secret
-	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), eclipseCheNamespace, userNamespace)
+	err = workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1SecretGKV)
 
@@ -127,7 +127,7 @@ func TestSyncSecrets(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Sync Secret
-	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), eclipseCheNamespace, userNamespace)
+	err = workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1SecretGKV)
 
@@ -153,7 +153,7 @@ func TestSyncSecrets(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Sync Secret
-	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), eclipseCheNamespace, userNamespace)
+	err = workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1SecretGKV)
 
@@ -176,7 +176,7 @@ func TestSyncSecrets(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Sync Secret
-	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), eclipseCheNamespace, userNamespace)
+	err = workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1SecretGKV)
 
@@ -197,7 +197,7 @@ func TestSyncSecrets(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Sync Secret
-	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), eclipseCheNamespace, userNamespace)
+	err = workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 0, v1SecretGKV)
 
@@ -248,7 +248,7 @@ func TestSyncSecretShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 		})
 
 	// Sync Secret
-	err := workspaceConfigReconciler.syncWorkspace(context.TODO(), eclipseCheNamespace, userNamespace)
+	err := workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1SecretGKV)
 
@@ -273,7 +273,7 @@ func TestSyncSecretShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Sync Secret
-	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), eclipseCheNamespace, userNamespace)
+	err = workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1SecretGKV)
 
@@ -301,7 +301,7 @@ func TestSyncSecretShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Sync Secret
-	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), eclipseCheNamespace, userNamespace)
+	err = workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1SecretGKV)
 

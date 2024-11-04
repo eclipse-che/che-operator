@@ -13,27 +13,17 @@
 package usernamespace
 
 import (
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var (
-	v1PvcGKV = corev1.SchemeGroupVersion.WithKind("PersistentVolumeClaim")
-)
-
 type pvc2Sync struct {
 	Object2Sync
-	pvc *corev1.PersistentVolumeClaim
-}
 
-func newPvc2Sync(pvc *corev1.PersistentVolumeClaim) *pvc2Sync {
-	return &pvc2Sync{
-		pvc: pvc,
-	}
+	pvc     *corev1.PersistentVolumeClaim
+	version string
 }
 
 func (p *pvc2Sync) getGKV() schema.GroupVersionKind {
@@ -59,21 +49,12 @@ func (p *pvc2Sync) newDstObject() client.Object {
 }
 
 func (p *pvc2Sync) getSrcObjectVersion() string {
-	return p.pvc.GetResourceVersion()
+	if len(p.version) == 0 {
+		return p.pvc.GetResourceVersion()
+	}
+	return p.version
 }
 
 func (p *pvc2Sync) hasROSpec() bool {
 	return true
-}
-
-func (p *pvc2Sync) isDiff(obj client.Object) bool {
-	return isLabelsOrAnnotationsDiff(p.pvc, obj) ||
-		cmp.Diff(
-			p.pvc,
-			obj,
-			cmp.Options{
-				cmpopts.IgnoreTypes(metav1.ObjectMeta{}),
-				cmpopts.IgnoreTypes(metav1.TypeMeta{}),
-				cmpopts.IgnoreTypes(corev1.PersistentVolumeClaimStatus{}),
-			}) != ""
 }

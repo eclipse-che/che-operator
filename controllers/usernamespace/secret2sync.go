@@ -15,27 +15,17 @@ package usernamespace
 import (
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var (
-	v1SecretGKV = corev1.SchemeGroupVersion.WithKind("Secret")
-)
-
 type secret2Sync struct {
 	Object2Sync
-	secret *corev1.Secret
-}
 
-func newSecret2Sync(secret *corev1.Secret) *secret2Sync {
-	return &secret2Sync{
-		secret: secret,
-	}
+	secret  *corev1.Secret
+	version string
 }
 
 func (p *secret2Sync) getGKV() schema.GroupVersionKind {
@@ -65,20 +55,12 @@ func (p *secret2Sync) newDstObject() client.Object {
 }
 
 func (p *secret2Sync) getSrcObjectVersion() string {
-	return p.secret.GetResourceVersion()
+	if len(p.version) == 0 {
+		return p.secret.GetResourceVersion()
+	}
+	return p.version
 }
 
 func (p *secret2Sync) hasROSpec() bool {
 	return false
-}
-
-func (p *secret2Sync) isDiff(obj client.Object) bool {
-	return isLabelsOrAnnotationsDiff(p.secret, obj) ||
-		cmp.Diff(
-			p.secret,
-			obj,
-			cmp.Options{
-				cmpopts.IgnoreTypes(metav1.ObjectMeta{}),
-				cmpopts.IgnoreTypes(metav1.TypeMeta{}),
-			}) != ""
 }

@@ -363,6 +363,9 @@ func getCacheFunc() (cache.NewCacheFunc, error) {
 		&networkingv1.Ingress{}: {
 			Label: partOfCheObjectSelector,
 		},
+		&networkingv1.NetworkPolicy{}: {
+			Label: partOfCheObjectSelector,
+		},
 		&corev1.ConfigMap{}: {
 			Label: partOfCheObjectSelector,
 		},

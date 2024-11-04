@@ -15,25 +15,17 @@ package usernamespace
 import (
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var (
-	v1ConfigMapGKV = corev1.SchemeGroupVersion.WithKind("ConfigMap")
-)
-
 type configMap2Sync struct {
 	Object2Sync
-	cm *corev1.ConfigMap
-}
 
-func newCM2Sync(cm *corev1.ConfigMap) *configMap2Sync {
-	return &configMap2Sync{cm: cm}
+	cm      *corev1.ConfigMap
+	version string
 }
 
 func (p *configMap2Sync) getSrcObject() client.Object {
@@ -63,20 +55,12 @@ func (p *configMap2Sync) newDstObject() client.Object {
 }
 
 func (p *configMap2Sync) getSrcObjectVersion() string {
-	return p.cm.GetResourceVersion()
+	if len(p.version) == 0 {
+		return p.cm.GetResourceVersion()
+	}
+	return p.version
 }
 
 func (p *configMap2Sync) hasROSpec() bool {
 	return false
-}
-
-func (p *configMap2Sync) isDiff(obj client.Object) bool {
-	return isLabelsOrAnnotationsDiff(p.cm, obj) ||
-		cmp.Diff(
-			p.cm,
-			obj,
-			cmp.Options{
-				cmpopts.IgnoreTypes(metav1.ObjectMeta{}),
-				cmpopts.IgnoreTypes(metav1.TypeMeta{}),
-			}) != ""
 }

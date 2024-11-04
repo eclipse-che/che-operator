@@ -17,6 +17,9 @@ import (
 	"fmt"
 	"strings"
 
+	networkingv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
+
 	rbacv1 "k8s.io/api/rbac/v1"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
@@ -54,7 +57,6 @@ type Object2Sync interface {
 	getSrcObject() client.Object
 	getSrcObjectVersion() string
 	newDstObject() client.Object
-	isDiff(obj client.Object) bool
 }
 
 type syncContext struct {
@@ -97,7 +99,8 @@ func (r *WorkspacesConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&source.Kind{Type: &corev1.LimitRange{}}, r.watchRules(ctx, false, true)).
 		Watches(&source.Kind{Type: &corev1.ServiceAccount{}}, r.watchRules(ctx, false, true)).
 		Watches(&source.Kind{Type: &rbacv1.Role{}}, r.watchRules(ctx, false, true)).
-		Watches(&source.Kind{Type: &rbacv1.RoleBinding{}}, r.watchRules(ctx, false, true))
+		Watches(&source.Kind{Type: &rbacv1.RoleBinding{}}, r.watchRules(ctx, false, true)).
+		Watches(&source.Kind{Type: &networkingv1.NetworkPolicy{}}, r.watchRules(ctx, false, true))
 
 	if infrastructure.IsOpenShift() {
 		bld.Watches(&source.Kind{Type: &templatev1.Template{}}, r.watchRules(ctx, true, false))
@@ -133,7 +136,7 @@ func (r *WorkspacesConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, nil
 	}
 
-	if err = r.syncWorkspace(ctx, checluster.Namespace, req.Name); err != nil {
+	if err = r.syncNamespace(ctx, checluster.Namespace, req.Name); err != nil {
 		logger.Error(err, "Failed to sync workspace configs", "namespace", req.Name)
 		return ctrl.Result{}, err
 	}
@@ -188,10 +191,10 @@ func (r *WorkspacesConfigReconciler) watchRules(
 		})
 }
 
-// syncWorkspace sync user namespace.
+// syncNamespace sync user namespace.
 // Iterates over all objects in the source namespace labeled as `app.kubernetes.io/component=workspaces-config`
 // and syncs them to the target user namespace.
-func (r *WorkspacesConfigReconciler) syncWorkspace(
+func (r *WorkspacesConfigReconciler) syncNamespace(
 	ctx context.Context,
 	srcNamespace string,
 	dstNamespace string,
@@ -232,34 +235,22 @@ func (r *WorkspacesConfigReconciler) syncWorkspace(
 		}
 	}
 
-	if err = r.syncConfigMaps(
-		ctx,
-		srcNamespace,
-		dstNamespace,
-		syncConfig.Data,
-		syncedSrcObjKeys,
-	); err != nil {
-		return err
+	objsList := []client.ObjectList{
+		&corev1.ConfigMapList{},
+		&corev1.SecretList{},
+		&corev1.PersistentVolumeClaimList{},
 	}
-
-	if err = r.syncSecretes(
-		ctx,
-		srcNamespace,
-		dstNamespace,
-		syncConfig.Data,
-		syncedSrcObjKeys,
-	); err != nil {
-		return err
-	}
-
-	if err = r.syncPVCs(
-		ctx,
-		srcNamespace,
-		dstNamespace,
-		syncConfig.Data,
-		syncedSrcObjKeys,
-	); err != nil {
-		return err
+	for _, objList := range objsList {
+		if err = r.syncObjectsList(
+			ctx,
+			srcNamespace,
+			dstNamespace,
+			syncConfig.Data,
+			syncedSrcObjKeys,
+			objList,
+		); err != nil {
+			return err
+		}
 	}
 
 	// Iterates over sync config and deletes obsolete objects, if so.
@@ -283,111 +274,49 @@ func (r *WorkspacesConfigReconciler) syncWorkspace(
 	return nil
 }
 
-// syncConfigMaps syncs all ConfigMaps labeled as `app.kubernetes.io/component=workspaces-config`
+// syncObjectsList syncs objects labeled as `app.kubernetes.io/component=workspaces-config`
 // from source namespace to a target user namespace.
-func (r *WorkspacesConfigReconciler) syncConfigMaps(
+func (r *WorkspacesConfigReconciler) syncObjectsList(
 	ctx context.Context,
 	srcNamespace string,
 	dstNamespace string,
 	syncConfig map[string]string,
-	syncedSrcObjKeys map[string]bool) error {
+	syncedSrcObjKeys map[string]bool,
+	srcObjList client.ObjectList) error {
 
-	cmList := &corev1.ConfigMapList{}
 	opts := &client.ListOptions{
 		Namespace:     srcNamespace,
 		LabelSelector: wsConfigComponentSelector,
 	}
-	if err := r.client.List(ctx, cmList, opts); err != nil {
+	if err := r.client.List(ctx, srcObjList, opts); err != nil {
 		return err
 	}
 
-	for _, cm := range cmList.Items {
+	srcObjs, err := meta.ExtractList(srcObjList)
+	if err != nil {
+		return err
+	}
+
+	for _, srcObj := range srcObjs {
+		obj2Sync := createObject2SyncFromRuntimeObject(srcObj)
+		if obj2Sync == nil {
+			logger.Info("Object skipped since has unsupported kind",
+				"kind", gvk2PrintString(srcObj.GetObjectKind().GroupVersionKind()))
+			break
+		}
+
 		if err := r.syncObject(
 			&syncContext{
 				dstNamespace: dstNamespace,
 				srcNamespace: srcNamespace,
-				object2Sync:  newCM2Sync(&cm),
+				object2Sync:  obj2Sync,
 				syncConfig:   syncConfig,
 				ctx:          ctx,
 			}); err != nil {
 			return err
 		}
 
-		srcObjKey := buildKey(cm.GroupVersionKind(), cm.GetName(), srcNamespace)
-		syncedSrcObjKeys[srcObjKey] = true
-	}
-
-	return nil
-}
-
-// syncSecretes syncs all Secrets labeled as `app.kubernetes.io/component=workspaces-config`
-// from source namespace to a target user namespace.
-func (r *WorkspacesConfigReconciler) syncSecretes(
-	ctx context.Context,
-	srcNamespace string,
-	dstNamespace string,
-	syncConfig map[string]string,
-	syncedSrcObjKeys map[string]bool) error {
-
-	secretList := &corev1.SecretList{}
-	opts := &client.ListOptions{
-		Namespace:     srcNamespace,
-		LabelSelector: wsConfigComponentSelector,
-	}
-	if err := r.client.List(ctx, secretList, opts); err != nil {
-		return err
-	}
-
-	for _, secret := range secretList.Items {
-		if err := r.syncObject(
-			&syncContext{
-				dstNamespace: dstNamespace,
-				srcNamespace: srcNamespace,
-				object2Sync:  newSecret2Sync(&secret),
-				syncConfig:   syncConfig,
-				ctx:          ctx,
-			}); err != nil {
-			return err
-		}
-
-		srcObjKey := buildKey(secret.GroupVersionKind(), secret.GetName(), srcNamespace)
-		syncedSrcObjKeys[srcObjKey] = true
-	}
-
-	return nil
-}
-
-// syncPVCs syncs all PVCs labeled as `app.kubernetes.io/component=workspaces-config`
-// from source namespace to a target user namespace.
-func (r *WorkspacesConfigReconciler) syncPVCs(
-	ctx context.Context,
-	srcNamespace string,
-	dstNamespace string,
-	syncConfig map[string]string,
-	syncedSrcObjKeys map[string]bool) error {
-
-	pvcList := &corev1.PersistentVolumeClaimList{}
-	opts := &client.ListOptions{
-		Namespace:     srcNamespace,
-		LabelSelector: wsConfigComponentSelector,
-	}
-	if err := r.client.List(ctx, pvcList, opts); err != nil {
-		return err
-	}
-
-	for _, pvc := range pvcList.Items {
-		if err := r.syncObject(
-			&syncContext{
-				dstNamespace: dstNamespace,
-				srcNamespace: srcNamespace,
-				object2Sync:  newPvc2Sync(&pvc),
-				syncConfig:   syncConfig,
-				ctx:          ctx,
-			}); err != nil {
-			return err
-		}
-
-		srcObjKey := buildKey(pvc.GroupVersionKind(), pvc.GetName(), srcNamespace)
+		srcObjKey := buildKey(obj2Sync.getGKV(), obj2Sync.getSrcObject().GetName(), srcNamespace)
 		syncedSrcObjKeys[srcObjKey] = true
 	}
 
@@ -419,7 +348,7 @@ func (r *WorkspacesConfigReconciler) syncTemplates(
 
 	for _, template := range templates.Items {
 		for _, object := range template.Objects {
-			object2Sync, err := newUnstructured2Sync(object.Raw, nsInfo.Username, dstNamespace)
+			object2Sync, err := createObject2SyncFromRaw(object.Raw, nsInfo.Username, dstNamespace)
 			if err != nil {
 				return err
 			}

@@ -73,7 +73,7 @@ func TestSyncPVC(t *testing.T) {
 	assertSyncConfig(t, workspaceConfigReconciler, 0, v1PvcGKV)
 
 	// Sync PVC to a user namespace
-	err := workspaceConfigReconciler.syncWorkspace(context.TODO(), eclipseCheNamespace, userNamespace)
+	err := workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1PvcGKV)
 
@@ -93,7 +93,7 @@ func TestSyncPVC(t *testing.T) {
 	err = workspaceConfigReconciler.client.Update(context.TODO(), pvc)
 
 	// Sync PVC
-	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), eclipseCheNamespace, userNamespace)
+	err = workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1PvcGKV)
 
@@ -110,7 +110,7 @@ func TestSyncPVC(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Sync PVC
-	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), eclipseCheNamespace, userNamespace)
+	err = workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 2, v1PvcGKV)
 
@@ -127,7 +127,7 @@ func TestSyncPVC(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Sync PVC
-	err = workspaceConfigReconciler.syncWorkspace(context.TODO(), eclipseCheNamespace, userNamespace)
+	err = workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 0, v1PvcGKV)
 

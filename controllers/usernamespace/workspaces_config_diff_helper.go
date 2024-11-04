@@ -29,36 +29,27 @@ import (
 //     then the objects considered different
 //   - if annotations of the source object are absent in the destination object,
 //     then the objects considered different
-//   - if the rest fields of the objects are different,
+//   - if the rest fields of the objects are different ignoring metadata,
 //     then the objects considered different
 func isDiff(src client.Object, dst client.Object) bool {
+	if isLabelsOrAnnotationsDiff(src, dst) {
+		return true
+	}
+
 	_, isSrcUnstructured := src.(*unstructured.Unstructured)
 	_, isDstUnstructured := dst.(*unstructured.Unstructured)
 
 	if !isSrcUnstructured && !isDstUnstructured {
-		return isLabelsOrAnnotationsDiff(src, dst) ||
-			cmp.Diff(
-				src,
-				dst,
-				cmp.Options{
-					cmpopts.IgnoreTypes(metav1.ObjectMeta{}),
-					cmpopts.IgnoreTypes(metav1.TypeMeta{}),
-				}) != ""
+		return cmp.Diff(
+			src,
+			dst,
+			cmp.Options{
+				cmpopts.IgnoreTypes(metav1.ObjectMeta{}),
+				cmpopts.IgnoreTypes(metav1.TypeMeta{}),
+			}) != ""
 	}
 
 	return isUnstructuredDiff(src, dst)
-}
-
-func isUnstructuredDiff(src client.Object, dst client.Object) bool {
-	srcUnstructured := toUnstructured(src)
-	delete(srcUnstructured.Object, "metadata")
-	delete(srcUnstructured.Object, "status")
-
-	dstUnstructured := toUnstructured(dst)
-	delete(dstUnstructured.Object, "metadata")
-	delete(dstUnstructured.Object, "status")
-
-	return cmp.Diff(srcUnstructured, dstUnstructured) != ""
 }
 
 func isLabelsOrAnnotationsDiff(src client.Object, dst client.Object) bool {
@@ -81,8 +72,35 @@ func isLabelsOrAnnotationsDiff(src client.Object, dst client.Object) bool {
 	return false
 }
 
-func toUnstructured(src client.Object) *unstructured.Unstructured {
-	data, err := json.Marshal(src)
+// isUnstructuredDiff checks if the given unstructured objects are different.
+// The rules are following:
+//   - if the fields of the objects are different ignoring metadata and status,
+//     then the objects considered different
+func isUnstructuredDiff(src client.Object, dst client.Object) bool {
+	srcUnstructured := toUnstructured(src)
+	if srcUnstructured == nil {
+		return false
+	}
+	delete(srcUnstructured.Object, "metadata")
+	delete(srcUnstructured.Object, "status")
+
+	dstUnstructured := toUnstructured(dst)
+	if dstUnstructured == nil {
+		return false
+	}
+	delete(dstUnstructured.Object, "metadata")
+	delete(dstUnstructured.Object, "status")
+
+	return cmp.Diff(srcUnstructured, dstUnstructured) != ""
+}
+
+func toUnstructured(obj client.Object) *unstructured.Unstructured {
+	_, isUnstructured := obj.(*unstructured.Unstructured)
+	if isUnstructured {
+		return obj.DeepCopyObject().(*unstructured.Unstructured)
+	}
+
+	data, err := json.Marshal(obj)
 	if err != nil {
 		logger.Error(err, "Failed to marshal object")
 		return nil
