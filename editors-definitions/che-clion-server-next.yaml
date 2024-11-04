@@ -21,7 +21,7 @@ metadata:
     publisher: che-incubator
     version: next
     provider: Provided by [Jet Brains](https://www.jetbrains.com/) under [License](https://www.jetbrains.com/legal/docs/toolbox/user/)
-    title: JetBrains PyCharm Professional Edition for Eclipse Che - next
+    title: JetBrains CLion for Eclipse Che - next
     repository: https://github.com/che-incubator/che-idea-dev-server
     firstPublicationDate: '2024-04-11'
     iconMediatype: image/svg+xml
