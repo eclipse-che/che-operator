@@ -61,9 +61,9 @@ func (manager *ReconcileManager) ReconcileAll(ctx *chetypes.DeployContext) (reco
 	for _, reconciler := range manager.reconcilers {
 		reconcilerName := GetObjectType(reconciler)
 
-		reconcilerLogger.Info("Reconciling started", "reconciler", reconcilerName)
+		//reconcilerLogger.Info("Reconciling started", "reconciler", reconcilerName)
 		result, done, err := reconciler.Reconcile(ctx)
-		reconcilerLogger.Info("Reconciled completed", "reconciler", reconcilerName, "done", done)
+		//reconcilerLogger.Info("Reconciled completed", "reconciler", reconcilerName, "done", done)
 
 		if err != nil {
 			// set failed reconciler
