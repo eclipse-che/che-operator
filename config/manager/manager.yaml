@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2023 Red Hat, Inc.
+# Copyright (c) 2019-2024 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -39,12 +39,12 @@ spec:
     spec:
       containers:
         - name: che-operator
-          image: quay.io/eclipse/che-operator:next
+          image: quay.io/eclipse/che-operator:7.95.0
           command:
             - /manager
           args:
             - --leader-elect
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 60000
               name: metrics
@@ -60,19 +60,19 @@ spec:
             - name: OPERATOR_NAME
               value: che-operator
             - name: CHE_VERSION
-              value: next
+              value: 7.95.0
             - name: RELATED_IMAGE_che_server
-              value: quay.io/eclipse/che-server:next
+              value: quay.io/eclipse/che-server:7.95.0
             - name: RELATED_IMAGE_dashboard
-              value: quay.io/eclipse/che-dashboard:next
+              value: quay.io/eclipse/che-dashboard:7.95.0
             - name: RELATED_IMAGE_plugin_registry
-              value: quay.io/eclipse/che-plugin-registry:next
+              value: quay.io/eclipse/che-plugin-registry:7.95.0
             - name: RELATED_IMAGE_che_tls_secrets_creation_job
               value: quay.io/eclipse/che-tls-secret-creator:alpine-01a4c34
             - name: RELATED_IMAGE_single_host_gateway
               value: quay.io/eclipse/che--traefik:v2.9.10-8d81a9df1435f9f3d36ac9398465ef2d5d61e671059974db753faaed14b627de
             - name: RELATED_IMAGE_single_host_gateway_config_sidecar
-              value: quay.io/che-incubator/configbump:next
+              value: quay.io/che-incubator/configbump:7.95.0
             - name: RELATED_IMAGE_gateway_authentication_sidecar
               value: quay.io/openshift/origin-oauth-proxy:4.9
             - name: RELATED_IMAGE_gateway_authorization_sidecar
@@ -100,7 +100,8 @@ spec:
             - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTEDITOR
               value: che-incubator/che-code/latest
             - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTCOMPONENTS
-              value: '[{"name": "universal-developer-image", "container": {"image": "quay.io/devfile/universal-developer-image:ubi8-latest"}}]'
+              value: '[{"name": "universal-developer-image", "container": {"image":
+                "quay.io/devfile/universal-developer-image:ubi8-latest"}}]'
             - name: CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL
               value: https://open-vsx.org
             - name: CHE_DEFAULT_SPEC_COMPONENTS_DEVFILEREGISTRY_EXTERNAL_DEVFILE_REGISTRIES
@@ -108,7 +109,8 @@ spec:
             - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DISABLECONTAINERBUILDCAPABILITIES
               value: 'false'
             - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_CONTAINERSECURITYCONTEXT
-              value: '{"allowPrivilegeEscalation": true,"capabilities": {"add": ["SETGID", "SETUID"]}}'
+              value: '{"allowPrivilegeEscalation": true,"capabilities": {"add": ["SETGID",
+                "SETUID"]}}'
           livenessProbe:
             httpGet:
               path: /healthz
