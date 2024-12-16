@@ -165,6 +165,33 @@ spec:
       workspaces:
       - name: basic-auth
         workspace: git-auth
+    - name: sealights-instrumentation
+      runAfter:
+        - clone-repository
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/flacatus/tekton-integration-catalog.git
+          - name: revision
+            value: go-sealights
+          - name: pathInRepo
+            value: tasks/sealights/sealights-go-instrumentation/0.1/sealights-go-instrumentation.yaml
+      params:
+        - name: source-artifact
+          value: $(tasks.clone-repository.results.SOURCE_ARTIFACT)
+        - name: go-version
+          value: "1.22"
+        - name: sealights-secret
+          value: "sealights-credentials"
+        - name: component
+          value: '{{ repo_name }}'
+        - name: branch
+          value: '{{ source_branch }}'
+        - name: revision
+          value: '{{ revision }}'
+        - name: oci-storage
+          value: $(params.output-image).sealights.git
     - name: prefetch-dependencies
       params:
       - name: input
@@ -176,7 +203,7 @@ spec:
       - name: ociArtifactExpiresAfter
         value: $(params.image-expires-after)
       runAfter:
-      - clone-repository
+      - sealights-instrumentation
       taskRef:
         params:
         - name: name
@@ -253,6 +280,47 @@ spec:
           value: build-image-index
         - name: bundle
           value: quay.io/konflux-ci/tekton-catalog/task-build-image-index:0.1@sha256:37328a4b2fc686435531ba423c26c2051822a4e70b06088c4d8eaf0e8fa6d65b
+        - name: kind
+          value: task
+        resolver: bundles
+      when:
+      - input: $(tasks.init.results.build)
+        operator: in
+        values:
+        - "true"
+    - name: build-sealights-container
+      params:
+      - name: IMAGE
+        value: $(params.output-image).sealights
+      - name: DOCKERFILE
+        value: $(params.dockerfile)
+      - name: CONTEXT
+        value: $(params.path-context)
+      - name: HERMETIC
+        value: $(params.hermetic)
+      - name: PREFETCH_INPUT
+        value: $(params.prefetch-input)
+      - name: IMAGE_EXPIRES_AFTER
+        value: $(params.image-expires-after)
+      - name: COMMIT_SHA
+        value: $(tasks.clone-repository.results.commit)
+      - name: BUILD_ARGS
+        value:
+        - $(params.build-args[*])
+      - name: BUILD_ARGS_FILE
+        value: $(params.build-args-file)
+      - name: SOURCE_ARTIFACT
+        value: $(tasks.sealights-instrumentation.results.source-artifact)
+      - name: CACHI2_ARTIFACT
+        value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
+      runAfter:
+      - prefetch-dependencies
+      taskRef:
+        params:
+        - name: name
+          value: buildah-oci-ta
+        - name: bundle
+          value: quay.io/konflux-ci/tekton-catalog/task-buildah-oci-ta:0.2@sha256:937f465189482f3279b9491161fff7720d4c443f27e6d9febbf2344268383011
         - name: kind
           value: task
         resolver: bundles
