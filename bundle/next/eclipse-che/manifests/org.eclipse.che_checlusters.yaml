@@ -4996,7 +4996,7 @@ spec:
                             description: External devfile registries configuration.
                             properties:
                               url:
-                                description: The public UR of the devfile registry
+                                description: The public URL of the devfile registry
                                   that serves sample ready-to-use devfiles.
                                 type: string
                             type: object
