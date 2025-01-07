@@ -665,7 +665,7 @@ type PVC struct {
 
 // External devfile registries configuration.
 type ExternalDevfileRegistry struct {
-	// The public UR of the devfile registry that serves sample ready-to-use devfiles.
+	// The public URL of the devfile registry that serves sample ready-to-use devfiles.
 	// +optional
 	Url string `json:"url,omitempty"`
 }
