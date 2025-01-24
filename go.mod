@@ -14,7 +14,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/zap v1.24.0
-	golang.org/x/net v0.23.0
+	golang.org/x/net v0.33.0
 	k8s.io/api v0.26.1
 	k8s.io/apiextensions-apiserver v0.26.1
 	k8s.io/apimachinery v0.26.1
@@ -63,9 +63,9 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/oauth2 v0.10.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
-	golang.org/x/term v0.18.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/term v0.27.0 // indirect
+	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
@@ -89,8 +89,9 @@ require (
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee // indirect
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
-	golang.org/x/mod v0.12.0 // indirect
-	golang.org/x/tools v0.13.0 // indirect
+	golang.org/x/mod v0.17.0 // indirect
+	golang.org/x/sync v0.10.0 // indirect
+	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230711160842-782d3b101e98 // indirect
 	honnef.co/go/tools v0.0.1-2020.1.3 // indirect
@@ -442,9 +443,16 @@ replace (
 	go.uber.org/multierr => go.uber.org/multierr v1.3.0
 	go.uber.org/tools => go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee
 	go.uber.org/zap => go.uber.org/zap v1.18.1
-	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
+	golang.org/x/crypto => golang.org/x/crypto v0.31.0
 	golang.org/x/exp => golang.org/x/exp v0.0.0-20190426190305-956cc1757749
+	golang.org/x/mod => golang.org/x/mod v0.17.0
+	golang.org/x/net => golang.org/x/net v0.33.0
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.10.0
+	golang.org/x/sync => golang.org/x/sync v0.10.0
+	golang.org/x/sys => golang.org/x/sys v0.28.0
+	golang.org/x/term => golang.org/x/term v0.27.0
+	golang.org/x/text => golang.org/x/text v0.21.0
+	golang.org/x/tools => golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d
 	gomodules.xyz/jsonpatch/v2 => gomodules.xyz/jsonpatch/v2 v2.0.1
 	google.golang.org/api => google.golang.org/api v0.20.0
 	google.golang.org/appengine => google.golang.org/appengine v1.6.5
