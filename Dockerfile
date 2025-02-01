@@ -10,7 +10,7 @@
 #
 
 # https://registry.access.redhat.com/ubi8/go-toolset
-FROM registry.access.redhat.com/ubi8/go-toolset:1.22.9-1 as builder
+FROM registry.access.redhat.com/ubi8/go-toolset:1.22.9-2 as builder
 ENV GOPATH=/go/ \
     CGO_ENABLED=1
 ARG DEV_HEADER_REWRITE_TRAEFIK_PLUGIN="main"
