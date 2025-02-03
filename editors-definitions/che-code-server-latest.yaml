@@ -14,7 +14,7 @@ schemaVersion: 2.2.2
 metadata:
   name: che-code-server
   displayName: Visual Studio Code Server
-  description: Visual Studio Code server for Eclipse Che - next
+  description: Visual Studio Code server for Eclipse Che - latest
   tags:
     - CLI
     - vscode
@@ -90,7 +90,7 @@ components:
     volume: {}
   - name: editor-injector
     container:
-      image: quay.io/che-incubator/che-code-server:next
+      image: quay.io/che-incubator/che-code-server:latest
       command:
         - /entrypoint-init-container.sh
       volumeMounts:
