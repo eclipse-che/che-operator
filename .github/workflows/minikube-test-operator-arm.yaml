@@ -19,10 +19,10 @@ jobs:
     - name: Checkout source code
       uses: actions/checkout@v3
     - name: Start minikube cluster
-      id: run-minikube
-      uses: che-incubator/setup-minikube-action@next
-      with:
-        minikube-version: v1.29.0
+      run: |
+        curl -LO https://github.com/kubernetes/minikube/releases/latest/download/minikube-linux-arm64
+        install minikube-linux-arm64 /usr/local/bin/minikube && rm minikube-linux-arm64
+        minikube start --vm-driver=docker --addons=ingress --cpus 2 --memory 6500
     - name: Install yq
       run: sudo pip install yq
     - name: Install chectl
