@@ -29,7 +29,7 @@ jobs:
       run: bash <(curl -sL https://che-incubator.github.io/chectl/install.sh) --channel=next
     - name: Run tests
       run: /bin/bash build/scripts/minikube-tests/test-operator.sh
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       if: ${{ always() }}
       with:
         name: artifacts
