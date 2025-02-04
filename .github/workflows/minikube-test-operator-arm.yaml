@@ -1,0 +1,36 @@
+#
+# Copyright (c) 2019-2025 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Red Hat, Inc. - initial API and implementation
+#
+
+name: Operator test
+on: pull_request
+jobs:
+  operator-on-minikube-arm:
+    runs-on: ubuntu-22.04-arm
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v3
+    - name: Start minikube cluster
+      id: run-minikube
+      uses: che-incubator/setup-minikube-action@next
+      with:
+        minikube-version: v1.29.0
+    - name: Install yq
+      run: sudo pip install yq
+    - name: Install chectl
+      run: bash <(curl -sL https://che-incubator.github.io/chectl/install.sh) --channel=next
+    - name: Run tests
+      run: /bin/bash build/scripts/minikube-tests/test-operator-arm64.sh
+    - uses: actions/upload-artifact@v3
+      if: ${{ always() }}
+      with:
+        name: artifacts
+        path: /tmp/artifacts-che
