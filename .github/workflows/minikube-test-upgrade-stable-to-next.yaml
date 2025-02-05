@@ -34,7 +34,7 @@ jobs:
       run: /bin/bash build/scripts/minikube-tests/test-upgrade-from-stable-to-next.sh
       env:
         "GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       if: ${{ always() }}
       with:
         name: artifacts
