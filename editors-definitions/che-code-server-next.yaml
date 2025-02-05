@@ -10,7 +10,7 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-schemaVersion: 2.2.2
+schemaVersion: 2.3.0
 metadata:
   name: che-code-server
   displayName: Visual Studio Code Server
