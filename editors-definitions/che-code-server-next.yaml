@@ -13,7 +13,7 @@
 schemaVersion: 2.2.2
 metadata:
   name: che-code-server
-  displayName: Visual Studio Code Server
+  displayName: Visual Studio Code (desktop)
   description: Visual Studio Code server for Eclipse Che - next
   tags:
     - CLI

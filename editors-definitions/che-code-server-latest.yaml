@@ -13,16 +13,16 @@
 schemaVersion: 2.2.2
 metadata:
   name: che-code-server
-  displayName: Visual Studio Code Server
+  displayName: Visual Studio Code (desktop)
   description: Visual Studio Code server for Eclipse Che - latest
   tags:
     - CLI
     - vscode
   attributes:
     publisher: che-incubator
-    version: next
+    version: latest
     provider: Provided by [Microsoft](https://www.microsoft.com/) under [License](https://code.visualstudio.com/License)
-    title: Visual Studio Code server for Eclipse Che - next
+    title: Visual Studio Code server for Eclipse Che - latest
     repository: https://github.com/che-incubator/che-code-server
     firstPublicationDate: '2025-31-01'
     iconMediatype: image/svg+xml
