@@ -35,6 +35,10 @@ metadata:
     operatorframework.io/suggested-namespace: openshift-operators
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
+  labels:
+    operatorframework.io/arch.amd64: supported
+    operatorframework.io/arch.arm64: supported
+    operatorframework.io/os.linux: supported
   name: eclipse-che.v0.0.0
   namespace: placeholder
 spec:

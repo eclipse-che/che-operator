@@ -317,7 +317,7 @@ spec:
     components:
       - name: tooling-container
         container:
-          image: quay.io/devfile/universal-developer-image:ubi8-latest
+          image: quay.io/devfile/universal-developer-image:ubi9-latest
           cpuLimit: 100m
           cpuRequest: 100m
 EOF
