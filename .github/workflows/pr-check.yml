@@ -41,7 +41,7 @@ jobs:
           echo arch="arm64" >> $GITHUB_ENV
         fi
     - name: Build image
-      run: docker buildx --platform linux/${{env.arch}} .
+      run: docker buildx build --platform linux/${{env.arch}} .
   source-code-validation:
     runs-on: ubuntu-22.04
     steps:
