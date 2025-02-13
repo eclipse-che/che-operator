@@ -22,7 +22,6 @@ init() {
   unset CATALOG_IMAGE
   unset BUNDLE_IMAGE
   unset IMAGE_TOOL
-  unset PLATFORM
 
   while [[ "$#" -gt 0 ]]; do
     case $1 in
@@ -30,7 +29,6 @@ init() {
       '--catalog-image'|'-i') CATALOG_IMAGE="$2"; shift 1;;
       '--bundle-image'|'-b') BUNDLE_IMAGE="$2"; shift 1;;
       '--image-tool'|'-t') IMAGE_TOOL="$2"; shift 1;;
-      '--platform'|'-p') PLATFORM="$2"; shift 1;;
       '--force'|'-f') FORCE="true";;
       '--help'|'-h') usage; exit;;
     esac
@@ -60,7 +58,6 @@ usage () {
   echo "Options:"
   echo -e "\t-i,--catalog-image       Catalog image to build"
   echo -e "\t-b,--bundle-image        Bundle image to build"
-  echo -e "\t-p,--platform            Target platform for build"
   echo -e "\t-c,--channel=next|stable Olm channel to build bundle from"
   echo -e "\t-t,--image-tool          [default: docker] Image tool"
   echo -e "\t-f,--force               [default: false] Force to build catalog and bundle images even if bundle already exists in the catalog"
@@ -79,11 +76,11 @@ build () {
     exit 0
   else
     echo "[INFO] Build and push the new bundle image"
-    make bundle-build bundle-push \
+    make bundle-build-and-push-multiarch \
         CHANNEL="${CHANNEL}" \
         BUNDLE_IMG="${BUNDLE_IMAGE}" \
         IMAGE_TOOL="${IMAGE_TOOL}" \
-        PLATFORM="${PLATFORM}"
+        ARCHS="linux/arm64,linux/amd64"
 
     echo "[INFO] Add bundle to the catalog"
 
@@ -105,11 +102,11 @@ build () {
   fi
 
   echo "[INFO] Build and push the catalog image"
-  make catalog-build catalog-push \
+  make catalog-build-and-push-multiarch \
     CHANNEL="${CHANNEL}" \
     CATALOG_IMG="${CATALOG_IMAGE}" \
     IMAGE_TOOL="${IMAGE_TOOL}" \
-    PLATFORM="${PLATFORM}"
+    ARCHS="linux/arm64,linux/amd64"
 
   make download-addlicense
   make license $(make catalog-path CHANNEL="${CHANNEL}")
