@@ -28,7 +28,7 @@ init() {
   PREPARE_COMMUNITY_OPERATORS_UPDATE=false
   OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
   FORCE_UPDATE=""
-  BUILDX_PLATFORMS="linux/amd64,linux/ppc64le,linux/arm64"
+  BUILDX_PLATFORMS="linux/amd64,linux/arm64"
   CSV_STABLE_PATH=$(make csv-path CHANNEL=stable)
   MANAGER_YAML=${OPERATOR_REPO}/config/manager/manager.yaml
   CHE_OPERATOR_IMAGE=$(yq -r '.spec.template.spec.containers[0].image' "${MANAGER_YAML}" | sed -e "s/\(.*:\).*/\1${RELEASE}/")

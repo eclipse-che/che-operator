@@ -24,28 +24,24 @@ jobs:
         go-version: 1.21.10
     - name: Run unit tests
       run: make test
-  image-build:
-    runs-on: ubuntu-22.04
-    steps:
-    - name: Checkout source code
-      uses: actions/checkout@v3
-    - name: Build image
-      run: docker build .
   multiplatform-image-build:
-    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        runners: ['ubuntu-22.04', 'ubuntu-22.04-arm']
+    runs-on: ${{matrix.runners}}
     steps:
     - name: Checkout source code
       uses: actions/checkout@v3
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-    - name: Build images
-      uses: docker/build-push-action@v3
-      with:
-        file: Dockerfile
-        platforms: linux/amd64,linux/ppc64le,linux/arm64
-        tags: quay.io/eclipse/che-operator:next
+    - name: Set arch environment variable
+      run: |
+        if [[ ${{matrix.runners}} == 'ubuntu-22.04' ]]; then
+          echo arch="amd64" >> $GITHUB_ENV
+        else
+          echo arch="arm64" >> $GITHUB_ENV
+        fi
+    - name: Build image
+      run: docker buildx build --platform linux/${{env.arch}} .
   source-code-validation:
     runs-on: ubuntu-22.04
     steps:
