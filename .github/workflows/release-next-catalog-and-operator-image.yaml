@@ -52,6 +52,10 @@ jobs:
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       - name: Install yq
         run: sudo pip install yq
       - name: Login to quay.io
@@ -61,13 +65,22 @@ jobs:
           password: ${{ secrets.QUAY_PASSWORD }}
           registry: quay.io
       - name: Build catalog source
-        run: ${GITHUB_WORKSPACE}/build/scripts/olm/release-catalog.sh --channel 'next' --catalog-image quay.io/eclipse/eclipse-che-olm-catalog:next
+        run: |
+          ${GITHUB_WORKSPACE}/build/scripts/olm/release-catalog.sh \
+            --channel next \
+            --image-tool docker \
+            --platform linux/amd64,linux/arm64,linux/ppc64le \
+            --catalog-image quay.io/eclipse/eclipse-che-olm-catalog:next
   build-catalog-with-digest:
     runs-on: ubuntu-22.04
     needs: build-operator-image
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       - name: Install yq
         run: sudo pip install yq
       - name: Login to quay.io
@@ -87,5 +100,7 @@ jobs:
           ${GITHUB_WORKSPACE}/build/scripts/release/addDigests.sh -s $(make csv-path CHANNEL=next) -t next
           ${GITHUB_WORKSPACE}/build/scripts/olm/release-catalog.sh \
             --channel next \
+            --image-tool docker \
+            --platform linux/amd64,linux/arm64,linux/ppc64le \
             --catalog-image quay.io/eclipse/eclipse-che-olm-catalog:next-digest \
             --bundle-image quay.io/eclipse/eclipse-che-olm-bundle:$(make bundle-version CHANNEL=next)-digest

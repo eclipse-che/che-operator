@@ -229,7 +229,7 @@ spec:
         value: https://$(minikube ip).nip.io
       - name: OPENVSX_REGISTRY_URL
         value: https://open-vsx.org
-      image: quay.io/che-incubator/che-code:latest
+      image: quay.io/che-incubator/che-code:next
       memoryLimit: 256Mi
       memoryRequest: 32Mi
       sourceMapping: /projects
@@ -281,7 +281,7 @@ spec:
         value: https://$(minikube ip).nip.io
       - name: OPENVSX_REGISTRY_URL
         value: https://open-vsx.org
-      image: quay.io/devfile/universal-developer-image:ubi8-latest
+      image: quay.io/devfile/universal-developer-image:ubi9-latest
       memoryLimit: 1024Mi
       memoryRequest: 256Mi
       sourceMapping: /projects
@@ -317,7 +317,7 @@ spec:
     components:
       - name: tooling-container
         container:
-          image: quay.io/devfile/universal-developer-image:ubi8-latest
+          image: quay.io/devfile/universal-developer-image:ubi9-latest
           cpuLimit: 100m
           cpuRequest: 100m
 EOF
@@ -325,8 +325,8 @@ EOF
 
 startAndWaitDevWorkspace() {
   # pre-pull image for faster workspace startup
-  minikube image pull quay.io/devfile/universal-developer-image:ubi8-latest
-  minikube image pull quay.io/che-incubator/che-code:latest
+  minikube image pull quay.io/devfile/universal-developer-image:ubi9-latest
+  minikube image pull quay.io/che-incubator/che-code:next
 
   kubectl patch devworkspace ${DEV_WORKSPACE_NAME} -p '{"spec":{"started":true}}' --type=merge -n ${USER_NAMESPACE}
   kubectl wait devworkspace ${DEV_WORKSPACE_NAME} -n ${USER_NAMESPACE} --for=jsonpath='{.status.phase}'=Running --timeout=300s
