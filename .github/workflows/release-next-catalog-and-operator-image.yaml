@@ -65,11 +65,12 @@ jobs:
           password: ${{ secrets.QUAY_PASSWORD }}
           registry: quay.io
       - name: Build catalog source
-        run: ${GITHUB_WORKSPACE}/build/scripts/olm/release-catalog.sh \
-          --channel next \ 
-          --image-tool docker \
-          --platform linux/amd64,linux/arm64,linux/ppc64le \
-          --catalog-image quay.io/eclipse/eclipse-che-olm-catalog:next
+        run: |
+          ${GITHUB_WORKSPACE}/build/scripts/olm/release-catalog.sh \
+            --channel next \
+            --image-tool docker \
+            --platform linux/amd64,linux/arm64,linux/ppc64le \
+            --catalog-image quay.io/eclipse/eclipse-che-olm-catalog:next
   build-catalog-with-digest:
     runs-on: ubuntu-22.04
     needs: build-operator-image
@@ -98,7 +99,7 @@ jobs:
           make update-dev-resources
           ${GITHUB_WORKSPACE}/build/scripts/release/addDigests.sh -s $(make csv-path CHANNEL=next) -t next
           ${GITHUB_WORKSPACE}/build/scripts/olm/release-catalog.sh \
-            --channel next \ 
+            --channel next \
             --image-tool docker \
             --platform linux/amd64,linux/arm64,linux/ppc64le \
             --catalog-image quay.io/eclipse/eclipse-che-olm-catalog:next-digest \

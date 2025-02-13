@@ -55,7 +55,7 @@ usage () {
   echo "Build and push catalog and bundle images."
   echo
 	echo "Usage:"
-	echo -e "\t$0 -i CATALOG_IMAGE -c CHANNEL [-o OPERATOR_IMAGE] [-t IMAGE_TOOL]"
+	echo -e "\t$0 -i CATALOG_IMAGE -c CHANNEL [-t IMAGE_TOOL]"
   echo
   echo "Options:"
   echo -e "\t-i,--catalog-image       Catalog image to build"
