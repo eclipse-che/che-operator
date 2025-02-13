@@ -110,7 +110,7 @@ jobs:
 
   build-catalog-with-digest:
     runs-on: ubuntu-22.04
-    needs: publish-operator-manifest
+    needs: build-catalog
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
