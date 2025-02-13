@@ -52,7 +52,7 @@ jobs:
           --platform linux/${{env.arch}} \
           --progress=plain \
           --push \
-          -t quay.io/eclipse/che-operator:${{env.arch}}-${{short_sha}} .
+          -t quay.io/eclipse/che-operator:${{env.arch}}-${{env.short_sha}} .
 
   publish-operator-manifest:
     name: publish operator image
