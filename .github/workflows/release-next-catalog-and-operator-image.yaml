@@ -105,7 +105,6 @@ jobs:
           ${GITHUB_WORKSPACE}/build/scripts/olm/release-catalog.sh \
             --channel next \
             --image-tool docker \
-            --platform linux/amd64,linux/arm64 \
             --catalog-image quay.io/eclipse/eclipse-che-olm-catalog:next
 
   build-catalog-with-digest:
@@ -138,6 +137,5 @@ jobs:
           ${GITHUB_WORKSPACE}/build/scripts/olm/release-catalog.sh \
             --channel next \
             --image-tool docker \
-            --platform linux/amd64,linux/arm64 \
             --catalog-image quay.io/eclipse/eclipse-che-olm-catalog:next-digest \
             --bundle-image quay.io/eclipse/eclipse-che-olm-bundle:$(make bundle-version CHANNEL=next)-digest
