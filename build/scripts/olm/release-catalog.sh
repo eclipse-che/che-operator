@@ -17,6 +17,8 @@ OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_
 
 init() {
   FORCE="false"
+  MULTI_ARCH="false"
+  IMAGE_TOOL="docker"
 
   unset CHANNEL
   unset CATALOG_IMAGE
@@ -30,12 +32,12 @@ init() {
       '--bundle-image'|'-b') BUNDLE_IMAGE="$2"; shift 1;;
       '--image-tool'|'-t') IMAGE_TOOL="$2"; shift 1;;
       '--force'|'-f') FORCE="true";;
+      '--multi-arch'|'-m') MULTI_ARCH="true";;
       '--help'|'-h') usage; exit;;
     esac
     shift 1
   done
 
-  [[ ! ${IMAGE_TOOL} ]] && IMAGE_TOOL="docker"
   if [[ ! ${CHANNEL} ]]; then usage; exit 1; fi
 
   BUNDLE_NAME=$(make bundle-name CHANNEL="${CHANNEL}")
@@ -53,13 +55,14 @@ usage () {
   echo "Build and push catalog and bundle images."
   echo
 	echo "Usage:"
-	echo -e "\t$0 -i CATALOG_IMAGE -c CHANNEL [-t IMAGE_TOOL]"
+	echo -e "\t$0 -i CATALOG_IMAGE -c CHANNEL [-i CATALOG_IMAGE] [-b BUNDLE_IMAGE] [-t IMAGE_TOOL] [--force] [--multi-arch]"
   echo
   echo "Options:"
+  echo -e "\t-c,--channel             (next or stable) Olm channel to build bundle from"
   echo -e "\t-i,--catalog-image       Catalog image to build"
   echo -e "\t-b,--bundle-image        Bundle image to build"
-  echo -e "\t-c,--channel=next|stable Olm channel to build bundle from"
   echo -e "\t-t,--image-tool          [default: docker] Image tool"
+  echo -e "\t-m,--multi-arch          [default: false] Build multi-arch images"
   echo -e "\t-f,--force               [default: false] Force to build catalog and bundle images even if bundle already exists in the catalog"
   echo
 	echo "Example:"
@@ -76,11 +79,18 @@ build () {
     exit 0
   else
     echo "[INFO] Build and push the new bundle image"
-    make bundle-build-and-push-multiarch \
-        CHANNEL="${CHANNEL}" \
-        BUNDLE_IMG="${BUNDLE_IMAGE}" \
-        IMAGE_TOOL="${IMAGE_TOOL}" \
-        ARCHS="linux/arm64,linux/amd64"
+    if [[ "${MULTI_ARCH}" == "true" ]]; then
+      make bundle-build-and-push-multiarch \
+          CHANNEL="${CHANNEL}" \
+          BUNDLE_IMG="${BUNDLE_IMAGE}" \
+          IMAGE_TOOL="${IMAGE_TOOL}" \
+          ARCHS="linux/arm64,linux/amd64"
+    else
+      make bundle-build bundle-push \
+          CHANNEL="${CHANNEL}" \
+          BUNDLE_IMG="${BUNDLE_IMAGE}" \
+          IMAGE_TOOL="${IMAGE_TOOL}"
+    fi
 
     echo "[INFO] Add bundle to the catalog"
 
@@ -102,11 +112,18 @@ build () {
   fi
 
   echo "[INFO] Build and push the catalog image"
-  make catalog-build-and-push-multiarch \
-    CHANNEL="${CHANNEL}" \
-    CATALOG_IMG="${CATALOG_IMAGE}" \
-    IMAGE_TOOL="${IMAGE_TOOL}" \
-    ARCHS="linux/arm64,linux/amd64"
+  if [[ "${MULTI_ARCH}" == "true" ]]; then
+    make catalog-build-and-push-multiarch \
+      CHANNEL="${CHANNEL}" \
+      CATALOG_IMG="${CATALOG_IMAGE}" \
+      IMAGE_TOOL="${IMAGE_TOOL}" \
+      ARCHS="linux/arm64,linux/amd64"
+    else
+      make catalog-build catalog-push \
+        CHANNEL="${CHANNEL}" \
+        CATALOG_IMG="${CATALOG_IMAGE}" \
+        IMAGE_TOOL="${IMAGE_TOOL}"
+    fi
 
   make download-addlicense
   make license $(make catalog-path CHANNEL="${CHANNEL}")
