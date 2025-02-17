@@ -96,8 +96,6 @@ func Initialize() {
 	// Don't get some k8s specific env
 	if !infrastructure.IsOpenShift() {
 		defaultCheTLSSecretsCreationJobImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_che_tls_secrets_creation_job"))
-		defaultGatewayAuthenticationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authentication_sidecar_k8s"))
-		defaultGatewayAuthorizationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authorization_sidecar_k8s"))
 	}
 
 	initialized = true
