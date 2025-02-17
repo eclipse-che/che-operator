@@ -23,7 +23,6 @@ init() {
   unset CHANNEL
   unset CATALOG_IMAGE
   unset BUNDLE_IMAGE
-  unset IMAGE_TOOL
 
   while [[ "$#" -gt 0 ]]; do
     case $1 in
