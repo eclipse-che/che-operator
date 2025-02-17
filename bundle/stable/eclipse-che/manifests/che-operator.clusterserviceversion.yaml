@@ -106,7 +106,6 @@ metadata:
     support: Eclipse Foundation
   labels:
     operatorframework.io/arch.amd64: supported
-    operatorframework.io/arch.arm64: supported
     operatorframework.io/os.linux: supported
   name: eclipse-che.v7.99.0
   namespace: placeholder
