@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -13,6 +13,7 @@
 package utils
 
 import (
+	"os"
 	"reflect"
 	"testing"
 
@@ -104,4 +105,27 @@ func TestMergeMaps(t *testing.T) {
 
 	actual := MergeMaps([]map[string]string{nil, map1, nil, map2, make(map[string]string)})
 	assert.Equal(t, expected, actual)
+}
+
+func TestGetEnvOrDefault(t *testing.T) {
+	var tests = []struct {
+		envName       string
+		envValue      string
+		defaultValue  string
+		expectedValue string
+	}{
+		{"env1", "", "default1", "default1"},
+		{"env2", "value2", "default2", "value2"},
+	}
+
+	_ = os.Setenv("env2", "value2")
+
+	defer func() {
+		_ = os.Unsetenv("env1")
+		_ = os.Unsetenv("env2")
+	}()
+
+	for _, test := range tests {
+		assert.Equal(t, test.expectedValue, GetEnvOrDefault(test.envName, test.defaultValue))
+	}
 }

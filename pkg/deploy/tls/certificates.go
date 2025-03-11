@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -15,8 +15,10 @@ package tls
 import (
 	"errors"
 	"fmt"
+	"github.com/eclipse-che/che-operator/pkg/common/conf"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
@@ -64,7 +66,8 @@ func NewCertificatesReconciler() *CertificatesReconciler {
 
 func (c *CertificatesReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	if infrastructure.IsOpenShift() {
-		if done, err := c.syncOpenShiftCABundleCertificates(ctx); !done {
+		syncCustomOpenShiftCertificateOnly := conf.Get(conf.CertificatesSyncCustomOpenShiftCertificateOnly) == "true"
+		if done, err := c.syncOpenShiftCertificates(ctx, syncCustomOpenShiftCertificateOnly); !done {
 			return reconcile.Result{}, false, err
 		}
 	} else {
@@ -96,50 +99,6 @@ func (c *CertificatesReconciler) Reconcile(ctx *chetypes.DeployContext) (reconci
 
 func (c *CertificatesReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	return true
-}
-
-func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(ctx *chetypes.DeployContext) (bool, error) {
-	openShiftCaBundleCMKey := types.NamespacedName{
-		Namespace: ctx.CheCluster.Namespace,
-		Name:      constants.DefaultCaBundleCertsCMName,
-	}
-
-	openShiftCaBundleCM := &corev1.ConfigMap{}
-	exists, err := deploy.Get(ctx, openShiftCaBundleCMKey, openShiftCaBundleCM)
-	if err != nil {
-		return false, err
-	}
-
-	if !exists {
-		openShiftCaBundleCM = &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      constants.DefaultCaBundleCertsCMName,
-				Namespace: ctx.CheCluster.Namespace,
-				Labels:    deploy.GetLabels(constants.CheCABundle),
-			},
-		}
-	}
-
-	openShiftCaBundleCM.ObjectMeta.Labels[injectTrustedCaBundle] = "true"
-	openShiftCaBundleCM.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
-	openShiftCaBundleCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey] = constants.CheCABundle
-	openShiftCaBundleCM.TypeMeta = metav1.TypeMeta{
-		Kind:       "ConfigMap",
-		APIVersion: "v1",
-	}
-
-	return deploy.Sync(
-		ctx,
-		openShiftCaBundleCM,
-		cmp.Options{
-			cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
-			cmpopts.IgnoreFields(corev1.ConfigMap{}, "Data"),
-			cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
-				return x.Labels[injectTrustedCaBundle] == y.Labels[injectTrustedCaBundle] &&
-					x.Labels[constants.KubernetesComponentLabelKey] == y.Labels[constants.KubernetesComponentLabelKey]
-			}),
-		},
-	)
 }
 
 func (c *CertificatesReconciler) syncKubernetesCABundleCertificates(ctx *chetypes.DeployContext) (bool, error) {
@@ -356,6 +315,80 @@ func (c *CertificatesReconciler) syncCheCABundleCerts(ctx *chetypes.DeployContex
 	}
 
 	return deploy.Sync(ctx, mergedCABundlesCM, deploy.ConfigMapDiffOpts)
+}
+
+func (c *CertificatesReconciler) syncOpenShiftCertificates(
+	ctx *chetypes.DeployContext,
+	syncCustomOpenShiftCertificateOnly bool) (bool, error) {
+
+	openShiftCertsCMKey := types.NamespacedName{
+		Name:      constants.DefaultCaBundleCertsCMName,
+		Namespace: ctx.CheCluster.Namespace,
+	}
+
+	openShiftCertsCM := &corev1.ConfigMap{}
+	exists, err := deploy.Get(ctx, openShiftCertsCMKey, openShiftCertsCM)
+	if err != nil {
+		return false, err
+	}
+
+	if !exists {
+		openShiftCertsCM = &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.DefaultCaBundleCertsCMName,
+				Namespace: ctx.CheCluster.Namespace,
+			},
+			Data: map[string]string{},
+		}
+	}
+
+	if openShiftCertsCM.ObjectMeta.Labels == nil {
+		openShiftCertsCM.ObjectMeta.Labels = map[string]string{}
+	}
+
+	openShiftCertsCM.ObjectMeta.Labels[injectTrustedCaBundle] = strconv.FormatBool(!syncCustomOpenShiftCertificateOnly)
+	openShiftCertsCM.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
+	openShiftCertsCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey] = constants.CheCABundle
+	openShiftCertsCM.TypeMeta = metav1.TypeMeta{
+		Kind:       "ConfigMap",
+		APIVersion: "v1",
+	}
+
+	if syncCustomOpenShiftCertificateOnly {
+		customCerCMKeyName := conf.Get(conf.CertificatesOpenShiftCustomCertificateConfigMapKeyName)
+		delete(openShiftCertsCM.Data, customCerCMKeyName)
+
+		if ctx.Proxy.TrustedCAMapName != "" {
+			trustedCACMKey := types.NamespacedName{
+				Namespace: conf.Get(conf.CertificatesOpenShiftConfigNamespaceName),
+				Name:      ctx.Proxy.TrustedCAMapName,
+			}
+
+			trustedCACM := &corev1.ConfigMap{}
+			if exists, err = deploy.Get(ctx, trustedCACMKey, trustedCACM); exists {
+				openShiftCertsCM.Data[customCerCMKeyName] = trustedCACM.Data[customCerCMKeyName]
+			} else if err != nil {
+				return false, err
+			}
+		}
+	}
+
+	diffOpts := cmp.Options{
+		cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
+		cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
+			return x.Labels[injectTrustedCaBundle] == y.Labels[injectTrustedCaBundle] &&
+				x.Labels[constants.KubernetesComponentLabelKey] == y.Labels[constants.KubernetesComponentLabelKey] &&
+				x.Labels[constants.KubernetesPartOfLabelKey] == y.Labels[constants.KubernetesPartOfLabelKey]
+		}),
+	}
+
+	if !syncCustomOpenShiftCertificateOnly {
+		// Cluster Network operator add OpenShift CA bundle to the ConfigMap itself
+		// So, ignore Data field to avoid endless sync loop
+		diffOpts = append(diffOpts, cmpopts.IgnoreFields(corev1.ConfigMap{}, "Data"))
+	}
+
+	return deploy.Sync(ctx, openShiftCertsCM, diffOpts)
 }
 
 func readKubernetesCaBundle() ([]byte, error) {

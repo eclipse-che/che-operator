@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -14,6 +14,8 @@ package tls
 
 import (
 	"context"
+	"github.com/eclipse-che/che-operator/pkg/common/conf"
+	"os"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 
@@ -29,11 +31,15 @@ import (
 )
 
 func TestSyncOpenShiftCABundleCertificates(t *testing.T) {
-	ctx := test.GetDeployContext(nil, []runtime.Object{})
+	_ = os.Setenv(conf.CertificatesSyncCustomOpenShiftCertificateOnly.EnvName, "false")
+	defer func() {
+		_ = os.Unsetenv(conf.CertificatesSyncCustomOpenShiftCertificateOnly.EnvName)
+	}()
 
+	ctx := test.GetDeployContext(nil, []runtime.Object{})
 	certificates := NewCertificatesReconciler()
 
-	done, err := certificates.syncOpenShiftCABundleCertificates(ctx)
+	_, done, err := certificates.Reconcile(ctx)
 	assert.Nil(t, err)
 	assert.True(t, done)
 
@@ -45,7 +51,38 @@ func TestSyncOpenShiftCABundleCertificates(t *testing.T) {
 	assert.Equal(t, constants.CheCABundle, cm.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
 }
 
+func TestSyncOpenShiftCustomCertificates(t *testing.T) {
+	openShiftCustomCert := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "custom-ca-bundle",
+			Namespace: "openshift-config",
+		},
+		Data: map[string]string{"ca-bundle.crt": "certs"},
+	}
+
+	ctx := test.GetDeployContext(nil, []runtime.Object{openShiftCustomCert})
+	ctx.Proxy.TrustedCAMapName = "custom-ca-bundle"
+	certificates := NewCertificatesReconciler()
+
+	_, done, err := certificates.Reconcile(ctx)
+	assert.Nil(t, err)
+	assert.True(t, done)
+
+	cm := &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, cm)
+	assert.Nil(t, err)
+	assert.Equal(t, "false", cm.ObjectMeta.Labels[injectTrustedCaBundle])
+	assert.Equal(t, constants.CheEclipseOrg, cm.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, constants.CheCABundle, cm.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, "certs", cm.Data["ca-bundle.crt"])
+}
+
 func TestSyncExistedOpenShiftCABundleCertificates(t *testing.T) {
+	_ = os.Setenv(conf.CertificatesSyncCustomOpenShiftCertificateOnly.EnvName, "false")
+	defer func() {
+		_ = os.Unsetenv(conf.CertificatesSyncCustomOpenShiftCertificateOnly.EnvName)
+	}()
+
 	openShiftCABundleCM := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "ca-certs",
@@ -55,10 +92,10 @@ func TestSyncExistedOpenShiftCABundleCertificates(t *testing.T) {
 		Data: map[string]string{"d": "c"},
 	}
 	ctx := test.GetDeployContext(nil, []runtime.Object{openShiftCABundleCM})
-
 	certificates := NewCertificatesReconciler()
-	_, err := certificates.syncOpenShiftCABundleCertificates(ctx)
-	assert.NoError(t, err)
+
+	_, _, err := certificates.Reconcile(ctx)
+	assert.Nil(t, err)
 
 	cm := &corev1.ConfigMap{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, cm)
@@ -68,6 +105,104 @@ func TestSyncExistedOpenShiftCABundleCertificates(t *testing.T) {
 	assert.Equal(t, constants.CheCABundle, cm.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, "b", cm.ObjectMeta.Labels["a"])
 	assert.Equal(t, "c", cm.Data["d"])
+}
+
+func TestSyncExistedCustomCertificates(t *testing.T) {
+	openShiftCustomCert := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "custom-ca-bundle",
+			Namespace: "openshift-config",
+		},
+		Data: map[string]string{"ca-bundle.crt": "certs"},
+	}
+
+	caCertsCM := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ca-certs",
+			Namespace: "eclipse-che",
+			Labels:    map[string]string{"a": "b"},
+		},
+		Data: map[string]string{"d": "c"},
+	}
+
+	ctx := test.GetDeployContext(nil, []runtime.Object{caCertsCM, openShiftCustomCert})
+	ctx.Proxy.TrustedCAMapName = "custom-ca-bundle"
+	certificates := NewCertificatesReconciler()
+
+	_, _, err := certificates.Reconcile(ctx)
+	assert.Nil(t, err)
+
+	cm := &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, cm)
+	assert.NoError(t, err)
+	assert.Equal(t, "false", cm.ObjectMeta.Labels[injectTrustedCaBundle])
+	assert.Equal(t, constants.CheEclipseOrg, cm.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, constants.CheCABundle, cm.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, "b", cm.ObjectMeta.Labels["a"])
+	assert.Equal(t, "c", cm.Data["d"])
+	assert.Equal(t, "certs", cm.Data["ca-bundle.crt"])
+}
+
+func TestMovingFromSyncBundleToSyncCustomCertsOnly(t *testing.T) {
+	// sync whole bundle
+	_ = os.Setenv(conf.CertificatesSyncCustomOpenShiftCertificateOnly.EnvName, "false")
+	defer func() {
+		_ = os.Unsetenv(conf.CertificatesSyncCustomOpenShiftCertificateOnly.EnvName)
+	}()
+
+	openShiftCustomCert := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "custom-ca-bundle",
+			Namespace: "openshift-config",
+		},
+		Data: map[string]string{"ca-bundle.crt": "certs"},
+	}
+	ctx := test.GetDeployContext(nil, []runtime.Object{openShiftCustomCert})
+	ctx.Proxy.TrustedCAMapName = "custom-ca-bundle"
+	certificates := NewCertificatesReconciler()
+
+	_, _, err := certificates.Reconcile(ctx)
+	assert.Nil(t, err)
+
+	cm := &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, cm)
+	assert.Nil(t, err)
+	assert.Equal(t, "true", cm.ObjectMeta.Labels[injectTrustedCaBundle])
+	assert.Equal(t, constants.CheEclipseOrg, cm.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, constants.CheCABundle, cm.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
+
+	cm.Data = map[string]string{"ca-bundle.crt": "openshift-ca-bundle"}
+	err = ctx.ClusterAPI.Client.Update(context.TODO(), cm)
+	assert.Nil(t, err)
+
+	// switch to sync custom certs only
+	// "ca-bundle.crt" key should contain custom cert
+	_ = os.Setenv(conf.CertificatesSyncCustomOpenShiftCertificateOnly.EnvName, "true")
+
+	_, _, err = certificates.Reconcile(ctx)
+	assert.Nil(t, err)
+
+	cm = &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, cm)
+	assert.Nil(t, err)
+	assert.Equal(t, "false", cm.ObjectMeta.Labels[injectTrustedCaBundle])
+	assert.Equal(t, constants.CheEclipseOrg, cm.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, constants.CheCABundle, cm.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, "certs", cm.Data["ca-bundle.crt"])
+
+	// let's check if there is not any custom cert in the custom cert ConfigMap
+	// "ca-bundle.crt" key should be removed
+	ctx.Proxy.TrustedCAMapName = ""
+	_, _, err = certificates.Reconcile(ctx)
+	assert.Nil(t, err)
+
+	cm = &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, cm)
+	assert.Nil(t, err)
+	assert.Equal(t, "false", cm.ObjectMeta.Labels[injectTrustedCaBundle])
+	assert.Equal(t, constants.CheEclipseOrg, cm.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, constants.CheCABundle, cm.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
+	assert.Empty(t, cm.Data["ca-bundle.crt"])
 }
 
 func TestSyncKubernetesCABundleCertificates(t *testing.T) {

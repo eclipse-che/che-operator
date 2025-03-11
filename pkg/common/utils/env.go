@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -70,7 +70,7 @@ func doGetEnvsByRegExp(regExp string, isArchitectureDependentEnvNameNeeded bool)
 	return env
 }
 
-// GetArchitectureDependentEnvName returns environment variable name dependending on architecture
+// GetArchitectureDependentEnvName returns environment variable name depending on architecture
 // by adding "_<ARCHITECTURE>" suffix. If variable is not set then the default will be return.
 func GetArchitectureDependentEnvName(name string) string {
 	archName := name + "_" + runtime.GOARCH
@@ -79,4 +79,12 @@ func GetArchitectureDependentEnvName(name string) string {
 	}
 
 	return name
+}
+
+// GetEnvOrDefault returns environment variable value or default value if variable is not set.
+func GetEnvOrDefault(name string, defaultValue string) string {
+	if value, ok := os.LookupEnv(name); ok {
+		return value
+	}
+	return defaultValue
 }
