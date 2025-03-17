@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -15,6 +15,8 @@ package deploy
 import (
 	"reflect"
 
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
+
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -29,13 +31,46 @@ var ConfigMapDiffOpts = cmp.Options{
 	}),
 }
 
+// InitConfigMap returns a new ConfigMap Kubernetes object.
+func InitConfigMap(
+	ctx *chetypes.DeployContext,
+	name string,
+	data map[string]string,
+	component string) *corev1.ConfigMap {
+
+	return &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        name,
+			Namespace:   ctx.CheCluster.Namespace,
+			Labels:      GetLabels(component),
+			Annotations: map[string]string{},
+		},
+		Data: data,
+	}
+}
+
+// EnsureConfigMapDefaults ensures that the ConfigMap has all the required fields.
+func EnsureConfigMapDefaults(cm *corev1.ConfigMap) {
+	cm.TypeMeta = metav1.TypeMeta{
+		Kind:       "ConfigMap",
+		APIVersion: "v1",
+	}
+	cm.Data = utils.GetMap(cm.Data, map[string]string{})
+	cm.Labels = utils.GetMap(cm.Labels, map[string]string{})
+	cm.Annotations = utils.GetMap(cm.Annotations, map[string]string{})
+}
+
 func SyncConfigMapDataToCluster(
 	deployContext *chetypes.DeployContext,
 	name string,
 	data map[string]string,
 	component string) (bool, error) {
 
-	configMapSpec := GetConfigMapSpec(deployContext, name, data, component)
+	configMapSpec := InitConfigMap(deployContext, name, data, component)
 	return Sync(deployContext, configMapSpec, ConfigMapDiffOpts)
 }
 
@@ -46,25 +81,33 @@ func SyncConfigMapSpecToCluster(
 	return Sync(deployContext, configMapSpec, ConfigMapDiffOpts)
 }
 
-func GetConfigMapSpec(
-	deployContext *chetypes.DeployContext,
-	name string,
-	data map[string]string,
-	component string) *corev1.ConfigMap {
+// SyncConfigMap synchronizes the ConfigMap with the cluster.
+func SyncConfigMap(
+	ctx *chetypes.DeployContext,
+	cm *corev1.ConfigMap,
+	ensureLabels []string,
+	ensureAnnotations []string) (bool, error) {
 
-	configMap := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        name,
-			Namespace:   deployContext.CheCluster.Namespace,
-			Labels:      GetLabels(component),
-			Annotations: map[string]string{},
-		},
-		Data: data,
+	diffs := cmp.Options{
+		cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
+		GetLabelsAndAnnotationsComparator(ensureLabels, ensureAnnotations),
 	}
 
-	return configMap
+	return Sync(ctx, cm, diffs)
+}
+
+// SyncConfigMapIgnoreData synchronizes the ConfigMap with the cluster ignoring the data field.
+func SyncConfigMapIgnoreData(
+	ctx *chetypes.DeployContext,
+	cm *corev1.ConfigMap,
+	ensureLabels []string,
+	ensureAnnotations []string) (bool, error) {
+
+	diffs := cmp.Options{
+		cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
+		cmpopts.IgnoreFields(corev1.ConfigMap{}, "Data"),
+		GetLabelsAndAnnotationsComparator(ensureLabels, ensureAnnotations),
+	}
+
+	return Sync(ctx, cm, diffs)
 }

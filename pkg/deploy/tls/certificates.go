@@ -19,6 +19,9 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
+
+	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -27,7 +30,6 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -104,6 +106,9 @@ func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(ctx *chetypes
 		Name:      constants.DefaultCaBundleCertsCMName,
 	}
 
+	// Read ConfigMap with trusted CA certificates first.
+	// It might contain custom certificates added there before the doc has been introduced
+	// https://eclipse.dev/che/docs/stable/administration-guide/importing-untrusted-tls-certificates/
 	openShiftCaBundleCM := &corev1.ConfigMap{}
 	exists, err := deploy.Get(ctx, openShiftCaBundleCMKey, openShiftCaBundleCM)
 	if err != nil {
@@ -115,31 +120,58 @@ func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(ctx *chetypes
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      constants.DefaultCaBundleCertsCMName,
 				Namespace: ctx.CheCluster.Namespace,
-				Labels:    deploy.GetLabels(constants.CheCABundle),
 			},
 		}
 	}
 
-	openShiftCaBundleCM.ObjectMeta.Labels[injectTrustedCaBundle] = "true"
-	openShiftCaBundleCM.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
-	openShiftCaBundleCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey] = constants.CheCABundle
-	openShiftCaBundleCM.TypeMeta = metav1.TypeMeta{
-		Kind:       "ConfigMap",
-		APIVersion: "v1",
-	}
+	deploy.EnsureConfigMapDefaults(openShiftCaBundleCM)
+	utils.AddMap(openShiftCaBundleCM.Labels, deploy.GetLabels(constants.CheCABundle))
 
-	return deploy.Sync(
-		ctx,
-		openShiftCaBundleCM,
-		cmp.Options{
-			cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
-			cmpopts.IgnoreFields(corev1.ConfigMap{}, "Data"),
-			cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
-				return x.Labels[injectTrustedCaBundle] == y.Labels[injectTrustedCaBundle] &&
-					x.Labels[constants.KubernetesComponentLabelKey] == y.Labels[constants.KubernetesComponentLabelKey]
-			}),
-		},
-	)
+	if ctx.CheCluster.IsDisableWorkspaceCaBundleMount() {
+		// Remove annotation to stop OpenShift network operator from injecting certificates
+		// https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/networking/configuring-a-custom-pki#certificate-injection-using-operators_configuring-a-custom-pki
+		delete(openShiftCaBundleCM.ObjectMeta.Labels, injectTrustedCaBundle)
+
+		// Remove key where OpenShift network operator injects certificates
+		// https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/networking/configuring-a-custom-pki#certificate-injection-using-operators_configuring-a-custom-pki
+		delete(openShiftCaBundleCM.Data, "ca-bundle.crt")
+
+		// Add only custom certificates added by OpenShift Administrator
+		// https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/security_and_compliance/configuring-certificates#ca-bundle-understanding_updating-ca-bundle
+		if ctx.Proxy.TrustedCAMapName != "" {
+			trustedCACMKey := types.NamespacedName{
+				Namespace: "openshift-config",
+				Name:      ctx.Proxy.TrustedCAMapName,
+			}
+
+			trustedCACM := &corev1.ConfigMap{}
+			if exists, err := deploy.Get(ctx, trustedCACMKey, trustedCACM); exists {
+				openShiftCaBundleCM.Data = utils.CloneMap(trustedCACM.Data)
+			} else if err != nil {
+				return false, err
+			}
+		}
+
+		return deploy.SyncConfigMap(
+			ctx,
+			openShiftCaBundleCM,
+			deploy.GetDefaultKubernetesLabelsWith(injectTrustedCaBundle),
+			[]string{},
+		)
+	} else {
+		// Add annotation to allow OpenShift network operator inject certificates
+		// https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/networking/configuring-a-custom-pki#certificate-injection-using-operators_configuring-a-custom-pki
+		openShiftCaBundleCM.ObjectMeta.Labels[injectTrustedCaBundle] = "true"
+
+		// Ignore Data field to allow OpenShift network operator inject certificates into CM
+		// and avoid endless reconciliation loop
+		return deploy.SyncConfigMapIgnoreData(
+			ctx,
+			openShiftCaBundleCM,
+			deploy.GetDefaultKubernetesLabelsWith(injectTrustedCaBundle),
+			[]string{},
+		)
+	}
 }
 
 func (c *CertificatesReconciler) syncKubernetesCABundleCertificates(ctx *chetypes.DeployContext) (bool, error) {
@@ -148,7 +180,7 @@ func (c *CertificatesReconciler) syncKubernetesCABundleCertificates(ctx *chetype
 		return false, err
 	}
 
-	kubernetesCaBundleCM := deploy.GetConfigMapSpec(
+	kubernetesCaBundleCM := deploy.InitConfigMap(
 		ctx,
 		constants.DefaultCaBundleCertsCMName,
 		map[string]string{kubernetesCABundleCertsFile: string(data)},
@@ -220,7 +252,7 @@ func (c *CertificatesReconciler) syncSelfSignedCertificates(ctx *chetypes.Deploy
 	}
 
 	if len(selfSignedCertSecret.Data["ca.crt"]) > 0 {
-		selfSignedCertCM := deploy.GetConfigMapSpec(
+		selfSignedCertCM := deploy.InitConfigMap(
 			ctx,
 			constants.DefaultSelfSignedCertificateSecretName,
 			map[string]string{
@@ -336,26 +368,36 @@ func (c *CertificatesReconciler) syncCheCABundleCerts(ctx *chetypes.DeployContex
 	}
 
 	// Sync a new ConfigMap with all trusted CA certificates
-	mergedCABundlesCM = deploy.GetConfigMapSpec(
+	mergedCABundlesCM = deploy.InitConfigMap(
 		ctx,
 		CheMergedCABundleCertsCMName,
 		map[string]string{kubernetesCABundleCertsFile: cheCABundlesExpectedContent},
-		defaults.GetCheFlavor(),
+		// Mark ConfigMap as workspace config (will be mounted in all users' containers)
+		constants.WorkspacesConfig,
 	)
 
 	// Add annotations with included config maps revisions
 	mergedCABundlesCM.ObjectMeta.Annotations[cheCABundleIncludedCMRevisions] = cheCABundlesExpectedRevisionsAsString
 
 	if !ctx.CheCluster.IsDisableWorkspaceCaBundleMount() {
-		// Mark ConfigMap as workspace config (will be mounted in all workspace pods)
-		mergedCABundlesCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey] = constants.WorkspacesConfig
-
-		// Set desired mount location
-		mergedCABundlesCM.ObjectMeta.Annotations["controller.devfile.io/mount-as"] = "subpath"
-		mergedCABundlesCM.ObjectMeta.Annotations["controller.devfile.io/mount-path"] = kubernetesCABundleCertsDir
+		// Mount the CA bundle into /etc/pki/ca-trust/extracted/pem
+		mergedCABundlesCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountAsAnnotation] = "subpath"
+		mergedCABundlesCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountPathAnnotation] = kubernetesCABundleCertsDir
+	} else {
+		// Default behavior is to mount the CA bundle into /public-certs
+		mergedCABundlesCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountAsAnnotation] = "file"
+		mergedCABundlesCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountPathAnnotation] = constants.PublicCertsDir
 	}
 
-	return deploy.Sync(ctx, mergedCABundlesCM, deploy.ConfigMapDiffOpts)
+	return deploy.SyncConfigMap(
+		ctx,
+		mergedCABundlesCM,
+		deploy.GetDefaultKubernetesLabelsWith(),
+		[]string{
+			cheCABundleIncludedCMRevisions,
+			dwconstants.DevWorkspaceMountAsAnnotation,
+			dwconstants.DevWorkspaceMountPathAnnotation,
+		})
 }
 
 func readKubernetesCaBundle() ([]byte, error) {

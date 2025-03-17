@@ -202,6 +202,27 @@ func DeleteIgnoreIfNotFound(
 	return err
 }
 
+func GetLabelsAndAnnotationsComparator(
+	ensureLabels []string,
+	ensureAnnotations []string) cmp.Option {
+
+	return cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
+		for _, label := range ensureLabels {
+			if x.Labels[label] != y.Labels[label] {
+				return false
+			}
+		}
+
+		for _, annotation := range ensureAnnotations {
+			if x.Annotations[annotation] != y.Annotations[annotation] {
+				return false
+			}
+		}
+
+		return true
+	})
+}
+
 // doCreate creates object.
 // Return error if object cannot be created otherwise returns nil.
 func doCreate(

@@ -15,6 +15,9 @@ package tls
 import (
 	"context"
 
+	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
+	"k8s.io/utils/pointer"
+
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 
 	"testing"
@@ -31,43 +34,127 @@ import (
 func TestSyncOpenShiftCABundleCertificates(t *testing.T) {
 	ctx := test.GetDeployContext(nil, []runtime.Object{})
 
-	certificates := NewCertificatesReconciler()
+	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
 
-	done, err := certificates.syncOpenShiftCABundleCertificates(ctx)
+	caCertsCM := &corev1.ConfigMap{}
+	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
 	assert.Nil(t, err)
-	assert.True(t, done)
+	assert.Equal(t, "true", caCertsCM.ObjectMeta.Labels[injectTrustedCaBundle])
+	assert.Equal(t, constants.CheEclipseOrg, caCertsCM.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, constants.CheCABundle, caCertsCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
 
-	cm := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, cm)
+	caCertsMergedCM := &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
 	assert.Nil(t, err)
-	assert.Equal(t, "true", cm.ObjectMeta.Labels[injectTrustedCaBundle])
-	assert.Equal(t, constants.CheEclipseOrg, cm.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey])
-	assert.Equal(t, constants.CheCABundle, cm.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, kubernetesCABundleCertsDir, caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
+	assert.Equal(t, "subpath", caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountAsAnnotation])
 }
 
-func TestSyncExistedOpenShiftCABundleCertificates(t *testing.T) {
-	openShiftCABundleCM := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "ca-certs",
-			Namespace: "eclipse-che",
-			Labels:    map[string]string{"a": "b"},
-		},
-		Data: map[string]string{"d": "c"},
-	}
-	ctx := test.GetDeployContext(nil, []runtime.Object{openShiftCABundleCM})
+func TestSyncOnlyCustomOpenShiftCertificates(t *testing.T) {
+	ctx := test.GetDeployContext(
+		nil,
+		[]runtime.Object{
+			&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "custom-openshift-certs-cm",
+					Namespace: "openshift-config",
+				},
+				Data: map[string]string{
+					"ca.crt": "custom-openshift-cert",
+				},
+			}})
+	ctx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: pointer.Bool(true)}
+	ctx.Proxy.TrustedCAMapName = "custom-openshift-certs-cm"
 
-	certificates := NewCertificatesReconciler()
-	_, err := certificates.syncOpenShiftCABundleCertificates(ctx)
-	assert.NoError(t, err)
+	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
 
 	cm := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, cm)
-	assert.NoError(t, err)
-	assert.Equal(t, "true", cm.ObjectMeta.Labels[injectTrustedCaBundle])
+	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, cm)
+	assert.Nil(t, err)
+	assert.Empty(t, cm.ObjectMeta.Labels[injectTrustedCaBundle])
 	assert.Equal(t, constants.CheEclipseOrg, cm.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey])
 	assert.Equal(t, constants.CheCABundle, cm.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
-	assert.Equal(t, "b", cm.ObjectMeta.Labels["a"])
-	assert.Equal(t, "c", cm.Data["d"])
+	assert.Equal(t, "custom-openshift-cert", cm.Data["ca.crt"])
+
+	caCertsMergedCM := &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
+	assert.Nil(t, err)
+	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, constants.PublicCertsDir, caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
+	assert.Equal(t, "file", caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountAsAnnotation])
+}
+
+func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
+	// Enable workspace CA bundle mount
+	ctx := test.GetDeployContext(nil, []runtime.Object{})
+
+	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
+
+	caCertsCM := &corev1.ConfigMap{}
+	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
+	assert.Nil(t, err)
+	assert.Equal(t, "true", caCertsCM.ObjectMeta.Labels[injectTrustedCaBundle])
+	assert.Equal(t, constants.CheEclipseOrg, caCertsCM.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, constants.CheCABundle, caCertsCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
+
+	caCertsMergedCM := &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
+	assert.Nil(t, err)
+	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, kubernetesCABundleCertsDir, caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
+	assert.Equal(t, "subpath", caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountAsAnnotation])
+
+	// Disable workspace CA bundle mount
+	ctx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: pointer.Bool(true)}
+	ctx.Proxy.TrustedCAMapName = "custom-openshift-certs-caCertsCM"
+	err = ctx.ClusterAPI.Client.Create(
+		context.TODO(),
+		&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "custom-openshift-certs-caCertsCM",
+				Namespace: "openshift-config",
+			},
+			Data: map[string]string{
+				"ca.crt": "custom-openshift-cert",
+			},
+		})
+	assert.NoError(t, err)
+
+	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
+
+	caCertsCM = &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
+	assert.Nil(t, err)
+	assert.Empty(t, caCertsCM.ObjectMeta.Labels[injectTrustedCaBundle])
+	assert.Equal(t, constants.CheEclipseOrg, caCertsCM.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, constants.CheCABundle, caCertsCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, "custom-openshift-cert", caCertsCM.Data["ca.crt"])
+
+	caCertsMergedCM = &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
+	assert.Nil(t, err)
+	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, constants.PublicCertsDir, caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
+	assert.Equal(t, "file", caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountAsAnnotation])
+
+	// Enable workspace CA bundle mount
+	ctx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: pointer.Bool(false)}
+	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
+
+	caCertsCM = &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
+	assert.Nil(t, err)
+	assert.Equal(t, "true", caCertsCM.ObjectMeta.Labels[injectTrustedCaBundle])
+	assert.Equal(t, constants.CheEclipseOrg, caCertsCM.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, constants.CheCABundle, caCertsCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
+
+	caCertsMergedCM = &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
+	assert.Nil(t, err)
+	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, kubernetesCABundleCertsDir, caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
+	assert.Equal(t, "subpath", caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountAsAnnotation])
 }
 
 func TestSyncKubernetesCABundleCertificates(t *testing.T) {

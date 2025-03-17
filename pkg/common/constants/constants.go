@@ -128,6 +128,7 @@ const (
 	WorkspacesConfig      = "workspaces-config"
 	InstallOrUpdateFailed = "InstallOrUpdateFailed"
 	FinalizerSuffix       = "finalizers.che.eclipse.org"
+	PublicCertsDir        = "/public-certs"
 
 	// DevWorkspace
 	DevWorkspaceServiceAccountName = "devworkspace-controller-serviceaccount"
