@@ -146,7 +146,7 @@ func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(ctx *chetypes
 
 			trustedCACM := &corev1.ConfigMap{}
 			if exists, err := deploy.Get(ctx, trustedCACMKey, trustedCACM); exists {
-				openShiftCaBundleCM.Data = utils.CloneMap(trustedCACM.Data)
+				openShiftCaBundleCM.Data["ca-bundle.crt"] = trustedCACM.Data["ca-bundle.crt"]
 			} else if err != nil {
 				return false, err
 			}
@@ -371,10 +371,14 @@ func (c *CertificatesReconciler) syncCheCABundleCerts(ctx *chetypes.DeployContex
 	mergedCABundlesCM = deploy.InitConfigMap(
 		ctx,
 		CheMergedCABundleCertsCMName,
-		map[string]string{kubernetesCABundleCertsFile: cheCABundlesExpectedContent},
+		map[string]string{},
 		// Mark ConfigMap as workspace config (will be mounted in all users' containers)
 		constants.WorkspacesConfig,
 	)
+
+	if len(strings.TrimSpace(cheCABundlesExpectedContent)) != 0 {
+		mergedCABundlesCM.Data[kubernetesCABundleCertsFile] = cheCABundlesExpectedContent
+	}
 
 	// Add annotations with included config maps revisions
 	mergedCABundlesCM.ObjectMeta.Annotations[cheCABundleIncludedCMRevisions] = cheCABundlesExpectedRevisionsAsString
