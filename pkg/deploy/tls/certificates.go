@@ -37,8 +37,6 @@ import (
 )
 
 const (
-	// OpenShift annotation to inject trusted CA bundle
-	injectTrustedCaBundle       = "config.openshift.io/inject-trusted-cabundle"
 	kubernetesRootCACertsCMName = "kube-root-ca.crt"
 	kubernetesCABundleCertsDir  = "/etc/pki/ca-trust/extracted/pem"
 	kubernetesCABundleCertsFile = "tls-ca-bundle.pem"
@@ -124,13 +122,20 @@ func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(ctx *chetypes
 		}
 	}
 
-	deploy.EnsureConfigMapDefaults(openShiftCaBundleCM)
+	// Ensure TypeMeta to avoid "cause: no version "" has been registered in scheme" error
+	openShiftCaBundleCM.TypeMeta = metav1.TypeMeta{
+		Kind:       "ConfigMap",
+		APIVersion: "v1",
+	}
+
+	openShiftCaBundleCM.Labels = utils.GetMapOrDefault(openShiftCaBundleCM.Labels, map[string]string{})
 	utils.AddMap(openShiftCaBundleCM.Labels, deploy.GetLabels(constants.CheCABundle))
 
 	if ctx.CheCluster.IsDisableWorkspaceCaBundleMount() {
 		// Remove annotation to stop OpenShift network operator from injecting certificates
 		// https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/networking/configuring-a-custom-pki#certificate-injection-using-operators_configuring-a-custom-pki
-		delete(openShiftCaBundleCM.ObjectMeta.Labels, injectTrustedCaBundle)
+		delete(openShiftCaBundleCM.ObjectMeta.Labels, constants.ConfigOpenShiftIOInjectTrustedCaBundle)
+		delete(openShiftCaBundleCM.ObjectMeta.Annotations, constants.OpenShiftIOOwningComponent)
 
 		// Remove key where OpenShift network operator injects certificates
 		// https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/networking/configuring-a-custom-pki#certificate-injection-using-operators_configuring-a-custom-pki
@@ -146,6 +151,7 @@ func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(ctx *chetypes
 
 			trustedCACM := &corev1.ConfigMap{}
 			if exists, err := deploy.Get(ctx, trustedCACMKey, trustedCACM); exists {
+				openShiftCaBundleCM.Data = utils.GetMapOrDefault(openShiftCaBundleCM.Data, map[string]string{})
 				openShiftCaBundleCM.Data["ca-bundle.crt"] = trustedCACM.Data["ca-bundle.crt"]
 			} else if err != nil {
 				return false, err
@@ -155,20 +161,20 @@ func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(ctx *chetypes
 		return deploy.SyncConfigMap(
 			ctx,
 			openShiftCaBundleCM,
-			deploy.GetDefaultKubernetesLabelsWith(injectTrustedCaBundle),
+			deploy.GetDefaultKubernetesLabelsWith(constants.ConfigOpenShiftIOInjectTrustedCaBundle),
 			[]string{},
 		)
 	} else {
 		// Add annotation to allow OpenShift network operator inject certificates
 		// https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/networking/configuring-a-custom-pki#certificate-injection-using-operators_configuring-a-custom-pki
-		openShiftCaBundleCM.ObjectMeta.Labels[injectTrustedCaBundle] = "true"
+		openShiftCaBundleCM.ObjectMeta.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle] = "true"
 
 		// Ignore Data field to allow OpenShift network operator inject certificates into CM
 		// and avoid endless reconciliation loop
 		return deploy.SyncConfigMapIgnoreData(
 			ctx,
 			openShiftCaBundleCM,
-			deploy.GetDefaultKubernetesLabelsWith(injectTrustedCaBundle),
+			deploy.GetDefaultKubernetesLabelsWith(constants.ConfigOpenShiftIOInjectTrustedCaBundle),
 			[]string{},
 		)
 	}

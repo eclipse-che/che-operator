@@ -40,7 +40,7 @@ func TestSyncOpenShiftCABundleCertificates(t *testing.T) {
 	caCertsCM := &corev1.ConfigMap{}
 	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
 	assert.Nil(t, err)
-	assert.Equal(t, "true", caCertsCM.ObjectMeta.Labels[injectTrustedCaBundle])
+	assert.Equal(t, "true", caCertsCM.ObjectMeta.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
 	assert.Equal(t, constants.CheEclipseOrg, caCertsCM.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey])
 	assert.Equal(t, constants.CheCABundle, caCertsCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
 
@@ -62,7 +62,7 @@ func TestSyncEmptyOpenShiftCABundleCertificates(t *testing.T) {
 	caCertsCM := &corev1.ConfigMap{}
 	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
 	assert.NoError(t, err)
-	assert.Equal(t, "true", caCertsCM.ObjectMeta.Labels[injectTrustedCaBundle])
+	assert.Equal(t, "true", caCertsCM.ObjectMeta.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
 	assert.Equal(t, constants.CheEclipseOrg, caCertsCM.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey])
 	assert.Equal(t, constants.CheCABundle, caCertsCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
 
@@ -104,7 +104,7 @@ func TestSyncOnlyCustomOpenShiftCertificates(t *testing.T) {
 	cm := &corev1.ConfigMap{}
 	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, cm)
 	assert.Nil(t, err)
-	assert.Empty(t, cm.ObjectMeta.Labels[injectTrustedCaBundle])
+	assert.Empty(t, cm.ObjectMeta.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
 	assert.Equal(t, constants.CheEclipseOrg, cm.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey])
 	assert.Equal(t, constants.CheCABundle, cm.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, "openshift-cert", cm.Data["ca-bundle.crt"])
@@ -294,7 +294,7 @@ func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 	caCertsCM := &corev1.ConfigMap{}
 	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
 	assert.Nil(t, err)
-	assert.Equal(t, "true", caCertsCM.ObjectMeta.Labels[injectTrustedCaBundle])
+	assert.Equal(t, "true", caCertsCM.ObjectMeta.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
 	assert.Equal(t, constants.CheEclipseOrg, caCertsCM.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey])
 	assert.Equal(t, constants.CheCABundle, caCertsCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
 
@@ -323,7 +323,7 @@ func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 	caCertsCM = &corev1.ConfigMap{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
 	assert.Nil(t, err)
-	assert.Empty(t, caCertsCM.ObjectMeta.Labels[injectTrustedCaBundle])
+	assert.Empty(t, caCertsCM.ObjectMeta.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
 	assert.Equal(t, constants.CheEclipseOrg, caCertsCM.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey])
 	assert.Equal(t, constants.CheCABundle, caCertsCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, "openshift-cert", caCertsCM.Data["ca-bundle.crt"])
@@ -345,7 +345,7 @@ func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 	caCertsCM = &corev1.ConfigMap{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
 	assert.Nil(t, err)
-	assert.Equal(t, "true", caCertsCM.ObjectMeta.Labels[injectTrustedCaBundle])
+	assert.Equal(t, "true", caCertsCM.ObjectMeta.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
 	assert.Equal(t, constants.CheEclipseOrg, caCertsCM.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey])
 	assert.Equal(t, constants.CheCABundle, caCertsCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
 

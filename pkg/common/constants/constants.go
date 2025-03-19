@@ -91,6 +91,8 @@ const (
 	CheEclipseOrgScmServerEndpoint                  = "che.eclipse.org/scm-server-endpoint"
 	CheEclipseOrgManagedAnnotationsDigest           = "che.eclipse.org/managed-annotations-digest"
 	CheEclipseOrgScmGitHubDisableSubdomainIsolation = "che.eclipse.org/scm-github-disable-subdomain-isolation"
+	OpenShiftIOOwningComponent                      = "openshift.io/owning-component"
+	ConfigOpenShiftIOInjectTrustedCaBundle          = "config.openshift.io/inject-trusted-cabundle"
 
 	// DevEnvironments
 	PerUserPVCStorageStrategy      = "per-user"

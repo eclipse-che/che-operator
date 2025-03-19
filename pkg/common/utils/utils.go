@@ -153,7 +153,7 @@ func GetPullPolicyFromDockerImage(dockerImage string) string {
 	return "IfNotPresent"
 }
 
-func GetMap(value map[string]string, defaultValue map[string]string) map[string]string {
+func GetMapOrDefault(value map[string]string, defaultValue map[string]string) map[string]string {
 	ret := value
 	if len(value) < 1 {
 		ret = defaultValue
@@ -224,6 +224,9 @@ func AddMap(a map[string]string, b map[string]string) {
 func MergeMaps(maps []map[string]string) map[string]string {
 	result := make(map[string]string)
 	for _, m := range maps {
+		//if m == nil {
+		//	continue
+		//}
 		for k, v := range m {
 			result[k] = v
 		}

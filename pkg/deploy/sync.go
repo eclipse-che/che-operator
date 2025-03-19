@@ -203,17 +203,17 @@ func DeleteIgnoreIfNotFound(
 }
 
 func GetLabelsAndAnnotationsComparator(
-	ensureLabels []string,
-	ensureAnnotations []string) cmp.Option {
+	ensuredLabels []string,
+	ensuredAnnotations []string) cmp.Option {
 
 	return cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
-		for _, label := range ensureLabels {
+		for _, label := range ensuredLabels {
 			if x.Labels[label] != y.Labels[label] {
 				return false
 			}
 		}
 
-		for _, annotation := range ensureAnnotations {
+		for _, annotation := range ensuredAnnotations {
 			if x.Annotations[annotation] != y.Annotations[annotation] {
 				return false
 			}

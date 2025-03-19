@@ -15,8 +15,6 @@ package deploy
 import (
 	"reflect"
 
-	"github.com/eclipse-che/che-operator/pkg/common/utils"
-
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -53,17 +51,6 @@ func InitConfigMap(
 	}
 }
 
-// EnsureConfigMapDefaults ensures that the ConfigMap has all the required fields.
-func EnsureConfigMapDefaults(cm *corev1.ConfigMap) {
-	cm.TypeMeta = metav1.TypeMeta{
-		Kind:       "ConfigMap",
-		APIVersion: "v1",
-	}
-	cm.Data = utils.GetMap(cm.Data, map[string]string{})
-	cm.Labels = utils.GetMap(cm.Labels, map[string]string{})
-	cm.Annotations = utils.GetMap(cm.Annotations, map[string]string{})
-}
-
 func SyncConfigMapDataToCluster(
 	deployContext *chetypes.DeployContext,
 	name string,
@@ -85,12 +72,12 @@ func SyncConfigMapSpecToCluster(
 func SyncConfigMap(
 	ctx *chetypes.DeployContext,
 	cm *corev1.ConfigMap,
-	ensureLabels []string,
-	ensureAnnotations []string) (bool, error) {
+	ensuredLabels []string,
+	ensuredAnnotations []string) (bool, error) {
 
 	diffs := cmp.Options{
 		cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
-		GetLabelsAndAnnotationsComparator(ensureLabels, ensureAnnotations),
+		GetLabelsAndAnnotationsComparator(ensuredLabels, ensuredAnnotations),
 	}
 
 	return Sync(ctx, cm, diffs)
@@ -100,13 +87,13 @@ func SyncConfigMap(
 func SyncConfigMapIgnoreData(
 	ctx *chetypes.DeployContext,
 	cm *corev1.ConfigMap,
-	ensureLabels []string,
-	ensureAnnotations []string) (bool, error) {
+	ensuredLabels []string,
+	ensuredAnnotations []string) (bool, error) {
 
 	diffs := cmp.Options{
 		cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
 		cmpopts.IgnoreFields(corev1.ConfigMap{}, "Data"),
-		GetLabelsAndAnnotationsComparator(ensureLabels, ensureAnnotations),
+		GetLabelsAndAnnotationsComparator(ensuredLabels, ensuredAnnotations),
 	}
 
 	return Sync(ctx, cm, diffs)
