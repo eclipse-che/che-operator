@@ -224,9 +224,6 @@ func AddMap(a map[string]string, b map[string]string) {
 func MergeMaps(maps []map[string]string) map[string]string {
 	result := make(map[string]string)
 	for _, m := range maps {
-		//if m == nil {
-		//	continue
-		//}
 		for k, v := range m {
 			result[k] = v
 		}
