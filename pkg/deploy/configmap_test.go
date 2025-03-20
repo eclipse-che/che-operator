@@ -94,14 +94,14 @@ func TestSyncConfigMapSpecDataToCluster(t *testing.T) {
 		},
 	}
 
-	spec := GetConfigMapSpec(deployContext, "test", map[string]string{"a": "b"}, "che")
+	spec := InitConfigMap(deployContext, "test", map[string]string{"a": "b"}, "che")
 	done, err := SyncConfigMapSpecToCluster(deployContext, spec)
 	if !done || err != nil {
 		t.Fatalf("Failed to sync config map: %v", err)
 	}
 
 	// check if labels
-	spec = GetConfigMapSpec(deployContext, "test", map[string]string{"a": "b"}, "che")
+	spec = InitConfigMap(deployContext, "test", map[string]string{"a": "b"}, "che")
 	spec.ObjectMeta.Labels = map[string]string{"l": "v"}
 	_, err = SyncConfigMapSpecToCluster(deployContext, spec)
 	if err != nil {

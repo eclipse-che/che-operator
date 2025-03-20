@@ -268,15 +268,6 @@ func TestCreatesDataInNamespace(t *testing.T) {
 		assert.Equal(t, corev1.SecretTypeOpaque, cert.Type, "Unexpected secret type")
 		assert.Equal(t, true, *cert.Immutable, "Unexpected mutability of the secret")
 
-		caCerts := corev1.ConfigMap{}
-		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-trusted-ca-certs", Namespace: namespace.GetName()}, &caCerts))
-		assert.Equal(t, "file", caCerts.GetAnnotations()[dwconstants.DevWorkspaceMountAsAnnotation], "trusted certs should be annotated as mount as 'file'")
-		assert.Equal(t, "/public-certs", caCerts.GetAnnotations()[dwconstants.DevWorkspaceMountPathAnnotation], "trusted certs annotated as mounted to an unexpected path")
-		assert.Equal(t, "true", caCerts.GetLabels()[dwconstants.DevWorkspaceMountLabel], "trusted certs should be labeled as mounted")
-		assert.Equal(t, 2, len(caCerts.Data), "Expecting exactly 2 data entries in the trusted cert config map")
-		assert.Equal(t, "trusted cert 1", string(caCerts.Data["trusted1"]), "Unexpected trusted cert 1 value")
-		assert.Equal(t, "trusted cert 2", string(caCerts.Data["trusted2"]), "Unexpected trusted cert 2 value")
-
 		gitTlsConfig := corev1.ConfigMap{}
 		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-git-tls-creds", Namespace: namespace.GetName()}, &gitTlsConfig))
 		assert.Equal(t, "true", gitTlsConfig.Labels[dwconstants.DevWorkspaceGitTLSLabel])

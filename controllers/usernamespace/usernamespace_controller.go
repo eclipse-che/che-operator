@@ -310,55 +310,14 @@ func (r *CheUserNamespaceReconciler) reconcileTrustedCerts(ctx context.Context, 
 	if err := deleteLegacyObject("trusted-ca-certs", &corev1.ConfigMap{}, targetNs, checluster, deployContext); err != nil {
 		return err
 	}
-	targetConfigMapName := prefixedName("trusted-ca-certs")
 
-	delConfigMap := func() error {
-		_, err := deploy.Delete(deployContext, client.ObjectKey{Name: targetConfigMapName, Namespace: targetNs}, &corev1.ConfigMap{})
-		return err
-	}
+	// Remove trusted-ca-certs ConfigMap from the target namespace to reduce the number of ConfigMaps
+	// and avoid mounting the same certificates under different paths.
+	// See cerificates#syncCheCABundleCerts
+	trustedCACertsCMKey := client.ObjectKey{Name: prefixedName("trusted-ca-certs"), Namespace: targetNs}
+	_, err := deploy.Delete(deployContext, trustedCACertsCMKey, &corev1.ConfigMap{})
 
-	sourceMap := &corev1.ConfigMap{}
-	if err := r.client.Get(ctx, client.ObjectKey{Name: tls.CheMergedCABundleCertsCMName, Namespace: checluster.Namespace}, sourceMap); err != nil {
-		if !errors.IsNotFound(err) {
-			return err
-		}
-
-		return delConfigMap()
-	}
-
-	targetMap := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      targetConfigMapName,
-			Namespace: targetNs,
-			Labels: defaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
-				dwconstants.DevWorkspaceMountLabel:          "true",
-				dwconstants.DevWorkspaceWatchConfigMapLabel: "true",
-			}),
-			Annotations: addToFirst(sourceMap.Annotations, map[string]string{
-				dwconstants.DevWorkspaceMountAsAnnotation:   "file",
-				dwconstants.DevWorkspaceMountPathAnnotation: "/public-certs",
-			}),
-		},
-		Data: sourceMap.Data,
-	}
-
-	_, err := deploy.Sync(deployContext, targetMap, deploy.ConfigMapDiffOpts)
 	return err
-}
-
-func addToFirst(first map[string]string, second map[string]string) map[string]string {
-	if first == nil {
-		first = map[string]string{}
-	}
-	for k, v := range second {
-		first[k] = v
-	}
-
-	return first
 }
 
 func (r *CheUserNamespaceReconciler) reconcileProxySettings(ctx context.Context, targetNs string, checluster *chev2.CheCluster, deployContext *chetypes.DeployContext) error {
