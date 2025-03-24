@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -17,6 +17,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	securityv1 "github.com/openshift/api/security/v1"
 
@@ -85,26 +87,9 @@ func CompareResources(actualDeployment *appsv1.Deployment, expected TestExpected
 	)
 }
 
-func AssertEqualEnvVars(t *testing.T, expected []corev1.EnvVar, actual []corev1.EnvVar) {
-	assert.Equal(t, len(expected), len(actual))
-	for _, expectedEnvVar := range expected {
-		found := true
-		for _, actualEnvVar := range actual {
-			if expectedEnvVar.Name == actualEnvVar.Name && expectedEnvVar.Value == actualEnvVar.Value {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			t.Errorf("Expected env var %s=%s not found", expectedEnvVar.Name, expectedEnvVar.Value)
-		}
-	}
-}
-
 func ValidateSecurityContext(actualDeployment *appsv1.Deployment, t *testing.T) {
 	assert.Equal(t, corev1.Capability("ALL"), actualDeployment.Spec.Template.Spec.Containers[0].SecurityContext.Capabilities.Drop[0])
-	assert.Equal(t, pointer.BoolPtr(false), actualDeployment.Spec.Template.Spec.Containers[0].SecurityContext.AllowPrivilegeEscalation)
+	assert.Equal(t, pointer.Bool(false), actualDeployment.Spec.Template.Spec.Containers[0].SecurityContext.AllowPrivilegeEscalation)
 }
 
 func compareQuantity(resource string, actualQuantity *resource.Quantity, expected string, t *testing.T) {
@@ -164,7 +149,7 @@ func GetResourceQuantity(value string, defaultValue string) resource.Quantity {
 }
 
 func EnableTestMode() {
-	os.Setenv("MOCK_API", "1")
+	_ = os.Setenv("MOCK_API", "1")
 }
 
 func IsTestMode() bool {
@@ -215,4 +200,21 @@ func GetDeployContext(cheCluster *chev2.CheCluster, initObjs []runtime.Object) *
 		Proxy:   &chetypes.Proxy{},
 		CheHost: strings.TrimPrefix(cheCluster.Status.CheURL, "https://"),
 	}
+}
+
+// EnsureReconcile runs the testReconcileFunc until it returns done=true or 10 iterations
+func EnsureReconcile(
+	t *testing.T,
+	ctx *chetypes.DeployContext,
+	testReconcileFunc func(ctx *chetypes.DeployContext) (result reconcile.Result, done bool, err error)) {
+
+	for i := 0; i < 10; i++ {
+		_, done, err := testReconcileFunc(ctx)
+		assert.NoError(t, err)
+		if done {
+			return
+		}
+	}
+
+	assert.Fail(t, "Reconcile did not finish in 10 iterations")
 }
