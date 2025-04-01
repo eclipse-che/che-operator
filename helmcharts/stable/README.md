@@ -1,8 +1,7 @@
 # Eclipse Che Helm Charts
 
-A collaborative Kubernetes-native development solution that delivers Kubernetes workspaces and in-browser IDE for rapid cloud application development. This operator installs  Plugin registry, Devfile registry and the Eclipse Che server, as well as configures all these services.
-
 - [Charts](#charts)
+  - [About](#about)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
 
@@ -10,53 +9,94 @@ A collaborative Kubernetes-native development solution that delivers Kubernetes 
 
 Helm charts to deploy [Eclipse Che](https://www.eclipse.org/che/)
 
+### About
+
+Eclipse Che is a cloud-based, Kubernetes-native development environment designed to
+simplify and enhance the developer experience. It provides fully containerized workspaces,
+allowing developers to write, build, and debug applications in a consistent
+and reproducible manner. Eclipse Che eliminates the need for complex local setups
+by offering pre-configured development environments that run in the cloud,
+making collaboration easier across teams.
+
+#### Key Features
+
+* Cloud-Native Workspaces
+* Integrated Development Environment (IDE)
+* Kubernetes and OpenShift Support
+* Preconfigured Stacks
+* Team Collaboration
+* Secure and Scalable
+
+Eclipse Che simplifies onboarding, development, and collaboration 
+by bringing full-fledged development environments to the cloud. 
+
+For a detailed introduction to Eclipse Che, refer to the official documentation:  
+https://eclipse.dev/che/docs/stable/overview/introduction-to-eclipse-che/
+
 ### Prerequisites
 
 * Minimal Kubernetes version is 1.19
 * Minimal [Helm](https://helm.sh/) version is 3.2.2
-* [Cert manager](https://cert-manager.io/docs/installation/) installed
-* [OIDC Identity Provider](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#configuring-the-api-server) configured
+* [Cert manager](https://cert-manager.io/docs/installation/helm/) installed
+* [DevWorkspace operator](https://github.com/devfile/devworkspace-operator?tab=readme-ov-file#devworkspace-operator-installation) installed
+* [OIDC Identity Provider](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#configuring-the-api-server) configured on the cluster
 
 ### Installation
 
-Create `ecipse-che` namespace
-
-```
+1. Create `ecipse-che` namespace
+```sh
 kubectl create namespace eclipse-che
 ```
-
-Install `Eclipse Che Operator` by following instructions in top right button `Install`.
-A new pod che-operator is created in `eclipse-che` namespace
-
-```bash
-$ kubectl get pods -n eclipse-che
-eclipse-che   che-operator-554c564476-fl98z                           1/1     Running   0          13s
+2. Install the Eclipse Che Operator by clicking the `Install` button 
+in the top-right corner and follow the instructions. Wait until the Operator is ready:
+```sh
+kubectl wait \
+      --namespace eclipse-che \
+      --timeout 90s \
+      --for=condition=ready pod \
+      --selector=app.kubernetes.io/component=che-operator
 ```
 
-Click `CRDS` button, select `CheCluster` template and copy custom resource Eclipse Che to file `org_v2_checluster.yaml`.
-Set the following fields:
-- `spec.networking.domain`
-- `spec.networking.auth.identityProviderURL`
-- `spec.networking.auth.oAuthClientName`
-- `spec.networking.auth.oAuthSecret`
-
-4. Apply CR:
-```bash
-$ kubectl apply -f org_v2_checluster.yaml -n eclipse-che
-```
-Also, you can use `kubectl edit checluster/eclipse-che -n eclipse-che` to update Eclipse Che configuration.
-See more configuration options in the [Installation guide](https://www.eclipse.org/che/docs/che-7/installation-guide/configuring-the-che-installation/).
-
-The deployment process can be tracked by looking at the Operator logs by using the command:
-
-```bash
-$ kubectl logs -l app.kubernetes.io/component=che-operator -n eclipse-che -f
+3. Click the `CRDs` button, select the `CheCluster` template, and then click the `Download` button.
+Update the downloaded file `eclipse-che-CheCluster.yaml` by setting the following fields:
+```yaml
+spec:
+  networking:
+    domain: <...>
+    auth:
+      identityProviderURL: <...>
+      oAuthClientName: <...>
+      oAuthSecret: <...>
 ```
 
-When all Eclipse Che containers are running, the Eclipse Che URL is printed in the logs:
+For more information on how to configure the `CheCluster`, see the [CheCluster Custom Resource fields reference](https://eclipse.dev/che/docs/stable/administration-guide/checluster-custom-resource-fields-reference/#checluster-custom-resource-networking-settings).
 
-```bash
-time="2019-08-01T13:31:05Z" level=info msg="Eclipse Che is now available at: http://che-eclipse-che.gcp.my-ide.cloud"
+4. Create CheCluster CR:
+```sh
+kubectl apply -f eclipse-che-CheCluster.yaml -n eclipse-che
 ```
 
-By opening this URL in a web browser, Eclipse Che is ready to use.
+5. Wait until the Eclipse Che is ready:
+```sh
+kubectl wait checluster/eclipse-che \
+      --namespace eclipse-che \
+      --for=jsonpath='{.status.chePhase}'=Active \
+      --timeout=360s
+```
+
+You can monitor the deployment process by viewing the Operator logs:
+```sh
+kubectl logs \
+    --namespace eclipse-che \
+    --selector app.kubernetes.io/component=che-operator \
+    --follow
+```
+
+6. Open the Eclipse Che URL in a web browser:
+```sh
+kubectl get checluster/eclipse-che \
+    --namespace eclipse-che \
+    --output jsonpath="{.status.cheURL}"
+```
+
+Eclipse Che is ready to use!
