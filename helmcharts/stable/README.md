@@ -37,11 +37,67 @@ https://eclipse.dev/che/docs/stable/overview/introduction-to-eclipse-che/
 
 * Minimal Kubernetes version is 1.19
 * Minimal [Helm](https://helm.sh/) version is 3.2.2
-* [Cert manager](https://cert-manager.io/docs/installation/helm/) installed
-* [DevWorkspace operator](https://github.com/devfile/devworkspace-operator?tab=readme-ov-file#devworkspace-operator-installation) installed
-* [OIDC Identity Provider](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#configuring-the-api-server) configured on the cluster
 
 ### Installation
+
+#### Install [Cert Manager](https://cert-manager.io/docs/installation/helm/) using `Helm`
+
+```sh
+CERT_MANAGER_VERSION=v1.17.0
+
+helm repo add jetstack https://charts.jetstack.io --force-update
+helm install \
+  cert-manager jetstack/cert-manager \
+  --namespace cert-manager \
+  --create-namespace \
+  --version ${CERT_MANAGER_VERSION} \
+  --set crds.enabled=true
+```
+
+#### Install [DevWorkspace operator](https://github.com/devfile/devworkspace-operator) using `kubectl`
+
+1. Create `devworkspace-controller` namespace:
+```sh
+kubectl create namespace devworkspace-controller
+```
+
+2. Install the DevWorkspace Operator.
+Check the [DevWorkspace Operator releases page](https://github.com/devfile/devworkspace-operator/tags) to find the latest version.
+```sh
+DEVWORKSPACE_OPERATOR_VERSION=v0.33.0
+kubectl apply -f https://github.com/devfile/devworkspace-operator/raw/refs/tags/"${DEVWORKSPACE_OPERATOR_VERSION}"/deploy/deployment/kubernetes/combined.yaml 
+```
+
+
+3. Wait until the DevWorkspace Operator pods are ready:
+```sh
+kubectl wait --namespace devworkspace-controller \
+      --timeout 90s \
+      --for=condition=ready pod \
+      --selector=app.kubernetes.io/part-of=devworkspace-operator
+```
+
+3. Create the `DevWorkspaceOperatorConfig`, replacing `<CLUSTER_HOST_SUFFIX>` 
+with the public domain name of the Kubernetes cluster.
+```sh
+kubectl apply -f - <<EOF
+apiVersion: controller.devfile.io/v1alpha1
+kind: DevWorkspaceOperatorConfig
+metadata:
+  name: devworkspace-operator-config
+  namespace: devworkspace-controller
+config:
+  routing:
+    clusterHostSuffix: "<CLUSTER_HOST_SUFFIX>"
+EOF
+```
+
+#### Configure [OIDC Identity Provider](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#configuring-the-api-server) on the cluster.
+
+Note that every Kubernetes cluster has its own specific configuration requirements 
+for setting up an OIDC provider, such as unique issuer URLs, client IDs, and redirect URIs. 
+
+#### Install [Eclipse Che Operator](https://github.com/eclipse-che/che-operator) using Helm
 
 1. Create `ecipse-che` namespace
 ```sh
