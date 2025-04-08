@@ -1,4 +1,4 @@
-# Copyright (c) 2019-2023 Red Hat, Inc.
+# Copyright (c) 2019-2025 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -9,16 +9,25 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-# https://registry.access.redhat.com/ubi8/go-toolset
-FROM registry.access.redhat.com/ubi8/go-toolset:1.22.9-1 as builder
-ENV GOPATH=/go/ \
-    CGO_ENABLED=1
+# https://registry.access.redhat.com/ubi8
+FROM registry.access.redhat.com/ubi8:8.10-1184.1741863532 as builder
+ENV GOPATH=/go
+ENV CGO_ENABLED=1
 ARG DEV_HEADER_REWRITE_TRAEFIK_PLUGIN="main"
 ARG SKIP_TESTS="false"
 USER root
 
-# update RPMs
-RUN dnf -y update
+### Start installing go
+ENV GO_VERSION=1.23.8
+ENV GOROOT=/usr/local/go
+ENV PATH=$PATH:$GOROOT/bin
+RUN dnf install unzip gcc -y
+RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH="amd64"; elif [[ ${ARCH} == "aarch64" ]]; then export ARCH="arm64"; fi && \
+    curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" -o go.tar.gz && \
+    tar -C /usr/local -xzf go.tar.gz && \
+    rm go.tar.gz
+RUN go version
+### End installing go
 
 # upstream, download zips for every build
 # downstream, copy prefetched asset-*.zip into /tmp
