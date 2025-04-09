@@ -15,6 +15,8 @@ package usernamespace
 import (
 	"context"
 	"fmt"
+	"os"
+	"regexp"
 	"strings"
 
 	networkingv1 "k8s.io/api/networking/v1"
@@ -46,9 +48,11 @@ const (
 )
 
 type WorkspacesConfigReconciler struct {
-	scheme         *runtime.Scheme
-	client         client.Client
-	namespaceCache *namespaceCache
+	scheme                        *runtime.Scheme
+	client                        client.Client
+	namespaceCache                *namespaceCache
+	labelsToRemoveBeforeSync      []*regexp.Regexp
+	annotationsToRemoveBeforeSync []*regexp.Regexp
 }
 
 type Object2Sync interface {
@@ -67,6 +71,11 @@ type syncContext struct {
 	syncConfig   map[string]string
 }
 
+const (
+	envLabelsToRemoveBeforeSync      = "CHE_OPERATOR_WORKSPACES_CONFIG_CONTROLLER_LABELS_TO_REMOVE_BEFORE_SYNC_REGEXP"
+	envAnnotationsToRemoveBeforeSync = "CHE_OPERATOR_WORKSPACES_CONFIG_CONTROLLER_ANNOTATIONS_TO_REMOVE_BEFORE_SYNC_REGEXP"
+)
+
 var (
 	logger                  = ctrl.Log.WithName("workspaces-config")
 	wsConfigComponentLabels = map[string]string{
@@ -81,10 +90,31 @@ func NewWorkspacesConfigReconciler(
 	scheme *runtime.Scheme,
 	namespaceCache *namespaceCache) *WorkspacesConfigReconciler {
 
+	labelsToRemoveBeforeSyncAsString := os.Getenv(envLabelsToRemoveBeforeSync)
+	annotationsToRemoveBeforeSyncAsString := os.Getenv(envAnnotationsToRemoveBeforeSync)
+
+	var labelsToRemoveBeforeSync []*regexp.Regexp
+	for _, label := range strings.Split(labelsToRemoveBeforeSyncAsString, ",") {
+		label = strings.TrimSpace(label)
+		if label != "" {
+			labelsToRemoveBeforeSync = append(labelsToRemoveBeforeSync, regexp.MustCompile(label))
+		}
+	}
+
+	var annotationsToRemoveBeforeSync []*regexp.Regexp
+	for _, annotation := range strings.Split(annotationsToRemoveBeforeSyncAsString, ",") {
+		annotation = strings.TrimSpace(annotation)
+		if annotation != "" {
+			annotationsToRemoveBeforeSync = append(annotationsToRemoveBeforeSync, regexp.MustCompile(annotation))
+		}
+	}
+
 	return &WorkspacesConfigReconciler{
-		scheme:         scheme,
-		client:         client,
-		namespaceCache: namespaceCache,
+		scheme:                        scheme,
+		client:                        client,
+		namespaceCache:                namespaceCache,
+		labelsToRemoveBeforeSync:      labelsToRemoveBeforeSync,
+		annotationsToRemoveBeforeSync: annotationsToRemoveBeforeSync,
 	}
 }
 
@@ -389,6 +419,24 @@ func (r *WorkspacesConfigReconciler) syncObject(syncContext *syncContext) error 
 				constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel(),
 			},
 		}))
+
+	// Removes labels that are not needed in the destination namespace
+	for _, l := range r.labelsToRemoveBeforeSync {
+		for label := range dstObj.GetLabels() {
+			if l.MatchString(label) {
+				delete(dstObj.GetLabels(), label)
+			}
+		}
+	}
+
+	// Removes annotations that are not needed in the destination namespace
+	for _, a := range r.annotationsToRemoveBeforeSync {
+		for annotation := range dstObj.GetAnnotations() {
+			if a.MatchString(annotation) {
+				delete(dstObj.GetAnnotations(), annotation)
+			}
+		}
+	}
 
 	if err := r.syncObjectIfDiffers(syncContext, dstObj); err != nil {
 		logger.Error(err, "Failed to sync object",

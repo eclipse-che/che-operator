@@ -44,11 +44,12 @@ func (p *configMap2Sync) newDstObject() client.Object {
 		Name:        p.cm.GetName(),
 		Annotations: p.cm.GetAnnotations(),
 		Labels: utils.MergeMaps([]map[string]string{
-			p.cm.GetLabels(),
 			{
 				dwconstants.DevWorkspaceWatchConfigMapLabel: "true",
 				dwconstants.DevWorkspaceMountLabel:          "true",
-			}}),
+			},
+			p.cm.GetLabels(),
+		}),
 	}
 
 	return dst.(client.Object)

@@ -44,11 +44,12 @@ func (p *secret2Sync) newDstObject() client.Object {
 		Name:        p.secret.GetName(),
 		Annotations: p.secret.GetAnnotations(),
 		Labels: utils.MergeMaps([]map[string]string{
-			p.secret.GetLabels(),
 			{
 				dwconstants.DevWorkspaceWatchSecretLabel: "true",
 				dwconstants.DevWorkspaceMountLabel:       "true",
-			}}),
+			},
+			p.secret.GetLabels(),
+		}),
 	}
 
 	return dst.(client.Object)

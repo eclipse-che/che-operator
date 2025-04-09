@@ -14,6 +14,7 @@ package usernamespace
 
 import (
 	"context"
+	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	"sync"
 	"testing"
 
@@ -328,4 +329,150 @@ func assertSyncConfig(t *testing.T, workspaceConfigReconciler *WorkspacesConfigR
 		assert.Contains(t, cm.Data, buildKey(gkv, objectName, userNamespace))
 		assert.Contains(t, cm.Data, buildKey(gkv, objectName, eclipseCheNamespace))
 	}
+}
+
+func TestSyncConfigMapShouldRespectDWOLabels(t *testing.T) {
+	deployContext := test.GetDeployContext(nil, []runtime.Object{
+		&corev1.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ConfigMap",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      objectName,
+				Namespace: "eclipse-che",
+				Labels: map[string]string{
+					constants.KubernetesPartOfLabelKey:          constants.CheEclipseOrg,
+					constants.KubernetesComponentLabelKey:       constants.WorkspacesConfig,
+					dwconstants.DevWorkspaceWatchConfigMapLabel: "false",
+					dwconstants.DevWorkspaceMountLabel:          "false",
+				},
+			},
+		}})
+
+	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
+		deployContext.ClusterAPI.Client,
+		deployContext.ClusterAPI.Scheme,
+		&namespaceCache{
+			client: deployContext.ClusterAPI.Client,
+			knownNamespaces: map[string]namespaceInfo{
+				userNamespace: {
+					IsWorkspaceNamespace: true,
+					Username:             "user",
+					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
+				},
+			},
+			lock: sync.Mutex{},
+		})
+
+	// Sync ConfigMap
+	err := workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
+	assert.Nil(t, err)
+	assertSyncConfig(t, workspaceConfigReconciler, 2, v1ConfigMapGKV)
+
+	// Check ConfigMap in a user namespace is created
+	cm := &corev1.ConfigMap{}
+	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, cm)
+	assert.Nil(t, err)
+	assert.Equal(t, constants.WorkspacesConfig, cm.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, constants.CheEclipseOrg, cm.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, "false", cm.Labels[dwconstants.DevWorkspaceWatchConfigMapLabel])
+	assert.Equal(t, "false", cm.Labels[dwconstants.DevWorkspaceMountLabel])
+
+	// Update DWO labels in dst ConfigMap
+	cm = &corev1.ConfigMap{}
+	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, cm)
+	assert.Nil(t, err)
+	utils.AddMap(cm.Labels, map[string]string{
+		dwconstants.DevWorkspaceWatchConfigMapLabel: "true",
+		dwconstants.DevWorkspaceMountLabel:          "true",
+	})
+	err = workspaceConfigReconciler.client.Update(context.TODO(), cm)
+	assert.Nil(t, err)
+
+	// Sync ConfigMap
+	err = workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
+	assert.Nil(t, err)
+	assertSyncConfig(t, workspaceConfigReconciler, 2, v1ConfigMapGKV)
+
+	// Check that dst ConfigMap is reverted
+	cm = &corev1.ConfigMap{}
+	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, cm)
+	assert.Nil(t, err)
+	assert.Equal(t, "false", cm.Labels[dwconstants.DevWorkspaceWatchConfigMapLabel])
+	assert.Equal(t, "false", cm.Labels[dwconstants.DevWorkspaceMountLabel])
+
+	// Update src ConfigMap
+	cm = &corev1.ConfigMap{}
+	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInCheNs, cm)
+	assert.Nil(t, err)
+	utils.AddMap(cm.Labels, map[string]string{
+		dwconstants.DevWorkspaceWatchConfigMapLabel: "true",
+		dwconstants.DevWorkspaceMountLabel:          "true",
+	})
+	err = workspaceConfigReconciler.client.Update(context.TODO(), cm)
+	assert.Nil(t, err)
+
+	// Sync ConfigMap
+	err = workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
+	assert.Nil(t, err)
+	assertSyncConfig(t, workspaceConfigReconciler, 2, v1ConfigMapGKV)
+
+	// Check that destination ConfigMap is updated
+	cm = &corev1.ConfigMap{}
+	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, cm)
+	assert.Nil(t, err)
+	assert.Equal(t, constants.WorkspacesConfig, cm.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, constants.CheEclipseOrg, cm.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, "true", cm.Labels[dwconstants.DevWorkspaceWatchConfigMapLabel])
+	assert.Equal(t, "true", cm.Labels[dwconstants.DevWorkspaceMountLabel])
+}
+
+func TestSyncConfigMapShouldRemoveSomeLabels(t *testing.T) {
+	deployContext := test.GetDeployContext(nil, []runtime.Object{
+		&corev1.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ConfigMap",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      objectName,
+				Namespace: "eclipse-che",
+				Labels: map[string]string{
+					constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+					constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
+					"argocd.argoproj.io/instance":         "argocd",
+					"argocd.argoproj.io/managed-by":       "argocd",
+				},
+			},
+		}})
+
+	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
+		deployContext.ClusterAPI.Client,
+		deployContext.ClusterAPI.Scheme,
+		&namespaceCache{
+			client: deployContext.ClusterAPI.Client,
+			knownNamespaces: map[string]namespaceInfo{
+				userNamespace: {
+					IsWorkspaceNamespace: true,
+					Username:             "user",
+					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
+				},
+			},
+			lock: sync.Mutex{},
+		})
+
+	// Sync ConfigMap
+	err := workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
+	assert.Nil(t, err)
+	assertSyncConfig(t, workspaceConfigReconciler, 2, v1ConfigMapGKV)
+
+	// Check ConfigMap in a user namespace is created
+	cm := &corev1.ConfigMap{}
+	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, cm)
+	assert.Nil(t, err)
+	assert.Equal(t, constants.WorkspacesConfig, cm.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, constants.CheEclipseOrg, cm.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Empty(t, cm.Labels["argocd.argoproj.io/instance"])
+	assert.Empty(t, cm.Labels["argocd.argoproj.io/managed-by"])
 }
