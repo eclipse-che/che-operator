@@ -17,6 +17,8 @@ import (
 	"sync"
 	"testing"
 
+	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
+
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
@@ -318,4 +320,150 @@ func TestSyncSecretShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 	assert.Equal(t, "new-label-value", secret.Labels["new-label"])
 	assert.Equal(t, "annotation-value-2", secret.Annotations["annotation"])
 	assert.Equal(t, "new-annotation-value", secret.Annotations["new-annotation"])
+}
+
+func TestSyncSecretShouldRespectDWOLabels(t *testing.T) {
+	deployContext := test.GetDeployContext(nil, []runtime.Object{
+		&corev1.Secret{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Secret",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      objectName,
+				Namespace: "eclipse-che",
+				Labels: map[string]string{
+					constants.KubernetesPartOfLabelKey:       constants.CheEclipseOrg,
+					constants.KubernetesComponentLabelKey:    constants.WorkspacesConfig,
+					dwconstants.DevWorkspaceWatchSecretLabel: "false",
+					dwconstants.DevWorkspaceMountLabel:       "false"},
+			},
+		}})
+
+	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
+		deployContext.ClusterAPI.Client,
+		deployContext.ClusterAPI.Scheme,
+		&namespaceCache{
+			client: deployContext.ClusterAPI.Client,
+			knownNamespaces: map[string]namespaceInfo{
+				userNamespace: {
+					IsWorkspaceNamespace: true,
+					Username:             "user",
+					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
+				},
+			},
+			lock: sync.Mutex{},
+		})
+
+	// Sync Secret
+	err := workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
+	assert.Nil(t, err)
+	assertSyncConfig(t, workspaceConfigReconciler, 2, v1SecretGKV)
+
+	// Check Secret in a user namespace is created
+	secret := &corev1.Secret{}
+	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, secret)
+	assert.Nil(t, err)
+	assert.Equal(t, constants.WorkspacesConfig, secret.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, constants.CheEclipseOrg, secret.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, "false", secret.Labels[dwconstants.DevWorkspaceWatchSecretLabel])
+	assert.Equal(t, "false", secret.Labels[dwconstants.DevWorkspaceMountLabel])
+
+	// Update labels in dst Secret
+	secret = &corev1.Secret{}
+	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, secret)
+	assert.Nil(t, err)
+	utils.AddMap(secret.Labels, map[string]string{
+		dwconstants.DevWorkspaceWatchSecretLabel: "true",
+		dwconstants.DevWorkspaceMountLabel:       "true",
+	})
+	err = workspaceConfigReconciler.client.Update(context.TODO(), secret)
+	assert.Nil(t, err)
+
+	// Sync Secret
+	err = workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
+	assert.Nil(t, err)
+	assertSyncConfig(t, workspaceConfigReconciler, 2, v1SecretGKV)
+
+	// Check that destination Secret is reverted
+	secret = &corev1.Secret{}
+	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, secret)
+	assert.Nil(t, err)
+	assert.Equal(t, constants.WorkspacesConfig, secret.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, constants.CheEclipseOrg, secret.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, "false", secret.Labels[dwconstants.DevWorkspaceWatchSecretLabel])
+	assert.Equal(t, "false", secret.Labels[dwconstants.DevWorkspaceMountLabel])
+
+	// Update src Secret
+	secret = &corev1.Secret{}
+	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInCheNs, secret)
+	assert.Nil(t, err)
+	utils.AddMap(secret.Labels, map[string]string{
+		dwconstants.DevWorkspaceWatchSecretLabel: "true",
+		dwconstants.DevWorkspaceMountLabel:       "true",
+	})
+	err = workspaceConfigReconciler.client.Update(context.TODO(), secret)
+	assert.Nil(t, err)
+
+	// Sync Secret
+	err = workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
+	assert.Nil(t, err)
+	assertSyncConfig(t, workspaceConfigReconciler, 2, v1SecretGKV)
+
+	// Check that destination Secret is updated
+	secret = &corev1.Secret{}
+	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, secret)
+	assert.Nil(t, err)
+	assert.Equal(t, constants.WorkspacesConfig, secret.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, constants.CheEclipseOrg, secret.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, "true", secret.Labels[dwconstants.DevWorkspaceWatchSecretLabel])
+	assert.Equal(t, "true", secret.Labels[dwconstants.DevWorkspaceMountLabel])
+}
+
+func TestSyncSecretShouldRemoveSomeLabels(t *testing.T) {
+	deployContext := test.GetDeployContext(nil, []runtime.Object{
+		&corev1.Secret{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Secret",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      objectName,
+				Namespace: "eclipse-che",
+				Labels: map[string]string{
+					constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+					constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
+					"argocd.argoproj.io/instance":         "argocd",
+					"argocd.argoproj.io/managed-by":       "argocd"},
+			},
+		}})
+
+	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
+		deployContext.ClusterAPI.Client,
+		deployContext.ClusterAPI.Scheme,
+		&namespaceCache{
+			client: deployContext.ClusterAPI.Client,
+			knownNamespaces: map[string]namespaceInfo{
+				userNamespace: {
+					IsWorkspaceNamespace: true,
+					Username:             "user",
+					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
+				},
+			},
+			lock: sync.Mutex{},
+		})
+
+	// Sync Secret
+	err := workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
+	assert.Nil(t, err)
+	assertSyncConfig(t, workspaceConfigReconciler, 2, v1SecretGKV)
+
+	// Check Secret in a user namespace is created
+	secret := &corev1.Secret{}
+	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, secret)
+	assert.Nil(t, err)
+	assert.Equal(t, constants.WorkspacesConfig, secret.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, constants.CheEclipseOrg, secret.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Empty(t, secret.Labels["argocd.argoproj.io/instance"])
+	assert.Empty(t, secret.Labels["argocd.argoproj.io/managed-by"])
 }
