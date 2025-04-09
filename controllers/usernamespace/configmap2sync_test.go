@@ -14,9 +14,10 @@ package usernamespace
 
 import (
 	"context"
-	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	"sync"
 	"testing"
+
+	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"

@@ -14,9 +14,10 @@ package usernamespace
 
 import (
 	"context"
-	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	"sync"
 	"testing"
+
+	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 
 	"k8s.io/apimachinery/pkg/types"
 
