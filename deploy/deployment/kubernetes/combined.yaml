@@ -9191,6 +9191,10 @@ spec:
         - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_CONTAINERSECURITYCONTEXT
           value: '{"allowPrivilegeEscalation": true,"capabilities": {"add": ["SETGID",
             "SETUID"]}}'
+        - name: CHE_OPERATOR_WORKSPACES_CONFIG_CONTROLLER_LABELS_TO_REMOVE_BEFORE_SYNC_REGEXP
+          value: argocd[.]argoproj[.]io/.+
+        - name: CHE_OPERATOR_WORKSPACES_CONFIG_CONTROLLER_ANNOTATIONS_TO_REMOVE_BEFORE_SYNC_REGEXP
+          value: ""
         image: quay.io/eclipse/che-operator:7.100.0
         imagePullPolicy: IfNotPresent
         livenessProbe:
