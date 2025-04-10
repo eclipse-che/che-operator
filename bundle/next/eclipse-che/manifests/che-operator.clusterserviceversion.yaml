@@ -108,7 +108,7 @@ metadata:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.arm64: supported
     operatorframework.io/os.linux: supported
-  name: eclipse-che.v7.102.0-904.next
+  name: eclipse-che.v7.100.0-903.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1080,7 +1080,7 @@ spec:
   minKubeVersion: 1.19.0
   provider:
     name: Eclipse Foundation
-  version: 7.102.0-904.next
+  version: 7.100.0-903.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1
