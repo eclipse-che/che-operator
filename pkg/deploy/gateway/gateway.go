@@ -238,7 +238,7 @@ func DeleteGatewayRouteConfig(componentName string, deployContext *chetypes.Depl
 func getGatewayServerConfigSpec(deployContext *chetypes.DeployContext) (corev1.ConfigMap, error) {
 	cfg := CreateCommonTraefikConfig(
 		serverComponentName,
-		"PathPrefix(`/api`, `/swagger`, `/_app`)",
+		"PathPrefix(`/api`) || PathPrefix(`/swagger`) || PathPrefix(`/_app`)",
 		10,
 		"http://"+deploy.CheServiceName+":8080",
 		[]string{})
