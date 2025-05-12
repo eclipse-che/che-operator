@@ -108,7 +108,7 @@ metadata:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.arm64: supported
     operatorframework.io/os.linux: supported
-  name: eclipse-che.v7.102.0-905.next
+  name: eclipse-che.v7.103.0-906.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -955,7 +955,7 @@ spec:
                         value: che-incubator/che-code/latest
                       - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTCOMPONENTS
                         value: '[{"name": "universal-developer-image", "container":
-                          {"image": "quay.io/devfile/universal-developer-image:ubi8-latest"}}]'
+                          {"image": "quay.io/devfile/universal-developer-image:ubi9-latest"}}]'
                       - name: CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL
                         value: https://open-vsx.org
                       - name: CHE_DEFAULT_SPEC_COMPONENTS_DEVFILEREGISTRY_EXTERNAL_DEVFILE_REGISTRIES
@@ -1080,7 +1080,7 @@ spec:
   minKubeVersion: 1.19.0
   provider:
     name: Eclipse Foundation
-  version: 7.102.0-905.next
+  version: 7.103.0-906.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1
