@@ -29,8 +29,9 @@ init() {
 build() {
   printf "%bBuilding image %b${IMAGE_NAME}${NC}..." "${BOLD}" "${BLUE}"
   if docker build -t ${IMAGE_NAME} > docker-build-log 2>&1  -<<EOF
-  FROM golang:1.19.13-bullseye
-  RUN apt update && apt install python3-pip skopeo jq rsync unzip -y && pip install yq && \
+  FROM golang:1.23-bookworm
+  RUN apt update && apt install python3-pip skopeo jq rsync unzip -y && \
+    pip install --break-system-packages yq && \
     curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
     install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && \
     go install golang.org/x/tools/cmd/goimports@latest && \
