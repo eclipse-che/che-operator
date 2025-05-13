@@ -9143,19 +9143,19 @@ spec:
         - name: OPERATOR_NAME
           value: che-operator
         - name: CHE_VERSION
-          value: next
+          value: 7.103.0
         - name: RELATED_IMAGE_che_server
-          value: quay.io/eclipse/che-server:next
+          value: quay.io/eclipse/che-server:7.103.0
         - name: RELATED_IMAGE_dashboard
-          value: quay.io/eclipse/che-dashboard:next
+          value: quay.io/eclipse/che-dashboard:7.103.0
         - name: RELATED_IMAGE_plugin_registry
-          value: quay.io/eclipse/che-plugin-registry:next
+          value: quay.io/eclipse/che-plugin-registry:7.103.0
         - name: RELATED_IMAGE_che_tls_secrets_creation_job
           value: quay.io/eclipse/che-tls-secret-creator:9f9d4a6
         - name: RELATED_IMAGE_single_host_gateway
           value: quay.io/eclipse/che--traefik:v3.3.5-104204dadedf5d1284f8ef8f97f705649ac81aa6f7a6c9abf13e2c59245b8abc
         - name: RELATED_IMAGE_single_host_gateway_config_sidecar
-          value: quay.io/che-incubator/configbump:next
+          value: quay.io/che-incubator/configbump:7.103.0
         - name: RELATED_IMAGE_gateway_authentication_sidecar
           value: quay.io/openshift/origin-oauth-proxy:4.9
         - name: RELATED_IMAGE_gateway_authorization_sidecar
@@ -9197,8 +9197,8 @@ spec:
           value: argocd[.]argoproj[.]io/.+
         - name: CHE_OPERATOR_WORKSPACES_CONFIG_CONTROLLER_ANNOTATIONS_TO_REMOVE_BEFORE_SYNC_REGEXP
           value: ""
-        image: quay.io/eclipse/che-operator:next
-        imagePullPolicy: Always
+        image: quay.io/eclipse/che-operator:7.103.0
+        imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 10
           httpGet:
