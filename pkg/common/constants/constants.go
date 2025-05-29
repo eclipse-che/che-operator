@@ -133,6 +133,8 @@ const (
 	PublicCertsDir        = "/public-certs"
 
 	// DevWorkspace
+	DevWorkspaceControllerName     = "devworkspace-controller"
+	DevWorkspaceOperatorName       = "devworkspace-operator"
 	DevWorkspaceServiceAccountName = "devworkspace-controller-serviceaccount"
 	DefaultContainerBuildSccName   = "container-build"
 )
