@@ -33,17 +33,24 @@ import (
 )
 
 func TestContainerBuildReconciler(t *testing.T) {
-	dwSA := &corev1.ServiceAccount{
+	dwPod := &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "ServiceAccount",
+			Kind:       "Pod",
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.DevWorkspaceServiceAccountName,
+			Name:      "devworkspace-controller",
 			Namespace: "eclipse-che",
+			Labels: map[string]string{
+				constants.KubernetesNameLabelKey:   constants.DevWorkspaceControllerName,
+				constants.KubernetesPartOfLabelKey: constants.DevWorkspaceOperatorName,
+			},
+		},
+		Spec: corev1.PodSpec{
+			ServiceAccountName: constants.DevWorkspaceServiceAccountName,
 		},
 	}
-	ctx := test.GetDeployContext(nil, []runtime.Object{dwSA})
+	ctx := test.GetDeployContext(nil, []runtime.Object{dwPod})
 	containerBuildReconciler := NewContainerBuildReconciler()
 
 	_, done, err := containerBuildReconciler.Reconcile(ctx)
@@ -83,18 +90,25 @@ func TestContainerBuildReconciler(t *testing.T) {
 }
 
 func TestSyncAndRemoveRBAC(t *testing.T) {
-	dwSA := &corev1.ServiceAccount{
+	dwPod := &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "ServiceAccount",
+			Kind:       "Pod",
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.DevWorkspaceServiceAccountName,
+			Name:      "devworkspace-controller",
 			Namespace: "eclipse-che",
+			Labels: map[string]string{
+				constants.KubernetesNameLabelKey:   constants.DevWorkspaceControllerName,
+				constants.KubernetesPartOfLabelKey: constants.DevWorkspaceOperatorName,
+			},
+		},
+		Spec: corev1.PodSpec{
+			ServiceAccountName: constants.DevWorkspaceServiceAccountName,
 		},
 	}
-	ctx := test.GetDeployContext(nil, []runtime.Object{dwSA})
-	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.BoolPtr(false)
+	ctx := test.GetDeployContext(nil, []runtime.Object{dwPod})
+	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.Bool(false)
 	ctx.CheCluster.Spec.DevEnvironments.ContainerBuildConfiguration = &chev2.ContainerBuildConfiguration{OpenShiftSecurityContextConstraint: "scc"}
 
 	containerBuildReconciler := NewContainerBuildReconciler()
@@ -118,7 +132,7 @@ func TestSyncAndRemoveRBAC(t *testing.T) {
 
 func TestSyncAndRemoveSCC(t *testing.T) {
 	ctx := test.GetDeployContext(nil, []runtime.Object{})
-	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.BoolPtr(false)
+	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.Bool(false)
 	ctx.CheCluster.Spec.DevEnvironments.ContainerBuildConfiguration = &chev2.ContainerBuildConfiguration{OpenShiftSecurityContextConstraint: "scc"}
 
 	containerBuildReconciler := NewContainerBuildReconciler()

@@ -16,6 +16,10 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/labels"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -237,22 +241,26 @@ func (cb *ContainerBuildReconciler) getDevWorkspaceSccClusterRoleBindingSpec(ctx
 	}, nil
 }
 
+// getDevWorkspaceServiceAccountNamespace returns the namespace of the DevWorkspace ServiceAccount.
+// It searches for the DevWorkspace Operator Pods by its labels.
 func (cb *ContainerBuildReconciler) getDevWorkspaceServiceAccountNamespace(ctx *chetypes.DeployContext) (string, error) {
-	crb := &rbacv1.ClusterRoleBinding{}
-	if exists, err := deploy.GetClusterObject(ctx, GetDevWorkspaceSccRbacResourcesName(), crb); err != nil {
+	selector, err := labels.Parse(fmt.Sprintf(
+		"%s=%s,%s=%s",
+		constants.KubernetesNameLabelKey, constants.DevWorkspaceControllerName,
+		constants.KubernetesPartOfLabelKey, constants.DevWorkspaceOperatorName))
+	if err != nil {
 		return "", err
-	} else if exists {
-		return crb.Subjects[0].Namespace, nil
-	} else {
-		sas := &corev1.ServiceAccountList{}
-		if err := ctx.ClusterAPI.NonCachingClient.List(context.TODO(), sas); err != nil {
-			return "", err
-		}
+	}
+	options := &client.ListOptions{LabelSelector: selector}
 
-		for _, sa := range sas.Items {
-			if sa.Name == constants.DevWorkspaceServiceAccountName {
-				return sa.Namespace, nil
-			}
+	pods := &corev1.PodList{}
+	if err = ctx.ClusterAPI.NonCachingClient.List(context.TODO(), pods, options); err != nil {
+		return "", err
+	}
+
+	for _, pod := range pods.Items {
+		if pod.Spec.ServiceAccountName == constants.DevWorkspaceServiceAccountName {
+			return pod.Namespace, nil
 		}
 	}
 
