@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -290,7 +290,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	workspacesConfigReconciler := usernamespace.NewWorkspacesConfigReconciler(mgr.GetClient(), mgr.GetScheme(), namespacechace)
+	workspacesConfigReconciler := usernamespace.NewWorkspacesConfigReconciler(mgr.GetClient(), nonCachingClient, mgr.GetScheme(), namespacechace)
 	if err = workspacesConfigReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to set up controller", "controller", "WorkspacesConfigReconciler")
 		os.Exit(1)
