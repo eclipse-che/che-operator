@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2024 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -31,6 +31,63 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+func TestRecreateObjectIfAlreadyExists(t *testing.T) {
+	// Actual object in a user namespace
+	srcObject := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "user-che",
+		},
+		Data: map[string]string{
+			"key": "value",
+		},
+	}
+
+	// Expected object in a user namespace
+	dstObject := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "user-che",
+		},
+		Data: map[string]string{
+			"new-key": "new-value",
+		},
+	}
+
+	ctx := test.GetDeployContext(nil, []runtime.Object{srcObject})
+
+	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
+		ctx.ClusterAPI.Client,
+		ctx.ClusterAPI.Client,
+		ctx.ClusterAPI.Scheme,
+		NewNamespaceCache(ctx.ClusterAPI.NonCachingClient))
+
+	syncContext := &syncContext{
+		dstNamespace: "user-che",
+		srcNamespace: "eclipse-che",
+		object2Sync:  &configMap2Sync{cm: srcObject},
+		syncConfig:   map[string]string{},
+	}
+
+	err := workspaceConfigReconciler.doCreateObject(syncContext, dstObject)
+	assert.NoError(t, err)
+
+	cm := &corev1.ConfigMap{}
+	exists, err := deploy.Get(ctx, types.NamespacedName{Namespace: "user-che", Name: "test"}, cm)
+	assert.NoError(t, err)
+	assert.True(t, exists)
+	assert.Equal(t, 1, len(cm.Data))
+	assert.Equal(t, "new-value", cm.Data["new-key"])
+}
+
 func TestDeleteIfObjectIsObsolete(t *testing.T) {
 	ctx := test.GetDeployContext(nil, []runtime.Object{
 		&corev1.ConfigMap{
@@ -46,6 +103,7 @@ func TestDeleteIfObjectIsObsolete(t *testing.T) {
 	})
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
+		ctx.ClusterAPI.Client,
 		ctx.ClusterAPI.Client,
 		ctx.ClusterAPI.Scheme,
 		NewNamespaceCache(ctx.ClusterAPI.NonCachingClient))
@@ -103,6 +161,7 @@ func TestGetEmptySyncConfig(t *testing.T) {
 	ctx := test.GetDeployContext(nil, []runtime.Object{})
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
+		ctx.ClusterAPI.Client,
 		ctx.ClusterAPI.Client,
 		ctx.ClusterAPI.Scheme,
 		NewNamespaceCache(ctx.ClusterAPI.NonCachingClient))

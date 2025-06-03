@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2024 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -50,6 +50,7 @@ const (
 type WorkspacesConfigReconciler struct {
 	scheme                        *runtime.Scheme
 	client                        client.Client
+	nonCachedClient               client.Client
 	namespaceCache                *namespaceCache
 	labelsToRemoveBeforeSync      []*regexp.Regexp
 	annotationsToRemoveBeforeSync []*regexp.Regexp
@@ -87,6 +88,7 @@ var (
 
 func NewWorkspacesConfigReconciler(
 	client client.Client,
+	nonCachedClient client.Client,
 	scheme *runtime.Scheme,
 	namespaceCache *namespaceCache) *WorkspacesConfigReconciler {
 
@@ -112,6 +114,7 @@ func NewWorkspacesConfigReconciler(
 	return &WorkspacesConfigReconciler{
 		scheme:                        scheme,
 		client:                        client,
+		nonCachedClient:               nonCachedClient,
 		namespaceCache:                namespaceCache,
 		labelsToRemoveBeforeSync:      labelsToRemoveBeforeSync,
 		annotationsToRemoveBeforeSync: annotationsToRemoveBeforeSync,
@@ -520,14 +523,35 @@ func (r *WorkspacesConfigReconciler) doCreateObject(
 	syncContext *syncContext,
 	dstObj client.Object) error {
 
-	if err := r.client.Create(syncContext.ctx, dstObj); err != nil {
-		return err
+	err := r.client.Create(syncContext.ctx, dstObj)
+	if err != nil {
+		if !errors.IsAlreadyExists(err) {
+			return err
+		}
+
+		// AlreadyExists Error might happen if object already exists and doesn't contain
+		// `app.kubernetes.io/part-of=che.eclipse.org` label (is not cached)
+		// 1. Delete the object from a destination namespace using non-cached client
+		// 2. Create the object again using cached client
+		if err = deploy.DeleteIgnoreIfNotFound(
+			syncContext.ctx,
+			r.nonCachedClient,
+			types.NamespacedName{
+				Name:      dstObj.GetName(),
+				Namespace: dstObj.GetNamespace(),
+			},
+			dstObj); err != nil {
+			return err
+		}
+
+		if err = r.client.Create(syncContext.ctx, dstObj); err != nil {
+			return err
+		}
 	}
 
 	logger.Info("Object created", "namespace", dstObj.GetNamespace(),
 		"kind", gvk2PrintString(syncContext.object2Sync.getGKV()),
 		"name", dstObj.GetName())
-
 	return nil
 }
 
