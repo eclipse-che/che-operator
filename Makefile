@@ -456,11 +456,12 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 	CRDS_OWNED=$$(yq  '.spec.customresourcedefinitions.owned' "$(PROJECT_DIR)/config/manifests/bases/che-operator.clusterserviceversion.yaml")
 	yq -riSY ".spec.customresourcedefinitions.owned = $${CRDS_OWNED}" "$${CSV_PATH}"
 
-	# Kustomize won't set default values
-	# Update deployment explicitly
+	# Ensure pod security standards
 	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostIPC") = false' "$${CSV_PATH}"
 	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostNetwork") = false' "$${CSV_PATH}"
 	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostPID") = false' "$${CSV_PATH}"
+	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.securityContext.seccompProfile.type) = "RuntimeDefault"' "$${CSV_PATH}"
+	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext.runAsNonRoot) = true' "$${CSV_PATH}"
 
 	# Fix examples by removing some special characters
 	FIXED_ALM_EXAMPLES=$$(yq -r '.metadata.annotations["alm-examples"]' $${CSV_PATH}  | sed -r 's/"/\\"/g')
