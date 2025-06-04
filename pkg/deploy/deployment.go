@@ -264,16 +264,24 @@ func EnsurePodSecurityStandards(deployment *appsv1.Deployment, userId int64, gro
 		if deployment.Spec.Template.Spec.Containers[i].SecurityContext == nil {
 			deployment.Spec.Template.Spec.Containers[i].SecurityContext = &corev1.SecurityContext{}
 		}
-		deployment.Spec.Template.Spec.Containers[i].SecurityContext.AllowPrivilegeEscalation = pointer.BoolPtr(false)
+
+		deployment.Spec.Template.Spec.Containers[i].SecurityContext.AllowPrivilegeEscalation = pointer.Bool(false)
 		deployment.Spec.Template.Spec.Containers[i].SecurityContext.Capabilities = &corev1.Capabilities{Drop: []corev1.Capability{"ALL"}}
+		deployment.Spec.Template.Spec.Containers[i].SecurityContext.RunAsNonRoot = pointer.Bool(true)
+	}
+
+	if deployment.Spec.Template.Spec.SecurityContext == nil {
+		deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{}
 	}
 
 	if !infrastructure.IsOpenShift() {
-		if deployment.Spec.Template.Spec.SecurityContext == nil {
-			deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{}
+		deployment.Spec.Template.Spec.SecurityContext.RunAsUser = pointer.Int64(userId)
+		deployment.Spec.Template.Spec.SecurityContext.FSGroup = pointer.Int64(groupId)
+	} else {
+		if deployment.Spec.Template.Spec.SecurityContext.SeccompProfile == nil {
+			deployment.Spec.Template.Spec.SecurityContext.SeccompProfile = &corev1.SeccompProfile{}
 		}
-		deployment.Spec.Template.Spec.SecurityContext.RunAsUser = pointer.Int64Ptr(userId)
-		deployment.Spec.Template.Spec.SecurityContext.FSGroup = pointer.Int64Ptr(groupId)
+		deployment.Spec.Template.Spec.SecurityContext.SeccompProfile.Type = corev1.SeccompProfileTypeRuntimeDefault
 	}
 }
 
