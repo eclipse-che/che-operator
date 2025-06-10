@@ -65,6 +65,7 @@ COPY --from=builder /tmp/header-rewrite-traefik-plugin /tmp/header-rewrite-traef
 COPY --from=builder /tmp/editors-definitions /tmp/editors-definitions
 COPY --from=builder /che-operator/che-operator /manager
 
+USER 1001
 ENTRYPOINT ["/manager"]
 
 # append Brew metadata here
