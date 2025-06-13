@@ -161,6 +161,7 @@ func updateWorkspaceStorageConfig(devEnvironments *chev2.CheClusterDevEnvironmen
 	}[pvcStrategy]
 
 	if pvc != nil {
+		workspaceConfig.StorageAccessMode = pvc.StorageAccessMode
 		if pvc.StorageClass != "" {
 			workspaceConfig.StorageClassName = &pvc.StorageClass
 		}
