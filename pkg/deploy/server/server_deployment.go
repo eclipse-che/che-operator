@@ -41,11 +41,6 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 
 	terminationGracePeriodSeconds := int64(30)
 	labels, labelSelector := deploy.GetLabelsAndSelector(defaults.GetCheFlavor())
-	optionalEnv := true
-	selfSignedCertEnv := corev1.EnvVar{
-		Name:  "CHE_SELF__SIGNED__CERT",
-		Value: "",
-	}
 	customPublicCertsVolume := corev1.Volume{
 		Name: "che-public-certs",
 		VolumeSource: corev1.VolumeSource{
@@ -61,23 +56,29 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 		MountPath: "/public-certs",
 	}
 
+	var volumes []corev1.Volume
+	var volumeMounts []corev1.VolumeMount
+	volumes = append(volumes, customPublicCertsVolume)
+	volumeMounts = append(volumeMounts, customPublicCertsVolumeMount)
+
 	if selfSignedCASecretExists {
-		selfSignedCertEnv = corev1.EnvVar{
-			Name: "CHE_SELF__SIGNED__CERT",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					Key: "ca.crt",
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: constants.DefaultSelfSignedCertificateSecretName,
-					},
-					Optional: &optionalEnv,
+		selfSignedCertVolume := corev1.Volume{
+			Name: "che-self-signed-cert",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: constants.DefaultSelfSignedCertificateSecretName,
 				},
 			},
 		}
+		selfSignedCertVolumeMount := corev1.VolumeMount{
+			Name:      selfSignedCertVolume.Name,
+			MountPath: "/self-signed-cert",
+		}
+		volumes = append(volumes, selfSignedCertVolume)
+		volumeMounts = append(volumeMounts, selfSignedCertVolumeMount)
 	}
 
 	var cheEnv []corev1.EnvVar
-	cheEnv = append(cheEnv, selfSignedCertEnv)
 	cheEnv = append(cheEnv,
 		corev1.EnvVar{
 			Name:  "CM_REVISION",
@@ -119,9 +120,7 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "che",
-					Volumes: []corev1.Volume{
-						customPublicCertsVolume,
-					},
+					Volumes:            volumes,
 					Containers: []corev1.Container{
 						{
 							Name:            defaults.GetCheFlavor(),
@@ -161,10 +160,8 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 									},
 								},
 							},
-							VolumeMounts: []corev1.VolumeMount{
-								customPublicCertsVolumeMount,
-							},
-							Env: cheEnv,
+							VolumeMounts: volumeMounts,
+							Env:          cheEnv,
 						},
 					},
 					RestartPolicy:                 "Always",
