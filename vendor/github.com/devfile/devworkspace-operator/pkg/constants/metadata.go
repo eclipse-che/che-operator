@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2024 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -33,6 +33,10 @@ const (
 
 	// DevWorkspaceNameLabel is the label key to store workspace name
 	DevWorkspaceNameLabel = "controller.devfile.io/devworkspace_name"
+
+	// DevWorkspaceWatchCronJobLabel marks a cronjob so that it is watched by the controller. This label is required on all
+	// cronjobs that should be seen by the controller
+	DevWorkspaceWatchCronJobLabel = "controller.devfile.io/watch-cronjob"
 
 	// DevWorkspaceWatchConfigMapLabel marks a configmap so that it is watched by the controller. This label is required on all
 	// configmaps that should be seen by the controller
@@ -86,6 +90,15 @@ const (
 	// GitCredentialsConfigMapName is the name used for the configmap that stores the Git configuration for workspaces
 	// in a given namespace. It is used when e.g. adding Git credentials via secret
 	GitCredentialsConfigMapName = "devworkspace-gitconfig"
+
+	// SSHSecretName is the name used for the secret that stores the SSH key data for workspaces in a given namespace.
+	// TODO: This is a workaround for https://github.com/devfile/devworkspace-operator/issues/1340.
+	// We do not enforce the SSH secret to have this name, but it is used by the Che Dashboard and this allows us
+	// to detect if the user has provided an SSH key with a passhprase.
+	SSHSecretName = "git-ssh-key"
+
+	// SSHSecretPassphraseKey is the key used to retrieve the optional passphrase stored inside the SSH secret.
+	SSHSecretPassphraseKey = "passphrase"
 
 	SshAskPassConfigMapName = "devworkspace-ssh-askpass"
 
