@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2024 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -341,6 +341,9 @@ func mergeConfig(from, to *controller.OperatorConfiguration) {
 		if from.Workspace.ContainerSecurityContext != nil {
 			to.Workspace.ContainerSecurityContext = mergeContainerSecurityContext(to.Workspace.ContainerSecurityContext, from.Workspace.ContainerSecurityContext)
 		}
+		if from.Workspace.StorageAccessMode != nil {
+			to.Workspace.StorageAccessMode = from.Workspace.StorageAccessMode
+		}
 		if from.Workspace.DefaultStorageSize != nil {
 			if to.Workspace.DefaultStorageSize == nil {
 				to.Workspace.DefaultStorageSize = &controller.StorageSizes{}
@@ -408,6 +411,24 @@ func mergeConfig(from, to *controller.OperatorConfiguration) {
 			}
 			for key, value := range from.Workspace.PodAnnotations {
 				to.Workspace.PodAnnotations[key] = value
+			}
+		}
+
+		if from.Workspace.CleanupCronJob != nil {
+			if to.Workspace.CleanupCronJob == nil {
+				to.Workspace.CleanupCronJob = &controller.CleanupCronJobConfig{}
+			}
+			if from.Workspace.CleanupCronJob.Enable != nil {
+				to.Workspace.CleanupCronJob.Enable = from.Workspace.CleanupCronJob.Enable
+			}
+			if from.Workspace.CleanupCronJob.DryRun != nil {
+				to.Workspace.CleanupCronJob.DryRun = from.Workspace.CleanupCronJob.DryRun
+			}
+			if from.Workspace.CleanupCronJob.RetainTime != nil {
+				to.Workspace.CleanupCronJob.RetainTime = from.Workspace.CleanupCronJob.RetainTime
+			}
+			if from.Workspace.CleanupCronJob.Schedule != "" {
+				to.Workspace.CleanupCronJob.Schedule = from.Workspace.CleanupCronJob.Schedule
 			}
 		}
 	}
@@ -637,6 +658,20 @@ func GetCurrentConfigString(currConfig *controller.OperatorConfiguration) string
 		}
 		if !reflect.DeepEqual(workspace.PodAnnotations, defaultConfig.Workspace.PodAnnotations) {
 			config = append(config, "workspace.podAnnotations is set")
+		}
+		if workspace.CleanupCronJob != nil {
+			if workspace.CleanupCronJob.Enable != nil && *workspace.CleanupCronJob.Enable != *defaultConfig.Workspace.CleanupCronJob.Enable {
+				config = append(config, fmt.Sprintf("workspace.cleanupCronJob.enable=%t", *workspace.CleanupCronJob.Enable))
+			}
+			if workspace.CleanupCronJob.DryRun != nil && *workspace.CleanupCronJob.DryRun != *defaultConfig.Workspace.CleanupCronJob.DryRun {
+				config = append(config, fmt.Sprintf("workspace.cleanupCronJob.dryRun=%t", *workspace.CleanupCronJob.DryRun))
+			}
+			if workspace.CleanupCronJob.RetainTime != nil && *workspace.CleanupCronJob.RetainTime != *defaultConfig.Workspace.CleanupCronJob.RetainTime {
+				config = append(config, fmt.Sprintf("workspace.cleanupCronJob.retainTime=%d", *workspace.CleanupCronJob.RetainTime))
+			}
+			if workspace.CleanupCronJob.Schedule != defaultConfig.Workspace.CleanupCronJob.Schedule {
+				config = append(config, fmt.Sprintf("workspace.cleanupCronJob.cronJobScript=%s", workspace.CleanupCronJob.Schedule))
+			}
 		}
 	}
 	if currConfig.EnableExperimentalFeatures != nil && *currConfig.EnableExperimentalFeatures {

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2024 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -45,7 +45,7 @@ const (
 
 	HomeInitEventId = "init-persistent-home"
 
-	SshAgentStartEventId = "init-ssh-agent"
+	SshAgentStartEventId = "init-ssh-agent-command"
 
 	ServiceAccount = "devworkspace"
 
@@ -95,4 +95,9 @@ const (
 
 	// ProjectCloneDisable specifies that project cloning should be disabled.
 	ProjectCloneDisable = "disable"
+)
+
+const (
+	// SelectedNodeAnnotation annotation is added to a PVC that is triggered by a scheduler to be dynamically provisioned. Its value is the name of the selected node.
+	SelectedNodeAnnotation = "volume.kubernetes.io/selected-node"
 )
