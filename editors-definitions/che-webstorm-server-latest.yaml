@@ -18,6 +18,9 @@ metadata:
   tags:
     - Tech-Preview
   attributes:
+    arch:
+      - x86_64
+      - arm64
     publisher: che-incubator
     version: latest
     provider: Provided by [JetBrains](https://www.jetbrains.com/) under [License](https://www.jetbrains.com/legal/docs/toolbox/user/)

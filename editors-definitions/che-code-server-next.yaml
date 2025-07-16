@@ -19,6 +19,11 @@ metadata:
     - CLI
     - vscode
   attributes:
+    arch:
+      - x86_64
+      - arm64
+      - s390x
+      - ppc64le
     publisher: che-incubator
     version: next
     provider: Provided by [Microsoft](https://www.microsoft.com/) under [License](https://code.visualstudio.com/License)

@@ -16,6 +16,11 @@ metadata:
   displayName: VS Code - Open Source
   description: Microsoft Visual Studio Code - Open Source IDE for Eclipse Che
   attributes:
+    arch:
+      - x86_64
+      - arm64
+      - s390x
+      - ppc64le
     publisher: che-incubator
     version: latest
     title: Microsoft Visual Studio Code - Open Source IDE for Eclipse Che

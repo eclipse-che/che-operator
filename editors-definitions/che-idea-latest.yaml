@@ -18,6 +18,9 @@ metadata:
   tags:
     - Deprecated
   attributes:
+    arch:
+      - x86_64
+      - arm64
     publisher: che-incubator
     version: latest
     title: JetBrains IntelliJ IDEA Community IDE for Eclipse Che

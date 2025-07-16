@@ -19,6 +19,11 @@ metadata:
   tags:
     - Tech-Preview
   attributes:
+    arch:
+      - x86_64
+      - arm64
+      - s390x
+      - ppc64le
     publisher: che-incubator
     version: insiders
     title: Microsoft Visual Studio Code - Open Source IDE for Eclipse Che - Insiders
