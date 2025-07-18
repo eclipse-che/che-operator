@@ -661,6 +661,13 @@ type PVC struct {
 	// Storage class for the Persistent Volume Claim. When omitted or left blank, a default storage class is used.
 	// +optional
 	StorageClass string `json:"storageClass,omitempty"`
+	// StorageAccessMode are the desired access modes the volume should have.
+	// It is used to specify PersistentVolume access mode type to RWO/RWX when using per-user strategy, allowing
+	// user to re-use volume across multiple workspaces.
+	//
+	// It defaults to ReadWriteOnce if not specified
+	// +optional
+	StorageAccessMode []corev1.PersistentVolumeAccessMode `json:"storageAccessMode,omitempty"`
 }
 
 // External devfile registries configuration.
