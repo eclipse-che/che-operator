@@ -363,6 +363,7 @@ func TestConvertFrom(t *testing.T) {
 				}},
 				SecondsOfInactivityBeforeIdling:     pointer.Int32Ptr(1800),
 				SecondsOfRunBeforeIdling:            pointer.Int32Ptr(-1),
+				JetBrainsIDEStorageHost: "https://download.jetbrains.com/"
 				MaxNumberOfRunningWorkspacesPerUser: pointer.Int64Ptr(10),
 				User: &chev2.UserConfiguration{
 					ClusterRoles: []string{"ClusterRoles_1", "ClusterRoles_2"},
@@ -436,6 +437,7 @@ func TestConvertFrom(t *testing.T) {
 	assert.Equal(t, checlusterv1.Spec.DevWorkspace.RunningLimit, "10")
 	assert.Equal(t, checlusterv1.Spec.DevWorkspace.SecondsOfInactivityBeforeIdling, pointer.Int32Ptr(1800))
 	assert.Equal(t, checlusterv1.Spec.DevWorkspace.SecondsOfRunBeforeIdling, pointer.Int32Ptr(-1))
+	assert.Equal(t, checlusterv1.Spec.DevWorkspace.JetBrainsIDEStorageHost, "https://download.jetbrains.com/")
 	assert.True(t, checlusterv1.Spec.DevWorkspace.Enable)
 
 	assert.Equal(t, checlusterv1.Spec.Dashboard.Warning, "DashboardWarning")

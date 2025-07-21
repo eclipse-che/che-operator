@@ -395,7 +395,7 @@ func (r *CheUserNamespaceReconciler) reconcileProxySettings(ctx context.Context,
 
 func (r *CheUserNamespaceReconciler) reconcileIdleSettings(ctx context.Context, targetNs string, checluster *chev2.CheCluster, deployContext *chetypes.DeployContext) error {
 
-	if checluster.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling == nil && checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling == nil {
+	if checluster.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling == nil && checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling == nil && checluster.Spec.DevEnvironments.JetBrainsIDEStorageHost == nil {
 		return nil
 	}
 	configMapName := prefixedName("idle-settings")
@@ -417,6 +417,10 @@ func (r *CheUserNamespaceReconciler) reconcileIdleSettings(ctx context.Context, 
 
 	if checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling != nil {
 		data["SECONDS_OF_DW_RUN_BEFORE_IDLING"] = strconv.FormatInt(int64(*checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling), 10)
+	}
+
+	if checluster.Spec.DevEnvironments.JetBrainsIDEStorageHost != nil {
+		data["JB_IDE_STORAGE_HOST"] = strconv.FormatInt(int64(*checluster.Spec.DevEnvironments.JetBrainsIDEStorageHost), 10)
 	}
 
 	cfg = &corev1.ConfigMap{

@@ -1129,6 +1129,10 @@ spec:
                         To disable workspace run timeout, set this value to -1.
                       format: int32
                       type: integer
+                    jetbrainsIDEStorageHost:
+                      default: https://download.jetbrains.com/
+                      description: The Host URL for JetBrains IDE
+                      type: string
                   required:
                     - enable
                   type: object
@@ -5371,6 +5375,7 @@ spec:
                     maxNumberOfWorkspacesPerUser: -1
                     secondsOfInactivityBeforeIdling: 1800
                     secondsOfRunBeforeIdling: -1
+                    jetbrainsIDEStorageHost: https://download.jetbrains.com/
                     startTimeoutSeconds: 300
                     storage:
                       pvcStrategy: per-user
@@ -7495,6 +7500,10 @@ spec:
                         To disable workspace run timeout, set this value to -1.
                       format: int32
                       type: integer
+                    jetbrainsIDEStorageHost:
+                      default: https://download.jetbrains.com/
+                      description: The Host URL for JetBrains IDE
+                      type: string
                     security:
                       description: Workspace security configuration.
                       properties:

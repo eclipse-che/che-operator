@@ -82,6 +82,7 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 				},
 				SecondsOfInactivityBeforeIdling: pointer.Int32Ptr(1800),
 				SecondsOfRunBeforeIdling:        pointer.Int32Ptr(-1),
+				jetbrainsIDEStorageHost: "https://download.jetbrains.com/"
 			},
 			Networking: chev2.CheClusterSpecNetworking{
 				Domain: "root-domain",
