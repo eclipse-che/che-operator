@@ -1110,10 +1110,6 @@ spec:
                       To disable workspace run timeout, set this value to -1.
                     format: int32
                     type: integer
-                  jetbrainsIDEStorageHost:
-                    default: https://download.jetbrains.com/
-                    description: The Host URL for JetBrains IDE
-                    type: string
                 required:
                 - enable
                 type: object

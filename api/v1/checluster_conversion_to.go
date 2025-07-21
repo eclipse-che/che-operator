@@ -162,7 +162,6 @@ func (src *CheCluster) convertTo_DevEnvironments(dst *chev2.CheCluster) error {
 	dst.Spec.DevEnvironments.DefaultComponents = src.Spec.Server.WorkspaceDefaultComponents
 	dst.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling = src.Spec.DevWorkspace.SecondsOfInactivityBeforeIdling
 	dst.Spec.DevEnvironments.SecondsOfRunBeforeIdling = src.Spec.DevWorkspace.SecondsOfRunBeforeIdling
-	dst.Spec.DevEnvironments.JetBrainsIDEStorageHost = src.Spec.DevWorkspace.JetBrainsIDEStorageHost
 	if src.Spec.Server.CheWorkspaceClusterRole != "" {
 		dst.Spec.DevEnvironments.User = &chev2.UserConfiguration{
 			ClusterRoles: strings.Split(src.Spec.Server.CheClusterRoles, ","),

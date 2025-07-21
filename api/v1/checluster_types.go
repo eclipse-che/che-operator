@@ -778,9 +778,6 @@ type CheClusterSpecDevWorkspace struct {
 	// To disable workspace run timeout, set this value to -1.
 	// +kubebuilder:default:=-1
 	SecondsOfRunBeforeIdling *int32 `json:"secondsOfRunBeforeIdling,omitempty"`
-	// The URL where the jet brain IDEs are host
-	// +kubebuilder:default:=https://download.jetbrains.com/
-	JetBrainsIDEStorageHost string `json:"jetbrainsIDEStorageHost,omitempty"`
 	// List of environment variables to set in the DevWorkspace container.
 	// +optional
 	Env []corev1.EnvVar `json:"env,omitempty"`

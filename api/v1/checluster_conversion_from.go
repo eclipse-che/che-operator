@@ -354,7 +354,6 @@ func (dst *CheCluster) convertFrom_DevWorkspace(src *chev2.CheCluster) error {
 	}
 	dst.Spec.DevWorkspace.SecondsOfInactivityBeforeIdling = src.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling
 	dst.Spec.DevWorkspace.SecondsOfRunBeforeIdling = src.Spec.DevEnvironments.SecondsOfRunBeforeIdling
-	dst.Spec.DevWorkspace.JetBrainsIDEStorageHost = src.Spec.DevEnvironments.JetBrainsIDEStorageHost
 	dst.Spec.DevWorkspace.Enable = true
 	return nil
 }

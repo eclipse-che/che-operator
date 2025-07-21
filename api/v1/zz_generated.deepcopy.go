@@ -264,11 +264,6 @@ func (in *CheClusterSpecDevWorkspace) DeepCopyInto(out *CheClusterSpecDevWorkspa
 		*out = new(int32)
 		**out = **in
 	}
-	if in.JetBrainsIDEStorageHost != nil {
-		in, out := &in.JetBrainsIDEStorageHost, &out.JetBrainsIDEStorageHost
-		*out = new(string)
-		**out = **in
-	}
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
 		*out = make([]corev1.EnvVar, len(*in))

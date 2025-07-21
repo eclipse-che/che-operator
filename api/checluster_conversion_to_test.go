@@ -308,7 +308,6 @@ func TestConvertTo(t *testing.T) {
 				Enable:                          true,
 				RunningLimit:                    "10",
 				SecondsOfInactivityBeforeIdling: pointer.Int32Ptr(1800),
-				JetBrainsIDEStorageHost:	"https://download.jetbrains.com/"
 				SecondsOfRunBeforeIdling:        pointer.Int32Ptr(-1),
 			},
 			Dashboard: chev1.CheClusterSpecDashboard{
