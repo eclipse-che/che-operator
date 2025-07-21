@@ -286,10 +286,8 @@ func (in *CheClusterDevEnvironments) DeepCopyInto(out *CheClusterDevEnvironments
 		*out = new(int32)
 		**out = **in
 	}
-	if in.JetBrainsIDEStorageHost != nil {
-		in, out := &in.JetBrainsIDEStorageHost, &out.JetBrainsIDEStorageHost
-		*out = new(string)
-		**out = **in
+	if in.JetBrainsIDEStorageHost != "" {
+		out.JetBrainsIDEStorageHost = in.JetBrainsIDEStorageHost
 	}
 	if in.DisableContainerBuildCapabilities != nil {
 		in, out := &in.DisableContainerBuildCapabilities, &out.DisableContainerBuildCapabilities
