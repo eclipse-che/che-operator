@@ -420,7 +420,7 @@ func (r *CheUserNamespaceReconciler) reconcileIdleSettings(ctx context.Context, 
 	}
 
 	if checluster.Spec.DevEnvironments.JetBrainsIDEStorageHost != nil {
-		data["JB_IDE_STORAGE_HOST"] = strconv.FormatInt(int64(*checluster.Spec.DevEnvironments.JetBrainsIDEStorageHost), 10)
+		data["JB_IDE_STORAGE_HOST"] = *checluster.Spec.DevEnvironments.JetBrainsIDEStorageHost
 	}
 
 	cfg = &corev1.ConfigMap{
