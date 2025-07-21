@@ -419,7 +419,7 @@ func (r *CheUserNamespaceReconciler) reconcileIdleSettings(ctx context.Context, 
 		data["SECONDS_OF_DW_RUN_BEFORE_IDLING"] = strconv.FormatInt(int64(*checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling), 10)
 	}
 
-	if checluster.Spec.DevEnvironments.JetBrainsIDEStorageHost != nil {
+	if checluster.Spec.DevEnvironments.JetBrainsIDEStorageHost != "" {
 		data["JB_IDE_STORAGE_HOST"] = *checluster.Spec.DevEnvironments.JetBrainsIDEStorageHost
 	}
 
