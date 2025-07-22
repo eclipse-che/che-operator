@@ -363,7 +363,7 @@ func TestConvertFrom(t *testing.T) {
 				}},
 				SecondsOfInactivityBeforeIdling:     pointer.Int32Ptr(1800),
 				SecondsOfRunBeforeIdling:            pointer.Int32Ptr(-1),
-				JetBrainsIDEStorageHost: "https://download.jetbrains.com/",
+				JetBrainsIDEStorageHost:             "https://download.jetbrains.com/",
 				MaxNumberOfRunningWorkspacesPerUser: pointer.Int64Ptr(10),
 				User: &chev2.UserConfiguration{
 					ClusterRoles: []string{"ClusterRoles_1", "ClusterRoles_2"},
