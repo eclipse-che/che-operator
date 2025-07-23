@@ -7027,7 +7027,7 @@ spec:
                     editorDownloadUrls:
                       default:
                         - editor: JetBrains
-                          url: https://download.jetbrains.com/
+                          downloadUrl: https://download.jetbrains.com/
                       description: The downloaded list of editors
                       items:
                         properties:
