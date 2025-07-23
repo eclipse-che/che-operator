@@ -9153,7 +9153,7 @@ spec:
         - name: RELATED_IMAGE_che_tls_secrets_creation_job
           value: quay.io/eclipse/che-tls-secret-creator:9f9d4a6
         - name: RELATED_IMAGE_single_host_gateway
-          value: quay.io/eclipse/che--traefik:v3.3.5-104204dadedf5d1284f8ef8f97f705649ac81aa6f7a6c9abf13e2c59245b8abc
+          value: quay.io/eclipse/che--traefik:v3.4.0-4cf907247939b5d20bf4eff73abd21cb413c339600dde76dbc94a874b2578a27
         - name: RELATED_IMAGE_single_host_gateway_config_sidecar
           value: quay.io/che-incubator/configbump:next
         - name: RELATED_IMAGE_gateway_authentication_sidecar
