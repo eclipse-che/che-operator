@@ -125,7 +125,7 @@ type CheClusterDevEnvironments struct {
 	// +kubebuilder:default:=-1
 	SecondsOfRunBeforeIdling *int32 `json:"secondsOfRunBeforeIdling,omitempty"`
 	// The downloaded list of editors
-	// +kubebuilder:default:={[{editor: JetBrains, url: "https://download.jetbrains.com/"}]}
+	// +kubebuilder:default:={{editor: JetBrains, url: "https://download.jetbrains.com/"}}
 	EditorDownloadUrls []EditorDownloadUrl `json:"editorDownloadUrls,omitempty"`
 	// Disables the container build capabilities.
 	// When set to `false` (the default value), the devEnvironments.security.containerSecurityContext
