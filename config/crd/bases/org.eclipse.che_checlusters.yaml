@@ -5326,12 +5326,12 @@ spec:
                   defaultNamespace:
                     autoProvision: true
                     template: <username>-che
+                  editorDownloadUrls:
+                  - downloadUrl: https://download.jetbrains.com/
+                    editor: JetBrains
                   maxNumberOfWorkspacesPerUser: -1
                   secondsOfInactivityBeforeIdling: 1800
                   secondsOfRunBeforeIdling: -1
-                  editorDownloadUrls:
-                      - editor: JetBrains
-                        downloadUrl: "https://download.jetbrains.com/"
                   startTimeoutSeconds: 300
                   storage:
                     pvcStrategy: per-user
@@ -6978,6 +6978,22 @@ spec:
                            - SETGID
                            - SETUID
                     type: boolean
+                  editorDownloadUrls:
+                    default:
+                    - editor: JetBrains
+                      url: https://download.jetbrains.com/
+                    description: The downloaded list of editors
+                    items:
+                      properties:
+                        downloadUrl:
+                          type: string
+                        editor:
+                          description: |-
+                            The editor which needs to download to specify.
+                            The download url of the editor.
+                          type: string
+                      type: object
+                    type: array
                   gatewayContainer:
                     description: GatewayContainer configuration.
                     properties:
@@ -7450,21 +7466,6 @@ spec:
                       To disable workspace run timeout, set this value to -1.
                     format: int32
                     type: integer
-                  editorDownloadUrls:
-                      description: List of downloadable editor configurations.
-                      items:
-                        type: object
-                        properties:
-                          editor:
-                            type: string
-                            description: Name of the editor.
-                          downloadUrl:
-                            type: string
-                            description: Download URL for the editor.
-                      default:
-                        - editor: JetBrains
-                          downloadUrl: "https://download.jetbrains.com/"
-                      type: array
                   security:
                     description: Workspace security configuration.
                     properties:
