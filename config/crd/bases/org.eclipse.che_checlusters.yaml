@@ -5329,7 +5329,7 @@ spec:
                   maxNumberOfWorkspacesPerUser: -1
                   secondsOfInactivityBeforeIdling: 1800
                   secondsOfRunBeforeIdling: -1
-                  editorURLs:
+                  editorDownloadUrls:
                       - editor: JetBrains
                         downloadUrl: "https://download.jetbrains.com/"
                   startTimeoutSeconds: 300
