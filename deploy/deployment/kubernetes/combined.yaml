@@ -5350,7 +5350,9 @@ spec:
                   maxNumberOfWorkspacesPerUser: -1
                   secondsOfInactivityBeforeIdling: 1800
                   secondsOfRunBeforeIdling: -1
-                  jetBrainsIDEStorageHost: https://download.jetbrains.com/
+                  editorURLs:
+                      - editor: JetBrains
+                        downloadUrl: "https://download.jetbrains.com/"
                   startTimeoutSeconds: 300
                   storage:
                     pvcStrategy: per-user
@@ -7469,10 +7471,21 @@ spec:
                       To disable workspace run timeout, set this value to -1.
                     format: int32
                     type: integer
-                  jetBrainsIDEStorageHost:
-                    default: https://download.jetbrains.com/
-                    description: The Host URL for JetBrains IDE
-                    type: string
+                  editorDownloadUrls:
+                      description: List of downloadable editor configurations.
+                      items:
+                        type: object
+                        properties:
+                          editor:
+                            type: string
+                            description: Name of the editor.
+                          downloadUrl:
+                            type: string
+                            description: Download URL for the editor.
+                      default:
+                        - editor: JetBrains
+                          downloadUrl: "https://download.jetbrains.com/"
+                      type: array
                   security:
                     description: Workspace security configuration.
                     properties:

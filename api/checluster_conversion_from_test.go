@@ -361,9 +361,14 @@ func TestConvertFrom(t *testing.T) {
 					Value:    "Value",
 					Effect:   "Effect",
 				}},
-				SecondsOfInactivityBeforeIdling:     pointer.Int32Ptr(1800),
-				SecondsOfRunBeforeIdling:            pointer.Int32Ptr(-1),
-				JetBrainsIDEStorageHost:             "https://download.jetbrains.com/",
+				SecondsOfInactivityBeforeIdling: pointer.Int32Ptr(1800),
+				SecondsOfRunBeforeIdling:        pointer.Int32Ptr(-1),
+				EditorDownloadUrls: []chev2.EditorDownloadUrl{
+					{
+						Editor:      "JetBrains",
+						DownloadUrl: "https://download.jetbrains.com/",
+					},
+				},
 				MaxNumberOfRunningWorkspacesPerUser: pointer.Int64Ptr(10),
 				User: &chev2.UserConfiguration{
 					ClusterRoles: []string{"ClusterRoles_1", "ClusterRoles_2"},

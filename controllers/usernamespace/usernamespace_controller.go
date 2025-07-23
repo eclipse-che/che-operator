@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	containerbuild "github.com/eclipse-che/che-operator/pkg/deploy/container-build"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -395,7 +396,7 @@ func (r *CheUserNamespaceReconciler) reconcileProxySettings(ctx context.Context,
 
 func (r *CheUserNamespaceReconciler) reconcileIdleSettings(ctx context.Context, targetNs string, checluster *chev2.CheCluster, deployContext *chetypes.DeployContext) error {
 
-	if checluster.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling == nil && checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling == nil && checluster.Spec.DevEnvironments.JetBrainsIDEStorageHost == "" {
+	if checluster.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling == nil && checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling == nil && len(checluster.Spec.DevEnvironments.EditorDownloadUrls) == 0 {
 		return nil
 	}
 	configMapName := prefixedName("idle-settings")
@@ -419,8 +420,13 @@ func (r *CheUserNamespaceReconciler) reconcileIdleSettings(ctx context.Context, 
 		data["SECONDS_OF_DW_RUN_BEFORE_IDLING"] = strconv.FormatInt(int64(*checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling), 10)
 	}
 
-	if checluster.Spec.DevEnvironments.JetBrainsIDEStorageHost != "" {
-		data["JB_IDE_STORAGE_HOST"] = checluster.Spec.DevEnvironments.JetBrainsIDEStorageHost
+	if len(checluster.Spec.DevEnvironments.EditorDownloadUrls) > 0 {
+		for _, editorURL := range checluster.Spec.DevEnvironments.EditorDownloadUrls {
+			if editorURL.Editor != "" && editorURL.DownloadUrl != "" {
+				key := fmt.Sprintf("%s_STORAGE_HOST", strings.ToUpper(editorURL.Editor))
+				data[key] = editorURL.DownloadUrl
+			}
+		}
 	}
 
 	cfg = &corev1.ConfigMap{

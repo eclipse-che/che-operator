@@ -82,7 +82,12 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 				},
 				SecondsOfInactivityBeforeIdling: pointer.Int32Ptr(1800),
 				SecondsOfRunBeforeIdling:        pointer.Int32Ptr(-1),
-				JetBrainsIDEStorageHost:         "https://download.jetbrains.com/",
+				EditorDownloadUrls: []chev2.EditorDownloadUrl{
+					{
+						Editor:      "JetBrains",
+						DownloadUrl: "https://download.jetbrains.com/",
+					},
+				},
 			},
 			Networking: chev2.CheClusterSpecNetworking{
 				Domain: "root-domain",
@@ -257,7 +262,7 @@ func TestCreatesDataInNamespace(t *testing.T) {
 
 		assert.Equal(t, "1800", idleSettings.Data["SECONDS_OF_DW_INACTIVITY_BEFORE_IDLING"], "Unexpected idle settings")
 		assert.Equal(t, "-1", idleSettings.Data["SECONDS_OF_DW_RUN_BEFORE_IDLING"], "Unexpected idle settings")
-		assert.Equal(t, "https://download.jetbrains.com/", idleSettings.Data["JB_IDE_STORAGE_HOST"], "Unexpected idle settings")
+		assert.Equal(t, "https://download.jetbrains.com/", idleSettings.Data["JETBRAINS_STORAGE_HOST"], "Expected JetBrains URL not set correctly")
 
 		cert := corev1.Secret{}
 		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-server-cert", Namespace: namespace.GetName()}, &cert))
