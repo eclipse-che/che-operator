@@ -422,9 +422,9 @@ func (r *CheUserNamespaceReconciler) reconcileIdleSettings(ctx context.Context, 
 
 	if len(checluster.Spec.DevEnvironments.EditorDownloadUrls) > 0 {
 		for _, editorURL := range checluster.Spec.DevEnvironments.EditorDownloadUrls {
-			if editorURL.Editor != "" && editorURL.DownloadUrl != "" {
+			if editorURL.Editor != "" && editorURL.Url != "" {
 				key := fmt.Sprintf("%s_STORAGE_HOST", strings.ToUpper(editorURL.Editor))
-				data[key] = editorURL.DownloadUrl
+				data[key] = editorURL.Url
 			}
 		}
 	}

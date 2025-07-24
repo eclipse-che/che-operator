@@ -84,8 +84,8 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 				SecondsOfRunBeforeIdling:        pointer.Int32Ptr(-1),
 				EditorDownloadUrls: []chev2.EditorDownloadUrl{
 					{
-						Editor:      "JetBrains",
-						DownloadUrl: "https://download.jetbrains.com/",
+						Editor: "JetBrains",
+						Url:    "https://download.jetbrains.com/",
 					},
 				},
 			},

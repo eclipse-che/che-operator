@@ -365,8 +365,8 @@ func TestConvertFrom(t *testing.T) {
 				SecondsOfRunBeforeIdling:        pointer.Int32Ptr(-1),
 				EditorDownloadUrls: []chev2.EditorDownloadUrl{
 					{
-						Editor:      "JetBrains",
-						DownloadUrl: "https://download.jetbrains.com/",
+						Editor: "JetBrains",
+						Url:    "https://download.jetbrains.com/",
 					},
 				},
 				MaxNumberOfRunningWorkspacesPerUser: pointer.Int64Ptr(10),

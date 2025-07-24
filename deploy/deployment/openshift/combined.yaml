@@ -5349,7 +5349,7 @@ spec:
                     template: <username>-che
                   editorDownloadUrls:
                   - editor: JetBrains
-                    downloadUrl: "https://download.jetbrains.com/"
+                    url: https://download.jetbrains.com/
                   maxNumberOfWorkspacesPerUser: -1
                   secondsOfInactivityBeforeIdling: 1800
                   secondsOfRunBeforeIdling: -1
@@ -7000,15 +7000,19 @@ spec:
                            - SETUID
                     type: boolean
                   editorDownloadUrls:
+                    default:
+                    - editor: JetBrains
+                      url: https://download.jetbrains.com/
                     description: The downloaded list of editors
                     items:
                       properties:
-                        downloadUrl:
-                          type: string
                         editor:
                           description: |-
                             The editor which needs to download to specify.
-                            The download url of the editor.
+                            The plugin ID must have `publisher/name/version` format.
+                          type: string
+                        url:
+                          description: The download url of the editor.
                           type: string
                       type: object
                     type: array
