@@ -5343,8 +5343,8 @@ spec:
                     autoProvision: true
                     template: <username>-che
                   editorDownloadUrls:
-                  - downloadUrl: https://download.jetbrains.com/
-                    editor: JetBrains
+                  - editor: JetBrains
+                    downloadUrl: "https://download.jetbrains.com/"
                   maxNumberOfWorkspacesPerUser: -1
                   secondsOfInactivityBeforeIdling: 1800
                   secondsOfRunBeforeIdling: -1
@@ -6995,9 +6995,6 @@ spec:
                            - SETUID
                     type: boolean
                   editorDownloadUrls:
-                    default:
-                    - editor: JetBrains
-                      downloadUrl: https://download.jetbrains.com/
                     description: The downloaded list of editors
                     items:
                       properties:
