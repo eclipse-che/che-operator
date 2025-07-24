@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2024 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -75,6 +75,12 @@ var defaultConfig = &v1alpha1.OperatorConfiguration{
 			Requests: corev1.ResourceList{
 				corev1.ResourceMemory: resource.MustParse("64Mi"),
 			},
+		},
+		CleanupCronJob: &v1alpha1.CleanupCronJobConfig{
+			Enable:     pointer.Bool(false),
+			DryRun:     pointer.Bool(false),
+			RetainTime: pointer.Int32(2592000),
+			Schedule:   "0 0 1 * *",
 		},
 	},
 }

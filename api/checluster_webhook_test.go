@@ -97,7 +97,7 @@ func TestValidateScmSecrets(t *testing.T) {
 		},
 	}
 
-	err = checluster.ValidateCreate()
+	_, err = checluster.ValidateCreate(context.TODO(), checluster)
 	assert.Nil(t, err)
 
 	githubSecret, err = k8sHelper.GetClientset().CoreV1().Secrets("eclipse-che").Get(context.TODO(), "github-scm-secret", metav1.GetOptions{})
@@ -139,7 +139,7 @@ func TestValidateScmSecretsShouldThrowError(t *testing.T) {
 		},
 	}
 
-	err := checluster.ValidateCreate()
+	_, err := checluster.ValidateCreate(context.TODO(), checluster)
 	assert.Error(t, err)
 	assert.Equal(t, "secret 'github-scm-secret-with-errors' not found", err.Error())
 
@@ -154,7 +154,7 @@ func TestValidateScmSecretsShouldThrowError(t *testing.T) {
 	_, err = k8sHelper.GetClientset().CoreV1().Secrets("eclipse-che").Create(context.TODO(), githubSecret, metav1.CreateOptions{})
 	assert.Nil(t, err)
 
-	err = checluster.ValidateCreate()
+	_, err = checluster.ValidateCreate(context.TODO(), checluster)
 	assert.Error(t, err)
 	assert.Equal(t, "secret 'github-scm-secret-with-errors' must contain [id, secret] keys", err.Error())
 }

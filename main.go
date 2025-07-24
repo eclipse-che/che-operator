@@ -17,22 +17,28 @@ import (
 	"os"
 	"time"
 
+	"github.com/eclipse-che/che-operator/controllers/namespacecache"
+	workspaceconfig "github.com/eclipse-che/che-operator/controllers/workspaceconfig"
+
+	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
+
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
 	dwr "github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/solver"
 	"github.com/eclipse-che/che-operator/controllers/usernamespace"
 
 	securityv1 "github.com/openshift/api/security/v1"
 
+	dwoApi "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	devworkspaceinfra "github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/controllers/devworkspace"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/signal"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
-	"github.com/sirupsen/logrus"
-
-	dwoApi "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
-	"github.com/eclipse-che/che-operator/controllers/devworkspace"
 	"go.uber.org/zap/zapcore"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -42,7 +48,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/selection"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -237,8 +242,8 @@ func main() {
 
 	mgr, err := ctrl.NewManager(config, ctrl.Options{
 		Scheme:                        scheme,
-		MetricsBindAddress:            metricsAddr,
-		Port:                          9443,
+		Metrics:                       server.Options{BindAddress: metricsAddr},
+		WebhookServer:                 webhook.NewServer(webhook.Options{Port: 9443}),
 		HealthProbeBindAddress:        probeAddr,
 		LeaderElection:                enableLeaderElection,
 		LeaderElectionID:              "e79b08a4.org.eclipse.che",
@@ -282,7 +287,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	namespacechace := usernamespace.NewNamespaceCache(nonCachingClient)
+	namespacechace := namespacecache.NewNamespaceCache(nonCachingClient)
 
 	userNamespaceReconciler := usernamespace.NewCheUserNamespaceReconciler(mgr.GetClient(), nonCachingClient, mgr.GetScheme(), namespacechace)
 	if err = userNamespaceReconciler.SetupWithManager(mgr); err != nil {
@@ -290,7 +295,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	workspacesConfigReconciler := usernamespace.NewWorkspacesConfigReconciler(mgr.GetClient(), nonCachingClient, mgr.GetScheme(), namespacechace)
+	workspacesConfigReconciler := workspaceconfig.NewWorkspacesConfigReconciler(mgr.GetClient(), nonCachingClient, mgr.GetScheme(), namespacechace)
 	if err = workspacesConfigReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to set up controller", "controller", "WorkspacesConfigReconciler")
 		os.Exit(1)
@@ -338,16 +343,14 @@ func main() {
 	}
 }
 
+// watch k8s objects with labels `app.kubernetes.io/part-of=che.eclipse.org`
 func getCacheFunc() (cache.NewCacheFunc, error) {
-	partOfCheRequirement, err := labels.NewRequirement(constants.KubernetesPartOfLabelKey, selection.Equals, []string{constants.CheEclipseOrg})
+	partOfCheObjectSelector, err := labels.Parse(fmt.Sprintf("%s=%s", constants.KubernetesPartOfLabelKey, constants.CheEclipseOrg))
 	if err != nil {
 		return nil, err
 	}
-	partOfCheObjectSelector := labels.NewSelector().Add(*partOfCheRequirement)
 
-	logrus.Infof("Limit cache by selector: %s", partOfCheObjectSelector.String())
-
-	selectors := cache.SelectorsByObject{
+	selectors := map[client.Object]cache.ByObject{
 		&appsv1.Deployment{}: {
 			Label: partOfCheObjectSelector,
 		},
@@ -399,12 +402,13 @@ func getCacheFunc() (cache.NewCacheFunc, error) {
 	}
 
 	if infrastructure.IsOpenShift() {
-		selectors[&oauthv1.OAuthClient{}] = cache.ObjectSelector{Label: partOfCheObjectSelector}
-		selectors[&routev1.Route{}] = cache.ObjectSelector{Label: partOfCheObjectSelector}
-		selectors[&templatev1.Template{}] = cache.ObjectSelector{Label: partOfCheObjectSelector}
+		selectors[&oauthv1.OAuthClient{}] = cache.ByObject{Label: partOfCheObjectSelector}
+		selectors[&routev1.Route{}] = cache.ByObject{Label: partOfCheObjectSelector}
+		selectors[&templatev1.Template{}] = cache.ByObject{Label: partOfCheObjectSelector}
 	}
 
-	return cache.BuilderWithOptions(cache.Options{
-		SelectorsByObject: selectors,
-	}), nil
+	return func(config *rest.Config, opts cache.Options) (cache.Cache, error) {
+		opts.ByObject = selectors
+		return cache.New(config, opts)
+	}, nil
 }

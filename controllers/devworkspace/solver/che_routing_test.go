@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -20,7 +20,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
@@ -33,19 +32,12 @@ import (
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
 	constants "github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
-	routev1 "github.com/openshift/api/route/v1"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
-	rbac "k8s.io/api/rbac/v1"
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/yaml"
@@ -55,28 +47,15 @@ var (
 	devfileEndpointAnnotations = map[string]string{"annotation-1": "value-1", "annotation-2": "value-2"}
 )
 
-func createTestScheme() *runtime.Scheme {
-	scheme := runtime.NewScheme()
-	utilruntime.Must(networkingv1.AddToScheme(scheme))
-	utilruntime.Must(corev1.AddToScheme(scheme))
-	utilruntime.Must(appsv1.AddToScheme(scheme))
-	utilruntime.Must(rbac.AddToScheme(scheme))
-	utilruntime.Must(dw.AddToScheme(scheme))
-	utilruntime.Must(dwo.AddToScheme(scheme))
-	utilruntime.Must(routev1.AddToScheme(scheme))
-	utilruntime.Must(chev2.AddToScheme(scheme))
-
-	return scheme
-}
-
-func getSpecObjectsForManager(t *testing.T, mgr *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, additionalInitialObjects ...runtime.Object) (client.Client, solvers.RoutingSolver, solvers.RoutingObjects) {
-	scheme := createTestScheme()
-
-	allObjs := []runtime.Object{mgr, routing}
+func getSpecObjectsForManager(t *testing.T, mgr *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, additionalInitialObjects ...client.Object) (client.Client, solvers.RoutingSolver, solvers.RoutingObjects) {
+	allObjs := []client.Object{mgr, routing}
 	for i := range additionalInitialObjects {
 		allObjs = append(allObjs, additionalInitialObjects[i])
 	}
-	cl := fake.NewFakeClientWithScheme(scheme, allObjs...)
+
+	ctx := test.NewCtxBuilder().WithObjects(allObjs...).Build()
+	scheme := ctx.ClusterAPI.Scheme
+	cl := ctx.ClusterAPI.Client
 
 	solver, err := Getter(scheme).GetSolver(cl, "che")
 	if err != nil {
@@ -2199,10 +2178,11 @@ func TestOverrideGatewayContainerProvisioning(t *testing.T) {
 		},
 	}
 
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-	deployContext := test.GetDeployContext(cheCluster, []runtime.Object{})
+	ctx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
+	scheme := ctx.ClusterAPI.Scheme
+	cl := ctx.ClusterAPI.Client
 
-	cheSolver := &CheRoutingSolver{client: deployContext.ClusterAPI.Client, scheme: deployContext.ClusterAPI.Scheme}
+	cheSolver := &CheRoutingSolver{client: cl, scheme: scheme}
 	objs := &solvers.RoutingObjects{}
 
 	routing := &dwo.DevWorkspaceRouting{
@@ -2252,10 +2232,11 @@ func TestOverridePartialLimitsGatewayContainerProvisioning(t *testing.T) {
 		},
 	}
 
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-	deployContext := test.GetDeployContext(cheCluster, []runtime.Object{})
+	ctx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
+	scheme := ctx.ClusterAPI.Scheme
+	cl := ctx.ClusterAPI.Client
 
-	cheSolver := &CheRoutingSolver{client: deployContext.ClusterAPI.Client, scheme: deployContext.ClusterAPI.Scheme}
+	cheSolver := &CheRoutingSolver{client: cl, scheme: scheme}
 	objs := &solvers.RoutingObjects{}
 
 	routing := &dwo.DevWorkspaceRouting{
@@ -2310,10 +2291,11 @@ func TestOverrideGatewayEmptyContainerProvisioning(t *testing.T) {
 		},
 	}
 
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-	deployContext := test.GetDeployContext(cheCluster, []runtime.Object{})
+	ctx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
+	scheme := ctx.ClusterAPI.Scheme
+	cl := ctx.ClusterAPI.Client
 
-	cheSolver := &CheRoutingSolver{client: deployContext.ClusterAPI.Client, scheme: deployContext.ClusterAPI.Scheme}
+	cheSolver := &CheRoutingSolver{client: cl, scheme: scheme}
 	objs := &solvers.RoutingObjects{}
 
 	routing := &dwo.DevWorkspaceRouting{
@@ -2353,10 +2335,11 @@ func TestDefaultGatewayContainerProvisioning(t *testing.T) {
 		},
 	}
 
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-	deployContext := test.GetDeployContext(cheCluster, []runtime.Object{})
+	ctx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
+	scheme := ctx.ClusterAPI.Scheme
+	cl := ctx.ClusterAPI.Client
 
-	cheSolver := &CheRoutingSolver{client: deployContext.ClusterAPI.Client, scheme: deployContext.ClusterAPI.Scheme}
+	cheSolver := &CheRoutingSolver{client: cl, scheme: scheme}
 	objs := &solvers.RoutingObjects{}
 
 	routing := &dwo.DevWorkspaceRouting{

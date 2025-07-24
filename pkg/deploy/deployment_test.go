@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -14,8 +14,9 @@ package deploy
 
 import (
 	"context"
-	"os"
 	"reflect"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
 
@@ -26,21 +27,15 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"testing"
+
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
-	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	"testing"
 )
 
 var (
@@ -70,7 +65,7 @@ func TestMountSecret(t *testing.T) {
 		name               string
 		initDeployment     *appsv1.Deployment
 		expectedDeployment *appsv1.Deployment
-		initObjects        []runtime.Object
+		initObjects        []client.Object
 	}
 
 	testCases := []testCase{
@@ -121,7 +116,7 @@ func TestMountSecret(t *testing.T) {
 					},
 				},
 			},
-			initObjects: []runtime.Object{
+			initObjects: []client.Object{
 				&corev1.Secret{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "Secret",
@@ -193,7 +188,7 @@ func TestMountSecret(t *testing.T) {
 					},
 				},
 			},
-			initObjects: []runtime.Object{
+			initObjects: []client.Object{
 				&corev1.Secret{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "Secret",
@@ -261,7 +256,7 @@ func TestMountSecret(t *testing.T) {
 					},
 				},
 			},
-			initObjects: []runtime.Object{
+			initObjects: []client.Object{
 				&corev1.Secret{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "Secret",
@@ -351,7 +346,7 @@ func TestMountSecret(t *testing.T) {
 					},
 				},
 			},
-			initObjects: []runtime.Object{
+			initObjects: []client.Object{
 				&corev1.Secret{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "Secret",
@@ -383,25 +378,10 @@ func TestMountSecret(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
 			testCase.initObjects = append(testCase.initObjects, testCase.initDeployment)
-			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
+			ctx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
 
-			deployContext := &chetypes.DeployContext{
-				CheCluster: &chev2.CheCluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "eclipse-che",
-					},
-				},
-				ClusterAPI: chetypes.ClusterAPI{
-					Client:           cli,
-					NonCachingClient: cli,
-					Scheme:           scheme.Scheme,
-				},
-			}
-
-			err := MountSecrets(testCase.initDeployment, deployContext)
+			err := MountSecrets(testCase.initDeployment, ctx)
 			if err != nil {
 				t.Fatalf("Error mounting secret: %v", err)
 			}
@@ -418,7 +398,7 @@ func TestMountConfigMaps(t *testing.T) {
 		name               string
 		initDeployment     *appsv1.Deployment
 		expectedDeployment *appsv1.Deployment
-		initObjects        []runtime.Object
+		initObjects        []client.Object
 	}
 
 	testCases := []testCase{
@@ -471,7 +451,7 @@ func TestMountConfigMaps(t *testing.T) {
 					},
 				},
 			},
-			initObjects: []runtime.Object{
+			initObjects: []client.Object{
 				&corev1.ConfigMap{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "ConfigMap",
@@ -545,7 +525,7 @@ func TestMountConfigMaps(t *testing.T) {
 					},
 				},
 			},
-			initObjects: []runtime.Object{
+			initObjects: []client.Object{
 				&corev1.ConfigMap{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "ConfigMap",
@@ -613,7 +593,7 @@ func TestMountConfigMaps(t *testing.T) {
 					},
 				},
 			},
-			initObjects: []runtime.Object{
+			initObjects: []client.Object{
 				&corev1.ConfigMap{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "ConfigMap",
@@ -703,7 +683,7 @@ func TestMountConfigMaps(t *testing.T) {
 					},
 				},
 			},
-			initObjects: []runtime.Object{
+			initObjects: []client.Object{
 				&corev1.ConfigMap{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "ConfigMap",
@@ -735,25 +715,10 @@ func TestMountConfigMaps(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
 			testCase.initObjects = append(testCase.initObjects, testCase.initDeployment)
-			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
+			ctx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
 
-			deployContext := &chetypes.DeployContext{
-				CheCluster: &chev2.CheCluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "eclipse-che",
-					},
-				},
-				ClusterAPI: chetypes.ClusterAPI{
-					Client:           cli,
-					NonCachingClient: cli,
-					Scheme:           scheme.Scheme,
-				},
-			}
-
-			err := MountConfigMaps(testCase.initDeployment, deployContext)
+			err := MountConfigMaps(testCase.initDeployment, ctx)
 			if err != nil {
 				t.Fatalf("Error mounting configmap: %v", err)
 			}
@@ -766,25 +731,10 @@ func TestMountConfigMaps(t *testing.T) {
 }
 
 func TestSyncEnvVarDeploymentToCluster(t *testing.T) {
-	chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
-	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
-	deployContext := &chetypes.DeployContext{
-		CheCluster: &chev2.CheCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "eclipse-che",
-				Name:      "eclipse-che",
-			},
-		},
-		ClusterAPI: chetypes.ClusterAPI{
-			Client:           cli,
-			NonCachingClient: cli,
-			Scheme:           scheme.Scheme,
-		},
-		Proxy: &chetypes.Proxy{},
-	}
+	ctx := test.NewCtxBuilder().Build()
 
 	// initial sync
-	done, err := SyncDeploymentSpecToCluster(deployContext, deployment, DefaultDeploymentDiffOpts)
+	done, err := SyncDeploymentSpecToCluster(ctx, deployment, DefaultDeploymentDiffOpts)
 	if !done || err != nil {
 		t.Fatalf("Failed to sync deployment: %v", err)
 	}
@@ -797,19 +747,19 @@ func TestSyncEnvVarDeploymentToCluster(t *testing.T) {
 	}
 
 	// sync deployment
-	_, err = SyncDeploymentSpecToCluster(deployContext, deployment, DefaultDeploymentDiffOpts)
+	_, err = SyncDeploymentSpecToCluster(ctx, deployment, DefaultDeploymentDiffOpts)
 	if err != nil {
 		t.Fatalf("Failed to sync deployment: %v", err)
 	}
 
 	// sync twice to be sure update done correctly
-	done, err = SyncDeploymentSpecToCluster(deployContext, deployment, DefaultDeploymentDiffOpts)
+	done, err = SyncDeploymentSpecToCluster(ctx, deployment, DefaultDeploymentDiffOpts)
 	if !done || err != nil {
 		t.Fatalf("Failed to sync deployment: %v", err)
 	}
 
 	actual := &appsv1.Deployment{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
 	if err != nil {
 		t.Fatalf("Failed to sync deployment: %v", err)
 	}
@@ -858,7 +808,7 @@ func TestCustomizeDeploymentShouldNotUpdateResources(t *testing.T) {
 		},
 	}
 
-	ctx := test.GetDeployContext(nil, []runtime.Object{})
+	ctx := test.NewCtxBuilder().Build()
 	err := OverrideDeployment(ctx, deployment, customizationDeployment)
 	assert.Nil(t, err)
 
@@ -942,9 +892,7 @@ func TestCustomizeDeploymentImagePullPolicy(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-
-			ctx := test.GetDeployContext(nil, []runtime.Object{})
+			ctx := test.NewCtxBuilder().Build()
 			err := OverrideDeployment(ctx, testCase.initDeployment, testCase.customizationDeployment)
 			assert.Nil(t, err)
 
@@ -1027,9 +975,7 @@ func TestCustomizeDeploymentEnvVar(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-
-			ctx := test.GetDeployContext(nil, []runtime.Object{})
+			ctx := test.NewCtxBuilder().Build()
 			err := OverrideDeployment(ctx, testCase.initDeployment, testCase.customizationDeployment)
 			assert.Nil(t, err)
 
@@ -1059,7 +1005,7 @@ func TestShouldNotThrowErrorIfOverrideDeploymentSettingsIsEmpty(t *testing.T) {
 
 	overrideDeploymentSettings := &chev2.Deployment{}
 
-	ctx := test.GetDeployContext(nil, []runtime.Object{})
+	ctx := test.NewCtxBuilder().Build()
 	err := OverrideDeployment(ctx, deployment, overrideDeploymentSettings)
 	assert.Nil(t, err)
 }
@@ -1191,7 +1137,7 @@ func TestOverrideContainerCpuLimit(t *testing.T) {
 }
 
 func TestOverrideNodeSelector(t *testing.T) {
-	ctx := test.GetDeployContext(nil, []runtime.Object{})
+	ctx := test.NewCtxBuilder().Build()
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
@@ -1222,7 +1168,7 @@ func TestOverrideNodeSelector(t *testing.T) {
 }
 
 func TestOverrideTolerations(t *testing.T) {
-	ctx := test.GetDeployContext(nil, []runtime.Object{})
+	ctx := test.NewCtxBuilder().Build()
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",

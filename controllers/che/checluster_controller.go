@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -14,6 +14,11 @@ package che
 
 import (
 	"context"
+
+	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	imagepuller "github.com/eclipse-che/che-operator/pkg/deploy/image-puller"
 
@@ -39,24 +44,19 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy/server"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/go-logr/logr"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networking "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	chev2 "github.com/eclipse-che/che-operator/api/v2"
-	networking "k8s.io/api/networking/v1"
 )
 
 // CheClusterReconciler reconciles a CheCluster object
@@ -137,101 +137,56 @@ func NewReconciler(
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	onAllExceptGenericEventsPredicate := predicate.Funcs{
-		UpdateFunc: func(evt event.UpdateEvent) bool {
-			return true
-		},
-		CreateFunc: func(evt event.CreateEvent) bool {
-			return true
-		},
-		DeleteFunc: func(evt event.DeleteEvent) bool {
-			return true
-		},
-		GenericFunc: func(evt event.GenericEvent) bool {
-			return false
-		},
-	}
-
-	var toTrustedBundleConfigMapRequestMapper handler.MapFunc = func(obj client.Object) []ctrl.Request {
+	var toTrustedBundleConfigMapRequestMapper handler.MapFunc = func(ctx context.Context, obj client.Object) []reconcile.Request {
 		isTrusted, reconcileRequest := IsTrustedBundleConfigMap(r.client, r.namespace, obj)
 		if isTrusted {
-			return []ctrl.Request{reconcileRequest}
+			return []reconcile.Request{reconcileRequest}
 		}
-		return []ctrl.Request{}
+		return []reconcile.Request{}
 	}
 
-	var toEclipseCheRelatedObjRequestMapper handler.MapFunc = func(obj client.Object) []ctrl.Request {
+	var toEclipseCheRelatedObjRequestMapper handler.MapFunc = func(ctx context.Context, obj client.Object) []reconcile.Request {
 		isEclipseCheRelatedObj, reconcileRequest := IsEclipseCheRelatedObj(r.client, r.namespace, obj)
 		if isEclipseCheRelatedObj {
-			return []ctrl.Request{reconcileRequest}
+			return []reconcile.Request{reconcileRequest}
 		}
-		return []ctrl.Request{}
+		return []reconcile.Request{}
 	}
 
-	controllerBuilder := ctrl.NewControllerManagedBy(mgr).
-		// Watch for changes to primary resource CheCluster
-		Watches(&source.Kind{Type: &chev2.CheCluster{}}, &handler.EnqueueRequestForObject{}).
-		// Watch for changes to secondary resources and requeue the owner CheCluster
-		Watches(&source.Kind{Type: &corev1.Service{}}, &handler.EnqueueRequestForOwner{
-			IsController: true,
-			OwnerType:    &chev2.CheCluster{},
-		}).
-		Watches(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestForOwner{
-			IsController: true,
-			OwnerType:    &chev2.CheCluster{},
-		}).
-		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, &handler.EnqueueRequestForOwner{
-			IsController: true,
-			OwnerType:    &chev2.CheCluster{},
-		}).
-		Watches(&source.Kind{Type: &rbacv1.Role{}}, &handler.EnqueueRequestForOwner{
-			IsController: true,
-			OwnerType:    &chev2.CheCluster{},
-		}).
-		Watches(&source.Kind{Type: &rbacv1.RoleBinding{}}, &handler.EnqueueRequestForOwner{
-			IsController: true,
-			OwnerType:    &chev2.CheCluster{},
-		}).
-		Watches(&source.Kind{Type: &corev1.ServiceAccount{}}, &handler.EnqueueRequestForOwner{
-			IsController: true,
-			OwnerType:    &chev2.CheCluster{},
-		}).
-		Watches(&source.Kind{Type: &appsv1.Deployment{}}, &handler.EnqueueRequestForOwner{
-			IsController: true,
-			OwnerType:    &chev2.CheCluster{},
-		}).
-		Watches(&source.Kind{Type: &corev1.ConfigMap{}},
+	bld := ctrl.NewControllerManagedBy(mgr).
+		For(&chev2.CheCluster{}).
+		Owns(&corev1.Service{}).
+		Owns(&corev1.Secret{}).
+		Owns(&corev1.ConfigMap{}).
+		Owns(&rbacv1.Role{}).
+		Owns(&rbacv1.RoleBinding{}).
+		Owns(&corev1.ServiceAccount{}).
+		Owns(&appsv1.Deployment{}).
+		Watches(&corev1.ConfigMap{},
 			handler.EnqueueRequestsFromMapFunc(toTrustedBundleConfigMapRequestMapper),
-			builder.WithPredicates(onAllExceptGenericEventsPredicate),
 		).
-		Watches(&source.Kind{Type: &corev1.Secret{}},
+		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(toEclipseCheRelatedObjRequestMapper),
-			builder.WithPredicates(onAllExceptGenericEventsPredicate),
 		).
-		Watches(&source.Kind{Type: &corev1.ConfigMap{}},
+		Watches(&corev1.ConfigMap{},
 			handler.EnqueueRequestsFromMapFunc(toEclipseCheRelatedObjRequestMapper),
-			builder.WithPredicates(onAllExceptGenericEventsPredicate),
 		)
 
 	if infrastructure.IsOpenShift() {
-		controllerBuilder = controllerBuilder.Watches(&source.Kind{Type: &routev1.Route{}}, &handler.EnqueueRequestForOwner{
-			IsController: true,
-			OwnerType:    &chev2.CheCluster{},
-		})
+		bld.Owns(&routev1.Route{})
 	} else {
-		controllerBuilder = controllerBuilder.Watches(&source.Kind{Type: &networking.Ingress{}}, &handler.EnqueueRequestForOwner{
-			IsController: true,
-			OwnerType:    &chev2.CheCluster{},
-		})
+		bld.Owns(&networking.Ingress{})
 	}
 
 	if r.namespace != "" {
-		controllerBuilder = controllerBuilder.WithEventFilter(utils.InNamespaceEventFilter(r.namespace))
+		bld = bld.WithEventFilter(utils.InNamespaceEventFilter(r.namespace))
 	}
 
-	return controllerBuilder.
-		For(&chev2.CheCluster{}).
-		Complete(r)
+	// Use controller.TypedOptions to allow to configure 2 controllers for same object being reconciled
+	return bld.WithOptions(
+		controller.TypedOptions[reconcile.Request]{
+			SkipNameValidation: pointer.Bool(true),
+		}).Complete(r)
 }
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to

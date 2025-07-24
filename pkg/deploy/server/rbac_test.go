@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -20,9 +20,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"k8s.io/apimachinery/pkg/runtime"
-
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
@@ -31,8 +28,6 @@ import (
 )
 
 func TestSyncPermissions(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-
 	type testCase struct {
 		name       string
 		checluster *chev2.CheCluster
@@ -59,7 +54,7 @@ func TestSyncPermissions(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.GetDeployContext(testCase.checluster, []runtime.Object{})
+			ctx := test.NewCtxBuilder().WithCheCluster(testCase.checluster).Build()
 
 			reconciler := NewCheServerReconciler()
 
@@ -93,8 +88,6 @@ func TestSyncPermissions(t *testing.T) {
 
 // TestSyncClusterRoleBinding tests that CRB is deleted when no roles are specified in CR.
 func TestSyncPermissionsWhenCheClusterUpdated(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-
 	cheCluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "eclipse-che",
@@ -109,7 +102,7 @@ func TestSyncPermissionsWhenCheClusterUpdated(t *testing.T) {
 		},
 	}
 
-	ctx := test.GetDeployContext(cheCluster, []runtime.Object{})
+	ctx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
 	reconciler := NewCheServerReconciler()
 
 	done, err := reconciler.syncPermissions(ctx)

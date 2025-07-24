@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -17,6 +17,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"k8s.io/utils/pointer"
@@ -41,12 +43,13 @@ func (r *CheCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-var _ webhook.Defaulter = &CheCluster{}
+var _ webhook.CustomDefaulter = &CheCluster{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
-func (r *CheCluster) Default() {
+func (r *CheCluster) Default(ctx context.Context, obj runtime.Object) error {
 	setContainerBuildConfiguration(r)
 	setDisableContainerBuildCapabilities(r)
+	return nil
 }
 
 func setDisableContainerBuildCapabilities(cheCluster *CheCluster) {
@@ -63,24 +66,24 @@ func setContainerBuildConfiguration(cheCluster *CheCluster) {
 	}
 }
 
-var _ webhook.Validator = &CheCluster{}
+var _ webhook.CustomValidator = &CheCluster{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *CheCluster) ValidateCreate() error {
+func (r *CheCluster) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	if err := ensureSingletonCheCluster(); err != nil {
-		return err
+		return []string{}, err
 	}
-	return validate(r)
+	return []string{}, validate(r)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *CheCluster) ValidateUpdate(old runtime.Object) error {
-	return validate(r)
+func (r *CheCluster) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+	return []string{}, validate(r)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *CheCluster) ValidateDelete() error {
-	return nil
+func (r *CheCluster) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+	return []string{}, nil
 }
 
 func ensureSingletonCheCluster() error {

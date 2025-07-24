@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -14,21 +14,13 @@ package deploy
 
 import (
 	"context"
-	"os"
+	"testing"
 
-	chev2 "github.com/eclipse-che/che-operator/api/v2"
-	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	"testing"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func TestGetSecrets(t *testing.T) {
@@ -36,11 +28,11 @@ func TestGetSecrets(t *testing.T) {
 		name           string
 		labels         map[string]string
 		annotations    map[string]string
-		initObjects    []runtime.Object
+		initObjects    []client.Object
 		expectedAmount int
 	}
 
-	runtimeSecrets := []runtime.Object{
+	runtimeSecrets := []client.Object{
 		&corev1.Secret{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Secret",
@@ -82,7 +74,7 @@ func TestGetSecrets(t *testing.T) {
 	testCases := []testCase{
 		{
 			name:        "Get secrets",
-			initObjects: []runtime.Object{},
+			initObjects: []client.Object{},
 			labels: map[string]string{
 				"l1": "v1",
 			},
@@ -93,7 +85,7 @@ func TestGetSecrets(t *testing.T) {
 		},
 		{
 			name:        "Get secrets",
-			initObjects: []runtime.Object{},
+			initObjects: []client.Object{},
 			labels: map[string]string{
 				"l1": "v1",
 			},
@@ -105,7 +97,7 @@ func TestGetSecrets(t *testing.T) {
 		},
 		{
 			name:        "Get secrets",
-			initObjects: []runtime.Object{},
+			initObjects: []client.Object{},
 			labels: map[string]string{
 				"l1": "v1",
 				"l2": "v2",
@@ -117,7 +109,7 @@ func TestGetSecrets(t *testing.T) {
 		},
 		{
 			name:        "Get secrets, unknown label",
-			initObjects: []runtime.Object{},
+			initObjects: []client.Object{},
 			labels: map[string]string{
 				"l4": "v4",
 			},
@@ -126,7 +118,7 @@ func TestGetSecrets(t *testing.T) {
 		},
 		{
 			name:        "Get secrets, unknown annotation",
-			initObjects: []runtime.Object{},
+			initObjects: []client.Object{},
 			labels: map[string]string{
 				"l1": "v1",
 			},
@@ -139,25 +131,10 @@ func TestGetSecrets(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
 			testCase.initObjects = append(testCase.initObjects, runtimeSecrets...)
-			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
+			ctx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
 
-			deployContext := &chetypes.DeployContext{
-				CheCluster: &chev2.CheCluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "eclipse-che",
-					},
-				},
-				ClusterAPI: chetypes.ClusterAPI{
-					Client:           cli,
-					NonCachingClient: cli,
-					Scheme:           scheme.Scheme,
-				},
-			}
-
-			secrets, err := GetSecrets(deployContext, testCase.labels, testCase.annotations)
+			secrets, err := GetSecrets(ctx, testCase.labels, testCase.annotations)
 			if err != nil {
 				t.Fatalf("Error getting secrets: %v", err)
 			}
@@ -170,35 +147,21 @@ func TestGetSecrets(t *testing.T) {
 }
 
 func TestSyncSecretToCluster(t *testing.T) {
-	chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
-	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
-	deployContext := &chetypes.DeployContext{
-		CheCluster: &chev2.CheCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "eclipse-che",
-				Name:      "eclipse-che",
-			},
-		},
-		ClusterAPI: chetypes.ClusterAPI{
-			Client:           cli,
-			NonCachingClient: cli,
-			Scheme:           scheme.Scheme,
-		},
-	}
+	ctx := test.NewCtxBuilder().Build()
 
-	done, err := SyncSecretToCluster(deployContext, "test", "eclipse-che", map[string][]byte{"A": []byte("AAAA")})
+	done, err := SyncSecretToCluster(ctx, "test", "eclipse-che", map[string][]byte{"A": []byte("AAAA")})
 	if !done || err != nil {
 		t.Fatalf("Failed to sync secret: %v", err)
 	}
 
 	// sync another secret
-	done, err = SyncSecretToCluster(deployContext, "test", "eclipse-che", map[string][]byte{"B": []byte("BBBB")})
+	done, err = SyncSecretToCluster(ctx, "test", "eclipse-che", map[string][]byte{"B": []byte("BBBB")})
 	if !done || err != nil {
 		t.Fatalf("Failed to sync secret: %v", err)
 	}
 
 	actual := &corev1.Secret{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
 	if err != nil {
 		t.Fatalf("Failed to get secret: %v", err)
 	}

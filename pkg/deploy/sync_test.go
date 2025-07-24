@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -15,20 +15,17 @@ package deploy
 import (
 	"context"
 
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
 
-	chev2 "github.com/eclipse-che/che-operator/api/v2"
-	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	"testing"
 )
 
 var (
@@ -62,64 +59,64 @@ var (
 )
 
 func TestGet(t *testing.T) {
-	cli, deployContext := initDeployContext()
+	ctx := test.NewCtxBuilder().Build()
 
-	err := cli.Create(context.TODO(), testObj.DeepCopy())
+	err := ctx.ClusterAPI.Client.Create(context.TODO(), testObj.DeepCopy())
 	if err != nil {
 		t.Fatalf("Failed to create object: %v", err)
 	}
 
 	actual := &corev1.Secret{}
-	exists, err := Get(deployContext, testKey, actual)
+	exists, err := Get(ctx, testKey, actual)
 	if !exists || err != nil {
 		t.Fatalf("Failed to get object: %v", err)
 	}
 }
 
 func TestCreateIgnoreIfExistsShouldReturnTrueIfObjectCreated(t *testing.T) {
-	cli, deployContext := initDeployContext()
+	ctx := test.NewCtxBuilder().Build()
 
-	done, err := CreateIgnoreIfExists(deployContext, testObj.DeepCopy())
+	done, err := CreateIgnoreIfExists(ctx, testObj.DeepCopy())
 	assert.NoError(t, err)
 	assert.True(t, done)
 
 	actual := &corev1.Secret{}
-	err = cli.Get(context.TODO(), testKey, actual)
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), testKey, actual)
 	assert.NoError(t, err)
 	assert.NotNil(t, actual)
 }
 
 func TestCreateIgnoreIfExistsShouldReturnTrueIfObjectExist(t *testing.T) {
-	cli, deployContext := initDeployContext()
+	ctx := test.NewCtxBuilder().Build()
 
-	err := cli.Create(context.TODO(), testObj.DeepCopy())
+	err := ctx.ClusterAPI.Client.Create(context.TODO(), testObj.DeepCopy())
 	assert.NoError(t, err)
 
-	done, err := CreateIgnoreIfExists(deployContext, testObj.DeepCopy())
+	done, err := CreateIgnoreIfExists(ctx, testObj.DeepCopy())
 	assert.NoError(t, err)
 	assert.True(t, done)
 }
 
 func TestUpdate(t *testing.T) {
-	cli, deployContext := initDeployContext()
+	ctx := test.NewCtxBuilder().Build()
 
-	err := cli.Create(context.TODO(), testObj.DeepCopy())
+	err := ctx.ClusterAPI.Client.Create(context.TODO(), testObj.DeepCopy())
 	if err != nil {
 		t.Fatalf("Failed to create object: %v", err)
 	}
 
 	actual := &corev1.Secret{}
-	err = cli.Get(context.TODO(), testKey, actual)
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), testKey, actual)
 	if err != nil && !errors.IsNotFound(err) {
 		t.Fatalf("Failed to get object: %v", err)
 	}
 
-	_, err = doUpdate(cli, deployContext, actual, testObjLabeled.DeepCopy(), cmp.Options{})
+	_, err = doUpdate(ctx.ClusterAPI.Client, ctx, actual, testObjLabeled.DeepCopy(), cmp.Options{})
 	if err != nil {
 		t.Fatalf("Failed to update object: %v", err)
 	}
 
-	err = cli.Get(context.TODO(), testKey, actual)
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), testKey, actual)
 	if err != nil && !errors.IsNotFound(err) {
 		t.Fatalf("Failed to get object: %v", err)
 	}
@@ -134,14 +131,14 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestShouldDeleteExistedObject(t *testing.T) {
-	cli, deployContext := initDeployContext()
+	ctx := test.NewCtxBuilder().Build()
 
-	err := cli.Create(context.TODO(), testObj.DeepCopy())
+	err := ctx.ClusterAPI.Client.Create(context.TODO(), testObj.DeepCopy())
 	if err != nil {
 		t.Fatalf("Failed to create object: %v", err)
 	}
 
-	done, err := Delete(deployContext, testKey, testObj.DeepCopy())
+	done, err := Delete(ctx, testKey, testObj.DeepCopy())
 	if err != nil {
 		t.Fatalf("Failed to delete object: %v", err)
 	}
@@ -151,7 +148,7 @@ func TestShouldDeleteExistedObject(t *testing.T) {
 	}
 
 	actualObj := &corev1.Secret{}
-	err = cli.Get(context.TODO(), testKey, actualObj)
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), testKey, actualObj)
 	if err != nil && !errors.IsNotFound(err) {
 		t.Fatalf("Failed to get object: %v", err)
 	}
@@ -162,9 +159,9 @@ func TestShouldDeleteExistedObject(t *testing.T) {
 }
 
 func TestShouldNotDeleteObject(t *testing.T) {
-	_, deployContext := initDeployContext()
+	ctx := test.NewCtxBuilder().Build()
 
-	done, err := Delete(deployContext, testKey, testObj.DeepCopy())
+	done, err := Delete(ctx, testKey, testObj.DeepCopy())
 	if err != nil {
 		t.Fatalf("Failed to delete object: %v", err)
 	}
@@ -172,24 +169,4 @@ func TestShouldNotDeleteObject(t *testing.T) {
 	if !done {
 		t.Fatalf("Object has not been deleted")
 	}
-}
-
-func initDeployContext() (client.Client, *chetypes.DeployContext) {
-	chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
-	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
-	deployContext := &chetypes.DeployContext{
-		CheCluster: &chev2.CheCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "eclipse-che",
-				Name:      "eclipse-che",
-			},
-		},
-		ClusterAPI: chetypes.ClusterAPI{
-			Client:           cli,
-			NonCachingClient: cli,
-			Scheme:           scheme.Scheme,
-		},
-	}
-
-	return cli, deployContext
 }

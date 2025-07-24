@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2024 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -16,6 +16,8 @@ import (
 	"context"
 	"os"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/google/go-cmp/cmp"
@@ -23,22 +25,20 @@ import (
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/api/errors"
 
+	"testing"
+
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	fakeDiscovery "k8s.io/client-go/discovery/fake"
-
-	"testing"
 )
 
 func TestImagePullerConfiguration(t *testing.T) {
 	type testCase struct {
 		name                string
 		cheCluster          *chev2.CheCluster
-		initObjects         []runtime.Object
+		initObjects         []client.Object
 		testCaseFilePath    string
 		expectedImagePuller *chev1alpha1.KubernetesImagePuller
 	}
@@ -81,7 +81,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 				Enable: true,
 			}),
 			testCaseFilePath: "image-puller-resources-test/imagepuller_testcase_2.json",
-			initObjects: []runtime.Object{
+			initObjects: []client.Object{
 				InitImagePuller(chev1alpha1.KubernetesImagePullerSpec{
 					DeploymentName:   defaultDeploymentName,
 					ConfigMapName:    defaultConfigMapName,
@@ -106,7 +106,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 					Images:           "image=image_url;",
 				}}),
 			testCaseFilePath: "image-puller-resources-test/imagepuller_testcase_1.json",
-			initObjects: []runtime.Object{
+			initObjects: []client.Object{
 				InitImagePuller(chev1alpha1.KubernetesImagePullerSpec{
 					DeploymentName:   defaultDeploymentName,
 					ConfigMapName:    defaultConfigMapName,
@@ -126,7 +126,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 				Enable: false,
 			}),
 			testCaseFilePath: "image-puller-resources-test/imagepuller_testcase_1.json",
-			initObjects: []runtime.Object{
+			initObjects: []client.Object{
 				InitImagePuller(chev1alpha1.KubernetesImagePullerSpec{
 					DeploymentName:   defaultDeploymentName,
 					ConfigMapName:    defaultConfigMapName,
@@ -138,17 +138,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.GetDeployContext(testCase.cheCluster, testCase.initObjects)
-			ctx.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
-				{
-					GroupVersion: "che.eclipse.org/v1alpha1",
-					APIResources: []metav1.APIResource{
-						{
-							Name: resourceName,
-						},
-					},
-				},
-			}
+			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
 
 			ip := &ImagePuller{
 				imageProvider: &DashboardApiDefaultImagesProvider{
@@ -157,11 +147,11 @@ func TestImagePullerConfiguration(t *testing.T) {
 					},
 				},
 			}
-			_, _, err := ip.Reconcile(ctx)
-			assert.NoError(t, err)
+
+			test.EnsureReconcile(t, ctx, ip.Reconcile)
 
 			actualImagePuller := &chev1alpha1.KubernetesImagePuller{}
-			err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: "eclipse-che", Name: "eclipse-che-image-puller"}, actualImagePuller)
+			err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: "eclipse-che", Name: "eclipse-che-image-puller"}, actualImagePuller)
 			if testCase.cheCluster.Spec.Components.ImagePuller.Enable {
 				assert.NoError(t, err)
 

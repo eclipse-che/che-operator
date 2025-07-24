@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2024 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -15,7 +15,6 @@ package pluginregistry
 import (
 	"os"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
@@ -23,7 +22,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 
@@ -31,9 +29,7 @@ import (
 )
 
 func TestShouldDeployPluginRegistryIfOpenVSXIsEmpty(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-
-	ctx := test.GetDeployContext(&chev2.CheCluster{
+	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "eclipse-che",
 			Namespace: "eclipse-che",
@@ -45,12 +41,10 @@ func TestShouldDeployPluginRegistryIfOpenVSXIsEmpty(t *testing.T) {
 				},
 			},
 		},
-	}, []runtime.Object{})
+	}).Build()
 
 	pluginregistry := NewPluginRegistryReconciler()
-	_, done, err := pluginregistry.Reconcile(ctx)
-	assert.True(t, done)
-	assert.Nil(t, err)
+	test.EnsureReconcile(t, ctx, pluginregistry.Reconcile)
 
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.Service{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
@@ -71,19 +65,10 @@ func TestShouldDeployPluginRegistryIfOpenVSXIsEmptyByDefault(t *testing.T) {
 	// re initialize defaults with new env var
 	defaults.Initialize()
 
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-
-	ctx := test.GetDeployContext(&chev2.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "eclipse-che",
-			Namespace: "eclipse-che",
-		},
-	}, []runtime.Object{})
+	ctx := test.NewCtxBuilder().Build()
 
 	pluginregistry := NewPluginRegistryReconciler()
-	_, done, err := pluginregistry.Reconcile(ctx)
-	assert.True(t, done)
-	assert.Nil(t, err)
+	test.EnsureReconcile(t, ctx, pluginregistry.Reconcile)
 
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.Service{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
@@ -92,9 +77,7 @@ func TestShouldDeployPluginRegistryIfOpenVSXIsEmptyByDefault(t *testing.T) {
 }
 
 func TestShouldNotDeployPluginRegistryIfOpenVSXConfigured(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-
-	ctx := test.GetDeployContext(&chev2.CheCluster{
+	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "eclipse-che",
 			Namespace: "eclipse-che",
@@ -106,12 +89,10 @@ func TestShouldNotDeployPluginRegistryIfOpenVSXConfigured(t *testing.T) {
 				},
 			},
 		},
-	}, []runtime.Object{})
+	}).Build()
 
 	pluginregistry := NewPluginRegistryReconciler()
-	_, done, err := pluginregistry.Reconcile(ctx)
-	assert.True(t, done)
-	assert.Nil(t, err)
+	test.EnsureReconcile(t, ctx, pluginregistry.Reconcile)
 
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.Service{}))
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
@@ -131,19 +112,10 @@ func TestShouldNotDeployPluginRegistryIfOpenVSXConfiguredByDefault(t *testing.T)
 	// re initialize defaults with new env var
 	defaults.Initialize()
 
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-
-	ctx := test.GetDeployContext(&chev2.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "eclipse-che",
-			Namespace: "eclipse-che",
-		},
-	}, []runtime.Object{})
+	ctx := test.NewCtxBuilder().Build()
 
 	pluginregistry := NewPluginRegistryReconciler()
-	_, done, err := pluginregistry.Reconcile(ctx)
-	assert.True(t, done)
-	assert.Nil(t, err)
+	test.EnsureReconcile(t, ctx, pluginregistry.Reconcile)
 
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.Service{}))
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))

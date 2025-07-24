@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2024 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -18,12 +18,10 @@ import (
 
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func TestDevfileRegistryReconciler(t *testing.T) {
@@ -168,15 +166,10 @@ func TestDevfileRegistryReconciler(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
+			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 
 			devfileRegistryReconciler := NewDevfileRegistryReconciler()
-			for i := 0; i < 2; i++ {
-				_, done, err := devfileRegistryReconciler.Reconcile(ctx)
-				assert.True(t, done)
-				assert.Nil(t, err)
-			}
+			test.EnsureReconcile(t, ctx, devfileRegistryReconciler.Reconcile)
 
 			assert.Equal(t, testCase.expectedDevfileRegistryURL, ctx.CheCluster.Status.DevfileRegistryURL)
 			assert.Equal(t, testCase.expectedDisableInternalRegistry, ctx.CheCluster.Spec.Components.DevfileRegistry.DisableInternalRegistry)

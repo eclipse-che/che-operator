@@ -481,7 +481,7 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 	goimports -w ./api
 	go fmt -x ./api
 
-	$(OPERATOR_SDK) bundle validate $${BUNDLE_PATH} --select-optional name=operatorhub --optional-values=k8s-version=1.19
+	$(OPERATOR_SDK) bundle validate $${BUNDLE_PATH}  --select-optional name="operatorhubv2" --select-optional name="good-practices" --optional-values=k8s-version=1.19
 
 bundle-build: SHELL := /bin/bash
 bundle-build: download-opm ## Build a bundle image
@@ -592,7 +592,7 @@ download-opm: ## Download opm tool
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
 download-controller-gen: ## Download controller-gen tool
-	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0)
+	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.18.0)
 
 KUSTOMIZE = $(shell pwd)/bin/kustomize
 download-kustomize: ## Download kustomize tool

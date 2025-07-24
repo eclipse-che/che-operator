@@ -22,6 +22,10 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
@@ -120,7 +124,12 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	} else {
 		bld.Owns(&networkingv1.Ingress{})
 	}
-	return bld.Complete(r)
+
+	// Use controller.TypedOptions to allow to configure 2 controllers for same object being reconciled
+	return bld.WithOptions(
+		controller.TypedOptions[reconcile.Request]{
+			SkipNameValidation: pointer.Bool(true),
+		}).Complete(r)
 }
 
 func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {

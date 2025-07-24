@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -23,7 +23,6 @@ import (
 	networking "k8s.io/api/networking/v1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 
@@ -173,8 +172,8 @@ func TestIngressSpec(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
-			_, actualIngress := GetIngressSpec(deployContext,
+			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			_, actualIngress := GetIngressSpec(ctx,
 				"test",
 				"",
 				"che-host",
@@ -199,7 +198,7 @@ func TestSyncIngressToCluster(t *testing.T) {
 		},
 	}
 
-	deployContext := test.GetDeployContext(cheCluster, []runtime.Object{})
+	deployContext := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
 	_, done, err := SyncIngressToCluster(deployContext, "test", "", "service-1", 8080, "component")
 	assert.Nil(t, err)
 	assert.True(t, done)

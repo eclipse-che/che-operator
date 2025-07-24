@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -13,50 +13,36 @@
 package deploy
 
 import (
+	"testing"
+
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
-	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	"testing"
 )
 
 func TestReload(t *testing.T) {
-	chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
-	cli := fake.NewFakeClientWithScheme(
-		scheme.Scheme,
-		&chev2.CheCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:       "eclipse-che",
-				Name:            "eclipse-che",
-				ResourceVersion: "1",
-			},
-		})
+	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:       "eclipse-che",
+			Name:            "eclipse-che",
+			ResourceVersion: "1",
+		},
+	}).Build()
 
-	ctx := &chetypes.DeployContext{
-		CheCluster: &chev2.CheCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:       "eclipse-che",
-				Name:            "eclipse-che",
-				ResourceVersion: "2",
-			},
-			Spec: chev2.CheClusterSpec{
-				Components: chev2.CheClusterComponents{
-					PluginRegistry: chev2.PluginRegistry{
-						OpenVSXURL: pointer.StringPtr("https://open-vsx.org"),
-					},
+	ctx.CheCluster = &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:       "eclipse-che",
+			Name:            "eclipse-che",
+			ResourceVersion: "2",
+		},
+		Spec: chev2.CheClusterSpec{
+			Components: chev2.CheClusterComponents{
+				PluginRegistry: chev2.PluginRegistry{
+					OpenVSXURL: pointer.StringPtr("https://open-vsx.org"),
 				},
 			},
-		},
-		ClusterAPI: chetypes.ClusterAPI{
-			Client:           cli,
-			NonCachingClient: cli,
-			Scheme:           scheme.Scheme,
 		},
 	}
 
@@ -100,7 +86,7 @@ func TestFindCheCRinNamespace(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.checluster, []runtime.Object{})
+			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.checluster).Build()
 			checluster, err := FindCheClusterCRInNamespace(deployContext.ClusterAPI.Client, testCase.namespace)
 			if testCase.found {
 				assert.NoError(t, err)
