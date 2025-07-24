@@ -45,7 +45,7 @@ type CheClusterSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Development environments"
-	// +kubebuilder:default:={storage: {pvcStrategy: per-user}, defaultNamespace: {template: <username>-che, autoProvision: true}, secondsOfInactivityBeforeIdling:1800, secondsOfRunBeforeIdling:-1, startTimeoutSeconds:300, maxNumberOfWorkspacesPerUser:-1}
+	// +kubebuilder:default:={storage: {pvcStrategy: per-user}, defaultNamespace: {template: <username>-che, autoProvision: true}, secondsOfInactivityBeforeIdling:1800, secondsOfRunBeforeIdling:-1, editorDownloadUrls: {{editor: "JetBrains", url: "https://download.jetbrains.com/"}}, startTimeoutSeconds:300, maxNumberOfWorkspacesPerUser:-1}
 	DevEnvironments CheClusterDevEnvironments `json:"devEnvironments"`
 	// Che components configuration.
 	// +optional
@@ -124,6 +124,9 @@ type CheClusterDevEnvironments struct {
 	// To disable workspace run timeout, set this value to -1.
 	// +kubebuilder:default:=-1
 	SecondsOfRunBeforeIdling *int32 `json:"secondsOfRunBeforeIdling,omitempty"`
+	// The downloaded list of editors
+	// +kubebuilder:default:={{editor: JetBrains, url: "https://download.jetbrains.com/"}}
+	EditorDownloadUrls []EditorDownloadUrl `json:"editorDownloadUrls,omitempty"`
 	// Disables the container build capabilities.
 	// When set to `false` (the default value), the devEnvironments.security.containerSecurityContext
 	// field is ignored, and the following container SecurityContext is applied:
@@ -516,6 +519,16 @@ type WorkspaceDefaultPlugins struct {
 	Editor string `json:"editor,omitempty"`
 	// Default plug-in URIs for the specified editor.
 	Plugins []string `json:"plugins,omitempty"`
+}
+
+type EditorDownloadUrl struct {
+	// The editor which needs to download to specify.
+	// The editor ID must have `publisher/name/version` format.
+	// +kubebuilder:validation:Required
+	Editor string `json:"editor,omitempty"`
+	// The download url of the editor.
+	// +kubebuilder:validation:Required
+	Url string `json:"url,omitempty"`
 }
 
 // Workspace security configuration
