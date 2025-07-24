@@ -5346,8 +5346,8 @@ spec:
                   secondsOfInactivityBeforeIdling: 1800
                   secondsOfRunBeforeIdling: -1
                   editorDownloadUrls:
-                      - editor: JetBrains
-                        downloadUrl: "https://download.jetbrains.com/"
+                    - editor: JetBrains
+                      downloadUrl: "https://download.jetbrains.com/"
                   startTimeoutSeconds: 300
                   storage:
                     pvcStrategy: per-user
@@ -7477,9 +7477,6 @@ spec:
                           downloadUrl:
                             type: string
                             description: Download URL for the editor.
-                      default:
-                        - editor: JetBrains
-                          downloadUrl: "https://download.jetbrains.com/"
                       type: array
                   security:
                     description: Workspace security configuration.

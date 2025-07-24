@@ -7509,9 +7509,6 @@ spec:
                           downloadUrl:
                             type: string
                             description: Download URL for the editor.
-                      default:
-                        - editor: JetBrains
-                          downloadUrl: "https://download.jetbrains.com/"
                       type: array
                     security:
                       description: Workspace security configuration.
