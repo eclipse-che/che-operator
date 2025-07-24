@@ -258,11 +258,15 @@ func TestCreatesDataInNamespace(t *testing.T) {
 		assert.Equal(t, "true", idleSettings.GetLabels()[dwconstants.DevWorkspaceMountLabel],
 			"idle settings should be labeled as mounted")
 
-		assert.Equal(t, 3, len(idleSettings.Data), "Expecting 3 elements in the idle settings")
+		assert.Equal(t, 2, len(idleSettings.Data), "Expecting 2 elements in the idle settings")
 
 		assert.Equal(t, "1800", idleSettings.Data["SECONDS_OF_DW_INACTIVITY_BEFORE_IDLING"], "Unexpected idle settings")
 		assert.Equal(t, "-1", idleSettings.Data["SECONDS_OF_DW_RUN_BEFORE_IDLING"], "Unexpected idle settings")
-		assert.Equal(t, "https://download.jetbrains.com/", idleSettings.Data["JETBRAINS_STORAGE_HOST"], "Expected JetBrains URL not set correctly")
+
+		editorSettings := corev1.ConfigMap{}
+		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-editor-settings", Namespace: namespace.GetName()}, &editorSettings))
+		assert.Equal(t, 1, len(editorSettings.Data), "Expecting 1 elements in the editor settings")
+		assert.Equal(t, "https://download.jetbrains.com/", editorSettings.Data["JETBRAINS_STORAGE_HOST"], "Expected JetBrains URL not set correctly")
 
 		cert := corev1.Secret{}
 		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-server-cert", Namespace: namespace.GetName()}, &cert))
