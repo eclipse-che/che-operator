@@ -523,7 +523,7 @@ type WorkspaceDefaultPlugins struct {
 
 type EditorDownloadUrl struct {
 	// The editor which needs to download to specify.
-	// The plugin ID must have `publisher/name/version` format.
+	// The editor ID must have `publisher/name/version` format.
 	// +kubebuilder:validation:Required
 	Editor string `json:"editor,omitempty"`
 	// The download url of the editor.
