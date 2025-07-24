@@ -5373,7 +5373,7 @@ spec:
                     secondsOfRunBeforeIdling: -1
                     editorDownloadUrls:
                       - editor: JetBrains
-                        downloadUrl: "https://download.jetbrains.com/"
+                        url: "https://download.jetbrains.com/"
                     startTimeoutSeconds: 300
                     storage:
                       pvcStrategy: per-user
@@ -7506,7 +7506,7 @@ spec:
                           editor:
                             type: string
                             description: Name of the editor.
-                          downloadUrl:
+                          url:
                             type: string
                             description: Download URL for the editor.
                       type: array
