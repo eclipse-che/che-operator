@@ -6996,6 +6996,23 @@ spec:
                            - SETGID
                            - SETUID
                     type: boolean
+                  editorDownloadUrls:
+                    default:
+                    - editor: JetBrains
+                      url: https://download.jetbrains.com/
+                    description: The downloaded list of editors
+                    items:
+                      properties:
+                        editor:
+                          description: |-
+                            The editor which needs to download to specify.
+                            The editor ID must have `publisher/name/version` format.
+                          type: string
+                        url:
+                          description: The download url of the editor.
+                          type: string
+                      type: object
+                    type: array
                   gatewayContainer:
                     description: GatewayContainer configuration.
                     properties:

@@ -5371,6 +5371,9 @@ spec:
                     maxNumberOfWorkspacesPerUser: -1
                     secondsOfInactivityBeforeIdling: 1800
                     secondsOfRunBeforeIdling: -1
+                    editorDownloadUrls:
+                      - editor: JetBrains
+                        url: "https://download.jetbrains.com/"
                     startTimeoutSeconds: 300
                     storage:
                       pvcStrategy: per-user
@@ -7495,6 +7498,18 @@ spec:
                         To disable workspace run timeout, set this value to -1.
                       format: int32
                       type: integer
+                    editorDownloadUrls:
+                      description: List of downloadable editor configurations.
+                      items:
+                        type: object
+                        properties:
+                          editor:
+                            type: string
+                            description: Name of the editor.
+                          url:
+                            type: string
+                            description: Download URL for the editor.
+                      type: array
                     security:
                       description: Workspace security configuration.
                       properties:

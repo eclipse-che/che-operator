@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	containerbuild "github.com/eclipse-che/che-operator/pkg/deploy/container-build"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -240,6 +241,11 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
+	if err = r.reconcileEditorSettings(ctx, req.Name, checluster, deployContext); err != nil {
+		logrus.Errorf("Failed to reconcile editor settings into namespace '%s': %v", req.Name, err)
+		return ctrl.Result{}, err
+	}
+
 	if err = r.reconcileNodeSelectorAndTolerations(ctx, req.Name, checluster, deployContext); err != nil {
 		logrus.Errorf("Failed to reconcile the workspace pod node selector and tolerations in namespace '%s': %v", req.Name, err)
 		return ctrl.Result{}, err
@@ -390,6 +396,47 @@ func (r *CheUserNamespaceReconciler) reconcileProxySettings(ctx context.Context,
 	}
 
 	_, err = deploy.Sync(deployContext, cfg, deploy.ConfigMapDiffOpts)
+	return err
+}
+
+func (r *CheUserNamespaceReconciler) reconcileEditorSettings(ctx context.Context, targetNs string, checluster *chev2.CheCluster, deployContext *chetypes.DeployContext) error {
+	if len(checluster.Spec.DevEnvironments.EditorDownloadUrls) == 0 {
+		return nil
+	}
+
+	configMapName := prefixedName("editor-settings")
+	cfg := &corev1.ConfigMap{}
+
+	data := map[string]string{}
+	for _, editorURL := range checluster.Spec.DevEnvironments.EditorDownloadUrls {
+		if editorURL.Editor != "" && editorURL.Url != "" {
+			key := fmt.Sprintf("%s_STORAGE_HOST", strings.ToUpper(editorURL.Editor))
+			data[key] = editorURL.Url
+		}
+	}
+
+	requiredLabels := defaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
+		dwconstants.DevWorkspaceMountLabel:          "true",
+		dwconstants.DevWorkspaceWatchConfigMapLabel: "true",
+	})
+	requiredAnnos := map[string]string{
+		dwconstants.DevWorkspaceMountAsAnnotation: "env",
+	}
+
+	cfg = &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        configMapName,
+			Namespace:   targetNs,
+			Labels:      requiredLabels,
+			Annotations: requiredAnnos,
+		},
+		Data: data,
+	}
+	_, err := deploy.Sync(deployContext, cfg, deploy.ConfigMapDiffOpts)
 	return err
 }
 
