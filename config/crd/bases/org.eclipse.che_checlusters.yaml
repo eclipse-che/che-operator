@@ -5326,9 +5326,6 @@ spec:
                   defaultNamespace:
                     autoProvision: true
                     template: <username>-che
-                  editorDownloadUrls:
-                  - editor: JetBrains
-                    url: https://download.jetbrains.com/
                   maxNumberOfWorkspacesPerUser: -1
                   secondsOfInactivityBeforeIdling: 1800
                   secondsOfRunBeforeIdling: -1
@@ -6988,7 +6985,7 @@ spec:
                         editor:
                           description: |-
                             The editor which needs to download to specify.
-                            The plugin ID must have `publisher/name/version` format.
+                            The editor ID must have `publisher/name/version` format.
                           type: string
                         url:
                           description: The download url of the editor.
