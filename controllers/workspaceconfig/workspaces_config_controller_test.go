@@ -10,12 +10,14 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package usernamespace
+package workspace_config
 
 import (
 	"context"
 	"fmt"
 	"testing"
+
+	"github.com/eclipse-che/che-operator/controllers/namespacecache"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -23,7 +25,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/stretchr/testify/assert"
@@ -62,13 +63,13 @@ func TestRecreateObjectIfAlreadyExists(t *testing.T) {
 		},
 	}
 
-	ctx := test.GetDeployContext(nil, []runtime.Object{srcObject})
+	ctx := test.NewCtxBuilder().Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
 		ctx.ClusterAPI.Client,
 		ctx.ClusterAPI.Client,
 		ctx.ClusterAPI.Scheme,
-		NewNamespaceCache(ctx.ClusterAPI.NonCachingClient))
+		namespacecache.NewNamespaceCache(ctx.ClusterAPI.NonCachingClient))
 
 	syncContext := &syncContext{
 		dstNamespace: "user-che",
@@ -89,24 +90,22 @@ func TestRecreateObjectIfAlreadyExists(t *testing.T) {
 }
 
 func TestDeleteIfObjectIsObsolete(t *testing.T) {
-	ctx := test.GetDeployContext(nil, []runtime.Object{
-		&corev1.ConfigMap{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "ConfigMap",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test_1",
-				Namespace: "user-che",
-			},
+	ctx := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
 		},
-	})
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test_1",
+			Namespace: "user-che",
+		},
+	}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
 		ctx.ClusterAPI.Client,
 		ctx.ClusterAPI.Client,
 		ctx.ClusterAPI.Scheme,
-		NewNamespaceCache(ctx.ClusterAPI.NonCachingClient))
+		namespacecache.NewNamespaceCache(ctx.ClusterAPI.NonCachingClient))
 
 	test1CMInUserNS := buildKey(v1ConfigMapGKV, "test_1", "user-che")
 	test2CMInUserNS := buildKey(v1ConfigMapGKV, "test_2", "user-che")
@@ -158,13 +157,13 @@ func TestDeleteIfObjectIsObsolete(t *testing.T) {
 }
 
 func TestGetEmptySyncConfig(t *testing.T) {
-	ctx := test.GetDeployContext(nil, []runtime.Object{})
+	ctx := test.NewCtxBuilder().Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
 		ctx.ClusterAPI.Client,
 		ctx.ClusterAPI.Client,
 		ctx.ClusterAPI.Scheme,
-		NewNamespaceCache(ctx.ClusterAPI.NonCachingClient))
+		namespacecache.NewNamespaceCache(ctx.ClusterAPI.NonCachingClient))
 
 	cm, err := workspaceConfigReconciler.getSyncConfig(context.TODO(), "eclipse-che")
 	assert.NoError(t, err)

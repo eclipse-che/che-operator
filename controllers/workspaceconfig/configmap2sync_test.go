@@ -10,12 +10,14 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package usernamespace
+package workspace_config
 
 import (
 	"context"
 	"sync"
 	"testing"
+
+	"github.com/eclipse-che/che-operator/controllers/namespacecache"
 
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 
@@ -26,7 +28,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -47,41 +48,40 @@ var (
 )
 
 func TestSyncConfigMap(t *testing.T) {
-	deployContext := test.GetDeployContext(nil, []runtime.Object{
-		&corev1.ConfigMap{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "ConfigMap",
-				APIVersion: "v1",
+	deployContext := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      objectName,
+			Namespace: "eclipse-che",
+			Labels: map[string]string{
+				constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+				constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
 			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      objectName,
-				Namespace: "eclipse-che",
-				Labels: map[string]string{
-					constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
-					constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
-				},
-				Annotations: map[string]string{},
-			},
-			Data: map[string]string{
-				"a": "b",
-			},
-			Immutable: pointer.Bool(false),
-		}})
+			Annotations: map[string]string{},
+		},
+		Data: map[string]string{
+			"a": "b",
+		},
+		Immutable: pointer.Bool(false),
+	}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Scheme,
-		&namespaceCache{
-			client: deployContext.ClusterAPI.Client,
-			knownNamespaces: map[string]namespaceInfo{
+		&namespacecache.NamespaceCache{
+			Client: deployContext.ClusterAPI.Client,
+			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
 					Username:             "user",
 					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
 				},
 			},
-			lock: sync.Mutex{},
+			Lock: sync.Mutex{},
 		})
 
 	// Sync ConfigMap
@@ -212,43 +212,42 @@ func TestSyncConfigMap(t *testing.T) {
 }
 
 func TestSyncConfigMapShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
-	deployContext := test.GetDeployContext(nil, []runtime.Object{
-		&corev1.ConfigMap{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "ConfigMap",
-				APIVersion: "v1",
+	deployContext := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      objectName,
+			Namespace: "eclipse-che",
+			Labels: map[string]string{
+				"label":                               "label-value",
+				constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+				constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
 			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      objectName,
-				Namespace: "eclipse-che",
-				Labels: map[string]string{
-					"label":                               "label-value",
-					constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
-					constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
-				},
-				Annotations: map[string]string{
-					"annotation": "annotation-value",
-				},
+			Annotations: map[string]string{
+				"annotation": "annotation-value",
 			},
-			Data: map[string]string{
-				"a": "b",
-			},
-		}})
+		},
+		Data: map[string]string{
+			"a": "b",
+		},
+	}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Scheme,
-		&namespaceCache{
-			client: deployContext.ClusterAPI.Client,
-			knownNamespaces: map[string]namespaceInfo{
+		&namespacecache.NamespaceCache{
+			Client: deployContext.ClusterAPI.Client,
+			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
 					Username:             "user",
 					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
 				},
 			},
-			lock: sync.Mutex{},
+			Lock: sync.Mutex{},
 		})
 
 	// Sync ConfigMap
@@ -335,38 +334,37 @@ func assertSyncConfig(t *testing.T, workspaceConfigReconciler *WorkspacesConfigR
 }
 
 func TestSyncConfigMapShouldRespectDWOLabels(t *testing.T) {
-	deployContext := test.GetDeployContext(nil, []runtime.Object{
-		&corev1.ConfigMap{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "ConfigMap",
-				APIVersion: "v1",
+	deployContext := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      objectName,
+			Namespace: "eclipse-che",
+			Labels: map[string]string{
+				constants.KubernetesPartOfLabelKey:          constants.CheEclipseOrg,
+				constants.KubernetesComponentLabelKey:       constants.WorkspacesConfig,
+				dwconstants.DevWorkspaceWatchConfigMapLabel: "false",
+				dwconstants.DevWorkspaceMountLabel:          "false",
 			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      objectName,
-				Namespace: "eclipse-che",
-				Labels: map[string]string{
-					constants.KubernetesPartOfLabelKey:          constants.CheEclipseOrg,
-					constants.KubernetesComponentLabelKey:       constants.WorkspacesConfig,
-					dwconstants.DevWorkspaceWatchConfigMapLabel: "false",
-					dwconstants.DevWorkspaceMountLabel:          "false",
-				},
-			},
-		}})
+		},
+	}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Scheme,
-		&namespaceCache{
-			client: deployContext.ClusterAPI.Client,
-			knownNamespaces: map[string]namespaceInfo{
+		&namespacecache.NamespaceCache{
+			Client: deployContext.ClusterAPI.Client,
+			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
 					Username:             "user",
 					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
 				},
 			},
-			lock: sync.Mutex{},
+			Lock: sync.Mutex{},
 		})
 
 	// Sync ConfigMap
@@ -433,7 +431,7 @@ func TestSyncConfigMapShouldRespectDWOLabels(t *testing.T) {
 }
 
 func TestSyncConfigMapShouldRemoveSomeLabels(t *testing.T) {
-	deployContext := test.GetDeployContext(nil, []runtime.Object{
+	deployContext := test.NewCtxBuilder().WithObjects(
 		&corev1.ConfigMap{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "ConfigMap",
@@ -449,22 +447,22 @@ func TestSyncConfigMapShouldRemoveSomeLabels(t *testing.T) {
 					"argocd.argoproj.io/managed-by":       "argocd",
 				},
 			},
-		}})
+		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Scheme,
-		&namespaceCache{
-			client: deployContext.ClusterAPI.Client,
-			knownNamespaces: map[string]namespaceInfo{
+		&namespacecache.NamespaceCache{
+			Client: deployContext.ClusterAPI.Client,
+			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
 					Username:             "user",
 					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
 				},
 			},
-			lock: sync.Mutex{},
+			Lock: sync.Mutex{},
 		})
 
 	// Sync ConfigMap

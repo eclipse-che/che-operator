@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -16,9 +16,8 @@ import (
 	"fmt"
 	"os"
 
-	fakeDiscovery "k8s.io/client-go/discovery/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -41,7 +40,7 @@ import (
 )
 
 func TestDashboardDeploymentSecurityContext(t *testing.T) {
-	ctx := test.GetDeployContext(nil, []runtime.Object{})
+	ctx := test.NewCtxBuilder().Build()
 
 	dashboard := NewDashboardReconciler()
 	deployment, err := dashboard.getDashboardDeploymentSpec(ctx)
@@ -123,7 +122,7 @@ func TestDashboardDeploymentResources(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
+			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 
 			dashboard := NewDashboardReconciler()
 			deployment, err := dashboard.getDashboardDeploymentSpec(ctx)
@@ -149,27 +148,15 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 		_ = os.Unsetenv("RELATED_IMAGE_sample_encoded_")
 	}()
 
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-	ctx := test.GetDeployContext(
-		nil,
-		[]runtime.Object{
-			&configv1.Console{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cluster",
-					Namespace: "openshift-console",
-				},
-				Status: configv1.ConsoleStatus{
-					ConsoleURL: "https://console-openshift-console.apps.my-host/",
-				},
-			},
-		})
-	ctx.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
-		{
-			APIResources: []metav1.APIResource{
-				{Name: ConsoleLinksResourceName},
-			},
+	ctx := test.NewCtxBuilder().WithObjects(&configv1.Console{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cluster",
+			Namespace: "openshift-console",
 		},
-	}
+		Status: configv1.ConsoleStatus{
+			ConsoleURL: "https://console-openshift-console.apps.my-host/",
+		},
+	}).Build()
 
 	deployment, err := NewDashboardReconciler().getDashboardDeploymentSpec(ctx)
 
@@ -290,11 +277,9 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 }
 
 func TestDashboardDeploymentVolumes(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-
 	type resourcesTestCase struct {
 		name         string
-		initObjects  []runtime.Object
+		initObjects  []client.Object
 		volumes      []corev1.Volume
 		volumeMounts []corev1.VolumeMount
 		cheCluster   *chev2.CheCluster
@@ -302,7 +287,7 @@ func TestDashboardDeploymentVolumes(t *testing.T) {
 	testCases := []resourcesTestCase{
 		{
 			name:        "Test provisioning Custom CAs only",
-			initObjects: []runtime.Object{
+			initObjects: []client.Object{
 				// no deploy.CheTLSSelfSignedCertificateSecretName is created
 			},
 			volumes: []corev1.Volume{
@@ -328,7 +313,7 @@ func TestDashboardDeploymentVolumes(t *testing.T) {
 		},
 		{
 			name: "Test provisioning Che and Custom CAs",
-			initObjects: []runtime.Object{
+			initObjects: []client.Object{
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      constants.DefaultSelfSignedCertificateSecretName,
@@ -377,7 +362,7 @@ func TestDashboardDeploymentVolumes(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			ctx := test.GetDeployContext(testCase.cheCluster, testCase.initObjects)
+			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
 
 			dashboard := NewDashboardReconciler()
 			deployment, err := dashboard.getDashboardDeploymentSpec(ctx)

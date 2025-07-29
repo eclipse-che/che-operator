@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package usernamespace
+package workspace_config
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"

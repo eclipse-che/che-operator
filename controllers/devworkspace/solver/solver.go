@@ -13,6 +13,7 @@
 package solver
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -31,7 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 var (
@@ -77,7 +77,7 @@ func (g *CheRouterGetter) SetupControllerManager(mgr *builder.Builder) error {
 	// This way we can react on changes of the gateway configmap changes by re-reconciling the corresponding
 	// devworkspace routing and thus keeping the devworkspace routing in a functional state
 	// TODO is this going to be performant enough in a big cluster with very many configmaps?
-	mgr.Watches(&source.Kind{Type: &corev1.ConfigMap{}}, handler.EnqueueRequestsFromMapFunc(func(mo client.Object) []reconcile.Request {
+	mgr.Watches(&corev1.ConfigMap{}, handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, mo client.Object) []reconcile.Request {
 		applicable, key := isGatewayWorkspaceConfig(mo)
 
 		if applicable {

@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package usernamespace
+package workspace_config
 
 import (
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
@@ -21,47 +21,47 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type configMap2Sync struct {
+type secret2Sync struct {
 	Object2Sync
 
-	cm      *corev1.ConfigMap
+	secret  *corev1.Secret
 	version string
 }
 
-func (p *configMap2Sync) getSrcObject() client.Object {
-	return p.cm
+func (p *secret2Sync) getGKV() schema.GroupVersionKind {
+	return v1SecretGKV
 }
 
-func (p *configMap2Sync) getGKV() schema.GroupVersionKind {
-	return v1ConfigMapGKV
+func (p *secret2Sync) getSrcObject() client.Object {
+	return p.secret
 }
 
-func (p *configMap2Sync) newDstObject() client.Object {
-	dst := p.cm.DeepCopyObject()
+func (p *secret2Sync) newDstObject() client.Object {
+	dst := p.secret.DeepCopyObject()
 	// We have to set the ObjectMeta fields explicitly, because
 	// existed object contains unnecessary fields that we don't want to copy
-	dst.(*corev1.ConfigMap).ObjectMeta = metav1.ObjectMeta{
-		Name:        p.cm.GetName(),
-		Annotations: p.cm.GetAnnotations(),
+	dst.(*corev1.Secret).ObjectMeta = metav1.ObjectMeta{
+		Name:        p.secret.GetName(),
+		Annotations: p.secret.GetAnnotations(),
 		Labels: utils.MergeMaps([]map[string]string{
 			{
-				dwconstants.DevWorkspaceWatchConfigMapLabel: "true",
-				dwconstants.DevWorkspaceMountLabel:          "true",
+				dwconstants.DevWorkspaceWatchSecretLabel: "true",
+				dwconstants.DevWorkspaceMountLabel:       "true",
 			},
-			p.cm.GetLabels(),
+			p.secret.GetLabels(),
 		}),
 	}
 
 	return dst.(client.Object)
 }
 
-func (p *configMap2Sync) getSrcObjectVersion() string {
+func (p *secret2Sync) getSrcObjectVersion() string {
 	if len(p.version) == 0 {
-		return p.cm.GetResourceVersion()
+		return p.secret.GetResourceVersion()
 	}
 	return p.version
 }
 
-func (p *configMap2Sync) hasROSpec() bool {
+func (p *secret2Sync) hasROSpec() bool {
 	return false
 }

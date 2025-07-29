@@ -96,12 +96,10 @@ jobs:
         \( -name '*.sh' -o -name "*.go" -o -name "*.yaml" -o -name "*.yml" \))
         LICENSE_TEMPLATE="${GITHUB_WORKSPACE}/hack/license-header.txt"
         check-license-header -f "${LICENSE_TEMPLATE}" ${FILES_TO_CHECK_LICENSE}
-  dependencies-md-validation:
+  dependencies-validation:
     runs-on: ubuntu-22.04
     steps:
-    - name: Checkout source code
-      uses: actions/checkout@v3
-    - name: Validate DEPENDENCIES.md file
-      uses: che-incubator/dependencies-license-action@0.0.2
-      env:
-        EXCLUDE_DEPS: "github.com/bmizerany/assert, gotest.tools/v3, github.com/dhui/dktest, gotest.tools, github.com/golangplus/testing"
+      - name: Checkout source code
+        uses: actions/checkout@v3
+      - name: Check dependencies
+        run: build/scripts/clear-defined-test.sh

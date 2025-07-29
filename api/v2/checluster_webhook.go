@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -18,6 +18,10 @@ import (
 	"strconv"
 	"strings"
 
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"k8s.io/utils/pointer"
 
@@ -32,24 +36,43 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
-func (r *CheCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
+var (
+	webhookLogger = ctrl.Log.WithName("webhook")
+)
+
+func SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
+		For(&CheCluster{}).
+		WithDefaulter(&CheClusterDefaulter{}).
+		WithValidator(&CheClusterValidator{}).
 		Complete()
 }
 
-var _ webhook.Defaulter = &CheCluster{}
+// Keep empty line after annotation
+// +kubebuilder:webhook:path=/mutate-org-eclipse-che-v2-checluster,mutating=true,failurePolicy=fail,sideEffects=None,groups=org.eclipse.che,resources=checlusters,verbs=create;update,versions=v2,name=mchecluster.kb.io,admissionReviewVersions=v1
+
+type CheClusterDefaulter struct{}
+
+var _ webhook.CustomDefaulter = &CheClusterDefaulter{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
-func (r *CheCluster) Default() {
-	setContainerBuildConfiguration(r)
-	setDisableContainerBuildCapabilities(r)
+func (r *CheClusterDefaulter) Default(_ context.Context, obj runtime.Object) error {
+	cheCluster, ok := obj.(*CheCluster)
+
+	if !ok {
+		return fmt.Errorf("expected an CheCluster object but got %T", obj)
+	}
+
+	webhookLogger.Info("Defaulting for CheCluster", "name", cheCluster.GetName())
+
+	r.setContainerBuildConfiguration(cheCluster)
+	r.setDisableContainerBuildCapabilities(cheCluster)
+	return nil
 }
 
-func setDisableContainerBuildCapabilities(cheCluster *CheCluster) {
+func (r *CheClusterDefaulter) setDisableContainerBuildCapabilities(cheCluster *CheCluster) {
 	// Container build capabilities can be enabled on OpenShift only
 	if !infrastructure.IsOpenShift() {
 		cheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.Bool(true)
@@ -57,40 +80,61 @@ func setDisableContainerBuildCapabilities(cheCluster *CheCluster) {
 }
 
 // Sets ContainerBuildConfiguration if container build capabilities is enabled.
-func setContainerBuildConfiguration(cheCluster *CheCluster) {
+func (r *CheClusterDefaulter) setContainerBuildConfiguration(cheCluster *CheCluster) {
 	if cheCluster.IsContainerBuildCapabilitiesEnabled() && cheCluster.Spec.DevEnvironments.ContainerBuildConfiguration == nil {
 		cheCluster.Spec.DevEnvironments.ContainerBuildConfiguration = &ContainerBuildConfiguration{}
 	}
 }
 
-var _ webhook.Validator = &CheCluster{}
+// Keep empty line after annotation
+// +kubebuilder:webhook:path=/validate-org-eclipse-che-v2-checluster,mutating=false,failurePolicy=fail,sideEffects=None,groups=org.eclipse.che,resources=checlusters,verbs=create;update,versions=v2,name=vchecluster.kb.io,admissionReviewVersions=v1
+
+type CheClusterValidator struct{}
+
+var _ admission.CustomValidator = &CheClusterValidator{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *CheCluster) ValidateCreate() error {
-	if err := ensureSingletonCheCluster(); err != nil {
-		return err
+func (r *CheClusterValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+	cheCluster, ok := obj.(*CheCluster)
+
+	if !ok {
+		return nil, fmt.Errorf("expected an CheCluster object but got %T", obj)
 	}
-	return validate(r)
+
+	webhookLogger.Info("Validation for CheCluster upon creation", "name", cheCluster.GetName())
+
+	if err := r.ensureSingletonCheCluster(); err != nil {
+		return []string{}, err
+	}
+	return []string{}, r.validate(cheCluster)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *CheCluster) ValidateUpdate(old runtime.Object) error {
-	return validate(r)
+// ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type CheCluster.
+func (r *CheClusterValidator) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
+	cheCluster, ok := newObj.(*CheCluster)
+
+	if !ok {
+		return nil, fmt.Errorf("expected an CheCluster object but got %T", newObj)
+	}
+
+	webhookLogger.Info("Validation for CheCluster upon update", "name", cheCluster.GetName())
+
+	return nil, r.validate(cheCluster)
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *CheCluster) ValidateDelete() error {
-	return nil
+// ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type CheCluster.
+func (r *CheClusterValidator) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+	return nil, nil
 }
 
-func ensureSingletonCheCluster() error {
+func (r *CheClusterValidator) ensureSingletonCheCluster() error {
 	client := k8shelper.New().GetClient()
 	utilruntime.Must(AddToScheme(client.Scheme()))
 
 	che := &CheClusterList{}
 	err := client.List(context.TODO(), che)
 	if err != nil {
-		logger.Error(err, "Failed to list CheCluster Custom Resources.")
+		webhookLogger.Error(err, "Failed to list CheCluster Custom Resources.")
 	}
 
 	if len(che.Items) != 0 {
@@ -100,27 +144,27 @@ func ensureSingletonCheCluster() error {
 	return nil
 }
 
-func validate(checluster *CheCluster) error {
+func (r *CheClusterValidator) validate(checluster *CheCluster) error {
 	for _, github := range checluster.Spec.GitServices.GitHub {
-		if err := validateOAuthSecret(github.SecretName, "github", github.Endpoint, github.DisableSubdomainIsolation, checluster.Namespace); err != nil {
+		if err := r.validateOAuthSecret(github.SecretName, "github", github.Endpoint, github.DisableSubdomainIsolation, checluster.Namespace); err != nil {
 			return err
 		}
 	}
 
 	for _, gitlab := range checluster.Spec.GitServices.GitLab {
-		if err := validateOAuthSecret(gitlab.SecretName, "gitlab", gitlab.Endpoint, nil, checluster.Namespace); err != nil {
+		if err := r.validateOAuthSecret(gitlab.SecretName, "gitlab", gitlab.Endpoint, nil, checluster.Namespace); err != nil {
 			return err
 		}
 	}
 
 	for _, bitbucket := range checluster.Spec.GitServices.BitBucket {
-		if err := validateOAuthSecret(bitbucket.SecretName, "bitbucket", bitbucket.Endpoint, nil, checluster.Namespace); err != nil {
+		if err := r.validateOAuthSecret(bitbucket.SecretName, "bitbucket", bitbucket.Endpoint, nil, checluster.Namespace); err != nil {
 			return err
 		}
 	}
 
 	for _, azure := range checluster.Spec.GitServices.AzureDevOps {
-		if err := validateOAuthSecret(azure.SecretName, constants.AzureDevOpsOAuth, "", nil, checluster.Namespace); err != nil {
+		if err := r.validateOAuthSecret(azure.SecretName, constants.AzureDevOpsOAuth, "", nil, checluster.Namespace); err != nil {
 			return err
 		}
 	}
@@ -128,7 +172,7 @@ func validate(checluster *CheCluster) error {
 	return nil
 }
 
-func validateOAuthSecret(secretName string, scmProvider string, serverEndpoint string, disableSubdomainIsolation *bool, namespace string) error {
+func (r *CheClusterValidator) validateOAuthSecret(secretName string, scmProvider string, serverEndpoint string, disableSubdomainIsolation *bool, namespace string) error {
 	if secretName == "" {
 		return nil
 	}
@@ -142,25 +186,25 @@ func validateOAuthSecret(secretName string, scmProvider string, serverEndpoint s
 		return fmt.Errorf("error reading '%s' secret", err.Error())
 	}
 
-	if err := ensureScmLabelsAndAnnotations(secret, scmProvider, serverEndpoint, disableSubdomainIsolation); err != nil {
+	if err := r.ensureScmLabelsAndAnnotations(secret, scmProvider, serverEndpoint, disableSubdomainIsolation); err != nil {
 		return err
 	}
 
 	switch scmProvider {
 	case "github":
-		if err := validateGitHubOAuthSecretDataKeys(secret); err != nil {
+		if err := r.validateGitHubOAuthSecretDataKeys(secret); err != nil {
 			return err
 		}
 	case "gitlab":
-		if err := validateGitLabOAuthSecretDataKeys(secret); err != nil {
+		if err := r.validateGitLabOAuthSecretDataKeys(secret); err != nil {
 			return err
 		}
 	case "bitbucket":
-		if err := validateBitBucketOAuthSecretDataKeys(secret); err != nil {
+		if err := r.validateBitBucketOAuthSecretDataKeys(secret); err != nil {
 			return err
 		}
 	case constants.AzureDevOpsOAuth:
-		if err := validateAzureDevOpsSecretDataKeys(secret); err != nil {
+		if err := r.validateAzureDevOpsSecretDataKeys(secret); err != nil {
 			return err
 		}
 	}
@@ -168,27 +212,27 @@ func validateOAuthSecret(secretName string, scmProvider string, serverEndpoint s
 	return nil
 }
 
-func validateAzureDevOpsSecretDataKeys(secret *corev1.Secret) error {
+func (r *CheClusterValidator) validateAzureDevOpsSecretDataKeys(secret *corev1.Secret) error {
 	keys2validate := []string{constants.GitHubOAuthConfigClientIdFileName, constants.GitHubOAuthConfigClientSecretFileName}
-	return validateOAuthSecretDataKeys(secret, keys2validate)
+	return r.validateOAuthSecretDataKeys(secret, keys2validate)
 }
 
-func validateGitHubOAuthSecretDataKeys(secret *corev1.Secret) error {
+func (r *CheClusterValidator) validateGitHubOAuthSecretDataKeys(secret *corev1.Secret) error {
 	keys2validate := []string{constants.GitHubOAuthConfigClientIdFileName, constants.GitHubOAuthConfigClientSecretFileName}
-	return validateOAuthSecretDataKeys(secret, keys2validate)
+	return r.validateOAuthSecretDataKeys(secret, keys2validate)
 }
 
-func validateGitLabOAuthSecretDataKeys(secret *corev1.Secret) error {
+func (r *CheClusterValidator) validateGitLabOAuthSecretDataKeys(secret *corev1.Secret) error {
 	keys2validate := []string{constants.GitLabOAuthConfigClientIdFileName, constants.GitLabOAuthConfigClientSecretFileName}
-	return validateOAuthSecretDataKeys(secret, keys2validate)
+	return r.validateOAuthSecretDataKeys(secret, keys2validate)
 }
 
-func validateBitBucketOAuthSecretDataKeys(secret *corev1.Secret) error {
+func (r *CheClusterValidator) validateBitBucketOAuthSecretDataKeys(secret *corev1.Secret) error {
 	oauth1Keys2validate := []string{constants.BitBucketOAuthConfigPrivateKeyFileName, constants.BitBucketOAuthConfigConsumerKeyFileName}
-	errOauth1Keys := validateOAuthSecretDataKeys(secret, oauth1Keys2validate)
+	errOauth1Keys := r.validateOAuthSecretDataKeys(secret, oauth1Keys2validate)
 
 	oauth2Keys2validate := []string{constants.BitBucketOAuthConfigClientIdFileName, constants.BitBucketOAuthConfigClientSecretFileName}
-	errOauth2Keys := validateOAuthSecretDataKeys(secret, oauth2Keys2validate)
+	errOauth2Keys := r.validateOAuthSecretDataKeys(secret, oauth2Keys2validate)
 
 	if errOauth1Keys != nil && errOauth2Keys != nil {
 		return fmt.Errorf("secret must contain either [%s] or [%s] keys", strings.Join(oauth1Keys2validate, ", "), strings.Join(oauth2Keys2validate, ", "))
@@ -197,7 +241,7 @@ func validateBitBucketOAuthSecretDataKeys(secret *corev1.Secret) error {
 	return nil
 }
 
-func ensureScmLabelsAndAnnotations(secret *corev1.Secret, scmProvider string, serverEndpoint string, disableSubdomainIsolation *bool) error {
+func (r *CheClusterValidator) ensureScmLabelsAndAnnotations(secret *corev1.Secret, scmProvider string, serverEndpoint string, disableSubdomainIsolation *bool) error {
 	patch := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
@@ -232,7 +276,7 @@ func ensureScmLabelsAndAnnotations(secret *corev1.Secret, scmProvider string, se
 	return nil
 }
 
-func validateOAuthSecretDataKeys(secret *corev1.Secret, keys []string) error {
+func (r *CheClusterValidator) validateOAuthSecretDataKeys(secret *corev1.Secret, keys []string) error {
 	for _, key := range keys {
 		if len(secret.Data[key]) == 0 {
 			return fmt.Errorf("secret '%s' must contain [%s] keys", secret.Name, strings.Join(keys, ", "))

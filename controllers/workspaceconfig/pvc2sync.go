@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package usernamespace
+package workspace_config
 
 import (
 	corev1 "k8s.io/api/core/v1"

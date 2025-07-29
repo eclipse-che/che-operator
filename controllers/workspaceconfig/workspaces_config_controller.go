@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package usernamespace
+package workspace_config
 
 import (
 	"context"
@@ -18,6 +18,10 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/eclipse-che/che-operator/controllers/namespacecache"
+	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -40,7 +44,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
@@ -51,7 +54,7 @@ type WorkspacesConfigReconciler struct {
 	scheme                        *runtime.Scheme
 	client                        client.Client
 	nonCachedClient               client.Client
-	namespaceCache                *namespaceCache
+	namespaceCache                *namespacecache.NamespaceCache
 	labelsToRemoveBeforeSync      []*regexp.Regexp
 	annotationsToRemoveBeforeSync []*regexp.Regexp
 }
@@ -90,7 +93,7 @@ func NewWorkspacesConfigReconciler(
 	client client.Client,
 	nonCachedClient client.Client,
 	scheme *runtime.Scheme,
-	namespaceCache *namespaceCache) *WorkspacesConfigReconciler {
+	namespaceCache *namespacecache.NamespaceCache) *WorkspacesConfigReconciler {
 
 	labelsToRemoveBeforeSyncAsString := os.Getenv(envLabelsToRemoveBeforeSync)
 	annotationsToRemoveBeforeSyncAsString := os.Getenv(envAnnotationsToRemoveBeforeSync)
@@ -125,21 +128,25 @@ func (r *WorkspacesConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	ctx := context.Background()
 	bld := ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.Namespace{}).
-		Watches(&source.Kind{Type: &corev1.PersistentVolumeClaim{}}, r.watchRules(ctx, true, true)).
-		Watches(&source.Kind{Type: &corev1.Secret{}}, r.watchRules(ctx, true, true)).
-		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, r.watchRules(ctx, true, true)).
-		Watches(&source.Kind{Type: &corev1.ResourceQuota{}}, r.watchRules(ctx, false, true)).
-		Watches(&source.Kind{Type: &corev1.LimitRange{}}, r.watchRules(ctx, false, true)).
-		Watches(&source.Kind{Type: &corev1.ServiceAccount{}}, r.watchRules(ctx, false, true)).
-		Watches(&source.Kind{Type: &rbacv1.Role{}}, r.watchRules(ctx, false, true)).
-		Watches(&source.Kind{Type: &rbacv1.RoleBinding{}}, r.watchRules(ctx, false, true)).
-		Watches(&source.Kind{Type: &networkingv1.NetworkPolicy{}}, r.watchRules(ctx, false, true))
+		Watches(&corev1.PersistentVolumeClaim{}, r.watchRules(ctx, true, true)).
+		Watches(&corev1.Secret{}, r.watchRules(ctx, true, true)).
+		Watches(&corev1.ConfigMap{}, r.watchRules(ctx, true, true)).
+		Watches(&corev1.ResourceQuota{}, r.watchRules(ctx, false, true)).
+		Watches(&corev1.LimitRange{}, r.watchRules(ctx, false, true)).
+		Watches(&corev1.ServiceAccount{}, r.watchRules(ctx, false, true)).
+		Watches(&rbacv1.Role{}, r.watchRules(ctx, false, true)).
+		Watches(&rbacv1.RoleBinding{}, r.watchRules(ctx, false, true)).
+		Watches(&networkingv1.NetworkPolicy{}, r.watchRules(ctx, false, true))
 
 	if infrastructure.IsOpenShift() {
-		bld.Watches(&source.Kind{Type: &templatev1.Template{}}, r.watchRules(ctx, true, false))
+		bld.Watches(&templatev1.Template{}, r.watchRules(ctx, true, false))
 	}
 
-	return bld.Complete(r)
+	// Use controller.TypedOptions to allow to configure 2 controllers for same object being reconciled
+	return bld.WithOptions(
+		controller.TypedOptions[reconcile.Request]{
+			SkipNameValidation: pointer.Bool(true),
+		}).Complete(r)
 }
 
 func (r *WorkspacesConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -186,41 +193,41 @@ func (r *WorkspacesConfigReconciler) watchRules(
 	userNamespaceRule bool,
 ) handler.EventHandler {
 	return handler.EnqueueRequestsFromMapFunc(
-		func(obj client.Object) []reconcile.Request {
-			var eventRules []eventRule
+		func(context context.Context, obj client.Object) []reconcile.Request {
+			var eventRules []namespacecache.EventRule
 
 			if cheNamespaceRule {
 				eventRules = append(eventRules,
-					eventRule{
+					namespacecache.EventRule{
 						// reconcile rule when workspace config is modified in a che namespace
 						// to update the config in all users` namespaces
-						check: func(o metav1.Object) bool {
+						Check: func(o metav1.Object) bool {
 							cheCluster, _ := deploy.FindCheClusterCRInNamespace(r.client, o.GetNamespace())
 							return hasWSConfigComponentLabels(o) && cheCluster != nil
 						},
-						namespaces: func(o metav1.Object) []string { return r.namespaceCache.GetAllKnownNamespaces() },
+						Namespaces: func(o metav1.Object) []string { return r.namespaceCache.GetAllKnownNamespaces() },
 					},
 				)
 			}
 
 			if userNamespaceRule {
 				eventRules = append(eventRules,
-					eventRule{
+					namespacecache.EventRule{
 						// reconcile rule when workspace config is modified in a user namespace
 						// to revert the config
-						check: func(o metav1.Object) bool {
+						Check: func(o metav1.Object) bool {
 							workspaceInfo, _ := r.namespaceCache.GetNamespaceInfo(ctx, o.GetNamespace())
 							return hasWSConfigComponentLabels(o) &&
 								o.GetName() != syncedWorkspacesConfig &&
 								workspaceInfo != nil &&
 								workspaceInfo.IsWorkspaceNamespace
 						},
-						namespaces: func(o metav1.Object) []string { return []string{o.GetNamespace()} },
+						Namespaces: func(o metav1.Object) []string { return []string{o.GetNamespace()} },
 					},
 				)
 			}
 
-			return asReconcileRequestsForNamespaces(obj, eventRules)
+			return namespacecache.AsReconcileRequestsForNamespaces(obj, eventRules)
 		})
 }
 

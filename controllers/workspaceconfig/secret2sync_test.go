@@ -10,12 +10,14 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package usernamespace
+package workspace_config
 
 import (
 	"context"
 	"sync"
 	"testing"
+
+	"github.com/eclipse-che/che-operator/controllers/namespacecache"
 
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 
@@ -31,12 +33,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 )
 
 func TestSyncSecrets(t *testing.T) {
-	deployContext := test.GetDeployContext(nil, []runtime.Object{
+	deployContext := test.NewCtxBuilder().WithObjects(
 		&corev1.Secret{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Secret",
@@ -57,22 +58,22 @@ func TestSyncSecrets(t *testing.T) {
 				"c": []byte("d"),
 			},
 			Immutable: pointer.Bool(false),
-		}})
+		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Scheme,
-		&namespaceCache{
-			client: deployContext.ClusterAPI.Client,
-			knownNamespaces: map[string]namespaceInfo{
+		&namespacecache.NamespaceCache{
+			Client: deployContext.ClusterAPI.Client,
+			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
 					Username:             "user",
 					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
 				},
 			},
-			lock: sync.Mutex{},
+			Lock: sync.Mutex{},
 		})
 
 	// Sync Secret
@@ -212,7 +213,7 @@ func TestSyncSecrets(t *testing.T) {
 }
 
 func TestSyncSecretShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
-	deployContext := test.GetDeployContext(nil, []runtime.Object{
+	deployContext := test.NewCtxBuilder().WithObjects(
 		&corev1.Secret{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Secret",
@@ -233,22 +234,22 @@ func TestSyncSecretShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 			StringData: map[string]string{
 				"a": "b",
 			},
-		}})
+		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Scheme,
-		&namespaceCache{
-			client: deployContext.ClusterAPI.Client,
-			knownNamespaces: map[string]namespaceInfo{
+		&namespacecache.NamespaceCache{
+			Client: deployContext.ClusterAPI.Client,
+			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
 					Username:             "user",
 					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
 				},
 			},
-			lock: sync.Mutex{},
+			Lock: sync.Mutex{},
 		})
 
 	// Sync Secret
@@ -325,7 +326,7 @@ func TestSyncSecretShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 }
 
 func TestSyncSecretShouldRespectDWOLabels(t *testing.T) {
-	deployContext := test.GetDeployContext(nil, []runtime.Object{
+	deployContext := test.NewCtxBuilder().WithObjects(
 		&corev1.Secret{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Secret",
@@ -340,22 +341,22 @@ func TestSyncSecretShouldRespectDWOLabels(t *testing.T) {
 					dwconstants.DevWorkspaceWatchSecretLabel: "false",
 					dwconstants.DevWorkspaceMountLabel:       "false"},
 			},
-		}})
+		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Scheme,
-		&namespaceCache{
-			client: deployContext.ClusterAPI.Client,
-			knownNamespaces: map[string]namespaceInfo{
+		&namespacecache.NamespaceCache{
+			Client: deployContext.ClusterAPI.Client,
+			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
 					Username:             "user",
 					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
 				},
 			},
-			lock: sync.Mutex{},
+			Lock: sync.Mutex{},
 		})
 
 	// Sync Secret
@@ -424,7 +425,7 @@ func TestSyncSecretShouldRespectDWOLabels(t *testing.T) {
 }
 
 func TestSyncSecretShouldRemoveSomeLabels(t *testing.T) {
-	deployContext := test.GetDeployContext(nil, []runtime.Object{
+	deployContext := test.NewCtxBuilder().WithObjects(
 		&corev1.Secret{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Secret",
@@ -439,22 +440,22 @@ func TestSyncSecretShouldRemoveSomeLabels(t *testing.T) {
 					"argocd.argoproj.io/instance":         "argocd",
 					"argocd.argoproj.io/managed-by":       "argocd"},
 			},
-		}})
+		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Scheme,
-		&namespaceCache{
-			client: deployContext.ClusterAPI.Client,
-			knownNamespaces: map[string]namespaceInfo{
+		&namespacecache.NamespaceCache{
+			Client: deployContext.ClusterAPI.Client,
+			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
 					Username:             "user",
 					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
 				},
 			},
-			lock: sync.Mutex{},
+			Lock: sync.Mutex{},
 		})
 
 	// Sync Secret

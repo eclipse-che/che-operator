@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -19,8 +19,9 @@ import (
 	"sort"
 	"testing"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
@@ -30,7 +31,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 )
@@ -39,14 +39,14 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 	type testCase struct {
 		name                   string
 		cheCluster             *chev2.CheCluster
-		existedObjects         []runtime.Object
+		existedObjects         []client.Object
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
 	type errorTestCase struct {
 		name                 string
 		cheCluster           *chev2.CheCluster
-		existedObjects       []runtime.Object
+		existedObjects       []client.Object
 		expectedErrorMessage string
 	}
 
@@ -281,7 +281,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -331,7 +331,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -381,7 +381,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -415,15 +415,13 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.cheCluster, testCase.existedObjects)
-			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.existedObjects...).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err)
+			test.EnsureReconcile(t, deployContext, devWorkspaceConfigReconciler.Reconcile)
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
-			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
 			assert.NoError(t, err)
 
 			diff := cmp.Diff(testCase.expectedOperatorConfig, dwoc.Config, cmp.Options{cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount")})
@@ -433,8 +431,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 
 	for _, testCase := range expectedErrorTestCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.cheCluster, testCase.existedObjects)
-			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.existedObjects...).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
 			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
@@ -448,7 +445,7 @@ func TestReconcileDevWorkspaceConfigForContainerBuilds(t *testing.T) {
 	type testCase struct {
 		name                   string
 		cheCluster             *chev2.CheCluster
-		existedObjects         []runtime.Object
+		existedObjects         []client.Object
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
@@ -510,7 +507,7 @@ func TestReconcileDevWorkspaceConfigForContainerBuilds(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -552,7 +549,7 @@ func TestReconcileDevWorkspaceConfigForContainerBuilds(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -584,15 +581,13 @@ func TestReconcileDevWorkspaceConfigForContainerBuilds(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.cheCluster, testCase.existedObjects)
-			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.existedObjects...).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err)
+			test.EnsureReconcile(t, deployContext, devWorkspaceConfigReconciler.Reconcile)
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
-			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
 			assert.NoError(t, err)
 
 			diff := cmp.Diff(testCase.expectedOperatorConfig, dwoc.Config,
@@ -606,7 +601,7 @@ func TestReconcileDevWorkspaceConfigProgressTimeout(t *testing.T) {
 	type testCase struct {
 		name                   string
 		cheCluster             *chev2.CheCluster
-		existedObjects         []runtime.Object
+		existedObjects         []client.Object
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
@@ -646,7 +641,7 @@ func TestReconcileDevWorkspaceConfigProgressTimeout(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -681,7 +676,7 @@ func TestReconcileDevWorkspaceConfigProgressTimeout(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -717,7 +712,7 @@ func TestReconcileDevWorkspaceConfigProgressTimeout(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -742,15 +737,13 @@ func TestReconcileDevWorkspaceConfigProgressTimeout(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.cheCluster, testCase.existedObjects)
-			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.existedObjects...).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err)
+			test.EnsureReconcile(t, deployContext, devWorkspaceConfigReconciler.Reconcile)
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
-			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
 			assert.NoError(t, err)
 
 			diff := cmp.Diff(testCase.expectedOperatorConfig, dwoc.Config,
@@ -865,15 +858,13 @@ func TestReconcileServiceAccountConfig(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
-			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err)
+			test.EnsureReconcile(t, deployContext, devWorkspaceConfigReconciler.Reconcile)
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
-			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
 			assert.NoError(t, err)
 
 			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.ServiceAccount, dwoc.Config.Workspace.ServiceAccount)
@@ -885,7 +876,7 @@ func TestReconcileDevWorkspaceConfigPodSchedulerName(t *testing.T) {
 	type testCase struct {
 		name                   string
 		cheCluster             *chev2.CheCluster
-		existedObjects         []runtime.Object
+		existedObjects         []client.Object
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
@@ -923,7 +914,7 @@ func TestReconcileDevWorkspaceConfigPodSchedulerName(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -955,7 +946,7 @@ func TestReconcileDevWorkspaceConfigPodSchedulerName(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -992,7 +983,7 @@ func TestReconcileDevWorkspaceConfigPodSchedulerName(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -1019,15 +1010,13 @@ func TestReconcileDevWorkspaceConfigPodSchedulerName(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
-			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.existedObjects...).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err)
+			test.EnsureReconcile(t, deployContext, devWorkspaceConfigReconciler.Reconcile)
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
-			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
 			assert.NoError(t, err)
 			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.SchedulerName, dwoc.Config.Workspace.SchedulerName)
 		})
@@ -1038,7 +1027,7 @@ func TestReconcileDevWorkspaceConfigRuntimeClassName(t *testing.T) {
 	type testCase struct {
 		name                   string
 		cheCluster             *chev2.CheCluster
-		existedObjects         []runtime.Object
+		existedObjects         []client.Object
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
@@ -1052,13 +1041,13 @@ func TestReconcileDevWorkspaceConfigRuntimeClassName(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						RuntimeClassName: pointer.StringPtr("test-runtime-class"),
+						RuntimeClassName: pointer.String("test-runtime-class"),
 					},
 				},
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					RuntimeClassName: pointer.StringPtr("test-runtime-class"),
+					RuntimeClassName: pointer.String("test-runtime-class"),
 				},
 			},
 		},
@@ -1071,11 +1060,11 @@ func TestReconcileDevWorkspaceConfigRuntimeClassName(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						RuntimeClassName: pointer.StringPtr("test-runtime-class"),
+						RuntimeClassName: pointer.String("test-runtime-class"),
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -1089,7 +1078,7 @@ func TestReconcileDevWorkspaceConfigRuntimeClassName(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					RuntimeClassName: pointer.StringPtr("test-runtime-class"),
+					RuntimeClassName: pointer.String("test-runtime-class"),
 				},
 			},
 		},
@@ -1102,11 +1091,11 @@ func TestReconcileDevWorkspaceConfigRuntimeClassName(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						RuntimeClassName: pointer.StringPtr("test-runtime-class"),
+						RuntimeClassName: pointer.String("test-runtime-class"),
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -1118,14 +1107,14 @@ func TestReconcileDevWorkspaceConfigRuntimeClassName(t *testing.T) {
 					},
 					Config: &controllerv1alpha1.OperatorConfiguration{
 						Workspace: &controllerv1alpha1.WorkspaceConfig{
-							RuntimeClassName: pointer.StringPtr("previous-runtime-class"),
+							RuntimeClassName: pointer.String("previous-runtime-class"),
 						},
 					},
 				},
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					RuntimeClassName: pointer.StringPtr("test-runtime-class"),
+					RuntimeClassName: pointer.String("test-runtime-class"),
 				},
 			},
 		},
@@ -1142,7 +1131,7 @@ func TestReconcileDevWorkspaceConfigRuntimeClassName(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -1154,7 +1143,7 @@ func TestReconcileDevWorkspaceConfigRuntimeClassName(t *testing.T) {
 					},
 					Config: &controllerv1alpha1.OperatorConfiguration{
 						Workspace: &controllerv1alpha1.WorkspaceConfig{
-							RuntimeClassName: pointer.StringPtr("previous-runtime-class"),
+							RuntimeClassName: pointer.String("previous-runtime-class"),
 						},
 					},
 				},
@@ -1167,15 +1156,13 @@ func TestReconcileDevWorkspaceConfigRuntimeClassName(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
-			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.existedObjects...).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err)
+			test.EnsureReconcile(t, deployContext, devWorkspaceConfigReconciler.Reconcile)
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
-			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
 			assert.NoError(t, err)
 			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.SchedulerName, dwoc.Config.Workspace.SchedulerName)
 		})
@@ -1186,7 +1173,7 @@ func TestReconcileDevWorkspaceConfigServiceAccountTokens(t *testing.T) {
 	type testCase struct {
 		name                   string
 		cheCluster             *chev2.CheCluster
-		existedObjects         []runtime.Object
+		existedObjects         []client.Object
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
@@ -1264,7 +1251,7 @@ func TestReconcileDevWorkspaceConfigServiceAccountTokens(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -1318,7 +1305,7 @@ func TestReconcileDevWorkspaceConfigServiceAccountTokens(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -1373,7 +1360,7 @@ func TestReconcileDevWorkspaceConfigServiceAccountTokens(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -1416,15 +1403,13 @@ func TestReconcileDevWorkspaceConfigServiceAccountTokens(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
-			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.existedObjects...).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err)
+			test.EnsureReconcile(t, deployContext, devWorkspaceConfigReconciler.Reconcile)
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
-			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
 			assert.NoError(t, err)
 			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.ServiceAccount.ServiceAccountTokens, dwoc.Config.Workspace.ServiceAccount.ServiceAccountTokens)
 		})
@@ -1435,7 +1420,7 @@ func TestReconcileDevWorkspaceConfigDeploymentStrategy(t *testing.T) {
 	type testCase struct {
 		name                   string
 		cheCluster             *chev2.CheCluster
-		existedObjects         []runtime.Object
+		existedObjects         []client.Object
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
@@ -1472,7 +1457,7 @@ func TestReconcileDevWorkspaceConfigDeploymentStrategy(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -1503,7 +1488,7 @@ func TestReconcileDevWorkspaceConfigDeploymentStrategy(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -1530,15 +1515,13 @@ func TestReconcileDevWorkspaceConfigDeploymentStrategy(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
-			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.existedObjects...).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err)
+			test.EnsureReconcile(t, deployContext, devWorkspaceConfigReconciler.Reconcile)
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
-			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
 			assert.NoError(t, err)
 			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.DeploymentStrategy, dwoc.Config.Workspace.DeploymentStrategy)
 		})
@@ -1716,17 +1699,15 @@ func TestReconcileDevWorkspaceProjectCloneConfig(t *testing.T) {
 					},
 				},
 			}
-			runtimeDWOC := runtime.Object(existingDWOC)
+			runtimeDWOC := client.Object(existingDWOC)
 
-			deployContext := test.GetDeployContext(cheCluster, []runtime.Object{runtimeDWOC})
-			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+			deployContext := test.NewCtxBuilder().WithCheCluster(cheCluster).WithObjects(runtimeDWOC).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err)
+			test.EnsureReconcile(t, deployContext, devWorkspaceConfigReconciler.Reconcile)
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
-			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testNamespace}, dwoc)
+			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testNamespace}, dwoc)
 			assert.NoError(t, err)
 
 			diff := cmp.Diff(testCase.expectedDevWorkspaceConfig, dwoc.Config.Workspace.ProjectCloneConfig)
@@ -1740,7 +1721,7 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 	type testCase struct {
 		name                   string
 		cheCluster             *chev2.CheCluster
-		existedObjects         []runtime.Object
+		existedObjects         []client.Object
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
@@ -1783,7 +1764,7 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -1818,7 +1799,7 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -1861,7 +1842,7 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -1905,7 +1886,7 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -1949,7 +1930,7 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -1987,7 +1968,7 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 					DevEnvironments: chev2.CheClusterDevEnvironments{},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -2014,15 +1995,13 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.cheCluster, testCase.existedObjects)
-			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.existedObjects...).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err)
+			test.EnsureReconcile(t, deployContext, devWorkspaceConfigReconciler.Reconcile)
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
-			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
 			assert.NoError(t, err)
 			diff := cmp.Diff(testCase.expectedOperatorConfig, dwoc.Config, cmp.Options{cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount", "DeploymentStrategy", "ContainerSecurityContext")})
 			assert.Empty(t, diff)
@@ -2034,7 +2013,7 @@ func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
 	type testCase struct {
 		name                   string
 		cheCluster             *chev2.CheCluster
-		existedObjects         []runtime.Object
+		existedObjects         []client.Object
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
@@ -2116,7 +2095,7 @@ func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -2176,7 +2155,7 @@ func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -2235,7 +2214,7 @@ func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -2270,15 +2249,13 @@ func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
-			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err)
+			test.EnsureReconcile(t, deployContext, devWorkspaceConfigReconciler.Reconcile)
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
-			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
 			assert.NoError(t, err)
 
 			sortCapabilities := func(capabilites []corev1.Capability) func(i, j int) bool {
@@ -2308,7 +2285,7 @@ func TestReconcileDevWorkspacePodSecurityContext(t *testing.T) {
 	type testCase struct {
 		name                   string
 		cheCluster             *chev2.CheCluster
-		existedObjects         []runtime.Object
+		existedObjects         []client.Object
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
@@ -2355,7 +2332,7 @@ func TestReconcileDevWorkspacePodSecurityContext(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -2388,7 +2365,7 @@ func TestReconcileDevWorkspacePodSecurityContext(t *testing.T) {
 					},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -2429,7 +2406,7 @@ func TestReconcileDevWorkspacePodSecurityContext(t *testing.T) {
 					DevEnvironments: chev2.CheClusterDevEnvironments{},
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -2461,15 +2438,13 @@ func TestReconcileDevWorkspacePodSecurityContext(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
-			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err)
+			test.EnsureReconcile(t, deployContext, devWorkspaceConfigReconciler.Reconcile)
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
-			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
 			assert.NoError(t, err)
 			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.PodSecurityContext, dwoc.Config.Workspace.PodSecurityContext,
 				fmt.Sprintf("Did not get expected PodSecurityContext.\nDiff:%s", cmp.Diff(testCase.expectedOperatorConfig.Workspace.PodSecurityContext, dwoc.Config.Workspace.PodSecurityContext)))
@@ -2481,7 +2456,7 @@ func TestReconcileDevWorkspaceImagePullPolicy(t *testing.T) {
 	type testCase struct {
 		name                   string
 		cheCluster             *chev2.CheCluster
-		existedObjects         []runtime.Object
+		existedObjects         []client.Object
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
@@ -2523,7 +2498,7 @@ func TestReconcileDevWorkspaceImagePullPolicy(t *testing.T) {
 					ImagePullPolicy: "",
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -2545,15 +2520,13 @@ func TestReconcileDevWorkspaceImagePullPolicy(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
-			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err)
+			test.EnsureReconcile(t, deployContext, devWorkspaceConfigReconciler.Reconcile)
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
-			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
 			assert.NoError(t, err)
 			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.ImagePullPolicy, dwoc.Config.Workspace.ImagePullPolicy)
 		})
@@ -2564,7 +2537,7 @@ func TestReconcileDevWorkspaceAnnotations(t *testing.T) {
 	type testCase struct {
 		name                   string
 		cheCluster             *chev2.CheCluster
-		existedObjects         []runtime.Object
+		existedObjects         []client.Object
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
@@ -2612,7 +2585,7 @@ func TestReconcileDevWorkspaceAnnotations(t *testing.T) {
 					PodAnnotations: nil,
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -2637,15 +2610,13 @@ func TestReconcileDevWorkspaceAnnotations(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
-			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err)
+			test.EnsureReconcile(t, deployContext, devWorkspaceConfigReconciler.Reconcile)
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
-			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
 			assert.NoError(t, err)
 			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.PodAnnotations, dwoc.Config.Workspace.PodAnnotations)
 		})
@@ -2656,7 +2627,7 @@ func TestReconcileDevWorkspaceIgnoredUnrecoverableEvents(t *testing.T) {
 	type testCase struct {
 		name                   string
 		cheCluster             *chev2.CheCluster
-		existedObjects         []runtime.Object
+		existedObjects         []client.Object
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
@@ -2704,7 +2675,7 @@ func TestReconcileDevWorkspaceIgnoredUnrecoverableEvents(t *testing.T) {
 					IgnoredUnrecoverableEvents: nil,
 				},
 			},
-			existedObjects: []runtime.Object{
+			existedObjects: []client.Object{
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -2729,15 +2700,13 @@ func TestReconcileDevWorkspaceIgnoredUnrecoverableEvents(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
-			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
-			assert.NoError(t, err)
+			test.EnsureReconcile(t, deployContext, devWorkspaceConfigReconciler.Reconcile)
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
-			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
 			assert.NoError(t, err)
 			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.IgnoredUnrecoverableEvents, dwoc.Config.Workspace.IgnoredUnrecoverableEvents)
 		})

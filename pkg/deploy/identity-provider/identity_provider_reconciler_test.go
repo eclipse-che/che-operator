@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -23,7 +23,6 @@ import (
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -41,7 +40,7 @@ func TestFinalizeDefaultOAuthClientName(t *testing.T) {
 		},
 	}
 
-	ctx := test.GetDeployContext(checluster, []runtime.Object{oauthClient})
+	ctx := test.NewCtxBuilder().WithCheCluster(checluster).WithObjects(oauthClient).Build()
 
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "eclipse-che-client"}, &oauthv1.OAuthClient{}))
 
@@ -71,7 +70,7 @@ func TestFinalizeOAuthClient(t *testing.T) {
 		},
 	}
 
-	ctx := test.GetDeployContext(checluster, []runtime.Object{oauthClient})
+	ctx := test.NewCtxBuilder().WithCheCluster(checluster).WithObjects(oauthClient).Build()
 
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test"}, &oauthv1.OAuthClient{}))
 
@@ -100,7 +99,7 @@ func TestShouldFindSingleOAuthClient(t *testing.T) {
 		},
 	}
 
-	ctx := test.GetDeployContext(checluster, []runtime.Object{oauthClient1, oauthClient2})
+	ctx := test.NewCtxBuilder().WithCheCluster(checluster).WithObjects(oauthClient1).WithObjects(oauthClient2).Build()
 	oauthClient, err := GetOAuthClient(ctx)
 	assert.Nil(t, err)
 	assert.NotNil(t, oauthClient)
@@ -123,7 +122,7 @@ func TestSyncOAuthClientShouldSyncTokenTimeout(t *testing.T) {
 		},
 	}
 
-	ctx := test.GetDeployContext(checluster, []runtime.Object{})
+	ctx := test.NewCtxBuilder().WithCheCluster(checluster).Build()
 	done, err := syncOAuthClient(ctx)
 	assert.True(t, done)
 	assert.Nil(t, err)
@@ -214,7 +213,7 @@ func TestSyncOAuthClient(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
-			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
+			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 			_, err := syncOAuthClient(ctx)
 			assert.Nil(t, err)
 
@@ -315,7 +314,7 @@ func TestSyncExistedOAuthClient(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
-			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{oauthClient1, oauthClient2})
+			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(oauthClient1).WithObjects(oauthClient2).Build()
 			_, err := syncOAuthClient(ctx)
 			assert.Nil(t, err)
 

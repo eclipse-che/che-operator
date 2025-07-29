@@ -51,9 +51,6 @@ jobs:
           git config --global user.email "mkuznets@redhat.com"
           export GITHUB_TOKEN=${{ secrets.CHE_INCUBATOR_BOT_GITHUB_TOKEN }}
           set -e
-          OP_SDK_DIR=/opt/operator-sdk
-          mkdir -p $OP_SDK_DIR
-          make download-operator-sdk DEST="${OP_SDK_DIR}"
           export PATH="$PATH:$OP_SDK_DIR"
           export QUAY_ECLIPSE_CHE_USERNAME=${{ secrets.QUAY_USERNAME }}
           export QUAY_ECLIPSE_CHE_PASSWORD=${{ secrets.QUAY_PASSWORD }}

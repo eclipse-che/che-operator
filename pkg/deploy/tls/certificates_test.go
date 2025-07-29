@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -28,12 +28,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 )
 
 func TestSyncOpenShiftCABundleCertificates(t *testing.T) {
-	ctx := test.GetDeployContext(nil, []runtime.Object{})
+	ctx := test.NewCtxBuilder().Build()
 
 	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
 
@@ -55,7 +54,7 @@ func TestSyncOpenShiftCABundleCertificates(t *testing.T) {
 }
 
 func TestSyncEmptyOpenShiftCABundleCertificates(t *testing.T) {
-	ctx := test.GetDeployContext(nil, []runtime.Object{})
+	ctx := test.NewCtxBuilder().Build()
 
 	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
 
@@ -84,18 +83,15 @@ func TestSyncEmptyOpenShiftCABundleCertificates(t *testing.T) {
 }
 
 func TestSyncOnlyCustomOpenShiftCertificates(t *testing.T) {
-	ctx := test.GetDeployContext(
-		nil,
-		[]runtime.Object{
-			&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "custom-openshift-trusted-certs-cm",
-					Namespace: "openshift-config",
-				},
-				Data: map[string]string{
-					"ca-bundle.crt": "openshift-cert",
-				},
-			}})
+	ctx := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "custom-openshift-trusted-certs-cm",
+			Namespace: "openshift-config",
+		},
+		Data: map[string]string{
+			"ca-bundle.crt": "openshift-cert",
+		},
+	}).Build()
 	ctx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: pointer.Bool(true)}
 	ctx.Proxy.TrustedCAMapName = "custom-openshift-trusted-certs-cm"
 
@@ -119,7 +115,7 @@ func TestSyncOnlyCustomOpenShiftCertificates(t *testing.T) {
 }
 
 func TestSyncKubernetesCABundleCertificates(t *testing.T) {
-	ctx := test.GetDeployContext(nil, []runtime.Object{})
+	ctx := test.NewCtxBuilder().Build()
 
 	certificates := &CertificatesReconciler{
 		readKubernetesCaBundle: func() ([]byte, error) {
@@ -148,7 +144,7 @@ func TestSyncKubernetesRootCertificates(t *testing.T) {
 			"ca.crt": "root-cert",
 		},
 	}
-	ctx := test.GetDeployContext(nil, []runtime.Object{kubeRootCert})
+	ctx := test.NewCtxBuilder().WithObjects(kubeRootCert).Build()
 
 	certificates := NewCertificatesReconciler()
 
@@ -185,7 +181,7 @@ func TestSyncGitTrustedCertificates(t *testing.T) {
 			"ca.crt": "git-cert",
 		},
 	}
-	ctx := test.GetDeployContext(cheCluster, []runtime.Object{gitCerts})
+	ctx := test.NewCtxBuilder().WithCheCluster(cheCluster).WithObjects(gitCerts).Build()
 
 	certificates := NewCertificatesReconciler()
 
@@ -210,7 +206,7 @@ func TestSyncSelfSignedCertificates(t *testing.T) {
 			"ca.crt": []byte("self-signed-cert"),
 		},
 	}
-	ctx := test.GetDeployContext(nil, []runtime.Object{selfSignedCerts})
+	ctx := test.NewCtxBuilder().WithObjects(selfSignedCerts).Build()
 
 	certificates := NewCertificatesReconciler()
 
@@ -237,7 +233,7 @@ func TestSyncCheCABundleCerts(t *testing.T) {
 		},
 		Data: map[string]string{"a1": "b1"},
 	}
-	ctx := test.GetDeployContext(nil, []runtime.Object{cert1})
+	ctx := test.NewCtxBuilder().WithObjects(cert1).Build()
 
 	certificates := NewCertificatesReconciler()
 
@@ -274,18 +270,15 @@ func TestSyncCheCABundleCerts(t *testing.T) {
 
 func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 	// Enable workspace CA bundle mount
-	ctx := test.GetDeployContext(
-		nil,
-		[]runtime.Object{
-			&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "custom-openshift-trusted-certs-cm",
-					Namespace: "openshift-config",
-				},
-				Data: map[string]string{
-					"ca-bundle.crt": "openshift-cert",
-				},
-			}})
+	ctx := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "custom-openshift-trusted-certs-cm",
+			Namespace: "openshift-config",
+		},
+		Data: map[string]string{
+			"ca-bundle.crt": "openshift-cert",
+		},
+	}).Build()
 	ctx.Proxy.TrustedCAMapName = "custom-openshift-trusted-certs-cm"
 	ctx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: pointer.Bool(false)}
 

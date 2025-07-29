@@ -10,16 +10,17 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package usernamespace
+package workspace_config
 
 import (
 	"context"
 	"sync"
 	"testing"
 
+	"github.com/eclipse-che/che-operator/controllers/namespacecache"
+
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	templatev1 "github.com/openshift/api/template/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -39,9 +40,7 @@ var (
 )
 
 func TestSyncTemplateWithLimitRange(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-
-	deployContext := test.GetDeployContext(nil, []runtime.Object{
+	deployContext := test.NewCtxBuilder().WithObjects(
 		&templatev1.Template{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Template",
@@ -79,22 +78,22 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 					},
 				},
 			},
-		}})
+		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Scheme,
-		&namespaceCache{
-			client: deployContext.ClusterAPI.Client,
-			knownNamespaces: map[string]namespaceInfo{
+		&namespacecache.NamespaceCache{
+			Client: deployContext.ClusterAPI.Client,
+			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
 					Username:             "user",
 					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
 				},
 			},
-			lock: sync.Mutex{},
+			Lock: sync.Mutex{},
 		})
 
 	// Sync Template

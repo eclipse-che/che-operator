@@ -10,12 +10,14 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package usernamespace
+package workspace_config
 
 import (
 	"context"
 	"sync"
 	"testing"
+
+	"github.com/eclipse-che/che-operator/controllers/namespacecache"
 
 	"k8s.io/apimachinery/pkg/types"
 
@@ -28,11 +30,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func TestSyncPVC(t *testing.T) {
-	deployContext := test.GetDeployContext(nil, []runtime.Object{
+	deployContext := test.NewCtxBuilder().WithObjects(
 		&corev1.PersistentVolumeClaim{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "PersistentVolumeClaim",
@@ -47,28 +48,28 @@ func TestSyncPVC(t *testing.T) {
 				},
 			},
 			Spec: corev1.PersistentVolumeClaimSpec{
-				Resources: corev1.ResourceRequirements{
+				Resources: corev1.VolumeResourceRequirements{
 					Requests: corev1.ResourceList{
 						corev1.ResourceStorage: resource.MustParse("1Gi"),
 					},
 				},
 			},
-		}})
+		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Client,
 		deployContext.ClusterAPI.Scheme,
-		&namespaceCache{
-			client: deployContext.ClusterAPI.Client,
-			knownNamespaces: map[string]namespaceInfo{
+		&namespacecache.NamespaceCache{
+			Client: deployContext.ClusterAPI.Client,
+			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
 					Username:             "user",
 					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
 				},
 			},
-			lock: sync.Mutex{},
+			Lock: sync.Mutex{},
 		})
 
 	assertSyncConfig(t, workspaceConfigReconciler, 0, v1PvcGKV)

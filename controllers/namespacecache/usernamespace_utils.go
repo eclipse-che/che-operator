@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package usernamespace
+package namespacecache
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,15 +18,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-type eventRule struct {
-	check      func(metav1.Object) bool
-	namespaces func(metav1.Object) []string
+type EventRule struct {
+	Check      func(metav1.Object) bool
+	Namespaces func(metav1.Object) []string
 }
 
-func asReconcileRequestsForNamespaces(obj metav1.Object, rules []eventRule) []reconcile.Request {
+func AsReconcileRequestsForNamespaces(obj metav1.Object, rules []EventRule) []reconcile.Request {
 	for _, r := range rules {
-		if r.check(obj) {
-			nss := r.namespaces(obj)
+		if r.Check(obj) {
+			nss := r.Namespaces(obj)
 			ret := make([]reconcile.Request, len(nss))
 			for i, n := range nss {
 				ret[i] = reconcile.Request{

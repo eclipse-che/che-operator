@@ -44,7 +44,7 @@ COPY go.mod go.mod
 COPY go.sum go.sum
 
 # Copy the go source
-COPY main.go main.go
+COPY cmd/ cmd/
 COPY vendor/ vendor/
 COPY api/ api/
 COPY config/ config/
@@ -56,7 +56,7 @@ COPY editors-definitions /tmp/editors-definitions
 # to test FIPS compliance, run https://github.com/openshift/check-payload#scan-a-container-or-operator-image against a built image
 RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH="amd64"; elif [[ ${ARCH} == "aarch64" ]]; then export ARCH="arm64"; fi && \
     if [[ ${SKIP_TESTS} == "false" ]]; then export MOCK_API=true && go test -mod=vendor -v ./...; fi && \
-    GOOS=linux GOARCH=${ARCH} GO111MODULE=on go build -mod=vendor -a -o che-operator main.go
+    GOOS=linux GOARCH=${ARCH} GO111MODULE=on go build -mod=vendor -a -o che-operator cmd/main.go
 
 # https://registry.access.redhat.com/ubi8-minimal
 FROM registry.access.redhat.com/ubi8-minimal:8.10-1154

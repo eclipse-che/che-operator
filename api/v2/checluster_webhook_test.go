@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -10,13 +10,12 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package org
+package v2
 
 import (
 	"context"
 	"testing"
 
-	v2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
 	"github.com/stretchr/testify/assert"
@@ -69,26 +68,26 @@ func TestValidateScmSecrets(t *testing.T) {
 	_, err = k8sHelper.GetClientset().CoreV1().Secrets("eclipse-che").Create(context.TODO(), bitbucketSecret, metav1.CreateOptions{})
 	assert.Nil(t, err)
 
-	checluster := &v2.CheCluster{
+	checluster := &CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "eclipse-che",
 			Namespace: "eclipse-che",
 		},
-		Spec: v2.CheClusterSpec{
-			GitServices: v2.CheClusterGitServices{
-				GitHub: []v2.GitHubService{
+		Spec: CheClusterSpec{
+			GitServices: CheClusterGitServices{
+				GitHub: []GitHubService{
 					{
 						SecretName: "github-scm-secret",
 						Endpoint:   "github-endpoint",
 					},
 				},
-				GitLab: []v2.GitLabService{
+				GitLab: []GitLabService{
 					{
 						SecretName: "gitlab-scm-secret",
 						Endpoint:   "gitlab-endpoint-checluster",
 					},
 				},
-				BitBucket: []v2.BitBucketService{
+				BitBucket: []BitBucketService{
 					{
 						SecretName: "bitbucket-scm-secret",
 					},
@@ -97,7 +96,9 @@ func TestValidateScmSecrets(t *testing.T) {
 		},
 	}
 
-	err = checluster.ValidateCreate()
+	cheClusterValidator := CheClusterValidator{}
+
+	_, err = cheClusterValidator.ValidateCreate(context.TODO(), checluster)
 	assert.Nil(t, err)
 
 	githubSecret, err = k8sHelper.GetClientset().CoreV1().Secrets("eclipse-che").Get(context.TODO(), "github-scm-secret", metav1.GetOptions{})
@@ -123,14 +124,14 @@ func TestValidateScmSecrets(t *testing.T) {
 }
 
 func TestValidateScmSecretsShouldThrowError(t *testing.T) {
-	checluster := &v2.CheCluster{
+	checluster := &CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "eclipse-che",
 			Namespace: "eclipse-che",
 		},
-		Spec: v2.CheClusterSpec{
-			GitServices: v2.CheClusterGitServices{
-				GitHub: []v2.GitHubService{
+		Spec: CheClusterSpec{
+			GitServices: CheClusterGitServices{
+				GitHub: []GitHubService{
 					{
 						SecretName: "github-scm-secret-with-errors",
 					},
@@ -139,7 +140,8 @@ func TestValidateScmSecretsShouldThrowError(t *testing.T) {
 		},
 	}
 
-	err := checluster.ValidateCreate()
+	cheClusterValidator := CheClusterValidator{}
+	_, err := cheClusterValidator.ValidateCreate(context.TODO(), checluster)
 	assert.Error(t, err)
 	assert.Equal(t, "secret 'github-scm-secret-with-errors' not found", err.Error())
 
@@ -154,7 +156,7 @@ func TestValidateScmSecretsShouldThrowError(t *testing.T) {
 	_, err = k8sHelper.GetClientset().CoreV1().Secrets("eclipse-che").Create(context.TODO(), githubSecret, metav1.CreateOptions{})
 	assert.Nil(t, err)
 
-	err = checluster.ValidateCreate()
+	_, err = cheClusterValidator.ValidateCreate(context.TODO(), checluster)
 	assert.Error(t, err)
 	assert.Equal(t, "secret 'github-scm-secret-with-errors' must contain [id, secret] keys", err.Error())
 }

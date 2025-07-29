@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -15,9 +15,10 @@ package server
 import (
 	"testing"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"k8s.io/utils/pointer"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -66,9 +67,7 @@ func TestNewCheConfigMap(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-
-			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
+			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 
 			server := NewCheServerReconciler()
 			actualData, err := server.getCheConfigMapData(ctx)
@@ -81,7 +80,7 @@ func TestNewCheConfigMap(t *testing.T) {
 func TestConfigMap(t *testing.T) {
 	type testCase struct {
 		name         string
-		initObjects  []runtime.Object
+		initObjects  []client.Object
 		cheCluster   *chev2.CheCluster
 		expectedData map[string]string
 	}
@@ -89,7 +88,7 @@ func TestConfigMap(t *testing.T) {
 	testCases := []testCase{
 		{
 			name:        "Test k8s data, no tls secret",
-			initObjects: []runtime.Object{},
+			initObjects: []client.Object{},
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -109,7 +108,7 @@ func TestConfigMap(t *testing.T) {
 		},
 		{
 			name: "Test k8s data, with tls secret",
-			initObjects: []runtime.Object{
+			initObjects: []client.Object{
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "che-tls",
@@ -187,7 +186,7 @@ func TestConfigMap(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.GetDeployContext(testCase.cheCluster, testCase.initObjects)
+			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
 
 			server := NewCheServerReconciler()
 			actualData, err := server.getCheConfigMapData(ctx)
@@ -200,7 +199,7 @@ func TestConfigMap(t *testing.T) {
 func TestUpdateIntegrationServerEndpoints(t *testing.T) {
 	type testCase struct {
 		name         string
-		initObjects  []runtime.Object
+		initObjects  []client.Object
 		cheCluster   *chev2.CheCluster
 		expectedData map[string]string
 	}
@@ -208,7 +207,7 @@ func TestUpdateIntegrationServerEndpoints(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "Test set BitBucket endpoints from secret",
-			initObjects: []runtime.Object{
+			initObjects: []client.Object{
 				&corev1.Secret{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "Secret",
@@ -240,7 +239,7 @@ func TestUpdateIntegrationServerEndpoints(t *testing.T) {
 		},
 		{
 			name: "Test update BitBucket endpoints",
-			initObjects: []runtime.Object{
+			initObjects: []client.Object{
 				&corev1.Secret{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "Secret",
@@ -281,7 +280,7 @@ func TestUpdateIntegrationServerEndpoints(t *testing.T) {
 		},
 		{
 			name:        "Test don't update BitBucket endpoints",
-			initObjects: []runtime.Object{},
+			initObjects: []client.Object{},
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -304,7 +303,7 @@ func TestUpdateIntegrationServerEndpoints(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.GetDeployContext(testCase.cheCluster, testCase.initObjects)
+			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
 
 			server := NewCheServerReconciler()
 			actualData, err := server.getCheConfigMapData(ctx)
@@ -317,7 +316,7 @@ func TestUpdateIntegrationServerEndpoints(t *testing.T) {
 func TestShouldSetUpCorrectlyPluginRegistryURL(t *testing.T) {
 	type testCase struct {
 		name         string
-		initObjects  []runtime.Object
+		initObjects  []client.Object
 		cheCluster   *chev2.CheCluster
 		expectedData map[string]string
 	}
@@ -372,7 +371,7 @@ func TestShouldSetUpCorrectlyPluginRegistryURL(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
+			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
 
 			server := NewCheServerReconciler()
 			actualData, err := server.getCheConfigMapData(ctx)
@@ -411,7 +410,7 @@ func TestShouldSetUpCorrectlyInternalCheServerURL(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
+			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 
 			server := NewCheServerReconciler()
 			actualData, err := server.getCheConfigMapData(ctx)
@@ -488,7 +487,7 @@ func TestUpdateUserClusterRoles(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.GetDeployContext(testCase.cheCluster, []runtime.Object{})
+			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 
 			reconciler := NewCheServerReconciler()
 			cheEnv, err := reconciler.getCheConfigMapData(ctx)
