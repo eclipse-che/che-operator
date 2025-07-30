@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -25,13 +25,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-)
-
-const (
-	expectedProxyURLWithUsernamePassword    = "https://user:password@myproxy.com:1234"
-	expectedProxyURLWithoutUsernamePassword = "https://myproxy.com:1234"
-	expectedNoProxy                         = "localhost,myhost.com"
 )
 
 func TestGenerateProxyJavaOptsWithUsernameAndPassword(t *testing.T) {
@@ -154,7 +147,7 @@ func TestReadCheClusterProxyConfiguration(t *testing.T) {
 		NoProxy: "host1,host2",
 	}
 
-	ctx := test.GetDeployContext(checluster, []runtime.Object{proxySecret})
+	ctx := test.NewCtxBuilder().WithCheCluster(checluster).WithObjects(proxySecret).Build()
 	actualProxy, _ := ReadCheClusterProxyConfiguration(ctx)
 
 	if !reflect.DeepEqual(actualProxy, expectedProxy) {
@@ -189,7 +182,7 @@ func TestReadCheClusterProxyConfigurationNoUser(t *testing.T) {
 		NoProxy: "host1,host2",
 	}
 
-	ctx := test.GetDeployContext(checluster, []runtime.Object{})
+	ctx := test.NewCtxBuilder().WithCheCluster(checluster).Build()
 	actualProxy, _ := ReadCheClusterProxyConfiguration(ctx)
 
 	if !reflect.DeepEqual(actualProxy, expectedProxy) {
@@ -239,7 +232,7 @@ func TestReadCheClusterProxyConfigurationNoPort(t *testing.T) {
 		NoProxy: "host1,host2",
 	}
 
-	ctx := test.GetDeployContext(checluster, []runtime.Object{proxySecret})
+	ctx := test.NewCtxBuilder().WithCheCluster(checluster).WithObjects(proxySecret).Build()
 	actualProxy, _ := ReadCheClusterProxyConfiguration(ctx)
 	assert.Equal(t, actualProxy, expectedProxy)
 }

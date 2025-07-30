@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -24,10 +24,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"github.com/sirupsen/logrus"
 	networking "k8s.io/api/networking/v1"
-)
-
-const (
-	gatewayConfigComponentName = "che-gateway-config"
 )
 
 // Expose exposes the specified component according to the configured exposure strategy rules

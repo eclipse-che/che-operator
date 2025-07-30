@@ -17,7 +17,6 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
 	"testing"
@@ -27,18 +26,16 @@ import (
 )
 
 func TestGetExistedObject(t *testing.T) {
-	ctx := test.GetDeployContext(nil, []runtime.Object{
-		&corev1.ConfigMap{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "ConfigMap",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test",
-				Namespace: "eclipse-che",
-			},
+	ctx := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
 		},
-	})
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "eclipse-che",
+		},
+	}).Build()
 	syncer := ObjSyncer{
 		cli:    ctx.ClusterAPI.Client,
 		scheme: ctx.ClusterAPI.Scheme,
@@ -51,7 +48,7 @@ func TestGetExistedObject(t *testing.T) {
 }
 
 func TestGetNotExistedObject(t *testing.T) {
-	ctx := test.GetDeployContext(nil, []runtime.Object{})
+	ctx := test.NewCtxBuilder().Build()
 	syncer := ObjSyncer{
 		cli:    ctx.ClusterAPI.Client,
 		scheme: ctx.ClusterAPI.Scheme,

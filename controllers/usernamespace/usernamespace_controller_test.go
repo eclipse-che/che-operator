@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -18,12 +18,15 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/eclipse-che/che-operator/controllers/namespacecache"
+
+	"github.com/eclipse-che/che-operator/pkg/common/test"
+
 	containerbuild "github.com/eclipse-che/che-operator/pkg/deploy/container-build"
 	rbacv1 "k8s.io/api/rbac/v1"
 
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
-	devworkspaceinfra "github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -38,7 +41,6 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -150,23 +152,22 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 	}
 }
 
-func setup(infraType devworkspaceinfra.Type, objs ...runtime.Object) (*runtime.Scheme, client.Client, *CheUserNamespaceReconciler) {
-	devworkspaceinfra.InitializeForTesting(infraType)
+func setup(infraType infrastructure.Type, objs ...client.Object) (*runtime.Scheme, client.Client, *CheUserNamespaceReconciler) {
 	devworkspace.CleanCheClusterInstancesForTest()
 	infrastructure.InitializeForTesting(infraType)
 
-	scheme := createTestScheme()
-
-	cl := fake.NewFakeClientWithScheme(scheme, objs...)
+	ctx := test.NewCtxBuilder().WithObjects(objs...).WithCheCluster(nil).Build()
+	cl := ctx.ClusterAPI.Client
+	scheme := ctx.ClusterAPI.Scheme
 
 	r := &CheUserNamespaceReconciler{
 		client:          cl,
 		nonCachedClient: cl,
 		scheme:          scheme,
-		namespaceCache: &namespaceCache{
-			client:          cl,
-			knownNamespaces: map[string]namespaceInfo{},
-			lock:            sync.Mutex{},
+		namespaceCache: &namespacecache.NamespaceCache{
+			Client:          cl,
+			KnownNamespaces: map[string]namespacecache.NamespaceInfo{},
+			Lock:            sync.Mutex{},
 		},
 	}
 
@@ -174,9 +175,9 @@ func setup(infraType devworkspaceinfra.Type, objs ...runtime.Object) (*runtime.S
 }
 
 func TestSkipsUnlabeledNamespaces(t *testing.T) {
-	test := func(t *testing.T, infraType devworkspaceinfra.Type, namespace metav1.Object) {
+	test := func(t *testing.T, infraType infrastructure.Type, namespace metav1.Object) {
 		ctx := context.TODO()
-		scheme, cl, r := setup(infraType, namespace.(runtime.Object))
+		scheme, cl, r := setup(infraType, namespace.(client.Object))
 		setupCheCluster(t, ctx, cl, scheme, "che", "che")
 
 		if _, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}}); err != nil {
@@ -199,7 +200,7 @@ func TestSkipsUnlabeledNamespaces(t *testing.T) {
 	}
 
 	t.Run("k8s", func(t *testing.T) {
-		test(t, devworkspaceinfra.Kubernetes, &corev1.Namespace{
+		test(t, infrastructure.Kubernetes, &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "ns",
 			},
@@ -207,7 +208,7 @@ func TestSkipsUnlabeledNamespaces(t *testing.T) {
 	})
 
 	t.Run("openshift", func(t *testing.T) {
-		test(t, devworkspaceinfra.OpenShiftv4, &projectv1.Project{
+		test(t, infrastructure.OpenShiftv4, &projectv1.Project{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "prj",
 			},
@@ -232,9 +233,9 @@ func TestCreatesDataInNamespace(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	test := func(t *testing.T, infraType devworkspaceinfra.Type, namespace client.Object, objs ...runtime.Object) {
+	test := func(t *testing.T, infraType infrastructure.Type, namespace client.Object, objs ...client.Object) {
 		ctx := context.TODO()
-		allObjs := append(objs, namespace.(runtime.Object))
+		allObjs := append(objs, namespace.(client.Object))
 		scheme, cl, r := setup(infraType, allObjs...)
 		setupCheCluster(t, ctx, cl, scheme, "eclipse-che", "che")
 
@@ -283,23 +284,23 @@ func TestCreatesDataInNamespace(t *testing.T) {
 	}
 
 	t.Run("k8s", func(t *testing.T) {
-		test(t, devworkspaceinfra.Kubernetes, &corev1.Namespace{
+		test(t, infrastructure.Kubernetes, &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "ns",
 				Labels: map[string]string{
-					workspaceNamespaceOwnerUidLabel: "uid",
+					namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid",
 				},
 			},
 		})
 	})
 
 	t.Run("openshift", func(t *testing.T) {
-		test(t, devworkspaceinfra.OpenShiftv4,
+		test(t, infrastructure.OpenShiftv4,
 			&corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "prj",
 					Labels: map[string]string{
-						workspaceNamespaceOwnerUidLabel: "uid",
+						namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid",
 					},
 				},
 			},
@@ -307,7 +308,7 @@ func TestCreatesDataInNamespace(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "prj",
 					Labels: map[string]string{
-						workspaceNamespaceOwnerUidLabel: "uid",
+						namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid",
 					},
 				},
 			}, &configv1.Proxy{
@@ -331,10 +332,10 @@ func TestUpdateSccClusterRoleBinding(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "ns1",
 			Labels: map[string]string{
-				workspaceNamespaceOwnerUidLabel: "uid_1",
+				namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid_1",
 			},
 			Annotations: map[string]string{
-				cheUsernameAnnotation: "user_1",
+				namespacecache.CheUsernameAnnotation: "user_1",
 			},
 		},
 	}
@@ -343,10 +344,10 @@ func TestUpdateSccClusterRoleBinding(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "ns1",
 			Labels: map[string]string{
-				workspaceNamespaceOwnerUidLabel: "uid_1",
+				namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid_1",
 			},
 			Annotations: map[string]string{
-				cheUsernameAnnotation: "user_1",
+				namespacecache.CheUsernameAnnotation: "user_1",
 			},
 		},
 	}
@@ -372,7 +373,7 @@ func TestUpdateSccClusterRoleBinding(t *testing.T) {
 		},
 	}
 
-	allObjs := []runtime.Object{ns1, pr1, cheCluster}
+	allObjs := []client.Object{ns1, pr1, cheCluster}
 	scheme, cl, usernamespaceReconciler := setup(infrastructure.OpenShiftv4, allObjs...)
 
 	// the reconciliation needs to run twice for it to be truly finished - we're setting up finalizers etc...
@@ -402,11 +403,11 @@ func TestWatchRulesForSecretsInSameNamespace(t *testing.T) {
 		},
 	}
 
-	_, _, r := setup(devworkspaceinfra.Kubernetes, &corev1.Namespace{
+	_, _, r := setup(infrastructure.Kubernetes, &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "ns",
 			Labels: map[string]string{
-				workspaceNamespaceOwnerUidLabel: "uid",
+				namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid",
 			},
 		},
 	}, secret)
@@ -414,15 +415,15 @@ func TestWatchRulesForSecretsInSameNamespace(t *testing.T) {
 	ctx := context.TODO()
 
 	h := r.watchRulesForSecrets(ctx)
-	rlq := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
+	rlq := workqueue.NewTypedRateLimitingQueue(workqueue.DefaultTypedControllerRateLimiter[reconcile.Request]())
 	// Let's throw event to controller about new secret creation.
-	h.Create(event.CreateEvent{Object: secret}, rlq)
+	h.Create(context.TODO(), event.CreateEvent{Object: secret}, rlq)
 
 	amountReconcileRequests := rlq.Len()
 	rs, _ := rlq.Get()
 
 	assert.Equal(t, 1, amountReconcileRequests)
-	assert.Equal(t, "ns", rs.(reconcile.Request).Name)
+	assert.Equal(t, "ns", rs.Name)
 }
 
 func TestWatchRulesForConfigMapsInSameNamespace(t *testing.T) {
@@ -434,11 +435,11 @@ func TestWatchRulesForConfigMapsInSameNamespace(t *testing.T) {
 		},
 	}
 
-	_, _, r := setup(devworkspaceinfra.Kubernetes, &corev1.Namespace{
+	_, _, r := setup(infrastructure.Kubernetes, &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "ns",
 			Labels: map[string]string{
-				workspaceNamespaceOwnerUidLabel: "uid",
+				namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid",
 			},
 		},
 	}, cm)
@@ -446,15 +447,15 @@ func TestWatchRulesForConfigMapsInSameNamespace(t *testing.T) {
 	ctx := context.TODO()
 
 	h := r.watchRulesForSecrets(ctx)
-	rlq := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
+	rlq := workqueue.NewTypedRateLimitingQueue(workqueue.DefaultTypedControllerRateLimiter[reconcile.Request]())
 	// Let's throw event to controller about new config map creation.
-	h.Create(event.CreateEvent{Object: cm}, rlq)
+	h.Create(context.TODO(), event.CreateEvent{Object: cm}, rlq)
 
 	amountReconcileRequests := rlq.Len()
 	rs, _ := rlq.Get()
 
 	assert.Equal(t, 1, amountReconcileRequests)
-	assert.Equal(t, "ns", rs.(reconcile.Request).Name)
+	assert.Equal(t, "ns", rs.Name)
 }
 
 func TestWatchRulesForSecretsInOtherNamespaces(t *testing.T) {
@@ -469,7 +470,7 @@ func TestWatchRulesForSecretsInOtherNamespaces(t *testing.T) {
 		},
 	}
 
-	_, _, r := setup(devworkspaceinfra.Kubernetes,
+	_, _, r := setup(infrastructure.Kubernetes,
 		&corev1.Namespace{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Namespace",
@@ -478,7 +479,7 @@ func TestWatchRulesForSecretsInOtherNamespaces(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "ns1",
 				Labels: map[string]string{
-					workspaceNamespaceOwnerUidLabel: "uid1",
+					namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid1",
 				},
 			},
 		},
@@ -490,7 +491,7 @@ func TestWatchRulesForSecretsInOtherNamespaces(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "ns2",
 				Labels: map[string]string{
-					workspaceNamespaceOwnerUidLabel: "uid2",
+					namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid2",
 				},
 			},
 		},
@@ -518,15 +519,15 @@ func TestWatchRulesForSecretsInOtherNamespaces(t *testing.T) {
 	r.namespaceCache.ExamineNamespace(ctx, "eclipse-che")
 
 	h := r.watchRulesForSecrets(ctx)
-	rlq := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
+	rlq := workqueue.NewTypedRateLimitingQueue(workqueue.DefaultTypedControllerRateLimiter[reconcile.Request]())
 	// Let's throw event to controller about new secret creation.
-	h.Create(event.CreateEvent{Object: secret}, rlq)
+	h.Create(context.TODO(), event.CreateEvent{Object: secret}, rlq)
 
 	amountReconcileRequests := rlq.Len()
 	rs1, _ := rlq.Get()
 	rs2, _ := rlq.Get()
 	rs3, _ := rlq.Get()
-	reconciles := []reconcile.Request{rs1.(reconcile.Request), rs2.(reconcile.Request), rs3.(reconcile.Request)}
+	reconciles := []reconcile.Request{rs1, rs2, rs3}
 
 	assert.Equal(t, 3, amountReconcileRequests)
 	assert.Contains(t, reconciles, reconcile.Request{NamespacedName: types.NamespacedName{Name: "ns1"}})
@@ -546,7 +547,7 @@ func TestWatchRulesForConfigMapsInOtherNamespaces(t *testing.T) {
 		},
 	}
 
-	_, _, r := setup(devworkspaceinfra.Kubernetes,
+	_, _, r := setup(infrastructure.Kubernetes,
 		&corev1.Namespace{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Namespace",
@@ -555,7 +556,7 @@ func TestWatchRulesForConfigMapsInOtherNamespaces(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "ns1",
 				Labels: map[string]string{
-					workspaceNamespaceOwnerUidLabel: "uid1",
+					namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid1",
 				},
 			},
 		},
@@ -567,7 +568,7 @@ func TestWatchRulesForConfigMapsInOtherNamespaces(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "ns2",
 				Labels: map[string]string{
-					workspaceNamespaceOwnerUidLabel: "uid2",
+					namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid2",
 				},
 			},
 		},
@@ -595,15 +596,15 @@ func TestWatchRulesForConfigMapsInOtherNamespaces(t *testing.T) {
 	r.namespaceCache.ExamineNamespace(ctx, "eclipse-che")
 
 	h := r.watchRulesForConfigMaps(ctx)
-	rlq := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
+	rlq := workqueue.NewTypedRateLimitingQueue(workqueue.DefaultTypedControllerRateLimiter[reconcile.Request]())
 	// Let's throw event to controller about new config map creation.
-	h.Create(event.CreateEvent{Object: cm}, rlq)
+	h.Create(context.TODO(), event.CreateEvent{Object: cm}, rlq)
 
 	amountReconcileRequests := rlq.Len()
 	rs1, _ := rlq.Get()
 	rs2, _ := rlq.Get()
 	rs3, _ := rlq.Get()
-	reconciles := []reconcile.Request{rs1.(reconcile.Request), rs2.(reconcile.Request), rs3.(reconcile.Request)}
+	reconciles := []reconcile.Request{rs1, rs2, rs3}
 
 	assert.Equal(t, 3, amountReconcileRequests)
 	assert.Contains(t, reconciles, reconcile.Request{NamespacedName: types.NamespacedName{Name: "ns1"}})

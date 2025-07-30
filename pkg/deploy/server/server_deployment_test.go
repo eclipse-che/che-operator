@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -14,6 +14,7 @@ package server
 
 import (
 	"k8s.io/apimachinery/pkg/api/resource"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -26,7 +27,6 @@ import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func TestDeployment(t *testing.T) {
@@ -37,7 +37,7 @@ func TestDeployment(t *testing.T) {
 
 	type testCase struct {
 		name          string
-		initObjects   []runtime.Object
+		initObjects   []client.Object
 		memoryLimit   string
 		memoryRequest string
 		cpuLimit      string
@@ -48,7 +48,7 @@ func TestDeployment(t *testing.T) {
 	testCases := []testCase{
 		{
 			name:          "Test default limits",
-			initObjects:   []runtime.Object{},
+			initObjects:   []client.Object{},
 			memoryLimit:   constants.DefaultServerMemoryLimit,
 			memoryRequest: constants.DefaultServerMemoryRequest,
 			cpuLimit:      "0", // no CPU limit if LimitRange does not exists
@@ -61,7 +61,7 @@ func TestDeployment(t *testing.T) {
 		},
 		{
 			name:          "Test custom limits",
-			initObjects:   []runtime.Object{},
+			initObjects:   []client.Object{},
 			cpuLimit:      "250m",
 			cpuRequest:    "150m",
 			memoryLimit:   "250Mi",
@@ -99,7 +99,7 @@ func TestDeployment(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.GetDeployContext(testCase.cheCluster, testCase.initObjects)
+			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
 
 			server := NewCheServerReconciler()
 			deployment, err := server.getDeploymentSpec(ctx)
@@ -122,7 +122,7 @@ func TestDeployment(t *testing.T) {
 func TestMountBitBucketServerOAuthEnvVar(t *testing.T) {
 	type testCase struct {
 		name                    string
-		initObjects             []runtime.Object
+		initObjects             []client.Object
 		expectedConsumerKeyPath string
 		expectedPrivateKeyPath  string
 		expectedOAuthEndpoint   string
@@ -133,7 +133,7 @@ func TestMountBitBucketServerOAuthEnvVar(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "Test",
-			initObjects: []runtime.Object{
+			initObjects: []client.Object{
 				&corev1.Secret{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "Secret",
@@ -177,7 +177,7 @@ func TestMountBitBucketServerOAuthEnvVar(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.GetDeployContext(nil, testCase.initObjects)
+			ctx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
 
 			server := NewCheServerReconciler()
 			deployment, err := server.getDeploymentSpec(ctx)
@@ -208,7 +208,7 @@ func TestMountBitBucketServerOAuthEnvVar(t *testing.T) {
 func TestMountBitbucketOAuthEnvVar(t *testing.T) {
 	type testCase struct {
 		name                  string
-		initObjects           []runtime.Object
+		initObjects           []client.Object
 		expectedIdKeyPath     string
 		expectedSecretKeyPath string
 		expectedOAuthEndpoint string
@@ -219,7 +219,7 @@ func TestMountBitbucketOAuthEnvVar(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "Test",
-			initObjects: []runtime.Object{
+			initObjects: []client.Object{
 				&corev1.Secret{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "Secret",
@@ -262,7 +262,7 @@ func TestMountBitbucketOAuthEnvVar(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.GetDeployContext(nil, testCase.initObjects)
+			ctx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
 
 			server := NewCheServerReconciler()
 			deployment, err := server.getDeploymentSpec(ctx)
@@ -336,7 +336,7 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 		},
 	}
 
-	ctx := test.GetDeployContext(nil, []runtime.Object{secret1, secret2})
+	ctx := test.NewCtxBuilder().WithObjects(secret1).WithObjects(secret2).Build()
 
 	server := NewCheServerReconciler()
 	deployment, err := server.getDeploymentSpec(ctx)
@@ -396,7 +396,7 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 func TestMountAzureDevOpsOAuthEnvVar(t *testing.T) {
 	type testCase struct {
 		name                  string
-		initObjects           []runtime.Object
+		initObjects           []client.Object
 		expectedIdKeyPath     string
 		expectedSecretKeyPath string
 		expectedOAuthEndpoint string
@@ -407,7 +407,7 @@ func TestMountAzureDevOpsOAuthEnvVar(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "Test",
-			initObjects: []runtime.Object{
+			initObjects: []client.Object{
 				&corev1.Secret{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "Secret",
@@ -450,7 +450,7 @@ func TestMountAzureDevOpsOAuthEnvVar(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.GetDeployContext(nil, testCase.initObjects)
+			ctx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
 
 			server := NewCheServerReconciler()
 			deployment, err := server.getDeploymentSpec(ctx)
@@ -523,7 +523,7 @@ func TestMountGitLabOAuthEnvVar(t *testing.T) {
 		},
 	}
 
-	ctx := test.GetDeployContext(nil, []runtime.Object{secret1, secret2})
+	ctx := test.NewCtxBuilder().WithObjects(secret1).WithObjects(secret2).Build()
 
 	server := NewCheServerReconciler()
 	deployment, err := server.getDeploymentSpec(ctx)

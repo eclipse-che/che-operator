@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2023 Red Hat, Inc.
+# Copyright (c) 2019-2025 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -22,7 +22,6 @@ metadata:
 webhooks:
   - admissionReviewVersions:
       - v1
-      - v1beta1
     clientConfig:
       service:
         name: che-operator-service
@@ -52,24 +51,23 @@ metadata:
     app.kubernetes.io/name: che
     app.kubernetes.io/part-of: che.eclipse.org
 webhooks:
-- admissionReviewVersions:
-  - v1
-  - v1beta1
-  clientConfig:
-    service:
-      name: che-operator-service
-      namespace: eclipse-che
-      path: /validate-org-eclipse-che-v2-checluster
-  failurePolicy: Fail
-  name: vchecluster.kb.io
-  rules:
-  - apiGroups:
-    - org.eclipse.che
-    apiVersions:
-    - v2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - checlusters
-  sideEffects: None
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: che-operator-service
+        namespace: eclipse-che
+        path: /validate-org-eclipse-che-v2-checluster
+    failurePolicy: Fail
+    name: vchecluster.kb.io
+    rules:
+      - apiGroups:
+          - org.eclipse.che
+        apiVersions:
+          - v2
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - checlusters
+    sideEffects: None

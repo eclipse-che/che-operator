@@ -124,18 +124,18 @@ help: ## Display this help.
 ##@ Development
 
 build: generate ## Build Eclipse Che operator binary
-	go build -o bin/manager main.go
+	go build -o bin/manager cmd/main.go
 
 run: SHELL := /bin/bash
 run: install-che-operands genenerate-env  ## Run Eclipse Che operator
 	source $(BASH_ENV_FILE)
-	go run ./main.go
+	go run cmd/main.go
 
 debug: SHELL := /bin/bash
 debug: install-che-operands genenerate-env ## Run and debug Eclipse Che operator
 	source $(BASH_ENV_FILE)
 	# dlv has an issue with 'Ctrl-C' termination, that's why we're doing trick with detach.
-	dlv debug --listen=:2345 --headless=true --api-version=2 ./main.go -- &
+	dlv debug --listen=:2345 --headless=true --api-version=2 cmd/main.go -- &
 	DLV_PID=$!
 	wait $${DLV_PID}
 
@@ -366,7 +366,7 @@ install-che-operands: generate manifests download-kustomize download-gateway-res
 	if [[ ! "$$($(K8S_CLI) get checluster eclipse-che -n $(ECLIPSE_CHE_NAMESPACE) || false )" ]]; then
 		[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
 		$(MAKE) install-devworkspace CHANNEL="next"
-		$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
+		$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply --server-side -f -
 		$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/component=che-operator" NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)
 	fi
 
@@ -481,7 +481,7 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 	goimports -w ./api
 	go fmt -x ./api
 
-	$(OPERATOR_SDK) bundle validate $${BUNDLE_PATH} --select-optional name=operatorhub --optional-values=k8s-version=1.19
+	$(OPERATOR_SDK) bundle validate $${BUNDLE_PATH}  --select-optional name="operatorhubv2" --select-optional name="good-practices" --optional-values=k8s-version=1.19
 
 bundle-build: SHELL := /bin/bash
 bundle-build: download-opm ## Build a bundle image
@@ -575,24 +575,19 @@ bundle-version: ## Prints a bundle version for a given channel
 ##@ Utilities
 
 OPM ?= $(shell pwd)/bin/opm
+OPM_VERSION ?= "v1.26.2"
 download-opm: SHELL := /bin/bash
 download-opm: ## Download opm tool
-	[[ -z "$(DEST)" ]] && dest=$(OPM) || dest=$(DEST)/opm
 	command -v $(OPM) >/dev/null 2>&1 && exit
 
-	OS=$(shell go env GOOS)
-	ARCH=$(shell go env GOARCH)
-	OPM_VERSION=$$(yq -r '.opm' $(PROJECT_DIR)/REQUIREMENTS)
-
-	echo "[INFO] Downloading opm version: $${OPM_VERSION}"
-
-	mkdir -p $$(dirname "$${dest}")
-	curl -sL https://github.com/operator-framework/operator-registry/releases/download/$${OPM_VERSION}/$${OS}-$${ARCH}-opm > $${dest}
-	chmod +x $${dest}
+	echo "[INFO] Downloading opm version: $(OPM_VERSION)"
+	mkdir -p $$(dirname "$(OPM)")
+	curl -sL https://github.com/operator-framework/operator-registry/releases/download/$(OPM_VERSION)/$$(go env GOOS)-$$(go env GOARCH)-opm > $(OPM)
+	chmod +x $(OPM)
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
 download-controller-gen: ## Download controller-gen tool
-	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0)
+	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.18.0)
 
 KUSTOMIZE = $(shell pwd)/bin/kustomize
 download-kustomize: ## Download kustomize tool
@@ -602,20 +597,27 @@ ADD_LICENSE = $(shell pwd)/bin/addlicense
 download-addlicense: ## Download addlicense tool
 	$(call go-get-tool,$(ADD_LICENSE),github.com/google/addlicense@99ebc9c9db7bceb8623073e894533b978d7b7c8a)
 
+OPERATOR_SDK_VERSION ?= "v1.39.2"
 OPERATOR_SDK ?= $(shell pwd)/bin/operator-sdk
 download-operator-sdk: SHELL := /bin/bash
 download-operator-sdk: ## Downloads operator sdk tool
-	[[ -z "$(DEST)" ]] && dest=$(OPERATOR_SDK) || dest=$(DEST)/operator-sdk
-	command -v $${dest} >/dev/null 2>&1 && exit
+	command -v $(OPERATOR_SDK) >/dev/null 2>&1 && exit
 
-	OS=$(shell go env GOOS)
-	ARCH=$(shell go env GOARCH)
-	OPERATOR_SDK_VERSION=$$(yq -r '."operator-sdk"' $(PROJECT_DIR)/REQUIREMENTS)
+	echo "[INFO] Downloading operator-sdk version $(OPERATOR_SDK_VERSION) into $(OPERATOR_SDK)"
+	mkdir -p $$(dirname "$(OPERATOR_SDK)")
+	curl -sL https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk_$$(go env GOOS)_$$(go env GOARCH) > $(OPERATOR_SDK)
+	chmod +x $(OPERATOR_SDK)
 
-	echo "[INFO] Downloading operator-sdk version $${OPERATOR_SDK_VERSION} into $${dest}"
-	mkdir -p $$(dirname "$${dest}")
-	curl -sL https://github.com/operator-framework/operator-sdk/releases/download/$${OPERATOR_SDK_VERSION}/operator-sdk_$${OS}_$${ARCH} > $${dest}
-	chmod +x $${dest}
+KUBEBUILDER_VERSION ?= "v4.7.1"
+KUBEBUILDER ?= $(shell pwd)/bin/kubebuilder
+download-kubebuilder: SHELL := /bin/bash
+download-kubebuilder: ## Downloads kubebuilder tool
+	command -v $(KUBEBUILDER) >/dev/null 2>&1 && exit
+
+	echo "[INFO] Downloading kubebuilder version $(KUBEBUILDER_VERSION) into $(KUBEBUILDER)"
+	mkdir -p $$(dirname "$(KUBEBUILDER)")
+	curl -sL https://github.com/kubernetes-sigs/kubebuilder/releases/download/$(KUBEBUILDER_VERSION)/kubebuilder_$$(go env GOOS)_$$(go env GOARCH) > $(KUBEBUILDER)
+	chmod +x $(KUBEBUILDER)
 
 # Check if all required packages are installed
 validate-requirements: SHELL := /bin/bash

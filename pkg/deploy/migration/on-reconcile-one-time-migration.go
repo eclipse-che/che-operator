@@ -202,7 +202,7 @@ func addPartOfCheLabelForObjectsWithLabel(ctx *chetypes.DeployContext, labelKey 
 		Namespace:     ctx.CheCluster.GetNamespace(),
 	}
 
-	// This list should be based on the list from the cache function (see NewCache filed of the managar in main.go)
+	// This list should be based on the list from the cache function (see NewCache filed of the manager in main.go)
 	kindsToMigrate := []client.ObjectList{
 		&appsv1.DeploymentList{},
 		&corev1.PodList{},

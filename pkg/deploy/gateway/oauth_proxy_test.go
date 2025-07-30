@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -17,51 +17,47 @@ import (
 
 	"k8s.io/utils/pointer"
 
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestCookieExpireForOpenShiftOauthProxyConfig(t *testing.T) {
-	ctx := test.GetDeployContext(
-		&chev2.CheCluster{
-			Spec: chev2.CheClusterSpec{
-				Networking: chev2.CheClusterSpecNetworking{
-					Auth: chev2.Auth{
-						Gateway: chev2.Gateway{
-							OAuthProxy: &chev2.OAuthProxy{
-								CookieExpireSeconds: pointer.Int32(3665),
-							},
+	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Auth: chev2.Auth{
+					Gateway: chev2.Gateway{
+						OAuthProxy: &chev2.OAuthProxy{
+							CookieExpireSeconds: pointer.Int32(3665),
 						},
 					},
-				}},
-		}, nil)
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+				},
+			}},
+	}).Build()
 
 	config := openshiftOauthProxyConfig(ctx, "")
 	assert.Contains(t, config, "cookie_expire = \"1h1m5s\"")
 }
 
 func TestCookieExpireKubernetesOauthProxyConfig(t *testing.T) {
-	ctx := test.GetDeployContext(
-		&chev2.CheCluster{
-			Spec: chev2.CheClusterSpec{
-				Networking: chev2.CheClusterSpecNetworking{
-					Auth: chev2.Auth{
-						Gateway: chev2.Gateway{
-							OAuthProxy: &chev2.OAuthProxy{
-								CookieExpireSeconds: pointer.Int32(3665),
-							},
+	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Auth: chev2.Auth{
+					Gateway: chev2.Gateway{
+						OAuthProxy: &chev2.OAuthProxy{
+							CookieExpireSeconds: pointer.Int32(3665),
 						},
 					},
-				}},
-		}, nil)
+				},
+			}},
+	}).Build()
+
 	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
 	config := kubernetesOauthProxyConfig(ctx, "")
@@ -69,33 +65,31 @@ func TestCookieExpireKubernetesOauthProxyConfig(t *testing.T) {
 }
 
 func TestKubernetesOauthProxySecretSecretFoundWithKey(t *testing.T) {
-	ctx := test.GetDeployContext(
-		&chev2.CheCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "eclipse-che",
-			},
-			Spec: chev2.CheClusterSpec{
-				Networking: chev2.CheClusterSpecNetworking{
-					Auth: chev2.Auth{
-						OAuthSecret: "my-secret",
-					},
-				}},
+	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
 		},
-		[]runtime.Object{
-			&corev1.Secret{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Secret",
-					APIVersion: "v1",
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Auth: chev2.Auth{
+					OAuthSecret: "my-secret",
 				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "my-secret",
-					Namespace: "eclipse-che",
-					Labels:    map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg},
-				},
-				Type: corev1.SecretTypeOpaque,
-				Data: map[string][]byte{"oAuthSecret": []byte("my")},
-			},
-		})
+			}},
+	}).WithObjects(&corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "my-secret",
+			Namespace: "eclipse-che",
+			Labels:    map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg},
+		},
+		Type: corev1.SecretTypeOpaque,
+		Data: map[string][]byte{"oAuthSecret": []byte("my")},
+	},
+	).Build()
+
 	ctx.CheHost = "che-site.che-domain.com"
 	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
@@ -104,33 +98,30 @@ func TestKubernetesOauthProxySecretSecretFoundWithKey(t *testing.T) {
 }
 
 func TestKubernetesOauthProxySecretSecretFoundWithWrongKey(t *testing.T) {
-	ctx := test.GetDeployContext(
-		&chev2.CheCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "eclipse-che",
-			},
-			Spec: chev2.CheClusterSpec{
-				Networking: chev2.CheClusterSpecNetworking{
-					Auth: chev2.Auth{
-						OAuthSecret: "my-secret",
-					},
-				}},
+	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
 		},
-		[]runtime.Object{
-			&corev1.Secret{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Secret",
-					APIVersion: "v1",
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Auth: chev2.Auth{
+					OAuthSecret: "my-secret",
 				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "my-secret",
-					Namespace: "eclipse-che",
-					Labels:    map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg},
-				},
-				Type: corev1.SecretTypeOpaque,
-				Data: map[string][]byte{"keyIsNotoAuthSecret": []byte("my")},
-			},
-		})
+			}},
+	}).WithObjects(&corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "my-secret",
+			Namespace: "eclipse-che",
+			Labels:    map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg},
+		},
+		Type: corev1.SecretTypeOpaque,
+		Data: map[string][]byte{"keyIsNotoAuthSecret": []byte("my")},
+	}).Build()
+
 	ctx.CheHost = "che-site.che-domain.com"
 	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
@@ -140,33 +131,29 @@ func TestKubernetesOauthProxySecretSecretFoundWithWrongKey(t *testing.T) {
 }
 
 func TestKubernetesOauthProxySecretSecretFoundWithWrongSecretName(t *testing.T) {
-	ctx := test.GetDeployContext(
-		&chev2.CheCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "eclipse-che",
-			},
-			Spec: chev2.CheClusterSpec{
-				Networking: chev2.CheClusterSpecNetworking{
-					Auth: chev2.Auth{
-						OAuthSecret: "wrong-secret-name",
-					},
-				}},
+	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
 		},
-		[]runtime.Object{
-			&corev1.Secret{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Secret",
-					APIVersion: "v1",
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Auth: chev2.Auth{
+					OAuthSecret: "wrong-secret-name",
 				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "my-secret",
-					Namespace: "eclipse-che",
-					Labels:    map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg},
-				},
-				Type: corev1.SecretTypeOpaque,
-				Data: map[string][]byte{"oAuthSecret": []byte("my")},
-			},
-		})
+			}},
+	}).WithObjects(&corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "my-secret",
+			Namespace: "eclipse-che",
+			Labels:    map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg},
+		},
+		Type: corev1.SecretTypeOpaque,
+		Data: map[string][]byte{"oAuthSecret": []byte("my")},
+	}).Build()
 	ctx.CheHost = "che-site.che-domain.com"
 	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
@@ -176,19 +163,18 @@ func TestKubernetesOauthProxySecretSecretFoundWithWrongSecretName(t *testing.T) 
 }
 
 func TestKubernetesOauthProxySecretLegacyPlaintextSecretName(t *testing.T) {
-	ctx := test.GetDeployContext(
-		&chev2.CheCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "eclipse-che",
-			},
-			Spec: chev2.CheClusterSpec{
-				Networking: chev2.CheClusterSpecNetworking{
-					Auth: chev2.Auth{
-						OAuthSecret: "abcdefPlainTextSecret",
-					},
+	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
+		},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Auth: chev2.Auth{
+					OAuthSecret: "abcdefPlainTextSecret",
 				},
 			},
-		}, nil)
+		},
+	}).Build()
 	ctx.CheHost = "che-site.che-domain.com"
 	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
@@ -198,7 +184,7 @@ func TestKubernetesOauthProxySecretLegacyPlaintextSecretName(t *testing.T) {
 }
 
 func TestKubernetesOauthProxyConfig(t *testing.T) {
-	ctx := test.GetDeployContext(
+	ctx := test.NewCtxBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			Spec: chev2.CheClusterSpec{
 				Networking: chev2.CheClusterSpecNetworking{
@@ -208,7 +194,7 @@ func TestKubernetesOauthProxyConfig(t *testing.T) {
 						OAuthSecret:         "secret",
 					},
 				}},
-		}, nil)
+		}).Build()
 	ctx.CheHost = "che-site.che-domain.com"
 	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
@@ -221,7 +207,7 @@ func TestKubernetesOauthProxyConfig(t *testing.T) {
 }
 
 func TestScopeDefinedForKubernetesOauthProxyConfig(t *testing.T) {
-	ctx := test.GetDeployContext(
+	ctx := test.NewCtxBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			Spec: chev2.CheClusterSpec{
 				Networking: chev2.CheClusterSpecNetworking{
@@ -232,7 +218,7 @@ func TestScopeDefinedForKubernetesOauthProxyConfig(t *testing.T) {
 						OAuthScope:          "scope1 scope2 scope3 scope4 scope5",
 					},
 				}},
-		}, nil)
+		}).Build()
 	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
 	config := kubernetesOauthProxyConfig(ctx, "blabol")
@@ -240,7 +226,7 @@ func TestScopeDefinedForKubernetesOauthProxyConfig(t *testing.T) {
 }
 
 func TestAccessTokenDefinedForKubernetesOauthProxyConfig(t *testing.T) {
-	ctx := test.GetDeployContext(
+	ctx := test.NewCtxBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			Spec: chev2.CheClusterSpec{
 				Networking: chev2.CheClusterSpecNetworking{
@@ -251,7 +237,7 @@ func TestAccessTokenDefinedForKubernetesOauthProxyConfig(t *testing.T) {
 						IdentityToken:       "access_token",
 					},
 				}},
-		}, nil)
+		}).Build()
 	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
 	config := kubernetesOauthProxyConfig(ctx, "blabol")

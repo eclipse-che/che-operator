@@ -24,6 +24,9 @@ stages:
     labels:
       suite: basic
       test: basic-check-spec-test
+    storage:
+      spec:
+        mountPath: {}
   - entrypoint:
     - scorecard-test
     - olm-bundle-validation
@@ -31,6 +34,9 @@ stages:
     labels:
       suite: olm
       test: olm-bundle-validation-test
+    storage:
+      spec:
+        mountPath: {}
   - entrypoint:
     - scorecard-test
     - olm-crds-have-validation
@@ -38,6 +44,9 @@ stages:
     labels:
       suite: olm
       test: olm-crds-have-validation-test
+    storage:
+      spec:
+        mountPath: {}
   - entrypoint:
     - scorecard-test
     - olm-spec-descriptors
@@ -45,3 +54,9 @@ stages:
     labels:
       suite: olm
       test: olm-spec-descriptors-test
+    storage:
+      spec:
+        mountPath: {}
+storage:
+  spec:
+    mountPath: {}

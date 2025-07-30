@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -17,22 +17,17 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/eclipse-che/che-operator/pkg/common/test"
+
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-)
-
-var (
-	scheme = runtime.NewScheme()
 )
 
 func init() {
 	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
-	corev1.AddToScheme(scheme)
 }
 
 func TestSyncCreates(t *testing.T) {
@@ -51,7 +46,9 @@ func TestSyncCreates(t *testing.T) {
 		},
 	}
 
-	cl := fake.NewFakeClientWithScheme(scheme, preexisting)
+	ctx := test.NewCtxBuilder().WithObjects(preexisting).Build()
+	scheme := ctx.ClusterAPI.Scheme
+	cl := ctx.ClusterAPI.Client
 
 	syncer := Syncer{client: cl, scheme: scheme}
 
@@ -106,7 +103,9 @@ func TestSyncUpdates(t *testing.T) {
 		},
 	}
 
-	cl := fake.NewFakeClientWithScheme(scheme, preexisting)
+	ctx := test.NewCtxBuilder().WithObjects(preexisting).Build()
+	scheme := ctx.ClusterAPI.Scheme
+	cl := ctx.ClusterAPI.Client
 
 	syncer := Syncer{client: cl, scheme: scheme}
 
@@ -176,7 +175,9 @@ func TestSyncKeepsAdditionalAnnosAndLabels(t *testing.T) {
 		},
 	}
 
-	cl := fake.NewFakeClientWithScheme(scheme, preexisting)
+	ctx := test.NewCtxBuilder().WithObjects(preexisting).Build()
+	scheme := ctx.ClusterAPI.Scheme
+	cl := ctx.ClusterAPI.Client
 
 	syncer := Syncer{client: cl, scheme: scheme}
 

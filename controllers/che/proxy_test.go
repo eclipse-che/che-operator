@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -13,23 +13,17 @@
 package che
 
 import (
-	"os"
 	"reflect"
 	"testing"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/google/go-cmp/cmp"
 	configv1 "github.com/openshift/api/config/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	fakeDiscovery "k8s.io/client-go/discovery/fake"
-	fakeclientset "k8s.io/client-go/kubernetes/fake"
-	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 func TestReadProxyConfiguration(t *testing.T) {
@@ -38,7 +32,7 @@ func TestReadProxyConfiguration(t *testing.T) {
 		isOpenShift       bool
 		cheCluster        *chev2.CheCluster
 		clusterProxy      *configv1.Proxy
-		initObjects       []runtime.Object
+		initObjects       []client.Object
 		expectedProxyConf *chetypes.Proxy
 	}
 
@@ -56,7 +50,7 @@ func TestReadProxyConfiguration(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 			},
-			initObjects:       []runtime.Object{},
+			initObjects:       []client.Object{},
 			expectedProxyConf: &chetypes.Proxy{},
 		},
 		{
@@ -83,7 +77,7 @@ func TestReadProxyConfiguration(t *testing.T) {
 					},
 				},
 			},
-			initObjects: []runtime.Object{},
+			initObjects: []client.Object{},
 			expectedProxyConf: &chetypes.Proxy{
 				HttpProxy:        "http://proxy:3128",
 				HttpUser:         "",
@@ -128,7 +122,7 @@ func TestReadProxyConfiguration(t *testing.T) {
 					},
 				},
 			},
-			initObjects: []runtime.Object{},
+			initObjects: []client.Object{},
 			expectedProxyConf: &chetypes.Proxy{
 				HttpProxy:        "http://proxy:3128",
 				HttpUser:         "",
@@ -167,7 +161,7 @@ func TestReadProxyConfiguration(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 			},
-			initObjects: []runtime.Object{},
+			initObjects: []client.Object{},
 			expectedProxyConf: &chetypes.Proxy{
 				HttpProxy:        "http://proxy:3128",
 				HttpUser:         "",
@@ -201,7 +195,7 @@ func TestReadProxyConfiguration(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 			},
-			initObjects: []runtime.Object{},
+			initObjects: []client.Object{},
 			expectedProxyConf: &chetypes.Proxy{
 				TrustedCAMapName: "additional-cluster-ca-bundle",
 			},
@@ -233,7 +227,7 @@ func TestReadProxyConfiguration(t *testing.T) {
 					},
 				},
 			},
-			initObjects: []runtime.Object{},
+			initObjects: []client.Object{},
 			expectedProxyConf: &chetypes.Proxy{
 				HttpProxy:        "http://proxy:3128",
 				HttpUser:         "",
@@ -269,7 +263,7 @@ func TestReadProxyConfiguration(t *testing.T) {
 					},
 				},
 			},
-			initObjects: []runtime.Object{},
+			initObjects: []client.Object{},
 			expectedProxyConf: &chetypes.Proxy{
 				HttpProxy:        "http://proxy:3128",
 				HttpUser:         "",
@@ -305,7 +299,7 @@ func TestReadProxyConfiguration(t *testing.T) {
 					},
 				},
 			},
-			initObjects: []runtime.Object{},
+			initObjects: []client.Object{},
 			expectedProxyConf: &chetypes.Proxy{
 				HttpProxy:        "http://proxy:3128",
 				HttpUser:         "",
@@ -325,31 +319,9 @@ func TestReadProxyConfiguration(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
-			testCase.initObjects = append(testCase.initObjects, testCase.clusterProxy, testCase.cheCluster)
+			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.clusterProxy).WithObjects(testCase.initObjects...).Build()
 
-			scheme := scheme.Scheme
-			chev2.SchemeBuilder.AddToScheme(scheme)
-			scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.Proxy{})
-
-			cli := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
-			clientSet := fakeclientset.NewSimpleClientset()
-			fakeDiscovery, _ := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
-			fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{}
-
-			infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-
-			deployContext := &chetypes.DeployContext{
-				CheCluster: testCase.cheCluster,
-				ClusterAPI: chetypes.ClusterAPI{
-					Client:           cli,
-					NonCachingClient: cli,
-					Scheme:           scheme,
-				},
-			}
-
-			actualProxyConf, err := GetProxyConfiguration(deployContext)
+			actualProxyConf, err := GetProxyConfiguration(ctx)
 			if err != nil {
 				t.Fatalf("Error reading proxy configuration: %v", err)
 			}
