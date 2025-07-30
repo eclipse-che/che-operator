@@ -17,6 +17,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 
@@ -26,6 +28,7 @@ import (
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/sync"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -337,54 +340,28 @@ func TestCustomResourceFinalization(t *testing.T) {
 	reconciler := CheClusterReconciler{client: cl, scheme: scheme, syncer: sync.New(cl, scheme)}
 
 	_, err := reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
-	if err != nil {
-		t.Fatalf("Failed to reconcile che manager with error: %s", err)
-	}
+	assert.NoError(t, err)
 
 	// check that the reconcile loop added the finalizer
 	manager := chev2.CheCluster{}
 	err = cl.Get(context.TODO(), client.ObjectKey{Name: managerName, Namespace: ns}, &manager)
-	if err != nil {
-		t.Fatalf("Failed to obtain the manager from the fake client: %s", err)
-	}
-
-	if len(manager.Finalizers) != 1 {
-		t.Fatalf("Expected a single finalizer on the manager but found: %d", len(manager.Finalizers))
-	}
-
-	if manager.Finalizers[0] != FinalizerName {
-		t.Fatalf("Expected a finalizer called %s but got %s", FinalizerName, manager.Finalizers[0])
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(manager.Finalizers))
+	assert.Equal(t, FinalizerName, manager.Finalizers[0])
 
 	// try to delete the manager and check that the configmap disallows that and that the status of the manager is updated
-	// It is not possible to update readonly field
-	//manager.DeletionTimestamp = &metav1.Time{Time: time.Now()}
-	//err = cl.Update(context.TODO(), &manager)
-	//if err != nil {
-	//	t.Fatalf("Failed to update the manager in the fake client: %s", err)
-	//}
+	err = cl.Delete(context.TODO(), &manager)
+	assert.NoError(t, err)
 
 	_, err = reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
-	if err != nil {
-		t.Fatalf("Failed to reconcile che manager with error: %s", err)
-	}
+	assert.NoError(t, err)
 
 	manager = chev2.CheCluster{}
 	err = cl.Get(context.TODO(), client.ObjectKey{Name: managerName, Namespace: ns}, &manager)
-	if err != nil {
-		t.Fatalf("Failed to obtain the manager from the fake client: %s", err)
-	}
-
-	if len(manager.Finalizers) != 1 {
-		t.Fatalf("There should have been a finalizer on the manager after a failed finalization attempt")
-	}
-
-	//if manager.Status.ChePhase != chev2.ClusterPhasePendingDeletion {
-	//	t.Fatalf("Expected the manager to be in the pending deletion phase but it is: %s", manager.Status.ChePhase)
-	//}
-	//if len(manager.Status.Message) == 0 {
-	//	t.Fatalf("Expected an non-empty message about the failed finalization in the manager status")
-	//}
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(manager.Finalizers))
+	assert.Equal(t, chev2.ClusterPhasePendingDeletion, string(manager.Status.ChePhase))
+	assert.NotEqual(t, 0, len(manager.Status.Message))
 
 	// now remove the config map and check that the finalization proceeds
 	err = cl.Delete(context.TODO(), &corev1.ConfigMap{
@@ -393,20 +370,15 @@ func TestCustomResourceFinalization(t *testing.T) {
 			Namespace: ns,
 		},
 	})
-	if err != nil {
-		t.Fatalf("Failed to delete the test configmap: %s", err)
-	}
+	assert.NoError(t, err)
 
 	_, err = reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
-	if err != nil {
-		t.Fatalf("Failed to reconcile che manager with error: %s", err)
-	}
+	assert.NoError(t, err)
 
-	//manager = chev2.CheCluster{}
-	//err = cl.Get(context.TODO(), client.ObjectKey{Name: managerName, Namespace: ns}, &manager)
-	//if err == nil || !k8sErrors.IsNotFound(err) {
-	//	t.Fatalf("Failed to obtain the manager from the fake client: %s", err)
-	//}
+	manager = chev2.CheCluster{}
+	err = cl.Get(context.TODO(), client.ObjectKey{Name: managerName, Namespace: ns}, &manager)
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
 }
 
 // This test should be removed if we are again in charge of gateway creation.
