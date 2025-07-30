@@ -59,12 +59,6 @@ VSCODE_ENV_FILE=$(INTERNAL_TMP_DIR)/vscode.env
 
 DEPLOYMENT_DIR=$(PROJECT_DIR)/deploy/deployment
 
-ifneq (,$(shell $(K8S_CLI) get checluster -A 2>/dev/null))
-  ECLIPSE_CHE_NAMESPACE := $(shell $(K8S_CLI) get checluster -A -o "jsonpath={.items[0].metadata.namespace}")
-else
-  ECLIPSE_CHE_NAMESPACE ?= "eclipse-che"
-endif
-
 ECLIPSE_CHE_PACKAGE_NAME=eclipse-che
 
 CHECLUSTER_CR_PATH="$(PROJECT_DIR)/config/samples/org_v2_checluster.yaml"
@@ -199,7 +193,7 @@ update-helmcharts: ## Update Helm Charts based on deployment resources
 
 		CRDS_SAMPLES=""
 		for CRD_SAMPLE in "$${CRDS_SAMPLES_FILES[@]}"; do
-			CRD_SAMPLE=$$(cat $${CRD_SAMPLE} | yq -rY ". | (.metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\") | [.]")
+			CRD_SAMPLE=$$(cat $${CRD_SAMPLE} | yq -rY ". | (.metadata.namespace = \"eclipse-che\") | [.]")
 		 	CRDS_SAMPLES=$${CRDS_SAMPLES}$${CRD_SAMPLE}$$'\n'
 		done
 
@@ -312,6 +306,8 @@ license: download-addlicense ## Add license to the files
 
 # Generates environment files used by bash and vscode
 genenerate-env:
+	OPERATOR_NAMESPACE=$$($(MAKE) get_operator_namespace)
+
 	mkdir -p $(INTERNAL_TMP_DIR)
 	cat $(CONFIG_MANAGER) \
 	  | yq -r \
@@ -323,7 +319,7 @@ genenerate-env:
 	      | sed 's|"|\\"|g' \
 	      | sed -E 's|(.*)=(.*)|\1="\2"|g' \
 	  > $(BASH_ENV_FILE)
-	echo "export WATCH_NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)" >> $(BASH_ENV_FILE)
+	echo "export WATCH_NAMESPACE=$${OPERATOR_NAMESPACE}" >> $(BASH_ENV_FILE)
 	echo "[INFO] Created $(BASH_ENV_FILE)"
 
 	cat $(CONFIG_MANAGER) \
@@ -336,7 +332,7 @@ genenerate-env:
 	      | sed 's|"|\\"|g' \
 	      | sed -E 's|(.*)=(.*)|\1="\2"|g' \
 	  > $(VSCODE_ENV_FILE)
-	echo "WATCH_NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)" >> $(VSCODE_ENV_FILE)
+	echo "WATCH_NAMESPACE=$${OPERATOR_NAMESPACE}" >> $(VSCODE_ENV_FILE)
 	echo "[INFO] Created $(VSCODE_ENV_FILE)"
 
 	cat $(BASH_ENV_FILE)
@@ -416,6 +412,14 @@ get_operator_namespace:
 		echo $$($(K8S_CLI) get deployments.apps -l app.kubernetes.io/component=che-operator -A -o "jsonpath={.items[0].metadata.namespace}")
 	fi
 
+get_che_namespace: SHELL := /bin/bash
+get_che_namespace:
+	if [[ $$($(K8S_CLI) get checluster -A -o go-template='{{len .items}}') == 0 ]]; then
+	  echo "eclipse-che"
+	else
+	  echo $$($(K8S_CLI) get checluster -A -o "jsonpath={.items[0].metadata.namespace}")
+	fi
+
 get_platform: SHELL := /bin/bash
 get_platform:
 	if [[ "$$($(K8S_CLI) api-resources --api-group='route.openshift.io' --no-headers | wc -l)" == "0" ]]; then
@@ -423,6 +427,8 @@ get_platform:
 	else
 		echo "openshift"
 	fi
+
+
 
 ##@ OLM catalog
 
@@ -774,7 +780,7 @@ approve-installplan: ## Approves install plan
 
 create-namespace: SHELL := /bin/bash
 create-namespace: ## Creates namespace
-	[[ -z "$(NAMESPACE)" ]] && DEFINED_NAMESPACE=$(ECLIPSE_CHE_NAMESPACE) || DEFINED_NAMESPACE=$(NAMESPACE)
+	[[ -z "$(NAMESPACE)" ]] && DEFINED_NAMESPACE="eclipse-che" || DEFINED_NAMESPACE=$(NAMESPACE)
 	$(K8S_CLI) create namespace $${DEFINED_NAMESPACE} || true
 
 wait-pod-running: SHELL := /bin/bash
@@ -847,7 +853,9 @@ create-checluster-crd: ## Creates CheCluster Custom Resource Definition
 create-checluster-cr: SHELL := /bin/bash
 create-checluster-cr: ## Creates CheCluster Custom Resource V2
 	PLATFORM=$$($(MAKE) get_platform)
-	if [[ "$$($(K8S_CLI) get checluster eclipse-che -n $(ECLIPSE_CHE_NAMESPACE) || false )" ]]; then
+	ECLIPSE_CHE_NAMESPACE=$$($(MAKE) get_che_namespace)
+
+	if [[ "$$($(K8S_CLI) get checluster eclipse-che -n $${ECLIPSE_CHE_NAMESPACE} || false )" ]]; then
 		echo "[INFO] CheCluster already exists."
 	else
 		CHECLUSTER_CR_2_APPLY=/tmp/checluster_cr.yaml
@@ -860,7 +868,7 @@ create-checluster-cr: ## Creates CheCluster Custom Resource V2
 			CLUSTER_DOMAIN=$$(echo $${CLUSTER_API_URL} | sed -E 's/https:\/\/(.*):.*/\1/g')
 			yq -riY  '.spec.networking.domain = "'$${CLUSTER_DOMAIN}'.nip.io"' $${CHECLUSTER_CR_2_APPLY}
 		fi
-		$(K8S_CLI) apply -f $${CHECLUSTER_CR_2_APPLY} -n $(ECLIPSE_CHE_NAMESPACE)
+		$(K8S_CLI) apply -f $${CHECLUSTER_CR_2_APPLY} -n $${ECLIPSE_CHE_NAMESPACE}
 	fi
 
 wait-eclipseche-version: SHELL := /bin/bash
