@@ -27,7 +27,6 @@ import (
 
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
-	devworkspaceinfra "github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -153,8 +152,7 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 	}
 }
 
-func setup(infraType devworkspaceinfra.Type, objs ...client.Object) (*runtime.Scheme, client.Client, *CheUserNamespaceReconciler) {
-	devworkspaceinfra.InitializeForTesting(infraType)
+func setup(infraType infrastructure.Type, objs ...client.Object) (*runtime.Scheme, client.Client, *CheUserNamespaceReconciler) {
 	devworkspace.CleanCheClusterInstancesForTest()
 	infrastructure.InitializeForTesting(infraType)
 
@@ -177,7 +175,7 @@ func setup(infraType devworkspaceinfra.Type, objs ...client.Object) (*runtime.Sc
 }
 
 func TestSkipsUnlabeledNamespaces(t *testing.T) {
-	test := func(t *testing.T, infraType devworkspaceinfra.Type, namespace metav1.Object) {
+	test := func(t *testing.T, infraType infrastructure.Type, namespace metav1.Object) {
 		ctx := context.TODO()
 		scheme, cl, r := setup(infraType, namespace.(client.Object))
 		setupCheCluster(t, ctx, cl, scheme, "che", "che")
@@ -202,7 +200,7 @@ func TestSkipsUnlabeledNamespaces(t *testing.T) {
 	}
 
 	t.Run("k8s", func(t *testing.T) {
-		test(t, devworkspaceinfra.Kubernetes, &corev1.Namespace{
+		test(t, infrastructure.Kubernetes, &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "ns",
 			},
@@ -210,7 +208,7 @@ func TestSkipsUnlabeledNamespaces(t *testing.T) {
 	})
 
 	t.Run("openshift", func(t *testing.T) {
-		test(t, devworkspaceinfra.OpenShiftv4, &projectv1.Project{
+		test(t, infrastructure.OpenShiftv4, &projectv1.Project{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "prj",
 			},
@@ -235,7 +233,7 @@ func TestCreatesDataInNamespace(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	test := func(t *testing.T, infraType devworkspaceinfra.Type, namespace client.Object, objs ...client.Object) {
+	test := func(t *testing.T, infraType infrastructure.Type, namespace client.Object, objs ...client.Object) {
 		ctx := context.TODO()
 		allObjs := append(objs, namespace.(client.Object))
 		scheme, cl, r := setup(infraType, allObjs...)
@@ -286,7 +284,7 @@ func TestCreatesDataInNamespace(t *testing.T) {
 	}
 
 	t.Run("k8s", func(t *testing.T) {
-		test(t, devworkspaceinfra.Kubernetes, &corev1.Namespace{
+		test(t, infrastructure.Kubernetes, &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "ns",
 				Labels: map[string]string{
@@ -297,7 +295,7 @@ func TestCreatesDataInNamespace(t *testing.T) {
 	})
 
 	t.Run("openshift", func(t *testing.T) {
-		test(t, devworkspaceinfra.OpenShiftv4,
+		test(t, infrastructure.OpenShiftv4,
 			&corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "prj",
@@ -405,7 +403,7 @@ func TestWatchRulesForSecretsInSameNamespace(t *testing.T) {
 		},
 	}
 
-	_, _, r := setup(devworkspaceinfra.Kubernetes, &corev1.Namespace{
+	_, _, r := setup(infrastructure.Kubernetes, &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "ns",
 			Labels: map[string]string{
@@ -437,7 +435,7 @@ func TestWatchRulesForConfigMapsInSameNamespace(t *testing.T) {
 		},
 	}
 
-	_, _, r := setup(devworkspaceinfra.Kubernetes, &corev1.Namespace{
+	_, _, r := setup(infrastructure.Kubernetes, &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "ns",
 			Labels: map[string]string{
@@ -472,7 +470,7 @@ func TestWatchRulesForSecretsInOtherNamespaces(t *testing.T) {
 		},
 	}
 
-	_, _, r := setup(devworkspaceinfra.Kubernetes,
+	_, _, r := setup(infrastructure.Kubernetes,
 		&corev1.Namespace{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Namespace",
@@ -549,7 +547,7 @@ func TestWatchRulesForConfigMapsInOtherNamespaces(t *testing.T) {
 		},
 	}
 
-	_, _, r := setup(devworkspaceinfra.Kubernetes,
+	_, _, r := setup(infrastructure.Kubernetes,
 		&corev1.Namespace{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Namespace",

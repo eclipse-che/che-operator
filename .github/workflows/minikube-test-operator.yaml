@@ -17,14 +17,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runners: ['ubuntu-22.04', 'ubuntu-22.04-arm']
+        runners: ['ubuntu-24.04', 'ubuntu-24.04-arm']
     runs-on: ${{ matrix.runners }}
     steps:
     - name: Checkout source code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Set arch environment variable
       run: |
-        if [[ ${{matrix.runners}} == 'ubuntu-22.04' ]]; then
+        if [[ ${{matrix.runners}} == 'ubuntu-24.04' ]]; then
           echo arch="amd64" >> $GITHUB_ENV
         else
           echo arch="arm64" >> $GITHUB_ENV

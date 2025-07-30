@@ -17,10 +17,10 @@ on:
       - main
 jobs:
   resources-validation:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout source code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Install yq
       run: sudo pip install yq
     - name: Set up Go 1.23.8
@@ -32,10 +32,10 @@ jobs:
         go install golang.org/x/tools/cmd/goimports@latest
         ${GITHUB_WORKSPACE}/build/scripts/check-resources.sh
   bundle-version-validation:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout source code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Install yq
       run: sudo pip install yq
     - name: Set up Go 1.23.8

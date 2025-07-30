@@ -26,14 +26,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runners: ['ubuntu-22.04', 'ubuntu-22.04-arm']
+        runners: ['ubuntu-24.04', 'ubuntu-24.04-arm']
     runs-on: ${{matrix.runners}}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set arch environment variable
         run: |
-          if [[ ${{matrix.runners}} == 'ubuntu-22.04' ]]; then
+          if [[ ${{matrix.runners}} == 'ubuntu-24.04' ]]; then
             echo arch="amd64" >> $GITHUB_ENV
           else
             echo arch="arm64" >> $GITHUB_ENV
@@ -56,11 +56,11 @@ jobs:
 
   publish-operator-manifest:
     name: publish operator image
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: build-operator-image-multiarch
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Login to Quay.io
         uses: docker/login-action@v2
         with:
@@ -83,11 +83,11 @@ jobs:
           docker manifest push quay.io/eclipse/che-operator:next
 
   build-catalog:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: publish-operator-manifest
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
@@ -109,11 +109,11 @@ jobs:
             --catalog-image quay.io/eclipse/eclipse-che-olm-catalog:next
 
   build-catalog-with-digest:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: build-catalog
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx

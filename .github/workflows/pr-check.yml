@@ -14,10 +14,10 @@ name: PR check
 on: pull_request
 jobs:
   unit-tests:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout source code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Set up Go 1.23.8
       uses: actions/setup-go@v3
       with:
@@ -28,14 +28,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runners: ['ubuntu-22.04', 'ubuntu-22.04-arm']
+        runners: ['ubuntu-24.04', 'ubuntu-24.04-arm']
     runs-on: ${{matrix.runners}}
     steps:
     - name: Checkout source code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Set arch environment variable
       run: |
-        if [[ ${{matrix.runners}} == 'ubuntu-22.04' ]]; then
+        if [[ ${{matrix.runners}} == 'ubuntu-24.04' ]]; then
           echo arch="amd64" >> $GITHUB_ENV
         else
           echo arch="arm64" >> $GITHUB_ENV
@@ -43,10 +43,10 @@ jobs:
     - name: Build image
       run: docker buildx build --platform linux/${{env.arch}} .
   source-code-validation:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout source code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Set up Go 1.23.8
       uses: actions/setup-go@v3
       with:
@@ -97,9 +97,9 @@ jobs:
         LICENSE_TEMPLATE="${GITHUB_WORKSPACE}/hack/license-header.txt"
         check-license-header -f "${LICENSE_TEMPLATE}" ${FILES_TO_CHECK_LICENSE}
   dependencies-validation:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Check dependencies
         run: build/scripts/clear-defined-test.sh

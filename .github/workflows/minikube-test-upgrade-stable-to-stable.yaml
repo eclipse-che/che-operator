@@ -17,10 +17,10 @@ on:
      - 7.*
 jobs:
   upgrade-stable-to-stable-on-minikube:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout source code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Start minikube cluster
       id: run-minikube
       uses: che-incubator/setup-minikube-action@next
