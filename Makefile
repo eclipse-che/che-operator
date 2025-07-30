@@ -368,7 +368,7 @@ install-che-operands: generate manifests download-kustomize download-gateway-res
 
 	# Delete Webhooks since che operator pod is scaled down
 	# It allows creating/updating CheCluster custom resource
-	if [[ ! "$$($(K8S_CLI) get checluster eclipse-che -n $(ECLIPSE_CHE_NAMESPACE) || false )" ]] || [[ ! "$(DELETE_WEBHOOKS)" == "true" ]]; then
+	if [[ ! "$(DELETE_WEBHOOKS)" == "false" ]]; then
 		$(K8S_CLI) delete validatingwebhookconfiguration org.eclipse.che
 		$(K8S_CLI) delete mutatingwebhookconfiguration org.eclipse.che
 		$(K8S_CLI) patch crd checlusters.org.eclipse.che --patch '{"spec": {"conversion": null}}' --type=merge
