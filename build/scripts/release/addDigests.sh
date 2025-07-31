@@ -103,7 +103,7 @@ do
   sed -i -e "s;${source};${dest};" "${CSV_FILE}"
 done
 
-yq -riY "( .spec.relatedImages ) += [${RELATED_IMAGES}]" ${CSV_FILE}
+yq -riY "( .spec.relatedImages ) = [${RELATED_IMAGES}]" ${CSV_FILE}
 yq -riY "( .spec.install.spec.deployments[0].spec.template.spec.containers[0].env ) += [${RELATED_IMAGES_ENV}]" ${CSV_FILE}
 sed -i "${CSV_FILE}" -r -e "s|tag: |# tag: |"
 echo -e "$(cat ${CSV_FILE})" > ${CSV_FILE}
