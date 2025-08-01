@@ -212,7 +212,7 @@ pushOlmBundlesToQuayIo() {
   docker login quay.io -u "${QUAY_ECLIPSE_CHE_USERNAME}" -p "${QUAY_ECLIPSE_CHE_PASSWORD}"
 
   echo "[INFO] Push OLM bundles to quay.io"
-  . "${OPERATOR_REPO}/build/scripts/olm/release-catalog.sh" -c stable -i quay.io/eclipse/eclipse-che-olm-catalog:stable
+  . "${OPERATOR_REPO}/build/scripts/olm/release-catalog.sh" --force -c stable -i quay.io/eclipse/eclipse-che-olm-catalog:stable
 
   if git status --porcelain; then
     git add -A || true
