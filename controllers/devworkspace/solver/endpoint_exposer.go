@@ -17,6 +17,7 @@ import (
 	"fmt"
 
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
@@ -28,22 +29,19 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type IngressExposer struct {
-	devWorkspaceID     string
-	baseDomain         string
-	ingressAnnotations map[string]string
-	tlsSecretName      string
+	devWorkspaceID string
+	baseDomain     string
+	tlsSecretName  string
 }
 
 type RouteExposer struct {
 	devWorkspaceID       string
 	baseDomain           string
-	labels               map[string]string
 	tlsSecretKey         string
 	tlsSecretCertificate string
 }
@@ -70,13 +68,6 @@ func getEndpointExposingObjectName(componentName string, workspaceID string, por
 func (e *RouteExposer) initFrom(ctx context.Context, cl client.Client, cluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting) error {
 	e.baseDomain = cluster.Status.WorkspaceBaseDomain
 	e.devWorkspaceID = routing.Spec.DevWorkspaceId
-	e.labels = cluster.Spec.Networking.Labels
-
-	// to be compatible from CheCluster API v1 configuration
-	routeLabels := cluster.Spec.Components.CheServer.ExtraProperties["CHE_INFRA_OPENSHIFT_ROUTE_LABELS"]
-	if routeLabels != "" {
-		e.labels = utils.ParseMap(routeLabels)
-	}
 
 	if cluster.Spec.Networking.TlsSecretName != "" {
 		secret := &corev1.Secret{}
@@ -92,10 +83,9 @@ func (e *RouteExposer) initFrom(ctx context.Context, cl client.Client, cluster *
 	return nil
 }
 
-func (e *IngressExposer) initFrom(ctx context.Context, cl client.Client, cluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, ingressAnnotations map[string]string) error {
+func (e *IngressExposer) initFrom(ctx context.Context, cl client.Client, cluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting) error {
 	e.baseDomain = cluster.Status.WorkspaceBaseDomain
 	e.devWorkspaceID = routing.Spec.DevWorkspaceId
-	e.ingressAnnotations = ingressAnnotations
 
 	if cluster.Spec.Networking.TlsSecretName != "" {
 		tlsSecretName := routing.Spec.DevWorkspaceId + "-endpoints"
@@ -143,20 +133,50 @@ func (e *IngressExposer) initFrom(ctx context.Context, cl client.Client, cluster
 	return nil
 }
 
-func (e *RouteExposer) getRouteForService(endpoint *EndpointInfo, endpointStrategy EndpointStrategy) routev1.Route {
-	targetEndpoint := intstr.FromInt(int(endpoint.port))
-	labels := labels.Merge(
-		e.labels,
-		map[string]string{
-			dwconstants.DevWorkspaceIDLabel:    e.devWorkspaceID,
-			constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
-		})
+func (e *RouteExposer) getRouteForService(
+	ctx context.Context,
+	endpoint *EndpointInfo,
+	endpointStrategy EndpointStrategy,
+	cl client.Client,
+	cheCluster *chev2.CheCluster,
+) routev1.Route {
+	targetEndpoint := intstr.FromInt32(endpoint.port)
+
+	annotations := map[string]string{}
+	utils.AddMap(annotations, endpoint.annotations)
+	// default annotations
+	utils.AddMap(annotations, map[string]string{
+		defaults.ConfigAnnotationEndpointName:  endpoint.endpointName,
+		defaults.ConfigAnnotationComponentName: endpoint.componentName,
+	})
+
+	labels := map[string]string{}
+	// default labels
+	utils.AddMap(labels, map[string]string{
+		dwconstants.DevWorkspaceIDLabel:    e.devWorkspaceID,
+		constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
+	})
+	// to be compatible from CheCluster API v1 configuration
+	routeLabels := cheCluster.Spec.Components.CheServer.ExtraProperties["CHE_INFRA_OPENSHIFT_ROUTE_LABELS"]
+	if routeLabels != "" {
+		utils.AddMap(labels, utils.ParseMap(routeLabels))
+	}
+
+	if cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Enabled {
+		utils.AddMap(labels, cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Labels)
+		utils.AddMap(annotations, cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Annotations)
+	} else {
+		if len(cheCluster.Spec.Networking.Labels) > 0 {
+			utils.AddMap(labels, cheCluster.Spec.Networking.Labels)
+		}
+	}
+
 	route := routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            getEndpointExposingObjectName(endpoint.componentName, e.devWorkspaceID, endpoint.port, endpoint.endpointName),
 			Namespace:       endpoint.service.Namespace,
 			Labels:          labels,
-			Annotations:     routeAnnotations(endpoint.annotations, endpoint.componentName, endpoint.endpointName),
+			Annotations:     annotations,
 			OwnerReferences: endpoint.service.OwnerReferences,
 		},
 		Spec: routev1.RouteSpec{
@@ -172,33 +192,68 @@ func (e *RouteExposer) getRouteForService(endpoint *EndpointInfo, endpointStrate
 	}
 
 	if isSecureScheme(endpoint.scheme) {
-		route.Spec.TLS = &routev1.TLSConfig{
-			InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
-			Termination:                   routev1.TLSTerminationEdge,
-		}
+		if cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Enabled {
+			clusterRoute := &routev1.Route{}
+			if err := cl.Get(ctx, client.ObjectKey{Name: route.Name, Namespace: route.Namespace}, clusterRoute); err == nil {
+				// copy TLS config already injected by another controller
+				route.Spec.TLS = clusterRoute.Spec.TLS
+			}
+		} else {
+			route.Spec.TLS = &routev1.TLSConfig{
+				InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+				Termination:                   routev1.TLSTerminationEdge,
+			}
 
-		if e.tlsSecretKey != "" {
-			route.Spec.TLS.Key = e.tlsSecretKey
-			route.Spec.TLS.Certificate = e.tlsSecretCertificate
+			if e.tlsSecretKey != "" {
+				route.Spec.TLS.Key = e.tlsSecretKey
+				route.Spec.TLS.Certificate = e.tlsSecretCertificate
+			}
 		}
 	}
 
 	return route
 }
 
-func (e *IngressExposer) getIngressForService(endpoint *EndpointInfo, endpointStrategy EndpointStrategy) networkingv1.Ingress {
+func (e *IngressExposer) getIngressForService(
+	ctx context.Context,
+	endpoint *EndpointInfo,
+	endpointStrategy EndpointStrategy,
+	cl client.Client,
+	cheCluster *chev2.CheCluster,
+) networkingv1.Ingress {
 	hostname := endpointStrategy.getHostname(endpoint, e.baseDomain)
 	ingressPathType := networkingv1.PathTypeImplementationSpecific
 
+	annotations := map[string]string{}
+	utils.AddMap(annotations, endpoint.annotations)
+	utils.AddMap(annotations, map[string]string{
+		defaults.ConfigAnnotationEndpointName:  endpoint.endpointName,
+		defaults.ConfigAnnotationComponentName: endpoint.componentName,
+	})
+
+	labels := map[string]string{}
+	utils.AddMap(labels, map[string]string{
+		dwconstants.DevWorkspaceIDLabel:    e.devWorkspaceID,
+		constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
+	})
+
+	if cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Enabled {
+		utils.AddMap(labels, cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Labels)
+		utils.AddMap(annotations, cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Annotations)
+	} else {
+		if len(cheCluster.Spec.Networking.Annotations) > 0 {
+			utils.AddMap(annotations, cheCluster.Spec.Networking.Annotations)
+		} else {
+			utils.AddMap(annotations, deploy.DefaultIngressAnnotations)
+		}
+	}
+
 	ingress := networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      getEndpointExposingObjectName(endpoint.componentName, e.devWorkspaceID, endpoint.port, endpoint.endpointName),
-			Namespace: endpoint.service.Namespace,
-			Labels: map[string]string{
-				dwconstants.DevWorkspaceIDLabel:    e.devWorkspaceID,
-				constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
-			},
-			Annotations:     finalizeIngressAnnotations(e.ingressAnnotations, endpoint.annotations, endpoint.componentName, endpoint.endpointName),
+			Name:            getEndpointExposingObjectName(endpoint.componentName, e.devWorkspaceID, endpoint.port, endpoint.endpointName),
+			Namespace:       endpoint.service.Namespace,
+			Labels:          labels,
+			Annotations:     annotations,
 			OwnerReferences: endpoint.service.OwnerReferences,
 		},
 		Spec: networkingv1.IngressSpec{
@@ -228,38 +283,22 @@ func (e *IngressExposer) getIngressForService(endpoint *EndpointInfo, endpointSt
 		},
 	}
 
-	if isSecureScheme(endpoint.scheme) && e.tlsSecretName != "" {
-		ingress.Spec.TLS = []networkingv1.IngressTLS{
-			{
-				Hosts:      []string{hostname},
-				SecretName: e.tlsSecretName,
-			},
+	if isSecureScheme(endpoint.scheme) {
+		if cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Enabled {
+			clusterIngress := &networkingv1.Ingress{}
+			if err := cl.Get(ctx, client.ObjectKey{Name: ingress.Name, Namespace: ingress.Namespace}, clusterIngress); err == nil {
+				// copy TLS config already injected by another controller
+				ingress.Spec.TLS = clusterIngress.Spec.TLS
+			}
+		} else if e.tlsSecretName != "" {
+			ingress.Spec.TLS = []networkingv1.IngressTLS{
+				{
+					Hosts:      []string{hostname},
+					SecretName: e.tlsSecretName,
+				},
+			}
 		}
 	}
 
 	return ingress
-}
-
-func routeAnnotations(endpointAnnotations map[string]string, machineName string, endpointName string) map[string]string {
-	annos := map[string]string{}
-	for k, v := range endpointAnnotations {
-		annos[k] = v
-	}
-	annos[defaults.ConfigAnnotationEndpointName] = endpointName
-	annos[defaults.ConfigAnnotationComponentName] = machineName
-	return annos
-}
-
-func finalizeIngressAnnotations(ingressAnnotations, endpointAnnotations map[string]string, machineName string, endpointName string) map[string]string {
-	annos := map[string]string{}
-	for k, v := range ingressAnnotations {
-		annos[k] = v
-	}
-	for k, v := range endpointAnnotations {
-		annos[k] = v
-	}
-	annos[defaults.ConfigAnnotationEndpointName] = endpointName
-	annos[defaults.ConfigAnnotationComponentName] = machineName
-
-	return annos
 }

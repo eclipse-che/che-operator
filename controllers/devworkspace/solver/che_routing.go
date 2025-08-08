@@ -451,16 +451,16 @@ func (c *CheRoutingSolver) getInfraSpecificExposer(cheCluster *chev2.CheCluster,
 			return nil, err
 		}
 		return func(info *EndpointInfo) {
-			route := exposer.getRouteForService(info, endpointStrategy)
+			route := exposer.getRouteForService(context.TODO(), info, endpointStrategy, c.client, cheCluster)
 			objs.Routes = append(objs.Routes, route)
 		}, nil
 	} else {
 		exposer := &IngressExposer{}
-		if err := exposer.initFrom(context.TODO(), c.client, cheCluster, routing, dwdefaults.GetIngressAnnotations(cheCluster)); err != nil {
+		if err := exposer.initFrom(context.TODO(), c.client, cheCluster, routing); err != nil {
 			return nil, err
 		}
 		return func(info *EndpointInfo) {
-			ingress := exposer.getIngressForService(info, endpointStrategy)
+			ingress := exposer.getIngressForService(context.TODO(), info, endpointStrategy, c.client, cheCluster)
 			objs.Ingresses = append(objs.Ingresses, ingress)
 		}, nil
 	}
