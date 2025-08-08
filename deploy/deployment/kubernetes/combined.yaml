@@ -7109,21 +7109,29 @@ spec:
                     minimum: -1
                     type: integer
                   networking:
+                    description: Configuration settings related to the workspaces
+                      networking.
                     properties:
                       externalTLSConfig:
+                        description: External TLS configuration.
                         properties:
                           annotations:
                             additionalProperties:
                               type: string
+                            description: Annotations to be applied to ingress/route
+                              objects when external TLS is enabled.
                             type: object
                           enabled:
+                            description: |-
+                              Enabled determines whether external TLS configuration is used.
+                              If set to true, the operator will not manage TLS certificates for ingress/route objects.
                             type: boolean
                           labels:
                             additionalProperties:
                               type: string
+                            description: Labels to be applied to ingress/route objects
+                              when external TLS is enabled.
                             type: object
-                        required:
-                        - enabled
                         type: object
                     type: object
                   nodeSelector:
