@@ -220,6 +220,9 @@ type CheClusterDevEnvironments struct {
 	// AllowedSources defines the allowed sources on which workspaces can be started.
 	// +optional
 	AllowedSources *AllowedSources `json:"allowedSources,omitempty"`
+	// TODO
+	// +optional
+	Networking CheClusterDevEnvironmentNetworking `json:"networking,omitempty"`
 }
 
 // Che components configuration.
@@ -286,6 +289,19 @@ type CheClusterSpecNetworking struct {
 	// +optional
 	// +kubebuilder:default:={gateway: {configLabels: {app: che, component: che-gateway-config}}}
 	Auth Auth `json:"auth"`
+}
+
+type ExternalTLSConfig struct {
+	Enabled bool `json:"enabled"`
+	// +optional
+	Labels map[string]string `json:"labels,omitempty"`
+	// +optional
+	Annotations map[string]string `json:"annotations,omitempty"`
+}
+
+type CheClusterDevEnvironmentNetworking struct {
+	// +optional
+	ExternalTLSConfig ExternalTLSConfig `json:"externalTLSConfig,omitempty"`
 }
 
 // Container registry configuration.

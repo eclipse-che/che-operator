@@ -15,8 +15,6 @@ package defaults
 import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const (
@@ -30,8 +28,6 @@ const (
 )
 
 var (
-	log = ctrl.Log.WithName("defaults")
-
 	// If this looks weirdly out of place to you from all other labels, then you're completely right!
 	// These labels are the default ones used by che-operator and Che7. Let's keep the defaults
 	// the same for the ease of translation...
@@ -62,13 +58,6 @@ func AddStandardLabelsFromNames(appName string, component string, labels map[str
 	labels["app.kubernetes.io/part-of"] = constants.CheEclipseOrg
 	labels["app.kubernetes.io/component"] = component
 	return labels
-}
-
-func GetIngressAnnotations(cluster *chev2.CheCluster) map[string]string {
-	if len(cluster.Spec.Networking.Annotations) > 0 {
-		return cluster.Spec.Networking.Annotations
-	}
-	return deploy.DefaultIngressAnnotations
 }
 
 func GetGatewayWorkspaceConfigMapLabels(cluster *chev2.CheCluster) map[string]string {

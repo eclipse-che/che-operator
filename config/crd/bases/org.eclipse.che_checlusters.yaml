@@ -7087,6 +7087,24 @@ spec:
                     format: int64
                     minimum: -1
                     type: integer
+                  networking:
+                    properties:
+                      externalTLSConfig:
+                        properties:
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          enabled:
+                            type: boolean
+                          labels:
+                            additionalProperties:
+                              type: string
+                            type: object
+                        required:
+                        - enabled
+                        type: object
+                    type: object
                   nodeSelector:
                     additionalProperties:
                       type: string
