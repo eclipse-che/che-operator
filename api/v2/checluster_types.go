@@ -74,7 +74,6 @@ type CheClusterSpec struct {
 // Development environment configuration.
 // +k8s:openapi-gen=true
 type CheClusterDevEnvironments struct {
-	//
 	// GatewayContainer configuration.
 	// +optional
 	GatewayContainer *Container `json:"gatewayContainer,omitempty"`
@@ -212,6 +211,9 @@ type CheClusterDevEnvironments struct {
 	// AllowedSources defines the allowed sources on which workspaces can be started.
 	// +optional
 	AllowedSources *AllowedSources `json:"allowedSources,omitempty"`
+	// Configuration settings related to the workspaces networking.
+	// +optional
+	Networking *DevEnvironmentNetworking `json:"networking,omitempty"`
 }
 
 // Che components configuration.
@@ -278,6 +280,25 @@ type CheClusterSpecNetworking struct {
 	// +optional
 	// +kubebuilder:default:={gateway: {configLabels: {app: che, component: che-gateway-config}}}
 	Auth Auth `json:"auth"`
+}
+
+type DevEnvironmentNetworking struct {
+	// External TLS configuration.
+	// +optional
+	ExternalTLSConfig *ExternalTLSConfig `json:"externalTLSConfig,omitempty"`
+}
+
+type ExternalTLSConfig struct {
+	// Enabled determines whether external TLS configuration is used.
+	// If set to true, the operator will not manage TLS certificates for ingress/route objects.
+	// +optional
+	Enabled *bool `json:"enabled"`
+	// Labels to be applied to ingress/route objects when external TLS is enabled.
+	// +optional
+	Labels map[string]string `json:"labels,omitempty"`
+	// Annotations to be applied to ingress/route objects when external TLS is enabled.
+	// +optional
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // Container registry configuration.
@@ -1072,4 +1093,10 @@ func (c *CheCluster) IsDisableWorkspaceCaBundleMount() bool {
 	return c.Spec.DevEnvironments.TrustedCerts != nil &&
 		c.Spec.DevEnvironments.TrustedCerts.DisableWorkspaceCaBundleMount != nil &&
 		*c.Spec.DevEnvironments.TrustedCerts.DisableWorkspaceCaBundleMount
+}
+
+func (c *CheCluster) IsDevEnvironmentExternalTLSConfigEnabled() bool {
+	return c.Spec.DevEnvironments.Networking != nil &&
+		c.Spec.DevEnvironments.Networking.ExternalTLSConfig != nil &&
+		*c.Spec.DevEnvironments.Networking.ExternalTLSConfig.Enabled
 }
