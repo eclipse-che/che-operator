@@ -140,37 +140,33 @@ func (e *RouteExposer) getRouteForService(
 	cl client.Client,
 	cheCluster *chev2.CheCluster,
 ) routev1.Route {
-	targetEndpoint := intstr.FromInt32(endpoint.port)
-
 	annotations := map[string]string{}
 	utils.AddMap(annotations, endpoint.annotations)
-	// default annotations
 	utils.AddMap(annotations, map[string]string{
 		defaults.ConfigAnnotationEndpointName:  endpoint.endpointName,
 		defaults.ConfigAnnotationComponentName: endpoint.componentName,
 	})
 
 	labels := map[string]string{}
-	// default labels
 	utils.AddMap(labels, map[string]string{
 		dwconstants.DevWorkspaceIDLabel:    e.devWorkspaceID,
 		constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
 	})
+
 	// to be compatible from CheCluster API v1 configuration
 	routeLabels := cheCluster.Spec.Components.CheServer.ExtraProperties["CHE_INFRA_OPENSHIFT_ROUTE_LABELS"]
 	if routeLabels != "" {
 		utils.AddMap(labels, utils.ParseMap(routeLabels))
 	}
 
-	if cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Enabled {
+	if cheCluster.IsDevEnvironmentExternalTLSConfigEnabled() {
 		utils.AddMap(labels, cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Labels)
 		utils.AddMap(annotations, cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Annotations)
 	} else {
-		if len(cheCluster.Spec.Networking.Labels) > 0 {
-			utils.AddMap(labels, cheCluster.Spec.Networking.Labels)
-		}
+		utils.AddMap(labels, cheCluster.Spec.Networking.Labels)
 	}
 
+	targetEndpoint := intstr.FromInt32(endpoint.port)
 	route := routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            getEndpointExposingObjectName(endpoint.componentName, e.devWorkspaceID, endpoint.port, endpoint.endpointName),
@@ -192,10 +188,11 @@ func (e *RouteExposer) getRouteForService(
 	}
 
 	if isSecureScheme(endpoint.scheme) {
-		if cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Enabled {
+		if cheCluster.IsDevEnvironmentExternalTLSConfigEnabled() {
+			// fetch existed route from the cluster and copy TLS config
+			// in order avoid syncing by devworkspace controller
 			clusterRoute := &routev1.Route{}
 			if err := cl.Get(ctx, client.ObjectKey{Name: route.Name, Namespace: route.Namespace}, clusterRoute); err == nil {
-				// copy TLS config already injected by another controller
 				route.Spec.TLS = clusterRoute.Spec.TLS
 			}
 		} else {
@@ -221,9 +218,6 @@ func (e *IngressExposer) getIngressForService(
 	cl client.Client,
 	cheCluster *chev2.CheCluster,
 ) networkingv1.Ingress {
-	hostname := endpointStrategy.getHostname(endpoint, e.baseDomain)
-	ingressPathType := networkingv1.PathTypeImplementationSpecific
-
 	annotations := map[string]string{}
 	utils.AddMap(annotations, endpoint.annotations)
 	utils.AddMap(annotations, map[string]string{
@@ -237,7 +231,7 @@ func (e *IngressExposer) getIngressForService(
 		constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
 	})
 
-	if cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Enabled {
+	if cheCluster.IsDevEnvironmentExternalTLSConfigEnabled() {
 		utils.AddMap(labels, cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Labels)
 		utils.AddMap(annotations, cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Annotations)
 	} else {
@@ -247,6 +241,9 @@ func (e *IngressExposer) getIngressForService(
 			utils.AddMap(annotations, deploy.DefaultIngressAnnotations)
 		}
 	}
+
+	hostname := endpointStrategy.getHostname(endpoint, e.baseDomain)
+	ingressPathType := networkingv1.PathTypeImplementationSpecific
 
 	ingress := networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
@@ -284,10 +281,11 @@ func (e *IngressExposer) getIngressForService(
 	}
 
 	if isSecureScheme(endpoint.scheme) {
-		if cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Enabled {
+		if cheCluster.IsDisableWorkspaceCaBundleMount() {
+			// fetch existed ingress from the cluster and copy TLS config
+			// in order avoid syncing by devworkspace controller
 			clusterIngress := &networkingv1.Ingress{}
 			if err := cl.Get(ctx, client.ObjectKey{Name: ingress.Name, Namespace: ingress.Namespace}, clusterIngress); err == nil {
-				// copy TLS config already injected by another controller
 				ingress.Spec.TLS = clusterIngress.Spec.TLS
 			}
 		} else if e.tlsSecretName != "" {
