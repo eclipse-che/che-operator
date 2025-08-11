@@ -93,21 +93,21 @@ func TestExternalTLSConfigForIngresses(t *testing.T) {
 	assert.Equal(t, "new-secret", ingress.Spec.TLS[0].SecretName)
 	assert.Equal(t, "annotation_value", ingress.Annotations["annotation_key"])
 	assert.Equal(t, "label_value", ingress.Labels["label_key"])
-	assert.NotContains(t, ingress.Labels, "default_annotation_key")
+	assert.NotContains(t, ingress.Annotations, "default_annotation_key")
 
 	// secure endpoint, no custom TLS secret has been set so far
 	ingress = objs.Ingresses[1]
 	assert.Empty(t, ingress.Spec.TLS)
 	assert.Equal(t, "annotation_value", ingress.Annotations["annotation_key"])
 	assert.Equal(t, "label_value", ingress.Labels["label_key"])
-	assert.NotContains(t, ingress.Labels, "default_annotation_key")
+	assert.NotContains(t, ingress.Annotations, "default_annotation_key")
 
 	// insecure endpoint
 	ingress = objs.Ingresses[2]
 	assert.Empty(t, ingress.Spec.TLS)
 	assert.NotContains(t, ingress.Annotations, "annotation_key")
 	assert.NotContains(t, ingress.Labels, "label_key")
-	assert.Contains(t, ingress.Labels, "default_annotation_key")
+	assert.Contains(t, ingress.Annotations, "default_annotation_key")
 }
 
 func TestExternalTLSConfigForRoutes(t *testing.T) {
