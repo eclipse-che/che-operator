@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -15,7 +15,6 @@ package server
 import (
 	"context"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
@@ -24,16 +23,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
 	"testing"
 )
 
 func TestReconcile(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-
-	cheCluster := &chev2.CheCluster{
+	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
@@ -45,14 +41,10 @@ func TestReconcile(t *testing.T) {
 				},
 			},
 		},
-	}
-
-	ctx := test.GetDeployContext(cheCluster, []runtime.Object{})
+	}).Build()
 
 	server := NewCheServerReconciler()
-	_, done, err := server.Reconcile(ctx)
-	assert.False(t, done)
-	assert.Nil(t, err)
+	test.EnsureReconcile(t, ctx, server.Reconcile)
 
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: CheConfigMapName, Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Namespace: "eclipse-che", Name: "che"}, &corev1.ServiceAccount{}))
@@ -62,22 +54,20 @@ func TestReconcile(t *testing.T) {
 	assert.Equal(t, 1, len(ctx.CheCluster.Finalizers))
 
 	cheDeployment := &appsv1.Deployment{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: defaults.GetCheFlavor(), Namespace: "eclipse-che"}, cheDeployment)
+	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: defaults.GetCheFlavor(), Namespace: "eclipse-che"}, cheDeployment)
 	assert.Nil(t, err)
 
 	cheDeployment.Status.Replicas = 1
 	cheDeployment.Status.AvailableReplicas = 1
-	err = ctx.ClusterAPI.Client.Update(context.TODO(), cheDeployment)
+	err = ctx.ClusterAPI.Client.Status().Update(context.TODO(), cheDeployment)
 
-	_, done, err = server.Reconcile(ctx)
-	assert.True(t, done)
-	assert.Nil(t, err)
+	test.EnsureReconcile(t, ctx, server.Reconcile)
 
 	assert.Equal(t, ctx.CheCluster.Status.ChePhase, chev2.CheClusterPhase(chev2.ClusterPhaseActive))
 	assert.NotEmpty(t, ctx.CheCluster.Status.CheVersion)
 	assert.NotEmpty(t, ctx.CheCluster.Status.CheURL)
 
-	done = server.Finalize(ctx)
+	done := server.Finalize(ctx)
 	assert.True(t, done)
 
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test-role"}, &rbac.ClusterRoleBinding{}))
@@ -89,12 +79,16 @@ func TestUpdateAvailabilityStatus(t *testing.T) {
 			Name:      defaults.GetCheFlavor(),
 			Namespace: "eclipse-che",
 		},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Deployment",
+			APIVersion: "apps/v1",
+		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
 			Replicas:          1,
 		},
 	}
-	ctx := test.GetDeployContext(nil, []runtime.Object{})
+	ctx := test.NewCtxBuilder().Build()
 
 	server := NewCheServerReconciler()
 	done, err := server.syncActiveChePhase(ctx)
@@ -111,7 +105,7 @@ func TestUpdateAvailabilityStatus(t *testing.T) {
 	assert.Equal(t, ctx.CheCluster.Status.ChePhase, chev2.CheClusterPhase(chev2.ClusterPhaseActive))
 
 	cheDeployment.Status.Replicas = 2
-	err = ctx.ClusterAPI.Client.Update(context.TODO(), cheDeployment)
+	err = ctx.ClusterAPI.Client.Status().Update(context.TODO(), cheDeployment)
 	assert.Nil(t, err)
 
 	done, err = server.syncActiveChePhase(ctx)

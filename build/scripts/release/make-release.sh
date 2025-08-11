@@ -56,10 +56,7 @@ init() {
   done
   [ -z "$QUAY_ECLIPSE_CHE_USERNAME" ] && echo "[ERROR] QUAY_ECLIPSE_CHE_USERNAME is not set" && exit 1
   [ -z "$QUAY_ECLIPSE_CHE_PASSWORD" ] && echo "[ERROR] QUAY_ECLIPSE_CHE_PASSWORD is not set" && exit 1
-  command -v operator-sdk >/dev/null 2>&1 || { echo "[ERROR] operator-sdk is not installed. Abort."; exit 1; }
   command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] skopeo is not installed. Abort."; exit 1; }
-  REQUIRED_OPERATOR_SDK=$(yq -r ".\"operator-sdk\"" "${OPERATOR_REPO}/REQUIREMENTS")
-  [[ $(operator-sdk version) =~ .*${REQUIRED_OPERATOR_SDK}.* ]] || { echo "[ERROR] operator-sdk ${REQUIRED_OPERATOR_SDK} is required. Abort."; exit 1; }
 }
 
 usage () {
@@ -215,7 +212,7 @@ pushOlmBundlesToQuayIo() {
   docker login quay.io -u "${QUAY_ECLIPSE_CHE_USERNAME}" -p "${QUAY_ECLIPSE_CHE_PASSWORD}"
 
   echo "[INFO] Push OLM bundles to quay.io"
-  . "${OPERATOR_REPO}/build/scripts/olm/release-catalog.sh" -c stable -i quay.io/eclipse/eclipse-che-olm-catalog:stable
+  . "${OPERATOR_REPO}/build/scripts/olm/release-catalog.sh" --force -c stable -i quay.io/eclipse/eclipse-che-olm-catalog:stable
 
   if git status --porcelain; then
     git add -A || true

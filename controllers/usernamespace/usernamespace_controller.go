@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -18,6 +18,10 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/eclipse-che/che-operator/controllers/namespacecache"
+	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	containerbuild "github.com/eclipse-che/che-operator/pkg/deploy/container-build"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -43,7 +47,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
@@ -58,7 +61,7 @@ type CheUserNamespaceReconciler struct {
 	scheme          *runtime.Scheme
 	client          client.Client
 	nonCachedClient client.Client
-	namespaceCache  *namespaceCache
+	namespaceCache  *namespacecache.NamespaceCache
 }
 
 var _ reconcile.Reconciler = (*CheUserNamespaceReconciler)(nil)
@@ -67,7 +70,7 @@ func NewCheUserNamespaceReconciler(
 	client client.Client,
 	noncachedClient client.Client,
 	scheme *runtime.Scheme,
-	namespaceCache *namespaceCache) *CheUserNamespaceReconciler {
+	namespaceCache *namespacecache.NamespaceCache) *CheUserNamespaceReconciler {
 
 	return &CheUserNamespaceReconciler{
 		scheme:          scheme,
@@ -87,34 +90,38 @@ func (r *CheUserNamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	ctx := context.Background()
 	bld := ctrl.NewControllerManagedBy(mgr).
 		For(obj).
-		Watches(&source.Kind{Type: &corev1.Secret{}}, r.watchRulesForSecrets(ctx)).
-		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, r.watchRulesForConfigMaps(ctx)).
-		Watches(&source.Kind{Type: &chev2.CheCluster{}}, r.triggerAllNamespaces())
+		Watches(&corev1.Secret{}, r.watchRulesForSecrets(ctx)).
+		Watches(&corev1.ConfigMap{}, r.watchRulesForConfigMaps(ctx)).
+		Watches(&chev2.CheCluster{}, r.triggerAllNamespaces())
 
-	return bld.Complete(r)
+	// Use controller.TypedOptions to allow to configure 2 controllers for same object being reconciled
+	return bld.WithOptions(
+		controller.TypedOptions[reconcile.Request]{
+			SkipNameValidation: pointer.Bool(true),
+		}).Complete(r)
 }
 
 func (r *CheUserNamespaceReconciler) watchRulesForSecrets(ctx context.Context) handler.EventHandler {
 	rules := r.commonRules(ctx, constants.DefaultSelfSignedCertificateSecretName)
 	return handler.EnqueueRequestsFromMapFunc(
-		handler.MapFunc(func(obj client.Object) []reconcile.Request {
-			return asReconcileRequestsForNamespaces(obj, rules)
+		handler.MapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
+			return namespacecache.AsReconcileRequestsForNamespaces(obj, rules)
 		}))
 }
 
-func (r *CheUserNamespaceReconciler) commonRules(ctx context.Context, namesInCheClusterNamespace ...string) []eventRule {
-	return []eventRule{
+func (r *CheUserNamespaceReconciler) commonRules(ctx context.Context, namesInCheClusterNamespace ...string) []namespacecache.EventRule {
+	return []namespacecache.EventRule{
 		{
-			check: func(o metav1.Object) bool {
+			Check: func(o metav1.Object) bool {
 				return isLabeledAsUserSettings(o) && r.isInManagedNamespace(ctx, o)
 			},
-			namespaces: func(o metav1.Object) []string { return []string{o.GetNamespace()} },
+			Namespaces: func(o metav1.Object) []string { return []string{o.GetNamespace()} },
 		},
 		{
-			check: func(o metav1.Object) bool {
+			Check: func(o metav1.Object) bool {
 				return r.hasNameAndIsCollocatedWithCheCluster(ctx, o, namesInCheClusterNamespace...)
 			},
-			namespaces: func(o metav1.Object) []string { return r.namespaceCache.GetAllKnownNamespaces() },
+			Namespaces: func(o metav1.Object) []string { return r.namespaceCache.GetAllKnownNamespaces() },
 		},
 	}
 }
@@ -122,8 +129,8 @@ func (r *CheUserNamespaceReconciler) commonRules(ctx context.Context, namesInChe
 func (r *CheUserNamespaceReconciler) watchRulesForConfigMaps(ctx context.Context) handler.EventHandler {
 	rules := r.commonRules(ctx, tls.CheMergedCABundleCertsCMName)
 	return handler.EnqueueRequestsFromMapFunc(
-		handler.MapFunc(func(obj client.Object) []reconcile.Request {
-			return asReconcileRequestsForNamespaces(obj, rules)
+		handler.MapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
+			return namespacecache.AsReconcileRequestsForNamespaces(obj, rules)
 		}))
 }
 
@@ -148,7 +155,7 @@ func (r *CheUserNamespaceReconciler) isInManagedNamespace(ctx context.Context, o
 
 func (r *CheUserNamespaceReconciler) triggerAllNamespaces() handler.EventHandler {
 	return handler.EnqueueRequestsFromMapFunc(
-		handler.MapFunc(func(obj client.Object) []reconcile.Request {
+		handler.MapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
 			nss := r.namespaceCache.GetAllKnownNamespaces()
 			ret := make([]reconcile.Request, len(nss))
 

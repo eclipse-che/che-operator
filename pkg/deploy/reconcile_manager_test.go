@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -19,7 +19,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -59,32 +58,32 @@ func (tr *TestReconcilable) Finalize(ctx *chetypes.DeployContext) bool {
 }
 
 func TestShouldUpdateAndCleanStatus(t *testing.T) {
-	deployContext := test.GetDeployContext(nil, []runtime.Object{})
+	ctx := test.NewCtxBuilder().Build()
 
 	tr := NewTestReconcilable(true, false)
 
 	rm := NewReconcileManager()
 	rm.RegisterReconciler(tr)
 
-	_, done, err := rm.ReconcileAll(deployContext)
+	_, done, err := rm.ReconcileAll(ctx)
 
 	assert.False(t, done)
 	assert.NotNil(t, err)
-	assert.NotEmpty(t, deployContext.CheCluster.Status.Reason)
-	assert.Equal(t, "Reconciler failed deploy.TestReconcilable, cause: reconcile error", deployContext.CheCluster.Status.Message)
+	assert.NotEmpty(t, ctx.CheCluster.Status.Reason)
+	assert.Equal(t, "Reconciler failed deploy.TestReconcilable, cause: reconcile error", ctx.CheCluster.Status.Message)
 	assert.Equal(t, tr, rm.failedReconciler)
 
-	_, done, err = rm.ReconcileAll(deployContext)
+	_, done, err = rm.ReconcileAll(ctx)
 
 	assert.True(t, done)
 	assert.Nil(t, err)
-	assert.Empty(t, deployContext.CheCluster.Status.Reason)
-	assert.Empty(t, deployContext.CheCluster.Status.Message)
+	assert.Empty(t, ctx.CheCluster.Status.Reason)
+	assert.Empty(t, ctx.CheCluster.Status.Message)
 	assert.Nil(t, rm.failedReconciler)
 }
 
 func TestShouldCleanUpAllFinalizers(t *testing.T) {
-	ctx := test.GetDeployContext(nil, []runtime.Object{})
+	ctx := test.NewCtxBuilder().Build()
 
 	rm := NewReconcileManager()
 	rm.RegisterReconciler(NewTestReconcilable(false, false))
@@ -100,7 +99,7 @@ func TestShouldCleanUpAllFinalizers(t *testing.T) {
 }
 
 func TestShouldNotCleanUpAllFinalizersIfFailure(t *testing.T) {
-	ctx := test.GetDeployContext(nil, []runtime.Object{})
+	ctx := test.NewCtxBuilder().Build()
 
 	rm := NewReconcileManager()
 	rm.RegisterReconciler(NewTestReconcilable(false, true))

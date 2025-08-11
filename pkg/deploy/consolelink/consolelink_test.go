@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -16,56 +16,33 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+
+	"testing"
+
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	consolev1 "github.com/openshift/api/console/v1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	fakeDiscovery "k8s.io/client-go/discovery/fake"
-
-	"testing"
 )
 
 func TestReconcileConsoleLink(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-
-	cheCluster := &chev2.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "eclipse-che",
-			Name:      "eclipse-che",
-		},
-		Status: chev2.CheClusterStatus{
-			CheURL: "https://che-host",
-		},
-	}
-
-	ctx := test.GetDeployContext(cheCluster, []runtime.Object{})
-	ctx.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
-		{
-			APIResources: []metav1.APIResource{
-				{Name: ConsoleLinksResourceName},
-			},
-		},
-	}
+	ctx := test.NewCtxBuilder().Build()
 
 	consolelink := NewConsoleLinkReconciler()
-	_, done, err := consolelink.Reconcile(ctx)
-	assert.True(t, done)
-	assert.Nil(t, err)
+	test.EnsureReconcile(t, ctx, consolelink.Reconcile)
 
 	consoleLink := &consolev1.ConsoleLink{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: defaults.GetConsoleLinkName()}, consoleLink)
+	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: defaults.GetConsoleLinkName()}, consoleLink)
 	assert.Nil(t, err)
 	assert.True(t, utils.Contains(ctx.CheCluster.Finalizers, ConsoleLinkFinalizerName))
 	assert.Equal(t, "https://che-host", consoleLink.Spec.Href)
 
 	// Initialize DeletionTimestamp => checluster is being deleted
-	done = consolelink.Finalize(ctx)
+	done := consolelink.Finalize(ctx)
 	assert.True(t, done)
 
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: defaults.GetConsoleLinkName()}, &consolev1.ConsoleLink{}))
@@ -73,8 +50,6 @@ func TestReconcileConsoleLink(t *testing.T) {
 }
 
 func TestReconcileConsoleLinkWhenCheURLChanged(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
-
 	cheCluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
@@ -105,21 +80,13 @@ func TestReconcileConsoleLinkWhenCheURLChanged(t *testing.T) {
 		},
 	}
 
-	ctx := test.GetDeployContext(cheCluster, []runtime.Object{existedConsoleLink})
-	ctx.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
-		{
-			APIResources: []metav1.APIResource{
-				{Name: ConsoleLinksResourceName},
-			},
-		},
-	}
+	ctx := test.NewCtxBuilder().WithCheCluster(cheCluster).WithObjects(existedConsoleLink).Build()
 
 	consoleLinkReconciler := NewConsoleLinkReconciler()
-	_, _, err := consoleLinkReconciler.Reconcile(ctx)
-	assert.Nil(t, err)
+	test.EnsureReconcile(t, ctx, consoleLinkReconciler.Reconcile)
 
 	consoleLink := &consolev1.ConsoleLink{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: defaults.GetConsoleLinkName()}, consoleLink)
+	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: defaults.GetConsoleLinkName()}, consoleLink)
 	assert.Nil(t, err)
 	assert.True(t, utils.Contains(ctx.CheCluster.Finalizers, ConsoleLinkFinalizerName))
 	assert.Equal(t, "https://test-host", consoleLink.Spec.Href)

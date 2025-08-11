@@ -1,18 +1,14 @@
-/*
-Copyright 2021.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+//
+// Copyright (c) 2012-2021 Red Hat, Inc.
+// This program and the accompanying materials are made
+// available under the terms of the Eclipse Public License 2.0
+// which is available at https://www.eclipse.org/legal/epl-2.0/
+//
+// SPDX-License-Identifier: EPL-2.0
+//
+// Contributors:
+//   Red Hat, Inc. - initial API and implementation
+//
 
 package v1alpha1
 
@@ -26,30 +22,48 @@ import (
 
 // KubernetesImagePullerSpec defines the desired state of KubernetesImagePuller
 type KubernetesImagePullerSpec struct {
-	ConfigMapName        string `json:"configMapName,omitempty"`
-	DaemonsetName        string `json:"daemonsetName,omitempty"`
-	DeploymentName       string `json:"deploymentName,omitempty"`
-	Images               string `json:"images,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="ConfigMap name"
+	ConfigMapName string `json:"configMapName,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="DaemonSet name"
+	DaemonsetName string `json:"daemonsetName,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deployment name"
+	DeploymentName string `json:"deploymentName,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Images to pull"
+	Images string `json:"images,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Caching internal hours"
 	CachingIntervalHours string `json:"cachingIntervalHours,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Caching memory request"
 	CachingMemoryRequest string `json:"cachingMemoryRequest,omitempty"`
-	CachingMemoryLimit   string `json:"cachingMemoryLimit,omitempty"`
-	CachingCpuRequest    string `json:"cachingCPURequest,omitempty"`
-	CachingCpuLimit      string `json:"cachingCPULimit,omitempty"`
-	NodeSelector         string `json:"nodeSelector,omitempty"`
-	ImagePullSecrets     string `json:"imagePullSecrets,omitempty"`
-	Affinity             string `json:"affinity,omitempty"`
-	ImagePullerImage     string `json:"imagePullerImage,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Cache memory limit"
+	CachingMemoryLimit string `json:"cachingMemoryLimit,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Caching CPU request"
+	CachingCpuRequest string `json:"cachingCPURequest,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Caching CPU limit"
+	CachingCpuLimit string `json:"cachingCPULimit,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="NodeSelector"
+	NodeSelector string `json:"nodeSelector,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="ImagePull secrets"
+	ImagePullSecrets string `json:"imagePullSecrets,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Affinity"
+	Affinity string `json:"affinity,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="ImagePull name"
+	ImagePullerImage string `json:"imagePullerImage,omitempty"`
 }
 
 // KubernetesImagePullerStatus defines the observed state of KubernetesImagePuller
 type KubernetesImagePullerStatus struct {
+	// KubernetesImagePuller image in use.
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Image"
+	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors="urn:alm:descriptor:text"
 	ImagePullerImage string `json:"imagePullerImage,omitempty"`
 }
 
 // KubernetesImagePuller is the Schema for the kubernetesimagepullers API
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 // +kubebuilder:resource:path=kubernetesimagepullers,scope=Namespaced
+// +operator-sdk:csv:customresourcedefinitions:resources={{ConfigMap,v1},{Deployment,apps/v1},{DaemonSet,apps/v1}}
 type KubernetesImagePuller struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

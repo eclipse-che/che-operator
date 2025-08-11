@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -49,14 +49,15 @@ func (d *DevWorkspaceConfigReconciler) Reconcile(ctx *chetypes.DeployContext) (r
 			Name:      devWorkspaceConfigName,
 			Namespace: ctx.CheCluster.Namespace,
 		},
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "DevWorkspaceOperatorConfig",
-			APIVersion: controllerv1alpha1.GroupVersion.String(),
-		},
 	}
-
 	if _, err := deploy.GetNamespacedObject(ctx, devWorkspaceConfigName, dwoc); err != nil {
 		return reconcile.Result{}, false, err
+	}
+
+	// Ensure TypeMeta is set correctly
+	dwoc.TypeMeta = metav1.TypeMeta{
+		Kind:       "DevWorkspaceOperatorConfig",
+		APIVersion: controllerv1alpha1.GroupVersion.String(),
 	}
 
 	if dwoc.Config == nil {
@@ -161,6 +162,7 @@ func updateWorkspaceStorageConfig(devEnvironments *chev2.CheClusterDevEnvironmen
 	}[pvcStrategy]
 
 	if pvc != nil {
+		workspaceConfig.StorageAccessMode = pvc.StorageAccessMode
 		if pvc.StorageClass != "" {
 			workspaceConfig.StorageClassName = &pvc.StorageClass
 		}
@@ -214,6 +216,11 @@ func updateWorkspaceServiceAccountConfig(devEnvironments *chev2.CheClusterDevEnv
 		ServiceAccountTokens: devEnvironments.ServiceAccountTokens,
 		// If user's Namespace is not auto provisioned (is pre-created by admin), then ServiceAccount must be pre-created as well
 		DisableCreation: pointer.Bool(!isNamespaceAutoProvisioned && devEnvironments.ServiceAccount != ""),
+	}
+
+	if len(workspaceConfig.ServiceAccount.ServiceAccountTokens) == 0 {
+		// Keep it nil to prevent endless reconciling
+		workspaceConfig.ServiceAccount.ServiceAccountTokens = nil
 	}
 }
 

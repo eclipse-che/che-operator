@@ -29,9 +29,9 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Check existing tags
@@ -92,10 +92,6 @@ jobs:
           export GITHUB_TOKEN=${{ secrets.CHE_BOT_GITHUB_TOKEN }}
           set -e
 
-          OP_SDK_DIR=/opt/operator-sdk
-          mkdir -p $OP_SDK_DIR
-          make download-operator-sdk DEST="${OP_SDK_DIR}"
-          
           go install golang.org/x/tools/cmd/goimports@latest
 
           export PATH="$PATH:$OP_SDK_DIR"

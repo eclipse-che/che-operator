@@ -86,7 +86,7 @@ metadata:
     categories: Developer Tools
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:next
-    createdAt: "2021-05-11T18:38:31Z"
+    createdAt: "2025-07-29T14:05:27Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
     features.operators.openshift.io/cnf: "false"
@@ -100,25 +100,30 @@ metadata:
     features.operators.openshift.io/token-auth-azure: "false"
     features.operators.openshift.io/token-auth-gcp: "false"
     operatorframework.io/suggested-namespace: openshift-operators
-    operators.operatorframework.io/builder: operator-sdk-v1.9.0+git
-    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
+    operators.operatorframework.io/builder: operator-sdk-v1.39.2
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
   labels:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.arm64: supported
     operatorframework.io/os.linux: supported
-  name: eclipse-che.v7.107.0-916.next
+  name: eclipse-che.v7.107.0-934.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
       - description: 'The `CheCluster` custom resource allows defining and managing
-          Eclipse Che server installation. Based on these settings, the  Operator
-          automatically creates and maintains several ConfigMaps: `che`, `plugin-registry`
-          that will contain the appropriate environment variables of the various components
-          of the installation. These generated ConfigMaps must NOT be updated manually.'
+          Eclipse Che server installation.
+
+          Based on these settings, the  Operator automatically creates and maintains
+          several ConfigMaps:
+
+          `che`, `plugin-registry` that will contain the appropriate environment variables
+
+          of the various components of the installation. These generated ConfigMaps
+          must NOT be updated manually.'
         displayName: Eclipse Che instance Specification
         kind: CheCluster
         name: checlusters.org.eclipse.che
@@ -176,7 +181,9 @@ spec:
             displayName: Azure
             path: gitServices.azure
           - description: 'Kubernetes secret, that contains Base64-encoded Azure DevOps
-              Service Application ID and Client Secret. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-microsoft-azure-devops-services'
+              Service Application ID and Client Secret.
+
+              See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-microsoft-azure-devops-services'
             displayName: Secret Name
             path: gitServices.azure[0].secretName
             x-descriptors:
@@ -186,7 +193,10 @@ spec:
             displayName: Bitbucket
             path: gitServices.bitbucket
           - description: 'Kubernetes secret, that contains Base64-encoded Bitbucket
-              OAuth 1.0 or OAuth 2.0 data. See the following pages for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/
+              OAuth 1.0 or OAuth 2.0 data.
+
+              See the following pages for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/
+
               and https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-the-bitbucket-cloud/.'
             displayName: Secret Name
             path: gitServices.bitbucket[0].secretName
@@ -197,8 +207,9 @@ spec:
             displayName: GitHub
             path: gitServices.github
           - description: 'Kubernetes secret, that contains Base64-encoded GitHub OAuth
-              Client id and GitHub OAuth Client secret. See the following page for
-              details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
+              Client id and GitHub OAuth Client secret.
+
+              See the following page for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
             displayName: Secret Name
             path: gitServices.github[0].secretName
             x-descriptors:
@@ -208,7 +219,9 @@ spec:
             displayName: GitLab
             path: gitServices.gitlab
           - description: 'Kubernetes secret, that contains Base64-encoded GitHub Application
-              id and GitLab Application Client secret. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
+              id and GitLab Application Client secret.
+
+              See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
             displayName: Secret Name
             path: gitServices.gitlab[0].secretName
             x-descriptors:
@@ -256,10 +269,13 @@ spec:
             path: reason
             x-descriptors:
               - urn:alm:descriptor:text
-          - description: The resolved workspace base domain. This is either the copy
-              of the explicitly defined property of the same name in the spec or,
-              if it is undefined in the spec and we're running on OpenShift, the automatically
-              resolved basedomain for routes.
+          - description: 'The resolved workspace base domain. This is either the copy
+              of the explicitly defined property of the
+
+              same name in the spec or, if it is undefined in the spec and we''re
+              running on OpenShift, the automatically
+
+              resolved basedomain for routes.'
             displayName: Workspace base domain
             path: workspaceBaseDomain
             x-descriptors:
@@ -323,9 +339,11 @@ spec:
           - description: DevWorkspace operator configuration
             displayName: Dev Workspace operator
             path: devWorkspace
-          - description: Deploys the DevWorkspace Operator in the cluster. Does nothing
-              when a matching version of the Operator is already installed. Fails
-              when a non-matching version of the Operator is already installed.
+          - description: 'Deploys the DevWorkspace Operator in the cluster.
+
+              Does nothing when a matching version of the Operator is already installed.
+
+              Fails when a non-matching version of the Operator is already installed.'
             displayName: Enable DevWorkspace operator
             path: devWorkspace.enable
             x-descriptors:
@@ -339,7 +357,10 @@ spec:
             displayName: Bitbucket
             path: gitServices.bitbucket
           - description: 'Kubernetes secret, that contains Base64-encoded Bitbucket
-              OAuth 1.0 or OAuth 2.0 data. See the following pages for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/
+              OAuth 1.0 or OAuth 2.0 data.
+
+              See the following pages for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/
+
               and https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-the-bitbucket-cloud/.'
             displayName: Secret Name
             path: gitServices.bitbucket[0].secretName
@@ -350,8 +371,9 @@ spec:
             displayName: GitHub
             path: gitServices.github
           - description: 'Kubernetes secret, that contains Base64-encoded GitHub OAuth
-              Client id and GitHub OAuth Client secret. See the following page for
-              details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
+              Client id and GitHub OAuth Client secret.
+
+              See the following page for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.'
             displayName: Secret Name
             path: gitServices.github[0].secretName
             x-descriptors:
@@ -361,7 +383,9 @@ spec:
             displayName: GitLab
             path: gitServices.gitlab
           - description: 'Kubernetes secret, that contains Base64-encoded GitHub Application
-              id and GitLab Application Client secret. See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
+              id and GitLab Application Client secret.
+
+              See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.'
             displayName: Secret Name
             path: gitServices.gitlab[0].secretName
             x-descriptors:
@@ -381,11 +405,13 @@ spec:
               the plugin and devfile registries
             displayName: Che server
             path: server
-          - description: Deprecated. The value of this flag is ignored. Defines that
-              a user is allowed to specify a Kubernetes namespace, or an OpenShift
-              project, which differs from the default. It's NOT RECOMMENDED to set
-              to `true` without OpenShift OAuth configured. The OpenShift infrastructure
-              also uses this property.
+          - description: 'Deprecated. The value of this flag is ignored.
+
+              Defines that a user is allowed to specify a Kubernetes namespace, or
+              an OpenShift project, which differs from the default.
+
+              It''s NOT RECOMMENDED to set to `true` without OpenShift OAuth configured.
+              The OpenShift infrastructure also uses this property.'
             displayName: Allow User Defined Workspace Namespaces
             path: server.allowUserDefinedWorkspaceNamespaces
             x-descriptors:
@@ -395,9 +421,11 @@ spec:
             path: server.devfileRegistryUrl
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:hidden
-          - description: Deprecated. The value of this flag is ignored. The Che Operator
-              will automatically detect whether the router certificate is self-signed
-              and propagate it to other components, such as the Che server.
+          - description: 'Deprecated. The value of this flag is ignored.
+
+              The Che Operator will automatically detect whether the router certificate
+              is self-signed and propagate it to other components, such as the Che
+              server.'
             displayName: Self Signed Cert
             path: server.selfSignedCert
             x-descriptors:
@@ -880,7 +908,13 @@ spec:
                 - create
           serviceAccountName: che-operator
       deployments:
-        - name: che-operator
+        - label:
+            app: che-operator
+            app.kubernetes.io/component: che-operator
+            app.kubernetes.io/instance: che
+            app.kubernetes.io/name: che
+            app.kubernetes.io/part-of: che.eclipse.org
+          name: che-operator
           spec:
             replicas: 1
             selector:
@@ -1084,32 +1118,45 @@ spec:
   minKubeVersion: 1.19.0
   provider:
     name: Eclipse Foundation
-  version: 7.107.0-916.next
+  relatedImages:
+    - image: quay.io/eclipse/che-server:next
+      name: che-server
+    - image: quay.io/eclipse/che-dashboard:next
+      name: dashboard
+    - image: quay.io/eclipse/che-plugin-registry:next
+      name: plugin-registry
+    - image: quay.io/eclipse/che-tls-secret-creator:9f9d4a6
+      name: che-tls-secrets-creation-job
+    - image: quay.io/eclipse/che--traefik:v3.4.0-4cf907247939b5d20bf4eff73abd21cb413c339600dde76dbc94a874b2578a27
+      name: single-host-gateway
+    - image: quay.io/che-incubator/configbump:next
+      name: single-host-gateway-config-sidecar
+    - image: quay.io/openshift/origin-oauth-proxy:4.9
+      name: gateway-authentication-sidecar
+    - image: quay.io/openshift/origin-kube-rbac-proxy:4.9
+      name: gateway-authorization-sidecar
+    - image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
+      name: gateway-authentication-sidecar-k8s
+    - image: quay.io/brancz/kube-rbac-proxy:v0.13.1
+      name: gateway-authorization-sidecar-k8s
+    - image: quay.io/che-incubator/header-rewrite-proxy:latest
+      name: gateway-header-sidecar
+  version: 7.107.0-934.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1
-        - v1beta1
+        - v2
       containerPort: 443
+      conversionCRDs:
+        - checlusters.org.eclipse.che
       deploymentName: che-operator
-      failurePolicy: Fail
-      generateName: vchecluster.kb.io
-      rules:
-        - apiGroups:
-            - org.eclipse.che
-          apiVersions:
-            - v2
-          operations:
-            - CREATE
-            - UPDATE
-          resources:
-            - checlusters
+      generateName: ccheclusters.kb.io
       sideEffects: None
       targetPort: 9443
-      type: ValidatingAdmissionWebhook
-      webhookPath: /validate-org-eclipse-che-v2-checluster
+      type: ConversionWebhook
+      webhookPath: /convert
     - admissionReviewVersions:
         - v1
-        - v1beta1
       containerPort: 443
       deploymentName: che-operator
       failurePolicy: Fail
@@ -1130,13 +1177,21 @@ spec:
       webhookPath: /mutate-org-eclipse-che-v2-checluster
     - admissionReviewVersions:
         - v1
-        - v2
       containerPort: 443
-      conversionCRDs:
-        - checlusters.org.eclipse.che
       deploymentName: che-operator
-      generateName: ccheclusters.kb.io
+      failurePolicy: Fail
+      generateName: vchecluster.kb.io
+      rules:
+        - apiGroups:
+            - org.eclipse.che
+          apiVersions:
+            - v2
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - checlusters
       sideEffects: None
       targetPort: 9443
-      type: ConversionWebhook
-      webhookPath: /convert
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-org-eclipse-che-v2-checluster

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 
@@ -50,22 +49,19 @@ func TestContainerBuildReconciler(t *testing.T) {
 			ServiceAccountName: constants.DevWorkspaceServiceAccountName,
 		},
 	}
-	ctx := test.GetDeployContext(nil, []runtime.Object{dwPod})
+
+	ctx := test.NewCtxBuilder().WithObjects(dwPod).Build()
 	containerBuildReconciler := NewContainerBuildReconciler()
 
-	_, done, err := containerBuildReconciler.Reconcile(ctx)
-	assert.True(t, done)
-	assert.Nil(t, err)
+	test.EnsureReconcile(t, ctx, containerBuildReconciler.Reconcile)
 
 	// Enable Container build capabilities
 	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.BoolPtr(false)
 	ctx.CheCluster.Spec.DevEnvironments.ContainerBuildConfiguration = &chev2.ContainerBuildConfiguration{OpenShiftSecurityContextConstraint: "scc"}
-	err = ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
+	err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
 	assert.NoError(t, err)
 
-	_, done, err = containerBuildReconciler.Reconcile(ctx)
-	assert.True(t, done)
-	assert.Nil(t, err)
+	test.EnsureReconcile(t, ctx, containerBuildReconciler.Reconcile)
 
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "scc"}, &securityv1.SecurityContextConstraints{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: GetDevWorkspaceSccRbacResourcesName()}, &rbacv1.ClusterRole{}))
@@ -78,9 +74,7 @@ func TestContainerBuildReconciler(t *testing.T) {
 	err = ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
 	assert.NoError(t, err)
 
-	_, done, err = containerBuildReconciler.Reconcile(ctx)
-	assert.True(t, done)
-	assert.Nil(t, err)
+	test.EnsureReconcile(t, ctx, containerBuildReconciler.Reconcile)
 
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "scc"}, &securityv1.SecurityContextConstraints{}))
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: GetDevWorkspaceSccRbacResourcesName()}, &rbacv1.ClusterRole{}))
@@ -107,7 +101,7 @@ func TestSyncAndRemoveRBAC(t *testing.T) {
 			ServiceAccountName: constants.DevWorkspaceServiceAccountName,
 		},
 	}
-	ctx := test.GetDeployContext(nil, []runtime.Object{dwPod})
+	ctx := test.NewCtxBuilder().WithObjects(dwPod).Build()
 	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.Bool(false)
 	ctx.CheCluster.Spec.DevEnvironments.ContainerBuildConfiguration = &chev2.ContainerBuildConfiguration{OpenShiftSecurityContextConstraint: "scc"}
 
@@ -131,7 +125,7 @@ func TestSyncAndRemoveRBAC(t *testing.T) {
 }
 
 func TestSyncAndRemoveSCC(t *testing.T) {
-	ctx := test.GetDeployContext(nil, []runtime.Object{})
+	ctx := test.NewCtxBuilder().Build()
 	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.Bool(false)
 	ctx.CheCluster.Spec.DevEnvironments.ContainerBuildConfiguration = &chev2.ContainerBuildConfiguration{OpenShiftSecurityContextConstraint: "scc"}
 
@@ -161,7 +155,7 @@ func TestShouldNotSyncSCCIfAlreadyExists(t *testing.T) {
 		},
 	}
 
-	ctx := test.GetDeployContext(nil, []runtime.Object{scc})
+	ctx := test.NewCtxBuilder().WithObjects(scc).Build()
 	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.BoolPtr(false)
 	ctx.CheCluster.Spec.DevEnvironments.ContainerBuildConfiguration = &chev2.ContainerBuildConfiguration{OpenShiftSecurityContextConstraint: "scc"}
 

@@ -11,13 +11,6 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-# VERSION defines the project version for the bundle.
-# Update this value when you upgrade the version of your project.
-# To re-generate a bundle for another specific version without changing the standard setup, you can:
-# - use the VERSION as arg of the bundle target (e.g make bundle VERSION=0.0.2)
-# - use environment variables to overwrite this value (e.g export VERSION=0.0.2)
-VERSION ?= 1.0.2
-
 ifeq (,$(shell which kubectl)$(shell which oc))
 	$(error oc or kubectl is required to proceed)
 endif
@@ -39,12 +32,6 @@ endif
 
 ifndef VERBOSE
 	MAKEFLAGS += --silent
-endif
-
-ifeq ($(shell $(K8S_CLI) api-resources --api-group='route.openshift.io' 2>&1 | grep -o routes),routes)
-  PLATFORM := openshift
-else
-  PLATFORM := kubernetes
 endif
 
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
@@ -71,18 +58,6 @@ BASH_ENV_FILE=$(INTERNAL_TMP_DIR)/bash.env
 VSCODE_ENV_FILE=$(INTERNAL_TMP_DIR)/vscode.env
 
 DEPLOYMENT_DIR=$(PROJECT_DIR)/deploy/deployment
-
-ifneq (,$(shell $(K8S_CLI) get checluster -A 2>/dev/null))
-  ECLIPSE_CHE_NAMESPACE := $(shell $(K8S_CLI) get checluster -A -o "jsonpath={.items[0].metadata.namespace}")
-else
-  ECLIPSE_CHE_NAMESPACE ?= "eclipse-che"
-endif
-
-ifneq (,$(shell $(K8S_CLI) get pod -l app.kubernetes.io/component=che-operator -A 2>/dev/null))
-  OPERATOR_NAMESPACE := $(shell $(K8S_CLI) get pod -l app.kubernetes.io/component=che-operator -A -o "jsonpath={.items[0].metadata.namespace}")
-else
-  OPERATOR_NAMESPACE ?= "eclipse-che"
-endif
 
 ECLIPSE_CHE_PACKAGE_NAME=eclipse-che
 
@@ -124,18 +99,18 @@ help: ## Display this help.
 ##@ Development
 
 build: generate ## Build Eclipse Che operator binary
-	go build -o bin/manager main.go
+	go build -o bin/manager cmd/main.go
 
 run: SHELL := /bin/bash
 run: install-che-operands genenerate-env  ## Run Eclipse Che operator
 	source $(BASH_ENV_FILE)
-	go run ./main.go
+	go run cmd/main.go
 
 debug: SHELL := /bin/bash
 debug: install-che-operands genenerate-env ## Run and debug Eclipse Che operator
 	source $(BASH_ENV_FILE)
 	# dlv has an issue with 'Ctrl-C' termination, that's why we're doing trick with detach.
-	dlv debug --listen=:2345 --headless=true --api-version=2 ./main.go -- &
+	dlv debug --listen=:2345 --headless=true --api-version=2 cmd/main.go -- &
 	DLV_PID=$!
 	wait $${DLV_PID}
 
@@ -218,7 +193,7 @@ update-helmcharts: ## Update Helm Charts based on deployment resources
 
 		CRDS_SAMPLES=""
 		for CRD_SAMPLE in "$${CRDS_SAMPLES_FILES[@]}"; do
-			CRD_SAMPLE=$$(cat $${CRD_SAMPLE} | yq -rY ". | (.metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\") | [.]")
+			CRD_SAMPLE=$$(cat $${CRD_SAMPLE} | yq -rY ". | (.metadata.namespace = \"eclipse-che\") | [.]")
 		 	CRDS_SAMPLES=$${CRDS_SAMPLES}$${CRD_SAMPLE}$$'\n'
 		done
 
@@ -331,6 +306,8 @@ license: download-addlicense ## Add license to the files
 
 # Generates environment files used by bash and vscode
 genenerate-env:
+	OPERATOR_NAMESPACE=$$($(MAKE) get_operator_namespace)
+
 	mkdir -p $(INTERNAL_TMP_DIR)
 	cat $(CONFIG_MANAGER) \
 	  | yq -r \
@@ -342,7 +319,7 @@ genenerate-env:
 	      | sed 's|"|\\"|g' \
 	      | sed -E 's|(.*)=(.*)|\1="\2"|g' \
 	  > $(BASH_ENV_FILE)
-	echo "export WATCH_NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)" >> $(BASH_ENV_FILE)
+	echo "export WATCH_NAMESPACE=$${OPERATOR_NAMESPACE}" >> $(BASH_ENV_FILE)
 	echo "[INFO] Created $(BASH_ENV_FILE)"
 
 	cat $(CONFIG_MANAGER) \
@@ -355,27 +332,43 @@ genenerate-env:
 	      | sed 's|"|\\"|g' \
 	      | sed -E 's|(.*)=(.*)|\1="\2"|g' \
 	  > $(VSCODE_ENV_FILE)
-	echo "WATCH_NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)" >> $(VSCODE_ENV_FILE)
+	echo "WATCH_NAMESPACE=$${OPERATOR_NAMESPACE}" >> $(VSCODE_ENV_FILE)
 	echo "[INFO] Created $(VSCODE_ENV_FILE)"
 
 	cat $(BASH_ENV_FILE)
 
 install-che-operands: SHELL := /bin/bash
 install-che-operands: generate manifests download-kustomize download-gateway-resources copy-editors-definitions
-	echo "[INFO] Running on $(PLATFORM)"
-	if [[ ! "$$($(K8S_CLI) get checluster eclipse-che -n $(ECLIPSE_CHE_NAMESPACE) || false )" ]]; then
-		[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
-		$(MAKE) install-devworkspace CHANNEL="next"
-		$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
-		$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/component=che-operator" NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)
+	PLATFORM=$$($(MAKE) get_platform)
+
+	if [[ "$$($(K8S_CLI) get crd | grep "cert-manager.io" | wc -l)" == "0" ]]; then
+		[[ $${PLATFORM} == "kubernetes" ]] && $(MAKE) install-certmgr
+	else
+		echo "[INFO] cert-manager is already installed"
 	fi
 
-	$(K8S_CLI) scale deploy che-operator -n $(OPERATOR_NAMESPACE) --replicas=0
+	if [[ "$$($(K8S_CLI) get crd | grep "controller.devfile.io" | wc -l)" == "0" ]]; then
+		$(MAKE) install-devworkspace CHANNEL="next" OPERATOR_NAMESPACE="openshift-operators"
+	else
+		echo "[INFO] DevWorkspace operator is already installed"
+	fi
 
-	# Disable Webhooks since che operator pod is scaled down
-	$(K8S_CLI) delete validatingwebhookconfiguration org.eclipse.che
-	$(K8S_CLI) delete mutatingwebhookconfiguration org.eclipse.che
-	$(K8S_CLI) patch crd checlusters.org.eclipse.che --patch '{"spec": {"conversion": null}}' --type=merge
+	if [[ "$$($(K8S_CLI) get crd | grep "checlusters.org.eclipse.che" | wc -l)" == "0" ]]; then
+		$(KUSTOMIZE) build config/$${PLATFORM} | $(K8S_CLI) apply --server-side -f -
+	else
+		echo "[INFO] Che operator is already installed"
+	fi
+
+	OPERATOR_NAMESPACE=$$($(MAKE) get_operator_namespace)
+	$(K8S_CLI) scale deploy che-operator -n "$${OPERATOR_NAMESPACE}" --replicas=0
+
+	# Delete Webhooks since che operator pod is scaled down
+	# It allows creating/updating CheCluster custom resource
+	if [[ ! "$(DELETE_WEBHOOKS)" == "false" ]]; then
+		$(K8S_CLI) delete validatingwebhookconfiguration org.eclipse.che
+		$(K8S_CLI) delete mutatingwebhookconfiguration org.eclipse.che
+		$(K8S_CLI) patch crd checlusters.org.eclipse.che --patch '{"spec": {"conversion": null}}' --type=merge
+	fi
 
 	$(MAKE) store_tls_cert
 	$(MAKE) create-checluster-cr
@@ -400,9 +393,42 @@ download-gateway-resources:
 
 # Store `che-operator-webhook-server-cert` secret locally
 store_tls_cert:
+	OPERATOR_NAMESPACE=$$($(MAKE) get_operator_namespace)
+
 	mkdir -p /tmp/k8s-webhook-server/serving-certs/
-	$(K8S_CLI) get secret che-operator-service-cert -n $(OPERATOR_NAMESPACE) -o json | jq -r '.data["tls.crt"]' | base64 -d > /tmp/k8s-webhook-server/serving-certs/tls.crt
-	$(K8S_CLI) get secret che-operator-service-cert -n $(OPERATOR_NAMESPACE) -o json | jq -r '.data["tls.key"]' | base64 -d > /tmp/k8s-webhook-server/serving-certs/tls.key
+	$(K8S_CLI) get secret che-operator-service-cert -n $${OPERATOR_NAMESPACE} -o json | jq -r '.data["tls.crt"]' | base64 -d > /tmp/k8s-webhook-server/serving-certs/tls.crt
+	$(K8S_CLI) get secret che-operator-service-cert -n $${OPERATOR_NAMESPACE} -o json | jq -r '.data["tls.key"]' | base64 -d > /tmp/k8s-webhook-server/serving-certs/tls.key
+
+get_operator_namespace: SHELL := /bin/bash
+get_operator_namespace:
+	PLATFORM=$$($(MAKE) get_platform)
+	if [[ $$($(K8S_CLI) get deployments.apps -l app.kubernetes.io/component=che-operator -A -o go-template='{{len .items}}') == 0 ]]; then
+		if [[ "$${PLATFORM}" == "kubernetes" ]]; then
+			echo "eclipse-che"
+		else
+			echo "openshift-operators"
+		fi
+	else
+		echo $$($(K8S_CLI) get deployments.apps -l app.kubernetes.io/component=che-operator -A -o "jsonpath={.items[0].metadata.namespace}")
+	fi
+
+get_che_namespace: SHELL := /bin/bash
+get_che_namespace:
+	if [[ $$($(K8S_CLI) get checluster -A -o go-template='{{len .items}}') == 0 ]]; then
+	  echo "eclipse-che"
+	else
+	  echo $$($(K8S_CLI) get checluster -A -o "jsonpath={.items[0].metadata.namespace}")
+	fi
+
+get_platform: SHELL := /bin/bash
+get_platform:
+	if [[ "$$($(K8S_CLI) api-resources --api-group='route.openshift.io' --no-headers | wc -l)" == "0" ]]; then
+		echo "kubernetes"
+	else
+		echo "openshift"
+	fi
+
+
 
 ##@ OLM catalog
 
@@ -481,7 +507,7 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 	goimports -w ./api
 	go fmt -x ./api
 
-	$(OPERATOR_SDK) bundle validate $${BUNDLE_PATH} --select-optional name=operatorhub --optional-values=k8s-version=1.19
+	$(OPERATOR_SDK) bundle validate $${BUNDLE_PATH}  --select-optional name="operatorhubv2" --select-optional name="good-practices" --optional-values=k8s-version=1.19
 
 bundle-build: SHELL := /bin/bash
 bundle-build: download-opm ## Build a bundle image
@@ -575,24 +601,19 @@ bundle-version: ## Prints a bundle version for a given channel
 ##@ Utilities
 
 OPM ?= $(shell pwd)/bin/opm
+OPM_VERSION ?= "v1.26.2"
 download-opm: SHELL := /bin/bash
 download-opm: ## Download opm tool
-	[[ -z "$(DEST)" ]] && dest=$(OPM) || dest=$(DEST)/opm
 	command -v $(OPM) >/dev/null 2>&1 && exit
 
-	OS=$(shell go env GOOS)
-	ARCH=$(shell go env GOARCH)
-	OPM_VERSION=$$(yq -r '.opm' $(PROJECT_DIR)/REQUIREMENTS)
-
-	echo "[INFO] Downloading opm version: $${OPM_VERSION}"
-
-	mkdir -p $$(dirname "$${dest}")
-	curl -sL https://github.com/operator-framework/operator-registry/releases/download/$${OPM_VERSION}/$${OS}-$${ARCH}-opm > $${dest}
-	chmod +x $${dest}
+	echo "[INFO] Downloading opm version: $(OPM_VERSION)"
+	mkdir -p $$(dirname "$(OPM)")
+	curl -sL https://github.com/operator-framework/operator-registry/releases/download/$(OPM_VERSION)/$$(go env GOOS)-$$(go env GOARCH)-opm > $(OPM)
+	chmod +x $(OPM)
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
 download-controller-gen: ## Download controller-gen tool
-	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0)
+	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.18.0)
 
 KUSTOMIZE = $(shell pwd)/bin/kustomize
 download-kustomize: ## Download kustomize tool
@@ -602,20 +623,27 @@ ADD_LICENSE = $(shell pwd)/bin/addlicense
 download-addlicense: ## Download addlicense tool
 	$(call go-get-tool,$(ADD_LICENSE),github.com/google/addlicense@99ebc9c9db7bceb8623073e894533b978d7b7c8a)
 
+OPERATOR_SDK_VERSION ?= "v1.39.2"
 OPERATOR_SDK ?= $(shell pwd)/bin/operator-sdk
 download-operator-sdk: SHELL := /bin/bash
 download-operator-sdk: ## Downloads operator sdk tool
-	[[ -z "$(DEST)" ]] && dest=$(OPERATOR_SDK) || dest=$(DEST)/operator-sdk
-	command -v $${dest} >/dev/null 2>&1 && exit
+	command -v $(OPERATOR_SDK) >/dev/null 2>&1 && exit
 
-	OS=$(shell go env GOOS)
-	ARCH=$(shell go env GOARCH)
-	OPERATOR_SDK_VERSION=$$(yq -r '."operator-sdk"' $(PROJECT_DIR)/REQUIREMENTS)
+	echo "[INFO] Downloading operator-sdk version $(OPERATOR_SDK_VERSION) into $(OPERATOR_SDK)"
+	mkdir -p $$(dirname "$(OPERATOR_SDK)")
+	curl -sL https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk_$$(go env GOOS)_$$(go env GOARCH) > $(OPERATOR_SDK)
+	chmod +x $(OPERATOR_SDK)
 
-	echo "[INFO] Downloading operator-sdk version $${OPERATOR_SDK_VERSION} into $${dest}"
-	mkdir -p $$(dirname "$${dest}")
-	curl -sL https://github.com/operator-framework/operator-sdk/releases/download/$${OPERATOR_SDK_VERSION}/operator-sdk_$${OS}_$${ARCH} > $${dest}
-	chmod +x $${dest}
+KUBEBUILDER_VERSION ?= "v4.7.1"
+KUBEBUILDER ?= $(shell pwd)/bin/kubebuilder
+download-kubebuilder: SHELL := /bin/bash
+download-kubebuilder: ## Downloads kubebuilder tool
+	command -v $(KUBEBUILDER) >/dev/null 2>&1 && exit
+
+	echo "[INFO] Downloading kubebuilder version $(KUBEBUILDER_VERSION) into $(KUBEBUILDER)"
+	mkdir -p $$(dirname "$(KUBEBUILDER)")
+	curl -sL https://github.com/kubernetes-sigs/kubebuilder/releases/download/$(KUBEBUILDER_VERSION)/kubebuilder_$$(go env GOOS)_$$(go env GOARCH) > $(KUBEBUILDER)
+	chmod +x $(KUBEBUILDER)
 
 # Check if all required packages are installed
 validate-requirements: SHELL := /bin/bash
@@ -752,7 +780,7 @@ approve-installplan: ## Approves install plan
 
 create-namespace: SHELL := /bin/bash
 create-namespace: ## Creates namespace
-	[[ -z "$(NAMESPACE)" ]] && DEFINED_NAMESPACE=$(ECLIPSE_CHE_NAMESPACE) || DEFINED_NAMESPACE=$(NAMESPACE)
+	[[ -z "$(NAMESPACE)" ]] && DEFINED_NAMESPACE="eclipse-che" || DEFINED_NAMESPACE=$(NAMESPACE)
 	$(K8S_CLI) create namespace $${DEFINED_NAMESPACE} || true
 
 wait-pod-running: SHELL := /bin/bash
@@ -774,10 +802,12 @@ install-certmgr: ## Install Cert Manager v1.7.1
 
 install-devworkspace: SHELL := /bin/bash
 install-devworkspace: ## Install Dev Workspace operator, available channels: next, fast
+	PLATFORM=$$($(MAKE) get_platform)
+
 	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
 	[[ -z "$(OPERATOR_NAMESPACE)" ]] && DEFINED_OPERATOR_NAMESPACE="openshift-operators" || DEFINED_OPERATOR_NAMESPACE=$(OPERATOR_NAMESPACE)
 
-	if [[ $(PLATFORM) == "kubernetes" ]]; then
+	if [[ $${PLATFORM} == "kubernetes" ]]; then
 		$(MAKE) create-namespace NAMESPACE="devworkspace-controller"
 		if [[ $(CHANNEL) == "fast" ]]; then
 			rm -rf /tmp/dwo
@@ -815,33 +845,30 @@ wait-devworkspace-running: ## Wait until Dev Workspace operator is up and runnin
 	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/name=devworkspace-controller" NAMESPACE=$(NAMESPACE)
 	$(MAKE) wait-pod-running SELECTOR="app.kubernetes.io/name=devworkspace-webhook-server" NAMESPACE=$(NAMESPACE)
 
-setup-checluster: create-namespace create-checluster-crd create-checluster-cr ## Setup CheCluster (creates namespace, CRD and CheCluster CR)
-
 create-checluster-crd: SHELL := /bin/bash
 create-checluster-crd: ## Creates CheCluster Custom Resource Definition
-	if [[ $(PLATFORM) == "kubernetes" ]]; then
-		$(MAKE) install-certmgr
-		$(K8S_CLI) apply -f $(DEPLOYMENT_DIR)/$(PLATFORM)/objects/che-operator-selfsigned-issuer.Issuer.yaml
-		$(K8S_CLI) apply -f $(DEPLOYMENT_DIR)/$(PLATFORM)/objects/che-operator-serving-cert.Certificate.yaml
-	fi
-	$(K8S_CLI) apply -f $(DEPLOYMENT_DIR)/$(PLATFORM)/objects/checlusters.org.eclipse.che.CustomResourceDefinition.yaml
+	PLATFORM=$$($(MAKE) get_platform)
+	$(K8S_CLI) apply --server-side -f $(DEPLOYMENT_DIR)/$${PLATFORM}/objects/checlusters.org.eclipse.che.CustomResourceDefinition.yaml
 
 create-checluster-cr: SHELL := /bin/bash
 create-checluster-cr: ## Creates CheCluster Custom Resource V2
-	if [[ "$$($(K8S_CLI) get checluster eclipse-che -n $(ECLIPSE_CHE_NAMESPACE) || false )" ]]; then
+	PLATFORM=$$($(MAKE) get_platform)
+	ECLIPSE_CHE_NAMESPACE=$$($(MAKE) get_che_namespace)
+
+	if [[ "$$($(K8S_CLI) get checluster eclipse-che -n $${ECLIPSE_CHE_NAMESPACE} || false )" ]]; then
 		echo "[INFO] CheCluster already exists."
 	else
 		CHECLUSTER_CR_2_APPLY=/tmp/checluster_cr.yaml
 		cp  $(CHECLUSTER_CR_PATH) $${CHECLUSTER_CR_2_APPLY}
 
 		# Update networking.domain field with an actual value
-		if [[ $(PLATFORM) == "kubernetes" ]]; then
+		if [[ $${PLATFORM} == "kubernetes" ]]; then
   			# kubectl does not have `whoami` command
 			CLUSTER_API_URL=$$(oc whoami --show-server=true) || true;
 			CLUSTER_DOMAIN=$$(echo $${CLUSTER_API_URL} | sed -E 's/https:\/\/(.*):.*/\1/g')
 			yq -riY  '.spec.networking.domain = "'$${CLUSTER_DOMAIN}'.nip.io"' $${CHECLUSTER_CR_2_APPLY}
 		fi
-		$(K8S_CLI) apply -f $${CHECLUSTER_CR_2_APPLY} -n $(ECLIPSE_CHE_NAMESPACE)
+		$(K8S_CLI) apply -f $${CHECLUSTER_CR_2_APPLY} -n $${ECLIPSE_CHE_NAMESPACE}
 	fi
 
 wait-eclipseche-version: SHELL := /bin/bash
