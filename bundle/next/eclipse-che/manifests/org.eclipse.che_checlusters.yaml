@@ -6874,6 +6874,26 @@ spec:
                              - SETGID
                              - SETUID
                       type: boolean
+                    editorsDownloadUrls:
+                      description: |-
+                        EditorsDownloadUrls provides a list of custom download URLs for editor binaries.
+                        Each entry contains an editor identifier in the `publisher/name/version` format
+                        and the corresponding download URL.
+                        This field is particularly useful in disconnected or air-gapped environments,
+                        where editors cannot be downloaded from the public internet.
+                      items:
+                        properties:
+                          editor:
+                            description: The editor ID must have `publisher/name/version`
+                              format.
+                            type: string
+                          url:
+                            type: string
+                        required:
+                          - editor
+                          - url
+                        type: object
+                      type: array
                     gatewayContainer:
                       description: GatewayContainer configuration.
                       properties:

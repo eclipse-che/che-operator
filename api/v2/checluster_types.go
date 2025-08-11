@@ -74,7 +74,6 @@ type CheClusterSpec struct {
 // Development environment configuration.
 // +k8s:openapi-gen=true
 type CheClusterDevEnvironments struct {
-	//
 	// GatewayContainer configuration.
 	// +optional
 	GatewayContainer *Container `json:"gatewayContainer,omitempty"`
@@ -92,6 +91,13 @@ type CheClusterDevEnvironments struct {
 	// Default plug-ins applied to DevWorkspaces.
 	// +optional
 	DefaultPlugins []WorkspaceDefaultPlugins `json:"defaultPlugins,omitempty"`
+	// EditorsDownloadUrls provides a list of custom download URLs for editor binaries.
+	// Each entry contains an editor identifier in the `publisher/name/version` format
+	// and the corresponding download URL.
+	// This field is particularly useful in disconnected or air-gapped environments,
+	// where editors cannot be downloaded from the public internet.
+	// +optional
+	EditorsDownloadUrls []EditorDownloadUrl `json:"editorsDownloadUrls,omitempty"`
 	// The node selector limits the nodes that can run the workspace pods.
 	// +optional
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
@@ -863,6 +869,14 @@ type AllowedSources struct {
 	// from any path within 'example.com'.
 	// +optional
 	Urls []string `json:"urls,omitempty"`
+}
+
+type EditorDownloadUrl struct {
+	// The editor ID must have `publisher/name/version` format.
+	// +kubebuilder:validation:Required
+	Editor string `json:"editor,omitempty"`
+	// +kubebuilder:validation:Required
+	Url string `json:"url"`
 }
 
 // GatewayPhase describes the different phases of the Che gateway lifecycle.
