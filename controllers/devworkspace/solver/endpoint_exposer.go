@@ -139,7 +139,7 @@ func (e *RouteExposer) getRouteForService(
 	endpointStrategy EndpointStrategy,
 	cl client.Client,
 	cheCluster *chev2.CheCluster,
-) routev1.Route {
+) (*routev1.Route, error) {
 	annotations := map[string]string{}
 	utils.AddMap(annotations, endpoint.annotations)
 	utils.AddMap(annotations, map[string]string{
@@ -153,21 +153,24 @@ func (e *RouteExposer) getRouteForService(
 		constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
 	})
 
-	// to be compatible from CheCluster API v1 configuration
-	routeLabels := cheCluster.Spec.Components.CheServer.ExtraProperties["CHE_INFRA_OPENSHIFT_ROUTE_LABELS"]
-	if routeLabels != "" {
-		utils.AddMap(labels, utils.ParseMap(routeLabels))
-	}
-
-	if cheCluster.IsDevEnvironmentExternalTLSConfigEnabled() {
+	if cheCluster.IsDevEnvironmentExternalTLSConfigEnabled() && isSecureScheme(endpoint.scheme) {
+		// set labels and annotations only for secure endpoints
+		// otherwise it might trigger external tool to set up TLS for insecure endpoints
 		utils.AddMap(labels, cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Labels)
 		utils.AddMap(annotations, cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Annotations)
 	} else {
+		// TODO it is needed to apply custom annotations as well
+		// https://github.com/eclipse-che/che/issues/23118
+		// To be compatible from CheCluster API v1 configuration
+		routeLabels := cheCluster.Spec.Components.CheServer.ExtraProperties["CHE_INFRA_OPENSHIFT_ROUTE_LABELS"]
+		if routeLabels != "" {
+			utils.AddMap(labels, utils.ParseMap(routeLabels))
+		}
 		utils.AddMap(labels, cheCluster.Spec.Networking.Labels)
 	}
 
 	targetEndpoint := intstr.FromInt32(endpoint.port)
-	route := routev1.Route{
+	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            getEndpointExposingObjectName(endpoint.componentName, e.devWorkspaceID, endpoint.port, endpoint.endpointName),
 			Namespace:       endpoint.service.Namespace,
@@ -190,10 +193,12 @@ func (e *RouteExposer) getRouteForService(
 	if isSecureScheme(endpoint.scheme) {
 		if cheCluster.IsDevEnvironmentExternalTLSConfigEnabled() {
 			// fetch existed route from the cluster and copy TLS config
-			// in order avoid syncing by devworkspace controller
+			// in order avoid resyncing by devworkspace controller
 			clusterRoute := &routev1.Route{}
 			if err := cl.Get(ctx, client.ObjectKey{Name: route.Name, Namespace: route.Namespace}, clusterRoute); err == nil {
 				route.Spec.TLS = clusterRoute.Spec.TLS
+			} else if !errors.IsNotFound(err) {
+				return nil, err
 			}
 		} else {
 			route.Spec.TLS = &routev1.TLSConfig{
@@ -208,7 +213,7 @@ func (e *RouteExposer) getRouteForService(
 		}
 	}
 
-	return route
+	return route, nil
 }
 
 func (e *IngressExposer) getIngressForService(
@@ -217,7 +222,7 @@ func (e *IngressExposer) getIngressForService(
 	endpointStrategy EndpointStrategy,
 	cl client.Client,
 	cheCluster *chev2.CheCluster,
-) networkingv1.Ingress {
+) (*networkingv1.Ingress, error) {
 	annotations := map[string]string{}
 	utils.AddMap(annotations, endpoint.annotations)
 	utils.AddMap(annotations, map[string]string{
@@ -231,10 +236,14 @@ func (e *IngressExposer) getIngressForService(
 		constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
 	})
 
-	if cheCluster.IsDevEnvironmentExternalTLSConfigEnabled() {
+	if cheCluster.IsDevEnvironmentExternalTLSConfigEnabled() && isSecureScheme(endpoint.scheme) {
+		// set labels and annotations only for secure endpoints
+		// otherwise it might trigger external tool to set up TLS for insecure endpoints
 		utils.AddMap(labels, cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Labels)
 		utils.AddMap(annotations, cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Annotations)
 	} else {
+		// TODO it is needed to apply custom labels as well
+		// https://github.com/eclipse-che/che/issues/23118
 		if len(cheCluster.Spec.Networking.Annotations) > 0 {
 			utils.AddMap(annotations, cheCluster.Spec.Networking.Annotations)
 		} else {
@@ -245,7 +254,7 @@ func (e *IngressExposer) getIngressForService(
 	hostname := endpointStrategy.getHostname(endpoint, e.baseDomain)
 	ingressPathType := networkingv1.PathTypeImplementationSpecific
 
-	ingress := networkingv1.Ingress{
+	ingress := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            getEndpointExposingObjectName(endpoint.componentName, e.devWorkspaceID, endpoint.port, endpoint.endpointName),
 			Namespace:       endpoint.service.Namespace,
@@ -281,12 +290,14 @@ func (e *IngressExposer) getIngressForService(
 	}
 
 	if isSecureScheme(endpoint.scheme) {
-		if cheCluster.IsDisableWorkspaceCaBundleMount() {
+		if cheCluster.IsDevEnvironmentExternalTLSConfigEnabled() {
 			// fetch existed ingress from the cluster and copy TLS config
-			// in order avoid syncing by devworkspace controller
+			// in order avoid resyncing by devworkspace controller
 			clusterIngress := &networkingv1.Ingress{}
 			if err := cl.Get(ctx, client.ObjectKey{Name: ingress.Name, Namespace: ingress.Namespace}, clusterIngress); err == nil {
 				ingress.Spec.TLS = clusterIngress.Spec.TLS
+			} else if !errors.IsNotFound(err) {
+				return nil, err
 			}
 		} else if e.tlsSecretName != "" {
 			ingress.Spec.TLS = []networkingv1.IngressTLS{
@@ -298,5 +309,5 @@ func (e *IngressExposer) getIngressForService(
 		}
 	}
 
-	return ingress
+	return ingress, nil
 }

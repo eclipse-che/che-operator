@@ -299,7 +299,8 @@ type DevEnvironmentNetworking struct {
 
 type ExternalTLSConfig struct {
 	// Enabled determines whether external TLS configuration is used.
-	// If set to true, the operator will not manage TLS certificates for ingress/route objects.
+	// If set to true, the operator will not set TLS config for ingress/route objects.
+	// Instead, it ensures that any custom TLS configuration will not be reverted on synchronization.
 	// +optional
 	Enabled *bool `json:"enabled"`
 	// Labels to be applied to ingress/route objects when external TLS is enabled.
