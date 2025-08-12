@@ -91,11 +91,13 @@ type CheClusterDevEnvironments struct {
 	// Default plug-ins applied to DevWorkspaces.
 	// +optional
 	DefaultPlugins []WorkspaceDefaultPlugins `json:"defaultPlugins,omitempty"`
-	// EditorsDownloadUrls provides a list of custom download URLs for editor binaries.
+	// EditorsDownloadUrls provides a list of custom download URLs for JetBrains editors
+	// in a local-to-remote flow.
+	// It is particularly useful in disconnected or air-gapped environments,
+	// where editors cannot be downloaded from the public internet.
 	// Each entry contains an editor identifier in the `publisher/name/version` format
 	// and the corresponding download URL.
-	// This field is particularly useful in disconnected or air-gapped environments,
-	// where editors cannot be downloaded from the public internet.
+	// Currently, this field is intended only for JetBrains editors and should not be used for other editor types.
 	// +optional
 	EditorsDownloadUrls []EditorDownloadUrl `json:"editorsDownloadUrls,omitempty"`
 	// The node selector limits the nodes that can run the workspace pods.

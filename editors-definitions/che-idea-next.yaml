@@ -153,7 +153,8 @@ components:
   - name: che-idea-injector
     container:
       image: quay.io/che-incubator/che-idea:next
-      command: ['/projector/entrypoint-init-container.sh', 'idea', 'che-incubator/che-idea-server/latest']
+      command:
+        - /projector/entrypoint-init-container.sh
       env:
         - name: PROJECTOR_VOLUME_MOUNT
           value: /projector-volume
