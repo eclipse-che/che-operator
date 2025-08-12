@@ -57,7 +57,7 @@ metadata:
             <stop offset="0.3034" stop-color="#FF318C"/>
             <stop offset="0.3846" stop-color="#EA3896"/>
             <stop offset="0.5532" stop-color="#B248AE"/>
-             <stop offset="0.7923" stop-color="#5A63D6"/>
+            <stop offset="0.7923" stop-color="#5A63D6"/>
             <stop offset="1" stop-color="#087CFA"/>
           </linearGradient>
         </defs>
