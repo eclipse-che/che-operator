@@ -72,7 +72,7 @@ components:
   - name: editor-injector
     container:
       image: quay.io/che-incubator/che-idea-dev-server:latest
-      command: ['/entrypoint-init-container.sh', 'webstorm']
+      command: ['/entrypoint-init-container.sh', 'webstorm', 'che-incubator/che-webstorm-server/latest']
       volumeMounts:
         - name: idea-server
           path: /idea-server
