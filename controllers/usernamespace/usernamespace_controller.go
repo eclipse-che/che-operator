@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
 	"k8s.io/utils/pointer"
@@ -247,6 +248,11 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
+	if err = r.reconcileEditorSettings(deployContext, req.Name, checluster); err != nil {
+		logrus.Errorf("Failed to reconcile editor settings into namespace '%s': %v", req.Name, err)
+		return ctrl.Result{}, err
+	}
+
 	if err = r.reconcileNodeSelectorAndTolerations(ctx, req.Name, checluster, deployContext); err != nil {
 		logrus.Errorf("Failed to reconcile the workspace pod node selector and tolerations in namespace '%s': %v", req.Name, err)
 		return ctrl.Result{}, err
@@ -440,6 +446,56 @@ func (r *CheUserNamespaceReconciler) reconcileIdleSettings(ctx context.Context, 
 		Data: data,
 	}
 	_, err := deploy.Sync(deployContext, cfg, deploy.ConfigMapDiffOpts)
+	return err
+}
+
+func (r *CheUserNamespaceReconciler) reconcileEditorSettings(
+	deployContext *chetypes.DeployContext,
+	targetNs string,
+	checluster *chev2.CheCluster,
+) error {
+	name := prefixedName("editor-settings")
+
+	annotations := map[string]string{
+		dwconstants.DevWorkspaceMountAsAnnotation: "env",
+	}
+	labels := defaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
+		dwconstants.DevWorkspaceMountLabel:          "true",
+		dwconstants.DevWorkspaceWatchConfigMapLabel: "true",
+	})
+
+	delConfigMap := func() error {
+		_, err := deploy.Delete(deployContext, client.ObjectKey{Name: name, Namespace: targetNs}, &corev1.ConfigMap{})
+		return err
+	}
+
+	data := map[string]string{}
+	if len(deployContext.CheCluster.Spec.DevEnvironments.EditorsDownloadUrls) > 0 {
+		for _, editorDownloadUrl := range deployContext.CheCluster.Spec.DevEnvironments.EditorsDownloadUrls {
+			editor := strings.ToUpper(editorDownloadUrl.Editor)
+			editor = strings.ReplaceAll(editor, "-", "_")
+			editor = strings.ReplaceAll(editor, "/", "_")
+			data[fmt.Sprintf("EDITOR_DOWNLOAD_URL_%s", editor)] = editorDownloadUrl.Url
+		}
+	} else {
+		return delConfigMap()
+	}
+
+	cm := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        name,
+			Namespace:   targetNs,
+			Labels:      labels,
+			Annotations: annotations,
+		},
+		Data: data,
+	}
+
+	_, err := deploy.Sync(deployContext, cm, deploy.ConfigMapDiffOpts)
 	return err
 }
 

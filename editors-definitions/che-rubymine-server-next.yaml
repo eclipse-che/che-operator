@@ -73,7 +73,7 @@ components:
   - name: editor-injector
     container:
       image: quay.io/che-incubator/che-idea-dev-server:next
-      command: ['/entrypoint-init-container.sh', 'rubymine']
+      command: ['/entrypoint-init-container.sh', 'rubymine', 'che-incubator/che-rubymine-server/next']
       volumeMounts:
         - name: idea-server
           path: /idea-server
