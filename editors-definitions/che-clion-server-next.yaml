@@ -72,7 +72,7 @@ components:
   - name: editor-injector
     container:
       image: quay.io/che-incubator/che-idea-dev-server:next
-      command: ['/entrypoint-init-container.sh', 'clion']
+      command: ['/entrypoint-init-container.sh', 'clion', 'che-incubator/che-clion-server/next']
       volumeMounts:
         - name: idea-server
           path: /idea-server

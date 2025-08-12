@@ -57,7 +57,7 @@ metadata:
             <stop offset="0.3034" stop-color="#FF318C"/>
             <stop offset="0.3846" stop-color="#EA3896"/>
             <stop offset="0.5532" stop-color="#B248AE"/>
-            <stop offset="0.7923" stop-color="#5A63D6"/>
+              <stop offset="0.7923" stop-color="#5A63D6"/>
             <stop offset="1" stop-color="#087CFA"/>
           </linearGradient>
         </defs>
@@ -94,8 +94,7 @@ components:
   - name: editor-injector
     container:
       image: quay.io/che-incubator/che-idea-dev-server:next
-      command:
-        - /entrypoint-init-container.sh
+      command: ['/entrypoint-init-container.sh', 'idea', 'che-incubator/che-idea-server/next']
       volumeMounts:
         - name: idea-server
           path: /idea-server
