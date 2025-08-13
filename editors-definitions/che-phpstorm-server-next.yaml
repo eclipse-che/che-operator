@@ -67,7 +67,7 @@ components:
   - name: editor-injector
     container:
       image: quay.io/che-incubator/che-idea-dev-server:next
-      command: ['/entrypoint-init-container.sh', 'phpstorm']
+      command: ['/entrypoint-init-container.sh', 'phpstorm', 'che-incubator/che-phpstorm-server/next']
       volumeMounts:
         - name: idea-server
           path: /idea-server
