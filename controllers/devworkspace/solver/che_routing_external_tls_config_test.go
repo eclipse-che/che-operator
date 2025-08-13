@@ -21,7 +21,6 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 )
@@ -70,19 +69,6 @@ func TestExternalTLSConfigForIngresses(t *testing.T) {
 				"tls.key": []byte("asdf"),
 				"tls.crt": []byte("qwer"),
 			},
-		},
-		&networkingv1.Ingress{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "wsid-m1-9999-e1",
-				Namespace: "ws",
-			},
-			Spec: networkingv1.IngressSpec{
-				TLS: []networkingv1.IngressTLS{
-					{
-						SecretName: "new-secret",
-					},
-				},
-			},
 		})
 
 	assert.Equal(t, 3, len(objs.Ingresses))
@@ -90,14 +76,17 @@ func TestExternalTLSConfigForIngresses(t *testing.T) {
 	// secure endpoint with custom TLS secret
 	ingress := objs.Ingresses[0]
 	assert.Equal(t, 1, len(ingress.Spec.TLS))
-	assert.Equal(t, "new-secret", ingress.Spec.TLS[0].SecretName)
+	assert.Equal(t, "username-my-workspace-e1.almost.trivial", ingress.Spec.TLS[0].Hosts[0])
+	assert.Equal(t, "e1-tls", ingress.Spec.TLS[0].SecretName)
 	assert.Equal(t, "annotation_value", ingress.Annotations["annotation_key"])
 	assert.Equal(t, "label_value", ingress.Labels["label_key"])
 	assert.NotContains(t, ingress.Annotations, "default_annotation_key")
 
 	// secure endpoint, no custom TLS secret has been set so far
 	ingress = objs.Ingresses[1]
-	assert.Empty(t, ingress.Spec.TLS)
+	assert.Equal(t, 1, len(ingress.Spec.TLS))
+	assert.Equal(t, "username-my-workspace-e2.almost.trivial", ingress.Spec.TLS[0].Hosts[0])
+	assert.Equal(t, "e2-tls", ingress.Spec.TLS[0].SecretName)
 	assert.Equal(t, "annotation_value", ingress.Annotations["annotation_key"])
 	assert.Equal(t, "label_value", ingress.Labels["label_key"])
 	assert.NotContains(t, ingress.Annotations, "default_annotation_key")

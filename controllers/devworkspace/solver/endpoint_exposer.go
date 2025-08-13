@@ -217,12 +217,10 @@ func (e *RouteExposer) getRouteForService(
 }
 
 func (e *IngressExposer) getIngressForService(
-	ctx context.Context,
 	endpoint *EndpointInfo,
 	endpointStrategy EndpointStrategy,
-	cl client.Client,
 	cheCluster *chev2.CheCluster,
-) (*networkingv1.Ingress, error) {
+) networkingv1.Ingress {
 	annotations := map[string]string{}
 	utils.AddMap(annotations, endpoint.annotations)
 	utils.AddMap(annotations, map[string]string{
@@ -254,7 +252,7 @@ func (e *IngressExposer) getIngressForService(
 	hostname := endpointStrategy.getHostname(endpoint, e.baseDomain)
 	ingressPathType := networkingv1.PathTypeImplementationSpecific
 
-	ingress := &networkingv1.Ingress{
+	ingress := networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            getEndpointExposingObjectName(endpoint.componentName, e.devWorkspaceID, endpoint.port, endpoint.endpointName),
 			Namespace:       endpoint.service.Namespace,
@@ -291,13 +289,13 @@ func (e *IngressExposer) getIngressForService(
 
 	if isSecureScheme(endpoint.scheme) {
 		if cheCluster.IsDevEnvironmentExternalTLSConfigEnabled() {
-			// fetch existed ingress from the cluster and copy TLS config
-			// in order avoid resyncing by devworkspace controller
-			clusterIngress := &networkingv1.Ingress{}
-			if err := cl.Get(ctx, client.ObjectKey{Name: ingress.Name, Namespace: ingress.Namespace}, clusterIngress); err == nil {
-				ingress.Spec.TLS = clusterIngress.Spec.TLS
-			} else if !errors.IsNotFound(err) {
-				return nil, err
+			// Set individual TLS secret for each endpoint
+			// Cert-manager will create a new certificate for each endpoint
+			ingress.Spec.TLS = []networkingv1.IngressTLS{
+				{
+					Hosts:      []string{hostname},
+					SecretName: endpoint.endpointName + "-tls",
+				},
 			}
 		} else if e.tlsSecretName != "" {
 			ingress.Spec.TLS = []networkingv1.IngressTLS{
@@ -309,5 +307,5 @@ func (e *IngressExposer) getIngressForService(
 		}
 	}
 
-	return ingress, nil
+	return ingress
 }

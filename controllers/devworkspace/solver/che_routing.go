@@ -463,11 +463,9 @@ func (c *CheRoutingSolver) getInfraSpecificExposer(cheCluster *chev2.CheCluster,
 			return nil, err
 		}
 		return func(info *EndpointInfo) error {
-			ingress, err := exposer.getIngressForService(context.TODO(), info, endpointStrategy, c.client, cheCluster)
-			if ingress != nil {
-				objs.Ingresses = append(objs.Ingresses, *ingress)
-			}
-			return err
+			ingress := exposer.getIngressForService(info, endpointStrategy, cheCluster)
+			objs.Ingresses = append(objs.Ingresses, ingress)
+			return nil
 		}, nil
 	}
 }
