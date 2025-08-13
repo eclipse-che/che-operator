@@ -94,8 +94,7 @@ components:
   - name: editor-injector
     container:
       image: quay.io/che-incubator/che-idea-dev-server:latest
-      command:
-        - /entrypoint-init-container.sh
+      command: ['/entrypoint-init-container.sh', 'idea', 'che-incubator/che-idea-server/latest']
       volumeMounts:
         - name: idea-server
           path: /idea-server
