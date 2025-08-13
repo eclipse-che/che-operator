@@ -77,7 +77,7 @@ func TestExternalTLSConfigForIngresses(t *testing.T) {
 	ingress := objs.Ingresses[0]
 	assert.Equal(t, 1, len(ingress.Spec.TLS))
 	assert.Equal(t, "username-my-workspace-e1.almost.trivial", ingress.Spec.TLS[0].Hosts[0])
-	assert.Equal(t, "e1-tls", ingress.Spec.TLS[0].SecretName)
+	assert.Equal(t, "wsid-e1-tls", ingress.Spec.TLS[0].SecretName)
 	assert.Equal(t, "annotation_value", ingress.Annotations["annotation_key"])
 	assert.Equal(t, "label_value", ingress.Labels["label_key"])
 	assert.NotContains(t, ingress.Annotations, "default_annotation_key")
@@ -86,7 +86,7 @@ func TestExternalTLSConfigForIngresses(t *testing.T) {
 	ingress = objs.Ingresses[1]
 	assert.Equal(t, 1, len(ingress.Spec.TLS))
 	assert.Equal(t, "username-my-workspace-e2.almost.trivial", ingress.Spec.TLS[0].Hosts[0])
-	assert.Equal(t, "e2-tls", ingress.Spec.TLS[0].SecretName)
+	assert.Equal(t, "wsid-e2-tls", ingress.Spec.TLS[0].SecretName)
 	assert.Equal(t, "annotation_value", ingress.Annotations["annotation_key"])
 	assert.Equal(t, "label_value", ingress.Labels["label_key"])
 	assert.NotContains(t, ingress.Annotations, "default_annotation_key")

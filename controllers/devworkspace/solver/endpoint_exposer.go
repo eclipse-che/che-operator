@@ -290,11 +290,11 @@ func (e *IngressExposer) getIngressForService(
 	if isSecureScheme(endpoint.scheme) {
 		if cheCluster.IsDevEnvironmentExternalTLSConfigEnabled() {
 			// Set individual TLS secret for each endpoint
-			// Cert-manager will create a new certificate for each endpoint
+			// cert-manager will create a new certificate for each ingress
 			ingress.Spec.TLS = []networkingv1.IngressTLS{
 				{
 					Hosts:      []string{hostname},
-					SecretName: endpoint.endpointName + "-tls",
+					SecretName: fmt.Sprintf("%s-%s-tls", e.devWorkspaceID, endpoint.endpointName),
 				},
 			}
 		} else if e.tlsSecretName != "" {
