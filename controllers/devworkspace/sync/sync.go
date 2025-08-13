@@ -66,22 +66,6 @@ func (s *Syncer) Sync(ctx context.Context, owner client.Object, blueprint client
 	return s.update(ctx, owner, actual, blueprint, diffOpts)
 }
 
-// Delete deletes the supplied object from the cluster.
-func (s *Syncer) Delete(ctx context.Context, object client.Object) error {
-	key := client.ObjectKey{Name: object.GetName(), Namespace: object.GetNamespace()}
-
-	var err error
-	if err = s.client.Get(ctx, key, object); err == nil {
-		err = s.client.Delete(ctx, object)
-	}
-
-	if err != nil && !errors.IsNotFound(err) {
-		return err
-	}
-
-	return nil
-}
-
 func (s *Syncer) create(ctx context.Context, owner client.Object, key client.ObjectKey, blueprint client.Object) (client.Object, error) {
 	actual := blueprint.DeepCopyObject().(client.Object)
 	kind := deploy.GetObjectType(blueprint)
