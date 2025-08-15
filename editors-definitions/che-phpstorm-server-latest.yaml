@@ -13,7 +13,7 @@
 schemaVersion: 2.3.0
 metadata:
   name: che-phpstorm-server
-  displayName: JetBrains PhpStorm 2024.2.3 (desktop)
+  displayName: JetBrains PhpStorm (desktop)
   description: JetBrains PhpStorm for Eclipse Che - latest
   tags:
     - Tech-Preview
