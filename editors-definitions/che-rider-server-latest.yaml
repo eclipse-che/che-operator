@@ -1,0 +1,108 @@
+#
+# Copyright (c) 2025 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Red Hat, Inc. - initial API and implementation
+#
+
+schemaVersion: 2.3.0
+metadata:
+  name: che-rider-server
+  displayName: JetBrains Rider (desktop)
+  description: JetBrains Rider for Eclipse Che - latest
+  tags:
+    - Tech-Preview
+  attributes:
+    arch:
+      - x86_64
+      - arm64
+    publisher: che-incubator
+    version: latest
+    provider: Provided by [JetBrains](https://www.jetbrains.com/) under [License](https://www.jetbrains.com/legal/docs/toolbox/user/)
+    title: JetBrains Rider for Eclipse Che - latest
+    repository: https://github.com/che-incubator/che-idea-dev-server
+    firstPublicationDate: '2024-18-09'
+    iconMediatype: image/svg+xml
+    iconData: |
+      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <g clip-path="url(#clip0_4372_12624)">
+      <path d="M48.0521 58.182L59.9276 58.1802C62.1769 58.1802 63.9998 56.3568 63.9998 54.1075V42.6009C63.9998 41.4123 63.4802 40.2824 62.5778 39.5085L24.4164 6.79872C23.678 6.16629 22.7378 5.81836 21.7656 5.81836H9.89011C7.6408 5.81836 5.81738 7.64178 5.81738 9.89109V21.3994C5.81738 22.5881 6.33695 23.718 7.23935 24.4918L45.4002 57.201C46.1385 57.8341 47.0788 58.1814 48.0516 58.1814L48.0521 58.182Z" fill="#007DFE"/>
+      <path d="M49.4807 58.1818H59.9272C62.1765 58.1818 64 56.3584 64 54.1091V41.0164C64 40.8239 63.986 40.6313 63.9592 40.4404L58.6816 3.49673C58.3947 1.49004 56.6766 0 54.6496 0H38.9765C36.7266 0 34.9032 1.824 34.9038 4.07389L34.9085 22.6124C34.9085 23.0499 34.9789 23.4845 35.1173 23.8993L45.6168 55.3972C46.1713 57.0601 47.7277 58.1818 49.4807 58.1818Z" fill="url(#paint0_linear_4372_12624)"/>
+      <path d="M4.07273 64H38.041C39.6701 64 41.1427 63.0289 41.7844 61.5319L57.8525 24.0413C58.0695 23.5345 58.1818 22.9882 58.1818 22.4367V4.07273C58.1818 1.82342 56.3584 0 54.1091 0H36.1431C35.3385 0 34.5519 0.238545 33.8822 0.685382L1.81353 22.0881C0.681309 22.8439 0.00174545 24.1146 0.00174545 25.4755L0 59.9273C0 62.1766 1.82342 64 4.07273 64Z" fill="url(#paint1_linear_4372_12624)"/>
+      <path d="M52 12H12V52H52V12Z" fill="black"/>
+      <path d="M20.0256 26.3349H22.5499L25.779 31.9999H29.1327L25.5615 25.9916C25.7997 25.9159 26.0528 25.8608 26.2721 25.7592C27.0865 25.3574 27.7116 24.8081 28.1472 24.0987C28.5897 23.3887 28.8113 22.572 28.8113 21.6341C28.8113 20.6962 28.5932 19.9065 28.1575 19.2103C27.7288 18.514 27.1146 17.9647 26.3145 17.5767C25.5144 17.1882 24.5892 17.0005 23.5394 17.0005H17.1001V31.9999H20.025V26.3349H20.0256ZM20.0256 19.4375H23.3471C23.8402 19.4375 24.2683 19.5317 24.6328 19.7056C25.0042 19.8933 25.29 20.1475 25.4897 20.4827C25.6895 20.8174 25.7899 21.2059 25.7899 21.6611C25.7899 22.1162 25.6901 22.5048 25.4897 22.8532C25.2894 23.1878 25.0042 23.4427 24.6328 23.6298C24.2683 23.8169 23.8402 23.8978 23.3471 23.8978H20.0256V19.4381V19.4375Z" fill="white"/>
+      <path d="M43.4541 20.643C42.8182 19.5048 41.936 18.6071 40.8076 17.9643C39.686 17.3214 38.4147 17 36.9936 17H31.2832V31.9994H36.9936C38.4147 31.9994 39.686 31.678 40.8076 31.0352C41.936 30.3923 42.8182 29.5084 43.4541 28.3702C44.0895 27.2183 44.4075 25.9326 44.4075 24.5C44.4075 23.0674 44.0895 21.7811 43.4541 20.643ZM40.8615 27.1517C40.4971 27.9019 39.9793 28.477 39.3078 28.8656C38.6363 29.2679 37.854 29.4682 36.9614 29.4682H34.2081V19.5312H36.9614C37.854 19.5312 38.6363 19.7321 39.3078 20.1333C39.9793 20.5218 40.4971 21.0981 40.8615 21.8477C41.226 22.5979 41.4079 23.4812 41.4079 24.4994C41.4079 25.5176 41.226 26.4015 40.8615 27.1517Z" fill="white"/>
+      <path d="M33 44H17V47H33V44Z" fill="white"/>
+      </g>
+      <defs>
+      <linearGradient id="paint0_linear_4372_12624" x1="64.7173" y1="56.3782" x2="39.8545" y2="2.75258" gradientUnits="userSpaceOnUse">
+      <stop offset="0.21" stop-color="#007DFE"/>
+      <stop offset="0.55" stop-color="#FFB700"/>
+      </linearGradient>
+      <linearGradient id="paint1_linear_4372_12624" x1="59.7777" y1="3.98138" x2="1.07287" y2="62.6868" gradientUnits="userSpaceOnUse">
+      <stop offset="0.23" stop-color="#FFB700"/>
+      <stop offset="0.73" stop-color="#FF0A67"/>
+      </linearGradient>
+      <clipPath id="clip0_4372_12624">
+      <rect width="64" height="64" fill="white"/>
+      </clipPath>
+      </defs>
+      </svg>
+commands:
+  - id: inject-editor
+    apply:
+      component: editor-injector
+  - id: start-ide-server
+    exec:
+      component: editor-runtime
+      commandLine: nohup /idea-server/entrypoint-volume.sh > /idea-server/std.out
+        2>&1 &
+events:
+  preStart:
+    - inject-editor
+  postStart:
+    - start-ide-server
+components:
+  - name: idea-server
+    volume: {}
+  - name: editor-injector
+    container:
+      image: quay.io/che-incubator/che-idea-dev-server:latest
+      command: ['/entrypoint-init-container.sh', 'rider', 'che-incubator/che-rider-server/latest']
+      volumeMounts:
+        - name: idea-server
+          path: /idea-server
+      memoryLimit: 256Mi
+      memoryRequest: 32Mi
+      cpuLimit: 500m
+      cpuRequest: 30m
+  - name: editor-runtime
+    container:
+      image: quay.io/devfile/universal-developer-image:latest
+      memoryLimit: 6144Mi
+      memoryRequest: 2048Mi
+      cpuLimit: 2000m
+      cpuRequest: 1500m
+      volumeMounts:
+        - name: idea-server
+          path: /idea-server
+      endpoints:
+        - name: idea-server
+          attributes:
+            type: main
+            cookiesAuthEnabled: true
+            discoverable: false
+            urlRewriteSupported: true
+          targetPort: 3400
+          exposure: public
+          secure: true
+          protocol: https
+    attributes:
+      app.kubernetes.io/component: editor-runtime
+      app.kubernetes.io/part-of: ide-server.eclipse.org
+      controller.devfile.io/container-contribution: true
