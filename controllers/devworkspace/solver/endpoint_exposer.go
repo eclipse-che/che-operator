@@ -191,8 +191,13 @@ func (e *RouteExposer) getRouteForService(
 	}
 
 	if isSecureScheme(endpoint.scheme) {
+		route.Spec.TLS = &routev1.TLSConfig{
+			InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+			Termination:                   routev1.TLSTerminationEdge,
+		}
+
 		if cheCluster.IsDevEnvironmentExternalTLSConfigEnabled() {
-			// fetch existed route from the cluster and copy TLS config
+			// fetch existed route from the cluster and copy TLS config (certificates)
 			// in order avoid resyncing by devworkspace controller
 			clusterRoute := &routev1.Route{}
 			if err := cl.Get(ctx, client.ObjectKey{Name: route.Name, Namespace: route.Namespace}, clusterRoute); err == nil {
@@ -201,11 +206,6 @@ func (e *RouteExposer) getRouteForService(
 				return nil, err
 			}
 		} else {
-			route.Spec.TLS = &routev1.TLSConfig{
-				InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
-				Termination:                   routev1.TLSTerminationEdge,
-			}
-
 			if e.tlsSecretKey != "" {
 				route.Spec.TLS.Key = e.tlsSecretKey
 				route.Spec.TLS.Certificate = e.tlsSecretCertificate
@@ -288,22 +288,19 @@ func (e *IngressExposer) getIngressForService(
 	}
 
 	if isSecureScheme(endpoint.scheme) {
+		ingress.Spec.TLS = []networkingv1.IngressTLS{
+			{
+				Hosts: []string{hostname},
+			},
+		}
+
 		if cheCluster.IsDevEnvironmentExternalTLSConfigEnabled() {
 			// Set individual TLS secret for each endpoint
-			// cert-manager will create a new certificate for each ingress
-			ingress.Spec.TLS = []networkingv1.IngressTLS{
-				{
-					Hosts:      []string{hostname},
-					SecretName: fmt.Sprintf("%s-%s-tls", e.devWorkspaceID, endpoint.endpointName),
-				},
-			}
+			// (external tool like cert-manager will create the tls secret for each ingress)
+			ingress.Spec.TLS[0].SecretName = fmt.Sprintf("%s-%s-tls", e.devWorkspaceID, endpoint.endpointName)
 		} else if e.tlsSecretName != "" {
-			ingress.Spec.TLS = []networkingv1.IngressTLS{
-				{
-					Hosts:      []string{hostname},
-					SecretName: e.tlsSecretName,
-				},
-			}
+			// Set the same existed secret name for each endpoint
+			ingress.Spec.TLS[0].SecretName = e.tlsSecretName
 		}
 	}
 

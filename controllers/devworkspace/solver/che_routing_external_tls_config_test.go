@@ -151,7 +151,9 @@ func TestExternalTLSConfigForRoutes(t *testing.T) {
 			},
 			Spec: routev1.RouteSpec{
 				TLS: &routev1.TLSConfig{
-					CACertificate: "certificate",
+					CACertificate:                 "certificate",
+					Termination:                   routev1.TLSTerminationEdge,
+					InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
 				},
 			},
 		})
@@ -161,6 +163,8 @@ func TestExternalTLSConfigForRoutes(t *testing.T) {
 	// secure endpoint with custom TLS secret
 	route := objs.Routes[0]
 	assert.NotEmpty(t, route.Spec.TLS)
+	assert.Equal(t, routev1.InsecureEdgeTerminationPolicyRedirect, route.Spec.TLS.InsecureEdgeTerminationPolicy)
+	assert.Equal(t, routev1.TLSTerminationEdge, route.Spec.TLS.Termination)
 	assert.Equal(t, "certificate", route.Spec.TLS.CACertificate)
 	assert.Equal(t, "annotation_value", route.Annotations["annotation_key"])
 	assert.Equal(t, "label_value", route.Labels["label_key"])
@@ -168,7 +172,8 @@ func TestExternalTLSConfigForRoutes(t *testing.T) {
 
 	// secure endpoint, no custom TLS secret has been set so far
 	route = objs.Routes[1]
-	assert.Empty(t, route.Spec.TLS)
+	assert.Equal(t, routev1.InsecureEdgeTerminationPolicyRedirect, route.Spec.TLS.InsecureEdgeTerminationPolicy)
+	assert.Equal(t, routev1.TLSTerminationEdge, route.Spec.TLS.Termination)
 	assert.Equal(t, "annotation_value", route.Annotations["annotation_key"])
 	assert.Equal(t, "label_value", route.Labels["label_key"])
 	assert.NotContains(t, route.Labels, "default_label_key")
