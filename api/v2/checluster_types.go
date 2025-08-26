@@ -122,6 +122,10 @@ type CheClusterDevEnvironments struct {
 	// These default components are meant to be used when a Devfile, that does not contain any components.
 	// +optional
 	DefaultComponents []devfile.Component `json:"defaultComponents,omitempty"`
+	// DefaultContainerResources defines the resource requirements (memory/cpu limit/request) used for
+	// container components that do not define limits or requests.
+	// +optional
+	DefaultContainerResources *corev1.ResourceRequirements `json:"defaultContainerResources,omitempty"`
 	// Idle timeout for workspaces in seconds.
 	// This timeout is the duration after which a workspace will be idled if there is no activity.
 	// To disable workspace idling due to inactivity, set this value to -1.
