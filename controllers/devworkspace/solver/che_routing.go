@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2025 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -444,29 +444,33 @@ func normalize(username string) string {
 	return strings.ToLower(result)
 }
 
-func (c *CheRoutingSolver) getInfraSpecificExposer(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects, endpointStrategy EndpointStrategy) (func(info *EndpointInfo), error) {
+func (c *CheRoutingSolver) getInfraSpecificExposer(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects, endpointStrategy EndpointStrategy) (func(info *EndpointInfo) error, error) {
 	if infrastructure.IsOpenShift() {
 		exposer := &RouteExposer{}
 		if err := exposer.initFrom(context.TODO(), c.client, cheCluster, routing); err != nil {
 			return nil, err
 		}
-		return func(info *EndpointInfo) {
-			route := exposer.getRouteForService(info, endpointStrategy)
-			objs.Routes = append(objs.Routes, route)
+		return func(info *EndpointInfo) error {
+			route, err := exposer.getRouteForService(context.TODO(), info, endpointStrategy, c.client, cheCluster)
+			if route != nil {
+				objs.Routes = append(objs.Routes, *route)
+			}
+			return err
 		}, nil
 	} else {
 		exposer := &IngressExposer{}
-		if err := exposer.initFrom(context.TODO(), c.client, cheCluster, routing, dwdefaults.GetIngressAnnotations(cheCluster)); err != nil {
+		if err := exposer.initFrom(context.TODO(), c.client, cheCluster, routing); err != nil {
 			return nil, err
 		}
-		return func(info *EndpointInfo) {
-			ingress := exposer.getIngressForService(info, endpointStrategy)
+		return func(info *EndpointInfo) error {
+			ingress := exposer.getIngressForService(info, endpointStrategy, cheCluster)
 			objs.Ingresses = append(objs.Ingresses, ingress)
+			return nil
 		}, nil
 	}
 }
 
-func exposeAllEndpoints(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects, ingressExpose func(*EndpointInfo), endpointStrategy EndpointStrategy) (*corev1.ConfigMap, error) {
+func exposeAllEndpoints(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects, ingressExpose func(*EndpointInfo) error, endpointStrategy EndpointStrategy) (*corev1.ConfigMap, error) {
 	wsRouteConfig := gateway.CreateEmptyTraefikConfig()
 
 	commonService := getCommonService(objs, routing.Spec.DevWorkspaceId)
@@ -503,7 +507,7 @@ func exposeAllEndpoints(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceR
 				if err != nil {
 					return nil, err
 				}
-				ingressExpose(&EndpointInfo{
+				err = ingressExpose(&EndpointInfo{
 					order:         order,
 					componentName: componentName,
 					endpointName:  e.Name,
@@ -512,6 +516,9 @@ func exposeAllEndpoints(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceR
 					service:       service,
 					annotations:   e.Annotations,
 				})
+				if err != nil {
+					return nil, err
+				}
 				order = order + 1
 			}
 		}

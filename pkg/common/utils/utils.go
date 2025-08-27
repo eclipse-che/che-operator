@@ -214,8 +214,10 @@ func CloneMap(m map[string]string) map[string]string {
 }
 
 func AddMap(a map[string]string, b map[string]string) {
-	for k, v := range b {
-		a[k] = v
+	if len(b) > 0 {
+		for k, v := range b {
+			a[k] = v
+		}
 	}
 }
 
