@@ -202,6 +202,62 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 			},
 		},
 		{
+			name: "Create DevWorkspaceOperatorConfig with non empty default container resources",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DefaultContainerResources: &corev1.ResourceRequirements{
+							Limits: corev1.ResourceList{
+								corev1.ResourceMemory: resource.MustParse("128Mi"),
+							},
+							Requests: corev1.ResourceList{
+								corev1.ResourceMemory: resource.MustParse("64Mi"),
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					DefaultContainerResources: &corev1.ResourceRequirements{
+						Limits: corev1.ResourceList{
+							corev1.ResourceMemory: resource.MustParse("128Mi"),
+						},
+						Requests: corev1.ResourceList{
+							corev1.ResourceMemory: resource.MustParse("64Mi"),
+						},
+					},
+					DeploymentStrategy: "Recreate",
+				},
+			},
+		},
+		{
+			name: "Create DevWorkspaceOperatorConfig with nil default container resources",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DefaultContainerResources:         nil,
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					DefaultContainerResources: nil,
+					DeploymentStrategy:        "Recreate",
+				},
+			},
+		},
+		{
 			name: "Create DevWorkspaceOperatorConfig with per-user storage strategy",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{

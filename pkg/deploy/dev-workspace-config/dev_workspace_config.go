@@ -105,6 +105,8 @@ func updateWorkspaceConfig(ctx *chetypes.DeployContext, operatorConfig *controll
 
 	updateWorkspaceImagePullPolicy(devEnvironments.ImagePullPolicy, operatorConfig.Workspace)
 
+	updateWorkspaceDefaultContainerResources(devEnvironments.DefaultContainerResources, operatorConfig.Workspace)
+
 	updateAnnotations(devEnvironments.WorkspacesPodAnnotations, operatorConfig.Workspace)
 
 	updateIgnoredUnrecoverableEvents(devEnvironments.IgnoredUnrecoverableEvents, operatorConfig.Workspace)
@@ -122,6 +124,10 @@ func updateWorkspaceConfig(ctx *chetypes.DeployContext, operatorConfig *controll
 
 	operatorConfig.Workspace.DeploymentStrategy = v1.DeploymentStrategyType(utils.GetValue(string(devEnvironments.DeploymentStrategy), constants.DefaultDeploymentStrategy))
 	return nil
+}
+
+func updateWorkspaceDefaultContainerResources(resources *corev1.ResourceRequirements, workspace *controllerv1alpha1.WorkspaceConfig) {
+	workspace.DefaultContainerResources = resources
 }
 
 func updateSecurityContext(operatorConfig *controllerv1alpha1.OperatorConfiguration, cheCluster *chev2.CheCluster) error {
