@@ -229,11 +229,6 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
-	if err = r.reconcileProxySettings(ctx, req.Name, checluster, deployContext); err != nil {
-		logrus.Errorf("Failed to reconcile proxy settings into namespace '%s': %v", req.Name, err)
-		return ctrl.Result{}, err
-	}
-
 	// Deprecated [CRW-6792].
 	// All certificates are mounted into /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 	// and automatically added to the system trust store.
@@ -243,13 +238,8 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
-	if err = r.reconcileIdleSettings(ctx, req.Name, checluster, deployContext); err != nil {
-		logrus.Errorf("Failed to reconcile idle settings into namespace '%s': %v", req.Name, err)
-		return ctrl.Result{}, err
-	}
-
-	if err = r.reconcileEditorSettings(deployContext, req.Name, checluster); err != nil {
-		logrus.Errorf("Failed to reconcile editor settings into namespace '%s': %v", req.Name, err)
+	if err = r.reconcileUserSettings(deployContext, req.Name, checluster); err != nil {
+		logrus.Errorf("Failed to reconcile user settings into namespace '%s': %v", req.Name, err)
 		return ctrl.Result{}, err
 	}
 
@@ -333,143 +323,44 @@ func (r *CheUserNamespaceReconciler) reconcileTrustedCerts(ctx context.Context, 
 	return err
 }
 
-func (r *CheUserNamespaceReconciler) reconcileProxySettings(ctx context.Context, targetNs string, checluster *chev2.CheCluster, deployContext *chetypes.DeployContext) error {
-	if err := deleteLegacyObject("proxy-settings", &corev1.ConfigMap{}, targetNs, checluster, deployContext); err != nil {
-		return err
-	}
-	proxyConfig, err := che.GetProxyConfiguration(deployContext)
-	if err != nil {
-		return err
-	}
-
-	if proxyConfig == nil {
-		return nil
-	}
-
-	proxySettings := map[string]string{}
-	if proxyConfig.HttpProxy != "" {
-		proxySettings["HTTP_PROXY"] = proxyConfig.HttpProxy
-		proxySettings["http_proxy"] = proxyConfig.HttpProxy
-	}
-	if proxyConfig.HttpsProxy != "" {
-		proxySettings["HTTPS_PROXY"] = proxyConfig.HttpsProxy
-		proxySettings["https_proxy"] = proxyConfig.HttpsProxy
-	}
-	if proxyConfig.NoProxy != "" {
-		proxySettings["NO_PROXY"] = proxyConfig.NoProxy
-		proxySettings["no_proxy"] = proxyConfig.NoProxy
-	}
-
-	key := client.ObjectKey{Name: prefixedName("proxy-settings"), Namespace: targetNs}
-	cfg := &corev1.ConfigMap{}
-	exists := true
-	if err := r.client.Get(ctx, key, cfg); err != nil {
-		if errors.IsNotFound(err) {
-			exists = false
-		} else {
-			return err
-		}
-	}
-
-	if len(proxySettings) == 0 {
-		if exists {
-			if err := r.client.Delete(ctx, cfg); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-
-	requiredLabels := defaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
-		dwconstants.DevWorkspaceMountLabel:          "true",
-		dwconstants.DevWorkspaceWatchConfigMapLabel: "true",
-	})
-	requiredAnnos := map[string]string{
-		dwconstants.DevWorkspaceMountAsAnnotation: "env",
-	}
-
-	cfg = &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        prefixedName("proxy-settings"),
-			Namespace:   targetNs,
-			Labels:      requiredLabels,
-			Annotations: requiredAnnos,
-		},
-		Data: proxySettings,
-	}
-
-	_, err = deploy.Sync(deployContext, cfg, deploy.ConfigMapDiffOpts)
-	return err
-}
-
-func (r *CheUserNamespaceReconciler) reconcileIdleSettings(ctx context.Context, targetNs string, checluster *chev2.CheCluster, deployContext *chetypes.DeployContext) error {
-
-	if checluster.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling == nil && checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling == nil {
-		return nil
-	}
-	configMapName := prefixedName("idle-settings")
-	cfg := &corev1.ConfigMap{}
-
-	requiredLabels := defaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
-		dwconstants.DevWorkspaceMountLabel:          "true",
-		dwconstants.DevWorkspaceWatchConfigMapLabel: "true",
-	})
-	requiredAnnos := map[string]string{
-		dwconstants.DevWorkspaceMountAsAnnotation: "env",
-	}
-
-	data := map[string]string{}
-
-	if checluster.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling != nil {
-		data["SECONDS_OF_DW_INACTIVITY_BEFORE_IDLING"] = strconv.FormatInt(int64(*checluster.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling), 10)
-	}
-
-	if checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling != nil {
-		data["SECONDS_OF_DW_RUN_BEFORE_IDLING"] = strconv.FormatInt(int64(*checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling), 10)
-	}
-
-	cfg = &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        configMapName,
-			Namespace:   targetNs,
-			Labels:      requiredLabels,
-			Annotations: requiredAnnos,
-		},
-		Data: data,
-	}
-	_, err := deploy.Sync(deployContext, cfg, deploy.ConfigMapDiffOpts)
-	return err
-}
-
-func (r *CheUserNamespaceReconciler) reconcileEditorSettings(
+func (r *CheUserNamespaceReconciler) reconcileUserSettings(
 	deployContext *chetypes.DeployContext,
 	targetNs string,
 	checluster *chev2.CheCluster,
 ) error {
-	name := prefixedName("editor-settings")
+	cm2Delete := []string{
+		prefixedName("editor-settings"),
+		prefixedName("idle-settings"),
+		prefixedName("proxy-settings"),
+		checluster.Name + "-" + checluster.Namespace + "-proxy-settings", // legacy name
+	}
+
+	// delete previously created CMs
+	for _, name := range cm2Delete {
+		if _, err := deploy.Delete(
+			deployContext,
+			client.ObjectKey{Name: name, Namespace: targetNs},
+			&corev1.ConfigMap{},
+		); err != nil {
+			return err
+		}
+	}
+
+	name := prefixedName("user-settings")
 
 	annotations := map[string]string{
 		dwconstants.DevWorkspaceMountAsAnnotation: "env",
 	}
-	labels := defaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
-		dwconstants.DevWorkspaceMountLabel:          "true",
-		dwconstants.DevWorkspaceWatchConfigMapLabel: "true",
-	})
-
-	delConfigMap := func() error {
-		_, err := deploy.Delete(deployContext, client.ObjectKey{Name: name, Namespace: targetNs}, &corev1.ConfigMap{})
-		return err
-	}
+	labels := defaults.AddStandardLabelsForComponent(checluster,
+		userSettingsComponentLabelValue,
+		map[string]string{
+			dwconstants.DevWorkspaceMountLabel:          "true",
+			dwconstants.DevWorkspaceWatchConfigMapLabel: "true",
+		})
 
 	data := map[string]string{}
+
+	// editor download urls
 	if len(deployContext.CheCluster.Spec.DevEnvironments.EditorsDownloadUrls) > 0 {
 		for _, editorDownloadUrl := range deployContext.CheCluster.Spec.DevEnvironments.EditorsDownloadUrls {
 			editor := strings.ToUpper(editorDownloadUrl.Editor)
@@ -477,8 +368,32 @@ func (r *CheUserNamespaceReconciler) reconcileEditorSettings(
 			editor = strings.ReplaceAll(editor, "/", "_")
 			data[fmt.Sprintf("EDITOR_DOWNLOAD_URL_%s", editor)] = editorDownloadUrl.Url
 		}
-	} else {
-		return delConfigMap()
+	}
+
+	// idling configuration
+	if checluster.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling != nil {
+		data["SECONDS_OF_DW_INACTIVITY_BEFORE_IDLING"] = strconv.FormatInt(int64(*checluster.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling), 10)
+	}
+	if checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling != nil {
+		data["SECONDS_OF_DW_RUN_BEFORE_IDLING"] = strconv.FormatInt(int64(*checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling), 10)
+	}
+
+	// proxy settings
+	if proxyConfig, err := che.GetProxyConfiguration(deployContext); err != nil {
+		return err
+	} else if proxyConfig != nil {
+		if proxyConfig.HttpProxy != "" {
+			data["HTTP_PROXY"] = proxyConfig.HttpProxy
+			data["http_proxy"] = proxyConfig.HttpProxy
+		}
+		if proxyConfig.HttpsProxy != "" {
+			data["HTTPS_PROXY"] = proxyConfig.HttpsProxy
+			data["https_proxy"] = proxyConfig.HttpsProxy
+		}
+		if proxyConfig.NoProxy != "" {
+			data["NO_PROXY"] = proxyConfig.NoProxy
+			data["no_proxy"] = proxyConfig.NoProxy
+		}
 	}
 
 	cm := &corev1.ConfigMap{
