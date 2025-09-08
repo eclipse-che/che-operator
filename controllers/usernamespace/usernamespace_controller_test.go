@@ -254,25 +254,28 @@ func TestCreatesDataInNamespace(t *testing.T) {
 
 		assert.False(t, res.Requeue, "The reconciliation request should have succeeded but it is requesting a requeue")
 
-		idleSettings := corev1.ConfigMap{}
-		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-idle-settings", Namespace: namespace.GetName()}, &idleSettings))
+		userSettings := corev1.ConfigMap{}
+		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-user-settings", Namespace: namespace.GetName()}, &userSettings))
 
-		assert.Equal(t, "env", idleSettings.GetAnnotations()[dwconstants.DevWorkspaceMountAsAnnotation],
-			"idle settings should be annotated as mount as 'env'")
+		assert.Equal(t, "env", userSettings.GetAnnotations()[dwconstants.DevWorkspaceMountAsAnnotation],
+			"user settings should be annotated as mount as 'env'")
 
-		assert.Equal(t, "true", idleSettings.GetLabels()[dwconstants.DevWorkspaceMountLabel],
-			"idle settings should be labeled as mounted")
+		assert.Equal(t, "true", userSettings.GetLabels()[dwconstants.DevWorkspaceMountLabel],
+			"user settings should be labeled as mounted")
 
-		assert.Equal(t, 2, len(idleSettings.Data), "Expecting 2 elements in the idle settings")
+		assert.Equal(t, "1800", userSettings.Data["SECONDS_OF_DW_INACTIVITY_BEFORE_IDLING"], "Unexpected user settings")
+		assert.Equal(t, "-1", userSettings.Data["SECONDS_OF_DW_RUN_BEFORE_IDLING"], "Unexpected user settings")
 
-		assert.Equal(t, "1800", idleSettings.Data["SECONDS_OF_DW_INACTIVITY_BEFORE_IDLING"], "Unexpected idle settings")
-		assert.Equal(t, "-1", idleSettings.Data["SECONDS_OF_DW_RUN_BEFORE_IDLING"], "Unexpected idle settings")
+		assert.Equal(t, userSettings.Data["EDITOR_DOWNLOAD_URL_CHE_INCUBATOR_CHE_IDEA_LATEST"], "url_latest")
+		assert.Equal(t, userSettings.Data["EDITOR_DOWNLOAD_URL_CHE_INCUBATOR_CHE_IDEA_NEXT"], "url_next")
 
-		editorSettings := corev1.ConfigMap{}
-		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-editor-settings", Namespace: namespace.GetName()}, &editorSettings))
-		assert.Equal(t, 2, len(editorSettings.Data))
-		assert.Equal(t, editorSettings.Data["EDITOR_DOWNLOAD_URL_CHE_INCUBATOR_CHE_IDEA_LATEST"], "url_latest")
-		assert.Equal(t, editorSettings.Data["EDITOR_DOWNLOAD_URL_CHE_INCUBATOR_CHE_IDEA_NEXT"], "url_next")
+		if infraType == infrastructure.Kubernetes {
+			assert.Equal(t, 4, len(userSettings.Data), "Expecting 2 elements in the user settings")
+		} else {
+			assert.Equal(t, userSettings.Data["NO_PROXY"], ".svc")
+			assert.Equal(t, userSettings.Data["no_proxy"], ".svc")
+			assert.Equal(t, 6, len(userSettings.Data), "Expecting 2 elements in the user settings")
+		}
 
 		cert := corev1.Secret{}
 		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-server-cert", Namespace: namespace.GetName()}, &cert))
