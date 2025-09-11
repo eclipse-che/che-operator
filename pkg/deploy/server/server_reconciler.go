@@ -16,11 +16,13 @@ import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -91,7 +93,21 @@ func (s *CheServerReconciler) syncCheConfigMap(ctx *chetypes.DeployContext) (boo
 		return false, err
 	}
 
-	return deploy.SyncConfigMapDataToCluster(ctx, CheConfigMapName, data, getComponentName(ctx))
+	cm := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        CheConfigMapName,
+			Namespace:   ctx.CheCluster.Namespace,
+			Labels:      deploy.GetLabels(getComponentName(ctx)),
+			Annotations: data,
+		},
+		Data: data,
+	}
+
+	return deploy.Sync(ctx, cm, diffs.ConfigMapAllLabels)
 }
 
 func (s *CheServerReconciler) syncActiveChePhase(ctx *chetypes.DeployContext) (bool, error) {

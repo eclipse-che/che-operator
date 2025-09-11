@@ -17,6 +17,16 @@ import (
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 )
 
+var (
+	DefaultsLabelKeys = []string{
+		constants.KubernetesNameLabelKey,
+		constants.KubernetesInstanceLabelKey,
+		constants.KubernetesPartOfLabelKey,
+		constants.KubernetesComponentLabelKey,
+		constants.KubernetesManagedByLabelKey,
+	}
+)
+
 func GetLabels(component string) map[string]string {
 	return map[string]string{
 		constants.KubernetesNameLabelKey:      defaults.GetCheFlavor(),
@@ -25,19 +35,6 @@ func GetLabels(component string) map[string]string {
 		constants.KubernetesComponentLabelKey: component,
 		constants.KubernetesManagedByLabelKey: GetManagedByLabel(),
 	}
-}
-
-func GetDefaultKubernetesLabelsWith(labels ...string) []string {
-	defaultK8sLabels := append(
-		[]string{
-			constants.KubernetesNameLabelKey,
-			constants.KubernetesInstanceLabelKey,
-			constants.KubernetesPartOfLabelKey,
-			constants.KubernetesComponentLabelKey,
-			constants.KubernetesManagedByLabelKey,
-		}, labels...)
-
-	return defaultK8sLabels
 }
 
 func GetManagedByLabel() string {

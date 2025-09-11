@@ -15,6 +15,8 @@ package expose
 import (
 	"strings"
 
+	"github.com/eclipse-che/che-operator/pkg/common/diffs"
+
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	routev1 "github.com/openshift/api/route/v1"
 
@@ -74,7 +76,7 @@ func exposeWithGateway(deployContext *chetypes.DeployContext,
 	if err != nil {
 		return "", false, err
 	}
-	done, err = deploy.SyncConfigMapSpecToCluster(deployContext, &cfg)
+	done, err = deploy.Sync(deployContext, &cfg, diffs.ConfigMapAllLabels)
 	if !done {
 		if err != nil {
 			logrus.Error(err)
