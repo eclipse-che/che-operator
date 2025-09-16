@@ -21,6 +21,7 @@ import (
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	networkingv1 "k8s.io/api/networking/v1"
@@ -338,6 +339,10 @@ func (r *WorkspacesConfigReconciler) syncObjectsList(
 	}
 
 	for _, srcObj := range srcObjs {
+		if err = ensureGVK(srcObj.(client.Object), r.scheme); err != nil {
+			return err
+		}
+
 		obj2Sync := createObject2SyncFromRuntimeObject(srcObj)
 		if obj2Sync == nil {
 			logger.Info("Object skipped since has unsupported kind",
@@ -345,7 +350,7 @@ func (r *WorkspacesConfigReconciler) syncObjectsList(
 			break
 		}
 
-		if err := r.syncObject(
+		if err = r.syncObject(
 			&syncContext{
 				dstNamespace: dstNamespace,
 				srcNamespace: srcNamespace,
@@ -476,6 +481,10 @@ func (r *WorkspacesConfigReconciler) syncObjectIfDiffers(
 
 	err = r.client.Get(syncContext.ctx, existedDstObjKey, existedDstObj.(client.Object))
 	if err == nil {
+		if err = ensureGVK(existedDstObj.(client.Object), r.scheme); err != nil {
+			return err
+		}
+
 		srcObj := syncContext.object2Sync.getSrcObject()
 
 		srcObjKey := buildKey(syncContext.object2Sync.getGKV(), srcObj.GetName(), syncContext.srcNamespace)
@@ -512,6 +521,10 @@ func (r *WorkspacesConfigReconciler) syncObjectIfDiffers(
 			}
 		}
 	} else if errors.IsNotFound(err) {
+		if err = ensureGVK(existedDstObj.(client.Object), r.scheme); err != nil {
+			return err
+		}
+
 		// destination object does not exist, so it will be created
 		if err = r.doCreateObject(syncContext, dstObj); err != nil {
 			return err
@@ -738,4 +751,14 @@ func gvk2PrintString(gkv schema.GroupVersionKind) string {
 func hasWSConfigComponentLabels(obj metav1.Object) bool {
 	return obj.GetLabels()[constants.KubernetesComponentLabelKey] == constants.WorkspacesConfig &&
 		obj.GetLabels()[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg
+}
+
+func ensureGVK(obj client.Object, scheme *runtime.Scheme) error {
+	gvk, err := apiutil.GVKForObject(obj, scheme)
+	if err != nil {
+		return err
+	}
+
+	obj.GetObjectKind().SetGroupVersionKind(gvk)
+	return nil
 }

@@ -13,6 +13,7 @@
 package imagepuller
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -83,7 +84,7 @@ func (ip *ImagePuller) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result,
 	if ctx.CheCluster.Spec.Components.ImagePuller.Enable {
 		if !utils.IsK8SResourceServed(ctx.ClusterAPI.DiscoveryClient, resourceName) {
 			errMsg := "Kubernetes Image Puller is not installed, in order to enable the property admin should install the operator first"
-			return reconcile.Result{}, false, fmt.Errorf(errMsg)
+			return reconcile.Result{}, false, errors.New(errMsg)
 		}
 
 		if done, err := ip.syncKubernetesImagePuller(defaultImages, ctx); !done {

@@ -158,7 +158,8 @@ func TestImagePullerConfiguration(t *testing.T) {
 				diff := cmp.Diff(
 					testCase.expectedImagePuller,
 					actualImagePuller,
-					cmpopts.IgnoreFields(metav1.ObjectMeta{}, "ResourceVersion", "OwnerReferences"))
+					cmpopts.IgnoreFields(metav1.ObjectMeta{}, "ResourceVersion", "OwnerReferences"),
+					cmpopts.IgnoreFields(chev1alpha1.KubernetesImagePuller{}, "TypeMeta"))
 				if diff != "" {
 					t.Errorf("Expected KubernetesImagePuller and KubernetesImagePuller returned from API server differ (-want, +got): %v", diff)
 				}
