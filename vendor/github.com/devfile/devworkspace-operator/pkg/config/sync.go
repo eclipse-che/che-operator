@@ -431,6 +431,14 @@ func mergeConfig(from, to *controller.OperatorConfiguration) {
 				to.Workspace.CleanupCronJob.Schedule = from.Workspace.CleanupCronJob.Schedule
 			}
 		}
+
+		if from.Workspace.PostStartTimeout != "" {
+			to.Workspace.PostStartTimeout = from.Workspace.PostStartTimeout
+		}
+
+		if from.Workspace.HostUsers != nil {
+			to.Workspace.HostUsers = from.Workspace.HostUsers
+		}
 	}
 }
 
@@ -601,6 +609,9 @@ func GetCurrentConfigString(currConfig *controller.OperatorConfiguration) string
 		if workspace.IdleTimeout != defaultConfig.Workspace.IdleTimeout {
 			config = append(config, fmt.Sprintf("workspace.idleTimeout=%s", workspace.IdleTimeout))
 		}
+		if workspace.PostStartTimeout != defaultConfig.Workspace.PostStartTimeout {
+			config = append(config, fmt.Sprintf("workspace.postStartTimeout=%s", workspace.PostStartTimeout))
+		}
 		if workspace.ProgressTimeout != "" && workspace.ProgressTimeout != defaultConfig.Workspace.ProgressTimeout {
 			config = append(config, fmt.Sprintf("workspace.progressTimeout=%s", workspace.ProgressTimeout))
 		}
@@ -672,6 +683,9 @@ func GetCurrentConfigString(currConfig *controller.OperatorConfiguration) string
 			if workspace.CleanupCronJob.Schedule != defaultConfig.Workspace.CleanupCronJob.Schedule {
 				config = append(config, fmt.Sprintf("workspace.cleanupCronJob.cronJobScript=%s", workspace.CleanupCronJob.Schedule))
 			}
+		}
+		if workspace.HostUsers != nil {
+			config = append(config, fmt.Sprintf("workspace.hostUsers=%t", *workspace.HostUsers))
 		}
 	}
 	if currConfig.EnableExperimentalFeatures != nil && *currConfig.EnableExperimentalFeatures {
