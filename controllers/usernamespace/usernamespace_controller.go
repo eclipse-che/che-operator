@@ -19,6 +19,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/eclipse-che/che-operator/pkg/common/diffs"
+
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -410,7 +412,7 @@ func (r *CheUserNamespaceReconciler) reconcileUserSettings(
 		Data: data,
 	}
 
-	_, err := deploy.Sync(deployContext, cm, deploy.ConfigMapDiffOpts)
+	_, err := deploy.Sync(deployContext, cm, diffs.ConfigMapAllLabels)
 	return err
 }
 
@@ -464,7 +466,7 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 		target.Data["host"] = gitCert.Data["githost"]
 	}
 
-	_, err := deploy.Sync(deployContext, &target, deploy.ConfigMapDiffOpts)
+	_, err := deploy.Sync(deployContext, &target, diffs.ConfigMapAllLabels)
 	return err
 }
 

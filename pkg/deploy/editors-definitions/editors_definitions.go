@@ -18,6 +18,8 @@ import (
 	"path/filepath"
 	"regexp"
 
+	"github.com/eclipse-che/che-operator/pkg/common/diffs"
+
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -159,5 +161,5 @@ func syncEditorDefinitions(ctx *chetypes.DeployContext, editorDefinitions map[st
 		cm.Data[fileName] = string(content)
 	}
 
-	return deploy.Sync(ctx, cm, deploy.ConfigMapDiffOpts)
+	return deploy.Sync(ctx, cm, diffs.ConfigMapAllLabels)
 }

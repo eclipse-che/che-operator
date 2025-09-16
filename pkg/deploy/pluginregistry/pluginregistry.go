@@ -16,6 +16,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/eclipse-che/che-operator/pkg/common/diffs"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 
@@ -98,7 +101,22 @@ func (p *PluginRegistryReconciler) syncConfigMap(ctx *chetypes.DeployContext) (b
 	if err != nil {
 		return false, err
 	}
-	return deploy.SyncConfigMapDataToCluster(ctx, constants.PluginRegistryName, data, constants.PluginRegistryName)
+
+	cm := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        constants.PluginRegistryName,
+			Namespace:   ctx.CheCluster.Namespace,
+			Labels:      deploy.GetLabels(constants.PluginRegistryName),
+			Annotations: data,
+		},
+		Data: data,
+	}
+
+	return deploy.Sync(ctx, cm, diffs.ConfigMapAllLabels)
 }
 
 func (p *PluginRegistryReconciler) ExposeEndpoint(ctx *chetypes.DeployContext) (string, bool, error) {
