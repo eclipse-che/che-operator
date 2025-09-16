@@ -13,45 +13,82 @@
 package k8s_client
 
 import (
+	"context"
+	"reflect"
 	"testing"
 
-	"github.com/eclipse-che/che-operator/pkg/common/test"
+	testclient "github.com/eclipse-che/che-operator/pkg/common/test/test-client"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
-func TestGetExistedObject(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithObjects(
-		&corev1.ConfigMap{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "ConfigMap",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test",
-				Namespace: "eclipse-che",
-			},
-		}).Build()
-	k8sClient := NewK8sClient(ctx.ClusterAPI.Client, ctx.ClusterAPI.Scheme)
+var (
+	diffs = cmp.Options{
+		cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
+		cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
+			return reflect.DeepEqual(x.Labels, y.Labels)
+		}),
+	}
+)
 
-	cm := &corev1.ConfigMap{}
-	exists, err := k8sClient.Get(types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, cm)
+func TestSync(t *testing.T) {
+	fakeClient, _, scheme := testclient.GetTestClients()
+	cli := NewK8sClient(fakeClient, scheme)
 
-	assert.NoError(t, err)
-	assert.True(t, exists)
-	assert.Equal(t, "v1", cm.APIVersion)
-	assert.Equal(t, "ConfigMap", cm.Kind)
-}
+	cm := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "eclipse-che",
+		},
+	}
 
-func TestGetNotExistedObject(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithObjects().Build()
-	k8sClient := NewK8sClient(ctx.ClusterAPI.Client, ctx.ClusterAPI.Scheme)
-
-	cm := &corev1.ConfigMap{}
-	exists, err := k8sClient.Get(types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, cm)
+	done, err := cli.Sync(context.TODO(), cm, nil, diffs)
 
 	assert.NoError(t, err)
-	assert.False(t, exists)
+	assert.True(t, done)
+
+	newCm := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "eclipse-che",
+		},
+		Data: map[string]string{
+			"key": "value",
+		},
+	}
+
+	done, err = cli.Sync(context.TODO(), newCm, nil, diffs)
+
+	assert.NoError(t, err)
+	assert.False(t, done)
+
+	newCm = &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "eclipse-che",
+		},
+		Data: map[string]string{
+			"key": "value",
+		},
+	}
+
+	done, err = cli.Sync(context.TODO(), newCm, nil, diffs)
+
+	assert.NoError(t, err)
+	assert.True(t, done)
 }

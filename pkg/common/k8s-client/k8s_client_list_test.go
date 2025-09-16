@@ -13,83 +13,49 @@
 package k8s_client
 
 import (
+	"context"
 	"testing"
 
-	"github.com/eclipse-che/che-operator/pkg/common/test"
+	testclient "github.com/eclipse-che/che-operator/pkg/common/test/test-client"
 	"github.com/stretchr/testify/assert"
-	corev1 "k8s.io/api/core/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestList(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithObjects(
-		&corev1.ConfigMap{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "ConfigMap",
-				APIVersion: "v1",
-			},
+	fakeClient, _, scheme := testclient.GetTestClients(
+		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "cm1",
+				Name:      "deployment_1",
 				Namespace: "eclipse-che",
+			},
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Deployment",
+				APIVersion: appsv1.SchemeGroupVersion.String(),
 			},
 		},
-		&corev1.ConfigMap{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "ConfigMap",
-				APIVersion: "v1",
-			},
+		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "cm2",
+				Name:      "deployment_2",
 				Namespace: "eclipse-che",
 			},
-		}).Build()
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Deployment",
+				APIVersion: appsv1.SchemeGroupVersion.String(),
+			},
+		})
+	cli := NewK8sClient(fakeClient, scheme)
 
-	k8sClient := NewK8sClient(ctx.ClusterAPI.Client, ctx.ClusterAPI.Scheme)
-	objs, err := k8sClient.List(&corev1.ConfigMapList{})
+	objs, err := cli.List(context.TODO(), &appsv1.DeploymentList{})
 
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(objs))
 
 	for _, obj := range objs {
-		_, ok := obj.(*corev1.ConfigMap)
-		assert.Equal(t, "ConfigMap", obj.GetObjectKind().GroupVersionKind().Kind)
+		_, ok := obj.(*appsv1.Deployment)
+		assert.Equal(t, "Deployment", obj.GetObjectKind().GroupVersionKind().Kind)
 		assert.Equal(t, "v1", obj.GetObjectKind().GroupVersionKind().Version)
-		assert.Equal(t, "", obj.GetObjectKind().GroupVersionKind().Group)
+		assert.Equal(t, "apps", obj.GetObjectKind().GroupVersionKind().Group)
 		assert.True(t, ok)
 	}
 }
-
-//func TestGetExistedObject(t *testing.T) {
-//	ctx := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
-//		TypeMeta: metav1.TypeMeta{
-//			Kind:       "ConfigMap",
-//			APIVersion: "v1",
-//		},
-//		ObjectMeta: metav1.ObjectMeta{
-//			Name:      "test",
-//			Namespace: "eclipse-che",
-//		},
-//	}).Build()
-//	syncer := ObjSyncer{
-//		cli:    ctx.ClusterAPI.Client,
-//		scheme: ctx.ClusterAPI.Scheme,
-//	}
-//
-//	cm := &corev1.ConfigMap{}
-//	exists, err := syncer.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, cm)
-//	assert.NoError(t, err)
-//	assert.True(t, exists)
-//}
-//
-//func TestGetNotExistedObject(t *testing.T) {
-//	ctx := test.NewCtxBuilder().Build()
-//	syncer := ObjSyncer{
-//		cli:    ctx.ClusterAPI.Client,
-//		scheme: ctx.ClusterAPI.Scheme,
-//	}
-//
-//	cm := &corev1.ConfigMap{}
-//	exists, err := syncer.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, cm)
-//	assert.NoError(t, err)
-//	assert.False(t, exists)
-//}

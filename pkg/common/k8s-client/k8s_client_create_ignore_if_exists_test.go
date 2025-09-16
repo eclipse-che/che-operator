@@ -16,14 +16,14 @@ import (
 	"context"
 	"testing"
 
-	"github.com/eclipse-che/che-operator/pkg/common/test"
+	testclient "github.com/eclipse-che/che-operator/pkg/common/test/test-client"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func TestCreate(t *testing.T) {
+func TestCreateIgnoreIfExists(t *testing.T) {
 	cmExpected := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
@@ -38,22 +38,22 @@ func TestCreate(t *testing.T) {
 		},
 	}
 
-	ctx := test.NewCtxBuilder().WithObjects().Build()
-	k8sClient := NewK8sClient(ctx.ClusterAPI.Client, ctx.ClusterAPI.Scheme)
+	fakeClient, _, scheme := testclient.GetTestClients()
+	cli := NewK8sClient(fakeClient, scheme)
 
-	done, err := k8sClient.Create(cmExpected, nil)
+	done, err := cli.CreateIgnoreIfExists(context.TODO(), cmExpected, nil)
 
 	assert.NoError(t, err)
 	assert.True(t, done)
 
 	cmActual := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, cmActual)
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, cmActual)
 
 	assert.NoError(t, err)
 	assert.Equal(t, cmActual.Data, cmExpected.Data)
 }
 
-func TestCreateWithOwner(t *testing.T) {
+func TestCreateIgnoreIfExistsWithOwner(t *testing.T) {
 	cmExpected := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
@@ -68,7 +68,7 @@ func TestCreateWithOwner(t *testing.T) {
 		},
 	}
 
-	ctx := test.NewCtxBuilder().WithObjects(
+	fakeClient, _, scheme := testclient.GetTestClients(
 		&corev1.ConfigMap{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "ConfigMap",
@@ -81,22 +81,21 @@ func TestCreateWithOwner(t *testing.T) {
 			Data: map[string]string{
 				"key": "value",
 			},
-		},
-	).Build()
-	k8sClient := NewK8sClient(ctx.ClusterAPI.Client, ctx.ClusterAPI.Scheme)
+		})
+	cli := NewK8sClient(fakeClient, scheme)
 
 	cmOwner := &corev1.ConfigMap{}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "cm-owner", Namespace: "eclipse-che"}, cmOwner)
+	err := fakeClient.Get(context.TODO(), types.NamespacedName{Name: "cm-owner", Namespace: "eclipse-che"}, cmOwner)
 
 	assert.NoError(t, err)
 
-	done, err := k8sClient.Create(cmExpected, cmOwner)
+	done, err := cli.CreateIgnoreIfExists(context.TODO(), cmExpected, cmOwner)
 
 	assert.NoError(t, err)
 	assert.True(t, done)
 
 	cmActual := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, cmActual)
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, cmActual)
 
 	assert.NoError(t, err)
 	assert.Equal(t, cmActual.Data, cmExpected.Data)
@@ -105,8 +104,8 @@ func TestCreateWithOwner(t *testing.T) {
 	assert.Equal(t, cmActual.OwnerReferences[0].APIVersion, "v1")
 }
 
-func TestCreateAlreadyExistedObject(t *testing.T) {
-	cm := &corev1.ConfigMap{
+func TestCreateIgnoreIfExistsAlreadyExistedObject(t *testing.T) {
+	fakeClient, _, scheme := testclient.GetTestClients(&corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
 			APIVersion: "v1",
@@ -116,15 +115,33 @@ func TestCreateAlreadyExistedObject(t *testing.T) {
 			Namespace: "eclipse-che",
 		},
 		Data: map[string]string{
-			"key": "value",
+			"key": "value_1",
 		},
-	}
+	})
+	cli := NewK8sClient(fakeClient, scheme)
 
-	ctx := test.NewCtxBuilder().WithObjects(cm).Build()
-	k8sClient := NewK8sClient(ctx.ClusterAPI.Client, ctx.ClusterAPI.Scheme)
+	done, err := cli.CreateIgnoreIfExists(
+		context.TODO(),
+		&corev1.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ConfigMap",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: "eclipse-che",
+			},
+			Data: map[string]string{
+				"key": "value_2",
+			},
+		}, nil)
 
-	done, err := k8sClient.Create(cm, nil)
+	assert.NoError(t, err)
+	assert.True(t, done)
 
-	assert.Error(t, err)
-	assert.False(t, done)
+	cm := &corev1.ConfigMap{}
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, cm)
+
+	assert.NoError(t, err)
+	assert.Equal(t, cm.Data["key"], "value_1")
 }

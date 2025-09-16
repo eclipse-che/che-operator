@@ -13,45 +13,50 @@
 package k8s_client
 
 import (
+	"context"
 	"testing"
 
-	"github.com/eclipse-che/che-operator/pkg/common/test"
+	testclient "github.com/eclipse-che/che-operator/pkg/common/test/test-client"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func TestGetExistedObject(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithObjects(
-		&corev1.ConfigMap{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "ConfigMap",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test",
-				Namespace: "eclipse-che",
-			},
-		}).Build()
-	k8sClient := NewK8sClient(ctx.ClusterAPI.Client, ctx.ClusterAPI.Scheme)
+func TestDelete(t *testing.T) {
+	fakeClient, _, scheme := testclient.GetTestClients(&corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "eclipse-che",
+		},
+	})
+	cli := NewK8sClient(fakeClient, scheme)
 
-	cm := &corev1.ConfigMap{}
-	exists, err := k8sClient.Get(types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, cm)
+	done, err := cli.Delete(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, &corev1.ConfigMap{})
 
 	assert.NoError(t, err)
-	assert.True(t, exists)
-	assert.Equal(t, "v1", cm.APIVersion)
-	assert.Equal(t, "ConfigMap", cm.Kind)
+	assert.True(t, done)
+
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, &corev1.ConfigMap{})
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
 }
 
-func TestGetNotExistedObject(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithObjects().Build()
-	k8sClient := NewK8sClient(ctx.ClusterAPI.Client, ctx.ClusterAPI.Scheme)
+func TestDeleteNotExistedObject(t *testing.T) {
+	fakeClient, _, scheme := testclient.GetTestClients()
+	cli := NewK8sClient(fakeClient, scheme)
 
-	cm := &corev1.ConfigMap{}
-	exists, err := k8sClient.Get(types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, cm)
+	done, err := cli.Delete(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, &corev1.ConfigMap{})
 
 	assert.NoError(t, err)
-	assert.False(t, exists)
+	assert.True(t, done)
+
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, &corev1.ConfigMap{})
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
 }

@@ -13,41 +13,50 @@
 package k8s_client
 
 import (
+	"context"
 	"testing"
 
-	"github.com/eclipse-che/che-operator/pkg/common/test"
+	testclient "github.com/eclipse-che/che-operator/pkg/common/test/test-client"
+	consolev1 "github.com/openshift/api/console/v1"
 	"github.com/stretchr/testify/assert"
-	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func TestDelete(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithObjects(
-		&corev1.ConfigMap{
+func TestDeleteClusterScoped(t *testing.T) {
+	fakeClient, _, scheme := testclient.GetTestClients(
+		&consolev1.ConsoleLink{
 			TypeMeta: metav1.TypeMeta{
-				Kind:       "ConfigMap",
-				APIVersion: "v1",
+				Kind:       "ConsoleLink",
+				APIVersion: "console.openshift.io/v1",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test",
-				Namespace: "eclipse-che",
+				Name: "test",
 			},
-		}).Build()
-	k8sClient := NewK8sClient(ctx.ClusterAPI.Client, ctx.ClusterAPI.Scheme)
+		})
+	cli := NewK8sClient(fakeClient, scheme)
 
-	done, err := k8sClient.Delete(types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, &corev1.ConfigMap{})
+	done, err := cli.DeleteClusterScoped(context.TODO(), "test", &consolev1.ConsoleLink{})
 
 	assert.NoError(t, err)
 	assert.True(t, done)
+
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: "test"}, &consolev1.ConsoleLink{})
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
 }
 
-func TestDeleteNotExistedObject(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithObjects().Build()
-	k8sClient := NewK8sClient(ctx.ClusterAPI.Client, ctx.ClusterAPI.Scheme)
+func TestDeleteClusterScopedNotExistedObject(t *testing.T) {
+	fakeClient, _, scheme := testclient.GetTestClients()
+	cli := NewK8sClient(fakeClient, scheme)
 
-	done, err := k8sClient.Delete(types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, &corev1.ConfigMap{})
+	done, err := cli.Delete(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, &consolev1.ConsoleLink{})
 
 	assert.NoError(t, err)
 	assert.True(t, done)
+
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: "test"}, &consolev1.ConsoleLink{})
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
 }
