@@ -15,6 +15,7 @@ package containerbuild
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"k8s.io/apimachinery/pkg/labels"
 
@@ -51,28 +52,28 @@ func (cb *ContainerBuildReconciler) Reconcile(ctx *chetypes.DeployContext) (reco
 		// The check below to avoid NPE while CheCluster is not updated with defaults.
 		if ctx.CheCluster.IsOpenShiftSecurityContextConstraintSet() {
 			if done, err := cb.syncSCC(ctx); !done {
-				return reconcile.Result{Requeue: true}, false, err
+				return reconcile.Result{RequeueAfter: time.Second}, false, err
 			}
 
 			if done, err := cb.syncRBAC(ctx); !done {
-				return reconcile.Result{Requeue: true}, false, err
+				return reconcile.Result{RequeueAfter: time.Second}, false, err
 			}
 
 			if err := deploy.AppendFinalizer(ctx, cb.getFinalizerName()); err != nil {
-				return reconcile.Result{Requeue: true}, false, err
+				return reconcile.Result{RequeueAfter: time.Second}, false, err
 			}
 		}
 	} else {
 		if done, err := cb.removeRBAC(ctx); !done {
-			return reconcile.Result{Requeue: true}, false, err
+			return reconcile.Result{RequeueAfter: time.Second}, false, err
 		}
 
 		if done, err := cb.removeSCC(ctx); !done {
-			return reconcile.Result{Requeue: true}, false, err
+			return reconcile.Result{RequeueAfter: time.Second}, false, err
 		}
 
 		if err := deploy.DeleteFinalizer(ctx, cb.getFinalizerName()); err != nil {
-			return reconcile.Result{Requeue: true}, false, err
+			return reconcile.Result{RequeueAfter: time.Second}, false, err
 		}
 	}
 

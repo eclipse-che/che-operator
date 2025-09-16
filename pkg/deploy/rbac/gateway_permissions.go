@@ -13,6 +13,8 @@
 package rbac
 
 import (
+	"time"
+
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -38,15 +40,15 @@ func NewGatewayPermissionsReconciler() *GatewayPermissionsReconciler {
 func (gp *GatewayPermissionsReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	name := gp.gatewayPermissionsName(ctx.CheCluster)
 	if done, err := deploy.SyncClusterRoleToCluster(ctx, name, gp.getGatewayClusterRoleRules()); !done {
-		return reconcile.Result{Requeue: true}, false, err
+		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
 	if done, err := deploy.SyncClusterRoleBindingToCluster(ctx, name, gateway.GatewayServiceName, name); !done {
-		return reconcile.Result{Requeue: true}, false, err
+		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
 	if err := deploy.AppendFinalizer(ctx, CheGatewayClusterPermissionsFinalizerName); err != nil {
-		return reconcile.Result{Requeue: true}, false, err
+		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
 	return reconcile.Result{}, true, nil

@@ -16,6 +16,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -88,11 +89,11 @@ func (ip *ImagePuller) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result,
 		}
 
 		if done, err := ip.syncKubernetesImagePuller(defaultImages, ctx); !done {
-			return reconcile.Result{Requeue: true}, false, err
+			return reconcile.Result{RequeueAfter: time.Second}, false, err
 		}
 	} else {
 		if done, err := ip.uninstallImagePuller(ctx); !done {
-			return reconcile.Result{Requeue: true}, false, err
+			return reconcile.Result{RequeueAfter: time.Second}, false, err
 		}
 	}
 	return reconcile.Result{}, true, nil
