@@ -13,6 +13,8 @@
 package server
 
 import (
+	"time"
+
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -57,7 +59,7 @@ func (s *CheServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 	}
 
 	if done, err := s.syncPermissions(ctx); !done {
-		return reconcile.Result{RequeueAfter: time.Second}, false, err
+		return reconcile.Result{RequeueAfter: time.Second /**/}, false, err
 	}
 
 	done, err = s.syncDeployment(ctx)
