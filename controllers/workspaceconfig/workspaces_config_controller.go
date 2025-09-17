@@ -252,11 +252,11 @@ func (r *WorkspacesConfigReconciler) syncNamespace(
 		// despite the result of the reconciliation
 		if syncConfig != nil {
 			if syncConfig.GetResourceVersion() == "" {
-				if _, err := r.cliWrapper.Create(ctx, syncConfig, nil); err != nil {
+				if err = r.cliWrapper.Create(ctx, syncConfig, nil); err != nil {
 					logger.Error(err, "Failed to workspace create sync config", "namespace", dstNamespace)
 				}
 			} else {
-				if _, err := r.cliWrapper.Sync(ctx, syncConfig, nil, diffs.ConfigMapAllLabels); err != nil {
+				if err = r.cliWrapper.Sync(ctx, syncConfig, nil, diffs.ConfigMapAllLabels); err != nil {
 					logger.Error(err, "Failed to update workspace sync config", "namespace", dstNamespace)
 				}
 			}
@@ -476,7 +476,7 @@ func (r *WorkspacesConfigReconciler) syncObjectIfDiffers(
 		Namespace: dstObj.GetNamespace(),
 	}
 
-	exists, err := r.cliWrapper.Get(syncContext.ctx, existedDstObjKey, existedDstObj.(client.Object))
+	exists, err := r.cliWrapper.GetIgnoreNotFound(syncContext.ctx, existedDstObjKey, existedDstObj.(client.Object))
 	if exists {
 		srcObj := syncContext.object2Sync.getSrcObject()
 
@@ -534,7 +534,7 @@ func (r *WorkspacesConfigReconciler) doCreateObject(
 	syncContext *syncContext,
 	dstObj client.Object) error {
 
-	_, err := r.cliWrapper.Create(syncContext.ctx, dstObj, nil)
+	err := r.cliWrapper.Create(syncContext.ctx, dstObj, nil)
 	if err != nil {
 		if !errors.IsAlreadyExists(err) {
 			return err
@@ -544,18 +544,18 @@ func (r *WorkspacesConfigReconciler) doCreateObject(
 		// `app.kubernetes.io/part-of=che.eclipse.org` label (is not cached)
 		// 1. Delete the object from a destination namespace using non-cached client
 		// 2. Create the object again using cached client
-		if done, err := r.nonCachedCliWrapper.Delete(
+		if err = r.nonCachedCliWrapper.DeleteByKeyIgnoreNotFound(
 			syncContext.ctx,
 			types.NamespacedName{
 				Name:      dstObj.GetName(),
 				Namespace: dstObj.GetNamespace(),
 			},
 			dstObj,
-		); !done {
+		); err != nil {
 			return err
 		}
 
-		if done, err := r.cliWrapper.Create(syncContext.ctx, dstObj, nil); !done {
+		if err = r.cliWrapper.Create(syncContext.ctx, dstObj, nil); err != nil {
 			return err
 		}
 	}
@@ -586,7 +586,7 @@ func (r *WorkspacesConfigReconciler) doUpdateObject(
 	// set the current resource version to update object
 	dstObj.SetResourceVersion(existedDstObj.GetResourceVersion())
 
-	if _, err := r.cliWrapper.Sync(syncContext.ctx, dstObj, nil); err != nil {
+	if err := r.cliWrapper.Sync(syncContext.ctx, dstObj, nil); err != nil {
 		return err
 	}
 
@@ -627,13 +627,13 @@ func (r *WorkspacesConfigReconciler) deleteIfObjectIsObsolete(
 		}
 
 		// delete object from destination namespace
-		if done, err := r.cliWrapper.Delete(
+		if err = r.cliWrapper.DeleteByKeyIgnoreNotFound(
 			ctx,
 			types.NamespacedName{
 				Name:      objName,
 				Namespace: dstNamespace,
 			},
-			blueprint.(client.Object)); !done {
+			blueprint.(client.Object)); err != nil {
 			return err
 		}
 
@@ -654,7 +654,7 @@ func (r *WorkspacesConfigReconciler) getSyncConfig(ctx context.Context, namespac
 		Namespace: namespace,
 	}
 
-	exists, err := r.cliWrapper.Get(ctx, syncCMKey, syncCM)
+	exists, err := r.cliWrapper.GetIgnoreNotFound(ctx, syncCMKey, syncCM)
 	if exists {
 		if syncCM.Data == nil {
 			syncCM.Data = map[string]string{}

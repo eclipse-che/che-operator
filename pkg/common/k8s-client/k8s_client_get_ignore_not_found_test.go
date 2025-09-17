@@ -17,39 +17,41 @@ import (
 	"testing"
 
 	testclient "github.com/eclipse-che/che-operator/pkg/common/test/test-client"
-	consolev1 "github.com/openshift/api/console/v1"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
-func TestGetClusterScopedExistedObject(t *testing.T) {
+func TestGetExistedObject(t *testing.T) {
 	fakeClient, _, scheme := testclient.GetTestClients(
-		&consolev1.ConsoleLink{
+		&corev1.ConfigMap{
 			TypeMeta: metav1.TypeMeta{
-				Kind:       "ConsoleLink",
-				APIVersion: "console.openshift.io/v1",
+				Kind:       "ConfigMap",
+				APIVersion: "v1",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "test",
+				Name:      "test",
+				Namespace: "eclipse-che",
 			},
 		})
 	cli := NewK8sClient(fakeClient, scheme)
 
-	link := &consolev1.ConsoleLink{}
-	exists, err := cli.GetClusterScoped(context.TODO(), "test", link)
+	cm := &corev1.ConfigMap{}
+	exists, err := cli.GetIgnoreNotFound(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, cm)
 
 	assert.NoError(t, err)
 	assert.True(t, exists)
-	assert.Equal(t, "console.openshift.io/v1", link.APIVersion)
-	assert.Equal(t, "ConsoleLink", link.Kind)
+	assert.Equal(t, "v1", cm.APIVersion)
+	assert.Equal(t, "ConfigMap", cm.Kind)
 }
 
-func TestGetClusterScopedNotExistedObject(t *testing.T) {
+func TestGetNotExistedObject(t *testing.T) {
 	fakeClient, _, scheme := testclient.GetTestClients()
 	cli := NewK8sClient(fakeClient, scheme)
 
-	link := &consolev1.ConsoleLink{}
-	exists, err := cli.GetClusterScoped(context.TODO(), "test", link)
+	cm := &corev1.ConfigMap{}
+	exists, err := cli.GetIgnoreNotFound(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, cm)
 
 	assert.NoError(t, err)
 	assert.False(t, exists)

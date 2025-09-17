@@ -49,10 +49,11 @@ func TestSync(t *testing.T) {
 		},
 	}
 
-	done, err := cli.Sync(context.TODO(), cm, nil, diffs)
+	err := cli.Sync(context.TODO(), cm, nil, diffs)
 
 	assert.NoError(t, err)
-	assert.True(t, done)
+	assert.Equal(t, "ConfigMap", cm.Kind)
+	assert.Equal(t, "v1", cm.APIVersion)
 
 	newCm := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
@@ -68,10 +69,11 @@ func TestSync(t *testing.T) {
 		},
 	}
 
-	done, err = cli.Sync(context.TODO(), newCm, nil, diffs)
+	err = cli.Sync(context.TODO(), newCm, nil, diffs)
 
 	assert.NoError(t, err)
-	assert.False(t, done)
+	assert.Equal(t, "ConfigMap", newCm.Kind)
+	assert.Equal(t, "v1", newCm.APIVersion)
 
 	newCm = &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
@@ -87,8 +89,9 @@ func TestSync(t *testing.T) {
 		},
 	}
 
-	done, err = cli.Sync(context.TODO(), newCm, nil, diffs)
+	err = cli.Sync(context.TODO(), newCm, nil, diffs)
 
 	assert.NoError(t, err)
-	assert.True(t, done)
+	assert.Equal(t, "ConfigMap", newCm.Kind)
+	assert.Equal(t, "v1", newCm.APIVersion)
 }

@@ -19,11 +19,12 @@ import (
 	testclient "github.com/eclipse-che/che-operator/pkg/common/test/test-client"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func TestGetExistedObject(t *testing.T) {
+func TestDelete(t *testing.T) {
 	fakeClient, _, scheme := testclient.GetTestClients(
 		&corev1.ConfigMap{
 			TypeMeta: metav1.TypeMeta{
@@ -37,22 +38,26 @@ func TestGetExistedObject(t *testing.T) {
 		})
 	cli := NewK8sClient(fakeClient, scheme)
 
-	cm := &corev1.ConfigMap{}
-	exists, err := cli.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, cm)
+	err := cli.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, &corev1.ConfigMap{})
 
 	assert.NoError(t, err)
-	assert.True(t, exists)
-	assert.Equal(t, "v1", cm.APIVersion)
-	assert.Equal(t, "ConfigMap", cm.Kind)
+
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, &corev1.ConfigMap{})
+
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
 }
 
-func TestGetNotExistedObject(t *testing.T) {
+func TestDeleteNotExistedObject(t *testing.T) {
 	fakeClient, _, scheme := testclient.GetTestClients()
 	cli := NewK8sClient(fakeClient, scheme)
 
-	cm := &corev1.ConfigMap{}
-	exists, err := cli.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, cm)
+	err := cli.deleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, &corev1.ConfigMap{})
 
 	assert.NoError(t, err)
-	assert.False(t, exists)
+	
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, &corev1.ConfigMap{})
+
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
 }

@@ -38,35 +38,21 @@ var (
 
 type K8sClient interface {
 	// Sync ensures that the object is up to date in the cluster.
-	// Return true if a new object is synced, otherwise returns false.
-	// Returns error if object cannot be synced otherwise returns nil.
-	Sync(ctx context.Context, blueprint client.Object, owner metav1.Object, diffOpts ...cmp.Option) (bool, error)
+	// Object is created if it does not exist and updated if it exists but is different.
+	// Returns nil if object is in sync.
+	Sync(ctx context.Context, blueprint client.Object, owner metav1.Object, diffOpts ...cmp.Option) error
 	// Create creates object.
-	// Return true if a new object is created, otherwise returns false.
-	// Returns error if object cannot be created otherwise returns nil.
-	Create(ctx context.Context, blueprint client.Object, owner metav1.Object) (bool, error)
-	// CreateIgnoreIfExists creates object.
-	// Return true if a new object is created or object already exists, otherwise returns false.
-	// Returns error if object cannot be created otherwise returns nil.
-	CreateIgnoreIfExists(ctx context.Context, blueprint client.Object, owner metav1.Object) (bool, error)
-	// Get gets object.
+	// Returns nil if object is created otherwise returns error.
+	Create(ctx context.Context, blueprint client.Object, owner metav1.Object, opts ...client.CreateOption) error
+	// GetIgnoreNotFound gets object.
 	// Returns true if object exists otherwise returns false.
-	// Returns error if object cannot be retrieved otherwise returns nil.
-	Get(ctx context.Context, key client.ObjectKey, objectMeta client.Object) (bool, error)
-	// GetClusterScoped gets cluster scoped object by name
-	// Returns true if object exists otherwise returns false.
-	// Returns error if object cannot be retrieved otherwise returns nil.
-	GetClusterScoped(ctx context.Context, name string, objectMeta client.Object) (bool, error)
-	// Delete deletes object by key.
-	// Returns true if object deleted or not found otherwise returns false.
-	// Returns error if object cannot be deleted otherwise returns nil.
-	Delete(ctx context.Context, key client.ObjectKey, objectMeta client.Object) (bool, error)
-	// DeleteClusterScoped deletes cluster scoped object by name.
-	// Returns true if object deleted or not found otherwise returns false.
-	// Returns error if object cannot be deleted otherwise returns nil.
-	DeleteClusterScoped(ctx context.Context, name string, objectMeta client.Object) (bool, error)
-	// List lists objects and returns list of runtime.Object
-	// Returns error if objects cannot be listed otherwise returns nil.
+	// Returns nil if object is retrieved or not found otherwise returns error.
+	GetIgnoreNotFound(ctx context.Context, key client.ObjectKey, objectMeta client.Object, opts ...client.GetOption) (bool, error)
+	// DeleteByKeyIgnoreNotFound deletes object by key.
+	// Returns nil if object is deleted or not found otherwise returns error.
+	DeleteByKeyIgnoreNotFound(ctx context.Context, key client.ObjectKey, objectMeta client.Object, opts ...client.DeleteOption) error
+	// List returns list of runtime objects.
+	// Returns nil if list is retrieved otherwise returns error.
 	List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) ([]runtime.Object, error)
 }
 
@@ -81,51 +67,72 @@ type K8sClientWrapper struct {
 
 func (k K8sClientWrapper) Sync(
 	ctx context.Context,
-	blueprint client.Object,
+	obj client.Object,
 	owner metav1.Object,
 	diffOpts ...cmp.Option,
-) (bool, error) {
-	// we will compare this object later with blueprint
-	actual, err := k.scheme.New(blueprint.GetObjectKind().GroupVersionKind())
-	if err != nil {
-		return false, err
-	}
+) error {
+	defer func() {
+		// ensure GVK is set (for original object) when function returns
+		_ = k.ensureGVK(obj)
+	}()
 
 	key := types.NamespacedName{
-		Name:      blueprint.GetName(),
-		Namespace: blueprint.GetNamespace(),
-	}
-	if exists, err := k.doGetIgnoreNotFound(ctx, key, actual.(client.Object)); err != nil {
-		return false, err
-	} else if !exists {
-		return k.doSync(ctx, nil, blueprint, owner, diffOpts...)
+		Name:      obj.GetName(),
+		Namespace: obj.GetNamespace(),
 	}
 
-	return k.doSync(ctx, actual.(client.Object), blueprint, owner, diffOpts...)
+	actual, err := k.scheme.New(obj.GetObjectKind().GroupVersionKind())
+	if err != nil {
+		return err
+	}
+
+	if err := k.setOwner(obj, owner); err != nil {
+		return err
+	}
+
+	if exists, err := k.doGetIgnoreNotFound(ctx, key, actual.(client.Object)); exists {
+		return k.doSync(ctx, actual.(client.Object), obj, diffOpts...)
+	} else if err == nil {
+		return k.doSync(ctx, nil, obj, diffOpts...)
+	} else {
+		return err
+	}
 }
 
-func (k K8sClientWrapper) Create(ctx context.Context, blueprint client.Object, owner metav1.Object) (bool, error) {
-	return k.doCreate(ctx, blueprint, owner, false)
+func (k K8sClientWrapper) Create(
+	ctx context.Context,
+	obj client.Object,
+	owner metav1.Object,
+	opts ...client.CreateOption,
+) error {
+	defer func() {
+		// ensure GVK is set (for original object) when function returns
+		_ = k.ensureGVK(obj)
+	}()
+
+	if err := k.setOwner(obj, owner); err != nil {
+		return err
+	}
+
+	return k.doCreate(ctx, obj, false, opts...)
 }
 
-func (k K8sClientWrapper) CreateIgnoreIfExists(ctx context.Context, blueprint client.Object, owner metav1.Object) (bool, error) {
-	return k.doCreate(ctx, blueprint, owner, true)
+func (k K8sClientWrapper) GetIgnoreNotFound(
+	ctx context.Context,
+	key client.ObjectKey,
+	objectMeta client.Object,
+	opts ...client.GetOption,
+) (bool, error) {
+	return k.doGetIgnoreNotFound(ctx, key, objectMeta, opts...)
 }
 
-func (k K8sClientWrapper) Get(ctx context.Context, key client.ObjectKey, objectMeta client.Object) (bool, error) {
-	return k.doGetIgnoreNotFound(ctx, key, objectMeta)
-}
-
-func (k K8sClientWrapper) GetClusterScoped(ctx context.Context, name string, objectMeta client.Object) (bool, error) {
-	return k.doGetIgnoreNotFound(ctx, types.NamespacedName{Name: name}, objectMeta)
-}
-
-func (k K8sClientWrapper) Delete(ctx context.Context, key client.ObjectKey, objectMeta client.Object) (bool, error) {
-	return k.deleteByKeyIgnoreNotFound(ctx, key, objectMeta)
-}
-
-func (k K8sClientWrapper) DeleteClusterScoped(ctx context.Context, name string, objectMeta client.Object) (bool, error) {
-	return k.deleteByKeyIgnoreNotFound(ctx, types.NamespacedName{Name: name}, objectMeta)
+func (k K8sClientWrapper) DeleteByKeyIgnoreNotFound(
+	ctx context.Context,
+	key client.ObjectKey,
+	objectMeta client.Object,
+	opts ...client.DeleteOption,
+) error {
+	return k.deleteByKeyIgnoreNotFound(ctx, key, objectMeta, opts...)
 }
 
 func (k K8sClientWrapper) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) ([]runtime.Object, error) {
@@ -150,47 +157,60 @@ func (k K8sClientWrapper) List(ctx context.Context, list client.ObjectList, opts
 	return items, nil
 }
 
-// deleteByKeyIgnoreNotFound deletes object by key.
-// Returns true if object deleted or not found otherwise returns false.
-// Returns error if object cannot be deleted otherwise returns nil.
-func (k K8sClientWrapper) deleteByKeyIgnoreNotFound(ctx context.Context, key client.ObjectKey, objectMeta client.Object) (bool, error) {
+// deleteByKeyIgnoreNotFound deletes object.
+// Returns nil if object is deleted or not found otherwise returns error.
+func (k K8sClientWrapper) deleteByKeyIgnoreNotFound(
+	ctx context.Context,
+	key client.ObjectKey,
+	objectMeta client.Object,
+	opts ...client.DeleteOption,
+) error {
 	runtimeObject, ok := objectMeta.(runtime.Object)
 	if !ok {
-		return false, fmt.Errorf("object %T is not a runtime.Object", runtimeObject)
+		return fmt.Errorf("object %T is not a runtime.Object", runtimeObject)
 	}
 
 	actual := runtimeObject.DeepCopyObject().(client.Object)
-	if exists, err := k.doGetIgnoreNotFound(ctx, key, actual); !exists {
-		return true, nil
-	} else if err != nil {
-		return false, err
+	if exists, err := k.doGetIgnoreNotFound(ctx, key, actual); exists {
+		return k.doDeleteIgnoreIfNotFound(ctx, actual, opts...)
+	} else if err == nil {
+		return nil
+	} else {
+		return err
 	}
-
-	return k.doDeleteIgnoreIfNotFound(ctx, actual)
 }
 
 // doDeleteIgnoreIfNotFound deletes object.
-// Returns true if object deleted or not found otherwise returns false.
-// Returns error if object cannot be deleted otherwise returns nil.
-func (k K8sClientWrapper) doDeleteIgnoreIfNotFound(ctx context.Context, object client.Object) (bool, error) {
-	if err := k.cli.Delete(ctx, object); err == nil {
+// Returns nil if object is deleted or not found otherwise returns error.
+func (k K8sClientWrapper) doDeleteIgnoreIfNotFound(
+	ctx context.Context,
+	obj client.Object,
+	opts ...client.DeleteOption,
+) error {
+	if err := k.cli.Delete(ctx, obj, opts...); err != nil {
 		if errors.IsNotFound(err) {
-			logger.Info("Object not found", "namespace", object.GetNamespace(), "kind", GetObjectType(object), "name", object.GetName())
+			logger.Info("Object not found", "namespace", obj.GetNamespace(), "kind", GetObjectType(obj), "name", obj.GetName())
+			return nil
 		} else {
-			logger.Info("Object deleted", "namespace", object.GetNamespace(), "kind", GetObjectType(object), "name", object.GetName())
+			return err
 		}
-		return true, nil
-	} else {
-		return false, err
 	}
+
+	logger.Info("Object deleted", "namespace", obj.GetNamespace(), "kind", GetObjectType(obj), "name", obj.GetName())
+	return nil
 }
 
-// doGet gets object.
+// doGetIgnoreNotFound gets object.
 // Returns true if object exists otherwise returns false.
-// Returns error if object cannot be retrieved otherwise returns nil.
-func (k K8sClientWrapper) doGetIgnoreNotFound(ctx context.Context, key client.ObjectKey, object client.Object) (bool, error) {
-	if err := k.cli.Get(ctx, key, object); err == nil {
-		if err := k.ensureGVK(object); err != nil {
+// Returns nil if object is retrieved or not found otherwise returns error.
+func (k K8sClientWrapper) doGetIgnoreNotFound(
+	ctx context.Context,
+	key client.ObjectKey,
+	obj client.Object,
+	opts ...client.GetOption,
+) (bool, error) {
+	if err := k.cli.Get(ctx, key, obj, opts...); err == nil {
+		if err = k.ensureGVK(obj); err != nil {
 			return false, err
 		}
 
@@ -203,47 +223,45 @@ func (k K8sClientWrapper) doGetIgnoreNotFound(ctx context.Context, key client.Ob
 }
 
 // doCreate creates object.
-// Returns true if object created or already exists otherwise returns false.
-// Return error if object cannot be created otherwise returns nil.
-func (k K8sClientWrapper) doCreate(ctx context.Context, blueprint client.Object, owner metav1.Object, ignoreIfAlreadyExists bool,
-) (bool, error) {
-	if err := k.setOwner(blueprint, owner); err != nil {
-		return false, err
-	}
-
-	if err := k.cli.Create(ctx, blueprint); err == nil {
-		logger.Info("Object created", "namespace", blueprint.GetNamespace(), "kind", GetObjectType(blueprint), "name", blueprint.GetName())
-		return true, nil
+// Returns nil if object is created otherwise returns error.
+func (k K8sClientWrapper) doCreate(
+	ctx context.Context,
+	obj client.Object,
+	ignoreIfAlreadyExists bool,
+	opts ...client.CreateOption,
+) error {
+	if err := k.cli.Create(ctx, obj, opts...); err == nil {
+		logger.Info("Object created", "namespace", obj.GetNamespace(), "kind", GetObjectType(obj), "name", obj.GetName())
+		return nil
 	} else if errors.IsAlreadyExists(err) {
 		if ignoreIfAlreadyExists {
-			logger.Info("Object already exists, ignoring", "namespace", blueprint.GetNamespace(), "kind", GetObjectType(blueprint), "name", blueprint.GetName())
-			return true, nil
+			logger.Info("Object already exists, ignoring", "namespace", obj.GetNamespace(), "kind", GetObjectType(obj), "name", obj.GetName())
+			return nil
 		} else {
-			return false, err
+			return err
 		}
 	} else {
-		return false, err
+		return err
 	}
 }
 
 // doSync ensures that the object is up to date in the cluster.
-// Return true if a new object is synced, otherwise returns false.
-// Returns error if object cannot be synced otherwise returns nil.
+// Returns nil if object is in sync.
 func (k K8sClientWrapper) doSync(
 	ctx context.Context,
 	actual client.Object,
-	blueprint client.Object,
-	owner metav1.Object,
+	obj client.Object,
 	diffOpts ...cmp.Option,
-) (bool, error) {
+) error {
 	if actual == nil {
-		return k.doCreate(ctx, blueprint, owner, false)
+		return k.doCreate(ctx, obj, false)
 	}
 
-	// set GroupVersionKind (it might be empty)
-	actual.GetObjectKind().SetGroupVersionKind(blueprint.GetObjectKind().GroupVersionKind())
+	if err := k.ensureGVK(actual.(client.Object)); err != nil {
+		return err
+	}
 
-	diff := cmp.Diff(actual, blueprint, diffOpts...)
+	diff := cmp.Diff(actual, obj, diffOpts...)
 	if len(diff) > 0 {
 		// don't print difference if there are no diffOpts mainly to avoid huge output
 		if len(diffOpts) != 0 {
@@ -251,33 +269,30 @@ func (k K8sClientWrapper) doSync(
 		}
 
 		if k.isRecreate(actual.GetObjectKind().GroupVersionKind().Kind) {
-			if done, err := k.doDeleteIgnoreIfNotFound(ctx, actual); !done {
-				return false, err
+			if err := k.doDeleteIgnoreIfNotFound(ctx, actual); err != nil {
+				return err
 			}
-			return k.doCreate(ctx, blueprint, owner, false)
+
+			return k.doCreate(ctx, obj, false)
 		} else {
-			if err := k.setOwner(blueprint, owner); err != nil {
-				return false, err
-			}
-
 			// to be able to update, we need to set the resource version of the object that we know of
-			blueprint.(metav1.Object).SetResourceVersion(actual.GetResourceVersion())
+			obj.(metav1.Object).SetResourceVersion(actual.GetResourceVersion())
 
-			err := k.cli.Update(ctx, blueprint)
+			err := k.cli.Update(ctx, obj)
 			if err == nil {
 				logger.Info("Object updated", "namespace", actual.GetNamespace(), "kind", GetObjectType(actual), "name", actual.GetName())
 			}
-			return false, err
+			return err
 		}
 	}
 
-	return true, nil
+	return nil
 }
 
 // setOwner sets owner to the object
-func (k K8sClientWrapper) setOwner(blueprint client.Object, owner metav1.Object) error {
+func (k K8sClientWrapper) setOwner(obj client.Object, owner metav1.Object) error {
 	if owner != nil {
-		if err := controllerutil.SetControllerReference(owner, blueprint, k.scheme); err != nil {
+		if err := controllerutil.SetControllerReference(owner, obj, k.scheme); err != nil {
 			return fmt.Errorf("failed to set controller reference: %w", err)
 		}
 	}
