@@ -55,7 +55,7 @@ func TestDeleteNotExistedObject(t *testing.T) {
 	err := cli.deleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, &corev1.ConfigMap{})
 
 	assert.NoError(t, err)
-	
+
 	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, &corev1.ConfigMap{})
 
 	assert.Error(t, err)
