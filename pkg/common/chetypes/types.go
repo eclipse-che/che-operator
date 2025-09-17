@@ -14,6 +14,7 @@ package chetypes
 
 import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,10 +35,12 @@ type DeployContext struct {
 }
 
 type ClusterAPI struct {
-	Client           client.Client
-	NonCachingClient client.Client
-	DiscoveryClient  discovery.DiscoveryInterface
-	Scheme           *runtime.Scheme
+	Client                  client.Client // TODO remove
+	NonCachingClient        client.Client // TODO remove
+	DiscoveryClient         discovery.DiscoveryInterface
+	Scheme                  *runtime.Scheme
+	ClientWrapper           *k8sclient.K8sClientWrapper
+	NonCachingClientWrapper *k8sclient.K8sClientWrapper
 }
 
 type Proxy struct {
