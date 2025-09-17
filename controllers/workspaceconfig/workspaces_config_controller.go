@@ -20,12 +20,12 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
+	"github.com/eclipse-che/che-operator/pkg/common/diffs"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	networkingv1 "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 
@@ -53,8 +53,9 @@ const (
 
 type WorkspacesConfigReconciler struct {
 	scheme                        *runtime.Scheme
-	client                        client.Client
-	nonCachedClient               client.Client
+	cli                           client.Client
+	cliWrapper                    *k8sclient.K8sClientWrapper
+	nonCachedCliWrapper           *k8sclient.K8sClientWrapper
 	namespaceCache                *namespacecache.NamespaceCache
 	labelsToRemoveBeforeSync      []*regexp.Regexp
 	annotationsToRemoveBeforeSync []*regexp.Regexp
@@ -91,8 +92,8 @@ var (
 )
 
 func NewWorkspacesConfigReconciler(
-	client client.Client,
-	nonCachedClient client.Client,
+	cli client.Client,
+	nonCachedCli client.Client,
 	scheme *runtime.Scheme,
 	namespaceCache *namespacecache.NamespaceCache) *WorkspacesConfigReconciler {
 
@@ -117,8 +118,9 @@ func NewWorkspacesConfigReconciler(
 
 	return &WorkspacesConfigReconciler{
 		scheme:                        scheme,
-		client:                        client,
-		nonCachedClient:               nonCachedClient,
+		cli:                           cli,
+		cliWrapper:                    k8sclient.NewK8sClient(cli, scheme),
+		nonCachedCliWrapper:           k8sclient.NewK8sClient(nonCachedCli, scheme),
 		namespaceCache:                namespaceCache,
 		labelsToRemoveBeforeSync:      labelsToRemoveBeforeSync,
 		annotationsToRemoveBeforeSync: annotationsToRemoveBeforeSync,
@@ -155,7 +157,7 @@ func (r *WorkspacesConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, nil
 	}
 
-	checluster, err := deploy.FindCheClusterCRInNamespace(r.client, "")
+	checluster, err := deploy.FindCheClusterCRInNamespace(r.cli, "")
 	if checluster == nil {
 		// There is no CheCluster CR, the source namespace is unknown
 		return ctrl.Result{}, nil
@@ -203,7 +205,7 @@ func (r *WorkspacesConfigReconciler) watchRules(
 						// reconcile rule when workspace config is modified in a che namespace
 						// to update the config in all users` namespaces
 						Check: func(o metav1.Object) bool {
-							cheCluster, _ := deploy.FindCheClusterCRInNamespace(r.client, o.GetNamespace())
+							cheCluster, _ := deploy.FindCheClusterCRInNamespace(r.cli, o.GetNamespace())
 							return hasWSConfigComponentLabels(o) && cheCluster != nil
 						},
 						Namespaces: func(o metav1.Object) []string { return r.namespaceCache.GetAllKnownNamespaces() },
@@ -250,11 +252,11 @@ func (r *WorkspacesConfigReconciler) syncNamespace(
 		// despite the result of the reconciliation
 		if syncConfig != nil {
 			if syncConfig.GetResourceVersion() == "" {
-				if err := r.client.Create(ctx, syncConfig); err != nil {
+				if _, err := r.cliWrapper.Create(ctx, syncConfig, nil); err != nil {
 					logger.Error(err, "Failed to workspace create sync config", "namespace", dstNamespace)
 				}
 			} else {
-				if err := r.client.Update(ctx, syncConfig); err != nil {
+				if _, err := r.cliWrapper.Sync(ctx, syncConfig, nil, diffs.ConfigMapAllLabels); err != nil {
 					logger.Error(err, "Failed to update workspace sync config", "namespace", dstNamespace)
 				}
 			}
@@ -329,20 +331,13 @@ func (r *WorkspacesConfigReconciler) syncObjectsList(
 		Namespace:     srcNamespace,
 		LabelSelector: wsConfigComponentSelector,
 	}
-	if err := r.client.List(ctx, srcObjList, opts); err != nil {
-		return err
-	}
 
-	srcObjs, err := meta.ExtractList(srcObjList)
+	srcObjs, err := r.cliWrapper.List(ctx, srcObjList, opts)
 	if err != nil {
 		return err
 	}
 
 	for _, srcObj := range srcObjs {
-		if err = ensureGVK(srcObj.(client.Object), r.scheme); err != nil {
-			return err
-		}
-
 		obj2Sync := createObject2SyncFromRuntimeObject(srcObj)
 		if obj2Sync == nil {
 			logger.Info("Object skipped since has unsupported kind",
@@ -377,13 +372,15 @@ func (r *WorkspacesConfigReconciler) syncTemplates(
 	syncConfig map[string]string,
 	syncedSrcObjKeys map[string]bool) error {
 
-	templates := &templatev1.TemplateList{}
+	templateList := &templatev1.TemplateList{}
 	opts := &client.ListOptions{
 		Namespace:     srcNamespace,
 		LabelSelector: wsConfigComponentSelector,
 	}
-	if err := r.client.List(ctx, templates, opts); err != nil {
-		return err
+
+	templates, err := r.cliWrapper.List(ctx, templateList, opts)
+	if err != nil {
+		return nil
 	}
 
 	nsInfo, err := r.namespaceCache.GetNamespaceInfo(ctx, dstNamespace)
@@ -391,8 +388,8 @@ func (r *WorkspacesConfigReconciler) syncTemplates(
 		return nil
 	}
 
-	for _, template := range templates.Items {
-		for _, object := range template.Objects {
+	for _, template := range templates {
+		for _, object := range template.(*templatev1.Template).Objects {
 			object2Sync, err := createObject2SyncFromRaw(object.Raw, nsInfo.Username, dstNamespace)
 			if err != nil {
 				return err
@@ -479,12 +476,8 @@ func (r *WorkspacesConfigReconciler) syncObjectIfDiffers(
 		Namespace: dstObj.GetNamespace(),
 	}
 
-	err = r.client.Get(syncContext.ctx, existedDstObjKey, existedDstObj.(client.Object))
-	if err == nil {
-		if err = ensureGVK(existedDstObj.(client.Object), r.scheme); err != nil {
-			return err
-		}
-
+	exists, err := r.cliWrapper.Get(syncContext.ctx, existedDstObjKey, existedDstObj.(client.Object))
+	if exists {
 		srcObj := syncContext.object2Sync.getSrcObject()
 
 		srcObjKey := buildKey(syncContext.object2Sync.getGKV(), srcObj.GetName(), syncContext.srcNamespace)
@@ -520,19 +513,17 @@ func (r *WorkspacesConfigReconciler) syncObjectIfDiffers(
 				}
 			}
 		}
-	} else if errors.IsNotFound(err) {
-		if err = ensureGVK(existedDstObj.(client.Object), r.scheme); err != nil {
-			return err
-		}
-
-		// destination object does not exist, so it will be created
-		if err = r.doCreateObject(syncContext, dstObj); err != nil {
-			return err
-		}
-		r.doUpdateSyncConfig(syncContext, dstObj)
-		return nil
 	} else {
-		return err
+		if err == nil {
+			// destination object does not exist, so it will be created
+			if err = r.doCreateObject(syncContext, dstObj); err != nil {
+				return err
+			}
+			r.doUpdateSyncConfig(syncContext, dstObj)
+			return nil
+		} else {
+			return err
+		}
 	}
 
 	return nil
@@ -543,7 +534,7 @@ func (r *WorkspacesConfigReconciler) doCreateObject(
 	syncContext *syncContext,
 	dstObj client.Object) error {
 
-	err := r.client.Create(syncContext.ctx, dstObj)
+	_, err := r.cliWrapper.Create(syncContext.ctx, dstObj, nil)
 	if err != nil {
 		if !errors.IsAlreadyExists(err) {
 			return err
@@ -553,25 +544,22 @@ func (r *WorkspacesConfigReconciler) doCreateObject(
 		// `app.kubernetes.io/part-of=che.eclipse.org` label (is not cached)
 		// 1. Delete the object from a destination namespace using non-cached client
 		// 2. Create the object again using cached client
-		if err = deploy.DeleteIgnoreIfNotFound(
+		if done, err := r.nonCachedCliWrapper.Delete(
 			syncContext.ctx,
-			r.nonCachedClient,
 			types.NamespacedName{
 				Name:      dstObj.GetName(),
 				Namespace: dstObj.GetNamespace(),
 			},
-			dstObj); err != nil {
+			dstObj,
+		); !done {
 			return err
 		}
 
-		if err = r.client.Create(syncContext.ctx, dstObj); err != nil {
+		if done, err := r.cliWrapper.Create(syncContext.ctx, dstObj, nil); !done {
 			return err
 		}
 	}
 
-	logger.Info("Object created", "namespace", dstObj.GetNamespace(),
-		"kind", gvk2PrintString(syncContext.object2Sync.getGKV()),
-		"name", dstObj.GetName())
 	return nil
 }
 
@@ -598,13 +586,9 @@ func (r *WorkspacesConfigReconciler) doUpdateObject(
 	// set the current resource version to update object
 	dstObj.SetResourceVersion(existedDstObj.GetResourceVersion())
 
-	if err := r.client.Update(syncContext.ctx, dstObj); err != nil {
+	if _, err := r.cliWrapper.Sync(syncContext.ctx, dstObj, nil); err != nil {
 		return err
 	}
-
-	logger.Info("Object updated", "namespace", dstObj.GetNamespace(),
-		"kind", gvk2PrintString(syncContext.object2Sync.getGKV()),
-		"name", dstObj.GetName())
 
 	return nil
 }
@@ -643,14 +627,13 @@ func (r *WorkspacesConfigReconciler) deleteIfObjectIsObsolete(
 		}
 
 		// delete object from destination namespace
-		if err := deploy.DeleteIgnoreIfNotFound(
+		if done, err := r.cliWrapper.Delete(
 			ctx,
-			r.client,
 			types.NamespacedName{
 				Name:      objName,
 				Namespace: dstNamespace,
 			},
-			blueprint.(client.Object)); err != nil {
+			blueprint.(client.Object)); !done {
 			return err
 		}
 
@@ -671,9 +654,13 @@ func (r *WorkspacesConfigReconciler) getSyncConfig(ctx context.Context, namespac
 		Namespace: namespace,
 	}
 
-	err := r.client.Get(ctx, syncCMKey, syncCM)
-	if err != nil {
-		if errors.IsNotFound(err) {
+	exists, err := r.cliWrapper.Get(ctx, syncCMKey, syncCM)
+	if exists {
+		if syncCM.Data == nil {
+			syncCM.Data = map[string]string{}
+		}
+	} else {
+		if err == nil {
 			syncCM = &corev1.ConfigMap{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "ConfigMap",
@@ -691,8 +678,6 @@ func (r *WorkspacesConfigReconciler) getSyncConfig(ctx context.Context, namespac
 		} else {
 			return nil, err
 		}
-	} else if syncCM.Data == nil {
-		syncCM.Data = map[string]string{}
 	}
 
 	return syncCM, nil
@@ -751,14 +736,4 @@ func gvk2PrintString(gkv schema.GroupVersionKind) string {
 func hasWSConfigComponentLabels(obj metav1.Object) bool {
 	return obj.GetLabels()[constants.KubernetesComponentLabelKey] == constants.WorkspacesConfig &&
 		obj.GetLabels()[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg
-}
-
-func ensureGVK(obj client.Object, scheme *runtime.Scheme) error {
-	gvk, err := apiutil.GVKForObject(obj, scheme)
-	if err != nil {
-		return err
-	}
-
-	obj.GetObjectKind().SetGroupVersionKind(gvk)
-	return nil
 }

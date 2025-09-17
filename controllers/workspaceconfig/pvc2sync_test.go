@@ -81,7 +81,7 @@ func TestSyncPVC(t *testing.T) {
 
 	// Check if PVC in a user namespace is created
 	pvc := &corev1.PersistentVolumeClaim{}
-	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, pvc)
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, pvc)
 	assert.Nil(t, err)
 	assert.Equal(t, constants.WorkspacesConfig, pvc.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.CheEclipseOrg, pvc.Labels[constants.KubernetesPartOfLabelKey])
@@ -89,10 +89,10 @@ func TestSyncPVC(t *testing.T) {
 
 	// Update src PVC
 	pvc = &corev1.PersistentVolumeClaim{}
-	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInCheNs, pvc)
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInCheNs, pvc)
 	assert.Nil(t, err)
 	pvc.Spec.Resources.Requests[corev1.ResourceStorage] = resource.MustParse("2Gi")
-	err = workspaceConfigReconciler.client.Update(context.TODO(), pvc)
+	err = deployContext.ClusterAPI.Client.Update(context.TODO(), pvc)
 
 	// Sync PVC
 	err = workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
@@ -101,14 +101,14 @@ func TestSyncPVC(t *testing.T) {
 
 	// Check that destination PVC is not updated
 	pvc = &corev1.PersistentVolumeClaim{}
-	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, pvc)
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, pvc)
 	assert.Nil(t, err)
 	assert.Equal(t, constants.WorkspacesConfig, pvc.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.CheEclipseOrg, pvc.Labels[constants.KubernetesPartOfLabelKey])
 	assert.True(t, pvc.Spec.Resources.Requests[corev1.ResourceStorage].Equal(resource.MustParse("1Gi")))
 
 	// Delete dst PVC
-	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), workspaceConfigReconciler.client, objectKeyInUserNs, &corev1.PersistentVolumeClaim{})
+	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.Client, objectKeyInUserNs, &corev1.PersistentVolumeClaim{})
 	assert.Nil(t, err)
 
 	// Sync PVC
@@ -118,14 +118,14 @@ func TestSyncPVC(t *testing.T) {
 
 	// Check if PVC in a user namespace is created again
 	pvc = &corev1.PersistentVolumeClaim{}
-	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, pvc)
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, pvc)
 	assert.Nil(t, err)
 	assert.Equal(t, constants.WorkspacesConfig, pvc.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.CheEclipseOrg, pvc.Labels[constants.KubernetesPartOfLabelKey])
 	assert.True(t, pvc.Spec.Resources.Requests[corev1.ResourceStorage].Equal(resource.MustParse("2Gi")))
 
 	// Delete src PVC
-	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), workspaceConfigReconciler.client, objectKeyInCheNs, &corev1.PersistentVolumeClaim{})
+	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.Client, objectKeyInCheNs, &corev1.PersistentVolumeClaim{})
 	assert.Nil(t, err)
 
 	// Sync PVC
