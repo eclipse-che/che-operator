@@ -154,10 +154,8 @@ func (k K8sClientWrapper) List(ctx context.Context, list client.ObjectList, opts
 	}
 
 	for i, _ := range items {
-		if gvk, err := apiutil.GVKForObject(items[i], k.scheme); err != nil {
+		if err = k.ensureGVK(items[i].(client.Object)); err != nil {
 			return nil, err
-		} else {
-			items[i].GetObjectKind().SetGroupVersionKind(gvk)
 		}
 	}
 
