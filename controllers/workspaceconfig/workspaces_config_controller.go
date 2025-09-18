@@ -583,9 +583,6 @@ func (r *WorkspacesConfigReconciler) doUpdateObject(
 		},
 	))
 
-	// set the current resource version to update object
-	dstObj.SetResourceVersion(existedDstObj.GetResourceVersion())
-
 	if err := r.cliWrapper.Sync(syncContext.ctx, dstObj, nil); err != nil {
 		return err
 	}
