@@ -76,13 +76,7 @@ func (k K8sClientWrapper) Sync(
 		_ = k.ensureGVK(obj)
 	}()
 
-	key := types.NamespacedName{
-		Name:      obj.GetName(),
-		Namespace: obj.GetNamespace(),
-	}
-
-	actual, err := k.scheme.New(obj.GetObjectKind().GroupVersionKind())
-	if err != nil {
+	if err := k.ensureGVK(obj); err != nil {
 		return err
 	}
 
@@ -90,6 +84,15 @@ func (k K8sClientWrapper) Sync(
 		return err
 	}
 
+	actual, err := k.scheme.New(obj.GetObjectKind().GroupVersionKind())
+	if err != nil {
+		return err
+	}
+
+	key := types.NamespacedName{
+		Name:      obj.GetName(),
+		Namespace: obj.GetNamespace(),
+	}
 	if exists, err := k.doGetIgnoreNotFound(ctx, key, actual.(client.Object)); exists {
 		return k.doSync(ctx, actual.(client.Object), obj, diffOpts...)
 	} else if err == nil {
@@ -109,6 +112,10 @@ func (k K8sClientWrapper) Create(
 		// ensure GVK is set (for original object) when function returns
 		_ = k.ensureGVK(obj)
 	}()
+
+	if err := k.ensureGVK(obj); err != nil {
+		return err
+	}
 
 	if err := k.setOwner(obj, owner); err != nil {
 		return err
@@ -255,10 +262,6 @@ func (k K8sClientWrapper) doSync(
 ) error {
 	if actual == nil {
 		return k.doCreate(ctx, obj, false)
-	}
-
-	if err := k.ensureGVK(actual.(client.Object)); err != nil {
-		return err
 	}
 
 	diff := cmp.Diff(actual, obj, diffOpts...)

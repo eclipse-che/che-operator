@@ -22,9 +22,8 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
-	oauthv1 "github.com/openshift/api/oauth/v1"
-
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	oauthv1 "github.com/openshift/api/oauth/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -38,6 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -237,7 +237,9 @@ func addPartOfCheLabelForObjectsWithLabel(ctx *chetypes.DeployContext, labelKey 
 // of given objectsList kind that match the provided in listOptions selector and namespace.
 func addPartOfCheLabelToObjectsBySelector(ctx *chetypes.DeployContext, listOptions *client.ListOptions, objectsList client.ObjectList) error {
 	if err := ctx.ClusterAPI.NonCachingClient.List(context.TODO(), objectsList, listOptions); err != nil {
-		logrus.Warnf("Failed to get %s to add %s label", objectsList.GetObjectKind().GroupVersionKind().Kind, constants.KubernetesPartOfLabelKey)
+		if gvk, err := apiutil.GVKForObject(objectsList, ctx.ClusterAPI.Scheme); err == nil {
+			logrus.Warnf("Failed to get %s to add %s label", gvk.Kind, constants.KubernetesPartOfLabelKey)
+		}
 		return err
 	}
 
