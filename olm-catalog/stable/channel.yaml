@@ -121,3 +121,5 @@ entries:
     replaces: eclipse-che.v7.106.0
   - name: eclipse-che.v7.108.0
     replaces: eclipse-che.v7.107.0
+  - name: eclipse-che.v7.109.0
+    replaces: eclipse-che.v7.108.0

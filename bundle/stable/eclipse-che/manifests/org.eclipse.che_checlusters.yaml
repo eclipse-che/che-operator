@@ -6807,6 +6807,67 @@ spec:
                           - name
                         type: object
                       type: array
+                    defaultContainerResources:
+                      description: |-
+                        DefaultContainerResources defines the resource requirements (memory/cpu limit/request) used for
+                        container components that do not define limits or requests.
+                      properties:
+                        claims:
+                          description: |-
+                            Claims lists the names of resources, defined in spec.resourceClaims,
+                            that are used by this container.
+
+                            This is an alpha field and requires enabling the
+                            DynamicResourceAllocation feature gate.
+
+                            This field is immutable. It can only be set for containers.
+                          items:
+                            description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                            properties:
+                              name:
+                                description: |-
+                                  Name must match the name of one entry in pod.spec.resourceClaims of
+                                  the Pod where this field is used. It makes that resource available
+                                  inside a container.
+                                type: string
+                              request:
+                                description: |-
+                                  Request is the name chosen for a request in the referenced claim.
+                                  If empty, everything from the claim is made available, otherwise
+                                  only the result of this request.
+                                type: string
+                            required:
+                              - name
+                            type: object
+                          type: array
+                          x-kubernetes-list-map-keys:
+                            - name
+                          x-kubernetes-list-type: map
+                        limits:
+                          additionalProperties:
+                            anyOf:
+                              - type: integer
+                              - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          description: |-
+                            Limits describes the maximum amount of compute resources allowed.
+                            More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                          type: object
+                        requests:
+                          additionalProperties:
+                            anyOf:
+                              - type: integer
+                              - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          description: |-
+                            Requests describes the minimum amount of compute resources required.
+                            If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                            otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                            More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                          type: object
+                      type: object
                     defaultEditor:
                       description: |-
                         The default editor to workspace create with. It could be a plugin ID or a URI.
@@ -7134,6 +7195,33 @@ spec:
                       format: int64
                       minimum: -1
                       type: integer
+                    networking:
+                      description: Configuration settings related to the workspaces
+                        networking.
+                      properties:
+                        externalTLSConfig:
+                          description: External TLS configuration.
+                          properties:
+                            annotations:
+                              additionalProperties:
+                                type: string
+                              description: Annotations to be applied to ingress/route
+                                objects when external TLS is enabled.
+                              type: object
+                            enabled:
+                              description: |-
+                                Enabled determines whether external TLS configuration is used.
+                                If set to true, the operator will not set TLS config for ingress/route objects.
+                                Instead, it ensures that any custom TLS configuration will not be reverted on synchronization.
+                              type: boolean
+                            labels:
+                              additionalProperties:
+                                type: string
+                              description: Labels to be applied to ingress/route objects
+                                when external TLS is enabled.
+                              type: object
+                          type: object
+                      type: object
                     nodeSelector:
                       additionalProperties:
                         type: string
