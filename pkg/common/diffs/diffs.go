@@ -21,6 +21,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var ConfigMapAll = cmp.Options{
+	cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
+	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
+		return reflect.DeepEqual(x.Labels, y.Labels) && reflect.DeepEqual(x.Annotations, y.Annotations)
+	}),
+}
+
 var ConfigMapAllLabels = cmp.Options{
 	cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
 	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
@@ -31,14 +38,6 @@ var ConfigMapAllLabels = cmp.Options{
 func ConfigMap(labels []string, annotations []string) cmp.Options {
 	return cmp.Options{
 		cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
-		objectMetaComparator(labels, annotations),
-	}
-}
-
-func ConfigMapIgnoreData(labels []string, annotations []string) cmp.Options {
-	return cmp.Options{
-		cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
-		cmpopts.IgnoreFields(corev1.ConfigMap{}, "Data"),
 		objectMetaComparator(labels, annotations),
 	}
 }

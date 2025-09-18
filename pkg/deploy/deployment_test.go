@@ -747,12 +747,20 @@ func TestSyncEnvVarDeploymentToCluster(t *testing.T) {
 	}
 
 	// sync deployment
+	deployment.TypeMeta = metav1.TypeMeta{
+		Kind:       "Deployment",
+		APIVersion: appsv1.SchemeGroupVersion.String(),
+	}
 	_, err = SyncDeploymentSpecToCluster(ctx, deployment, DefaultDeploymentDiffOpts)
 	if err != nil {
 		t.Fatalf("Failed to sync deployment: %v", err)
 	}
 
 	// sync twice to be sure update done correctly
+	deployment.TypeMeta = metav1.TypeMeta{
+		Kind:       "Deployment",
+		APIVersion: appsv1.SchemeGroupVersion.String(),
+	}
 	done, err = SyncDeploymentSpecToCluster(ctx, deployment, DefaultDeploymentDiffOpts)
 	if !done || err != nil {
 		t.Fatalf("Failed to sync deployment: %v", err)

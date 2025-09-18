@@ -16,21 +16,22 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/eclipse-che/che-operator/pkg/common/utils"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
-
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 	routev1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 type IngressExposer struct {
@@ -83,7 +84,7 @@ func (e *RouteExposer) initFrom(ctx context.Context, cl client.Client, cluster *
 	return nil
 }
 
-func (e *IngressExposer) initFrom(ctx context.Context, cl client.Client, cluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting) error {
+func (e *IngressExposer) initFrom(ctx context.Context, cl client.Client, cluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, scheme *runtime.Scheme) error {
 	e.baseDomain = cluster.Status.WorkspaceBaseDomain
 	e.devWorkspaceID = routing.Spec.DevWorkspaceId
 
@@ -102,8 +103,6 @@ func (e *IngressExposer) initFrom(ctx context.Context, cl client.Client, cluster
 				return err
 			}
 
-			yes := true
-
 			newSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      tlsSecretName,
@@ -111,19 +110,13 @@ func (e *IngressExposer) initFrom(ctx context.Context, cl client.Client, cluster
 					Labels: map[string]string{
 						constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
 					},
-					OwnerReferences: []metav1.OwnerReference{
-						{
-							Name:               routing.Name,
-							Kind:               routing.Kind,
-							APIVersion:         routing.APIVersion,
-							UID:                routing.UID,
-							Controller:         &yes,
-							BlockOwnerDeletion: &yes,
-						},
-					},
 				},
 				Type: secret.Type,
 				Data: secret.Data,
+			}
+
+			if err := controllerutil.SetControllerReference(routing, newSecret, scheme); err != nil {
+				return err
 			}
 
 			return cl.Create(ctx, newSecret)

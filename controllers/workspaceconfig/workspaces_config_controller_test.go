@@ -18,6 +18,9 @@ import (
 	"testing"
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
+	"github.com/eclipse-che/che-operator/pkg/common/diffs"
+	"github.com/google/go-cmp/cmp"
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -32,38 +35,39 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestRecreateObjectIfAlreadyExists(t *testing.T) {
-	// Actual object in a user namespace
-	srcObject := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
-			APIVersion: "v1",
+func TestCreate(t *testing.T) {
+	ctx := test.NewCtxBuilder().WithObjects(
+		&corev1.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ConfigMap",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: "eclipse-che",
+				Labels: map[string]string{
+					constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+					constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
+				},
+			},
+			Data: map[string]string{
+				"key": "new-value",
+			},
 		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test",
-			Namespace: "user-che",
+		&corev1.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ConfigMap",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: "user-che",
+			},
+			Data: map[string]string{
+				"key": "old_value",
+			},
 		},
-		Data: map[string]string{
-			"key": "value",
-		},
-	}
-
-	// Expected object in a user namespace
-	dstObject := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test",
-			Namespace: "user-che",
-		},
-		Data: map[string]string{
-			"new-key": "new-value",
-		},
-	}
-
-	ctx := test.NewCtxBuilder().Build()
+	).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
 		ctx.ClusterAPI.Client,
@@ -71,92 +75,130 @@ func TestRecreateObjectIfAlreadyExists(t *testing.T) {
 		ctx.ClusterAPI.Scheme,
 		namespacecache.NewNamespaceCache(ctx.ClusterAPI.NonCachingClient))
 
-	syncContext := &syncContext{
-		dstNamespace: "user-che",
-		srcNamespace: "eclipse-che",
-		object2Sync:  &configMap2Sync{cm: srcObject},
-		syncConfig:   map[string]string{},
-	}
+	err := workspaceConfigReconciler.syncNamespace(
+		context.TODO(),
+		"eclipse-che",
+		"user-che",
+	)
 
-	err := workspaceConfigReconciler.doCreateObject(syncContext, dstObject)
 	assert.NoError(t, err)
 
-	cm := &corev1.ConfigMap{}
-	exists, err := deploy.Get(ctx, types.NamespacedName{Namespace: "user-che", Name: "test"}, cm)
+	dstCm := &corev1.ConfigMap{}
+	exists, err := deploy.Get(ctx, types.NamespacedName{Namespace: "user-che", Name: "test"}, dstCm)
+
 	assert.NoError(t, err)
 	assert.True(t, exists)
-	assert.Equal(t, 1, len(cm.Data))
-	assert.Equal(t, "new-value", cm.Data["new-key"])
+	assert.Equal(t, 1, len(dstCm.Data))
+	assert.Equal(t, "new-value", dstCm.Data["key"])
+}
+
+func TestUpdate(t *testing.T) {
+	ctx := test.NewCtxBuilder().Build()
+
+	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
+		ctx.ClusterAPI.Client,
+		ctx.ClusterAPI.Client,
+		ctx.ClusterAPI.Scheme,
+		namespacecache.NewNamespaceCache(ctx.ClusterAPI.NonCachingClient),
+	)
+
+	err := ctx.ClusterAPI.Client.Create(
+		context.TODO(),
+		&corev1.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ConfigMap",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: "eclipse-che",
+				Labels: map[string]string{
+					constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+					constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
+				},
+			},
+			Data: map[string]string{
+				"key_1": "value_1",
+			},
+		})
+
+	assert.NoError(t, err)
+
+	err = workspaceConfigReconciler.syncNamespace(
+		context.TODO(),
+		"eclipse-che",
+		"user-che",
+	)
+
+	assert.NoError(t, err)
+
+	dstCm := &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "user-che"}, dstCm)
+
+	assert.NoError(t, err)
+
+	srcCm := &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, srcCm)
+
+	assert.NoError(t, err)
+	assert.True(t, cmp.Equal(dstCm, srcCm, diffs.ConfigMap([]string{constants.KubernetesPartOfLabelKey, constants.KubernetesComponentLabelKey}, nil)))
+
+	// update source and destination config maps
+
+	dstCm.Data["key_1"] = "new_dst_value_1"
+	dstCm.Data["key_2"] = "new_dst_value_2"
+	dstCm.Labels["label_1"] = "new_dst_value_1"
+	dstCm.Labels["label_2"] = "new_dst_value_2"
+	dstCm.Annotations = map[string]string{}
+	dstCm.Annotations["annotation_1"] = "new_dst_value_1"
+	dstCm.Annotations["annotation_2"] = "new_dst_value_2"
+	err = ctx.ClusterAPI.Client.Update(context.TODO(), dstCm)
+
+	assert.NoError(t, err)
+
+	srcCm.Data["key_1"] = "new_src_value_1"
+	srcCm.Data["key_3"] = "new_src_value_3"
+	srcCm.Labels["label_1"] = "new_src_value_1"
+	srcCm.Labels["label_3"] = "new_src_value_3"
+	srcCm.Annotations = map[string]string{}
+	srcCm.Annotations["annotation_1"] = "new_src_value_1"
+	srcCm.Annotations["annotation_3"] = "new_src_value_3"
+
+	err = ctx.ClusterAPI.Client.Update(context.TODO(), srcCm)
+
+	assert.NoError(t, err)
+
+	// check again
+
+	err = workspaceConfigReconciler.syncNamespace(
+		context.TODO(),
+		"eclipse-che",
+		"user-che",
+	)
+
+	assert.NoError(t, err)
+
+	dstCm = &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "user-che"}, dstCm)
+
+	assert.NoError(t, err)
+
+	srcCm = &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, srcCm)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(dstCm.Data))
+	assert.Equal(t, "new_src_value_1", dstCm.Data["key_1"])
+	assert.Equal(t, "new_src_value_3", dstCm.Data["key_3"])
+	assert.Equal(t, "new_src_value_1", dstCm.Labels["label_1"])
+	assert.Equal(t, "new_dst_value_2", dstCm.Labels["label_2"])
+	assert.Equal(t, "new_src_value_3", dstCm.Labels["label_3"])
+	assert.Equal(t, "new_src_value_1", dstCm.Annotations["annotation_1"])
+	assert.Equal(t, "new_dst_value_2", dstCm.Annotations["annotation_2"])
+	assert.Equal(t, "new_src_value_3", dstCm.Annotations["annotation_3"])
 }
 
 func TestDeleteIfObjectIsObsolete(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test_1",
-			Namespace: "user-che",
-		},
-	}).Build()
-
-	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		ctx.ClusterAPI.Client,
-		ctx.ClusterAPI.Client,
-		ctx.ClusterAPI.Scheme,
-		namespacecache.NewNamespaceCache(ctx.ClusterAPI.NonCachingClient))
-
-	test1CMInUserNS := buildKey(v1ConfigMapGKV, "test_1", "user-che")
-	test2CMInUserNS := buildKey(v1ConfigMapGKV, "test_2", "user-che")
-	test1CMInCheNS := buildKey(v1ConfigMapGKV, "test_1", "eclipse-che")
-	test2CMInCheNS := buildKey(v1ConfigMapGKV, "test_2", "eclipse-che")
-
-	syncConfig := map[string]string{
-		test1CMInUserNS: "1",
-		test1CMInCheNS:  "1",
-		test2CMInUserNS: "1",
-		test2CMInCheNS:  "1",
-	}
-
-	exists, err := deploy.Get(ctx, types.NamespacedName{Namespace: "user-che", Name: "test_1"}, &corev1.ConfigMap{})
-	assert.NoError(t, err)
-	assert.True(t, exists)
-
-	// Should delete, since the object from source namespace is obsolete
-	err = workspaceConfigReconciler.deleteIfObjectIsObsolete(
-		test1CMInCheNS,
-		context.TODO(),
-		"eclipse-che",
-		"user-che",
-		syncConfig,
-		map[string]bool{},
-	)
-	assert.NoError(t, err)
-	assert.Equal(t, 2, len(syncConfig))
-	assert.Contains(t, syncConfig, test2CMInUserNS)
-	assert.Contains(t, syncConfig, test2CMInCheNS)
-
-	exists, err = deploy.Get(ctx, types.NamespacedName{Namespace: "user-che", Name: "test_1"}, &corev1.ConfigMap{})
-	assert.NoError(t, err)
-	assert.False(t, exists)
-
-	// Should NOT delete, since the object from a user destination namespace
-	err = workspaceConfigReconciler.deleteIfObjectIsObsolete(
-		test2CMInUserNS,
-		context.TODO(),
-		"eclipse-che",
-		"user-che",
-		syncConfig,
-		map[string]bool{},
-	)
-	assert.NoError(t, err)
-	assert.Equal(t, 2, len(syncConfig))
-	assert.Contains(t, syncConfig, test2CMInUserNS)
-	assert.Contains(t, syncConfig, test2CMInCheNS)
-}
-
-func TestGetEmptySyncConfig(t *testing.T) {
 	ctx := test.NewCtxBuilder().Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
@@ -165,13 +207,148 @@ func TestGetEmptySyncConfig(t *testing.T) {
 		ctx.ClusterAPI.Scheme,
 		namespacecache.NewNamespaceCache(ctx.ClusterAPI.NonCachingClient))
 
-	cm, err := workspaceConfigReconciler.getSyncConfig(context.TODO(), "eclipse-che")
+	err := ctx.ClusterAPI.Client.Create(
+		context.TODO(),
+		&corev1.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ConfigMap",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test_1",
+				Namespace: "eclipse-che",
+				Labels: map[string]string{
+					constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+					constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
+				},
+			},
+			Data: map[string]string{
+				"key": "value",
+			},
+		})
+
 	assert.NoError(t, err)
-	assert.NotNil(t, cm)
-	assert.Empty(t, cm.Data)
-	assert.Equal(t, constants.CheEclipseOrg, cm.Labels[constants.KubernetesPartOfLabelKey])
-	assert.Equal(t, constants.WorkspacesConfig, cm.Labels[constants.KubernetesComponentLabelKey])
-	assert.Equal(t, deploy.GetManagedByLabel(), cm.Labels[constants.KubernetesManagedByLabelKey])
+
+	err = workspaceConfigReconciler.syncNamespace(
+		context.TODO(),
+		"eclipse-che",
+		"user-che",
+	)
+
+	assert.NoError(t, err)
+
+	syncCMKey := types.NamespacedName{
+		Name:      syncedWorkspacesConfig,
+		Namespace: "user-che",
+	}
+
+	syncCM := &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), syncCMKey, syncCM)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "1", syncCM.Data[buildKey(v1ConfigMapGKV, "test_1", "eclipse-che")])
+	assert.Equal(t, "1", syncCM.Data[buildKey(v1ConfigMapGKV, "test_1", "user-che")])
+	assert.Equal(t,
+		map[string]string{
+			constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+			constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
+			constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel(),
+		},
+		syncCM.Labels)
+
+	// add obsolete data to a sync config map
+
+	syncCM.Data[buildKey(v1ConfigMapGKV, "test_2", "user-che")] = "1"
+	syncCM.Data[buildKey(v1ConfigMapGKV, "test_2", "eclipse-che")] = "1"
+
+	err = ctx.ClusterAPI.Client.Update(context.TODO(), syncCM)
+
+	assert.NoError(t, err)
+
+	err = ctx.ClusterAPI.Client.Create(
+		context.TODO(),
+		&corev1.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ConfigMap",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test_2",
+				Namespace: "user-che",
+				Labels: map[string]string{
+					constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+					constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
+				},
+			},
+			Data: map[string]string{
+				"key": "value",
+			},
+		})
+
+	// sync again to check that obsolete data will be removed
+
+	err = workspaceConfigReconciler.syncNamespace(
+		context.TODO(),
+		"eclipse-che",
+		"user-che",
+	)
+
+	assert.NoError(t, err)
+
+	syncCM = &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), syncCMKey, syncCM)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "1", syncCM.Data[buildKey(v1ConfigMapGKV, "test_1", "eclipse-che")])
+	assert.Equal(t, "1", syncCM.Data[buildKey(v1ConfigMapGKV, "test_1", "user-che")])
+	assert.Equal(t,
+		map[string]string{
+			constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+			constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
+			constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel(),
+		},
+		syncCM.Labels)
+
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test_2", Namespace: "user-che"}, &corev1.ConfigMap{})
+
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
+
+	// clean sync config map data
+
+	syncCM.Data = map[string]string{}
+
+	err = ctx.ClusterAPI.Client.Update(context.TODO(), syncCM)
+
+	assert.NoError(t, err)
+
+	// sync again to check that data will be restored
+
+	err = workspaceConfigReconciler.syncNamespace(
+		context.TODO(),
+		"eclipse-che",
+		"user-che",
+	)
+
+	assert.NoError(t, err)
+
+	syncCM = &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), syncCMKey, syncCM)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "1", syncCM.Data[buildKey(v1ConfigMapGKV, "test_1", "eclipse-che")])
+	assert.Equal(t, "1", syncCM.Data[buildKey(v1ConfigMapGKV, "test_1", "user-che")])
+	assert.Equal(t,
+		map[string]string{
+			constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+			constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
+			constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel(),
+		},
+		syncCM.Labels)
+
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test_1", Namespace: "user-che"}, &corev1.ConfigMap{})
+
+	assert.NoError(t, err)
 }
 
 func TestBuildKey(t *testing.T) {
@@ -259,4 +436,151 @@ func TestBuildKey(t *testing.T) {
 			assert.Equal(t, testCase.gkv, item2gkv(getGkvItem(key)))
 		})
 	}
+}
+
+func TestSyncConfig(t *testing.T) {
+	ctx := test.NewCtxBuilder().Build()
+
+	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
+		ctx.ClusterAPI.Client,
+		ctx.ClusterAPI.Client,
+		ctx.ClusterAPI.Scheme,
+		namespacecache.NewNamespaceCache(ctx.ClusterAPI.NonCachingClient))
+
+	syncCMKey := types.NamespacedName{
+		Name:      syncedWorkspacesConfig,
+		Namespace: "user-che",
+	}
+
+	// Sync config map should not exist
+	syncCM := &corev1.ConfigMap{}
+	err := ctx.ClusterAPI.Client.Get(context.TODO(), syncCMKey, syncCM)
+
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
+
+	err = workspaceConfigReconciler.syncNamespace(
+		context.TODO(),
+		"eclipse-che",
+		"user-che",
+	)
+
+	assert.NoError(t, err)
+
+	// Sync config map should exist
+	syncCM = &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), syncCMKey, syncCM)
+
+	assert.NoError(t, err)
+	assert.Empty(t, syncCM.Data)
+	assert.Equal(t,
+		map[string]string{
+			constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+			constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
+			constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel(),
+		},
+		syncCM.Labels)
+
+	// sync some object and check sync config map
+
+	err = ctx.ClusterAPI.Client.Create(
+		context.TODO(),
+		&corev1.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ConfigMap",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: "eclipse-che",
+				Labels: map[string]string{
+					constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+					constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
+				},
+			},
+			Data: map[string]string{
+				"key": "value",
+			},
+		})
+
+	assert.NoError(t, err)
+
+	err = workspaceConfigReconciler.syncNamespace(
+		context.TODO(),
+		"eclipse-che",
+		"user-che",
+	)
+
+	assert.NoError(t, err)
+
+	// Sync config map should exist and contains synced object revision
+
+	syncCM = &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), syncCMKey, syncCM)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "1", syncCM.Data[buildKey(v1ConfigMapGKV, "test", "eclipse-che")])
+	assert.Equal(t, "1", syncCM.Data[buildKey(v1ConfigMapGKV, "test", "user-che")])
+	assert.Equal(t,
+		map[string]string{
+			constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+			constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
+			constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel(),
+		},
+		syncCM.Labels)
+
+	// Sync one more time, nothing should change
+
+	err = workspaceConfigReconciler.syncNamespace(
+		context.TODO(),
+		"eclipse-che",
+		"user-che",
+	)
+
+	assert.NoError(t, err)
+
+	syncCM = &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), syncCMKey, syncCM)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "1", syncCM.Data[buildKey(v1ConfigMapGKV, "test", "eclipse-che")])
+	assert.Equal(t, "1", syncCM.Data[buildKey(v1ConfigMapGKV, "test", "user-che")])
+	assert.Equal(t,
+		map[string]string{
+			constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+			constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
+			constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel(),
+		},
+		syncCM.Labels)
+
+	// delete some object and check sync config map
+
+	cm := &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, cm)
+
+	assert.NoError(t, err)
+
+	err = ctx.ClusterAPI.Client.Delete(context.TODO(), cm)
+	assert.NoError(t, err)
+
+	err = workspaceConfigReconciler.syncNamespace(
+		context.TODO(),
+		"eclipse-che",
+		"user-che",
+	)
+
+	assert.NoError(t, err)
+
+	syncCM = &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), syncCMKey, syncCM)
+
+	assert.NoError(t, err)
+	assert.Empty(t, syncCM.Data)
+	assert.Equal(t,
+		map[string]string{
+			constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+			constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
+			constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel(),
+		},
+		syncCM.Labels)
 }

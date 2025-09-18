@@ -25,7 +25,6 @@ import (
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	devworkspacedefaults "github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
-	"github.com/eclipse-che/che-operator/controllers/devworkspace/sync"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -50,7 +49,7 @@ func TestNoCustomResourceSharedWhenReconcilingNonExistent(t *testing.T) {
 	scheme := ctx.ClusterAPI.Scheme
 	cl := ctx.ClusterAPI.Client
 
-	reconciler := CheClusterReconciler{client: cl, scheme: scheme, syncer: sync.New(cl, scheme)}
+	reconciler := CheClusterReconciler{client: cl, scheme: scheme}
 
 	_, err := reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
 	if err != nil {
@@ -117,7 +116,7 @@ func TestAddsCustomResourceToSharedMapOnCreate(t *testing.T) {
 	cl := ctx.ClusterAPI.Client
 	scheme := ctx.ClusterAPI.Scheme
 
-	reconciler := CheClusterReconciler{client: cl, scheme: scheme, syncer: sync.New(cl, scheme)}
+	reconciler := CheClusterReconciler{client: cl, scheme: scheme}
 
 	_, err := reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
 	if err != nil {
@@ -166,7 +165,7 @@ func TestUpdatesCustomResourceInSharedMapOnUpdate(t *testing.T) {
 	scheme := ctx.ClusterAPI.Scheme
 	cl := ctx.ClusterAPI.Client
 
-	reconciler := CheClusterReconciler{client: cl, scheme: scheme, syncer: sync.New(cl, scheme)}
+	reconciler := CheClusterReconciler{client: cl, scheme: scheme}
 
 	_, err := reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
 	if err != nil {
@@ -268,7 +267,7 @@ func TestRemovesCustomResourceFromSharedMapOnDelete(t *testing.T) {
 	cl := ctx.ClusterAPI.Client
 	scheme := ctx.ClusterAPI.Scheme
 
-	reconciler := CheClusterReconciler{client: cl, scheme: scheme, syncer: sync.New(cl, scheme)}
+	reconciler := CheClusterReconciler{client: cl, scheme: scheme}
 
 	_, err := reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
 	if err != nil {
@@ -337,7 +336,7 @@ func TestCustomResourceFinalization(t *testing.T) {
 	cl := ctx.ClusterAPI.Client
 	scheme := ctx.ClusterAPI.Scheme
 
-	reconciler := CheClusterReconciler{client: cl, scheme: scheme, syncer: sync.New(cl, scheme)}
+	reconciler := CheClusterReconciler{client: cl, scheme: scheme}
 
 	_, err := reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
 	assert.NoError(t, err)
@@ -409,7 +408,7 @@ func TestExternalGatewayDetection(t *testing.T) {
 		cl := ctx.ClusterAPI.Client
 		scheme := ctx.ClusterAPI.Scheme
 
-		reconciler := CheClusterReconciler{client: cl, scheme: scheme, syncer: sync.New(cl, scheme)}
+		reconciler := CheClusterReconciler{client: cl, scheme: scheme}
 
 		// first reconcile sets the finalizer, second reconcile actually finishes the process
 		_, err := reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: clusterName, Namespace: ns}})
@@ -436,7 +435,7 @@ func TestExternalGatewayDetection(t *testing.T) {
 		cl := ctx.ClusterAPI.Client
 		scheme := ctx.ClusterAPI.Scheme
 
-		reconciler := CheClusterReconciler{client: cl, scheme: scheme, syncer: sync.New(cl, scheme)}
+		reconciler := CheClusterReconciler{client: cl, scheme: scheme}
 
 		// first reconcile sets the finalizer, second reconcile actually finishes the process
 		_, err := reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: clusterName, Namespace: ns}})

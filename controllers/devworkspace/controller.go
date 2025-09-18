@@ -29,7 +29,6 @@ import (
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
-	datasync "github.com/eclipse-che/che-operator/controllers/devworkspace/sync"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -57,7 +56,6 @@ const (
 type CheClusterReconciler struct {
 	client client.Client
 	scheme *runtime.Scheme
-	syncer datasync.Syncer
 }
 
 // GetCurrentCheClusterInstances returns a map of all che clusters (keyed by their namespaced name)
@@ -101,14 +99,12 @@ func New(cl client.Client, scheme *runtime.Scheme) CheClusterReconciler {
 	return CheClusterReconciler{
 		client: cl,
 		scheme: scheme,
-		syncer: datasync.New(cl, scheme),
 	}
 }
 
 func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.client = mgr.GetClient()
 	r.scheme = mgr.GetScheme()
-	r.syncer = datasync.New(r.client, r.scheme)
 
 	bld := ctrl.NewControllerManagedBy(mgr).
 		For(&chev2.CheCluster{}).

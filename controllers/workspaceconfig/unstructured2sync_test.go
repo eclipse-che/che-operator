@@ -103,7 +103,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 
 	// Check LimitRange in a user namespace is created
 	lr := &corev1.LimitRange{}
-	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, lr)
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
 	assert.Nil(t, err)
 	assert.Equal(t, corev1.LimitTypeContainer, lr.Spec.Limits[0].Type)
 	assert.Equal(t, constants.WorkspacesConfig, lr.Labels[constants.KubernetesComponentLabelKey])
@@ -113,7 +113,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 
 	// Update src Template
 	template := &templatev1.Template{}
-	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInCheNs, template)
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInCheNs, template)
 	assert.Nil(t, err)
 	template.Objects = []runtime.RawExtension{
 		{
@@ -135,7 +135,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 			},
 		},
 	}
-	err = workspaceConfigReconciler.client.Update(context.TODO(), template)
+	err = deployContext.ClusterAPI.Client.Update(context.TODO(), template)
 	assert.Nil(t, err)
 
 	// Sync Template
@@ -145,7 +145,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 
 	// Check that destination LimitRange is updated
 	lr = &corev1.LimitRange{}
-	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, lr)
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
 	assert.Nil(t, err)
 	assert.Equal(t, corev1.LimitTypePod, lr.Spec.Limits[0].Type)
 	assert.Equal(t, constants.WorkspacesConfig, lr.Labels[constants.KubernetesComponentLabelKey])
@@ -153,10 +153,10 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 
 	// Update dst LimitRange
 	lr = &corev1.LimitRange{}
-	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, lr)
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
 	assert.Nil(t, err)
 	lr.Spec.Limits[0].Type = corev1.LimitTypePersistentVolumeClaim
-	err = workspaceConfigReconciler.client.Update(context.TODO(), lr)
+	err = deployContext.ClusterAPI.Client.Update(context.TODO(), lr)
 	assert.Nil(t, err)
 
 	// Sync Template
@@ -166,7 +166,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 
 	// Check that destination LimitRange is reverted
 	lr = &corev1.LimitRange{}
-	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, lr)
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
 	assert.Nil(t, err)
 	assert.Equal(t, corev1.LimitTypePod, lr.Spec.Limits[0].Type)
 	assert.Equal(t, constants.WorkspacesConfig, lr.Labels[constants.KubernetesComponentLabelKey])
@@ -174,11 +174,11 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 
 	// Update dst LimitRange in the way that it won't be reverted
 	lr = &corev1.LimitRange{}
-	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, lr)
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
 	assert.Nil(t, err)
 	lr.Annotations = map[string]string{"new-annotation": "new-test"}
 	utils.AddMap(lr.Labels, map[string]string{"new-label": "new-test"})
-	err = workspaceConfigReconciler.client.Update(context.TODO(), lr)
+	err = deployContext.ClusterAPI.Client.Update(context.TODO(), lr)
 	assert.Nil(t, err)
 
 	// Sync Template
@@ -188,7 +188,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 
 	// Check that destination ConfigMap is not reverted
 	lr = &corev1.LimitRange{}
-	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, lr)
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
 	assert.Nil(t, err)
 	assert.Equal(t, corev1.LimitTypePod, lr.Spec.Limits[0].Type)
 	assert.Equal(t, constants.WorkspacesConfig, lr.Labels[constants.KubernetesComponentLabelKey])
@@ -207,7 +207,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 
 	// Check that destination LimitRange is reverted
 	lr = &corev1.LimitRange{}
-	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, lr)
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
 	assert.Nil(t, err)
 	assert.Equal(t, corev1.LimitTypePod, lr.Spec.Limits[0].Type)
 	assert.Equal(t, constants.WorkspacesConfig, lr.Labels[constants.KubernetesComponentLabelKey])
@@ -224,7 +224,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 
 	// Check that destination LimitRange in a user namespace is deleted
 	lr = &corev1.LimitRange{}
-	err = workspaceConfigReconciler.client.Get(context.TODO(), objectKeyInUserNs, lr)
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
 	assert.NotNil(t, err)
 	assert.True(t, errors.IsNotFound(err))
 }

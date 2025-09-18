@@ -189,6 +189,20 @@ type WorkspaceConfig struct {
 	RuntimeClassName *string `json:"runtimeClassName,omitempty"`
 	// CleanupCronJobConfig defines configuration options for a cron job that automatically cleans up stale DevWorkspaces.
 	CleanupCronJob *CleanupCronJobConfig `json:"cleanupCronJob,omitempty"`
+	// PostStartTimeout defines the maximum duration the PostStart hook can run
+	// before it is automatically failed. This timeout is used for the postStart lifecycle hook
+	// that is used to run commands in the workspace container. The timeout is specified in seconds.
+	// Duration should be specified in a format parseable by Go's time package, e.g. "20s", "2m".
+	// If not specified or "0", the timeout is disabled.
+	// +kubebuilder:validation:Optional
+	PostStartTimeout string `json:"postStartTimeout,omitempty"`
+	// Controls whether the Pod uses the host's user namespace.
+	// If true (or omitted), the Pod runs in the host's user namespace.
+	// If false, a new user namespace is created for the Pod.
+	// This field is only used when the UserNamespacesSupport feature is enabled.
+	// If the feature is disabled, setting this field may cause an endless workspace start loop.
+	// +kubebuilder:validation:Optional
+	HostUsers *bool `json:"hostUsers,omitempty"`
 }
 
 type WebhookConfig struct {
