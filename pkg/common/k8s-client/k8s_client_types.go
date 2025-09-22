@@ -7,8 +7,8 @@
 // SPDX-License-Identifier: EPL-2.0
 //
 // Contributors:
+//   Red Hat, Inc. - initial API and implementation
 //
-//	Red Hat, Inc. - initial API and implementation
 
 package k8s_client
 
