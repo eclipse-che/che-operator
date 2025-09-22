@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 var (
@@ -49,7 +50,7 @@ func TestSync(t *testing.T) {
 		},
 	}
 
-	err := cli.Sync(context.TODO(), cm, nil, diffs)
+	err := cli.Sync(context.TODO(), cm, nil, &SyncOptions{DiffOpts: diffs})
 
 	assert.NoError(t, err)
 	assert.Equal(t, "ConfigMap", cm.Kind)
@@ -69,7 +70,7 @@ func TestSync(t *testing.T) {
 		},
 	}
 
-	err = cli.Sync(context.TODO(), newCm, nil, diffs)
+	err = cli.Sync(context.TODO(), newCm, nil, &SyncOptions{DiffOpts: diffs})
 
 	assert.NoError(t, err)
 	assert.Equal(t, "ConfigMap", newCm.Kind)
@@ -89,9 +90,68 @@ func TestSync(t *testing.T) {
 		},
 	}
 
-	err = cli.Sync(context.TODO(), newCm, nil, diffs)
+	err = cli.Sync(context.TODO(), newCm, nil, &SyncOptions{DiffOpts: diffs})
 
 	assert.NoError(t, err)
 	assert.Equal(t, "ConfigMap", newCm.Kind)
 	assert.Equal(t, "v1", newCm.APIVersion)
+}
+
+func TestSyncAndMergeLabelsAnnotations(t *testing.T) {
+	fakeClient, _, scheme := testclient.GetTestClients(
+		&corev1.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ConfigMap",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: "test",
+				Labels: map[string]string{
+					"label_1": "cluster_value_1",
+					"label_2": "cluster_value_2",
+				},
+				Annotations: map[string]string{
+					"annotation_1": "cluster_value_1",
+					"annotation_2": "cluster_value_2",
+				},
+			},
+		})
+	cli := NewK8sClient(fakeClient, scheme)
+
+	err := cli.Sync(
+		context.TODO(),
+		&corev1.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ConfigMap",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: "test",
+				Labels: map[string]string{
+					"label_1": "value_1",
+					"label_3": "value_3",
+				},
+				Annotations: map[string]string{
+					"annotation_1": "value_1",
+					"annotation_3": "value_3",
+				},
+			},
+		},
+		nil,
+		&SyncOptions{MergeLabels: true, MergeAnnotations: true},
+	)
+
+	assert.NoError(t, err)
+
+	cm := &corev1.ConfigMap{}
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "test"}, cm)
+
+	assert.Equal(t, "value_1", cm.Labels["label_1"])
+	assert.Equal(t, "cluster_value_2", cm.Labels["label_2"])
+	assert.Equal(t, "value_3", cm.Labels["label_3"])
+	assert.Equal(t, "value_1", cm.Annotations["annotation_1"])
+	assert.Equal(t, "cluster_value_2", cm.Annotations["annotation_2"])
+	assert.Equal(t, "value_3", cm.Annotations["annotation_3"])
 }

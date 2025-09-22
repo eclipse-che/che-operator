@@ -36,26 +36,6 @@ var (
 	logger = ctrl.Log.WithName("k8s")
 )
 
-type K8sClient interface {
-	// Sync ensures that the object is up to date in the cluster.
-	// Object is created if it does not exist and updated if it exists but is different.
-	// Returns nil if object is in sync.
-	Sync(ctx context.Context, blueprint client.Object, owner metav1.Object, diffOpts ...cmp.Option) error
-	// Create creates object.
-	// Returns nil if object is created otherwise returns error.
-	Create(ctx context.Context, blueprint client.Object, owner metav1.Object, opts ...client.CreateOption) error
-	// GetIgnoreNotFound gets object.
-	// Returns true if object exists otherwise returns false.
-	// Returns nil if object is retrieved or not found otherwise returns error.
-	GetIgnoreNotFound(ctx context.Context, key client.ObjectKey, objectMeta client.Object, opts ...client.GetOption) (bool, error)
-	// DeleteByKeyIgnoreNotFound deletes object by key.
-	// Returns nil if object is deleted or not found otherwise returns error.
-	DeleteByKeyIgnoreNotFound(ctx context.Context, key client.ObjectKey, objectMeta client.Object, opts ...client.DeleteOption) error
-	// List returns list of runtime objects.
-	// Returns nil if list is retrieved otherwise returns error.
-	List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) ([]runtime.Object, error)
-}
-
 func NewK8sClient(cli client.Client, scheme *runtime.Scheme) *K8sClientWrapper {
 	return &K8sClientWrapper{cli: cli, scheme: scheme}
 }
@@ -69,7 +49,7 @@ func (k K8sClientWrapper) Sync(
 	ctx context.Context,
 	obj client.Object,
 	owner metav1.Object,
-	diffOpts ...cmp.Option,
+	opts ...SyncOption,
 ) error {
 	defer func() {
 		// ensure GVK is set (for original object) when function returns
@@ -94,9 +74,9 @@ func (k K8sClientWrapper) Sync(
 		Namespace: obj.GetNamespace(),
 	}
 	if exists, err := k.doGetIgnoreNotFound(ctx, key, actual.(client.Object)); exists {
-		return k.doSync(ctx, actual.(client.Object), obj, diffOpts...)
+		return k.doSync(ctx, actual.(client.Object), obj, opts...)
 	} else if err == nil {
-		return k.doSync(ctx, nil, obj, diffOpts...)
+		return k.doSync(ctx, nil, obj, opts...)
 	} else {
 		return err
 	}
@@ -256,16 +236,19 @@ func (k K8sClientWrapper) doSync(
 	ctx context.Context,
 	actual client.Object,
 	obj client.Object,
-	diffOpts ...cmp.Option,
+	opts ...SyncOption,
 ) error {
 	if actual == nil {
 		return k.doCreate(ctx, obj, false)
 	}
 
-	diff := cmp.Diff(actual, obj, diffOpts...)
+	syncOptions := SyncOptions{}
+	syncOptions.ApplyOptions(opts)
+
+	diff := cmp.Diff(actual, obj, syncOptions.DiffOpts...)
 	if len(diff) > 0 {
-		// don't print difference if there are no diffOpts mainly to avoid huge output
-		if len(diffOpts) != 0 {
+		// don't print difference if there are no DiffOpts mainly to avoid huge output
+		if !syncOptions.SuppressDiff && len(syncOptions.DiffOpts) != 0 {
 			fmt.Printf("Difference:\n%s", diff)
 		}
 
@@ -278,6 +261,30 @@ func (k K8sClientWrapper) doSync(
 		} else {
 			// to be able to update, we need to set the resource version of the object that we know of
 			obj.(metav1.Object).SetResourceVersion(actual.GetResourceVersion())
+
+			if syncOptions.MergeLabels {
+				if obj.GetLabels() == nil {
+					obj.SetLabels(map[string]string{})
+				}
+
+				for k, v := range actual.GetLabels() {
+					if _, exists := obj.GetLabels()[k]; !exists {
+						obj.GetLabels()[k] = v
+					}
+				}
+			}
+
+			if syncOptions.MergeAnnotations {
+				if obj.GetAnnotations() == nil {
+					obj.SetAnnotations(map[string]string{})
+				}
+
+				for k, v := range actual.GetAnnotations() {
+					if _, exists := obj.GetAnnotations()[k]; !exists {
+						obj.GetAnnotations()[k] = v
+					}
+				}
+			}
 
 			err := k.cli.Update(ctx, obj)
 			if err == nil {

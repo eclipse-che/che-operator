@@ -13,7 +13,7 @@
 package diffs
 
 import (
-	"reflect"
+	"maps"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -21,17 +21,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var ConfigMapAll = cmp.Options{
-	cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
-	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
-		return reflect.DeepEqual(x.Labels, y.Labels) && reflect.DeepEqual(x.Annotations, y.Annotations)
-	}),
-}
-
 var ConfigMapAllLabels = cmp.Options{
 	cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
 	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
-		return reflect.DeepEqual(x.Labels, y.Labels)
+		return maps.Equal(x.Labels, y.Labels)
 	}),
 }
 

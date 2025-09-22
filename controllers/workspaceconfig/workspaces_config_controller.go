@@ -252,11 +252,20 @@ func (r *WorkspacesConfigReconciler) syncNamespace(
 		// despite the result of the reconciliation
 		if syncConfig != nil {
 			if syncConfig.GetResourceVersion() == "" {
-				if err = r.cliWrapper.Create(ctx, syncConfig, nil); err != nil {
+				if err = r.cliWrapper.Create(
+					ctx,
+					syncConfig,
+					nil,
+				); err != nil {
 					logger.Error(err, "Failed to workspace create sync config", "namespace", dstNamespace)
 				}
 			} else {
-				if err = r.cliWrapper.Sync(ctx, syncConfig, nil, diffs.ConfigMapAllLabels); err != nil {
+				if err = r.cliWrapper.Sync(
+					ctx,
+					syncConfig,
+					nil,
+					&k8sclient.SyncOptions{SuppressDiff: true, DiffOpts: diffs.ConfigMapAllLabels},
+				); err != nil {
 					logger.Error(err, "Failed to update workspace sync config", "namespace", dstNamespace)
 				}
 			}
@@ -569,21 +578,12 @@ func (r *WorkspacesConfigReconciler) doUpdateObject(
 	dstObj client.Object,
 	existedDstObj client.Object) error {
 
-	// preserve labels and annotations from existed object
-	dstObj.SetLabels(utils.MergeMaps(
-		[]map[string]string{
-			existedDstObj.GetLabels(),
-			dstObj.GetLabels(),
-		},
-	))
-	dstObj.SetAnnotations(utils.MergeMaps(
-		[]map[string]string{
-			existedDstObj.GetAnnotations(),
-			dstObj.GetAnnotations(),
-		},
-	))
-
-	if err := r.cliWrapper.Sync(syncContext.ctx, dstObj, nil); err != nil {
+	if err := r.cliWrapper.Sync(
+		syncContext.ctx,
+		dstObj,
+		nil,
+		&k8sclient.SyncOptions{MergeAnnotations: true, MergeLabels: true, SuppressDiff: true},
+	); err != nil {
 		return err
 	}
 

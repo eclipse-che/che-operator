@@ -20,7 +20,6 @@ import (
 	"strings"
 
 	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
-	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -148,11 +147,11 @@ func (c *CheRoutingSolver) provisionRouting(objs *solvers.RoutingObjects, cheClu
 
 	// solvers.RoutingObjects does not currently support ConfigMaps, so we have to actually create it in cluster
 	for _, cm := range configMaps {
-		if err = k8sclient.MergeLabelsAnnotationsFromClusterObject(context.TODO(), c.scheme, c.cli, &cm); err != nil {
-			return err
-		}
-
-		if err = c.cliWrapper.Sync(context.TODO(), &cm, nil, diffs.ConfigMapAll); err != nil {
+		if err = c.cliWrapper.Sync(
+			context.TODO(),
+			&cm,
+			nil,
+			&k8sclient.SyncOptions{MergeLabels: true, MergeAnnotations: true}); err != nil {
 			return err
 		}
 	}
