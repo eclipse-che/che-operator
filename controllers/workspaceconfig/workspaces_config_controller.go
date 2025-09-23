@@ -20,7 +20,6 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
-	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -53,9 +52,9 @@ const (
 
 type WorkspacesConfigReconciler struct {
 	scheme                        *runtime.Scheme
-	cli                           client.Client
-	cliWrapper                    *k8sclient.K8sClientWrapper
-	nonCachedCliWrapper           *k8sclient.K8sClientWrapper
+	client                        client.Client
+	clientWrapper                 *k8sclient.K8sClientWrapper
+	nonCachedClientWrapper        *k8sclient.K8sClientWrapper
 	namespaceCache                *namespacecache.NamespaceCache
 	labelsToRemoveBeforeSync      []*regexp.Regexp
 	annotationsToRemoveBeforeSync []*regexp.Regexp
@@ -118,9 +117,9 @@ func NewWorkspacesConfigReconciler(
 
 	return &WorkspacesConfigReconciler{
 		scheme:                        scheme,
-		cli:                           cli,
-		cliWrapper:                    k8sclient.NewK8sClient(cli, scheme),
-		nonCachedCliWrapper:           k8sclient.NewK8sClient(nonCachedCli, scheme),
+		client:                        cli,
+		clientWrapper:                 k8sclient.NewK8sClient(cli, scheme),
+		nonCachedClientWrapper:        k8sclient.NewK8sClient(nonCachedCli, scheme),
 		namespaceCache:                namespaceCache,
 		labelsToRemoveBeforeSync:      labelsToRemoveBeforeSync,
 		annotationsToRemoveBeforeSync: annotationsToRemoveBeforeSync,
@@ -157,7 +156,7 @@ func (r *WorkspacesConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, nil
 	}
 
-	checluster, err := deploy.FindCheClusterCRInNamespace(r.cli, "")
+	checluster, err := deploy.FindCheClusterCRInNamespace(r.client, "")
 	if checluster == nil {
 		// There is no CheCluster CR, the source namespace is unknown
 		return ctrl.Result{}, nil
@@ -205,7 +204,7 @@ func (r *WorkspacesConfigReconciler) watchRules(
 						// reconcile rule when workspace config is modified in a che namespace
 						// to update the config in all users` namespaces
 						Check: func(o metav1.Object) bool {
-							cheCluster, _ := deploy.FindCheClusterCRInNamespace(r.cli, o.GetNamespace())
+							cheCluster, _ := deploy.FindCheClusterCRInNamespace(r.client, o.GetNamespace())
 							return hasWSConfigComponentLabels(o) && cheCluster != nil
 						},
 						Namespaces: func(o metav1.Object) []string { return r.namespaceCache.GetAllKnownNamespaces() },
@@ -252,7 +251,7 @@ func (r *WorkspacesConfigReconciler) syncNamespace(
 		// despite the result of the reconciliation
 		if syncConfig != nil {
 			if syncConfig.GetResourceVersion() == "" {
-				if err = r.cliWrapper.Create(
+				if err = r.clientWrapper.Create(
 					ctx,
 					syncConfig,
 					nil,
@@ -260,11 +259,10 @@ func (r *WorkspacesConfigReconciler) syncNamespace(
 					logger.Error(err, "Failed to workspace create sync config", "namespace", dstNamespace)
 				}
 			} else {
-				if err = r.cliWrapper.Sync(
+				if err = r.clientWrapper.Sync(
 					ctx,
 					syncConfig,
 					nil,
-					&k8sclient.SyncOptions{SuppressDiff: true, DiffOpts: diffs.ConfigMapAllLabels},
 				); err != nil {
 					logger.Error(err, "Failed to update workspace sync config", "namespace", dstNamespace)
 				}
@@ -341,7 +339,7 @@ func (r *WorkspacesConfigReconciler) syncObjectsList(
 		LabelSelector: wsConfigComponentSelector,
 	}
 
-	srcObjs, err := r.cliWrapper.List(ctx, srcObjList, opts)
+	srcObjs, err := r.clientWrapper.List(ctx, srcObjList, opts)
 	if err != nil {
 		return err
 	}
@@ -387,7 +385,7 @@ func (r *WorkspacesConfigReconciler) syncTemplates(
 		LabelSelector: wsConfigComponentSelector,
 	}
 
-	templates, err := r.cliWrapper.List(ctx, templateList, opts)
+	templates, err := r.clientWrapper.List(ctx, templateList, opts)
 	if err != nil {
 		return nil
 	}
@@ -485,7 +483,7 @@ func (r *WorkspacesConfigReconciler) syncObjectIfDiffers(
 		Namespace: dstObj.GetNamespace(),
 	}
 
-	exists, err := r.cliWrapper.GetIgnoreNotFound(syncContext.ctx, existedDstObjKey, existedDstObj.(client.Object))
+	exists, err := r.clientWrapper.GetIgnoreNotFound(syncContext.ctx, existedDstObjKey, existedDstObj.(client.Object))
 	if exists {
 		srcObj := syncContext.object2Sync.getSrcObject()
 
@@ -543,7 +541,7 @@ func (r *WorkspacesConfigReconciler) doCreateObject(
 	syncContext *syncContext,
 	dstObj client.Object) error {
 
-	err := r.cliWrapper.Create(syncContext.ctx, dstObj, nil)
+	err := r.clientWrapper.Create(syncContext.ctx, dstObj, nil)
 	if err != nil {
 		if !errors.IsAlreadyExists(err) {
 			return err
@@ -553,7 +551,7 @@ func (r *WorkspacesConfigReconciler) doCreateObject(
 		// `app.kubernetes.io/part-of=che.eclipse.org` label (is not cached)
 		// 1. Delete the object from a destination namespace using non-cached client
 		// 2. Create the object again using cached client
-		if err = r.nonCachedCliWrapper.DeleteByKeyIgnoreNotFound(
+		if err = r.nonCachedClientWrapper.DeleteByKeyIgnoreNotFound(
 			syncContext.ctx,
 			types.NamespacedName{
 				Name:      dstObj.GetName(),
@@ -564,7 +562,7 @@ func (r *WorkspacesConfigReconciler) doCreateObject(
 			return err
 		}
 
-		if err = r.cliWrapper.Create(syncContext.ctx, dstObj, nil); err != nil {
+		if err = r.clientWrapper.Create(syncContext.ctx, dstObj, nil); err != nil {
 			return err
 		}
 	}
@@ -578,7 +576,7 @@ func (r *WorkspacesConfigReconciler) doUpdateObject(
 	dstObj client.Object,
 	existedDstObj client.Object) error {
 
-	if err := r.cliWrapper.Sync(
+	if err := r.clientWrapper.Sync(
 		syncContext.ctx,
 		dstObj,
 		nil,
@@ -624,7 +622,7 @@ func (r *WorkspacesConfigReconciler) deleteIfObjectIsObsolete(
 		}
 
 		// delete object from destination namespace
-		if err = r.cliWrapper.DeleteByKeyIgnoreNotFound(
+		if err = r.clientWrapper.DeleteByKeyIgnoreNotFound(
 			ctx,
 			types.NamespacedName{
 				Name:      objName,
@@ -651,7 +649,7 @@ func (r *WorkspacesConfigReconciler) getSyncConfig(ctx context.Context, namespac
 		Namespace: namespace,
 	}
 
-	exists, err := r.cliWrapper.GetIgnoreNotFound(ctx, syncCMKey, syncCM)
+	exists, err := r.clientWrapper.GetIgnoreNotFound(ctx, syncCMKey, syncCM)
 	if exists {
 		if syncCM.Data == nil {
 			syncCM.Data = map[string]string{}

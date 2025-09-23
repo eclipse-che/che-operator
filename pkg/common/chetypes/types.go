@@ -35,8 +35,8 @@ type DeployContext struct {
 }
 
 type ClusterAPI struct {
-	Client                  client.Client // TODO remove
-	NonCachingClient        client.Client // TODO remove
+	Client                  client.Client // We should ClientWrapper instead wherever it possible
+	NonCachingClient        client.Client // We should NonCachingClientWrapper instead wherever it possible
 	DiscoveryClient         discovery.DiscoveryInterface
 	Scheme                  *runtime.Scheme
 	ClientWrapper           *k8sclient.K8sClientWrapper

@@ -104,19 +104,32 @@ declare -A ignored_paths=(
   ["github.com/devfile/devworkspace-operator"]="Harvesting in progress"
   ["go.etcd.io/etcd/pkg/v3"]="Harvesting in progress"
   ["go.etcd.io/etcd/server/v3"]="Harvesting in progress"
-  ["k8s.io/apiserver"]="Harvesting in progress"
-  ["k8s.io/code-generator"]="Harvesting in progress"
-  ["k8s.io/kms"]="Harvesting in progress"
 )
 
 declare -A ignored_paths_license=(
   ["github.com/devfile/devworkspace-operator"]="Apache-2.0"
   ["go.etcd.io/etcd/pkg/v3"]="Apache-2.0"
   ["go.etcd.io/etcd/server/v3"]="Apache-2.0"
-  ["k8s.io/apiserver"]="Apache-2.0"
-  ["k8s.io/code-generator"]="Apache-2.0"
-  ["k8s.io/kms"]="Apache-2.0"
 )
+
+retryUrl() {
+    url=$1
+
+    body=""
+    max_retries=5
+    for ((i=1; i<=max_retries; i++)); do
+      response=$(curl -s -w "HTTPSTATUS:%{http_code}" "$url")
+      body=$(echo "$response" | sed -e 's/HTTPSTATUS\:.*//g')
+      status=$(echo "$response" | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+      if [[ "$status" == "200" ]] || [[ "$status" == "404" ]]; then
+        break
+      else
+        sleep 5s
+      fi
+    done
+
+    echo "$body"
+}
 
 go list -m -mod=mod all | while read -r module; do
     # ignore the first dependency which is the current module
@@ -160,10 +173,14 @@ go list -m -mod=mod all | while read -r module; do
     orig_url="https://api.clearlydefined.io/definitions/${api_suffix}/${path}/${version}"
     url=$orig_url
 
-    score=$(curl -s "$url" | jq -r '.scores.effective')
+    score=""
+    body=$(retryUrl "$url")
+    if [[ ! -z "$body" ]]; then
+      score=$(echo "$body" | jq -r '.scores.effective')
+    fi
 
     # try a shorter path if the first one returns null
-    while [[ "$score" == "null" ]] || [[ "$score" == "35" ]]; do
+    while [[ "$score" == "" ]] || [[ "$score" == "null" ]] || [[ "$score" == "35" ]]; do
         # remove the last part of the path
         path="${path%/*}"
         old_url=$url
@@ -176,7 +193,11 @@ go list -m -mod=mod all | while read -r module; do
         fi
 
         # get the score again
-        score=$(curl -s $url | jq -r '.scores.effective')
+        score=""
+        body=$(retryUrl "$url")
+        if [[ ! -z "$body" ]]; then
+          score=$(echo "$body" | jq -r '.scores.effective')
+        fi
     done
 
     if [[ $score == "N/A" ]]; then

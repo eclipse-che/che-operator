@@ -2190,7 +2190,7 @@ func TestOverrideGatewayContainerProvisioning(t *testing.T) {
 	scheme := ctx.ClusterAPI.Scheme
 	cl := ctx.ClusterAPI.Client
 
-	cheSolver := &CheRoutingSolver{cli: cl, scheme: scheme}
+	cheSolver := &CheRoutingSolver{client: cl, scheme: scheme}
 	objs := &solvers.RoutingObjects{}
 
 	routing := &dwo.DevWorkspaceRouting{
@@ -2244,7 +2244,7 @@ func TestOverridePartialLimitsGatewayContainerProvisioning(t *testing.T) {
 	scheme := ctx.ClusterAPI.Scheme
 	cl := ctx.ClusterAPI.Client
 
-	cheSolver := &CheRoutingSolver{cli: cl, scheme: scheme}
+	cheSolver := &CheRoutingSolver{client: cl, scheme: scheme}
 	objs := &solvers.RoutingObjects{}
 
 	routing := &dwo.DevWorkspaceRouting{
@@ -2303,7 +2303,7 @@ func TestOverrideGatewayEmptyContainerProvisioning(t *testing.T) {
 	scheme := ctx.ClusterAPI.Scheme
 	cl := ctx.ClusterAPI.Client
 
-	cheSolver := &CheRoutingSolver{cli: cl, scheme: scheme}
+	cheSolver := &CheRoutingSolver{client: cl, scheme: scheme}
 	objs := &solvers.RoutingObjects{}
 
 	routing := &dwo.DevWorkspaceRouting{
@@ -2347,7 +2347,7 @@ func TestDefaultGatewayContainerProvisioning(t *testing.T) {
 	scheme := ctx.ClusterAPI.Scheme
 	cl := ctx.ClusterAPI.Client
 
-	cheSolver := &CheRoutingSolver{cli: cl, scheme: scheme}
+	cheSolver := &CheRoutingSolver{client: cl, scheme: scheme}
 	objs := &solvers.RoutingObjects{}
 
 	routing := &dwo.DevWorkspaceRouting{

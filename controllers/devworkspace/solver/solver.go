@@ -41,9 +41,9 @@ var (
 
 // CheRoutingSolver is a struct representing the routing solver for Che specific routing of devworkspaces
 type CheRoutingSolver struct {
-	cli        client.Client
-	scheme     *runtime.Scheme
-	cliWrapper *k8sclient.K8sClientWrapper
+	client        client.Client
+	scheme        *runtime.Scheme
+	clientWrapper *k8sclient.K8sClientWrapper
 }
 
 // Magic to ensure we get compile time error right here if our struct doesn't support the interface.

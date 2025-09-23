@@ -147,7 +147,7 @@ func (c *CheRoutingSolver) provisionRouting(objs *solvers.RoutingObjects, cheClu
 
 	// solvers.RoutingObjects does not currently support ConfigMaps, so we have to actually create it in cluster
 	for _, cm := range configMaps {
-		if err = c.cliWrapper.Sync(
+		if err = c.clientWrapper.Sync(
 			context.TODO(),
 			&cm,
 			nil,
@@ -229,7 +229,7 @@ func (c *CheRoutingSolver) cheExposedEndpoints(cheCluster *chev2.CheCluster, wor
 
 	gatewayHost := cheCluster.GetCheHost()
 
-	endpointStrategy := getEndpointPathStrategy(c.cli, workspaceID, routingObj.Services[0].Namespace, routingObj.Services[0].ObjectMeta.OwnerReferences[0].Name)
+	endpointStrategy := getEndpointPathStrategy(c.client, workspaceID, routingObj.Services[0].Namespace, routingObj.Services[0].ObjectMeta.OwnerReferences[0].Name)
 
 	for component, endpoints := range componentEndpoints {
 		for _, endpoint := range endpoints {
@@ -328,7 +328,7 @@ func (c *CheRoutingSolver) getGatewayConfigsAndFillRoutingObjects(cheCluster *ch
 	}
 
 	configs := make([]corev1.ConfigMap, 0)
-	endpointStrategy := getEndpointPathStrategy(c.cli, workspaceID, routing.Namespace, routing.Name)
+	endpointStrategy := getEndpointPathStrategy(c.client, workspaceID, routing.Namespace, routing.Name)
 
 	// first do routing from main che-gateway into workspace service
 	if mainWsRouteConfig, err := provisionMainWorkspaceRoute(cheCluster, routing, cmLabels, endpointStrategy); err != nil {
@@ -444,11 +444,11 @@ func normalize(username string) string {
 func (c *CheRoutingSolver) getInfraSpecificExposer(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects, endpointStrategy EndpointStrategy) (func(info *EndpointInfo) error, error) {
 	if infrastructure.IsOpenShift() {
 		exposer := &RouteExposer{}
-		if err := exposer.initFrom(context.TODO(), c.cli, cheCluster, routing); err != nil {
+		if err := exposer.initFrom(context.TODO(), c.client, cheCluster, routing); err != nil {
 			return nil, err
 		}
 		return func(info *EndpointInfo) error {
-			route, err := exposer.getRouteForService(context.TODO(), info, endpointStrategy, c.cli, cheCluster)
+			route, err := exposer.getRouteForService(context.TODO(), info, endpointStrategy, c.client, cheCluster)
 			if route != nil {
 				objs.Routes = append(objs.Routes, *route)
 			}
@@ -456,7 +456,7 @@ func (c *CheRoutingSolver) getInfraSpecificExposer(cheCluster *chev2.CheCluster,
 		}, nil
 	} else {
 		exposer := &IngressExposer{}
-		if err := exposer.initFrom(context.TODO(), c.cli, cheCluster, routing, c.scheme); err != nil {
+		if err := exposer.initFrom(context.TODO(), c.client, cheCluster, routing, c.scheme); err != nil {
 			return nil, err
 		}
 		return func(info *EndpointInfo) error {
@@ -814,13 +814,13 @@ func (c *CheRoutingSolver) cheRoutingFinalize(cheManager *chev2.CheCluster, rout
 
 func (c *CheRoutingSolver) deleteConfigs(listOpts *client.ListOptions) error {
 	configs := &corev1.ConfigMapList{}
-	err := c.cli.List(context.TODO(), configs, listOpts)
+	err := c.client.List(context.TODO(), configs, listOpts)
 	if err != nil {
 		return err
 	}
 
 	for _, cm := range configs.Items {
-		err = c.cli.Delete(context.TODO(), &cm)
+		err = c.client.Delete(context.TODO(), &cm)
 		if err != nil {
 			return err
 		}
