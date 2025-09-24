@@ -82,6 +82,8 @@ declare -A replaced_modules=(
   ["go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.60.0"]="github.com/open-telemetry/opentelemetry-go-contrib v1.35.0"
   # https://github.com/census-instrumentation/opencensus-go/commits/v0.23.0/
   ["go.opencensus.io v0.23.0"]="census-instrumentation/opencensus-go 49838f207d61097fc0ebb8aeef306913388376ca"
+  # https://github.com/sean-/seed/tree/e2103e2c35297fb7e17febb81e49b312087a2372
+  ["github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529"]="sean-/seed e2103e2c35297fb7e17febb81e49b312087a2372"
 )
 
 # replaces to have a correct link for clearlydefined.io api request
@@ -93,16 +95,41 @@ declare -A replaced_paths=(
 # replaces to have a correct link for clearlydefined.io api request
 declare -A replaced_api_suffix=(
   ["census-instrumentation/opencensus-go"]="git/github"
+  ["sean-/seed"]="git/github"
 )
 
+# Exceptions for dependencies that are not yet harvested in clearlydefined.io
+# License must be checked manually
 declare -A ignored_paths=(
-  ["github.com/sean-/seed"]="Harvesting in progress"
+  ["github.com/devfile/devworkspace-operator"]="Harvesting in progress"
+  ["go.etcd.io/etcd/pkg/v3"]="Harvesting in progress"
+  ["go.etcd.io/etcd/server/v3"]="Harvesting in progress"
 )
 
 declare -A ignored_paths_license=(
-  ["github.com/sean-/seed"]="MIT"
+  ["github.com/devfile/devworkspace-operator"]="Apache-2.0"
+  ["go.etcd.io/etcd/pkg/v3"]="Apache-2.0"
+  ["go.etcd.io/etcd/server/v3"]="Apache-2.0"
 )
 
+retryUrl() {
+    url=$1
+
+    body=""
+    max_retries=5
+    for ((i=1; i<=max_retries; i++)); do
+      response=$(curl -s -w "HTTPSTATUS:%{http_code}" "$url")
+      body=$(echo "$response" | sed -e 's/HTTPSTATUS\:.*//g')
+      status=$(echo "$response" | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+      if [[ "$status" == "200" ]] || [[ "$status" == "404" ]]; then
+        break
+      else
+        sleep 5s
+      fi
+    done
+
+    echo "$body"
+}
 
 go list -m -mod=mod all | while read -r module; do
     # ignore the first dependency which is the current module
@@ -146,10 +173,14 @@ go list -m -mod=mod all | while read -r module; do
     orig_url="https://api.clearlydefined.io/definitions/${api_suffix}/${path}/${version}"
     url=$orig_url
 
-    score=$(curl -s "$url" | jq -r '.scores.effective')
+    score=""
+    body=$(retryUrl "$url")
+    if [[ ! -z "$body" ]]; then
+      score=$(echo "$body" | jq -r '.scores.effective')
+    fi
 
     # try a shorter path if the first one returns null
-    while [[ "$score" == "null" ]] || [[ "$score" == "35" ]]; do
+    while [[ "$score" == "" ]] || [[ "$score" == "null" ]] || [[ "$score" == "35" ]]; do
         # remove the last part of the path
         path="${path%/*}"
         old_url=$url
@@ -162,7 +193,11 @@ go list -m -mod=mod all | while read -r module; do
         fi
 
         # get the score again
-        score=$(curl -s $url | jq -r '.scores.effective')
+        score=""
+        body=$(retryUrl "$url")
+        if [[ ! -z "$body" ]]; then
+          score=$(echo "$body" | jq -r '.scores.effective')
+        fi
     done
 
     if [[ $score == "N/A" ]]; then
@@ -199,6 +234,8 @@ go list -m -mod=mod all | while read -r module; do
       result="[WARN]"
     fi
     printf "%-7s %-70s %-25s %-10s %s\n" "$result" "$orig_module" "$license" "$score" "$url"
+
+    sleep 0.1s
 done
 
 echo "[INFO] All dependencies are defined correctly."

@@ -13,8 +13,10 @@
 package imagepuller
 
 import (
+	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -83,15 +85,15 @@ func (ip *ImagePuller) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result,
 	if ctx.CheCluster.Spec.Components.ImagePuller.Enable {
 		if !utils.IsK8SResourceServed(ctx.ClusterAPI.DiscoveryClient, resourceName) {
 			errMsg := "Kubernetes Image Puller is not installed, in order to enable the property admin should install the operator first"
-			return reconcile.Result{}, false, fmt.Errorf(errMsg)
+			return reconcile.Result{}, false, errors.New(errMsg)
 		}
 
 		if done, err := ip.syncKubernetesImagePuller(defaultImages, ctx); !done {
-			return reconcile.Result{Requeue: true}, false, err
+			return reconcile.Result{RequeueAfter: time.Second}, false, err
 		}
 	} else {
 		if done, err := ip.uninstallImagePuller(ctx); !done {
-			return reconcile.Result{Requeue: true}, false, err
+			return reconcile.Result{RequeueAfter: time.Second}, false, err
 		}
 	}
 	return reconcile.Result{}, true, nil

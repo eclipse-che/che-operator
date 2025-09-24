@@ -109,10 +109,7 @@ run: install-che-operands genenerate-env  ## Run Eclipse Che operator
 debug: SHELL := /bin/bash
 debug: install-che-operands genenerate-env ## Run and debug Eclipse Che operator
 	source $(BASH_ENV_FILE)
-	# dlv has an issue with 'Ctrl-C' termination, that's why we're doing trick with detach.
-	dlv debug --listen=:2345 --headless=true --api-version=2 cmd/main.go -- &
-	DLV_PID=$!
-	wait $${DLV_PID}
+	dlv debug --listen=:2345 --headless=true --api-version=2 cmd/main.go --
 
 docker-build: ## Build Eclipse Che operator image
 	if [ "$(SKIP_TESTS)" = true ]; then

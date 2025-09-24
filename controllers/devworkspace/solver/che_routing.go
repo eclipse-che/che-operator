@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -37,8 +38,6 @@ import (
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	dwdefaults "github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
-	"github.com/eclipse-che/che-operator/controllers/devworkspace/sync"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	routeV1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -56,10 +55,6 @@ const (
 	uniqueEndpointURLPrefixPattern = "/%s/%s/%s"
 	wsGatewayPort                  = 3030
 	wsGatewayName                  = "che-gateway"
-)
-
-var (
-	configMapDiffOpts = cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta", "ObjectMeta")
 )
 
 func (c *CheRoutingSolver) cheSpecObjects(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, workspaceMeta solvers.DevWorkspaceMetadata) (solvers.RoutingObjects, error) {
@@ -151,10 +146,12 @@ func (c *CheRoutingSolver) provisionRouting(objs *solvers.RoutingObjects, cheClu
 	}
 
 	// solvers.RoutingObjects does not currently support ConfigMaps, so we have to actually create it in cluster
-	syncer := sync.New(c.client, c.scheme)
 	for _, cm := range configMaps {
-		_, _, err := syncer.Sync(context.TODO(), nil, &cm, configMapDiffOpts)
-		if err != nil {
+		if err = c.clientWrapper.Sync(
+			context.TODO(),
+			&cm,
+			nil,
+			&k8sclient.SyncOptions{MergeLabels: true, MergeAnnotations: true}); err != nil {
 			return err
 		}
 	}
@@ -459,7 +456,7 @@ func (c *CheRoutingSolver) getInfraSpecificExposer(cheCluster *chev2.CheCluster,
 		}, nil
 	} else {
 		exposer := &IngressExposer{}
-		if err := exposer.initFrom(context.TODO(), c.client, cheCluster, routing); err != nil {
+		if err := exposer.initFrom(context.TODO(), c.client, cheCluster, routing, c.scheme); err != nil {
 			return nil, err
 		}
 		return func(info *EndpointInfo) error {

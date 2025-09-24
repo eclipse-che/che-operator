@@ -13,7 +13,7 @@
 package diffs
 
 import (
-	"reflect"
+	"maps"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -24,21 +24,13 @@ import (
 var ConfigMapAllLabels = cmp.Options{
 	cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
 	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
-		return reflect.DeepEqual(x.Labels, y.Labels)
+		return maps.Equal(x.Labels, y.Labels)
 	}),
 }
 
 func ConfigMap(labels []string, annotations []string) cmp.Options {
 	return cmp.Options{
 		cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
-		objectMetaComparator(labels, annotations),
-	}
-}
-
-func ConfigMapIgnoreData(labels []string, annotations []string) cmp.Options {
-	return cmp.Options{
-		cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
-		cmpopts.IgnoreFields(corev1.ConfigMap{}, "Data"),
 		objectMetaComparator(labels, annotations),
 	}
 }

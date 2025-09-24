@@ -30,7 +30,7 @@ import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	controller "github.com/eclipse-che/che-operator/controllers/devworkspace"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
-	constants "github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	corev1 "k8s.io/api/core/v1"
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -2027,7 +2027,7 @@ func TestUsesCustomCertificateForWorkspaceEndpointIngresses(t *testing.T) {
 		},
 	}
 
-	_, _, objs := getSpecObjectsForManager(t, mgr, subdomainDevWorkspaceRouting(), userProfileSecret("username"), &corev1.Secret{
+	cli, _, objs := getSpecObjectsForManager(t, mgr, subdomainDevWorkspaceRouting(), userProfileSecret("username"), &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "tlsSecret",
 			Namespace: "ns",
@@ -2083,6 +2083,14 @@ func TestUsesCustomCertificateForWorkspaceEndpointIngresses(t *testing.T) {
 	if len(ingress.Spec.TLS) != 0 {
 		t.Fatalf("Unexpected number of TLS records on the ingress: %d", len(ingress.Spec.TLS))
 	}
+
+	tlsSecret := &corev1.Secret{}
+	err := cli.Get(context.TODO(), types.NamespacedName{Name: "wsid-endpoints", Namespace: "ws"}, tlsSecret)
+
+	assert.NoError(t, err)
+	assert.NotEmpty(t, tlsSecret.OwnerReferences[0].Kind)
+	assert.NotEmpty(t, tlsSecret.OwnerReferences[0].APIVersion)
+
 }
 
 func TestUsesCustomCertificateForWorkspaceEndpointRoutes(t *testing.T) {

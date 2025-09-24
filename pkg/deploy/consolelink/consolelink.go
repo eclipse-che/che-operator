@@ -14,6 +14,7 @@ package consolelink
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -53,7 +54,7 @@ func (c *ConsoleLinkReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcil
 
 	done, err := c.syncConsoleLink(ctx)
 	if !done {
-		return reconcile.Result{Requeue: true}, false, err
+		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
 	return reconcile.Result{}, true, nil
