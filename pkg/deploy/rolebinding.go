@@ -14,16 +14,11 @@ package deploy
 
 import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	rbac "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-var RollBindingDiffOpts = cmp.Options{
-	cmpopts.IgnoreFields(rbac.RoleBinding{}, "TypeMeta", "ObjectMeta"),
-}
 
 func SyncRoleBindingToCluster(
 	deployContext *chetypes.DeployContext,
@@ -33,7 +28,7 @@ func SyncRoleBindingToCluster(
 	roleKind string) (bool, error) {
 
 	rbSpec := getRoleBindingSpec(deployContext, name, serviceAccountName, roleName, roleKind)
-	return Sync(deployContext, rbSpec, RollBindingDiffOpts)
+	return Sync(deployContext, rbSpec, diffs.RoleBinding)
 }
 
 func getRoleBindingSpec(

@@ -15,6 +15,7 @@ package che
 import (
 	"context"
 
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
@@ -25,7 +26,7 @@ import (
 	editorsdefinitions "github.com/eclipse-che/che-operator/pkg/deploy/editors-definitions"
 
 	"github.com/eclipse-che/che-operator/pkg/common/test"
-	containerbuild "github.com/eclipse-che/che-operator/pkg/deploy/container-build"
+	containerbuild "github.com/eclipse-che/che-operator/pkg/deploy/container-capabilities"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
@@ -198,10 +199,12 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	_ = r.Log.WithValues("checluster", req.NamespacedName)
 
 	clusterAPI := chetypes.ClusterAPI{
-		Client:           r.client,
-		NonCachingClient: r.nonCachedClient,
-		DiscoveryClient:  r.discoveryClient,
-		Scheme:           r.Scheme,
+		Client:                  r.client,
+		NonCachingClient:        r.nonCachedClient,
+		DiscoveryClient:         r.discoveryClient,
+		Scheme:                  r.Scheme,
+		ClientWrapper:           k8sclient.NewK8sClient(r.client, r.Scheme),
+		NonCachingClientWrapper: k8sclient.NewK8sClient(r.nonCachedClient, r.Scheme),
 	}
 
 	// Fetch the CheCluster instance

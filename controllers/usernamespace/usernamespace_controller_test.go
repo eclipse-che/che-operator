@@ -22,7 +22,6 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 
-	containerbuild "github.com/eclipse-che/che-operator/pkg/deploy/container-build"
 	rbacv1 "k8s.io/api/rbac/v1"
 
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"

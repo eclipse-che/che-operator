@@ -19,6 +19,8 @@ import (
 	"strconv"
 	"strings"
 
+	"k8s.io/utils/pointer"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -45,7 +47,7 @@ type CheClusterSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Development environments"
-	// +kubebuilder:default:={storage: {pvcStrategy: per-user}, defaultNamespace: {template: <username>-che, autoProvision: true}, secondsOfInactivityBeforeIdling:1800, secondsOfRunBeforeIdling:-1, startTimeoutSeconds:300, maxNumberOfWorkspacesPerUser:-1}
+	// +kubebuilder:default:={storage: {pvcStrategy: per-user}, defaultNamespace: {template: <username>-che, autoProvision: true}, secondsOfInactivityBeforeIdling:1800, secondsOfRunBeforeIdling:-1, startTimeoutSeconds:300, maxNumberOfWorkspacesPerUser:-1, disableContainerRunCapabilities:true}
 	DevEnvironments CheClusterDevEnvironments `json:"devEnvironments"`
 	// Che components configuration.
 	// +optional
@@ -149,12 +151,22 @@ type CheClusterDevEnvironments struct {
 	//
 	// +optional
 	DisableContainerBuildCapabilities *bool `json:"disableContainerBuildCapabilities,omitempty"`
+	// Disables the container run capabilities.
+	// When set to `false`, the devEnvironments.security.containerSecurityContext
+	// field is ignored, and the container SecurityContext from
+	// ContainerRunConfiguration.ContainerSecurityContext is applied.
+	// +optional
+	// +kubebuilder:default:=true
+	DisableContainerRunCapabilities *bool `json:"disableContainerRunCapabilities,omitempty"`
 	// Workspace security configuration.
 	// +optional
 	Security WorkspaceSecurityConfig `json:"security,omitempty"`
 	// Container build configuration.
 	// +optional
 	ContainerBuildConfiguration *ContainerBuildConfiguration `json:"containerBuildConfiguration,omitempty"`
+	// Container run configuration.
+	// +optional
+	ContainerRunConfiguration *ContainerRunConfiguration `json:"containerRunConfiguration,omitempty"`
 	// ServiceAccount to use by the DevWorkspace operator when starting the workspaces.
 	// +optional
 	// +kubebuilder:validation:Pattern=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
@@ -561,7 +573,8 @@ type WorkspaceSecurityConfig struct {
 	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
 	// Container SecurityContext used by all workspace-related containers.
 	// If set, defined values are merged into the default Container SecurityContext configuration.
-	// Requires devEnvironments.disableContainerBuildCapabilities to be set to `true` in order to take effect.
+	// Requires both devEnvironments.disableContainerBuildCapabilities and
+	// devEnvironments.disableContainerRunCapabilities fields to be set to `true` in order to take effect.
 	// +optional
 	ContainerSecurityContext *corev1.SecurityContext `json:"containerSecurityContext,omitempty"`
 }
@@ -873,6 +886,23 @@ type ContainerBuildConfiguration struct {
 	OpenShiftSecurityContextConstraint string `json:"openShiftSecurityContextConstraint,omitempty"`
 }
 
+// Container run configuration.
+type ContainerRunConfiguration struct {
+	// OpenShift security context constraint to run containers.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:default:=container-run
+	OpenShiftSecurityContextConstraint string `json:"openShiftSecurityContextConstraint,omitempty"`
+	// Extra annotations to be added to all workspace pods in addition
+	// to defined in the `devEnvironments.workspacePodAnnotations` field.
+	// +optional
+	// +kubebuilder:default:={"io.kubernetes.cri-o.Devices": "/dev/fuse,/dev/net/tun"}
+	ExtraWorkspacePodAnnotations map[string]string `json:"extraWorkspacePodAnnotations,omitempty"`
+	// Container SecurityContext used by all workspace containers when container run capabilities are enabled.
+	// +optional
+	// +kubebuilder:default:={procMount: "Unmasked", allowPrivilegeEscalation: false, capabilities: {add: {"SETGID", "SETUID"}}}
+	ContainerSecurityContext *corev1.SecurityContext `json:"containerSecurityContext,omitempty"`
+}
+
 // Configuration for Traefik within the Che gateway pod.
 type Traefik struct {
 	// The log level for the Traefik container within the gateway pod: `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`, or `PANIC`. The default value is `INFO`
@@ -1068,6 +1098,10 @@ func (c *CheCluster) IsAccessTokenConfigured() bool {
 	return c.GetIdentityToken() == constants.AccessToken
 }
 
+func (c *CheCluster) IsContainerRunCapabilitiesEnabled() bool {
+	return !pointer.BoolDeref(c.Spec.DevEnvironments.DisableContainerRunCapabilities, constants.DefaultDisableContainerRunCapabilities)
+}
+
 // IsContainerBuildCapabilitiesEnabled returns true if container build capabilities are enabled.
 // If value is not set in the CheCluster CR, then the default value is used.
 func (c *CheCluster) IsContainerBuildCapabilitiesEnabled() bool {
@@ -1082,10 +1116,6 @@ func (c *CheCluster) IsContainerBuildCapabilitiesEnabled() bool {
 	}
 
 	return !disableContainerBuildCapabilitiesParsed
-}
-
-func (c *CheCluster) IsOpenShiftSecurityContextConstraintSet() bool {
-	return c.Spec.DevEnvironments.ContainerBuildConfiguration != nil && c.Spec.DevEnvironments.ContainerBuildConfiguration.OpenShiftSecurityContextConstraint != ""
 }
 
 func (c *CheCluster) IsCheFlavor() bool {
