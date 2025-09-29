@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package containerbuild
+package containercapabilties
 
 import (
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"

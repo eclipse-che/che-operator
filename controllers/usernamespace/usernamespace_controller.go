@@ -20,12 +20,13 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
+	containercapabilties "github.com/eclipse-che/che-operator/pkg/deploy/container-capabilities"
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
-	containerbuild "github.com/eclipse-che/che-operator/pkg/deploy/container-build"
 	rbacv1 "k8s.io/api/rbac/v1"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
@@ -60,10 +61,12 @@ const (
 )
 
 type CheUserNamespaceReconciler struct {
-	scheme          *runtime.Scheme
-	client          client.Client
-	nonCachedClient client.Client
-	namespaceCache  *namespacecache.NamespaceCache
+	scheme                 *runtime.Scheme
+	client                 client.Client
+	nonCachedClient        client.Client
+	clientWrapper          *k8sclient.K8sClientWrapper
+	nonCachedClientWrapper *k8sclient.K8sClientWrapper
+	namespaceCache         *namespacecache.NamespaceCache
 }
 
 var _ reconcile.Reconciler = (*CheUserNamespaceReconciler)(nil)
@@ -75,10 +78,13 @@ func NewCheUserNamespaceReconciler(
 	namespaceCache *namespacecache.NamespaceCache) *CheUserNamespaceReconciler {
 
 	return &CheUserNamespaceReconciler{
-		scheme:          scheme,
-		client:          client,
-		nonCachedClient: noncachedClient,
-		namespaceCache:  namespaceCache}
+		scheme:                 scheme,
+		client:                 client,
+		nonCachedClient:        noncachedClient,
+		clientWrapper:          k8sclient.NewK8sClient(client, scheme),
+		nonCachedClientWrapper: k8sclient.NewK8sClient(noncachedClient, scheme),
+		namespaceCache:         namespaceCache,
+	}
 }
 
 func (r *CheUserNamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -250,7 +256,22 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
-	if err = r.reconcileSCCPrivileges(info.Username, req.Name, checluster, deployContext); err != nil {
+	if err = r.reconcileSCCPrivileges(
+		info.Username,
+		req.Name,
+		containercapabilties.NewContainerBuild(),
+		checluster.IsContainerBuildCapabilitiesEnabled(),
+	); err != nil {
+		logrus.Errorf("Failed to reconcile the SCC privileges in namespace '%s': %v", req.Name, err)
+		return ctrl.Result{}, err
+	}
+
+	if err = r.reconcileSCCPrivileges(
+		info.Username,
+		req.Name,
+		containercapabilties.NewContainerRun(),
+		checluster.IsContainerRunCapabilitiesEnabled(),
+	); err != nil {
 		logrus.Errorf("Failed to reconcile the SCC privileges in namespace '%s': %v", req.Name, err)
 		return ctrl.Result{}, err
 	}
@@ -519,22 +540,22 @@ func (r *CheUserNamespaceReconciler) reconcileNodeSelectorAndTolerations(ctx con
 	return r.client.Update(ctx, ns)
 }
 
-func (r *CheUserNamespaceReconciler) reconcileSCCPrivileges(username string, targetNs string, checluster *chev2.CheCluster, deployContext *chetypes.DeployContext) error {
-	delRoleBinding := func() error {
-		_, err := deploy.Delete(
-			deployContext,
-			types.NamespacedName{Name: containerbuild.GetUserSccRbacResourcesName(), Namespace: targetNs},
-			&rbacv1.RoleBinding{})
-		return err
-	}
-
-	if !checluster.IsContainerBuildCapabilitiesEnabled() {
-		return delRoleBinding()
-	}
-
+func (r *CheUserNamespaceReconciler) reconcileSCCPrivileges(
+	username string,
+	targetNs string,
+	containerCapability containercapabilties.ContainerCapability,
+	isContainerCapabilitiesEnabled bool,
+) error {
 	if username == "" {
-		_ = delRoleBinding()
-		return fmt.Errorf("unknown user for %s namespace", targetNs)
+		return nil
+	}
+
+	if !isContainerCapabilitiesEnabled {
+		return r.clientWrapper.DeleteByKeyIgnoreNotFound(
+			context.TODO(),
+			types.NamespacedName{Name: containerCapability.GetUserClusterRoleBindingName(), Namespace: targetNs},
+			&rbacv1.RoleBinding{},
+		)
 	}
 
 	rb := &rbacv1.RoleBinding{
@@ -543,12 +564,12 @@ func (r *CheUserNamespaceReconciler) reconcileSCCPrivileges(username string, tar
 			APIVersion: rbacv1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      containerbuild.GetUserSccRbacResourcesName(),
+			Name:      containerCapability.GetUserClusterRoleBindingName(),
 			Namespace: targetNs,
 			Labels:    map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg},
 		},
 		RoleRef: rbacv1.RoleRef{
-			Name:     containerbuild.GetUserSccRbacResourcesName(),
+			Name:     containerCapability.GetUserRoleName(),
 			Kind:     "ClusterRole",
 			APIGroup: "rbac.authorization.k8s.io",
 		},
@@ -561,11 +582,11 @@ func (r *CheUserNamespaceReconciler) reconcileSCCPrivileges(username string, tar
 		},
 	}
 
-	if _, err := deploy.Sync(deployContext, rb, deploy.RollBindingDiffOpts); err != nil {
-		return err
-	}
-
-	return nil
+	return r.clientWrapper.Sync(
+		context.TODO(),
+		rb,
+		&k8sclient.SyncOptions{DiffOpts: diffs.RoleBinding},
+	)
 }
 
 func prefixedName(name string) string {

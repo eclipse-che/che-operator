@@ -150,7 +150,6 @@ func (c *CheRoutingSolver) provisionRouting(objs *solvers.RoutingObjects, cheClu
 		if err = c.clientWrapper.Sync(
 			context.TODO(),
 			&cm,
-			nil,
 			&k8sclient.SyncOptions{MergeLabels: true, MergeAnnotations: true}); err != nil {
 			return err
 		}

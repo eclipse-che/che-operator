@@ -15,6 +15,7 @@ package devworkspaceconfig
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -107,9 +108,11 @@ func updateWorkspaceConfig(ctx *chetypes.DeployContext, operatorConfig *controll
 
 	updateWorkspaceDefaultContainerResources(devEnvironments.DefaultContainerResources, operatorConfig.Workspace)
 
-	updateAnnotations(devEnvironments.WorkspacesPodAnnotations, operatorConfig.Workspace)
+	updateAnnotations(ctx.CheCluster, operatorConfig.Workspace)
 
 	updateIgnoredUnrecoverableEvents(devEnvironments.IgnoredUnrecoverableEvents, operatorConfig.Workspace)
+
+	updateHostUsers(ctx.CheCluster, operatorConfig.Workspace)
 
 	// If the CheCluster has a configured proxy, or if the Che Operator has detected a proxy configuration,
 	// we need to disable automatic proxy handling in the DevWorkspace Operator as its implementation collides
@@ -138,6 +141,10 @@ func updateSecurityContext(operatorConfig *controllerv1alpha1.OperatorConfigurat
 			return err
 		}
 		operatorConfig.Workspace.ContainerSecurityContext = defaultContainerSecurityContext
+	} else if cheCluster.IsContainerRunCapabilitiesEnabled() {
+		if cheCluster.Spec.DevEnvironments.ContainerRunConfiguration != nil {
+			operatorConfig.Workspace.ContainerSecurityContext = cheCluster.Spec.DevEnvironments.ContainerRunConfiguration.ContainerSecurityContext
+		}
 	} else if cheCluster.Spec.DevEnvironments.Security.ContainerSecurityContext != nil {
 		operatorConfig.Workspace.ContainerSecurityContext = cheCluster.Spec.DevEnvironments.Security.ContainerSecurityContext
 	}
@@ -206,8 +213,19 @@ func updateWorkspaceImagePullPolicy(imagePullPolicy corev1.PullPolicy, workspace
 	workspaceConfig.ImagePullPolicy = string(imagePullPolicy)
 }
 
-func updateAnnotations(annotations map[string]string, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
-	workspaceConfig.PodAnnotations = annotations
+func updateAnnotations(cheCluster *chev2.CheCluster, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
+	workspaceConfig.PodAnnotations = cheCluster.Spec.DevEnvironments.WorkspacesPodAnnotations
+
+	if cheCluster.IsContainerRunCapabilitiesEnabled() &&
+		cheCluster.Spec.DevEnvironments.ContainerRunConfiguration != nil &&
+		len(cheCluster.Spec.DevEnvironments.ContainerRunConfiguration.ExtraWorkspacePodAnnotations) > 0 {
+
+		if workspaceConfig.PodAnnotations == nil {
+			workspaceConfig.PodAnnotations = map[string]string{}
+		}
+
+		maps.Copy(workspaceConfig.PodAnnotations, cheCluster.Spec.DevEnvironments.ContainerRunConfiguration.ExtraWorkspacePodAnnotations)
+	}
 }
 
 func updateIgnoredUnrecoverableEvents(ignoredUnrecoverableEvents []string, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
@@ -252,6 +270,14 @@ func updateProjectCloneConfig(devEnvironments *chev2.CheClusterDevEnvironments, 
 	workspaceConfig.ProjectCloneConfig.ImagePullPolicy = container.ImagePullPolicy
 	workspaceConfig.ProjectCloneConfig.Env = container.Env
 	workspaceConfig.ProjectCloneConfig.Resources = cheResourcesToCoreV1Resources(container.Resources)
+}
+
+func updateHostUsers(cheCluster *chev2.CheCluster, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
+	if cheCluster.IsContainerRunCapabilitiesEnabled() {
+		workspaceConfig.HostUsers = pointer.Bool(false)
+	} else {
+		workspaceConfig.HostUsers = nil
+	}
 }
 
 func disableDWOProxy(routingConfig *controllerv1alpha1.RoutingConfig) {

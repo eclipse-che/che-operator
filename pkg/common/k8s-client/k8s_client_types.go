@@ -16,7 +16,6 @@ import (
 	"context"
 
 	"github.com/google/go-cmp/cmp"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -25,10 +24,10 @@ type K8sClient interface {
 	// Sync ensures that the object is up to date in the cluster.
 	// Object is created if it does not exist and updated if it exists but is different.
 	// Returns nil if object is in sync.
-	Sync(ctx context.Context, blueprint client.Object, owner metav1.Object, opts ...SyncOption) error
+	Sync(ctx context.Context, blueprint client.Object, opts ...SyncOption) error
 	// Create creates object.
 	// Returns nil if object is created otherwise returns error.
-	Create(ctx context.Context, blueprint client.Object, owner metav1.Object, opts ...client.CreateOption) error
+	Create(ctx context.Context, blueprint client.Object, opts ...client.CreateOption) error
 	// GetIgnoreNotFound gets object.
 	// Returns true if object exists otherwise returns false.
 	// Returns nil if object is retrieved or not found otherwise returns error.

@@ -50,7 +50,7 @@ func TestSync(t *testing.T) {
 		},
 	}
 
-	err := cli.Sync(context.TODO(), cm, nil, &SyncOptions{DiffOpts: diffs})
+	err := cli.Sync(context.TODO(), cm, &SyncOptions{DiffOpts: diffs})
 
 	assert.NoError(t, err)
 	assert.Equal(t, "ConfigMap", cm.Kind)
@@ -70,7 +70,7 @@ func TestSync(t *testing.T) {
 		},
 	}
 
-	err = cli.Sync(context.TODO(), newCm, nil, &SyncOptions{DiffOpts: diffs})
+	err = cli.Sync(context.TODO(), newCm, &SyncOptions{DiffOpts: diffs})
 
 	assert.NoError(t, err)
 	assert.Equal(t, "ConfigMap", newCm.Kind)
@@ -90,7 +90,7 @@ func TestSync(t *testing.T) {
 		},
 	}
 
-	err = cli.Sync(context.TODO(), newCm, nil, &SyncOptions{DiffOpts: diffs})
+	err = cli.Sync(context.TODO(), newCm, &SyncOptions{DiffOpts: diffs})
 
 	assert.NoError(t, err)
 	assert.Equal(t, "ConfigMap", newCm.Kind)
@@ -139,7 +139,6 @@ func TestSyncAndMergeLabelsAnnotations(t *testing.T) {
 				},
 			},
 		},
-		nil,
 		&SyncOptions{MergeLabels: true, MergeAnnotations: true},
 	)
 
