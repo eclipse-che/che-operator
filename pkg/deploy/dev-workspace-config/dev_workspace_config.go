@@ -134,17 +134,19 @@ func updateWorkspaceDefaultContainerResources(resources *corev1.ResourceRequirem
 }
 
 func updateSecurityContext(operatorConfig *controllerv1alpha1.OperatorConfiguration, cheCluster *chev2.CheCluster) error {
+	// TODO set default
+	// TODO set
 	operatorConfig.Workspace.ContainerSecurityContext = nil
-	if cheCluster.IsContainerBuildCapabilitiesEnabled() {
-		defaultContainerSecurityContext, err := getDefaultContainerSecurityContext()
-		if err != nil {
-			return err
-		}
-		operatorConfig.Workspace.ContainerSecurityContext = defaultContainerSecurityContext
-	} else if cheCluster.IsContainerRunCapabilitiesEnabled() {
+	if cheCluster.IsContainerRunCapabilitiesEnabled() {
 		if cheCluster.Spec.DevEnvironments.ContainerRunConfiguration != nil {
 			operatorConfig.Workspace.ContainerSecurityContext = cheCluster.Spec.DevEnvironments.ContainerRunConfiguration.ContainerSecurityContext
 		}
+	} else if cheCluster.IsContainerBuildCapabilitiesEnabled() {
+		containerSecurityContext, err := getBuildCapabilitiesContainerSecurityContext()
+		if err != nil {
+			return err
+		}
+		operatorConfig.Workspace.ContainerSecurityContext = containerSecurityContext
 	} else if cheCluster.Spec.DevEnvironments.Security.ContainerSecurityContext != nil {
 		operatorConfig.Workspace.ContainerSecurityContext = cheCluster.Spec.DevEnvironments.Security.ContainerSecurityContext
 	}
@@ -292,7 +294,7 @@ func disableDWOProxy(routingConfig *controllerv1alpha1.RoutingConfig) {
 
 // Returns the default container security context required for container builds.
 // Returns an error if the default container security context could not be retrieved.
-func getDefaultContainerSecurityContext() (*corev1.SecurityContext, error) {
+func getBuildCapabilitiesContainerSecurityContext() (*corev1.SecurityContext, error) {
 	containerSecurityContext := &corev1.SecurityContext{}
 	err := json.Unmarshal([]byte(defaults.GetDevEnvironmentsContainerSecurityContext()), &containerSecurityContext)
 	if err != nil {
