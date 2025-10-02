@@ -16,7 +16,6 @@ metadata:
   displayName: JetBrains RubyMine (desktop)
   description: JetBrains RubyMine for Eclipse Che - next
   tags:
-    - Tech-Preview
   attributes:
     arch:
       - x86_64

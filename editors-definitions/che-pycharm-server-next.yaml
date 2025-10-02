@@ -16,7 +16,6 @@ metadata:
   displayName: JetBrains PyCharm Professional Edition (desktop)
   description: JetBrains PyCharm Professional Edition for Eclipse Che - next
   tags:
-    - Tech-Preview
   attributes:
     arch:
       - x86_64

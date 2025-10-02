@@ -16,7 +16,6 @@ metadata:
   displayName: JetBrains IntelliJ IDEA Ultimate (desktop)
   description: JetBrains IntelliJ IDEA Ultimate dev server for Eclipse Che - next
   tags:
-    - Tech-Preview
   attributes:
     arch:
       - x86_64
