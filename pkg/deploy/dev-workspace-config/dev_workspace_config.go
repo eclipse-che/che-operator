@@ -134,19 +134,21 @@ func updateWorkspaceDefaultContainerResources(resources *corev1.ResourceRequirem
 }
 
 func updateSecurityContext(operatorConfig *controllerv1alpha1.OperatorConfiguration, cheCluster *chev2.CheCluster) error {
-	// TODO set default
-	// TODO set
 	operatorConfig.Workspace.ContainerSecurityContext = nil
 	if cheCluster.IsContainerRunCapabilitiesEnabled() {
 		if cheCluster.Spec.DevEnvironments.ContainerRunConfiguration != nil {
 			operatorConfig.Workspace.ContainerSecurityContext = cheCluster.Spec.DevEnvironments.ContainerRunConfiguration.ContainerSecurityContext
 		}
 	} else if cheCluster.IsContainerBuildCapabilitiesEnabled() {
-		containerSecurityContext, err := getBuildCapabilitiesContainerSecurityContext()
-		if err != nil {
+		// for backward compatability, try old way get Container Security Context
+		// when container build capabilities enabled
+		if containerSecurityContext, err := getContainerSecurityContextForBuildCapabilitiesFromEnv(); err != nil {
 			return err
+		} else if containerSecurityContext != nil {
+			operatorConfig.Workspace.ContainerSecurityContext = containerSecurityContext
+		} else if cheCluster.Spec.DevEnvironments.ContainerBuildConfiguration != nil {
+			operatorConfig.Workspace.ContainerSecurityContext = cheCluster.Spec.DevEnvironments.ContainerBuildConfiguration.ContainerSecurityContext
 		}
-		operatorConfig.Workspace.ContainerSecurityContext = containerSecurityContext
 	} else if cheCluster.Spec.DevEnvironments.Security.ContainerSecurityContext != nil {
 		operatorConfig.Workspace.ContainerSecurityContext = cheCluster.Spec.DevEnvironments.Security.ContainerSecurityContext
 	}
@@ -220,13 +222,13 @@ func updateAnnotations(cheCluster *chev2.CheCluster, workspaceConfig *controller
 
 	if cheCluster.IsContainerRunCapabilitiesEnabled() &&
 		cheCluster.Spec.DevEnvironments.ContainerRunConfiguration != nil &&
-		len(cheCluster.Spec.DevEnvironments.ContainerRunConfiguration.ExtraWorkspacePodAnnotations) > 0 {
+		len(cheCluster.Spec.DevEnvironments.ContainerRunConfiguration.WorkspacesPodAnnotations) > 0 {
 
 		if workspaceConfig.PodAnnotations == nil {
 			workspaceConfig.PodAnnotations = map[string]string{}
 		}
 
-		maps.Copy(workspaceConfig.PodAnnotations, cheCluster.Spec.DevEnvironments.ContainerRunConfiguration.ExtraWorkspacePodAnnotations)
+		maps.Copy(workspaceConfig.PodAnnotations, cheCluster.Spec.DevEnvironments.ContainerRunConfiguration.WorkspacesPodAnnotations)
 	}
 }
 
@@ -292,9 +294,9 @@ func disableDWOProxy(routingConfig *controllerv1alpha1.RoutingConfig) {
 	routingConfig.ProxyConfig.NoProxy = pointer.String("")
 }
 
-// Returns the default container security context required for container builds.
+// Returns the default container security context required for container builds from environment variable.
 // Returns an error if the default container security context could not be retrieved.
-func getBuildCapabilitiesContainerSecurityContext() (*corev1.SecurityContext, error) {
+func getContainerSecurityContextForBuildCapabilitiesFromEnv() (*corev1.SecurityContext, error) {
 	containerSecurityContext := &corev1.SecurityContext{}
 	err := json.Unmarshal([]byte(defaults.GetDevEnvironmentsContainerSecurityContext()), &containerSecurityContext)
 	if err != nil {
