@@ -574,7 +574,7 @@ type WorkspaceSecurityConfig struct {
 	// Defines the SecurityContext applied to all workspace-related containers.
 	// When set, the specified values are merged with the default SecurityContext configuration.
 	// This setting takes effect only if both `devEnvironments.disableContainerBuildCapabilities`
-	// and `devEnvironments.disableContainerRunCapabilities are` set to `true`.
+	// and `devEnvironments.disableContainerRunCapabilities` are set to `true`.
 	// +optional
 	ContainerSecurityContext *corev1.SecurityContext `json:"containerSecurityContext,omitempty"`
 }
