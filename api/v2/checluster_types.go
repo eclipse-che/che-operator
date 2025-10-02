@@ -152,7 +152,8 @@ type CheClusterDevEnvironments struct {
 	// +optional
 	DisableContainerBuildCapabilities *bool `json:"disableContainerBuildCapabilities,omitempty"`
 	// Disables container run capabilities.
-	// If set to `false`, the value from `devEnvironments.security.containerSecurityContext`
+	// Can be enabled on OpenShift version 4.20 or later.
+	// When set to `false`, the value from `devEnvironments.security.containerSecurityContext`
 	// is ignored, and instead the SecurityContext defined in
 	// `devEnvironments.containerRunConfiguration.containerSecurityContext` is applied.
 	// +optional
@@ -884,6 +885,10 @@ type ContainerBuildConfiguration struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:default:=container-build
 	OpenShiftSecurityContextConstraint string `json:"openShiftSecurityContextConstraint,omitempty"`
+	// SecurityContext applied to all workspace containers when build capabilities are enabled.
+	// +optional
+	// +kubebuilder:default:={allowPrivilegeEscalation: true, capabilities: {add: {"SETGID", "SETUID"}}}
+	ContainerSecurityContext *corev1.SecurityContext `json:"containerSecurityContext,omitempty"`
 }
 
 type ContainerRunConfiguration struct {
@@ -895,7 +900,7 @@ type ContainerRunConfiguration struct {
 	// in addition to those defined in `devEnvironments.workspacePodAnnotations`.
 	// +optional
 	// +kubebuilder:default:={"io.kubernetes.cri-o.Devices": "/dev/fuse,/dev/net/tun"}
-	ExtraWorkspacePodAnnotations map[string]string `json:"extraWorkspacePodAnnotations,omitempty"`
+	WorkspacesPodAnnotations map[string]string `json:"workspacesPodAnnotations,omitempty"`
 	// SecurityContext applied to all workspace containers when run capabilities are enabled.
 	// +optional
 	// +kubebuilder:default:={procMount: "Unmasked", allowPrivilegeEscalation: false, capabilities: {add: {"SETGID", "SETUID"}}}

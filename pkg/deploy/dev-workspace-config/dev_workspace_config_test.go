@@ -52,7 +52,6 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 
 	var quantity15Gi = resource.MustParse("15Gi")
 	var quantity10Gi = resource.MustParse("10Gi")
-	var unmasked = corev1.UnmaskedProcMount
 
 	var expectedErrorTestCases = []errorTestCase{
 		{
@@ -468,124 +467,6 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 				},
 			},
 		},
-		{
-			name: "Update DevWorkspaceOperatorConfig when container run capabilities enabled",
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-					Name:      "eclipse-che",
-				},
-				Spec: chev2.CheClusterSpec{
-					DevEnvironments: chev2.CheClusterDevEnvironments{
-						WorkspacesPodAnnotations: map[string]string{
-							"annotation_1": "value_1",
-							"annotation_2": "value_1",
-						},
-						DisableContainerBuildCapabilities: pointer.Bool(true),
-						DisableContainerRunCapabilities:   pointer.Bool(false),
-						ContainerRunConfiguration: &chev2.ContainerRunConfiguration{
-							OpenShiftSecurityContextConstraint: "container-run",
-							ExtraWorkspacePodAnnotations: map[string]string{
-								"annotation_1": "value_2",
-								"annotation_3": "value_2",
-							},
-							ContainerSecurityContext: &corev1.SecurityContext{
-								ProcMount: &unmasked,
-								Capabilities: &corev1.Capabilities{
-									Add: []corev1.Capability{"SETUID", "SETGID"},
-								},
-							},
-						},
-					},
-				},
-			},
-			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
-				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					HostUsers: pointer.Bool(false),
-					PodAnnotations: map[string]string{
-						"annotation_1": "value_2",
-						"annotation_2": "value_1",
-						"annotation_3": "value_2",
-					},
-					ContainerSecurityContext: &corev1.SecurityContext{
-						ProcMount: &unmasked,
-						Capabilities: &corev1.Capabilities{
-							Add: []corev1.Capability{"SETUID", "SETGID"},
-						},
-					},
-					DeploymentStrategy: "Recreate",
-				},
-			},
-		},
-		{
-			name: "Update DevWorkspaceOperatorConfig when container run capabilities enabled when build capabilities enabled as well",
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-					Name:      "eclipse-che",
-				},
-				Spec: chev2.CheClusterSpec{
-					DevEnvironments: chev2.CheClusterDevEnvironments{
-						WorkspacesPodAnnotations: map[string]string{
-							"annotation_1": "value_1",
-							"annotation_2": "value_1",
-						},
-						DisableContainerBuildCapabilities: pointer.Bool(false),
-						DisableContainerRunCapabilities:   pointer.Bool(false),
-						ContainerRunConfiguration: &chev2.ContainerRunConfiguration{
-							OpenShiftSecurityContextConstraint: "container-run",
-							ExtraWorkspacePodAnnotations: map[string]string{
-								"annotation_1": "value_2",
-								"annotation_3": "value_2",
-							},
-							ContainerSecurityContext: &corev1.SecurityContext{
-								ProcMount: &unmasked,
-								Capabilities: &corev1.Capabilities{
-									Add: []corev1.Capability{"SETUID", "SETGID"},
-								},
-							},
-						},
-					},
-				},
-			},
-			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
-				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					HostUsers: pointer.Bool(false),
-					PodAnnotations: map[string]string{
-						"annotation_1": "value_2",
-						"annotation_2": "value_1",
-						"annotation_3": "value_2",
-					},
-					ContainerSecurityContext: &corev1.SecurityContext{
-						ProcMount: &unmasked,
-						Capabilities: &corev1.Capabilities{
-							Add: []corev1.Capability{"SETUID", "SETGID"},
-						},
-					},
-					DeploymentStrategy: "Recreate",
-				},
-			},
-		},
-		{
-			name: "Update DevWorkspaceOperatorConfig when all container capabilities are disabled",
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-					Name:      "eclipse-che",
-				},
-				Spec: chev2.CheClusterSpec{
-					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
-						DisableContainerRunCapabilities:   pointer.Bool(true),
-					},
-				},
-			},
-			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
-				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					DeploymentStrategy: "Recreate",
-				},
-			},
-		},
 	}
 
 	for _, testCase := range testCases {
@@ -616,7 +497,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 	}
 }
 
-func TestReconcileDevWorkspaceConfigForContainerBuilds(t *testing.T) {
+func TestReconcileDevWorkspaceConfigForContainerCapabilities(t *testing.T) {
 	type testCase struct {
 		name                   string
 		cheCluster             *chev2.CheCluster
@@ -624,9 +505,10 @@ func TestReconcileDevWorkspaceConfigForContainerBuilds(t *testing.T) {
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
+	var unmasked = corev1.UnmaskedProcMount
 	var testCases = []testCase{
 		{
-			name: "Create DevWorkspaceOperatorConfig without Container Security Context if container build disabled",
+			name: "Create DevWorkspaceOperatorConfig without Container Security Context if all capabilities disabled",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -635,6 +517,7 @@ func TestReconcileDevWorkspaceConfigForContainerBuilds(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
 						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerRunCapabilities:   pointer.Bool(true),
 					},
 				},
 			},
@@ -652,6 +535,7 @@ func TestReconcileDevWorkspaceConfigForContainerBuilds(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
 						DisableContainerBuildCapabilities: pointer.Bool(false),
+						DisableContainerRunCapabilities:   pointer.Bool(true),
 					},
 				},
 			},
@@ -670,6 +554,55 @@ func TestReconcileDevWorkspaceConfigForContainerBuilds(t *testing.T) {
 			},
 		},
 		{
+			name: "Create DevWorkspaceOperatorConfig with Container Security Context if container run enabled",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						WorkspacesPodAnnotations: map[string]string{
+							"annotation_1": "value_1",
+							"annotation_2": "value_1",
+						},
+						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerRunCapabilities:   pointer.Bool(false),
+						ContainerRunConfiguration: &chev2.ContainerRunConfiguration{
+							OpenShiftSecurityContextConstraint: "container-run",
+							WorkspacesPodAnnotations: map[string]string{
+								"annotation_1": "value_2",
+								"annotation_3": "value_2",
+							},
+							ContainerSecurityContext: &corev1.SecurityContext{
+								ProcMount: &unmasked,
+								Capabilities: &corev1.Capabilities{
+									Add: []corev1.Capability{"SETUID", "SETGID"},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					HostUsers: pointer.Bool(false),
+					PodAnnotations: map[string]string{
+						"annotation_1": "value_2",
+						"annotation_2": "value_1",
+						"annotation_3": "value_2",
+					},
+					ContainerSecurityContext: &corev1.SecurityContext{
+						ProcMount: &unmasked,
+						Capabilities: &corev1.Capabilities{
+							Add: []corev1.Capability{"SETUID", "SETGID"},
+						},
+					},
+					DeploymentStrategy: "Recreate",
+				},
+			},
+		},
+		{
 			name: "Update existing DevWorkspaceOperatorConfig by adding Container Security Context",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -679,6 +612,7 @@ func TestReconcileDevWorkspaceConfigForContainerBuilds(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
 						DisableContainerBuildCapabilities: pointer.Bool(false),
+						DisableContainerRunCapabilities:   pointer.Bool(true),
 					},
 				},
 			},
@@ -721,6 +655,7 @@ func TestReconcileDevWorkspaceConfigForContainerBuilds(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
 						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerRunCapabilities:   pointer.Bool(true),
 					},
 				},
 			},
@@ -750,6 +685,55 @@ func TestReconcileDevWorkspaceConfigForContainerBuilds(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{},
+			},
+		},
+		{
+			name: "Create DevWorkspaceOperatorConfig with Container Security Context if all capabilities enabled",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						WorkspacesPodAnnotations: map[string]string{
+							"annotation_1": "value_1",
+							"annotation_2": "value_1",
+						},
+						DisableContainerBuildCapabilities: pointer.Bool(false),
+						DisableContainerRunCapabilities:   pointer.Bool(false),
+						ContainerRunConfiguration: &chev2.ContainerRunConfiguration{
+							OpenShiftSecurityContextConstraint: "container-run",
+							WorkspacesPodAnnotations: map[string]string{
+								"annotation_1": "value_2",
+								"annotation_3": "value_2",
+							},
+							ContainerSecurityContext: &corev1.SecurityContext{
+								ProcMount: &unmasked,
+								Capabilities: &corev1.Capabilities{
+									Add: []corev1.Capability{"SETUID", "SETGID"},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					HostUsers: pointer.Bool(false),
+					PodAnnotations: map[string]string{
+						"annotation_1": "value_2",
+						"annotation_2": "value_1",
+						"annotation_3": "value_2",
+					},
+					ContainerSecurityContext: &corev1.SecurityContext{
+						ProcMount: &unmasked,
+						Capabilities: &corev1.Capabilities{
+							Add: []corev1.Capability{"SETUID", "SETGID"},
+						},
+					},
+					DeploymentStrategy: "Recreate",
+				},
 			},
 		},
 	}
@@ -2204,6 +2188,7 @@ func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
 					DevEnvironments: chev2.CheClusterDevEnvironments{
 						// We disable container build capabilities so that it does not override the container security context we configured
 						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerRunCapabilities:   pointer.Bool(true),
 						Security: chev2.WorkspaceSecurityConfig{
 							ContainerSecurityContext: &corev1.SecurityContext{
 								Capabilities: &corev1.Capabilities{
@@ -2252,6 +2237,7 @@ func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
 						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerRunCapabilities:   pointer.Bool(true),
 						Security: chev2.WorkspaceSecurityConfig{
 							ContainerSecurityContext: &corev1.SecurityContext{
 								Capabilities: &corev1.Capabilities{
@@ -2311,6 +2297,7 @@ func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
 						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerRunCapabilities:   pointer.Bool(true),
 						Security: chev2.WorkspaceSecurityConfig{
 							ContainerSecurityContext: &corev1.SecurityContext{
 								Capabilities: &corev1.Capabilities{
@@ -2386,6 +2373,7 @@ func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
 						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerRunCapabilities:   pointer.Bool(true),
 					},
 				},
 			},
