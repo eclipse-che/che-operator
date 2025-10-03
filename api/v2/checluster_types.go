@@ -885,10 +885,6 @@ type ContainerBuildConfiguration struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:default:=container-build
 	OpenShiftSecurityContextConstraint string `json:"openShiftSecurityContextConstraint,omitempty"`
-	// SecurityContext applied to all workspace containers when build capabilities are enabled.
-	// +optional
-	// +kubebuilder:default:={allowPrivilegeEscalation: true, capabilities: {add: {"SETGID", "SETUID"}}}
-	ContainerSecurityContext *corev1.SecurityContext `json:"containerSecurityContext,omitempty"`
 }
 
 type ContainerRunConfiguration struct {
@@ -903,7 +899,7 @@ type ContainerRunConfiguration struct {
 	WorkspacesPodAnnotations map[string]string `json:"workspacesPodAnnotations,omitempty"`
 	// SecurityContext applied to all workspace containers when run capabilities are enabled.
 	// +optional
-	// +kubebuilder:default:={procMount: "Unmasked", allowPrivilegeEscalation: false, capabilities: {add: {"SETGID", "SETUID"}}}
+	// +kubebuilder:default:={procMount: "Unmasked", allowPrivilegeEscalation: true, capabilities: {add: {"SETGID", "SETUID"}}}
 	ContainerSecurityContext *corev1.SecurityContext `json:"containerSecurityContext,omitempty"`
 }
 
