@@ -68,7 +68,7 @@ func (o *SyncOptions) ApplyToList(so *SyncOptions) {
 		so.SuppressDiff = o.SuppressDiff
 	}
 
-	if len(o.DiffOpts) == 0 {
+	if len(o.DiffOpts) != 0 {
 		so.DiffOpts = o.DiffOpts
 	}
 }
