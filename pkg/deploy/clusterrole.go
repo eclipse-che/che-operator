@@ -15,16 +15,11 @@ package deploy
 import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	rbac "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-var ClusterRoleDiffOpts = cmp.Options{
-	cmpopts.IgnoreFields(rbac.ClusterRole{}, "TypeMeta", "ObjectMeta"),
-}
 
 func SyncClusterRoleToCluster(
 	deployContext *chetypes.DeployContext,
@@ -32,7 +27,7 @@ func SyncClusterRoleToCluster(
 	policyRule []rbac.PolicyRule) (bool, error) {
 
 	crSpec := getClusterRoleSpec(deployContext, name, policyRule)
-	return Sync(deployContext, crSpec, ClusterRoleDiffOpts)
+	return Sync(deployContext, crSpec, diffs.ClusterRole)
 }
 
 func getClusterRoleSpec(deployContext *chetypes.DeployContext, name string, policyRule []rbac.PolicyRule) *rbac.ClusterRole {

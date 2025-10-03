@@ -254,7 +254,6 @@ func (r *WorkspacesConfigReconciler) syncNamespace(
 				if err = r.clientWrapper.Create(
 					ctx,
 					syncConfig,
-					nil,
 				); err != nil {
 					logger.Error(err, "Failed to workspace create sync config", "namespace", dstNamespace)
 				}
@@ -262,7 +261,6 @@ func (r *WorkspacesConfigReconciler) syncNamespace(
 				if err = r.clientWrapper.Sync(
 					ctx,
 					syncConfig,
-					nil,
 				); err != nil {
 					logger.Error(err, "Failed to update workspace sync config", "namespace", dstNamespace)
 				}
@@ -541,7 +539,7 @@ func (r *WorkspacesConfigReconciler) doCreateObject(
 	syncContext *syncContext,
 	dstObj client.Object) error {
 
-	err := r.clientWrapper.Create(syncContext.ctx, dstObj, nil)
+	err := r.clientWrapper.Create(syncContext.ctx, dstObj)
 	if err != nil {
 		if !errors.IsAlreadyExists(err) {
 			return err
@@ -562,7 +560,7 @@ func (r *WorkspacesConfigReconciler) doCreateObject(
 			return err
 		}
 
-		if err = r.clientWrapper.Create(syncContext.ctx, dstObj, nil); err != nil {
+		if err = r.clientWrapper.Create(syncContext.ctx, dstObj); err != nil {
 			return err
 		}
 	}
@@ -579,7 +577,6 @@ func (r *WorkspacesConfigReconciler) doUpdateObject(
 	if err := r.clientWrapper.Sync(
 		syncContext.ctx,
 		dstObj,
-		nil,
 		&k8sclient.SyncOptions{MergeAnnotations: true, MergeLabels: true, SuppressDiff: true},
 	); err != nil {
 		return err

@@ -19,10 +19,11 @@ import (
 	"testing"
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
+	containerbuild "github.com/eclipse-che/che-operator/pkg/deploy/container-capabilities"
 
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 
-	containerbuild "github.com/eclipse-che/che-operator/pkg/deploy/container-build"
 	rbacv1 "k8s.io/api/rbac/v1"
 
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
@@ -171,9 +172,11 @@ func setup(infraType infrastructure.Type, objs ...client.Object) (*runtime.Schem
 	scheme := ctx.ClusterAPI.Scheme
 
 	r := &CheUserNamespaceReconciler{
-		client:          cl,
-		nonCachedClient: cl,
-		scheme:          scheme,
+		client:                 cl,
+		nonCachedClient:        cl,
+		clientWrapper:          k8sclient.NewK8sClient(cl, scheme),
+		nonCachedClientWrapper: k8sclient.NewK8sClient(cl, scheme),
+		scheme:                 scheme,
 		namespaceCache: &namespacecache.NamespaceCache{
 			Client:          cl,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{},
@@ -378,9 +381,13 @@ func TestUpdateSccClusterRoleBinding(t *testing.T) {
 		},
 		Spec: chev2.CheClusterSpec{
 			DevEnvironments: chev2.CheClusterDevEnvironments{
-				DisableContainerBuildCapabilities: pointer.BoolPtr(false),
+				DisableContainerBuildCapabilities: pointer.Bool(false),
 				ContainerBuildConfiguration: &chev2.ContainerBuildConfiguration{
 					OpenShiftSecurityContextConstraint: "container-build",
+				},
+				DisableContainerRunCapabilities: pointer.Bool(false),
+				ContainerRunConfiguration: &chev2.ContainerRunConfiguration{
+					OpenShiftSecurityContextConstraint: "container-run",
 				},
 			},
 			Networking: chev2.CheClusterSpecNetworking{
@@ -408,7 +415,12 @@ func TestUpdateSccClusterRoleBinding(t *testing.T) {
 	assert.Nil(t, err)
 
 	rb := &rbacv1.RoleBinding{}
-	err = cl.Get(context.TODO(), types.NamespacedName{Name: containerbuild.GetUserSccRbacResourcesName(), Namespace: "ns1"}, rb)
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: containerbuild.NewContainerBuild().GetUserRoleName(), Namespace: "ns1"}, rb)
+	assert.Nil(t, err)
+	assert.Equal(t, "user_1", rb.Subjects[0].Name)
+
+	rb = &rbacv1.RoleBinding{}
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: containerbuild.NewContainerRun().GetUserRoleName(), Namespace: "ns1"}, rb)
 	assert.Nil(t, err)
 	assert.Equal(t, "user_1", rb.Subjects[0].Name)
 }
