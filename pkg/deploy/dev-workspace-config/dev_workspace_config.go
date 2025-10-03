@@ -146,8 +146,6 @@ func updateSecurityContext(operatorConfig *controllerv1alpha1.OperatorConfigurat
 			return err
 		} else if containerSecurityContext != nil {
 			operatorConfig.Workspace.ContainerSecurityContext = containerSecurityContext
-		} else if cheCluster.Spec.DevEnvironments.ContainerBuildConfiguration != nil {
-			operatorConfig.Workspace.ContainerSecurityContext = cheCluster.Spec.DevEnvironments.ContainerBuildConfiguration.ContainerSecurityContext
 		}
 	} else if cheCluster.Spec.DevEnvironments.Security.ContainerSecurityContext != nil {
 		operatorConfig.Workspace.ContainerSecurityContext = cheCluster.Spec.DevEnvironments.Security.ContainerSecurityContext
