@@ -16,7 +16,6 @@ metadata:
   displayName: JetBrains CLion (desktop)
   description: JetBrains CLion for Eclipse Che - latest
   tags:
-    - Tech-Preview
   attributes:
     arch:
       - x86_64

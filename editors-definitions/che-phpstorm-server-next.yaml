@@ -16,7 +16,6 @@ metadata:
   displayName: JetBrains PhpStorm (desktop)
   description: JetBrains PhpStorm for Eclipse Che - next
   tags:
-    - Tech-Preview
   attributes:
     arch:
       - x86_64

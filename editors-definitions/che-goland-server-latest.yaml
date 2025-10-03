@@ -16,7 +16,6 @@ metadata:
   displayName: JetBrains GoLand (desktop)
   description: JetBrains GoLand dev server for Eclipse Che - latest
   tags:
-    - Tech-Preview
   attributes:
     arch:
       - x86_64

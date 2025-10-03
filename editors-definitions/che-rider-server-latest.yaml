@@ -16,7 +16,6 @@ metadata:
   displayName: JetBrains Rider (desktop)
   description: JetBrains Rider for Eclipse Che - latest
   tags:
-    - Tech-Preview
   attributes:
     arch:
       - x86_64

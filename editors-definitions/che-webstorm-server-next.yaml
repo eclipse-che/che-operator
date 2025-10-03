@@ -16,7 +16,6 @@ metadata:
   displayName: JetBrains WebStorm (desktop)
   description: JetBrains WebStorm for Eclipse Che - next
   tags:
-    - Tech-Preview
   attributes:
     arch:
       - x86_64
