@@ -57,7 +57,7 @@ func (r *ContainerRun) getSCCSpec(sccName string) *securityv1.SecurityContextCon
 		RequiredDropCapabilities: []corev1.Capability{"KILL", "MKNOD"},
 		RunAsUser: securityv1.RunAsUserStrategyOptions{
 			Type: securityv1.RunAsUserStrategyMustRunAs,
-			UID:  pointer.Int64(1001),
+			UID:  pointer.Int64(1000),
 		},
 		SELinuxContext: securityv1.SELinuxContextStrategyOptions{
 			Type:           securityv1.SELinuxStrategyMustRunAs,

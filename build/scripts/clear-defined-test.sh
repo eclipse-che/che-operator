@@ -124,7 +124,13 @@ retryUrl() {
       if [[ "$status" == "200" ]] || [[ "$status" == "404" ]]; then
         break
       else
-        sleep 5s
+        if [[ $i == "5" ]]; then
+          echo "[ERROR] retrieving $url"
+          echo "[ERROR] $response"
+          exit 1
+        else
+          sleep 5s
+        fi
       fi
     done
 
