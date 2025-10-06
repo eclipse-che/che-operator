@@ -892,12 +892,16 @@ type ContainerRunConfiguration struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:default:=container-run
 	OpenShiftSecurityContextConstraint string `json:"openShiftSecurityContextConstraint,omitempty"`
-	// Extra annotations applied to all workspace pods,
-	// in addition to those defined in `devEnvironments.workspacePodAnnotations`.
+	// Extra annotations applied to all workspace pods, in addition to those defined
+	// in `devEnvironments.workspacePodAnnotations`. Enables `/dev/fuse` for access to the fuse driver
+	// and `/dev/net/tun` for safe network access.
 	// +optional
 	// +kubebuilder:default:={"io.kubernetes.cri-o.Devices": "/dev/fuse,/dev/net/tun"}
 	WorkspacesPodAnnotations map[string]string `json:"workspacesPodAnnotations,omitempty"`
 	// SecurityContext applied to all workspace containers when run capabilities are enabled.
+	// The default `procMount: "Unmasked"` is set because the pod runs in a user namespace,
+	// which safely isolates the container's `/proc` from the host. This allows the container
+	// to modify its own sysctl settings for configuring networking for nested containers.
 	// +optional
 	// +kubebuilder:default:={procMount: "Unmasked", allowPrivilegeEscalation: true, capabilities: {add: {"SETGID", "SETUID"}}}
 	ContainerSecurityContext *corev1.SecurityContext `json:"containerSecurityContext,omitempty"`
