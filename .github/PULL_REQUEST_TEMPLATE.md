@@ -21,27 +21,38 @@ che-operator Development Guide: https://github.com/eclipse-che/che-operator/#dev
   - steps to reproduce
  -->
 
-1. Prepare a patch file if needed:
-```bash
-cat > /tmp/cr-patch.yaml <<EOF
-apiVersion: org.eclipse.che/v2
-kind: CheCluster
-spec: {}
-EOF
-```
-
-2. Deploy the operator:
+1. Deploy the operator:
  
 #### OpenShift
 ```bash
-./build/scripts/olm/test-catalog-from-sources.sh --cr-patch-yaml /tmp/cr-patch.yaml
+./build/scripts/olm/test-catalog-from-sources.sh
 ```
+
+or
+
+```bash
+build/scripts/docker-run.sh /bin/bash -c "
+  oc login \
+    --token=<...> \
+    --server=<...> \
+    --insecure-skip-tls-verify=true && \
+  build/scripts/olm/test-catalog-from-sources.sh
+"
+```
+
+2. 
 
 #### on Minikube
 
 ```bash
-./build/scripts/minikube-tests/test-operator-from-sources.sh --cr-patch-yaml /tmp/cr-patch.yaml
+./build/scripts/minikube-tests/test-operator-from-sources.sh
 ```
+
+#### Common Test Scenarios
+- [ ] Deploy Eclipse Che
+- [ ] Start a workspace
+- [ ] Stop a workspace
+- [ ] Check operator logs for reconciliation errors or infinite reconciliation loops
 
 ### PR Checklist
 
