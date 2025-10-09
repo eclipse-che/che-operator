@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
@@ -48,6 +49,7 @@ import (
 
 const (
 	syncedWorkspacesConfig = "sync-workspaces-config"
+	syncRetainAnnotation   = "che.eclipse.org/sync-retain"
 )
 
 type WorkspacesConfigReconciler struct {
@@ -66,6 +68,7 @@ type Object2Sync interface {
 	getSrcObject() client.Object
 	getSrcObjectVersion() string
 	newDstObject() client.Object
+	defaultRetention() bool
 }
 
 type syncContext struct {
@@ -345,7 +348,7 @@ func (r *WorkspacesConfigReconciler) syncObjectsList(
 	}
 
 	for _, srcObj := range srcObjs {
-		obj2Sync := createObject2SyncFromRuntimeObject(srcObj)
+		obj2Sync := createObject2SyncFromRuntimeObject(srcObj.(client.Object))
 		if obj2Sync == nil {
 			logger.Info("Object skipped since has unsupported kind",
 				"kind", gvk2PrintString(srcObj.GetObjectKind().GroupVersionKind()))
@@ -508,7 +511,7 @@ func (r *WorkspacesConfigReconciler) syncObjectIfDiffers(
 				return nil
 			} else {
 				if isDiff(dstObj, existedDstObj.(client.Object)) {
-					if err = r.doUpdateObject(syncContext, dstObj, existedDstObj.(client.Object)); err != nil {
+					if err = r.doUpdateObject(syncContext, dstObj); err != nil {
 						return err
 					}
 					r.doUpdateSyncConfig(syncContext, dstObj)
@@ -547,16 +550,29 @@ func (r *WorkspacesConfigReconciler) doCreateObject(
 			return err
 		}
 
+		namespacedName := types.NamespacedName{
+			Name:      dstObj.GetName(),
+			Namespace: dstObj.GetNamespace(),
+		}
+
+		if retain, err := r.shouldRetain(
+			syncContext.ctx,
+			namespacedName,
+			syncContext.object2Sync.getGKV(),
+			r.nonCachedClientWrapper,
+		); err != nil {
+			return err
+		} else if retain {
+			fmt.Errorf("error")
+		}
+
 		// AlreadyExists Error might happen if object already exists and doesn't contain
 		// `app.kubernetes.io/part-of=che.eclipse.org` label (is not cached)
 		// 1. Delete the object from a destination namespace using non-cached client
 		// 2. Create the object again using cached client
 		if err = r.nonCachedClientWrapper.DeleteByKeyIgnoreNotFound(
 			syncContext.ctx,
-			types.NamespacedName{
-				Name:      dstObj.GetName(),
-				Namespace: dstObj.GetNamespace(),
-			},
+			namespacedName,
 			dstObj,
 		); err != nil {
 			return err
@@ -573,8 +589,7 @@ func (r *WorkspacesConfigReconciler) doCreateObject(
 // doUpdateObject updates object in a user destination namespace.
 func (r *WorkspacesConfigReconciler) doUpdateObject(
 	syncContext *syncContext,
-	dstObj client.Object,
-	existedDstObj client.Object) error {
+	dstObj client.Object) error {
 
 	if err := r.clientWrapper.Sync(
 		syncContext.ctx,
@@ -609,27 +624,41 @@ func (r *WorkspacesConfigReconciler) deleteIfObjectIsObsolete(
 	syncConfig map[string]string,
 	syncedSrcObjKeys map[string]bool) error {
 
-	isSrcObject := getNamespaceItem(objKey) == srcNamespace
+	isSrcObjectKey := getNamespaceItem(objKey) == srcNamespace
 	isNotSyncedInDstNamespace := !syncedSrcObjKeys[objKey]
 
-	if isSrcObject && isNotSyncedInDstNamespace {
+	if isSrcObjectKey && isNotSyncedInDstNamespace {
 		objName := getNameItem(objKey)
 		gkv := item2gkv(getGkvItem(objKey))
 
-		blueprint, err := r.scheme.New(gkv)
+		namespacedName := types.NamespacedName{
+			Name:      objName,
+			Namespace: dstNamespace,
+		}
+
+		retain, err := r.shouldRetain(
+			ctx,
+			namespacedName,
+			gkv,
+			r.clientWrapper,
+		)
 		if err != nil {
 			return err
 		}
 
-		// delete object from destination namespace
-		if err = r.clientWrapper.DeleteByKeyIgnoreNotFound(
-			ctx,
-			types.NamespacedName{
-				Name:      objName,
-				Namespace: dstNamespace,
-			},
-			blueprint.(client.Object)); err != nil {
-			return err
+		if !retain {
+			blueprint, err := r.scheme.New(gkv)
+			if err != nil {
+				return err
+			}
+
+			// delete object from destination namespace
+			if err = r.clientWrapper.DeleteByKeyIgnoreNotFound(
+				ctx,
+				namespacedName,
+				blueprint.(client.Object)); err != nil {
+				return err
+			}
 		}
 
 		dstObjKey := buildKey(gkv, objName, dstNamespace)
@@ -676,6 +705,32 @@ func (r *WorkspacesConfigReconciler) getSyncConfig(ctx context.Context, namespac
 	}
 
 	return syncCM, nil
+}
+
+func (r *WorkspacesConfigReconciler) shouldRetain(
+	ctx context.Context,
+	key client.ObjectKey,
+	gkv schema.GroupVersionKind,
+	clientWrapper *k8sclient.K8sClientWrapper,
+) (bool, error) {
+	blueprint, err := r.scheme.New(gkv)
+	if err != nil {
+		return false, err
+	}
+
+	exists, err := clientWrapper.GetIgnoreNotFound(ctx, key, blueprint.(client.Object))
+	if !exists {
+		return false, err
+	}
+
+	retainAnnotation := blueprint.(metav1.Object).GetAnnotations()[syncRetainAnnotation]
+	if retainAnnotation != "" {
+		return strconv.ParseBool(retainAnnotation)
+	}
+
+	obj2Sync := createObject2SyncFromRuntimeObject(blueprint.(client.Object))
+
+	return obj2Sync.defaultRetention(), nil
 }
 
 // buildKey returns a key for ConfigMap.

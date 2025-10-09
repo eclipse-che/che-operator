@@ -65,3 +65,7 @@ func (p *secret2Sync) getSrcObjectVersion() string {
 func (p *secret2Sync) hasROSpec() bool {
 	return false
 }
+
+func (p *secret2Sync) defaultRetention() bool {
+	return false
+}

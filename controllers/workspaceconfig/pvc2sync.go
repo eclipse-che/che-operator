@@ -58,3 +58,7 @@ func (p *pvc2Sync) getSrcObjectVersion() string {
 func (p *pvc2Sync) hasROSpec() bool {
 	return true
 }
+
+func (p *pvc2Sync) defaultRetention() bool {
+	return true
+}

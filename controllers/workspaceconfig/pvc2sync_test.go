@@ -21,11 +21,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"k8s.io/apimachinery/pkg/api/errors"
-
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -133,9 +131,8 @@ func TestSyncPVC(t *testing.T) {
 	assert.Nil(t, err)
 	assertSyncConfig(t, workspaceConfigReconciler, 0, v1PvcGKV)
 
-	// Check that destination PersistentVolumeClaim in a user namespace is deleted
+	// Check that destination PersistentVolumeClaim in a user namespace is NOT deleted
 	pvc = &corev1.PersistentVolumeClaim{}
 	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, pvc)
-	assert.NotNil(t, err)
-	assert.True(t, errors.IsNotFound(err))
+	assert.Nil(t, err)
 }

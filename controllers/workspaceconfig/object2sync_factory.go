@@ -16,7 +16,7 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -89,12 +89,11 @@ func createObject2SyncFromRaw(
 
 	return &unstructured2Sync{
 		srcObj:  srcObj,
-		dstObj:  srcObj,
 		version: hash,
 	}, nil
 }
 
-func createObject2SyncFromRuntimeObject(obj runtime.Object) Object2Sync {
+func createObject2SyncFromRuntimeObject(obj client.Object) Object2Sync {
 	gkv := obj.GetObjectKind().GroupVersionKind()
 	switch gkv {
 	case v1ConfigMapGKV:
@@ -110,5 +109,8 @@ func createObject2SyncFromRuntimeObject(obj runtime.Object) Object2Sync {
 		return &pvc2Sync{pvc: pvc}
 	}
 
-	return nil
+	return &unstructured2Sync{
+		srcObj:  obj,
+		version: obj.GetResourceVersion(),
+	}
 }

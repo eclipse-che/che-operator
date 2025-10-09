@@ -21,7 +21,6 @@ type unstructured2Sync struct {
 	Object2Sync
 
 	srcObj  client.Object
-	dstObj  client.Object
 	version string
 }
 
@@ -34,7 +33,7 @@ func (p *unstructured2Sync) getGKV() schema.GroupVersionKind {
 }
 
 func (p *unstructured2Sync) newDstObject() client.Object {
-	dstObj := p.dstObj.DeepCopyObject().(client.Object)
+	dstObj := p.srcObj.DeepCopyObject().(client.Object)
 	return dstObj
 }
 
@@ -43,5 +42,9 @@ func (p *unstructured2Sync) getSrcObjectVersion() string {
 }
 
 func (p *unstructured2Sync) hasROSpec() bool {
+	return false
+}
+
+func (p *unstructured2Sync) defaultRetention() bool {
 	return false
 }

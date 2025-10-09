@@ -65,3 +65,7 @@ func (p *configMap2Sync) getSrcObjectVersion() string {
 func (p *configMap2Sync) hasROSpec() bool {
 	return false
 }
+
+func (p *configMap2Sync) defaultRetention() bool {
+	return false
+}
