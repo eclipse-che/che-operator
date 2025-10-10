@@ -56,10 +56,11 @@ func (p *secret2Sync) newDstObject() client.Object {
 }
 
 func (p *secret2Sync) getSrcObjectVersion() string {
-	if len(p.version) == 0 {
-		return p.secret.GetResourceVersion()
+	if p.version != "" {
+		return p.version
 	}
-	return p.version
+
+	return p.secret.GetResourceVersion()
 }
 
 func (p *secret2Sync) hasROSpec() bool {

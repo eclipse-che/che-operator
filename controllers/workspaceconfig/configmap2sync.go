@@ -56,10 +56,11 @@ func (p *configMap2Sync) newDstObject() client.Object {
 }
 
 func (p *configMap2Sync) getSrcObjectVersion() string {
-	if len(p.version) == 0 {
-		return p.cm.GetResourceVersion()
+	if p.version != "" {
+		return p.version
 	}
-	return p.version
+
+	return p.cm.GetResourceVersion()
 }
 
 func (p *configMap2Sync) hasROSpec() bool {

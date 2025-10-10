@@ -49,10 +49,11 @@ func (p *pvc2Sync) newDstObject() client.Object {
 }
 
 func (p *pvc2Sync) getSrcObjectVersion() string {
-	if len(p.version) == 0 {
-		return p.pvc.GetResourceVersion()
+	if p.version != "" {
+		return p.version
 	}
-	return p.version
+
+	return p.pvc.GetResourceVersion()
 }
 
 func (p *pvc2Sync) hasROSpec() bool {

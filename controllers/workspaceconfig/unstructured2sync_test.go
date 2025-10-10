@@ -228,3 +228,256 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.True(t, errors.IsNotFound(err))
 }
+
+func TestSyncUnstructuredShouldRetainIfAnnotationSetTrue(t *testing.T) {
+	deployContext := test.NewCtxBuilder().WithObjects(
+		&templatev1.Template{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Template",
+				APIVersion: "template.openshift.io/v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      objectName,
+				Namespace: "eclipse-che",
+				Labels: map[string]string{
+					constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+					constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
+				},
+			},
+			Objects: []runtime.RawExtension{
+				{
+					Object: &corev1.LimitRange{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "LimitRange",
+							APIVersion: "v1",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name: objectName,
+							Labels: map[string]string{
+								"user":      "${PROJECT_ADMIN_USER}",
+								"namespace": "${PROJECT_NAME}",
+							},
+							Annotations: map[string]string{
+								syncRetainAnnotation: "true",
+							},
+						},
+						Spec: corev1.LimitRangeSpec{
+							[]corev1.LimitRangeItem{
+								{
+									Type: corev1.LimitTypeContainer,
+								},
+							},
+						},
+					},
+				},
+			},
+		}).Build()
+
+	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
+		deployContext.ClusterAPI.Client,
+		deployContext.ClusterAPI.Client,
+		deployContext.ClusterAPI.Scheme,
+		&namespacecache.NamespaceCache{
+			Client: deployContext.ClusterAPI.Client,
+			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
+				userNamespace: {
+					IsWorkspaceNamespace: true,
+					Username:             "user",
+					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
+				},
+			},
+			Lock: sync.Mutex{},
+		})
+
+	// Sync Template
+	err := workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
+	assert.Nil(t, err)
+	assertSyncConfig(t, workspaceConfigReconciler, 2, v1LimitRangeGKV)
+
+	// Check LimitRange in a user namespace is created
+	lr := &corev1.LimitRange{}
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
+	assert.Nil(t, err)
+	assert.Equal(t, "true", lr.Annotations[syncRetainAnnotation])
+
+	// Delete src Template
+	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.Client, objectKeyInCheNs, &templatev1.Template{})
+	assert.Nil(t, err)
+
+	// Sync Template
+	err = workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
+	assert.Nil(t, err)
+	assertSyncConfig(t, workspaceConfigReconciler, 0, v1LimitRangeGKV)
+
+	// Check that destination LimitRange in a user namespace is NOT deleted
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, &corev1.LimitRange{})
+	assert.NoError(t, err)
+}
+
+func TestSyncUnstructuredShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
+	deployContext := test.NewCtxBuilder().WithObjects(
+		&templatev1.Template{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Template",
+				APIVersion: "template.openshift.io/v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      objectName,
+				Namespace: "eclipse-che",
+				Labels: map[string]string{
+					constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+					constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
+				},
+			},
+			Objects: []runtime.RawExtension{
+				{
+					Object: &corev1.LimitRange{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "LimitRange",
+							APIVersion: "v1",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name: objectName,
+							Labels: map[string]string{
+								"user":      "${PROJECT_ADMIN_USER}",
+								"namespace": "${PROJECT_NAME}",
+							},
+							Annotations: map[string]string{
+								syncRetainAnnotation: "false",
+							},
+						},
+						Spec: corev1.LimitRangeSpec{
+							[]corev1.LimitRangeItem{
+								{
+									Type: corev1.LimitTypeContainer,
+								},
+							},
+						},
+					},
+				},
+			},
+		}).Build()
+
+	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
+		deployContext.ClusterAPI.Client,
+		deployContext.ClusterAPI.Client,
+		deployContext.ClusterAPI.Scheme,
+		&namespacecache.NamespaceCache{
+			Client: deployContext.ClusterAPI.Client,
+			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
+				userNamespace: {
+					IsWorkspaceNamespace: true,
+					Username:             "user",
+					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
+				},
+			},
+			Lock: sync.Mutex{},
+		})
+
+	// Sync Template
+	err := workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
+	assert.Nil(t, err)
+	assertSyncConfig(t, workspaceConfigReconciler, 2, v1LimitRangeGKV)
+
+	// Check LimitRange in a user namespace is created
+	lr := &corev1.LimitRange{}
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
+	assert.Nil(t, err)
+	assert.Equal(t, "false", lr.Annotations[syncRetainAnnotation])
+
+	// Delete src Template
+	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.Client, objectKeyInCheNs, &templatev1.Template{})
+	assert.Nil(t, err)
+
+	// Sync Template
+	err = workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
+	assert.Nil(t, err)
+	assertSyncConfig(t, workspaceConfigReconciler, 0, v1LimitRangeGKV)
+
+	// Check that destination LimitRange in a user namespace is deleted
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, &corev1.LimitRange{})
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
+}
+
+func TestSyncUnstructuredShouldNotRetainIfAnnotationIsNotSet(t *testing.T) {
+	deployContext := test.NewCtxBuilder().WithObjects(
+		&templatev1.Template{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Template",
+				APIVersion: "template.openshift.io/v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      objectName,
+				Namespace: "eclipse-che",
+				Labels: map[string]string{
+					constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+					constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
+				},
+			},
+			Objects: []runtime.RawExtension{
+				{
+					Object: &corev1.LimitRange{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "LimitRange",
+							APIVersion: "v1",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name: objectName,
+							Labels: map[string]string{
+								"user":      "${PROJECT_ADMIN_USER}",
+								"namespace": "${PROJECT_NAME}",
+							},
+						},
+						Spec: corev1.LimitRangeSpec{
+							[]corev1.LimitRangeItem{
+								{
+									Type: corev1.LimitTypeContainer,
+								},
+							},
+						},
+					},
+				},
+			},
+		}).Build()
+
+	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
+		deployContext.ClusterAPI.Client,
+		deployContext.ClusterAPI.Client,
+		deployContext.ClusterAPI.Scheme,
+		&namespacecache.NamespaceCache{
+			Client: deployContext.ClusterAPI.Client,
+			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
+				userNamespace: {
+					IsWorkspaceNamespace: true,
+					Username:             "user",
+					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
+				},
+			},
+			Lock: sync.Mutex{},
+		})
+
+	// Sync Template
+	err := workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
+	assert.Nil(t, err)
+	assertSyncConfig(t, workspaceConfigReconciler, 2, v1LimitRangeGKV)
+
+	// Check LimitRange in a user namespace is created
+	lr := &corev1.LimitRange{}
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
+	assert.Nil(t, err)
+
+	// Delete src Template
+	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.Client, objectKeyInCheNs, &templatev1.Template{})
+	assert.Nil(t, err)
+
+	// Sync Template
+	err = workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
+	assert.Nil(t, err)
+	assertSyncConfig(t, workspaceConfigReconciler, 0, v1LimitRangeGKV)
+
+	// Check that destination LimitRange in a user namespace is deleted
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, &corev1.LimitRange{})
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
+}

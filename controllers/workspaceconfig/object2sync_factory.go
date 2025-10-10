@@ -35,7 +35,7 @@ var (
 	v1PvcGKV       = corev1.SchemeGroupVersion.WithKind("PersistentVolumeClaim")
 )
 
-func createObject2SyncFromRaw(
+func createObject2SyncFromRawData(
 	raw []byte,
 	userName string,
 	namespaceName string) (Object2Sync, error) {
@@ -93,7 +93,7 @@ func createObject2SyncFromRaw(
 	}, nil
 }
 
-func createObject2SyncFromRuntimeObject(obj client.Object) Object2Sync {
+func createObject2SyncFromObject(obj client.Object) Object2Sync {
 	gkv := obj.GetObjectKind().GroupVersionKind()
 	switch gkv {
 	case v1ConfigMapGKV:
@@ -110,7 +110,6 @@ func createObject2SyncFromRuntimeObject(obj client.Object) Object2Sync {
 	}
 
 	return &unstructured2Sync{
-		srcObj:  obj,
-		version: obj.GetResourceVersion(),
+		srcObj: obj,
 	}
 }

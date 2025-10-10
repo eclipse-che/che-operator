@@ -38,7 +38,11 @@ func (p *unstructured2Sync) newDstObject() client.Object {
 }
 
 func (p *unstructured2Sync) getSrcObjectVersion() string {
-	return p.version
+	if p.version != "" {
+		return p.version
+	}
+
+	return p.srcObj.GetResourceVersion()
 }
 
 func (p *unstructured2Sync) hasROSpec() bool {

@@ -348,7 +348,7 @@ func (r *WorkspacesConfigReconciler) syncObjectsList(
 	}
 
 	for _, srcObj := range srcObjs {
-		obj2Sync := createObject2SyncFromRuntimeObject(srcObj.(client.Object))
+		obj2Sync := createObject2SyncFromObject(srcObj.(client.Object))
 		if obj2Sync == nil {
 			logger.Info("Object skipped since has unsupported kind",
 				"kind", gvk2PrintString(srcObj.GetObjectKind().GroupVersionKind()))
@@ -400,7 +400,7 @@ func (r *WorkspacesConfigReconciler) syncTemplates(
 
 	for _, template := range templates {
 		for _, object := range template.(*templatev1.Template).Objects {
-			object2Sync, err := createObject2SyncFromRaw(object.Raw, nsInfo.Username, dstNamespace)
+			object2Sync, err := createObject2SyncFromRawData(object.Raw, nsInfo.Username, dstNamespace)
 			if err != nil {
 				return err
 			}
@@ -550,6 +550,11 @@ func (r *WorkspacesConfigReconciler) doCreateObject(
 			return err
 		}
 
+		// AlreadyExists Error might happen if object already exists and doesn't contain
+		// `app.kubernetes.io/part-of=che.eclipse.org` label (is not cached)
+		// 1. Delete the object from a destination namespace using non-cached client
+		// 2. Create the object again using cached client
+
 		namespacedName := types.NamespacedName{
 			Name:      dstObj.GetName(),
 			Namespace: dstObj.GetNamespace(),
@@ -563,13 +568,15 @@ func (r *WorkspacesConfigReconciler) doCreateObject(
 		); err != nil {
 			return err
 		} else if retain {
-			fmt.Errorf("error")
+			// We have to delete and create the object again
+			// From the other hand it must be retained
+			return fmt.Errorf(
+				"cannot sync object %s/%s: it must be deleted and recreated, yet retention is required",
+				dstObj.GetNamespace(),
+				dstObj.GetName(),
+			)
 		}
 
-		// AlreadyExists Error might happen if object already exists and doesn't contain
-		// `app.kubernetes.io/part-of=che.eclipse.org` label (is not cached)
-		// 1. Delete the object from a destination namespace using non-cached client
-		// 2. Create the object again using cached client
 		if err = r.nonCachedClientWrapper.DeleteByKeyIgnoreNotFound(
 			syncContext.ctx,
 			namespacedName,
@@ -627,6 +634,8 @@ func (r *WorkspacesConfigReconciler) deleteIfObjectIsObsolete(
 	isSrcObjectKey := getNamespaceItem(objKey) == srcNamespace
 	isNotSyncedInDstNamespace := !syncedSrcObjKeys[objKey]
 
+	// This can happen when the source object is deleted, but
+	// record still present in sync config
 	if isSrcObjectKey && isNotSyncedInDstNamespace {
 		objName := getNameItem(objKey)
 		gkv := item2gkv(getGkvItem(objKey))
@@ -659,6 +668,12 @@ func (r *WorkspacesConfigReconciler) deleteIfObjectIsObsolete(
 				blueprint.(client.Object)); err != nil {
 				return err
 			}
+		} else {
+			logger.Info(
+				"Object retained in destination namespace; deletion skipped",
+				"name", objName,
+				"namespace", dstNamespace,
+			)
 		}
 
 		dstObjKey := buildKey(gkv, objName, dstNamespace)
@@ -707,6 +722,8 @@ func (r *WorkspacesConfigReconciler) getSyncConfig(ctx context.Context, namespac
 	return syncCM, nil
 }
 
+// shouldRetain returns true if object in the destination namespace
+// should be retained if source one is deleted.
 func (r *WorkspacesConfigReconciler) shouldRetain(
 	ctx context.Context,
 	key client.ObjectKey,
@@ -728,8 +745,7 @@ func (r *WorkspacesConfigReconciler) shouldRetain(
 		return strconv.ParseBool(retainAnnotation)
 	}
 
-	obj2Sync := createObject2SyncFromRuntimeObject(blueprint.(client.Object))
-
+	obj2Sync := createObject2SyncFromObject(blueprint.(client.Object))
 	return obj2Sync.defaultRetention(), nil
 }
 
