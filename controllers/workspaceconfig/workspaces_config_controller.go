@@ -496,28 +496,8 @@ func (r *WorkspacesConfigReconciler) syncObjectIfDiffers(
 		if srcHasBeenChanged || dstHasBeenChanged {
 			// destination object exists, and it differs from the source object,
 			// so it will be updated
-			if syncContext.object2Sync.hasROSpec() {
-				// Skip updating objects with readonly spec.
-				// Admin has to re-create them to update just update resource versions
-				logger.Info("Object skipped since has readonly spec, re-create it to update",
-					"namespace", dstObj.GetNamespace(),
-					"kind", gvk2PrintString(syncContext.object2Sync.getGKV()),
-					"name", dstObj.GetName())
-
-				r.doUpdateSyncConfig(syncContext, existedDstObj.(client.Object))
-				return nil
-			} else {
-				if isDiff(dstObj, existedDstObj.(client.Object)) {
-					if err = r.doUpdateObject(syncContext, dstObj); err != nil {
-						return err
-					}
-					r.doUpdateSyncConfig(syncContext, dstObj)
-					return nil
-				} else {
-					// nothing to update objects are equal just update resource versions
-					r.doUpdateSyncConfig(syncContext, existedDstObj.(client.Object))
-					return nil
-				}
+			if err := r.doUpdateObject(syncContext, dstObj, existedDstObj, r.clientWrapper); err != nil {
+				return err
 			}
 		}
 	} else {
@@ -536,6 +516,43 @@ func (r *WorkspacesConfigReconciler) syncObjectIfDiffers(
 	return nil
 }
 
+func (r *WorkspacesConfigReconciler) doUpdateObject(
+	syncContext *syncContext,
+	dstObj client.Object,
+	existedDstObj runtime.Object,
+	clientWrapper *k8sclient.K8sClientWrapper,
+) error {
+	if syncContext.object2Sync.hasROSpec() {
+		// Skip updating objects with readonly spec.
+		// Admin has to re-create them to update just update resource versions
+		logger.Info("Object skipped since has readonly spec, re-create it to update",
+			"namespace", dstObj.GetNamespace(),
+			"kind", gvk2PrintString(syncContext.object2Sync.getGKV()),
+			"name", dstObj.GetName())
+
+		r.doUpdateSyncConfig(syncContext, existedDstObj.(client.Object))
+		return nil
+	} else {
+		if isDiff(dstObj, existedDstObj.(client.Object)) {
+			if err := clientWrapper.Sync(
+				syncContext.ctx,
+				dstObj,
+				nil,
+				&k8sclient.SyncOptions{MergeAnnotations: true, MergeLabels: true, SuppressDiff: true},
+			); err != nil {
+				return err
+			}
+
+			r.doUpdateSyncConfig(syncContext, dstObj)
+			return nil
+		} else {
+			// nothing to update objects are equal just update resource versions
+			r.doUpdateSyncConfig(syncContext, existedDstObj.(client.Object))
+			return nil
+		}
+	}
+}
+
 // doCreateObject creates object in a user destination namespace.
 func (r *WorkspacesConfigReconciler) doCreateObject(
 	syncContext *syncContext,
@@ -549,60 +566,34 @@ func (r *WorkspacesConfigReconciler) doCreateObject(
 
 		// AlreadyExists Error might happen if object already exists and doesn't contain
 		// `app.kubernetes.io/part-of=che.eclipse.org` label (is not cached)
-		// 1. Delete the object from a destination namespace using non-cached client
-		// 2. Create the object again using cached client
+		// Use nonCachedClientWrapper for synchronization
 
-		namespacedName := types.NamespacedName{
-			Name:      dstObj.GetName(),
-			Namespace: dstObj.GetNamespace(),
+		blueprint, err := r.scheme.New(syncContext.object2Sync.getGKV())
+		if err != nil {
+			return err
 		}
 
-		if retain, err := r.shouldRetain(
+		exists, err := r.nonCachedClientWrapper.GetIgnoreNotFound(
 			syncContext.ctx,
-			namespacedName,
-			syncContext.object2Sync.getGKV(),
-			r.nonCachedClientWrapper,
-		); err != nil {
-			return err
-		} else if retain {
-			// We have to delete and create the object again
-			// From the other hand it must be retained
-			return fmt.Errorf(
-				"cannot synchronize object: {namespace: %s, kind: %s, name: %s}. It must be deleted and recreated, yet retention is required",
-				dstObj.GetNamespace(),
-				gvk2PrintString(syncContext.object2Sync.getGKV()),
-				dstObj.GetName(),
-			)
-		}
-
-		if err = r.nonCachedClientWrapper.DeleteByKeyIgnoreNotFound(
-			syncContext.ctx,
-			namespacedName,
-			dstObj,
-		); err != nil {
+			types.NamespacedName{
+				Name:      dstObj.GetName(),
+				Namespace: dstObj.GetNamespace(),
+			},
+			blueprint.(client.Object),
+		)
+		if exists {
+			// Update using nonCachedClientWrapper
+			if err := r.doUpdateObject(syncContext, dstObj, blueprint, r.nonCachedClientWrapper); err != nil {
+				return err
+			}
+		} else if err == nil {
+			// Should not happen, but try to create
+			if err = r.clientWrapper.Create(syncContext.ctx, dstObj, nil); err != nil {
+				return err
+			}
+		} else {
 			return err
 		}
-
-		if err = r.clientWrapper.Create(syncContext.ctx, dstObj, nil); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// doUpdateObject updates object in a user destination namespace.
-func (r *WorkspacesConfigReconciler) doUpdateObject(
-	syncContext *syncContext,
-	dstObj client.Object) error {
-
-	if err := r.clientWrapper.Sync(
-		syncContext.ctx,
-		dstObj,
-		nil,
-		&k8sclient.SyncOptions{MergeAnnotations: true, MergeLabels: true, SuppressDiff: true},
-	); err != nil {
-		return err
 	}
 
 	return nil

@@ -194,9 +194,9 @@ func TestSyncPVCShouldRetainIfAnnotationSetTrue(t *testing.T) {
 	// Sync PVC
 	err = workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
 	assert.Nil(t, err)
-	assertSyncConfig(t, workspaceConfigReconciler, 0, v1ConfigMapGKV)
+	assertSyncConfig(t, workspaceConfigReconciler, 0, v1PvcGKV)
 
-	// Check that destination PVC in a user namespace is deleted
+	// Check that destination PVC in a user namespace is NOT deleted
 	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, &corev1.PersistentVolumeClaim{})
 	assert.NoError(t, err)
 }
@@ -257,7 +257,7 @@ func TestSyncPVCShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 	// Sync PVC
 	err = workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
 	assert.Nil(t, err)
-	assertSyncConfig(t, workspaceConfigReconciler, 0, v1ConfigMapGKV)
+	assertSyncConfig(t, workspaceConfigReconciler, 0, v1PvcGKV)
 
 	// Check that destination PVC in a user namespace is deleted
 	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, &corev1.PersistentVolumeClaim{})
