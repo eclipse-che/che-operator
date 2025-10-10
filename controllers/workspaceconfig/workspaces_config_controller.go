@@ -177,15 +177,16 @@ func (r *WorkspacesConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	if info.Username == "" {
-		logger.Info("Username is not set for the namespace", "namespace", req.Name)
+		logger.Info("Username is not set for the namespace. Synchronization skipped.", "namespace", req.Name)
 		return ctrl.Result{}, nil
 	}
 
 	if err = r.syncNamespace(ctx, checluster.Namespace, req.Name); err != nil {
-		logger.Error(err, "Failed to sync workspace configs", "namespace", req.Name)
+		logger.Error(err, "Synchronization failed.", "namespace", req.Name)
 		return ctrl.Result{}, err
 	}
 
+	logger.Info("Synchronization completed.", "namespace", req.Name)
 	return ctrl.Result{}, nil
 }
 
@@ -461,10 +462,6 @@ func (r *WorkspacesConfigReconciler) syncObject(syncContext *syncContext) error 
 	}
 
 	if err := r.syncObjectIfDiffers(syncContext, dstObj); err != nil {
-		logger.Error(err, "Failed to sync object",
-			"namespace", syncContext.dstNamespace,
-			"kind", gvk2PrintString(syncContext.object2Sync.getGKV()),
-			"name", dstObj.GetName())
 		return err
 	}
 
@@ -571,8 +568,9 @@ func (r *WorkspacesConfigReconciler) doCreateObject(
 			// We have to delete and create the object again
 			// From the other hand it must be retained
 			return fmt.Errorf(
-				"cannot sync object %s/%s: it must be deleted and recreated, yet retention is required",
+				"cannot synchronize object: {namespace: %s, kind: %s, name: %s}. It must be deleted and recreated, yet retention is required",
 				dstObj.GetNamespace(),
+				gvk2PrintString(syncContext.object2Sync.getGKV()),
 				dstObj.GetName(),
 			)
 		}
@@ -670,9 +668,10 @@ func (r *WorkspacesConfigReconciler) deleteIfObjectIsObsolete(
 			}
 		} else {
 			logger.Info(
-				"Object retained in destination namespace; deletion skipped",
-				"name", objName,
+				"Object retained",
 				"namespace", dstNamespace,
+				"kind", gvk2PrintString(gkv),
+				"name", objName,
 			)
 		}
 
