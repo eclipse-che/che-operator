@@ -21,27 +21,39 @@ che-operator Development Guide: https://github.com/eclipse-che/che-operator/#dev
   - steps to reproduce
  -->
 
-1. Prepare a patch file if needed:
-```bash
-cat > /tmp/cr-patch.yaml <<EOF
-apiVersion: org.eclipse.che/v2
-kind: CheCluster
-spec: {}
-EOF
-```
-
-2. Deploy the operator:
+1. Deploy the operator:
  
 #### OpenShift
 ```bash
-./build/scripts/olm/test-catalog-from-sources.sh --cr-patch-yaml /tmp/cr-patch.yaml
+./build/scripts/olm/test-catalog-from-sources.sh
 ```
+
+or
+
+```bash
+build/scripts/docker-run.sh /bin/bash -c "
+  oc login \
+    --token=<...> \
+    --server=<...> \
+    --insecure-skip-tls-verify=true && \
+  build/scripts/olm/test-catalog-from-sources.sh
+"
+```
+
+2. 
 
 #### on Minikube
 
 ```bash
-./build/scripts/minikube-tests/test-operator-from-sources.sh --cr-patch-yaml /tmp/cr-patch.yaml
+./build/scripts/minikube-tests/test-operator-from-sources.sh
 ```
+
+#### Common Test Scenarios
+- [ ] Deploy Eclipse Che
+- [ ] Start an empty workspace
+- [ ] Open terminal and build/run an image
+- [ ] Stop a workspace
+- [ ] Check operator logs for reconciliation errors or infinite reconciliation loops
 
 ### PR Checklist
 
@@ -51,9 +63,7 @@ EOF
 - [ ] [Code produced is complete](https://github.com/eclipse/che/blob/master/CONTRIBUTING.md#code-produced-is-complete)
 - [ ] [Code builds without errors](https://github.com/eclipse/che/blob/master/CONTRIBUTING.md#code-builds-without-errors)
 - [ ] [Tests are covering the bugfix](https://github.com/eclipse/che/blob/master/CONTRIBUTING.md#tests-are-covering-the-bugfix)
-- [ ] [Development resource are up to date](https://github.com/eclipse-che/che-operator/blob/main/README.md#update-development-resources)
 - [ ] [The repository devfile is up to date and works](https://github.com/eclipse/che/blob/master/CONTRIBUTING.md#the-repository-devfile-is-up-to-date-and-works)
-- [ ] [Sections `What issues does this PR fix or reference` and `How to test this PR` completed](https://github.com/eclipse/che/blob/master/CONTRIBUTING.md#sections-what-issues-does-this-pr-fix-or-reference-and-how-to-test-this-pr-completed)
 - [ ] [Relevant user documentation updated](https://github.com/eclipse/che/blob/master/CONTRIBUTING.md#relevant-contributing-documentation-updated)
 - [ ] [Relevant contributing documentation updated](https://github.com/eclipse/che/blob/master/CONTRIBUTING.md#relevant-contributing-documentation-updated)
 - [ ] [CI/CD changes implemented, documented and communicated](https://github.com/eclipse/che/blob/master/CONTRIBUTING.md#cicd-changes-implemented-documented-and-communicated)
