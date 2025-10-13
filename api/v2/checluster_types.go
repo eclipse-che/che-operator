@@ -124,6 +124,13 @@ type CheClusterDevEnvironments struct {
 	DefaultComponents []devfile.Component `json:"defaultComponents,omitempty"`
 	// DefaultContainerResources defines the resource requirements (memory/cpu limit/request) used for
 	// container components that do not define limits or requests.
+	// Note: The actual pod container resource values exactly match the sum of:
+	// - The resource requirements configured via this field, plus
+	// - The used Editor overhead (varies from editor to editor).
+	//
+	// For more details, see:
+	// https://eclipse.dev/che/docs/stable/administration-guide/calculating-che-resource-requirements/
+	//
 	// +optional
 	DefaultContainerResources *corev1.ResourceRequirements `json:"defaultContainerResources,omitempty"`
 	// Idle timeout for workspaces in seconds.
