@@ -153,7 +153,7 @@ func TestSyncPVCShouldRetainIfAnnotationSetTrue(t *testing.T) {
 					constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
 				},
 				Annotations: map[string]string{
-					syncRetainAnnotation: "true",
+					syncRetainOnDeleteAnnotation: "true",
 				},
 			},
 		}).Build()
@@ -185,7 +185,7 @@ func TestSyncPVCShouldRetainIfAnnotationSetTrue(t *testing.T) {
 	pvc := &corev1.PersistentVolumeClaim{}
 	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, pvc)
 	assert.Nil(t, err)
-	assert.Equal(t, "true", pvc.Annotations[syncRetainAnnotation])
+	assert.Equal(t, "true", pvc.Annotations[syncRetainOnDeleteAnnotation])
 
 	// Delete src PVC
 	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.Client, objectKeyInCheNs, &corev1.PersistentVolumeClaim{})
@@ -216,7 +216,7 @@ func TestSyncPVCShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 					constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
 				},
 				Annotations: map[string]string{
-					syncRetainAnnotation: "false",
+					syncRetainOnDeleteAnnotation: "false",
 				},
 			},
 		}).Build()
@@ -248,7 +248,7 @@ func TestSyncPVCShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 	pvc := &corev1.PersistentVolumeClaim{}
 	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, pvc)
 	assert.Nil(t, err)
-	assert.Equal(t, "false", pvc.Annotations[syncRetainAnnotation])
+	assert.Equal(t, "false", pvc.Annotations[syncRetainOnDeleteAnnotation])
 
 	// Delete src PVC
 	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.Client, objectKeyInCheNs, &corev1.PersistentVolumeClaim{})

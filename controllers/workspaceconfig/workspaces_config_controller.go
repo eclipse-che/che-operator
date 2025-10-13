@@ -48,8 +48,8 @@ import (
 )
 
 const (
-	syncedWorkspacesConfig = "sync-workspaces-config"
-	syncRetainAnnotation   = "che.eclipse.org/sync-retain"
+	syncedWorkspacesConfig       = "sync-workspaces-config"
+	syncRetainOnDeleteAnnotation = "che.eclipse.org/sync-retain-on-delete"
 )
 
 type WorkspacesConfigReconciler struct {
@@ -730,9 +730,9 @@ func (r *WorkspacesConfigReconciler) shouldRetain(
 		return false, err
 	}
 
-	retainAnnotation := blueprint.(metav1.Object).GetAnnotations()[syncRetainAnnotation]
-	if retainAnnotation != "" {
-		return strconv.ParseBool(retainAnnotation)
+	retainOnDelete := blueprint.(metav1.Object).GetAnnotations()[syncRetainOnDeleteAnnotation]
+	if retainOnDelete != "" {
+		return strconv.ParseBool(retainOnDelete)
 	}
 
 	obj2Sync := createObject2SyncFromObject(blueprint.(client.Object))

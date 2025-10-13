@@ -258,7 +258,7 @@ func TestSyncUnstructuredShouldRetainIfAnnotationSetTrue(t *testing.T) {
 								"namespace": "${PROJECT_NAME}",
 							},
 							Annotations: map[string]string{
-								syncRetainAnnotation: "true",
+								syncRetainOnDeleteAnnotation: "true",
 							},
 						},
 						Spec: corev1.LimitRangeSpec{
@@ -298,7 +298,7 @@ func TestSyncUnstructuredShouldRetainIfAnnotationSetTrue(t *testing.T) {
 	lr := &corev1.LimitRange{}
 	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
 	assert.Nil(t, err)
-	assert.Equal(t, "true", lr.Annotations[syncRetainAnnotation])
+	assert.Equal(t, "true", lr.Annotations[syncRetainOnDeleteAnnotation])
 
 	// Delete src Template
 	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.Client, objectKeyInCheNs, &templatev1.Template{})
@@ -343,7 +343,7 @@ func TestSyncUnstructuredShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 								"namespace": "${PROJECT_NAME}",
 							},
 							Annotations: map[string]string{
-								syncRetainAnnotation: "false",
+								syncRetainOnDeleteAnnotation: "false",
 							},
 						},
 						Spec: corev1.LimitRangeSpec{
@@ -383,7 +383,7 @@ func TestSyncUnstructuredShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 	lr := &corev1.LimitRange{}
 	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
 	assert.Nil(t, err)
-	assert.Equal(t, "false", lr.Annotations[syncRetainAnnotation])
+	assert.Equal(t, "false", lr.Annotations[syncRetainOnDeleteAnnotation])
 
 	// Delete src Template
 	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.Client, objectKeyInCheNs, &templatev1.Template{})

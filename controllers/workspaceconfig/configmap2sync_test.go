@@ -495,7 +495,7 @@ func TestSyncConfigMapShouldRetainIfAnnotationSetTrue(t *testing.T) {
 					constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
 				},
 				Annotations: map[string]string{
-					syncRetainAnnotation: "true",
+					syncRetainOnDeleteAnnotation: "true",
 				},
 			},
 		}).Build()
@@ -525,7 +525,7 @@ func TestSyncConfigMapShouldRetainIfAnnotationSetTrue(t *testing.T) {
 	cm := &corev1.ConfigMap{}
 	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.Nil(t, err)
-	assert.Equal(t, "true", cm.Annotations[syncRetainAnnotation])
+	assert.Equal(t, "true", cm.Annotations[syncRetainOnDeleteAnnotation])
 
 	// Delete src ConfigMap
 	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.Client, objectKeyInCheNs, &corev1.ConfigMap{})
@@ -557,7 +557,7 @@ func TestSyncConfigMapShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 					constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
 				},
 				Annotations: map[string]string{
-					syncRetainAnnotation: "false",
+					syncRetainOnDeleteAnnotation: "false",
 				},
 			},
 		}).Build()
@@ -587,7 +587,7 @@ func TestSyncConfigMapShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 	cm := &corev1.ConfigMap{}
 	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.Nil(t, err)
-	assert.Equal(t, "false", cm.Annotations[syncRetainAnnotation])
+	assert.Equal(t, "false", cm.Annotations[syncRetainOnDeleteAnnotation])
 
 	// Delete src ConfigMap
 	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.Client, objectKeyInCheNs, &corev1.ConfigMap{})
