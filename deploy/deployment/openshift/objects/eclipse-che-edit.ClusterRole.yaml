@@ -119,6 +119,11 @@ rules:
   verbs:
   - get
   - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
 - apiGroups:
   - project.openshift.io
   resources:
@@ -126,6 +131,11 @@ rules:
   verbs:
   - get
   - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
 - apiGroups:
   - ""
   resources:
@@ -184,6 +194,10 @@ rules:
   - get
   - list
   - watch
+  - create
+  - update
+  - patch
+  - delete
 - apiGroups:
   - ""
   resources:
@@ -192,6 +206,10 @@ rules:
   - get
   - list
   - watch
+  - create
+  - update
+  - patch
+  - delete
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:
@@ -203,6 +221,10 @@ rules:
   - get
   - list
   - watch
+  - create
+  - update
+  - patch
+  - delete
 - apiGroups:
   - route.openshift.io
   resources:
@@ -211,3 +233,7 @@ rules:
   - get
   - list
   - watch
+  - create
+  - update
+  - patch
+  - delete
