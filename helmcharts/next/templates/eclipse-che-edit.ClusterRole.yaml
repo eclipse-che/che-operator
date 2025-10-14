@@ -147,6 +147,13 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - pods/exec
+  verbs:
+  - create
+  - get
+- apiGroups:
+  - ""
+  resources:
   - configmaps
   - persistentvolumeclaims
   - secrets
