@@ -21,3 +21,5 @@ resources:
 - role_binding.yaml
 - cluster_role.yaml
 - cluster_rolebinding.yaml
+- eclipse-che-edit-cluster_role.yaml
+- eclipse-che-view-cluster_role.yaml
