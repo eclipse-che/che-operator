@@ -182,6 +182,17 @@ rules:
   - ""
   resources:
   - serviceaccounts
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
   - services
   verbs:
   - get
