@@ -9304,7 +9304,7 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - serviceaccounts
+  - service
   verbs:
   - get
   - list
