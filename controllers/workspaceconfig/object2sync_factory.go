@@ -16,7 +16,7 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -35,7 +35,7 @@ var (
 	v1PvcGKV       = corev1.SchemeGroupVersion.WithKind("PersistentVolumeClaim")
 )
 
-func createObject2SyncFromRaw(
+func createObject2SyncFromRawData(
 	raw []byte,
 	userName string,
 	namespaceName string) (Object2Sync, error) {
@@ -89,12 +89,11 @@ func createObject2SyncFromRaw(
 
 	return &unstructured2Sync{
 		srcObj:  srcObj,
-		dstObj:  srcObj,
 		version: hash,
 	}, nil
 }
 
-func createObject2SyncFromRuntimeObject(obj runtime.Object) Object2Sync {
+func createObject2SyncFromObject(obj client.Object) Object2Sync {
 	gkv := obj.GetObjectKind().GroupVersionKind()
 	switch gkv {
 	case v1ConfigMapGKV:
@@ -110,5 +109,7 @@ func createObject2SyncFromRuntimeObject(obj runtime.Object) Object2Sync {
 		return &pvc2Sync{pvc: pvc}
 	}
 
-	return nil
+	return &unstructured2Sync{
+		srcObj: obj,
+	}
 }

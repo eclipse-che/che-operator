@@ -479,3 +479,128 @@ func TestSyncConfigMapShouldRemoveSomeLabels(t *testing.T) {
 	assert.Empty(t, cm.Labels["argocd.argoproj.io/instance"])
 	assert.Empty(t, cm.Labels["argocd.argoproj.io/managed-by"])
 }
+
+func TestSyncConfigMapShouldRetainIfAnnotationSetTrue(t *testing.T) {
+	deployContext := test.NewCtxBuilder().WithObjects(
+		&corev1.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ConfigMap",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      objectName,
+				Namespace: eclipseCheNamespace,
+				Labels: map[string]string{
+					constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+					constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
+				},
+				Annotations: map[string]string{
+					syncRetainOnDeleteAnnotation: "true",
+				},
+			},
+		}).Build()
+
+	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
+		deployContext.ClusterAPI.Client,
+		deployContext.ClusterAPI.Client,
+		deployContext.ClusterAPI.Scheme,
+		&namespacecache.NamespaceCache{
+			Client: deployContext.ClusterAPI.Client,
+			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
+				userNamespace: {
+					IsWorkspaceNamespace: true,
+					Username:             "user",
+					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
+				},
+			},
+			Lock: sync.Mutex{},
+		})
+
+	// Sync ConfigMap
+	err := workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
+	assert.Nil(t, err)
+	assertSyncConfig(t, workspaceConfigReconciler, 2, v1ConfigMapGKV)
+
+	// Check ConfigMap in a user namespace is created
+	cm := &corev1.ConfigMap{}
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	assert.Nil(t, err)
+	assert.Equal(t, "true", cm.Annotations[syncRetainOnDeleteAnnotation])
+
+	// Delete src ConfigMap
+	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.Client, objectKeyInCheNs, &corev1.ConfigMap{})
+	assert.Nil(t, err)
+
+	// Sync ConfigMap
+	err = workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
+	assert.Nil(t, err)
+	assertSyncConfig(t, workspaceConfigReconciler, 0, v1ConfigMapGKV)
+
+	// Check that destination ConfigMap in a user namespace NOT is deleted
+	cm = &corev1.ConfigMap{}
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	assert.NoError(t, err)
+}
+
+func TestSyncConfigMapShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
+	deployContext := test.NewCtxBuilder().WithObjects(
+		&corev1.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ConfigMap",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      objectName,
+				Namespace: eclipseCheNamespace,
+				Labels: map[string]string{
+					constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+					constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
+				},
+				Annotations: map[string]string{
+					syncRetainOnDeleteAnnotation: "false",
+				},
+			},
+		}).Build()
+
+	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
+		deployContext.ClusterAPI.Client,
+		deployContext.ClusterAPI.Client,
+		deployContext.ClusterAPI.Scheme,
+		&namespacecache.NamespaceCache{
+			Client: deployContext.ClusterAPI.Client,
+			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
+				userNamespace: {
+					IsWorkspaceNamespace: true,
+					Username:             "user",
+					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
+				},
+			},
+			Lock: sync.Mutex{},
+		})
+
+	// Sync ConfigMap
+	err := workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
+	assert.Nil(t, err)
+	assertSyncConfig(t, workspaceConfigReconciler, 2, v1ConfigMapGKV)
+
+	// Check ConfigMap in a user namespace is created
+	cm := &corev1.ConfigMap{}
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	assert.Nil(t, err)
+	assert.Equal(t, "false", cm.Annotations[syncRetainOnDeleteAnnotation])
+
+	// Delete src ConfigMap
+	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.Client, objectKeyInCheNs, &corev1.ConfigMap{})
+	assert.Nil(t, err)
+
+	// Sync ConfigMap
+	err = workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)
+	assert.Nil(t, err)
+	assertSyncConfig(t, workspaceConfigReconciler, 0, v1ConfigMapGKV)
+
+	// Check that destination ConfigMap in a user namespace is deleted
+	cm = &corev1.ConfigMap{}
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	assert.NotNil(t, err)
+	assert.True(t, errors.IsNotFound(err))
+}
