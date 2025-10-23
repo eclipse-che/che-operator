@@ -67,19 +67,37 @@ func (r *CheClusterDefaulter) Default(_ context.Context, obj runtime.Object) err
 
 	webhookLogger.Info("Defaulting for CheCluster", "name", cheCluster.GetName())
 
-	r.setContainerBuildConfiguration(cheCluster)
+	r.setDisableContainerRunCapabilities(cheCluster)
+	r.setContainerRunConfiguration(cheCluster)
+
 	r.setDisableContainerBuildCapabilities(cheCluster)
+	r.setContainerBuildConfiguration(cheCluster)
+
 	return nil
 }
 
 func (r *CheClusterDefaulter) setDisableContainerBuildCapabilities(cheCluster *CheCluster) {
-	// Container build capabilities can be enabled on OpenShift only
 	if !infrastructure.IsOpenShift() {
 		cheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.Bool(true)
 	}
 }
 
-// Sets ContainerBuildConfiguration if container build capabilities is enabled.
+func (r *CheClusterDefaulter) setDisableContainerRunCapabilities(cheCluster *CheCluster) {
+	if !infrastructure.IsOpenShift() {
+		cheCluster.Spec.DevEnvironments.DisableContainerRunCapabilities = pointer.Bool(true)
+	}
+}
+
+// Sets ContainerRunConfiguration if container run capabilities is enabled.
+// The defaults will be propagated from the CheCluster CRD
+func (r *CheClusterDefaulter) setContainerRunConfiguration(cheCluster *CheCluster) {
+	if cheCluster.IsContainerRunCapabilitiesEnabled() && cheCluster.Spec.DevEnvironments.ContainerRunConfiguration == nil {
+		cheCluster.Spec.DevEnvironments.ContainerRunConfiguration = &ContainerRunConfiguration{}
+	}
+}
+
+// Sets ContainerBuildConfiguration if container run capabilities is enabled.
+// The defaults will be propagated from the CheCluster CRD
 func (r *CheClusterDefaulter) setContainerBuildConfiguration(cheCluster *CheCluster) {
 	if cheCluster.IsContainerBuildCapabilitiesEnabled() && cheCluster.Spec.DevEnvironments.ContainerBuildConfiguration == nil {
 		cheCluster.Spec.DevEnvironments.ContainerBuildConfiguration = &ContainerBuildConfiguration{}

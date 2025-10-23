@@ -29,13 +29,16 @@ init() {
 build() {
   printf "%bBuilding image %b${IMAGE_NAME}${NC}..." "${BOLD}" "${BLUE}"
   if docker build -t ${IMAGE_NAME} > docker-build-log 2>&1  -<<EOF
-  FROM golang:1.23-bookworm
+  FROM docker.io/golang:1.24-bookworm
   RUN apt update && apt install python3-pip skopeo jq rsync unzip -y && \
     pip install --break-system-packages yq && \
     curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
     install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && \
     go install golang.org/x/tools/cmd/goimports@latest && \
     rm -rf /che-operator/bin
+  RUN wget https://github.com/okd-project/okd/releases/download/4.19.0-okd-scos.7/openshift-client-linux-4.19.0-okd-scos.7.tar.gz && \
+    tar -xvf openshift-client-linux-4.19.0-okd-scos.7.tar.gz && \
+    mv oc /usr/local/bin/
   RUN adduser --disabled-password --gecos "" user
   ENV GO111MODULE=on
   ENV GOPATH=/home/user/go

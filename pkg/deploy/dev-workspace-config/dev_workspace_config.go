@@ -15,6 +15,7 @@ package devworkspaceconfig
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -107,9 +108,11 @@ func updateWorkspaceConfig(ctx *chetypes.DeployContext, operatorConfig *controll
 
 	updateWorkspaceDefaultContainerResources(devEnvironments.DefaultContainerResources, operatorConfig.Workspace)
 
-	updateAnnotations(devEnvironments.WorkspacesPodAnnotations, operatorConfig.Workspace)
+	updateAnnotations(ctx.CheCluster, operatorConfig.Workspace)
 
 	updateIgnoredUnrecoverableEvents(devEnvironments.IgnoredUnrecoverableEvents, operatorConfig.Workspace)
+
+	updateHostUsers(ctx.CheCluster, operatorConfig.Workspace)
 
 	// If the CheCluster has a configured proxy, or if the Che Operator has detected a proxy configuration,
 	// we need to disable automatic proxy handling in the DevWorkspace Operator as its implementation collides
@@ -132,12 +135,18 @@ func updateWorkspaceDefaultContainerResources(resources *corev1.ResourceRequirem
 
 func updateSecurityContext(operatorConfig *controllerv1alpha1.OperatorConfiguration, cheCluster *chev2.CheCluster) error {
 	operatorConfig.Workspace.ContainerSecurityContext = nil
-	if cheCluster.IsContainerBuildCapabilitiesEnabled() {
-		defaultContainerSecurityContext, err := getDefaultContainerSecurityContext()
-		if err != nil {
-			return err
+	if cheCluster.IsContainerRunCapabilitiesEnabled() {
+		if cheCluster.Spec.DevEnvironments.ContainerRunConfiguration != nil {
+			operatorConfig.Workspace.ContainerSecurityContext = cheCluster.Spec.DevEnvironments.ContainerRunConfiguration.ContainerSecurityContext
 		}
-		operatorConfig.Workspace.ContainerSecurityContext = defaultContainerSecurityContext
+	} else if cheCluster.IsContainerBuildCapabilitiesEnabled() {
+		// for backward compatability, try old way get Container Security Context
+		// when container build capabilities enabled
+		if containerSecurityContext, err := getContainerSecurityContextForBuildCapabilitiesFromEnv(); err != nil {
+			return err
+		} else if containerSecurityContext != nil {
+			operatorConfig.Workspace.ContainerSecurityContext = containerSecurityContext
+		}
 	} else if cheCluster.Spec.DevEnvironments.Security.ContainerSecurityContext != nil {
 		operatorConfig.Workspace.ContainerSecurityContext = cheCluster.Spec.DevEnvironments.Security.ContainerSecurityContext
 	}
@@ -206,8 +215,19 @@ func updateWorkspaceImagePullPolicy(imagePullPolicy corev1.PullPolicy, workspace
 	workspaceConfig.ImagePullPolicy = string(imagePullPolicy)
 }
 
-func updateAnnotations(annotations map[string]string, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
-	workspaceConfig.PodAnnotations = annotations
+func updateAnnotations(cheCluster *chev2.CheCluster, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
+	workspaceConfig.PodAnnotations = cheCluster.Spec.DevEnvironments.WorkspacesPodAnnotations
+
+	if cheCluster.IsContainerRunCapabilitiesEnabled() &&
+		cheCluster.Spec.DevEnvironments.ContainerRunConfiguration != nil &&
+		len(cheCluster.Spec.DevEnvironments.ContainerRunConfiguration.WorkspacesPodAnnotations) > 0 {
+
+		if workspaceConfig.PodAnnotations == nil {
+			workspaceConfig.PodAnnotations = map[string]string{}
+		}
+
+		maps.Copy(workspaceConfig.PodAnnotations, cheCluster.Spec.DevEnvironments.ContainerRunConfiguration.WorkspacesPodAnnotations)
+	}
 }
 
 func updateIgnoredUnrecoverableEvents(ignoredUnrecoverableEvents []string, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
@@ -254,6 +274,14 @@ func updateProjectCloneConfig(devEnvironments *chev2.CheClusterDevEnvironments, 
 	workspaceConfig.ProjectCloneConfig.Resources = cheResourcesToCoreV1Resources(container.Resources)
 }
 
+func updateHostUsers(cheCluster *chev2.CheCluster, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
+	if cheCluster.IsContainerRunCapabilitiesEnabled() {
+		workspaceConfig.HostUsers = pointer.Bool(false)
+	} else {
+		workspaceConfig.HostUsers = nil
+	}
+}
+
 func disableDWOProxy(routingConfig *controllerv1alpha1.RoutingConfig) {
 	// Since we create proxy configmaps to mount proxy settings, we want to disable
 	// proxy handling in DWO; otherwise the env vars added by DWO will override the env
@@ -264,9 +292,9 @@ func disableDWOProxy(routingConfig *controllerv1alpha1.RoutingConfig) {
 	routingConfig.ProxyConfig.NoProxy = pointer.String("")
 }
 
-// Returns the default container security context required for container builds.
+// Returns the default container security context required for container builds from environment variable.
 // Returns an error if the default container security context could not be retrieved.
-func getDefaultContainerSecurityContext() (*corev1.SecurityContext, error) {
+func getContainerSecurityContextForBuildCapabilitiesFromEnv() (*corev1.SecurityContext, error) {
 	containerSecurityContext := &corev1.SecurityContext{}
 	err := json.Unmarshal([]byte(defaults.GetDevEnvironmentsContainerSecurityContext()), &containerSecurityContext)
 	if err != nil {

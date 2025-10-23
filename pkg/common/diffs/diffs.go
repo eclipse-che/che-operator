@@ -18,8 +18,25 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	corev1 "k8s.io/api/core/v1"
+	rbac "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+var Role = cmp.Options{
+	cmpopts.IgnoreFields(rbac.Role{}, "TypeMeta", "ObjectMeta"),
+}
+
+var RoleBinding = cmp.Options{
+	cmpopts.IgnoreFields(rbac.RoleBinding{}, "TypeMeta", "ObjectMeta"),
+}
+
+var ClusterRole = cmp.Options{
+	cmpopts.IgnoreFields(rbac.ClusterRole{}, "TypeMeta", "ObjectMeta"),
+}
+
+var ClusterRoleBinding = cmp.Options{
+	cmpopts.IgnoreFields(rbac.ClusterRoleBinding{}, "TypeMeta", "ObjectMeta"),
+}
 
 var ConfigMapAllLabels = cmp.Options{
 	cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
