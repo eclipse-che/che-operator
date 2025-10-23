@@ -241,13 +241,12 @@ func (r *ContainerCapabilitiesReconciler) delete(ctx *chetypes.DeployContext, cc
 // getDevWorkspaceServiceAccountNamespace returns the namespace of the DevWorkspace ServiceAccount.
 // It searches for the DevWorkspace Operator Pods by its labels.
 func (r *ContainerCapabilitiesReconciler) getDevWorkspaceServiceAccountNamespace(ctx *chetypes.DeployContext) (string, error) {
-	selector, err := labels.Parse(fmt.Sprintf(
-		"%s=%s,%s=%s",
-		constants.KubernetesNameLabelKey, constants.DevWorkspaceControllerName,
-		constants.KubernetesPartOfLabelKey, constants.DevWorkspaceOperatorName))
-	if err != nil {
-		return "", err
-	}
+	selector := labels.SelectorFromSet(
+		labels.Set{
+			constants.KubernetesNameLabelKey:   constants.DevWorkspaceControllerName,
+			constants.KubernetesPartOfLabelKey: constants.DevWorkspaceOperatorName,
+		},
+	)
 
 	items, err := ctx.ClusterAPI.NonCachingClientWrapper.List(
 		context.TODO(),

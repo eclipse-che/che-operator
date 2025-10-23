@@ -134,6 +134,10 @@ const (
 	DefaultContainerBuildSccName           = "container-build"
 	DefaultContainerRunSccName             = "container-run"
 	DefaultDisableContainerRunCapabilities = true
+
+	// Finalizers
+	ContainerBuildFinalizer = "container-build.finalizers.che.eclipse.org"
+	ContainerRunFinalizer   = "che.eclipse.org/container-run"
 )
 
 var (

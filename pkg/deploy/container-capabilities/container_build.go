@@ -85,7 +85,7 @@ func (r *ContainerBuild) getDWOClusterRoleBindingName() string {
 }
 
 func (r *ContainerBuild) getFinalizer() string {
-	return "container-build.finalizers.che.eclipse.org"
+	return constants.ContainerBuildFinalizer
 }
 
 func (r *ContainerBuild) getSCCName(cheCluster *chev2.CheCluster) string {

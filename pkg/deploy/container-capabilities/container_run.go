@@ -98,7 +98,7 @@ func (r *ContainerRun) getDWOClusterRoleName() string {
 }
 
 func (r *ContainerRun) getFinalizer() string {
-	return "che.eclipse.org/container-run"
+	return constants.ContainerRunFinalizer
 }
 
 func (r *ContainerRun) getSCCName(cheCluster *chev2.CheCluster) string {
