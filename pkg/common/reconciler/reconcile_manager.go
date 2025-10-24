@@ -15,6 +15,7 @@ package reconciler
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/pkg/errors"
@@ -64,7 +65,7 @@ func (r *ReconcilerManager) ReconcileAll(ctx *chetypes.DeployContext) (reconcile
 		// Stop reconciliation chain if current reconciler is not done
 		if !done {
 			if err != nil {
-				name := reflect.TypeOf(reconciler).String()
+				name := strings.Trim(reflect.TypeOf(reconciler).String(), "*")
 				return result, false, errors.Wrap(err, fmt.Sprintf("%s reconciliation failed", name))
 			} else {
 				return result, false, nil
