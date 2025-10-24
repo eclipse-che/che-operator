@@ -13,6 +13,7 @@
 package identityprovider
 
 import (
+	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -33,7 +34,7 @@ var (
 )
 
 type IdentityProviderReconciler struct {
-	deploy.Reconcilable
+	reconciler.Reconcilable
 }
 
 func NewIdentityProviderReconciler() *IdentityProviderReconciler {

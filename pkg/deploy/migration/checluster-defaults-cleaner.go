@@ -17,10 +17,10 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -40,7 +40,7 @@ const (
 //   - possibility to change defaults, it allows to have new values after upgrading the operator, because
 //     previous ones are not relevant anymore and can't be changed once the CR is created
 type CheClusterDefaultsCleaner struct {
-	deploy.Reconcilable
+	reconciler.Reconcilable
 	cleanUpTasks []CleanUpTask
 }
 

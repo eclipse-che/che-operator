@@ -17,6 +17,7 @@ import (
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"github.com/sirupsen/logrus"
@@ -30,7 +31,7 @@ const (
 )
 
 type GatewayPermissionsReconciler struct {
-	deploy.Reconcilable
+	reconciler.Reconcilable
 }
 
 func NewGatewayPermissionsReconciler() *GatewayPermissionsReconciler {
