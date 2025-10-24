@@ -21,6 +21,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	v1 "k8s.io/api/apps/v1"
@@ -36,7 +37,7 @@ const (
 )
 
 type DevWorkspaceConfigReconciler struct {
-	deploy.Reconcilable
+	reconciler.Reconcilable
 }
 
 func NewDevWorkspaceConfigReconciler() *DevWorkspaceConfigReconciler {

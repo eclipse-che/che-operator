@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"k8s.io/apimachinery/pkg/labels"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,7 +39,7 @@ import (
 )
 
 type ContainerBuildReconciler struct {
-	deploy.Reconcilable
+	reconciler.Reconcilable
 }
 
 func NewContainerBuildReconciler() *ContainerBuildReconciler {

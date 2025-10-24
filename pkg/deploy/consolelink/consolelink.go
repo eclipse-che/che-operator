@@ -18,6 +18,7 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/google/go-cmp/cmp"
@@ -39,7 +40,7 @@ var consoleLinkDiffOpts = cmp.Options{
 }
 
 type ConsoleLinkReconciler struct {
-	deploy.Reconcilable
+	reconciler.Reconcilable
 }
 
 func NewConsoleLinkReconciler() *ConsoleLinkReconciler {

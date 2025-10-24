@@ -16,6 +16,7 @@ import (
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	routev1 "github.com/openshift/api/route/v1"
@@ -24,7 +25,7 @@ import (
 )
 
 type CheHostReconciler struct {
-	deploy.Reconcilable
+	reconciler.Reconcilable
 }
 
 func NewCheHostReconciler() *CheHostReconciler {

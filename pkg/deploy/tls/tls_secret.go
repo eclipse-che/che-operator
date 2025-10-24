@@ -16,12 +16,12 @@ import (
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 type TlsSecretReconciler struct {
-	deploy.Reconcilable
+	reconciler.Reconcilable
 }
 
 func NewTlsSecretReconciler() *TlsSecretReconciler {
