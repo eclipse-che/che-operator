@@ -75,7 +75,7 @@ func TestReconcileAll_FirstReconcilerFails(t *testing.T) {
 	manager := NewReconcilerManager()
 	ctx := test.NewCtxBuilder().Build()
 
-	expectedErr := errors.Wrap(errors.New("test"), fmt.Sprintf("%s reconciliation failed", "*reconciler.mockReconciler"))
+	expectedErr := errors.Wrap(errors.New("test"), fmt.Sprintf("%s reconciliation failed", "reconciler.mockReconciler"))
 	reconciler2Called := false
 	reconciler3Called := false
 
