@@ -15,6 +15,7 @@ package dashboard
 import (
 	"fmt"
 
+	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -37,7 +38,7 @@ var (
 )
 
 type DashboardReconciler struct {
-	deploy.Reconcilable
+	reconciler.Reconcilable
 }
 
 func NewDashboardReconciler() *DashboardReconciler {
