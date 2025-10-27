@@ -50,7 +50,7 @@ func TestContainerBuildReconciler(t *testing.T) {
 	}
 
 	ctx := test.NewCtxBuilder().WithObjects(dwPod).Build()
-	containerBuildReconciler := NewContainerBuildReconciler()
+	containerBuildReconciler := NewContainerCapabilitiesReconciler()
 
 	test.EnsureReconcile(t, ctx, containerBuildReconciler.Reconcile)
 
@@ -156,7 +156,7 @@ func TestShouldNotSyncSCCIfAlreadyExists(t *testing.T) {
 	ctx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration = &chev2.ContainerRunConfiguration{OpenShiftSecurityContextConstraint: "scc-run"}
 	err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
 
-	containerBuildReconciler := NewContainerBuildReconciler()
+	containerBuildReconciler := NewContainerCapabilitiesReconciler()
 
 	test.EnsureReconcile(t, ctx, containerBuildReconciler.Reconcile)
 

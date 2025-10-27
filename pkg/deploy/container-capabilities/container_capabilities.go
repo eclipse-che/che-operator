@@ -62,7 +62,7 @@ type ContainerCapabilitiesReconciler struct {
 	containerBuildCapability *ContainerBuild
 }
 
-func NewContainerBuildReconciler() *ContainerCapabilitiesReconciler {
+func NewContainerCapabilitiesReconciler() *ContainerCapabilitiesReconciler {
 	return &ContainerCapabilitiesReconciler{
 		containerRunCapability:   NewContainerRun(),
 		containerBuildCapability: NewContainerBuild(),

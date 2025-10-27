@@ -121,7 +121,7 @@ func NewReconciler(
 	reconcileManager.RegisterReconciler(imagepuller.NewImagePuller())
 
 	if infrastructure.IsOpenShift() {
-		reconcileManager.RegisterReconciler(containerbuild.NewContainerBuildReconciler())
+		reconcileManager.RegisterReconciler(containerbuild.NewContainerCapabilitiesReconciler())
 		reconcileManager.RegisterReconciler(consolelink.NewConsoleLinkReconciler())
 	}
 
