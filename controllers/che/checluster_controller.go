@@ -242,18 +242,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	if deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
 		result, done, err := r.reconcilerManager.ReconcileAll(deployContext)
-		if !done {
-			if err != nil {
-				errMsg := "Failed to reconcile CheCluster resources. The installation is not completed. Check operator logs for details."
-				r.Log.Error(nil, errMsg)
-
-				if err := deploy.SetStatusDetails(deployContext, constants.InstallOrUpdateFailed, errMsg); err != nil {
-					return ctrl.Result{}, err
-				}
-			}
-
-			return result, err
-		} else {
+		if done {
 			// Clean up status if so
 			if err := deploy.SetStatusDetails(deployContext, "", ""); err != nil {
 				return ctrl.Result{}, err
@@ -261,6 +250,17 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 			r.Log.Info("Successfully reconciled.")
 			return ctrl.Result{}, nil
+		} else {
+			if err != nil {
+				errMsg := "Failed to reconcile CheCluster resources. The installation is not completed. Check operator logs for details."
+				r.Log.Error(err, errMsg)
+
+				if err := deploy.SetStatusDetails(deployContext, constants.InstallOrUpdateFailed, errMsg); err != nil {
+					return ctrl.Result{}, err
+				}
+			}
+
+			return result, err
 		}
 	} else {
 		deployContext.CheCluster.Status.ChePhase = chev2.ClusterPhasePendingDeletion
