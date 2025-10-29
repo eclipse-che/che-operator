@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
+	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 
@@ -45,7 +46,7 @@ const (
 )
 
 type CertificatesReconciler struct {
-	deploy.Reconcilable
+	reconciler.Reconcilable
 	readKubernetesCaBundle func() ([]byte, error)
 }
 

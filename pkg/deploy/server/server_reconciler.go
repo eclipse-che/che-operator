@@ -20,6 +20,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -34,7 +35,7 @@ const (
 )
 
 type CheServerReconciler struct {
-	deploy.Reconcilable
+	reconciler.Reconcilable
 }
 
 func NewCheServerReconciler() *CheServerReconciler {

@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	"sigs.k8s.io/yaml"
@@ -68,7 +69,7 @@ var (
 )
 
 type GatewayReconciler struct {
-	deploy.Reconcilable
+	reconciler.Reconcilable
 }
 
 func NewGatewayReconciler() *GatewayReconciler {

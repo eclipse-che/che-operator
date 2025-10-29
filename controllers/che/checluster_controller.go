@@ -16,7 +16,9 @@ import (
 	"context"
 	"time"
 
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
+	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
@@ -49,7 +51,6 @@ import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/go-logr/logr"
 	routev1 "github.com/openshift/api/route/v1"
-	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networking "k8s.io/api/networking/v1"
@@ -77,8 +78,8 @@ type CheClusterReconciler struct {
 	nonCachedClient client.Client
 	// A discovery client to check for the existence of certain APIs registered
 	// in the API Server
-	discoveryClient  discovery.DiscoveryInterface
-	reconcileManager *deploy.ReconcileManager
+	discoveryClient   discovery.DiscoveryInterface
+	reconcilerManager *reconciler.ReconcilerManager
 	// the namespace to which to limit the reconciliation. If empty, all namespaces are considered
 	namespace string
 }
@@ -91,49 +92,49 @@ func NewReconciler(
 	scheme *k8sruntime.Scheme,
 	namespace string) *CheClusterReconciler {
 
-	reconcileManager := deploy.NewReconcileManager()
+	reconcilerManager := reconciler.NewReconcilerManager()
 
 	// order does matter
 	if !test.IsTestMode() {
-		reconcileManager.RegisterReconciler(migration.NewMigrator())
-		reconcileManager.RegisterReconciler(migration.NewCheClusterDefaultsCleaner())
-		reconcileManager.RegisterReconciler(NewCheClusterValidator())
+		reconcilerManager.AddReconciler(migration.NewMigrator())
+		reconcilerManager.AddReconciler(migration.NewCheClusterDefaultsCleaner())
+		reconcilerManager.AddReconciler(NewCheClusterValidator())
 	}
 
-	reconcileManager.RegisterReconciler(tls.NewCertificatesReconciler())
-	reconcileManager.RegisterReconciler(tls.NewTlsSecretReconciler())
-	reconcileManager.RegisterReconciler(devworkspaceconfig.NewDevWorkspaceConfigReconciler())
-	reconcileManager.RegisterReconciler(rbac.NewGatewayPermissionsReconciler())
+	reconcilerManager.AddReconciler(tls.NewCertificatesReconciler())
+	reconcilerManager.AddReconciler(tls.NewTlsSecretReconciler())
+	reconcilerManager.AddReconciler(devworkspaceconfig.NewDevWorkspaceConfigReconciler())
+	reconcilerManager.AddReconciler(rbac.NewGatewayPermissionsReconciler())
 
 	// we have to expose che endpoint independently of syncing other server
 	// resources since che host is used for dashboard deployment and che config map
-	reconcileManager.RegisterReconciler(server.NewCheHostReconciler())
-	reconcileManager.RegisterReconciler(postgres.NewPostgresReconciler())
+	reconcilerManager.AddReconciler(server.NewCheHostReconciler())
+	reconcilerManager.AddReconciler(postgres.NewPostgresReconciler())
 	if infrastructure.IsOpenShift() {
-		reconcileManager.RegisterReconciler(identityprovider.NewIdentityProviderReconciler())
+		reconcilerManager.AddReconciler(identityprovider.NewIdentityProviderReconciler())
 	}
-	reconcileManager.RegisterReconciler(devfileregistry.NewDevfileRegistryReconciler())
-	reconcileManager.RegisterReconciler(pluginregistry.NewPluginRegistryReconciler())
-	reconcileManager.RegisterReconciler(editorsdefinitions.NewEditorsDefinitionsReconciler())
-	reconcileManager.RegisterReconciler(dashboard.NewDashboardReconciler())
-	reconcileManager.RegisterReconciler(gateway.NewGatewayReconciler())
-	reconcileManager.RegisterReconciler(server.NewCheServerReconciler())
-	reconcileManager.RegisterReconciler(imagepuller.NewImagePuller())
+	reconcilerManager.AddReconciler(devfileregistry.NewDevfileRegistryReconciler())
+	reconcilerManager.AddReconciler(pluginregistry.NewPluginRegistryReconciler())
+	reconcilerManager.AddReconciler(editorsdefinitions.NewEditorsDefinitionsReconciler())
+	reconcilerManager.AddReconciler(dashboard.NewDashboardReconciler())
+	reconcilerManager.AddReconciler(gateway.NewGatewayReconciler())
+	reconcilerManager.AddReconciler(server.NewCheServerReconciler())
+	reconcilerManager.AddReconciler(imagepuller.NewImagePuller())
 
 	if infrastructure.IsOpenShift() {
-		reconcileManager.RegisterReconciler(containerbuild.NewContainerCapabilitiesReconciler())
-		reconcileManager.RegisterReconciler(consolelink.NewConsoleLinkReconciler())
+		reconcilerManager.AddReconciler(containerbuild.NewContainerCapabilitiesReconciler())
+		reconcilerManager.AddReconciler(consolelink.NewConsoleLinkReconciler())
 	}
 
 	return &CheClusterReconciler{
 		Scheme: scheme,
 		Log:    ctrl.Log.WithName("controllers").WithName("CheCluster"),
 
-		client:           k8sclient,
-		nonCachedClient:  noncachedClient,
-		discoveryClient:  discoveryClient,
-		namespace:        namespace,
-		reconcileManager: reconcileManager,
+		client:            k8sclient,
+		nonCachedClient:   noncachedClient,
+		discoveryClient:   discoveryClient,
+		namespace:         namespace,
+		reconcilerManager: reconcilerManager,
 	}
 }
 
@@ -240,24 +241,42 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	deployContext.IsSelfSignedCertificate = isSelfSignedCertificate
 
 	if deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
-		result, done, err := r.reconcileManager.ReconcileAll(deployContext)
-		if !done {
-			return result, err
-		} else {
+		result, done, err := r.reconcilerManager.ReconcileAll(deployContext)
+		if done {
+			// Clean up status if so
 			if err := deploy.SetStatusDetails(deployContext, "", ""); err != nil {
 				return ctrl.Result{}, err
 			}
-			logrus.Info("Successfully reconciled.")
+
+			r.Log.Info("Successfully reconciled.")
 			return ctrl.Result{}, nil
+		} else {
+			if err != nil {
+				errMsg := "Failed to reconcile CheCluster resources. The installation is not completed. Check operator logs for details."
+				r.Log.Error(err, errMsg)
+
+				if err := deploy.SetStatusDetails(deployContext, constants.InstallOrUpdateFailed, errMsg); err != nil {
+					return ctrl.Result{}, err
+				}
+			}
+
+			return result, err
 		}
 	} else {
 		deployContext.CheCluster.Status.ChePhase = chev2.ClusterPhasePendingDeletion
-		_ = deploy.UpdateCheCRStatus(deployContext, "ChePhase", chev2.ClusterPhasePendingDeletion)
-
-		if done := r.reconcileManager.FinalizeAll(deployContext); !done {
-			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-
+		if err = deploy.UpdateCheCRStatus(deployContext, "ChePhase", chev2.ClusterPhasePendingDeletion); err != nil {
+			return ctrl.Result{}, err
 		}
-		return ctrl.Result{}, nil
+
+		done := r.reconcilerManager.FinalizeAll(deployContext)
+		if done {
+			// Removes remaining finalizers, which prevent CheCluster from deletion
+			if err := deploy.CleanUpAllFinalizers(deployContext); err != nil {
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{}, nil
+		} else {
+			return ctrl.Result{RequeueAfter: time.Second}, nil
+		}
 	}
 }

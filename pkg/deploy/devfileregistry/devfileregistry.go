@@ -18,6 +18,7 @@ import (
 
 	v2 "github.com/eclipse-che/che-operator/api/v2"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -34,7 +35,7 @@ var (
 )
 
 type DevfileRegistryReconciler struct {
-	deploy.Reconcilable
+	reconciler.Reconcilable
 }
 
 func NewDevfileRegistryReconciler() *DevfileRegistryReconciler {
