@@ -23,8 +23,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -48,7 +46,6 @@ type K8sClientWrapper struct {
 func (k K8sClientWrapper) Sync(
 	ctx context.Context,
 	obj client.Object,
-	owner metav1.Object,
 	opts ...SyncOption,
 ) error {
 	defer func() {
@@ -57,10 +54,6 @@ func (k K8sClientWrapper) Sync(
 	}()
 
 	if err := k.ensureGVK(obj); err != nil {
-		return err
-	}
-
-	if err := k.setOwner(obj, owner); err != nil {
 		return err
 	}
 
@@ -85,7 +78,6 @@ func (k K8sClientWrapper) Sync(
 func (k K8sClientWrapper) Create(
 	ctx context.Context,
 	obj client.Object,
-	owner metav1.Object,
 	opts ...client.CreateOption,
 ) error {
 	defer func() {
@@ -94,10 +86,6 @@ func (k K8sClientWrapper) Create(
 	}()
 
 	if err := k.ensureGVK(obj); err != nil {
-		return err
-	}
-
-	if err := k.setOwner(obj, owner); err != nil {
 		return err
 	}
 
@@ -291,17 +279,6 @@ func (k K8sClientWrapper) doSync(
 				logger.Info("Object updated", "namespace", actual.GetNamespace(), "kind", GetObjectType(actual), "name", actual.GetName())
 			}
 			return err
-		}
-	}
-
-	return nil
-}
-
-// setOwner sets owner to the object
-func (k K8sClientWrapper) setOwner(obj client.Object, owner metav1.Object) error {
-	if owner != nil {
-		if err := controllerutil.SetControllerReference(owner, obj, k.scheme); err != nil {
-			return fmt.Errorf("failed to set controller reference: %w", err)
 		}
 	}
 

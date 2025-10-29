@@ -17,6 +17,7 @@ import (
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	k8s_client "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	testclient "github.com/eclipse-che/che-operator/pkg/common/test/test-client"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -60,10 +61,12 @@ func (f *DeployContextBuild) Build() *chetypes.DeployContext {
 	ctx := &chetypes.DeployContext{
 		CheCluster: f.cheCluster,
 		ClusterAPI: chetypes.ClusterAPI{
-			Client:           fakeClient,
-			NonCachingClient: fakeClient,
-			Scheme:           scheme,
-			DiscoveryClient:  discoveryClient,
+			Client:                  fakeClient,
+			NonCachingClient:        fakeClient,
+			Scheme:                  scheme,
+			DiscoveryClient:         discoveryClient,
+			ClientWrapper:           k8s_client.NewK8sClient(fakeClient, scheme),
+			NonCachingClientWrapper: k8s_client.NewK8sClient(fakeClient, scheme),
 		},
 		Proxy: &chetypes.Proxy{},
 	}

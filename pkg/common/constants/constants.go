@@ -102,11 +102,6 @@ const (
 	CommonPVCStorageStrategy       = "common"
 	DefaultDeploymentStrategy      = "Recreate"
 	DefaultAutoProvision           = true
-	DefaultPersistUserHomeEnabled  = false
-	DefaultWorkspaceJavaOpts       = "-XX:MaxRAM=150m -XX:MaxRAMFraction=2 -XX:+UseParallelGC " +
-		"-XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 " +
-		"-Dsun.zip.disableMemoryMapping=true " +
-		"-Xms20m -Djava.security.egd=file:/dev/./urandom"
 
 	// Ingress
 	DefaultSelfSignedCertificateSecretName = "self-signed-certificate"
@@ -133,10 +128,16 @@ const (
 	PublicCertsDir        = "/public-certs"
 
 	// DevWorkspace
-	DevWorkspaceControllerName     = "devworkspace-controller"
-	DevWorkspaceOperatorName       = "devworkspace-operator"
-	DevWorkspaceServiceAccountName = "devworkspace-controller-serviceaccount"
-	DefaultContainerBuildSccName   = "container-build"
+	DevWorkspaceControllerName             = "devworkspace-controller"
+	DevWorkspaceOperatorName               = "devworkspace-operator"
+	DevWorkspaceServiceAccountName         = "devworkspace-controller-serviceaccount"
+	DefaultContainerBuildSccName           = "container-build"
+	DefaultContainerRunSccName             = "container-run"
+	DefaultDisableContainerRunCapabilities = true
+
+	// Finalizers
+	ContainerBuildFinalizer = "container-build.finalizers.che.eclipse.org"
+	ContainerRunFinalizer   = "che.eclipse.org/container-run"
 )
 
 var (
