@@ -20,6 +20,7 @@ import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
+	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -56,7 +57,7 @@ type ContainerCapability interface {
 }
 
 type ContainerCapabilitiesReconciler struct {
-	deploy.Reconcilable
+	reconciler.Reconcilable
 
 	containerRunCapability   *ContainerRun
 	containerBuildCapability *ContainerBuild
