@@ -54,7 +54,6 @@ Options:
 
 getLatestStableVersions
 
-INDEX_IMAGE="quay.io/eclipse/eclipse-che-openshift-opm-catalog:test"
 packageName="eclipse-che"
 echo
 echo "## Prepare the OperatorHub package to push to the 'community-operators-prod' repository from local package '${packageName}'"
@@ -118,6 +117,9 @@ do
     -e '/operators.operatorframework.io.test.config.v1/d' \
     -e '/operators.operatorframework.io.test.mediatype.v1: scorecard+v1/d' \
     -i "${folderToUpdate}/${LAST_PACKAGE_VERSION}/metadata/annotations.yaml"
+
+  cp "${OPERATOR_REPO}/bundle/$channel/${packageName}/manifests/eclipse-che-edit_rbac.authorization.k8s.io_v1_clusterrole.yaml" "${folderToUpdate}/${LAST_PACKAGE_VERSION}/manifests/eclipse-che-edit_rbac.authorization.k8s.io_v1_clusterrole.yaml"
+  cp "${OPERATOR_REPO}/bundle/$channel/${packageName}/manifests/eclipse-che-view_rbac.authorization.k8s.io_v1_clusterrole.yaml" "${folderToUpdate}/${LAST_PACKAGE_VERSION}/manifests/eclipse-che-view_rbac.authorization.k8s.io_v1_clusterrole.yaml"
 
   echo "   - Replace ci.yaml file"
   cp ${OPERATOR_REPO}/build/scripts/release/ci.yaml ${folderToUpdate}/ci.yaml
