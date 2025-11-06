@@ -87,7 +87,7 @@ components:
       command:
         - sh
         - -c
-        - "nohup /entrypoint.sh & nohup /sshd.start & nohup node /opt/www/server.js & tail -f /dev/null"
+        - "nohup /entrypoint.sh & nohup /sshd.start & pushd /opt/www/ && nohup node /opt/www/server.js & tail -f /dev/null"
       endpoints:
         - name: che-code-sshd
           attributes:
