@@ -176,7 +176,9 @@ func updateWorkspaceStorageConfig(devEnvironments *chev2.CheClusterDevEnvironmen
 		constants.CommonPVCStorageStrategy:       devEnvironments.Storage.PerUserStrategyPvcConfig,
 		constants.PerWorkspacePVCStorageStrategy: devEnvironments.Storage.PerWorkspaceStrategyPvcConfig,
 	}[pvcStrategy]
-
+	workspaceConfig.StorageAccessMode = nil
+	workspaceConfig.StorageClassName = nil
+	workspaceConfig.DefaultStorageSize = nil
 	if pvc != nil {
 		workspaceConfig.StorageAccessMode = pvc.StorageAccessMode
 		if pvc.StorageClass != "" {

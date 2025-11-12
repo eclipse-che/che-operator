@@ -176,6 +176,28 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 			},
 		},
 		{
+			name: "Not setting PerUserStrategyPvcConfig should reset DevWorkspaceConfig to default StorageAccessMode",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.Bool(true),
+						Storage: chev2.WorkspaceStorage{
+							PvcStrategy: constants.PerUserPVCStorageStrategy,
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					DeploymentStrategy: "Recreate",
+				},
+			},
+		},
+		{
 			name: "Create DevWorkspaceOperatorConfig with nil StorageAccessMode",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
