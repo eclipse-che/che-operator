@@ -86,7 +86,7 @@ events:
 components:
   - name: che-code-injector
     container:
-      image: quay.io/che-incubator/che-code:latest
+      image: quay.io/che-incubator/che-code:7.112.0
       command:
         - /entrypoint-init-container.sh
       volumeMounts:
