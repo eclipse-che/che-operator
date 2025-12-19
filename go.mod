@@ -7,7 +7,7 @@ toolchain go1.24.4
 require (
 	github.com/che-incubator/kubernetes-image-puller-operator v0.0.0-20250214104625-65e5ec32f521
 	github.com/devfile/api/v2 v2.3.1-alpha.0.20250521155908-5c3d7b99d252
-	github.com/devfile/devworkspace-operator v0.2.1-0.20250905073559-4c53baa3f419
+	github.com/devfile/devworkspace-operator v0.2.1-0.20251219093002-8276d1f4e287
 	github.com/go-logr/logr v1.4.3
 	github.com/google/go-cmp v0.7.0
 	github.com/openshift/api v0.0.0-20250529074221-97812373b6b4
@@ -16,7 +16,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.27.0
-	golang.org/x/net v0.44.0
+	golang.org/x/net v0.47.0
 	k8s.io/api v0.34.1
 	k8s.io/apiextensions-apiserver v0.34.1
 	k8s.io/apimachinery v0.34.1
@@ -69,10 +69,10 @@ require (
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/oauth2 v0.27.0 // indirect
-	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/sys v0.36.0 // indirect
-	golang.org/x/term v0.35.0 // indirect
-	golang.org/x/text v0.29.0 // indirect
+	golang.org/x/sync v0.18.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/term v0.37.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
 	golang.org/x/time v0.9.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250826171959-ef028d996bc1 // indirect

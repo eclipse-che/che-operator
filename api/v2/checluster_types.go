@@ -128,6 +128,13 @@ type CheClusterDevEnvironments struct {
 	// container components that do not define limits or requests.
 	// +optional
 	DefaultContainerResources *corev1.ResourceRequirements `json:"defaultContainerResources,omitempty"`
+	// ContainerResourceCaps defines the maximum resource requirements enforced for workspace
+	// containers. If a container specifies limits or requests that exceed these values, they
+	// will be capped at the maximum. Note: Caps only apply when resources are already specified
+	// on a container. For containers without resource specifications, use DefaultContainerResources
+	// instead. These resource caps do not apply to initContainers or the projectClone container.
+	// +optional
+	ContainerResourceCaps *corev1.ResourceRequirements `json:"containerResourceCaps,omitempty"`
 	// Idle timeout for workspaces in seconds.
 	// This timeout is the duration after which a workspace will be idled if there is no activity.
 	// To disable workspace idling due to inactivity, set this value to -1.
