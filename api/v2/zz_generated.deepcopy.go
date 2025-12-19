@@ -301,6 +301,11 @@ func (in *CheClusterDevEnvironments) DeepCopyInto(out *CheClusterDevEnvironments
 		*out = new(v1.ResourceRequirements)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.ContainerResourceCaps != nil {
+		in, out := &in.ContainerResourceCaps, &out.ContainerResourceCaps
+		*out = new(v1.ResourceRequirements)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.SecondsOfInactivityBeforeIdling != nil {
 		in, out := &in.SecondsOfInactivityBeforeIdling, &out.SecondsOfInactivityBeforeIdling
 		*out = new(int32)

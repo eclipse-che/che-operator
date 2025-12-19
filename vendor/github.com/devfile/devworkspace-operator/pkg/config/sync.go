@@ -404,6 +404,12 @@ func mergeConfig(from, to *controller.OperatorConfiguration) {
 			}
 			to.Workspace.DefaultContainerResources = mergeResources(from.Workspace.DefaultContainerResources, to.Workspace.DefaultContainerResources)
 		}
+		if from.Workspace.ContainerResourceCaps != nil {
+			if to.Workspace.ContainerResourceCaps == nil {
+				to.Workspace.ContainerResourceCaps = &corev1.ResourceRequirements{}
+			}
+			to.Workspace.ContainerResourceCaps = mergeResources(from.Workspace.ContainerResourceCaps, to.Workspace.ContainerResourceCaps)
+		}
 
 		if from.Workspace.PodAnnotations != nil {
 			if to.Workspace.PodAnnotations == nil {
@@ -429,6 +435,36 @@ func mergeConfig(from, to *controller.OperatorConfiguration) {
 			}
 			if from.Workspace.CleanupCronJob.Schedule != "" {
 				to.Workspace.CleanupCronJob.Schedule = from.Workspace.CleanupCronJob.Schedule
+			}
+		}
+		if from.Workspace.BackupCronJob != nil {
+			if to.Workspace.BackupCronJob == nil {
+				to.Workspace.BackupCronJob = &controller.BackupCronJobConfig{}
+			}
+			if from.Workspace.BackupCronJob.Enable != nil {
+				to.Workspace.BackupCronJob.Enable = from.Workspace.BackupCronJob.Enable
+			}
+			if from.Workspace.BackupCronJob.Schedule != "" {
+				to.Workspace.BackupCronJob.Schedule = from.Workspace.BackupCronJob.Schedule
+			}
+			if from.Workspace.BackupCronJob.Registry != nil {
+				if to.Workspace.BackupCronJob.Registry == nil {
+					to.Workspace.BackupCronJob.Registry = &controller.RegistryConfig{}
+				}
+				if from.Workspace.BackupCronJob.Registry.Path != "" {
+					to.Workspace.BackupCronJob.Registry.Path = from.Workspace.BackupCronJob.Registry.Path
+				}
+				if from.Workspace.BackupCronJob.Registry.AuthSecret != "" {
+					to.Workspace.BackupCronJob.Registry.AuthSecret = from.Workspace.BackupCronJob.Registry.AuthSecret
+				}
+			}
+			if from.Workspace.BackupCronJob.OrasConfig != nil {
+				if to.Workspace.BackupCronJob.OrasConfig == nil {
+					to.Workspace.BackupCronJob.OrasConfig = &controller.OrasConfig{}
+				}
+				if from.Workspace.BackupCronJob.OrasConfig.ExtraArgs != "" {
+					to.Workspace.BackupCronJob.OrasConfig.ExtraArgs = from.Workspace.BackupCronJob.OrasConfig.ExtraArgs
+				}
 			}
 		}
 
@@ -667,6 +703,9 @@ func GetCurrentConfigString(currConfig *controller.OperatorConfiguration) string
 		if !reflect.DeepEqual(workspace.DefaultContainerResources, defaultConfig.Workspace.DefaultContainerResources) {
 			config = append(config, "workspace.defaultContainerResources is set")
 		}
+		if workspace.ContainerResourceCaps != nil {
+			config = append(config, "workspace.containerResourceCaps is set")
+		}
 		if !reflect.DeepEqual(workspace.PodAnnotations, defaultConfig.Workspace.PodAnnotations) {
 			config = append(config, "workspace.podAnnotations is set")
 		}
@@ -683,6 +722,16 @@ func GetCurrentConfigString(currConfig *controller.OperatorConfiguration) string
 			if workspace.CleanupCronJob.Schedule != defaultConfig.Workspace.CleanupCronJob.Schedule {
 				config = append(config, fmt.Sprintf("workspace.cleanupCronJob.cronJobScript=%s", workspace.CleanupCronJob.Schedule))
 			}
+		}
+		if workspace.BackupCronJob != nil {
+			if workspace.BackupCronJob.Enable != nil && *workspace.BackupCronJob.Enable != *defaultConfig.Workspace.BackupCronJob.Enable {
+				config = append(config, fmt.Sprintf("workspace.backupCronJob.enable=%t", *workspace.BackupCronJob.Enable))
+			}
+
+			if workspace.BackupCronJob.Schedule != defaultConfig.Workspace.BackupCronJob.Schedule {
+				config = append(config, fmt.Sprintf("workspace.backupCronJob.cronJobScript=%s", workspace.BackupCronJob.Schedule))
+			}
+
 		}
 		if workspace.HostUsers != nil {
 			config = append(config, fmt.Sprintf("workspace.hostUsers=%t", *workspace.HostUsers))
