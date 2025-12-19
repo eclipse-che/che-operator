@@ -72,6 +72,47 @@ type CleanupCronJobConfig struct {
 	Schedule string `json:"schedule,omitempty"`
 }
 
+type RegistryConfig struct {
+	// A registry where backup images are stored. Images are stored
+	// in {path}/${DEVWORKSPACE_NAMESPACE}/${DEVWORKSPACE_NAME}:latest
+	// +kubebuilder:validation:Required
+	Path string `json:"path,omitempty"`
+	// AuthSecret is the name of a Kubernetes secret of
+	// type kubernetes.io/dockerconfigjson.
+	// The secret is expected to be in the same namespace the workspace is running in.
+	// If secret is not found in the workspace namespace, the operator will look for the secret
+	// in the namespace where the operator is running in.
+	// as the DevWorkspaceOperatorCongfig.
+	// The secret must contain "controller.devfile.io/watch-secret=true" label so that it can be
+	// recognized by the operator.
+	// +kubebuilder:validation:Optional
+	AuthSecret string `json:"authSecret,omitempty"`
+}
+
+type OrasConfig struct {
+	// ExtraArgs are additional arguments passed to the oras CLI
+	// +kubebuilder:validation:Optional
+	ExtraArgs string `json:"extraArgs,omitempty"`
+}
+
+type BackupCronJobConfig struct {
+	// Enable determines whether backup CronJobs should be created for workspace PVCs.
+	// Defaults to false if not specified.
+	// +kubebuilder:validation:Optional
+	Enable *bool `json:"enable,omitempty"`
+	// RegistryConfig defines the registry configuration where backup images are stored.
+	// +kubebuilder:validation:Required
+	Registry *RegistryConfig `json:"registry,omitempty"`
+	// OrasConfig defines additional configuration options for the oras CLI used to
+	// push and pull backup images.
+	OrasConfig *OrasConfig `json:"oras,omitempty"`
+	// Schedule specifies the cron schedule for the backup cron job.
+	// For example, "0 1 * * *" runs daily at 1 AM.
+	// +kubebuilder:default:="0 1 * * *"
+	// +kubebuilder:validation:Optional
+	Schedule string `json:"schedule,omitempty"`
+}
+
 type RoutingConfig struct {
 	// DefaultRoutingClass specifies the routingClass to be used when a DevWorkspace
 	// specifies an empty `.spec.routingClass`. Supported routingClasses can be defined
@@ -183,12 +224,20 @@ type WorkspaceConfig struct {
 	// the value "0" should be used. By default, the memory limit is 128Mi and the memory request is 64Mi.
 	// No CPU limit or request is added by default.
 	DefaultContainerResources *corev1.ResourceRequirements `json:"defaultContainerResources,omitempty"`
+	// ContainerResourceCaps defines the maximum resource requirements enforced for workspace
+	// containers. If a container specifies limits or requests that exceed these values, they
+	// will be capped at the maximum. Note: Caps only apply when resources are already specified
+	// on a container. For containers without resource specifications, use DefaultContainerResources
+	// instead. These resource caps do not apply to initContainers or the projectClone container.
+	ContainerResourceCaps *corev1.ResourceRequirements `json:"containerResourceCaps,omitempty"`
 	// PodAnnotations defines the metadata.annotations for DevWorkspace pods created by the DevWorkspace Operator.
 	PodAnnotations map[string]string `json:"podAnnotations,omitempty"`
 	// RuntimeClassName defines the spec.runtimeClassName for DevWorkspace pods created by the DevWorkspace Operator.
 	RuntimeClassName *string `json:"runtimeClassName,omitempty"`
 	// CleanupCronJobConfig defines configuration options for a cron job that automatically cleans up stale DevWorkspaces.
 	CleanupCronJob *CleanupCronJobConfig `json:"cleanupCronJob,omitempty"`
+	// BackupCronJobConfig defines configuration options for a cron job that automatically backs up workspace PVCs.
+	BackupCronJob *BackupCronJobConfig `json:"backupCronJob,omitempty"`
 	// PostStartTimeout defines the maximum duration the PostStart hook can run
 	// before it is automatically failed. This timeout is used for the postStart lifecycle hook
 	// that is used to run commands in the workspace container. The timeout is specified in seconds.
@@ -257,7 +306,7 @@ type StorageSizes struct {
 	// If not specified, the "common" and "async" Persistent Volume Claim sizes are set to 10Gi
 	Common *resource.Quantity `json:"common,omitempty"`
 	// The default Persistent Volume Claim size for the "per-workspace" storage class.
-	// If not specified, the "per-workspace" Persistent Volume Claim size is set to 5Gi
+	// If not specified, the "per-workspace" Persistent Volume Claim size is set to 10Gi
 	PerWorkspace *resource.Quantity `json:"perWorkspace,omitempty"`
 }
 
@@ -331,14 +380,26 @@ type ConfigmapReference struct {
 	Namespace string `json:"namespace"`
 }
 
+type OperatorConfigurationStatus struct {
+	// Conditions represent the latest available observations of the OperatorConfiguration's state
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	// LastBackupTime is the timestamp of the last successful backup. Nil if
+	// no backup is configured or no backup has yet succeeded.
+	LastBackupTime *metav1.Time `json:"lastBackupTime,omitempty"`
+}
+
 // DevWorkspaceOperatorConfig is the Schema for the devworkspaceoperatorconfigs API
 // +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 // +kubebuilder:resource:path=devworkspaceoperatorconfigs,scope=Namespaced,shortName=dwoc
 type DevWorkspaceOperatorConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Config *OperatorConfiguration `json:"config,omitempty"`
+	// Status represents the current status of the DevWorkspaceOperatorConfig
+	// automatically managed by the DevWorkspace Operator.
+	Status *OperatorConfigurationStatus `json:"status,omitempty"`
 }
 
 // DevWorkspaceOperatorConfigList contains a list of DevWorkspaceOperatorConfig

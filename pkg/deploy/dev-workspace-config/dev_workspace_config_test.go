@@ -280,6 +280,234 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 			},
 		},
 		{
+			name: "Create DevWorkspaceOperatorConfig with non empty container resource caps",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.Bool(true),
+						ContainerResourceCaps: &corev1.ResourceRequirements{
+							Limits: corev1.ResourceList{
+								corev1.ResourceMemory: resource.MustParse("2Gi"),
+								corev1.ResourceCPU:    resource.MustParse("2000m"),
+							},
+							Requests: corev1.ResourceList{
+								corev1.ResourceMemory: resource.MustParse("1Gi"),
+								corev1.ResourceCPU:    resource.MustParse("1000m"),
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					ContainerResourceCaps: &corev1.ResourceRequirements{
+						Limits: corev1.ResourceList{
+							corev1.ResourceMemory: resource.MustParse("2Gi"),
+							corev1.ResourceCPU:    resource.MustParse("2000m"),
+						},
+						Requests: corev1.ResourceList{
+							corev1.ResourceMemory: resource.MustParse("1Gi"),
+							corev1.ResourceCPU:    resource.MustParse("1000m"),
+						},
+					},
+					DeploymentStrategy: "Recreate",
+				},
+			},
+		},
+		{
+			name: "Create DevWorkspaceOperatorConfig with nil container resource caps",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.Bool(true),
+						ContainerResourceCaps:             nil,
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					ContainerResourceCaps: nil,
+					DeploymentStrategy:    "Recreate",
+				},
+			},
+		},
+		{
+			name: "Update existing DevWorkspaceOperatorConfig by adding container resource caps",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.Bool(true),
+						ContainerResourceCaps: &corev1.ResourceRequirements{
+							Limits: corev1.ResourceList{
+								corev1.ResourceMemory: resource.MustParse("2Gi"),
+								corev1.ResourceCPU:    resource.MustParse("2000m"),
+							},
+							Requests: corev1.ResourceList{
+								corev1.ResourceMemory: resource.MustParse("1Gi"),
+								corev1.ResourceCPU:    resource.MustParse("1000m"),
+							},
+						},
+					},
+				},
+			},
+			existedObjects: []client.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							ContainerResourceCaps: nil,
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					ContainerResourceCaps: &corev1.ResourceRequirements{
+						Limits: corev1.ResourceList{
+							corev1.ResourceMemory: resource.MustParse("2Gi"),
+							corev1.ResourceCPU:    resource.MustParse("2000m"),
+						},
+						Requests: corev1.ResourceList{
+							corev1.ResourceMemory: resource.MustParse("1Gi"),
+							corev1.ResourceCPU:    resource.MustParse("1000m"),
+						},
+					},
+					DeploymentStrategy: "Recreate",
+				},
+			},
+		},
+		{
+			name: "Update existing DevWorkspaceOperatorConfig by changing container resource caps",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.Bool(true),
+						ContainerResourceCaps: &corev1.ResourceRequirements{
+							Limits: corev1.ResourceList{
+								corev1.ResourceMemory: resource.MustParse("4Gi"),
+								corev1.ResourceCPU:    resource.MustParse("4000m"),
+							},
+							Requests: corev1.ResourceList{
+								corev1.ResourceMemory: resource.MustParse("2Gi"),
+								corev1.ResourceCPU:    resource.MustParse("2000m"),
+							},
+						},
+					},
+				},
+			},
+			existedObjects: []client.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							ContainerResourceCaps: &corev1.ResourceRequirements{
+								Limits: corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse("2Gi"),
+									corev1.ResourceCPU:    resource.MustParse("2000m"),
+								},
+								Requests: corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse("1Gi"),
+									corev1.ResourceCPU:    resource.MustParse("1000m"),
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					ContainerResourceCaps: &corev1.ResourceRequirements{
+						Limits: corev1.ResourceList{
+							corev1.ResourceMemory: resource.MustParse("4Gi"),
+							corev1.ResourceCPU:    resource.MustParse("4000m"),
+						},
+						Requests: corev1.ResourceList{
+							corev1.ResourceMemory: resource.MustParse("2Gi"),
+							corev1.ResourceCPU:    resource.MustParse("2000m"),
+						},
+					},
+					DeploymentStrategy: "Recreate",
+				},
+			},
+		},
+		{
+			name: "Update existing DevWorkspaceOperatorConfig by removing container resource caps",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						DisableContainerBuildCapabilities: pointer.Bool(true),
+						ContainerResourceCaps:             nil,
+					},
+				},
+			},
+			existedObjects: []client.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							ContainerResourceCaps: &corev1.ResourceRequirements{
+								Limits: corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse("2Gi"),
+									corev1.ResourceCPU:    resource.MustParse("2000m"),
+								},
+								Requests: corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse("1Gi"),
+									corev1.ResourceCPU:    resource.MustParse("1000m"),
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					ContainerResourceCaps: nil,
+					DeploymentStrategy:    "Recreate",
+				},
+			},
+		},
+		{
 			name: "Create DevWorkspaceOperatorConfig with per-user storage strategy",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
