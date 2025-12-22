@@ -82,6 +82,10 @@ var defaultConfig = &v1alpha1.OperatorConfiguration{
 			RetainTime: pointer.Int32(2592000),
 			Schedule:   "0 0 1 * *",
 		},
+		BackupCronJob: &v1alpha1.BackupCronJobConfig{
+			Enable:   pointer.Bool(false),
+			Schedule: "0 0 1 * *",
+		},
 		// Do not declare a default value for this field.
 		// Setting a default leads to an endless reconcile loop when UserNamespacesSupport is disabled,
 		// because in that case the field is ignored and always set to nil.
@@ -114,7 +118,7 @@ var (
 // Necessary variables for setting pointer values
 var (
 	commonStorageSize       = resource.MustParse("10Gi")
-	perWorkspaceStorageSize = resource.MustParse("5Gi")
+	perWorkspaceStorageSize = resource.MustParse("10Gi")
 )
 
 func setDefaultPodSecurityContext() error {
