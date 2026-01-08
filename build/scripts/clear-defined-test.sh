@@ -101,9 +101,13 @@ declare -A replaced_api_suffix=(
 
 # Exceptions for dependencies that are not yet harvested in clearlydefined.io
 # License must be checked manually
-declare -A ignored_paths=()
+declare -A ignored_paths=(
+  ["github.com/decred/dcrd/dcrec/secp256k1/v4"]="Harvesting is in progress"
+)
 
-declare -A ignored_paths_license=()
+declare -A ignored_paths_license=(
+  ["github.com/decred/dcrd/dcrec/secp256k1/v4"]="ISC"
+)
 
 retryUrl() {
     url=$1
