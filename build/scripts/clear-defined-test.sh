@@ -107,9 +107,6 @@ declare -A ignored_paths=(
 
 declare -A ignored_paths_license=(
   ["github.com/decred/dcrd/dcrec/secp256k1/v4"]="ISC"
-
-  # https://github.com/mndrix/tap-go?tab=Unlicense-1-ov-file#readme
-  ["github.com/mndrix/tap-go"]="UNLICENSE"
 )
 
 retryUrl() {
@@ -215,7 +212,7 @@ go list -m -mod=mod all | while read -r module; do
     license_approved=false
     for license_part in "${license_parts[@]}"; do
       for allowed_license in "${allowed_licenses[@]}"; do
-        if [[ "$allowed_license" == "$license_part" ]]; then
+        if [[ "${allowed_license^^}" == "${license_part^^}" ]]; then
           license_approved=true
           break 2
         fi
