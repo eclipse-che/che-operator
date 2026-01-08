@@ -82,6 +82,8 @@ declare -A replaced_modules=(
   ["go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.60.0"]="github.com/open-telemetry/opentelemetry-go-contrib v1.35.0"
   # https://github.com/census-instrumentation/opencensus-go/commits/v0.23.0/
   ["go.opencensus.io v0.23.0"]="census-instrumentation/opencensus-go 49838f207d61097fc0ebb8aeef306913388376ca"
+  # https://github.com/census-instrumentation/opencensus-go/commits/v0.24.0/
+  ["go.opencensus.io v0.24.0"]="census-instrumentation/opencensus-go b1a01ee95db0e690d91d7193d037447816fae4c5"
   # https://github.com/sean-/seed/tree/e2103e2c35297fb7e17febb81e49b312087a2372
   ["github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529"]="sean-/seed e2103e2c35297fb7e17febb81e49b312087a2372"
 )
