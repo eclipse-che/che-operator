@@ -207,12 +207,16 @@ go list -m -mod=mod all | while read -r module; do
     license=$(curl -s "$url" | jq -r '.licensed.declared')
     license="${license%% AND*}"
 
+    # Handle OR licenses - split and check each one
+    IFS=' OR ' read -ra license_parts <<< "$license"
     license_approved=false
-    for allowed_license in "${allowed_licenses[@]}"; do
-      if [[ "$allowed_license" == "$license" ]]; then
-        license_approved=true
-        break
-      fi
+    for license_part in "${license_parts[@]}"; do
+      for allowed_license in "${allowed_licenses[@]}"; do
+        if [[ "$allowed_license" == "$license_part" ]]; then
+          license_approved=true
+          break 2
+        fi
+      done
     done
 
     if [[ $license_approved == "false" ]]; then
