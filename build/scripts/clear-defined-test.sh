@@ -107,6 +107,9 @@ declare -A ignored_paths=(
 
 declare -A ignored_paths_license=(
   ["github.com/decred/dcrd/dcrec/secp256k1/v4"]="ISC"
+
+  # https://github.com/mndrix/tap-go?tab=Unlicense-1-ov-file#readme
+  ["github.com/mndrix/tap-go"]="UNLICENSE"
 )
 
 retryUrl() {
