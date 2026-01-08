@@ -90,6 +90,7 @@ declare -A replaced_modules=(
 declare -A replaced_paths=(
   ["go.starlark.net"]="github.com/google/starlark-go"
   ["gotest.tools"]="github.com/gotestyourself/gotest.tools"
+  ["gioui.org"]="github.com/gioui/gio"
 )
 
 # replaces to have a correct link for clearlydefined.io api request
@@ -100,17 +101,9 @@ declare -A replaced_api_suffix=(
 
 # Exceptions for dependencies that are not yet harvested in clearlydefined.io
 # License must be checked manually
-declare -A ignored_paths=(
-  ["github.com/devfile/devworkspace-operator"]="Harvesting in progress"
-  ["go.etcd.io/etcd/pkg/v3"]="Harvesting in progress"
-  ["go.etcd.io/etcd/server/v3"]="Harvesting in progress"
-)
+declare -A ignored_paths=()
 
-declare -A ignored_paths_license=(
-  ["github.com/devfile/devworkspace-operator"]="Apache-2.0"
-  ["go.etcd.io/etcd/pkg/v3"]="Apache-2.0"
-  ["go.etcd.io/etcd/server/v3"]="Apache-2.0"
-)
+declare -A ignored_paths_license=()
 
 retryUrl() {
     url=$1
