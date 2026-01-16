@@ -10592,7 +10592,7 @@ spec:
         - name: RELATED_IMAGE_che_tls_secrets_creation_job
           value: quay.io/eclipse/che-tls-secret-creator:9f9d4a6
         - name: RELATED_IMAGE_single_host_gateway
-          value: quay.io/eclipse/che--traefik:v3.4.0-4cf907247939b5d20bf4eff73abd21cb413c339600dde76dbc94a874b2578a27
+          value: quay.io/eclipse/traefik:v3.6.7-2c5e029ee3638d3788b4ca7c8ef454baa8f924b91b190b3fd2742bee721ebeea
         - name: RELATED_IMAGE_single_host_gateway_config_sidecar
           value: quay.io/che-incubator/configbump:next
         - name: RELATED_IMAGE_gateway_authentication_sidecar
