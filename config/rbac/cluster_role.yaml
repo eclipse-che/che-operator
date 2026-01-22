@@ -385,3 +385,11 @@ rules:
     verbs:
       - get
       - create
+  - apiGroups:
+      - operators.coreos.com
+    resources:
+      - subscriptions
+    verbs:
+      - get
+      - watch
+      - list

@@ -19,6 +19,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
+	"github.com/eclipse-che/che-operator/pkg/deploy/devworkspace"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
@@ -33,7 +34,6 @@ import (
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/consolelink"
 	"github.com/eclipse-che/che-operator/pkg/deploy/dashboard"
@@ -80,8 +80,6 @@ type CheClusterReconciler struct {
 	// in the API Server
 	discoveryClient   discovery.DiscoveryInterface
 	reconcilerManager *reconciler.ReconcilerManager
-	// the namespace to which to limit the reconciliation. If empty, all namespaces are considered
-	namespace string
 }
 
 // NewReconciler returns a new CheClusterReconciler
@@ -89,8 +87,7 @@ func NewReconciler(
 	k8sclient client.Client,
 	noncachedClient client.Client,
 	discoveryClient discovery.DiscoveryInterface,
-	scheme *k8sruntime.Scheme,
-	namespace string) *CheClusterReconciler {
+	scheme *k8sruntime.Scheme) *CheClusterReconciler {
 
 	reconcilerManager := reconciler.NewReconcilerManager()
 
@@ -99,6 +96,7 @@ func NewReconciler(
 		reconcilerManager.AddReconciler(migration.NewMigrator())
 		reconcilerManager.AddReconciler(migration.NewCheClusterDefaultsCleaner())
 		reconcilerManager.AddReconciler(NewCheClusterValidator())
+		reconcilerManager.AddReconciler(devworkspace.NewDevWorkspaceVersionValidator(constants.MinimumDevWorkspaceVersion))
 	}
 
 	reconcilerManager.AddReconciler(tls.NewCertificatesReconciler())
@@ -133,7 +131,6 @@ func NewReconciler(
 		client:            k8sclient,
 		nonCachedClient:   noncachedClient,
 		discoveryClient:   discoveryClient,
-		namespace:         namespace,
 		reconcilerManager: reconcilerManager,
 	}
 }
@@ -141,7 +138,7 @@ func NewReconciler(
 // SetupWithManager sets up the controller with the Manager.
 func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	var toTrustedBundleConfigMapRequestMapper handler.MapFunc = func(ctx context.Context, obj client.Object) []reconcile.Request {
-		isTrusted, reconcileRequest := IsTrustedBundleConfigMap(r.client, r.namespace, obj)
+		isTrusted, reconcileRequest := IsTrustedBundleConfigMap(r.client, obj)
 		if isTrusted {
 			return []reconcile.Request{reconcileRequest}
 		}
@@ -149,7 +146,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	var toEclipseCheRelatedObjRequestMapper handler.MapFunc = func(ctx context.Context, obj client.Object) []reconcile.Request {
-		isEclipseCheRelatedObj, reconcileRequest := IsEclipseCheRelatedObj(r.client, r.namespace, obj)
+		isEclipseCheRelatedObj, reconcileRequest := IsEclipseCheRelatedObj(r.client, obj)
 		if isEclipseCheRelatedObj {
 			return []reconcile.Request{reconcileRequest}
 		}
@@ -179,10 +176,6 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		bld.Owns(&routev1.Route{})
 	} else {
 		bld.Owns(&networking.Ingress{})
-	}
-
-	if r.namespace != "" {
-		bld = bld.WithEventFilter(utils.InNamespaceEventFilter(r.namespace))
 	}
 
 	// Use controller.TypedOptions to allow to configure 2 controllers for same object being reconciled

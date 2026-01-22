@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -124,6 +125,11 @@ func (r *CheClusterValidator) ValidateCreate(_ context.Context, obj runtime.Obje
 	if err := r.ensureSingletonCheCluster(); err != nil {
 		return []string{}, err
 	}
+
+	if err := r.ensureDevWorkspaceOperatorConfigApiExist(); err != nil {
+		return []string{}, err
+	}
+
 	return []string{}, r.validate(cheCluster)
 }
 
@@ -157,6 +163,16 @@ func (r *CheClusterValidator) ensureSingletonCheCluster() error {
 
 	if len(che.Items) != 0 {
 		return fmt.Errorf("only one CheCluster is allowed")
+	}
+
+	return nil
+}
+
+func (r *CheClusterValidator) ensureDevWorkspaceOperatorConfigApiExist() error {
+	k8sHelper := k8shelper.New()
+
+	if !utils.IsK8SResourceServed(k8sHelper.GetClientset().Discovery(), constants.DevWorkspaceOperatorConfigPlural) {
+		return fmt.Errorf(constants.DevWorkspaceOperatorNotExistsErrorMsg)
 	}
 
 	return nil

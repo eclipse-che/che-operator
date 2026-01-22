@@ -14,6 +14,7 @@ package test_client
 
 import (
 	projectv1 "github.com/openshift/api/project/v1"
+	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	batchv1 "k8s.io/api/batch/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -64,6 +65,16 @@ func GetTestClients(initObjs ...client.Object) (client.Client, *fakeDiscovery.Fa
 			},
 		},
 		{
+			APIResources: []metav1.APIResource{
+				{Name: "devworkspaceoperatorconfigs"},
+			},
+		},
+		{
+			APIResources: []metav1.APIResource{
+				{Name: "devworkspaceroutings"},
+			},
+		},
+		{
 			GroupVersion: "che.eclipse.org/v1alpha1",
 			APIResources: []metav1.APIResource{
 				{
@@ -104,6 +115,7 @@ func getScheme() *runtime.Scheme {
 	scheme.AddKnownTypes(networkingv1.SchemeGroupVersion, &networkingv1.Ingress{}, &networkingv1.IngressList{})
 	scheme.AddKnownTypes(batchv1.SchemeGroupVersion, &batchv1.Job{}, &batchv1.JobList{})
 	scheme.AddKnownTypes(projectv1.SchemeGroupVersion, &projectv1.Project{}, &projectv1.ProjectList{})
+	scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.Subscription{}, &operatorsv1alpha1.SubscriptionList{})
 
 	return scheme
 }

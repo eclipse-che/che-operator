@@ -13,6 +13,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 	"time"
@@ -154,6 +155,7 @@ func init() {
 		utilruntime.Must(projectv1.AddToScheme(scheme))
 		utilruntime.Must(securityv1.Install(scheme))
 		utilruntime.Must(templatev1.Install(scheme))
+		utilruntime.Must(operatorsv1alpha1.AddToScheme(scheme))
 	}
 }
 
@@ -187,28 +189,7 @@ func printVersion(logger logr.Logger) {
 	logger.Info("Operator is running on ", "Infrastructure", infra)
 }
 
-// getWatchNamespace returns the Namespace the operator should be watching for changes
-func getWatchNamespace() (string, error) {
-	// WatchNamespaceEnvVar is the constant for env variable WATCH_NAMESPACE
-	// which specifies the Namespace to watch.
-	// An empty value means the operator is running with cluster scope.
-	var watchNamespaceEnvVar = "WATCH_NAMESPACE"
-
-	ns, found := os.LookupEnv(watchNamespaceEnvVar)
-	if !found {
-		return "", fmt.Errorf("%s must be set", watchNamespaceEnvVar)
-	}
-
-	return ns, nil
-}
-
 func main() {
-	watchNamespace, err := getWatchNamespace()
-	if err != nil {
-		setupLog.Error(err, "unable to get WatchNamespace, "+
-			"the manager will watch and manage resources in all namespaces")
-	}
-
 	config := ctrl.GetConfigOrDie()
 
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
@@ -252,12 +233,6 @@ func main() {
 		LeaseDuration:                 &leaseDuration,
 		RenewDeadline:                 &renewDeadline,
 		NewCache:                      cacheFunction,
-
-		// NOTE: We CANNOT limit the manager to a single namespace, because that would limit the
-		// devworkspace routing reconciler to a single namespace, which would make it totally unusable.
-		// Instead, if some controller wants to limit itself to single namespace, it can do it
-		// for example using an event filter, as checontroller does.
-		// Namespace:              watchNamespace,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -270,22 +245,43 @@ func main() {
 		os.Exit(1)
 	}
 
+	terminationPeriod := int64(20)
+	if !test.IsTestMode() {
+		namespace, err := infrastructure.GetOperatorNamespace()
+		if err == nil {
+			terminationPeriod = signal.GetTerminationGracePeriodSeconds(mgr.GetAPIReader(), namespace)
+		}
+	}
+	sigHandler := signal.SetupSignalHandler(terminationPeriod)
+
 	// Setup all Controllers
-	cheReconciler := checontroller.NewReconciler(mgr.GetClient(), nonCachingClient, discoveryClient, mgr.GetScheme(), watchNamespace)
+	cheReconciler := checontroller.NewReconciler(mgr.GetClient(), nonCachingClient, discoveryClient, mgr.GetScheme())
 	if err = cheReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to set up controller", "controller", "CheCluster")
 		os.Exit(1)
 	}
 
-	routing := dwr.DevWorkspaceRoutingReconciler{
-		Client:       mgr.GetClient(),
-		Log:          ctrl.Log.WithName("controllers").WithName("DevWorkspaceRouting"),
-		Scheme:       mgr.GetScheme(),
-		SolverGetter: solver.Getter(mgr.GetScheme()),
-	}
-	if err := routing.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to set up controller", "controller", "DevWorkspaceRouting")
-		os.Exit(1)
+	if utils.IsK8SResourceServed(discoveryClient, constants.DevWorkspaceRoutingPlural) {
+		routing := dwr.DevWorkspaceRoutingReconciler{
+			Client:       mgr.GetClient(),
+			Log:          ctrl.Log.WithName("controllers").WithName("DevWorkspaceRouting"),
+			Scheme:       mgr.GetScheme(),
+			SolverGetter: solver.Getter(mgr.GetScheme()),
+		}
+		if err := routing.SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to set up controller", "controller", "DevWorkspaceRouting")
+			os.Exit(1)
+		}
+	} else {
+		setupLog.Info("DevWorkspaceRouting API is not available.")
+		go waitUntilDevWorkspaceRoutingApiExists(
+			discoveryClient,
+			sigHandler,
+			func() {
+				setupLog.Info("DevWorkspaceRouting API is available. Restarting operator ...")
+				os.Exit(0)
+			},
+		)
 	}
 
 	namespacecache := namespacecache.NewNamespaceCache(nonCachingClient)
@@ -301,15 +297,6 @@ func main() {
 		setupLog.Error(err, "unable to set up controller", "controller", "WorkspacesConfigReconciler")
 		os.Exit(1)
 	}
-
-	terminationPeriod := int64(20)
-	if !test.IsTestMode() {
-		namespace, err := infrastructure.GetOperatorNamespace()
-		if err == nil {
-			terminationPeriod = signal.GetTerminationGracePeriodSeconds(mgr.GetAPIReader(), namespace)
-		}
-	}
-	sigHandler := signal.SetupSignalHandler(terminationPeriod)
 
 	// we install the devworkspace CheCluster reconciler even if dw is not supported so that it
 	// can write meaningful status messages into the CheCluster CRs.
@@ -412,4 +399,24 @@ func getCacheFunc() (cache.NewCacheFunc, error) {
 		opts.ByObject = selectors
 		return cache.New(config, opts)
 	}, nil
+}
+
+func waitUntilDevWorkspaceRoutingApiExists(
+	discoveryClient discovery.DiscoveryInterface,
+	context context.Context,
+	callback func(),
+) {
+	ticker := time.NewTicker(60 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			if utils.IsK8SResourceServed(discoveryClient, constants.DevWorkspaceRoutingPlural) {
+				callback()
+			}
+		case <-context.Done():
+			return
+		}
+	}
 }
