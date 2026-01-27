@@ -15,8 +15,8 @@ package che
 import (
 	"fmt"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )

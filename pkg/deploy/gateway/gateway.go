@@ -13,17 +13,16 @@
 package gateway
 
 import (
-	"context"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	"sigs.k8s.io/yaml"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/sirupsen/logrus"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
@@ -38,12 +37,10 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -209,31 +206,6 @@ func generateOauthSecretSpec(deployContext *chetypes.DeployContext) *corev1.Secr
 	}
 }
 
-func delete(clusterAPI chetypes.ClusterAPI, obj metav1.Object) error {
-	key := client.ObjectKey{Name: obj.GetName(), Namespace: obj.GetNamespace()}
-	ro := obj.(client.Object)
-	if getErr := clusterAPI.Client.Get(context.TODO(), key, ro); getErr == nil {
-		if err := clusterAPI.Client.Delete(context.TODO(), ro); err != nil {
-			if !errors.IsNotFound(err) {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func DeleteGatewayRouteConfig(componentName string, deployContext *chetypes.DeployContext) error {
-	obj := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      GatewayConfigMapNamePrefix + componentName,
-			Namespace: deployContext.CheCluster.Namespace,
-		},
-	}
-
-	return delete(deployContext.ClusterAPI, obj)
-}
-
 // below functions declare the desired states of the various objects required for the gateway
 
 func getGatewayServerConfigSpec(deployContext *chetypes.DeployContext) (corev1.ConfigMap, error) {
@@ -247,7 +219,8 @@ func getGatewayServerConfigSpec(deployContext *chetypes.DeployContext) (corev1.C
 	if deployContext.CheCluster.IsAccessTokenConfigured() {
 		cfg.AddAuthHeaderRewrite(serverComponentName)
 	}
-	if infrastructure.IsOpenShift() {
+
+	if infrastructure.IsOpenShiftOAuthEnabled() {
 		// native user mode is currently only available on OpenShift but let's be defensive here so that
 		// this doesn't break once we enable it on Kubernetes, too. Token check will have to work
 		// differently on Kuberentes.
@@ -624,7 +597,7 @@ func getContainersSpec(ctx *chetypes.DeployContext) []corev1.Container {
 
 	containers = append(containers,
 		getOauthProxyContainerSpec(ctx),
-		getKubeRbacProxyContainerSpec(ctx.CheCluster))
+		getKubeRbacProxyContainerSpec(ctx))
 
 	return containers
 }

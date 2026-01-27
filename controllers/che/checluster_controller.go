@@ -31,8 +31,8 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	containerbuild "github.com/eclipse-che/che-operator/pkg/deploy/container-capabilities"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/consolelink"
@@ -110,7 +110,7 @@ func NewReconciler(
 	// resources since che host is used for dashboard deployment and che config map
 	reconcilerManager.AddReconciler(server.NewCheHostReconciler())
 	reconcilerManager.AddReconciler(postgres.NewPostgresReconciler())
-	if infrastructure.IsOpenShift() {
+	if infrastructure.IsOpenShiftOAuthEnabled() {
 		reconcilerManager.AddReconciler(identityprovider.NewIdentityProviderReconciler())
 	}
 	reconcilerManager.AddReconciler(devfileregistry.NewDevfileRegistryReconciler())

@@ -21,7 +21,7 @@ import (
 	devfile "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
@@ -43,7 +43,7 @@ func TestCheClusterDefaultsCleanerShouldNotChangeValuesOnInstallation(t *testing
 	testCases := []testCase{
 		{
 			name:  "Che is being installed, nothing changed",
-			infra: infrastructure.OpenShiftv4,
+			infra: infrastructure.OpenShiftV4,
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
@@ -132,7 +132,7 @@ func TestCheClusterDefaultsCleanerDefaultEditor(t *testing.T) {
 	testCases := []testCase{
 		{
 			name:  "Case #1",
-			infra: infrastructure.OpenShiftv4,
+			infra: infrastructure.OpenShiftV4,
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
@@ -146,7 +146,7 @@ func TestCheClusterDefaultsCleanerDefaultEditor(t *testing.T) {
 		},
 		{
 			name:  "Case #2",
-			infra: infrastructure.OpenShiftv4,
+			infra: infrastructure.OpenShiftV4,
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
@@ -165,7 +165,7 @@ func TestCheClusterDefaultsCleanerDefaultEditor(t *testing.T) {
 		},
 		{
 			name:  "Case #3",
-			infra: infrastructure.OpenShiftv4,
+			infra: infrastructure.OpenShiftV4,
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
@@ -216,7 +216,7 @@ func TestCheClusterDefaultsCleanerDefaultComponents(t *testing.T) {
 	testCases := []testCase{
 		{
 			name:  "Case #1",
-			infra: infrastructure.OpenShiftv4,
+			infra: infrastructure.OpenShiftV4,
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
@@ -230,7 +230,7 @@ func TestCheClusterDefaultsCleanerDefaultComponents(t *testing.T) {
 		},
 		{
 			name:  "Case #2",
-			infra: infrastructure.OpenShiftv4,
+			infra: infrastructure.OpenShiftV4,
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
@@ -260,7 +260,7 @@ func TestCheClusterDefaultsCleanerDefaultComponents(t *testing.T) {
 		},
 		{
 			name:  "Case #3",
-			infra: infrastructure.OpenShiftv4,
+			infra: infrastructure.OpenShiftV4,
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
@@ -530,7 +530,7 @@ func TestCheClusterDefaultsCleanerDisableContainerBuildCapabilities(t *testing.T
 	testCases := []testCase{
 		{
 			name:  "OpenShift case #1",
-			infra: infrastructure.OpenShiftv4,
+			infra: infrastructure.OpenShiftV4,
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
@@ -544,7 +544,7 @@ func TestCheClusterDefaultsCleanerDisableContainerBuildCapabilities(t *testing.T
 		},
 		{
 			name:  "OpenShift case #2",
-			infra: infrastructure.OpenShiftv4,
+			infra: infrastructure.OpenShiftV4,
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
