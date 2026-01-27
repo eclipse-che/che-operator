@@ -17,8 +17,9 @@ import (
 	"slices"
 	"strconv"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 
 	"github.com/google/go-cmp/cmp/cmpopts"

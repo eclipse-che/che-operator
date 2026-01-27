@@ -20,12 +20,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type ProvisioningStatus struct {
-	Continue bool
-	Requeue  bool
-	Err      error
-}
-
 type DeployContext struct {
 	CheCluster              *chev2.CheCluster
 	ClusterAPI              ClusterAPI

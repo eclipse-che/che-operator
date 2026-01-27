@@ -18,9 +18,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	devfile "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev1 "github.com/eclipse-che/che-operator/api/v1"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -68,7 +68,7 @@ func TestConvertFromIngressOnK8s(t *testing.T) {
 }
 
 func TestConvertFromIngressOnOpenShift(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 
 	checlusterv2 := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -523,7 +523,7 @@ func TestConvertFrom(t *testing.T) {
 }
 
 func TestShouldConvertFromWhenOnlyMemoryResourceSpecified(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 
 	memoryRequest := resource.MustParse("128Mi")
 	memoryLimit := resource.MustParse("228Mi")

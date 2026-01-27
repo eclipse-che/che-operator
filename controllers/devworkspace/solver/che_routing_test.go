@@ -25,9 +25,9 @@ import (
 
 	dwCommon "github.com/devfile/devworkspace-operator/pkg/common"
 	dwConstants "github.com/devfile/devworkspace-operator/pkg/constants"
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	corev1 "k8s.io/api/core/v1"
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -613,7 +613,7 @@ func TestCreateRelocatedObjectsK8SLegacy(t *testing.T) {
 }
 
 func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 
 	cl, _, objs := getSpecObjects(t, relocatableDevWorkspaceRouting())
 
@@ -717,7 +717,7 @@ func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 }
 
 func TestCreateRelocatedObjectsOpenshiftLegacy(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 
 	cl, _, objs := getSpecObjectsForManager(t, &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -826,7 +826,7 @@ func TestCreateRelocatedObjectsOpenshiftLegacy(t *testing.T) {
 func TestUniqueMainEndpoint(t *testing.T) {
 	wsid := "wsid123"
 
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 	cl, _, _ := getSpecObjects(t, &dwo.DevWorkspaceRouting{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "routing",
@@ -909,7 +909,7 @@ func TestUniqueMainEndpoint(t *testing.T) {
 func TestUniqueMainEndpointLegacy(t *testing.T) {
 	wsid := "wsid123"
 
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 
 	routing := &dwo.DevWorkspaceRouting{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1056,7 +1056,7 @@ func TestCreateSubDomainObjects(t *testing.T) {
 	})
 
 	t.Run("expectedRoutes", func(t *testing.T) {
-		objs := testCommon(infrastructure.OpenShiftv4)
+		objs := testCommon(infrastructure.OpenShiftV4)
 		if len(objs.Routes) != 3 {
 			t.Error("Expected 3 Routes, found ", len(objs.Routes))
 		}
@@ -1130,7 +1130,7 @@ func TestCreateSubDomainObjectsLegacy(t *testing.T) {
 	})
 
 	t.Run("expectedRoutes", func(t *testing.T) {
-		objs := testCommon(infrastructure.OpenShiftv4)
+		objs := testCommon(infrastructure.OpenShiftV4)
 		if len(objs.Routes) != 3 {
 			t.Error("Expected 3 Routes, found ", len(objs.Routes))
 		}
@@ -1815,7 +1815,7 @@ func TestUsesEndpointAnnotationsForWorkspaceEndpointIngresses(t *testing.T) {
 }
 
 func TestUsesEndpointAnnotationsForWorkspaceEndpointRoutes(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 
 	mgr := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1858,7 +1858,7 @@ func TestUsesEndpointAnnotationsForWorkspaceEndpointRoutes(t *testing.T) {
 }
 
 func TestUsesEndpointServiceWithDiscoverableAttributeSetRoutes(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 
 	mgr := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -2035,7 +2035,7 @@ func TestUsesCustomCertificateForWorkspaceEndpointIngresses(t *testing.T) {
 }
 
 func TestUsesCustomCertificateForWorkspaceEndpointRoutes(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 
 	mgr := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
