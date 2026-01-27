@@ -20,6 +20,7 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -84,7 +85,7 @@ func (ip *ImagePuller) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result,
 	}
 
 	if ctx.CheCluster.Spec.Components.ImagePuller.Enable {
-		if !utils.IsK8SResourceServed(ctx.ClusterAPI.DiscoveryClient, resourceName) {
+		if !infrastructure.IsKubernetesImagePullerEnabled() {
 			errMsg := "Kubernetes Image Puller is not installed, in order to enable the property admin should install the operator first"
 			return reconcile.Result{}, false, errors.New(errMsg)
 		}
@@ -114,7 +115,7 @@ func (ip *ImagePuller) uninstallImagePuller(ctx *chetypes.DeployContext) (bool, 
 		return false, err
 	}
 
-	if utils.IsK8SResourceServed(ctx.ClusterAPI.DiscoveryClient, resourceName) {
+	if infrastructure.IsKubernetesImagePullerEnabled() {
 		if done, err := deploy.DeleteByKeyWithClient(
 			ctx.ClusterAPI.NonCachingClient,
 			types.NamespacedName{

@@ -25,7 +25,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"

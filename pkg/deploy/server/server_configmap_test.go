@@ -58,7 +58,6 @@ func TestNewCheConfigMap(t *testing.T) {
 				},
 			},
 			expectedData: map[string]string{
-				"CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER": "openshift-v4",
 				"CHE_API":                "https://che-host/api",
 				"CHE_WORKSPACE_NO_PROXY": "myproxy.myhostname.com",
 			},

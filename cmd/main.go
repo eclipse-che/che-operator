@@ -17,6 +17,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
+	oauthv1 "github.com/openshift/api/oauth/v1"
+	userv1 "github.com/openshift/api/user/v1"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
@@ -33,8 +36,6 @@ import (
 	securityv1 "github.com/openshift/api/security/v1"
 
 	dwoApi "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
-	devworkspaceinfra "github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/eclipse-che/che-operator/controllers/devworkspace"
@@ -63,11 +64,9 @@ import (
 	"github.com/go-logr/logr"
 	configv1 "github.com/openshift/api/config/v1"
 	consolev1 "github.com/openshift/api/console/v1"
-	oauthv1 "github.com/openshift/api/oauth/v1"
 	templatev1 "github.com/openshift/api/template/v1"
 
 	checontroller "github.com/eclipse-che/che-operator/controllers/che"
-	"github.com/eclipse-che/che-operator/pkg/common/utils"
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -80,7 +79,6 @@ import (
 	imagepullerapi "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
 	projectv1 "github.com/openshift/api/project/v1"
 	routev1 "github.com/openshift/api/route/v1"
-	userv1 "github.com/openshift/api/user/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -102,10 +100,6 @@ var (
 	renewDeadline = 30 * time.Second
 )
 
-const (
-	leasesApiResourceName = "leases"
-)
-
 func init() {
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":60000", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":6789", "The address the probe endpoint binds to.")
@@ -122,11 +116,6 @@ func init() {
 
 	logger := zap.New(zap.UseFlagOptions(&opts))
 	ctrl.SetLogger(logger)
-
-	if err := infrastructure.Initialize(); err != nil {
-		logger.Error(err, "Unable determine installation platform")
-		os.Exit(1)
-	}
 
 	defaults.Initialize()
 
@@ -146,14 +135,19 @@ func init() {
 	utilruntime.Must(corev1.AddToScheme(scheme))
 
 	if infrastructure.IsOpenShift() {
-		utilruntime.Must(routev1.AddToScheme(scheme))
-		utilruntime.Must(oauthv1.AddToScheme(scheme))
-		utilruntime.Must(userv1.AddToScheme(scheme))
-		utilruntime.Must(configv1.AddToScheme(scheme))
-		utilruntime.Must(consolev1.AddToScheme(scheme))
-		utilruntime.Must(projectv1.AddToScheme(scheme))
+		utilruntime.Must(routev1.Install(scheme))
+		utilruntime.Must(configv1.Install(scheme))
+		utilruntime.Must(consolev1.Install(scheme))
+		utilruntime.Must(projectv1.Install(scheme))
 		utilruntime.Must(securityv1.Install(scheme))
 		utilruntime.Must(templatev1.Install(scheme))
+	}
+
+	// User and OAuthClient API are disabled in case of external IDP
+	// Check API before adding to the scheme
+	if infrastructure.IsOpenShiftOAuthEnabled() {
+		utilruntime.Must(userv1.Install(scheme))
+		utilruntime.Must(oauthv1.Install(scheme))
 	}
 }
 
@@ -182,7 +176,7 @@ func printVersion(logger logr.Logger) {
 
 	infra := "Kubernetes"
 	if infrastructure.IsOpenShift() {
-		infra = "OpenShift v4.x"
+		infra = "OpenShift"
 	}
 	logger.Info("Operator is running on ", "Infrastructure", infra)
 }
@@ -217,21 +211,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	if !utils.IsK8SResourceServed(discoveryClient, leasesApiResourceName) {
-		setupLog.Info("Leader election was disabled", "Cause:", leasesApiResourceName+"k8s api resource is an absent.")
+	if !infrastructure.IsLeaderElectionEnabled() {
+		setupLog.Info("Leader election disabled")
 		enableLeaderElection = false
 	}
 
 	// Add the Dev Workspace API to the scheme
 	if err := dwoApi.AddToScheme(scheme); err != nil {
 		setupLog.Error(err, "Dev Workspace Operator is not installed")
-		os.Exit(1)
-	}
-
-	// DWO use the infrastructure package for openshift detection. It needs to be initialized
-	// but only supports OpenShift v4 or Kubernetes.
-	if err := devworkspaceinfra.Initialize(); err != nil {
-		setupLog.Error(err, "failed to evaluate infrastructure which is needed for DevWorkspace support")
 		os.Exit(1)
 	}
 
@@ -403,9 +390,12 @@ func getCacheFunc() (cache.NewCacheFunc, error) {
 	}
 
 	if infrastructure.IsOpenShift() {
-		selectors[&oauthv1.OAuthClient{}] = cache.ByObject{Label: partOfCheObjectSelector}
 		selectors[&routev1.Route{}] = cache.ByObject{Label: partOfCheObjectSelector}
 		selectors[&templatev1.Template{}] = cache.ByObject{Label: partOfCheObjectSelector}
+	}
+
+	if infrastructure.IsOpenShiftOAuthEnabled() {
+		selectors[&oauthv1.OAuthClient{}] = cache.ByObject{Label: partOfCheObjectSelector}
 	}
 
 	return func(config *rest.Config, opts cache.Options) (cache.Cache, error) {

@@ -18,9 +18,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -54,11 +54,9 @@ type CheConfigMap struct {
 	PvcClaimSize                         string `json:"CHE_INFRA_KUBERNETES_PVC_QUANTITY"`
 	WorkspacePvcStorageClassName         string `json:"CHE_INFRA_KUBERNETES_PVC_STORAGE__CLASS__NAME"`
 	TlsSupport                           string `json:"CHE_INFRA_OPENSHIFT_TLS__ENABLED"`
+	OpenShiftOAuthEnabled                string `json:"CHE_INFRA_OPENSHIFT_OAUTH__ENABLED"`
 	K8STrustCerts                        string `json:"CHE_INFRA_KUBERNETES_TRUST__CERTS"`
 	CheLogLevel                          string `json:"CHE_LOG_LEVEL"`
-	IdentityProviderUrl                  string `json:"CHE_OIDC_AUTH__SERVER__URL,omitempty"`
-	IdentityProviderInternalURL          string `json:"CHE_OIDC_AUTH__INTERNAL__SERVER__URL,omitempty"`
-	OpenShiftIdentityProvider            string `json:"CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"`
 	JavaOpts                             string `json:"JAVA_OPTS"`
 	PluginRegistryUrl                    string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__URL,omitempty"`
 	PluginRegistryInternalUrl            string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL,omitempty"`
@@ -74,13 +72,9 @@ type CheConfigMap struct {
 // GetCheConfigMapData gets env values from CR spec and returns a map with key:value
 // which is used in CheCluster ConfigMap to configure CheCluster master behavior
 func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (cheEnv map[string]string, err error) {
-	identityProviderURL := ctx.CheCluster.Spec.Networking.Auth.IdentityProviderURL
-
 	infra := "kubernetes"
-	openShiftIdentityProviderId := "NULL"
 	if infrastructure.IsOpenShift() {
 		infra = "openshift"
-		openShiftIdentityProviderId = "openshift-v4"
 	}
 
 	proxyJavaOpts := ""
@@ -167,7 +161,6 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 		TlsSupport:                           "true",
 		K8STrustCerts:                        "true",
 		CheLogLevel:                          cheLogLevel,
-		OpenShiftIdentityProvider:            openShiftIdentityProviderId,
 		JavaOpts:                             constants.DefaultJavaOpts + " " + proxyJavaOpts,
 		PluginRegistryUrl:                    pluginRegistryURL,
 		PluginRegistryInternalUrl:            pluginRegistryInternalURL,
@@ -178,14 +171,13 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 		WorkspaceExposure:                    "gateway",
 		SingleHostGatewayConfigMapLabels:     singleHostGatewayConfigMapLabels,
 		CheDevWorkspacesEnabled:              strconv.FormatBool(true),
+		OpenShiftOAuthEnabled:                strconv.FormatBool(infrastructure.IsOpenShiftOAuthEnabled()),
 		// Disable HTTP2 protocol.
 		// Fix issue with creating config maps on the cluster https://issues.redhat.com/browse/CRW-2677
 		// The root cause is in the HTTP2 protocol support of the okttp3 library that is used by fabric8.kubernetes-client that is used by che-server
 		// In the past, when che-server used Java 8, HTTP1 protocol was used. Now che-sever uses Java 11
 		Http2Disable: strconv.FormatBool(true),
 	}
-
-	data.IdentityProviderUrl = identityProviderURL
 
 	out, err := json.Marshal(data)
 	if err != nil {

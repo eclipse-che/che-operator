@@ -15,7 +15,6 @@ package dashboard
 import (
 	"fmt"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	rbacv1 "k8s.io/api/rbac/v1"
 )
@@ -53,17 +52,6 @@ func GetPrivilegedPoliciesRulesForKubernetes() []rbacv1.PolicyRule {
 			Resources: []string{"configmaps"},
 			Verbs:     []string{"get", "list"},
 		},
-	}
-
-	if !infrastructure.IsOpenShift() {
-		rules = append(rules,
-			// on Kubernetes, Dashboard stores user preferences in secrets with SA
-			// until native auth is not implemented there as well
-			rbacv1.PolicyRule{
-				APIGroups: []string{""},
-				Resources: []string{"secrets"},
-				Verbs:     []string{"get", "create", "update", "list"},
-			})
 	}
 
 	return rules

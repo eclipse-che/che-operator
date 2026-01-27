@@ -17,9 +17,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
@@ -218,11 +218,15 @@ func addPartOfCheLabelForObjectsWithLabel(ctx *chetypes.DeployContext, labelKey 
 		&rbacv1.ClusterRoleBindingList{},
 		&corev1.PersistentVolumeClaimList{},
 	}
+
 	if infrastructure.IsOpenShift() {
 		kindsToMigrate = append(kindsToMigrate, &routev1.RouteList{})
-		kindsToMigrate = append(kindsToMigrate, &oauthv1.OAuthClientList{})
 	} else {
 		kindsToMigrate = append(kindsToMigrate, &networkingv1.IngressList{})
+	}
+
+	if infrastructure.IsOpenShiftOAuthEnabled() {
+		kindsToMigrate = append(kindsToMigrate, &oauthv1.OAuthClientList{})
 	}
 
 	for _, listToGet := range kindsToMigrate {

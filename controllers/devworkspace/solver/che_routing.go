@@ -35,9 +35,9 @@ import (
 	"github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers"
 	"github.com/devfile/devworkspace-operator/pkg/common"
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	dwdefaults "github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	routeV1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -677,7 +677,7 @@ func routeForHealthzEndpoint(cfg *gateway.TraefikConfig, dwId string, endpoints 
 		for _, e := range endpoints {
 			if e.Attributes.GetString(string(dwo.TypeEndpointAttribute), nil) == string(dwo.MainEndpointType) {
 				middlewares := []string{dwId + gateway.StripPrefixMiddlewareSuffix}
-				if infrastructure.IsOpenShift() {
+				if infrastructure.IsOpenShiftOAuthEnabled() {
 					middlewares = append(middlewares, dwId+gateway.HeaderRewriteMiddlewareSuffix)
 				}
 				routeName, endpointPath := endpointStrategy.getEndpointPath(&e, componentName)
