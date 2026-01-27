@@ -111,11 +111,11 @@ func initializeIfNeeded() {
 	}
 
 	if hasAPIGroup(apiGroups, "route.openshift.io") {
-		infrastructure = Kubernetes
-		isOpenShiftOAuthEnabled = false
-	} else {
 		infrastructure = OpenShiftV4
 		isOpenShiftOAuthEnabled = hasAPIResource(apiResources, OAuthClientsResources)
+	} else {
+		infrastructure = Kubernetes
+		isOpenShiftOAuthEnabled = false
 	}
 
 	isLeaderElectionEnabled = hasAPIResource(apiResources, LeasesResources)
