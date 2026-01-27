@@ -17,6 +17,7 @@ import (
 	"os"
 	"time"
 
+	dwInfra "github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	userv1 "github.com/openshift/api/user/v1"
@@ -197,6 +198,11 @@ func getWatchNamespace() (string, error) {
 }
 
 func main() {
+	if err := dwInfra.Initialize(); err != nil {
+		setupLog.Error(err, "Failed to initialize infrastructure")
+		os.Exit(1)
+	}
+
 	watchNamespace, err := getWatchNamespace()
 	if err != nil {
 		setupLog.Error(err, "unable to get WatchNamespace, "+
