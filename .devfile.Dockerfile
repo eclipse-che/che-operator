@@ -1,9 +1,8 @@
 FROM quay.io/devfile/universal-developer-image:ubi8-latest
 
-#install Go 1.24.7
-RUN cd /tmp && wget https://go.dev/dl/go1.24.7.linux-amd64.tar.gz && \
-        mkdir $HOME/go1.24.7 && \
-        tar -xvzf go1.24.7.linux-amd64.tar.gz -C $HOME/go1.24.7 --strip-components 1 && \
+RUN cd /tmp && wget https://go.dev/dl/go1.25.5.linux-amd64.tar.gz && \
+        mkdir $HOME/go1.25.5 && \
+        tar -xvzf go1.25.5.linux-amd64.tar.gz -C $HOME/go1.25.5 --strip-components 1 && \
         if ! grep -q "export PATH=\$HOME/go1.19/bin:\$PATH" $HOME/.bashrc; then echo "export PATH=\$HOME/go1.24.7/bin:\$PATH" >> $HOME/.bashrc; fi
 
 # install chectl
@@ -14,4 +13,4 @@ RUN tag=$(curl https://api.github.com/repos/che-incubator/chectl/tags | jq -r '.
         if ! grep -q "export PATH=\$HOME/chectl/bin:\$PATH" $HOME/.bashrc; then echo "export PATH=\$HOME/chectl/bin:\$PATH" >> $HOME/.bashrc; fi
 
 # install goimports
-RUN $HOME/go1.24.7/bin/go install golang.org/x/tools/cmd/goimports@latest
+RUN $HOME/go1.25.5/bin/go install golang.org/x/tools/cmd/goimports@latest

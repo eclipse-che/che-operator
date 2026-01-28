@@ -10,7 +10,7 @@
 #
 
 # https://registry.access.redhat.com/ubi8
-FROM registry.access.redhat.com/ubi8:8.10-1184.1741863532 as builder
+FROM registry.access.redhat.com/ubi8:8.10-1304.1751400627 as builder
 ENV GOPATH=/go
 ENV CGO_ENABLED=1
 ARG DEV_HEADER_REWRITE_TRAEFIK_PLUGIN="main"
@@ -18,7 +18,7 @@ ARG SKIP_TESTS="false"
 USER root
 
 ### Start installing go
-ENV GO_VERSION=1.24.7
+ENV GO_VERSION=1.25.5
 ENV GOROOT=/usr/local/go
 ENV PATH=$PATH:$GOROOT/bin
 RUN dnf install unzip gcc -y

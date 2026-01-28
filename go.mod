@@ -1,8 +1,6 @@
 module github.com/eclipse-che/che-operator
 
-go 1.24.0
-
-toolchain go1.24.4
+go 1.25.5
 
 require (
 	github.com/che-incubator/kubernetes-image-puller-operator v0.0.0-20250214104625-65e5ec32f521
