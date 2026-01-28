@@ -59,7 +59,6 @@ type CheConfigMap struct {
 	CheLogLevel                          string `json:"CHE_LOG_LEVEL"`
 	IdentityProviderUrl                  string `json:"CHE_OIDC_AUTH__SERVER__URL,omitempty"`
 	IdentityProviderInternalURL          string `json:"CHE_OIDC_AUTH__INTERNAL__SERVER__URL,omitempty"`
-	OpenShiftIdentityProvider            string `json:"CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"`
 	JavaOpts                             string `json:"JAVA_OPTS"`
 	PluginRegistryUrl                    string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__URL,omitempty"`
 	PluginRegistryInternalUrl            string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL,omitempty"`
@@ -78,10 +77,8 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 	identityProviderURL := ctx.CheCluster.Spec.Networking.Auth.IdentityProviderURL
 
 	infra := "kubernetes"
-	openShiftIdentityProviderId := "NULL"
 	if infrastructure.IsOpenShift() {
 		infra = "openshift"
-		openShiftIdentityProviderId = "openshift-v4"
 	}
 
 	proxyJavaOpts := ""
@@ -168,7 +165,6 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 		TlsSupport:                           "true",
 		K8STrustCerts:                        "true",
 		CheLogLevel:                          cheLogLevel,
-		OpenShiftIdentityProvider:            openShiftIdentityProviderId,
 		JavaOpts:                             constants.DefaultJavaOpts + " " + proxyJavaOpts,
 		PluginRegistryUrl:                    pluginRegistryURL,
 		PluginRegistryInternalUrl:            pluginRegistryInternalURL,
