@@ -76,6 +76,7 @@ type CheConfigMap struct {
 // which is used in CheCluster ConfigMap to configure CheCluster master behavior
 func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (cheEnv map[string]string, err error) {
 	identityProviderURL := ctx.CheCluster.Spec.Networking.Auth.IdentityProviderURL
+
 	infra := "kubernetes"
 	openShiftIdentityProviderId := "NULL"
 	if infrastructure.IsOpenShift() {
@@ -186,6 +187,7 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 		Http2Disable: strconv.FormatBool(true),
 	}
 
+	data.IdentityProviderUrl = identityProviderURL
 	out, err := json.Marshal(data)
 	if err != nil {
 		fmt.Println(err)
