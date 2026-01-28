@@ -18,10 +18,10 @@ jobs:
     steps:
     - name: Checkout source code
       uses: actions/checkout@v4
-    - name: Set up Go 1.23.8
+    - name: Set up Go 1.25.5
       uses: actions/setup-go@v3
       with:
-        go-version: 1.23.8
+        go-version: 1.25.5
     - name: Run unit tests
       run: make test
   multiplatform-image-build:
@@ -47,10 +47,10 @@ jobs:
     steps:
     - name: Checkout source code
       uses: actions/checkout@v4
-    - name: Set up Go 1.23.8
+    - name: Set up Go 1.25.5
       uses: actions/setup-go@v3
       with:
-        go-version: 1.23.8
+        go-version: 1.25.5
     - name: Cache go modules
       id: cache-mod
       uses: actions/cache@v3
