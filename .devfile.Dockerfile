@@ -13,4 +13,4 @@ RUN tag=$(curl https://api.github.com/repos/che-incubator/chectl/tags | jq -r '.
         if ! grep -q "export PATH=\$HOME/chectl/bin:\$PATH" $HOME/.bashrc; then echo "export PATH=\$HOME/chectl/bin:\$PATH" >> $HOME/.bashrc; fi
 
 # install goimports
-RUN $HOME/go1.24.7/bin/go install golang.org/x/tools/cmd/goimports@latest
+RUN $HOME/go1.25.5/bin/go install golang.org/x/tools/cmd/goimports@latest
