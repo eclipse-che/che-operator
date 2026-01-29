@@ -95,7 +95,7 @@ components:
       command:
         - sh
         - -c
-        - "cp /usr/sbin/sshd /usr/bin/ssh-keygen /usr/bin/tar /usr/bin/gzip /usr/lib64/libnss_wrapper.so /usr/lib64/libpam.so.0 /usr/lib64/libeconf.so.0 /usr/lib64/libcrypt.so.2 /etc/ssh/sshd_config /sshd.start /sshd/ & while [ ! -e /sshd/username ]; do sleep 1s; done; pushd /opt/www/ && exec node /opt/www/server.js"
+        - "cp /usr/sbin/sshd /usr/bin/ssh-keygen /usr/bin/tar /usr/bin/gzip /usr/bin/which /usr/lib64/libnss_wrapper.so /usr/lib64/libpam.so.0 /usr/lib64/libeconf.so.0 /usr/lib64/libcrypt.so.2 /etc/ssh/sshd_config /sshd.start /sshd/ & while [ ! -e /sshd/username ]; do sleep 1s; done; pushd /opt/www/ && exec node /opt/www/server.js"
       endpoints:
         - name: che-code-sshd
           attributes:
