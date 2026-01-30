@@ -15,9 +15,9 @@ package solver
 import (
 	"testing"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	controller "github.com/eclipse-che/che-operator/controllers/devworkspace"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -100,7 +100,7 @@ func TestExternalTLSConfigForIngresses(t *testing.T) {
 }
 
 func TestExternalTLSConfigForRoutes(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 
 	mgr := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{

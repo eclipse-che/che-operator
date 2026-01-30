@@ -19,13 +19,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"k8s.io/utils/pointer"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
@@ -1099,7 +1099,7 @@ func (c *CheCluster) GetIdentityToken() string {
 		return c.Spec.Networking.Auth.IdentityToken
 	}
 
-	if infrastructure.IsOpenShift() {
+	if infrastructure.IsOpenShiftOAuthEnabled() {
 		return constants.AccessToken
 	}
 	return constants.IdToken

@@ -15,6 +15,8 @@ package gateway
 import (
 	"strconv"
 
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -52,15 +54,22 @@ authorization:
 	}
 }
 
-func getKubeRbacProxyContainerSpec(instance *chev2.CheCluster) corev1.Container {
+func getKubeRbacProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
 	logLevel := constants.DefaultKubeRbacProxyLogLevel
-	if instance.Spec.Networking.Auth.Gateway.KubeRbacProxy != nil && instance.Spec.Networking.Auth.Gateway.KubeRbacProxy.LogLevel != nil {
-		logLevel = *instance.Spec.Networking.Auth.Gateway.KubeRbacProxy.LogLevel
+	if ctx.CheCluster.Spec.Networking.Auth.Gateway.KubeRbacProxy != nil && ctx.CheCluster.Spec.Networking.Auth.Gateway.KubeRbacProxy.LogLevel != nil {
+		logLevel = *ctx.CheCluster.Spec.Networking.Auth.Gateway.KubeRbacProxy.LogLevel
+	}
+
+	var image string
+	if infrastructure.IsOpenShiftOAuthEnabled() {
+		image = defaults.GetGatewayOpenShiftAuthorizationSidecarImage(ctx.CheCluster)
+	} else {
+		image = defaults.GetGatewayKubernetesAuthorizationSidecarImage(ctx.CheCluster)
 	}
 
 	return corev1.Container{
 		Name:            "kube-rbac-proxy",
-		Image:           defaults.GetGatewayAuthorizationSidecarImage(instance),
+		Image:           image,
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		Args: []string{
 			"--insecure-listen-address=0.0.0.0:8089",

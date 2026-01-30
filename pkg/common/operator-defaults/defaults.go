@@ -17,10 +17,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	util "github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -35,8 +35,10 @@ var (
 	defaultCheTLSSecretsCreationJobImage                    string
 	defaultSingleHostGatewayImage                           string
 	defaultSingleHostGatewayConfigSidecarImage              string
-	defaultGatewayAuthenticationSidecarImage                string
-	defaultGatewayAuthorizationSidecarImage                 string
+	defaultGatewayKubernetesAuthenticationSidecarImage      string
+	defaultGatewayKubernetesAuthorizationSidecarImage       string
+	defaultGatewayOpenShiftAuthenticationSidecarImage       string
+	defaultGatewayOpenShiftAuthorizationSidecarImage        string
 	defaultConsoleLinkName                                  string
 	defaultConsoleLinkDisplayName                           string
 	defaultConsoleLinkSection                               string
@@ -90,14 +92,15 @@ func Initialize() {
 	defaultPluginRegistryImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_plugin_registry"))
 	defaultSingleHostGatewayImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_single_host_gateway"))
 	defaultSingleHostGatewayConfigSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_single_host_gateway_config_sidecar"))
-	defaultGatewayAuthenticationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authentication_sidecar"))
-	defaultGatewayAuthorizationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authorization_sidecar"))
+
+	defaultGatewayOpenShiftAuthenticationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authentication_sidecar"))
+	defaultGatewayOpenShiftAuthorizationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authorization_sidecar"))
+	defaultGatewayKubernetesAuthenticationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authentication_sidecar_k8s"))
+	defaultGatewayKubernetesAuthorizationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authorization_sidecar_k8s"))
 
 	// Don't get some k8s specific env
 	if !infrastructure.IsOpenShift() {
 		defaultCheTLSSecretsCreationJobImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_che_tls_secrets_creation_job"))
-		defaultGatewayAuthenticationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authentication_sidecar_k8s"))
-		defaultGatewayAuthorizationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authorization_sidecar_k8s"))
 	}
 
 	initialized = true
@@ -168,20 +171,36 @@ func GetGatewayConfigSidecarImage(checluster interface{}) string {
 	return PatchDefaultImageName(checluster, defaultSingleHostGatewayConfigSidecarImage)
 }
 
-func GetGatewayAuthenticationSidecarImage(checluster interface{}) string {
+func GetGatewayKubernetesAuthenticationSidecarImage(checluster interface{}) string {
 	if !initialized {
 		logrus.Fatalf("Operator defaults are not initialized.")
 	}
 
-	return PatchDefaultImageName(checluster, defaultGatewayAuthenticationSidecarImage)
+	return PatchDefaultImageName(checluster, defaultGatewayKubernetesAuthenticationSidecarImage)
 }
 
-func GetGatewayAuthorizationSidecarImage(checluster interface{}) string {
+func GetGatewayKubernetesAuthorizationSidecarImage(checluster interface{}) string {
 	if !initialized {
 		logrus.Fatalf("Operator defaults are not initialized.")
 	}
 
-	return PatchDefaultImageName(checluster, defaultGatewayAuthorizationSidecarImage)
+	return PatchDefaultImageName(checluster, defaultGatewayKubernetesAuthorizationSidecarImage)
+}
+
+func GetGatewayOpenShiftAuthenticationSidecarImage(checluster interface{}) string {
+	if !initialized {
+		logrus.Fatalf("Operator defaults are not initialized.")
+	}
+
+	return PatchDefaultImageName(checluster, defaultGatewayOpenShiftAuthenticationSidecarImage)
+}
+
+func GetGatewayOpenShiftAuthorizationSidecarImage(checluster interface{}) string {
+	if !initialized {
+		logrus.Fatalf("Operator defaults are not initialized.")
+	}
+
+	return PatchDefaultImageName(checluster, defaultGatewayOpenShiftAuthorizationSidecarImage)
 }
 
 func GetCheFlavor() string {

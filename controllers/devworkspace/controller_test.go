@@ -22,9 +22,9 @@ import (
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	devworkspacedefaults "github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -464,6 +464,6 @@ func onKubernetes(f func()) {
 }
 
 func onOpenShift(f func()) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 	f()
 }
