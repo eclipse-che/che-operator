@@ -150,7 +150,7 @@ run() {
   make create-operatorgroup NAME="eclipse-che" NAMESPACE="${NAMESPACE}" VERBOSE=${VERBOSE}
 
   # Install Dev Workspace operator next version
-  make install-devworkspace CHANNEL="next" VERBOSE=${VERBOSE} OPERATOR_NAMESPACE="${NAMESPACE}"
+  # make install-devworkspace CHANNEL="next" VERBOSE=${VERBOSE} OPERATOR_NAMESPACE="${NAMESPACE}"
 
   exposeOpenShiftRegistry
   createEclipseCheCatalogFromSources
@@ -166,14 +166,14 @@ run() {
     VERBOSE=${VERBOSE}
   make wait-pod-running NAMESPACE="${NAMESPACE}" SELECTOR="app.kubernetes.io/component=che-operator"
 
-  if [[ $(oc get checluster -n "${NAMESPACE}" --no-headers | wc -l) == 0 ]]; then
-    getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
-    if [[ -n ${CR_PATCH_YAML} ]]; then
-      patch=$(yq -r "." "${CR_PATCH_YAML}" | tr -d "\n" )
-      oc patch checluster eclipse-che -n "${NAMESPACE}" --type='merge' -p "${patch}"
-    fi
-  fi
-  make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE="${NAMESPACE}" VERBOSE=${VERBOSE}
+#  if [[ $(oc get checluster -n "${NAMESPACE}" --no-headers | wc -l) == 0 ]]; then
+#    getCheClusterCRFromInstalledCSV | oc apply -n "${NAMESPACE}" -f -
+#    if [[ -n ${CR_PATCH_YAML} ]]; then
+#      patch=$(yq -r "." "${CR_PATCH_YAML}" | tr -d "\n" )
+#      oc patch checluster eclipse-che -n "${NAMESPACE}" --type='merge' -p "${patch}"
+#    fi
+#  fi
+#  make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE="${NAMESPACE}" VERBOSE=${VERBOSE}
 }
 
 init "$@"

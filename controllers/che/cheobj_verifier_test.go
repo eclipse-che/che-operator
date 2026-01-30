@@ -123,7 +123,7 @@ func TestIsTrustedBundleConfigMap(t *testing.T) {
 				newTestObject.ObjectMeta.Labels = testCase.objLabels
 			}
 
-			isEclipseCheObj, req := IsTrustedBundleConfigMap(ctx.ClusterAPI.Client, testCase.watchNamespace, newTestObject)
+			isEclipseCheObj, req := IsTrustedBundleConfigMap(ctx.ClusterAPI.Client, newTestObject)
 
 			assert.Equal(t, testCase.expectedIsEclipseCheObj, isEclipseCheObj)
 			if isEclipseCheObj {
@@ -217,7 +217,7 @@ func TestIsEclipseCheRelatedObj(t *testing.T) {
 			ctx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
 
 			testObject.ObjectMeta.Namespace = testCase.objNamespace
-			isEclipseCheObj, req := IsEclipseCheRelatedObj(ctx.ClusterAPI.Client, testCase.watchNamespace, testObject)
+			isEclipseCheObj, req := IsEclipseCheRelatedObj(ctx.ClusterAPI.Client, testObject)
 
 			assert.Equal(t, testCase.expectedIsEclipseCheObj, isEclipseCheObj)
 			if isEclipseCheObj {

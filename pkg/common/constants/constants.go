@@ -134,6 +134,12 @@ const (
 	DefaultContainerBuildSccName           = "container-build"
 	DefaultContainerRunSccName             = "container-run"
 	DefaultDisableContainerRunCapabilities = true
+	DevWorkspaceOperatorConfigPlural       = "devworkspaceoperatorconfigs"
+	DevWorkspaceRoutingPlural              = "devworkspaceroutings"
+	DevWorkspaceOperatorNotExistsErrorMsg  = "DevWorkspace Operator is not installed. Please install it before creating a CheCluster instance"
+
+	// TODO update on each release
+	MinimumDevWorkspaceVersion = "0.38.0"
 
 	// Finalizers
 	ContainerBuildFinalizer = "container-build.finalizers.che.eclipse.org"

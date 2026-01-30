@@ -24,8 +24,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/yaml"
 )
 
@@ -160,23 +158,6 @@ func GetMapOrDefault(value map[string]string, defaultValue map[string]string) ma
 	}
 
 	return ret
-}
-
-func InNamespaceEventFilter(namespace string) predicate.Predicate {
-	return predicate.Funcs{
-		CreateFunc: func(ce event.CreateEvent) bool {
-			return namespace == ce.Object.GetNamespace()
-		},
-		DeleteFunc: func(de event.DeleteEvent) bool {
-			return namespace == de.Object.GetNamespace()
-		},
-		UpdateFunc: func(ue event.UpdateEvent) bool {
-			return namespace == ue.ObjectOld.GetNamespace()
-		},
-		GenericFunc: func(ge event.GenericEvent) bool {
-			return namespace == ge.Object.GetNamespace()
-		},
-	}
 }
 
 func ParseMap(src string) map[string]string {
