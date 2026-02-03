@@ -74,11 +74,11 @@ type CheConfigMap struct {
 // GetCheConfigMapData gets env values from CR spec and returns a map with key:value
 // which is used in CheCluster ConfigMap to configure CheCluster master behavior
 func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (cheEnv map[string]string, err error) {
-	identityProviderURL := ctx.CheCluster.Spec.Networking.Auth.IdentityProviderURL
-
-	infra := "kubernetes"
+	var infra string
 	if infrastructure.IsOpenShift() {
 		infra = "openshift"
+	} else {
+		infra = "kubernetes"
 	}
 
 	proxyJavaOpts := ""
@@ -176,6 +176,7 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 		SingleHostGatewayConfigMapLabels:     singleHostGatewayConfigMapLabels,
 		CheDevWorkspacesEnabled:              strconv.FormatBool(true),
 		OpenShiftOAuthEnabled:                strconv.FormatBool(infrastructure.IsOpenShiftOAuthEnabled()),
+		IdentityProviderUrl:                  ctx.CheCluster.Spec.Networking.Auth.IdentityProviderURL,
 		// Disable HTTP2 protocol.
 		// Fix issue with creating config maps on the cluster https://issues.redhat.com/browse/CRW-2677
 		// The root cause is in the HTTP2 protocol support of the okttp3 library that is used by fabric8.kubernetes-client that is used by che-server
@@ -183,7 +184,6 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 		Http2Disable: strconv.FormatBool(true),
 	}
 
-	data.IdentityProviderUrl = identityProviderURL
 	out, err := json.Marshal(data)
 	if err != nil {
 		fmt.Println(err)

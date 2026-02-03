@@ -77,7 +77,8 @@ func IsKubernetesImagePullerEnabled() bool {
 
 func InitializeForTesting(desiredInfrastructure Type) {
 	infrastructure = desiredInfrastructure
-	if infrastructure == OpenShiftV4 {
+
+	if IsOpenShift() {
 		isOpenShiftOAuthEnabled = true
 	} else {
 		isOpenShiftOAuthEnabled = false
