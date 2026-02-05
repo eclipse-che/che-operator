@@ -86,7 +86,7 @@ metadata:
     categories: Developer Tools
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:next
-    createdAt: "2026-01-16T09:21:06Z"
+    createdAt: "2026-02-05T08:15:41Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
     features.operators.openshift.io/cnf: "false"
@@ -108,7 +108,7 @@ metadata:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.arm64: supported
     operatorframework.io/os.linux: supported
-  name: eclipse-che.v7.114.0-951.next
+  name: eclipse-che.v7.115.0-952.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1141,7 +1141,7 @@ spec:
       name: gateway-authorization-sidecar-k8s
     - image: quay.io/che-incubator/header-rewrite-proxy:latest
       name: gateway-header-sidecar
-  version: 7.114.0-951.next
+  version: 7.115.0-952.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1

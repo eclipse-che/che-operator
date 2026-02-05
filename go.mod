@@ -5,7 +5,7 @@ go 1.25.5
 require (
 	github.com/che-incubator/kubernetes-image-puller-operator v0.0.0-20250214104625-65e5ec32f521
 	github.com/devfile/api/v2 v2.3.1-alpha.0.20250521155908-5c3d7b99d252
-	github.com/devfile/devworkspace-operator v0.2.1-0.20251219093002-8276d1f4e287
+	github.com/devfile/devworkspace-operator v0.39.0
 	github.com/go-logr/logr v1.4.3
 	github.com/google/go-cmp v0.7.0
 	github.com/openshift/api v0.0.0-20250529074221-97812373b6b4
