@@ -19,7 +19,6 @@ metadata:
     - ssh
     - CLI
     - vscode
-    - Tech-Preview
   attributes:
     arch:
       - x86_64
@@ -84,7 +83,9 @@ commands:
 events:
   postStart:
     - start-sshd
+
 components:
+
   - name: che-code-sshd-page
     container:
       image: quay.io/che-incubator/che-code-sshd:next
@@ -95,7 +96,7 @@ components:
       command:
         - sh
         - -c
-        - "cp /usr/sbin/sshd /usr/bin/ssh-keygen /usr/bin/tar /usr/bin/gzip /usr/bin/which /usr/lib64/libnss_wrapper.so /usr/lib64/libpam.so.0 /usr/lib64/libeconf.so.0 /usr/lib64/libcrypt.so.2 /etc/ssh/sshd_config /sshd.start /sshd/ & while [ ! -e /sshd/username ]; do sleep 1s; done; pushd /opt/www/ && exec node /opt/www/server.js"
+        - "/sshd-staging/sshd.init"
       endpoints:
         - name: che-code-sshd
           attributes:
@@ -112,9 +113,10 @@ components:
     attributes:
       app.kubernetes.io/component: che-code-sshd-page
       app.kubernetes.io/part-of: che-code-server.eclipse.org
+
   - name: che-code-sshd
     container:
-      image: quay.io/che-incubator/che-code-sshd:next
+      image: registry.access.redhat.com/ubi9-minimal:9.7
       memoryLimit: 4096Mi
       memoryRequest: 256Mi
       cpuLimit: 1000m
@@ -126,6 +128,7 @@ components:
       app.kubernetes.io/component: che-code-sshd
       app.kubernetes.io/part-of: che-code-server.eclipse.org
       controller.devfile.io/container-contribution: true
+
   - name: sshd-folder
     volume: {}
 
