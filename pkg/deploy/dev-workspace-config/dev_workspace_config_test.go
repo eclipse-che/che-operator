@@ -3125,3 +3125,204 @@ func TestReconcileDevWorkspaceIgnoredUnrecoverableEvents(t *testing.T) {
 		})
 	}
 }
+
+func TestReconcileDevWorkspaceConfigForInitContainers(t *testing.T) {
+	type testCase struct {
+		name                   string
+		cheCluster             *chev2.CheCluster
+		existedObjects         []client.Object
+		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
+	}
+
+	testCases := []testCase{
+		{
+			name: "Create DevWorkspaceOperatorConfig with InitContainers",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						InitContainers: []corev1.Container{
+							{
+								Name:  "init-container-1",
+								Image: "init-image:latest",
+								Command: []string{
+									"/bin/sh",
+									"-c",
+									"echo 'Initializing workspace'",
+								},
+							},
+							{
+								Name:  "init-container-2",
+								Image: "init-image-2:v1.0",
+								Env: []corev1.EnvVar{
+									{
+										Name:  "INIT_VAR",
+										Value: "init-value",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					InitContainers: []corev1.Container{
+						{
+							Name:  "init-container-1",
+							Image: "init-image:latest",
+							Command: []string{
+								"/bin/sh",
+								"-c",
+								"echo 'Initializing workspace'",
+							},
+						},
+						{
+							Name:  "init-container-2",
+							Image: "init-image-2:v1.0",
+							Env: []corev1.EnvVar{
+								{
+									Name:  "INIT_VAR",
+									Value: "init-value",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Create DevWorkspaceOperatorConfig without InitContainers",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{},
+			},
+		},
+		{
+			name: "Update DevWorkspaceOperatorConfig with InitContainers",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						InitContainers: []corev1.Container{
+							{
+								Name:  "new-init-container",
+								Image: "new-init:v2.0",
+								VolumeMounts: []corev1.VolumeMount{
+									{
+										Name:      "config-volume",
+										MountPath: "/etc/config",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			existedObjects: []client.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							InitContainers: []corev1.Container{
+								{
+									Name:  "old-init-container",
+									Image: "old-init:v1.0",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					InitContainers: []corev1.Container{
+						{
+							Name:  "new-init-container",
+							Image: "new-init:v2.0",
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "config-volume",
+									MountPath: "/etc/config",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Clear InitContainers from DevWorkspaceOperatorConfig",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{},
+				},
+			},
+			existedObjects: []client.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							InitContainers: []corev1.Container{
+								{
+									Name:  "init-to-remove",
+									Image: "init:v1.0",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.existedObjects...).Build()
+
+			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
+			test.EnsureReconcile(t, deployContext, devWorkspaceConfigReconciler.Reconcile)
+
+			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
+			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			assert.NoError(t, err)
+
+			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.InitContainers, dwoc.Config.Workspace.InitContainers)
+		})
+	}
+}
