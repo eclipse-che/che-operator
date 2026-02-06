@@ -26,10 +26,10 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/google/go-cmp/cmp"

@@ -17,7 +17,7 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	routev1 "github.com/openshift/api/route/v1"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"

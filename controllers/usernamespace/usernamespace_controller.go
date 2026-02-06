@@ -34,10 +34,10 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/controllers/che"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	projectv1 "github.com/openshift/api/project/v1"
 	"github.com/sirupsen/logrus"

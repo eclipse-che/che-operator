@@ -15,7 +15,7 @@ package org
 import (
 	"testing"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -325,6 +325,6 @@ func onKubernetes(f func()) {
 }
 
 func onOpenShift(f func()) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 	f()
 }

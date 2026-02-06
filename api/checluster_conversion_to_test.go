@@ -19,10 +19,10 @@ import (
 	"k8s.io/utils/pointer"
 
 	devfile "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev1 "github.com/eclipse-che/che-operator/api/v1"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -38,7 +38,7 @@ func TestConvertToEmptyCheCluster(t *testing.T) {
 }
 
 func TestConvertToIngressOnOpenShift(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 
 	checlusterv1 := &chev1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{

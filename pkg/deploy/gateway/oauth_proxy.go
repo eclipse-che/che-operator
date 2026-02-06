@@ -16,13 +16,13 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/util/intstr"
-
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	identityprovider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
 	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/util/intstr"
+
 	"k8s.io/apimachinery/pkg/api/resource"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -34,10 +34,8 @@ import (
 )
 
 func getGatewayOauthProxyConfigSpec(ctx *chetypes.DeployContext, cookieSecret string) corev1.ConfigMap {
-	instance := ctx.CheCluster
-
 	var config string
-	if infrastructure.IsOpenShift() {
+	if infrastructure.IsOpenShiftOAuthEnabled() {
 		config = openshiftOauthProxyConfig(ctx, cookieSecret)
 	} else {
 		config = kubernetesOauthProxyConfig(ctx, cookieSecret)
@@ -49,7 +47,7 @@ func getGatewayOauthProxyConfigSpec(ctx *chetypes.DeployContext, cookieSecret st
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "che-gateway-config-oauth-proxy",
-			Namespace: instance.Namespace,
+			Namespace: ctx.CheCluster.Namespace,
 			Labels:    deploy.GetLabels(GatewayServiceName),
 		},
 		Data: map[string]string{
@@ -169,7 +167,7 @@ func skipAuthConfig(instance *chev2.CheCluster) string {
 	skipAuthPaths = append(skipAuthPaths, fmt.Sprintf("^%s$", defaults.GetConsoleLinkImage()))
 	if len(skipAuthPaths) > 0 {
 		propName := "skip_auth_routes"
-		if infrastructure.IsOpenShift() {
+		if infrastructure.IsOpenShiftOAuthEnabled() {
 			propName = "skip_auth_regex"
 		}
 		return fmt.Sprintf("%s = \"%s\"", propName, strings.Join(skipAuthPaths, "|"))
@@ -200,19 +198,29 @@ func getOauthProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
 	exists, _ := deploy.GetNamespacedObject(ctx, "che-gateway-config-oauth-proxy", cm)
 	configMapRevision := map[bool]string{true: cm.GetResourceVersion(), false: ""}[exists]
 
+	var image, probePath string
+	var args []string
+	if infrastructure.IsOpenShiftOAuthEnabled() {
+		image = defaults.GetGatewayOpenShiftAuthenticationSidecarImage(ctx.CheCluster)
+		probePath = "/oauth/healthz"
+		args = []string{
+			"--config=/etc/oauth-proxy/oauth-proxy.cfg",
+		}
+	} else {
+		image = defaults.GetGatewayKubernetesAuthenticationSidecarImage(ctx.CheCluster)
+		probePath = "/ping"
+		args = []string{
+			"--config=/etc/oauth-proxy/oauth-proxy.cfg",
+			"--ping-path=/ping",
+			"--exclude-logging-path=/ping",
+		}
+	}
+
 	return corev1.Container{
 		Name:            "oauth-proxy",
-		Image:           defaults.GetGatewayAuthenticationSidecarImage(ctx.CheCluster),
+		Image:           image,
 		ImagePullPolicy: corev1.PullIfNotPresent,
-		Args: map[bool][]string{
-			true: {
-				"--config=/etc/oauth-proxy/oauth-proxy.cfg",
-			},
-			false: {
-				"--config=/etc/oauth-proxy/oauth-proxy.cfg",
-				"--ping-path=/ping",
-				"--exclude-logging-path=/ping"},
-		}[infrastructure.IsOpenShift()],
+		Args:            args,
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      "oauth-proxy-config",
@@ -253,7 +261,7 @@ func getOauthProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
 		ReadinessProbe: &corev1.Probe{
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
-					Path: map[bool]string{true: "/oauth/healthz", false: "/ping"}[infrastructure.IsOpenShift()],
+					Path: probePath,
 					Port: intstr.IntOrString{
 						Type:   intstr.Int,
 						IntVal: int32(8080),
@@ -270,7 +278,7 @@ func getOauthProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
 		LivenessProbe: &corev1.Probe{
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
-					Path: map[bool]string{true: "/oauth/healthz", false: "/ping"}[infrastructure.IsOpenShift()],
+					Path: probePath,
 					Port: intstr.IntOrString{
 						Type:   intstr.Int,
 						IntVal: int32(8080),

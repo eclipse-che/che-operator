@@ -19,7 +19,7 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/stretchr/testify/assert"
 
 	projectv1 "github.com/openshift/api/project/v1"
@@ -53,7 +53,7 @@ func TestGetNamespaceInfoReadsFromCache(t *testing.T) {
 		},
 	})
 
-	test(infrastructure.OpenShiftv4, &projectv1.Project{
+	test(infrastructure.OpenShiftV4, &projectv1.Project{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "prj",
 		},
@@ -113,7 +113,7 @@ func TestExamineUpdatesCache(t *testing.T) {
 		},
 	})
 
-	test(infrastructure.OpenShiftv4, &projectv1.Project{
+	test(infrastructure.OpenShiftV4, &projectv1.Project{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "prj",
 		},

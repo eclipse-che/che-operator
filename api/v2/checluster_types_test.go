@@ -16,11 +16,11 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIsAccesTokenConfigured(t *testing.T) {
+func TestIsAccessTokenConfigured(t *testing.T) {
 	t.Run("TestIsAccesTokenConfigured when access_token defined", func(t *testing.T) {
 		cheCluster := &CheCluster{
 			Spec: CheClusterSpec{
@@ -98,7 +98,7 @@ func TestGetIdentityToken(t *testing.T) {
 					},
 				}},
 		}
-		infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+		infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 
 		assert.Equal(t, "access_token", cheCluster.GetIdentityToken(),
 			"'access_token' should be used")
@@ -113,7 +113,7 @@ func TestGetIdentityToken(t *testing.T) {
 					},
 				}},
 		}
-		infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+		infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 
 		assert.Equal(t, "id_token", cheCluster.GetIdentityToken(),
 			"'id_token' should be used")
@@ -126,7 +126,7 @@ func TestGetIdentityToken(t *testing.T) {
 					Auth: Auth{},
 				}},
 		}
-		infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+		infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 
 		assert.Equal(t, "access_token", cheCluster.GetIdentityToken(),
 			"'access_token' should be used")
@@ -141,9 +141,8 @@ func TestGetDefaultIdentityToken(t *testing.T) {
 		infrastructure infrastructure.Type
 		identityToken  string
 	}{
-		{infrastructure.OpenShiftv4, "access_token"},
+		{infrastructure.OpenShiftV4, "access_token"},
 		{infrastructure.Kubernetes, "id_token"},
-		{infrastructure.Unsupported, "id_token"},
 	}
 	for _, test := range tests {
 		infrastructure.InitializeForTesting(test.infrastructure)

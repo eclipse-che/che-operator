@@ -19,7 +19,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
-	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -32,7 +31,6 @@ import (
 
 const (
 	ConsoleLinkFinalizerName = "consolelink.finalizers.che.eclipse.org"
-	ConsoleLinksResourceName = "consolelinks"
 )
 
 var consoleLinkDiffOpts = cmp.Options{
@@ -48,11 +46,6 @@ func NewConsoleLinkReconciler() *ConsoleLinkReconciler {
 }
 
 func (c *ConsoleLinkReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if !utils.IsK8SResourceServed(ctx.ClusterAPI.DiscoveryClient, ConsoleLinksResourceName) {
-		logrus.Debug("Console link won't be created. ConsoleLinks is not supported by kubernetes cluster.")
-		return reconcile.Result{}, true, nil
-	}
-
 	done, err := c.syncConsoleLink(ctx)
 	if !done {
 		return reconcile.Result{RequeueAfter: time.Second}, false, err

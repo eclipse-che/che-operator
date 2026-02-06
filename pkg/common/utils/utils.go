@@ -22,8 +22,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/labels"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/yaml"
@@ -59,27 +57,6 @@ func GeneratePassword(stringLength int) (passwd string) {
 	}
 	passwd = string(buf)
 	return passwd
-}
-
-func IsK8SResourceServed(discoveryClient discovery.DiscoveryInterface, resourceName string) bool {
-	_, resourceList, err := discoveryClient.ServerGroupsAndResources()
-	if err != nil {
-		return false
-	}
-
-	return hasAPIResourceNameInList(resourceName, resourceList)
-}
-
-func hasAPIResourceNameInList(name string, resources []*metav1.APIResourceList) bool {
-	for _, l := range resources {
-		for _, r := range l.APIResources {
-			if r.Name == name {
-				return true
-			}
-		}
-	}
-
-	return false
 }
 
 func GetValue(value string, defaultValue string) string {

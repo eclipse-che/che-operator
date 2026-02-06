@@ -13,7 +13,7 @@
 package dashboard
 
 import (
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/stretchr/testify/assert"
