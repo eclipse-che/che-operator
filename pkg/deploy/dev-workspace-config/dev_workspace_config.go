@@ -117,6 +117,8 @@ func updateWorkspaceConfig(ctx *chetypes.DeployContext, operatorConfig *controll
 
 	updateHostUsers(ctx.CheCluster, operatorConfig.Workspace)
 
+	updateInitContainers(devEnvironments, operatorConfig.Workspace)
+
 	// If the CheCluster has a configured proxy, or if the Che Operator has detected a proxy configuration,
 	// we need to disable automatic proxy handling in the DevWorkspace Operator as its implementation collides
 	// with ours -- they set environment variables the deployment spec explicitly, which overrides the proxy-settings
@@ -289,6 +291,10 @@ func updateHostUsers(cheCluster *chev2.CheCluster, workspaceConfig *controllerv1
 	} else {
 		workspaceConfig.HostUsers = nil
 	}
+}
+
+func updateInitContainers(devEnvironments *chev2.CheClusterDevEnvironments, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
+	workspaceConfig.InitContainers = devEnvironments.InitContainers
 }
 
 func disableDWOProxy(routingConfig *controllerv1alpha1.RoutingConfig) {

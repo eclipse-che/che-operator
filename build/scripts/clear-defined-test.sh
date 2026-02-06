@@ -86,6 +86,8 @@ declare -A replaced_modules=(
   ["go.opencensus.io v0.24.0"]="census-instrumentation/opencensus-go b1a01ee95db0e690d91d7193d037447816fae4c5"
   # https://github.com/sean-/seed/tree/e2103e2c35297fb7e17febb81e49b312087a2372
   ["github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529"]="sean-/seed e2103e2c35297fb7e17febb81e49b312087a2372"
+  # https://github.com/decred/dcrd/commit/5444fa50b93dbcbd6a08c75da3eccc32490fb2b2
+  ["github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.0-20210816181553-5444fa50b93d"]="decred/dcrd 5444fa50b93dbcbd6a08c75da3eccc32490fb2b2"
 )
 
 # replaces to have a correct link for clearlydefined.io api request
@@ -99,16 +101,17 @@ declare -A replaced_paths=(
 declare -A replaced_api_suffix=(
   ["census-instrumentation/opencensus-go"]="git/github"
   ["sean-/seed"]="git/github"
+  ["decred/dcrd"]="git/github"
 )
 
 # Exceptions for dependencies that are not yet harvested in clearlydefined.io
 # License must be checked manually
 declare -A ignored_paths=(
-  ["github.com/decred/dcrd/dcrec/secp256k1/v4"]="Harvesting is in progress"
+  ["github.com/devfile/devworkspace-operator"]="Harvesting is in progress"
 )
 
 declare -A ignored_paths_license=(
-  ["github.com/decred/dcrd/dcrec/secp256k1/v4"]="ISC"
+  ["github.com/devfile/devworkspace-operator"]="Apache-2.0"
 )
 
 retryUrl() {

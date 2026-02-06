@@ -247,6 +247,10 @@ type CheClusterDevEnvironments struct {
 	// Configuration settings related to the workspaces networking.
 	// +optional
 	Networking *DevEnvironmentNetworking `json:"networking,omitempty"`
+	// InitContainers defines a list of Kubernetes init containers that are automatically injected into all workspace pods.
+	// Typical uses cases include injecting organization tools/configs, initializing persistent home, etc.
+	// +optional
+	InitContainers []corev1.Container `json:"initContainers,omitempty"`
 }
 
 // Che components configuration.
