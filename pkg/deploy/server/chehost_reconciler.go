@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -52,7 +52,7 @@ func (s *CheHostReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 
 func (s *CheHostReconciler) syncCheService(ctx *chetypes.DeployContext) (bool, error) {
 	portName := []string{"http"}
-	portNumber := []int32{8080}
+	portNumber := []int32{constants.DefaultServerPort}
 
 	if ctx.CheCluster.Spec.Components.Metrics.Enable {
 		portName = append(portName, "metrics")
@@ -64,7 +64,7 @@ func (s *CheHostReconciler) syncCheService(ctx *chetypes.DeployContext) (bool, e
 		portNumber = append(portNumber, constants.DefaultServerDebugPort)
 	}
 
-	spec := deploy.GetServiceSpec(ctx, deploy.CheServiceName, portName, portNumber, getComponentName(ctx))
+	spec := deploy.GetServiceSpec(ctx, deploy.CheServiceName, portName, portNumber, getComponentName())
 	return deploy.Sync(ctx, spec, deploy.ServiceDefaultDiffOpts)
 }
 
@@ -72,17 +72,17 @@ func (s CheHostReconciler) exposeCheEndpoint(ctx *chetypes.DeployContext) (strin
 	if !infrastructure.IsOpenShift() {
 		_, done, err := deploy.SyncIngressToCluster(
 			ctx,
-			getComponentName(ctx),
+			getComponentName(),
 			"",
 			gateway.GatewayServiceName,
-			8080,
-			getComponentName(ctx))
+			constants.DefaultServerPort,
+			getComponentName())
 		if !done {
 			return "", false, err
 		}
 
 		ingress := &networking.Ingress{}
-		exists, err := deploy.GetNamespacedObject(ctx, getComponentName(ctx), ingress)
+		exists, err := deploy.GetNamespacedObject(ctx, getComponentName(), ingress)
 		if !exists {
 			return "", false, err
 		}
@@ -92,17 +92,17 @@ func (s CheHostReconciler) exposeCheEndpoint(ctx *chetypes.DeployContext) (strin
 
 	done, err := deploy.SyncRouteToCluster(
 		ctx,
-		getComponentName(ctx),
+		getComponentName(),
 		"/",
 		gateway.GatewayServiceName,
-		8080,
-		getComponentName(ctx))
+		constants.DefaultServerPort,
+		getComponentName())
 	if !done {
 		return "", false, err
 	}
 
 	route := &routev1.Route{}
-	exists, err := deploy.GetNamespacedObject(ctx, getComponentName(ctx), route)
+	exists, err := deploy.GetNamespacedObject(ctx, getComponentName(), route)
 	if !exists {
 		return "", false, err
 	}

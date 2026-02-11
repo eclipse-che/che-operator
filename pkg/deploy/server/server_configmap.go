@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -13,171 +13,141 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
+	"slices"
+	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/diffs"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	deploytls "github.com/eclipse-che/che-operator/pkg/deploy/tls"
-
-	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-)
-
-const (
-	CheConfigMapName = "che"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
 )
 
 type CheConfigMap struct {
-	CheHost                              string `json:"CHE_HOST"`
-	CheMultiUser                         string `json:"CHE_MULTIUSER"`
-	ChePort                              string `json:"CHE_PORT"`
-	CheApi                               string `json:"CHE_API"`
-	CheApiInternal                       string `json:"CHE_API_INTERNAL"`
-	CheWebSocketEndpoint                 string `json:"CHE_WEBSOCKET_ENDPOINT"`
-	CheWebSocketInternalEndpoint         string `json:"CHE_WEBSOCKET_INTERNAL_ENDPOINT"`
-	CheDebugServer                       string `json:"CHE_DEBUG_SERVER"`
-	CheMetricsEnabled                    string `json:"CHE_METRICS_ENABLED"`
-	CheInfrastructureActive              string `json:"CHE_INFRASTRUCTURE_ACTIVE"`
-	CheInfraKubernetesServiceAccountName string `json:"CHE_INFRA_KUBERNETES_SERVICE__ACCOUNT__NAME"`
-	CheInfraKubernetesUserClusterRoles   string `json:"CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"`
-	DefaultTargetNamespace               string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"`
-	NamespaceCreationAllowed             string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_CREATION__ALLOWED"`
-	PvcStrategy                          string `json:"CHE_INFRA_KUBERNETES_PVC_STRATEGY"`
-	PvcClaimSize                         string `json:"CHE_INFRA_KUBERNETES_PVC_QUANTITY"`
-	WorkspacePvcStorageClassName         string `json:"CHE_INFRA_KUBERNETES_PVC_STORAGE__CLASS__NAME"`
-	TlsSupport                           string `json:"CHE_INFRA_OPENSHIFT_TLS__ENABLED"`
-	K8STrustCerts                        string `json:"CHE_INFRA_KUBERNETES_TRUST__CERTS"`
-	CheLogLevel                          string `json:"CHE_LOG_LEVEL"`
-	IdentityProviderUrl                  string `json:"CHE_OIDC_AUTH__SERVER__URL,omitempty"`
-	IdentityProviderInternalURL          string `json:"CHE_OIDC_AUTH__INTERNAL__SERVER__URL,omitempty"`
-	OpenShiftIdentityProvider            string `json:"CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"`
-	JavaOpts                             string `json:"JAVA_OPTS"`
-	PluginRegistryUrl                    string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__URL,omitempty"`
-	PluginRegistryInternalUrl            string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL,omitempty"`
-	CheJGroupsKubernetesLabels           string `json:"KUBERNETES_LABELS,omitempty"`
-	CheTrustedCABundlesConfigMap         string `json:"CHE_TRUSTED__CA__BUNDLES__CONFIGMAP,omitempty"`
-	ServerStrategy                       string `json:"CHE_INFRA_KUBERNETES_SERVER__STRATEGY"`
-	WorkspaceExposure                    string `json:"CHE_INFRA_KUBERNETES_SINGLEHOST_WORKSPACE_EXPOSURE"`
-	SingleHostGatewayConfigMapLabels     string `json:"CHE_INFRA_KUBERNETES_SINGLEHOST_GATEWAY_CONFIGMAP__LABELS"`
-	CheDevWorkspacesEnabled              string `json:"CHE_DEVWORKSPACES_ENABLED"`
-	Http2Disable                         string `json:"HTTP2_DISABLE"`
+	JavaOpts                 string `json:"JAVA_OPTS"`
+	CheHost                  string `json:"CHE_HOST"`
+	ChePort                  string `json:"CHE_PORT"`
+	CheDebugServer           string `json:"CHE_DEBUG_SERVER"`
+	CheLogLevel              string `json:"CHE_LOG_LEVEL"`
+	CheMetricsEnabled        string `json:"CHE_METRICS_ENABLED"`
+	CheInfrastructure        string `json:"CHE_INFRASTRUCTURE_ACTIVE"`
+	UserClusterRoles         string `json:"CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"`
+	NamespaceDefault         string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"`
+	NamespaceCreationAllowed string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_CREATION__ALLOWED"`
+	Http2Disable             string `json:"HTTP2_DISABLE"`
+	KubernetesLabels         string `json:"KUBERNETES_LABELS"`
+
+	// TODO remove when keycloak codebase is removed from che-server component
+	CheOIDCAuthServerUrl string `json:"CHE_OIDC_AUTH__SERVER__URL,omitempty"`
 }
 
-// GetCheConfigMapData gets env values from CR spec and returns a map with key:value
-// which is used in CheCluster ConfigMap to configure CheCluster master behavior
-func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (cheEnv map[string]string, err error) {
-	identityProviderURL := ctx.CheCluster.Spec.Networking.Auth.IdentityProviderURL
+func (s *CheServerReconciler) syncConfigMap(ctx *chetypes.DeployContext) (bool, error) {
+	data, err := s.getConfigMapData(ctx)
+	if err != nil {
+		return false, err
+	}
 
-	infra := "kubernetes"
-	openShiftIdentityProviderId := "NULL"
+	cm := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      configMapName,
+			Namespace: ctx.CheCluster.Namespace,
+			Labels:    deploy.GetLabels(getComponentName()),
+		},
+		Data: data,
+	}
+
+	err = ctx.ClusterAPI.ClientWrapper.Sync(
+		context.TODO(),
+		cm,
+		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapAllLabels},
+	)
+
+	return err == nil, err
+}
+
+func (s *CheServerReconciler) getConfigMapRevision(ctx *chetypes.DeployContext) (string, error) {
+	cm := &corev1.ConfigMap{}
+
+	if exist, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		context.TODO(),
+		types.NamespacedName{
+			Namespace: ctx.CheCluster.Namespace,
+			Name:      configMapName,
+		},
+		cm,
+	); !exist {
+		return "", err
+	}
+
+	return cm.ResourceVersion, nil
+}
+
+func (s *CheServerReconciler) getConfigMapData(ctx *chetypes.DeployContext) (cheEnv map[string]string, err error) {
+	var cheInfrastructure string
 	if infrastructure.IsOpenShift() {
-		infra = "openshift"
-		openShiftIdentityProviderId = "openshift-v4"
-	}
-
-	proxyJavaOpts := ""
-	cheWorkspaceNoProxy := ctx.Proxy.NoProxy
-	if ctx.Proxy.HttpProxy != "" {
-		proxyJavaOpts, err = deploy.GenerateProxyJavaOpts(ctx.Proxy, cheWorkspaceNoProxy)
-		if err != nil {
-			logrus.Errorf("Failed to generate java proxy options: %v", err)
-		}
-	}
-
-	ingressDomain := ctx.CheCluster.Spec.Networking.Domain
-	tlsSecretName := ctx.CheCluster.Spec.Networking.TlsSecretName
-
-	securityContextFsGroup := strconv.FormatInt(constants.DefaultSecurityContextFsGroup, 10)
-	securityContextRunAsUser := strconv.FormatInt(constants.DefaultSecurityContextRunAsUser, 10)
-	if ctx.CheCluster.Spec.Components.CheServer.Deployment != nil {
-		if ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext != nil {
-			if ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext.FsGroup != nil {
-				securityContextFsGroup = strconv.FormatInt(*ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext.FsGroup, 10)
-			}
-			if ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext.RunAsUser != nil {
-				securityContextRunAsUser = strconv.FormatInt(*ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext.RunAsUser, 10)
-			}
-		}
-	}
-
-	ingressClass := utils.GetValue(ctx.CheCluster.Spec.Networking.Annotations["kubernetes.io/ingress.class"], constants.DefaultIngressClass)
-
-	pluginRegistryURL := ctx.CheCluster.Status.PluginRegistryURL
-	for _, r := range ctx.CheCluster.Spec.Components.PluginRegistry.ExternalPluginRegistries {
-		if strings.Index(pluginRegistryURL, r.Url) == -1 {
-			pluginRegistryURL += " " + r.Url
-		}
-	}
-	pluginRegistryURL = strings.TrimSpace(pluginRegistryURL)
-
-	cheLogLevel := utils.GetValue(ctx.CheCluster.Spec.Components.CheServer.LogLevel, constants.DefaultServerLogLevel)
-	cheDebug := "false"
-	if ctx.CheCluster.Spec.Components.CheServer.Debug != nil {
-		cheDebug = strconv.FormatBool(*ctx.CheCluster.Spec.Components.CheServer.Debug)
-	}
-	cheMetrics := strconv.FormatBool(ctx.CheCluster.Spec.Components.Metrics.Enable)
-	cheLabels := labels.FormatLabels(deploy.GetLabels(defaults.GetCheFlavor()))
-
-	singleHostGatewayConfigMapLabels := ""
-	if len(ctx.CheCluster.Spec.Networking.Auth.Gateway.ConfigLabels) != 0 {
-		singleHostGatewayConfigMapLabels = labels.FormatLabels(ctx.CheCluster.Spec.Networking.Auth.Gateway.ConfigLabels)
+		cheInfrastructure = "openshift"
 	} else {
-		singleHostGatewayConfigMapLabels = labels.FormatLabels(constants.DefaultSingleHostGatewayConfigMapLabels)
-
-	}
-	workspaceNamespaceDefault := ctx.CheCluster.GetDefaultNamespace()
-	namespaceCreationAllowed := strconv.FormatBool(constants.DefaultAutoProvision)
-	if ctx.CheCluster.Spec.DevEnvironments.DefaultNamespace.AutoProvision != nil {
-		namespaceCreationAllowed = strconv.FormatBool(*ctx.CheCluster.Spec.DevEnvironments.DefaultNamespace.AutoProvision)
+		cheInfrastructure = "kubernetes"
 	}
 
-	cheAPI := "https://" + ctx.CheHost + "/api"
-	var pluginRegistryInternalURL string
-
-	if !ctx.CheCluster.IsInternalPluginRegistryDisabled() {
-		pluginRegistryInternalURL = fmt.Sprintf("http://%s.%s.svc:8080/v3", constants.PluginRegistryName, ctx.CheCluster.Namespace)
+	javaOpts := constants.DefaultJavaOpts
+	if ctx.Proxy.HttpProxy != "" {
+		javaOpts += deploy.GenerateProxyJavaOpts(ctx.Proxy, ctx.Proxy.NoProxy)
 	}
 
-	cheInternalAPI := fmt.Sprintf("http://%s.%s.svc:8080/api", deploy.CheServiceName, ctx.CheCluster.Namespace)
-	webSocketInternalEndpoint := fmt.Sprintf("ws://%s.%s.svc:8080/api/websocket", deploy.CheServiceName, ctx.CheCluster.Namespace)
-	webSocketEndpoint := "wss://" + ctx.CheHost + "/api/websocket"
-	cheWorkspaceServiceAccount := "NULL"
+	cheLogLevel := utils.GetValue(
+		ctx.CheCluster.Spec.Components.CheServer.LogLevel,
+		constants.DefaultServerLogLevel,
+	)
+
+	cheDebugServer := strconv.FormatBool(
+		pointer.BoolDeref(
+			ctx.CheCluster.Spec.Components.CheServer.Debug,
+			constants.DefaultServerDebug,
+		))
+
+	chePort := strconv.Itoa(int(constants.DefaultServerPort))
+	cheMetricsEnabled := strconv.FormatBool(ctx.CheCluster.Spec.Components.Metrics.Enable)
+
+	namespaceDefault := ctx.CheCluster.GetDefaultNamespace()
+	namespaceCreationAllowed := strconv.FormatBool(
+		pointer.BoolDeref(
+			ctx.CheCluster.Spec.DevEnvironments.DefaultNamespace.AutoProvision,
+			constants.DefaultAutoProvision,
+		))
+
+	kubernetesLabels := labels.FormatLabels(deploy.GetLabels(defaults.GetCheFlavor()))
 
 	data := &CheConfigMap{
-		CheMultiUser:                         "true",
-		CheHost:                              ctx.CheHost,
-		ChePort:                              "8080",
-		CheApi:                               cheAPI,
-		CheApiInternal:                       cheInternalAPI,
-		CheWebSocketEndpoint:                 webSocketEndpoint,
-		CheWebSocketInternalEndpoint:         webSocketInternalEndpoint,
-		CheDebugServer:                       cheDebug,
-		CheInfrastructureActive:              infra,
-		CheInfraKubernetesServiceAccountName: cheWorkspaceServiceAccount,
-		DefaultTargetNamespace:               workspaceNamespaceDefault,
-		NamespaceCreationAllowed:             namespaceCreationAllowed,
-		TlsSupport:                           "true",
-		K8STrustCerts:                        "true",
-		CheLogLevel:                          cheLogLevel,
-		OpenShiftIdentityProvider:            openShiftIdentityProviderId,
-		JavaOpts:                             constants.DefaultJavaOpts + " " + proxyJavaOpts,
-		PluginRegistryUrl:                    pluginRegistryURL,
-		PluginRegistryInternalUrl:            pluginRegistryInternalURL,
-		CheJGroupsKubernetesLabels:           cheLabels,
-		CheMetricsEnabled:                    cheMetrics,
-		CheTrustedCABundlesConfigMap:         deploytls.CheMergedCABundleCertsCMName,
-		ServerStrategy:                       "single-host",
-		WorkspaceExposure:                    "gateway",
-		SingleHostGatewayConfigMapLabels:     singleHostGatewayConfigMapLabels,
-		CheDevWorkspacesEnabled:              strconv.FormatBool(true),
+		JavaOpts:                 javaOpts,
+		CheHost:                  ctx.CheHost,
+		ChePort:                  chePort,
+		CheDebugServer:           cheDebugServer,
+		CheLogLevel:              cheLogLevel,
+		CheMetricsEnabled:        cheMetricsEnabled,
+		CheInfrastructure:        cheInfrastructure,
+		CheOIDCAuthServerUrl:     ctx.CheCluster.Spec.Networking.Auth.IdentityProviderURL,
+		NamespaceDefault:         namespaceDefault,
+		NamespaceCreationAllowed: namespaceCreationAllowed,
+		KubernetesLabels:         kubernetesLabels,
 		// Disable HTTP2 protocol.
 		// Fix issue with creating config maps on the cluster https://issues.redhat.com/browse/CRW-2677
 		// The root cause is in the HTTP2 protocol support of the okttp3 library that is used by fabric8.kubernetes-client that is used by che-server
@@ -185,119 +155,125 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *chetypes.DeployContext) (
 		Http2Disable: strconv.FormatBool(true),
 	}
 
-	data.IdentityProviderUrl = identityProviderURL
-
 	out, err := json.Marshal(data)
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
 
 	}
+
 	err = json.Unmarshal(out, &cheEnv)
-
-	// Advanced authorization
-	if ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization != nil {
-		cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_ALLOW__USERS"] = strings.Join(ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.AllowUsers, ",")
-		cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_ALLOW__GROUPS"] = strings.Join(ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.AllowGroups, ",")
-		cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_DENY__USERS"] = strings.Join(ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.DenyUsers, ",")
-		cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_DENY__GROUPS"] = strings.Join(ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.DenyGroups, ",")
+	if err != nil {
+		return nil, err
 	}
 
-	// k8s specific envs
-	if !infrastructure.IsOpenShift() {
-		k8sCheEnv := map[string]string{
-			"CHE_INFRA_KUBERNETES_POD_SECURITY__CONTEXT_FS__GROUP":     securityContextFsGroup,
-			"CHE_INFRA_KUBERNETES_POD_SECURITY__CONTEXT_RUN__AS__USER": securityContextRunAsUser,
-			"CHE_INFRA_KUBERNETES_INGRESS_DOMAIN":                      ingressDomain,
-			"CHE_INFRA_KUBERNETES_TLS__SECRET":                         tlsSecretName,
-			"CHE_INFRA_KUBERNETES_INGRESS_ANNOTATIONS__JSON":           "{\"kubernetes.io/ingress.class\": " + ingressClass + ", \"nginx.ingress.kubernetes.io/rewrite-target\": \"/$1\",\"nginx.ingress.kubernetes.io/ssl-redirect\": \"true\",\"nginx.ingress.kubernetes.io/proxy-connect-timeout\": \"3600\",\"nginx.ingress.kubernetes.io/proxy-read-timeout\": \"3600\"}",
-			"CHE_INFRA_KUBERNETES_INGRESS_PATH__TRANSFORM":             "%s(.*)",
-		}
-		k8sCheEnv["CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S"] = "true"
-		utils.AddMap(cheEnv, k8sCheEnv)
-	}
+	// override envs by extra properties
+	maps.Copy(cheEnv, ctx.CheCluster.Spec.Components.CheServer.ExtraProperties)
 
-	// Add TLS key and server certificate to properties since user workspaces is created in another
-	// than Che server namespace, from where the Che TLS secret is not accessable
-	if tlsSecretName != "" {
-		cheTLSSecret := &corev1.Secret{}
-		exists, err := deploy.GetNamespacedObject(ctx, tlsSecretName, cheTLSSecret)
-		if err != nil {
-			return nil, err
-		}
-		if !exists {
-			return nil, fmt.Errorf("%s secret not found", tlsSecretName)
-		} else {
-			if _, exists := cheTLSSecret.Data["tls.key"]; !exists {
-				return nil, fmt.Errorf("%s secret has no 'tls.key' key in data", tlsSecretName)
-			}
-			if _, exists := cheTLSSecret.Data["tls.crt"]; !exists {
-				return nil, fmt.Errorf("%s secret has no 'tls.crt' key in data", tlsSecretName)
-			}
-			cheEnv["CHE_INFRA_KUBERNETES_TLS__KEY"] = string(cheTLSSecret.Data["tls.key"])
-			cheEnv["CHE_INFRA_KUBERNETES_TLS__CERT"] = string(cheTLSSecret.Data["tls.crt"])
-		}
-	}
+	// Updates `CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION__<...>`
+	s.updateAdvancedAuthorizationEnv(ctx, cheEnv)
 
-	utils.AddMap(cheEnv, ctx.CheCluster.Spec.Components.CheServer.ExtraProperties)
+	// Updates `CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES`
+	s.updateUserClusterRoleEnv(ctx, cheEnv)
 
-	s.updateUserClusterRoles(ctx, cheEnv)
-
-	for _, oauthProvider := range []string{"bitbucket", constants.AzureDevOpsOAuth} {
-		err := s.updateIntegrationServerEndpoints(ctx, cheEnv, oauthProvider)
-		if err != nil {
-			return nil, err
-		}
+	// Update `CHE_INTEGRATION_<...>_SERVER__ENDPOINTS`
+	if err := s.updateServerEndpointsEnv(ctx, cheEnv); err != nil {
+		return nil, err
 	}
 
 	return cheEnv, nil
 }
 
-func (s *CheServerReconciler) updateIntegrationServerEndpoints(ctx *chetypes.DeployContext, cheEnv map[string]string, oauthProvider string) error {
-	secret, err := getOAuthConfig(ctx, oauthProvider)
-	if secret == nil {
-		return err
+func (s *CheServerReconciler) updateAdvancedAuthorizationEnv(ctx *chetypes.DeployContext, cheEnv map[string]string) {
+	if ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization != nil {
+		cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_ALLOW__USERS"] = strings.Join(
+			ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.AllowUsers,
+			",",
+		)
+		cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_DENY__USERS"] = strings.Join(
+			ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.DenyUsers,
+			",",
+		)
+		cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_ALLOW__GROUPS"] = strings.Join(
+			ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.AllowGroups,
+			",",
+		)
+		cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_DENY__GROUPS"] = strings.Join(
+			ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.DenyGroups,
+			",",
+		)
 	}
-
-	envName := fmt.Sprintf("CHE_INTEGRATION_%s_SERVER__ENDPOINTS", strings.ReplaceAll(strings.ToUpper(oauthProvider), "-", "_"))
-	if err != nil {
-		return err
-	}
-
-	if cheEnv[envName] != "" {
-		cheEnv[envName] = secret.Annotations[constants.CheEclipseOrgScmServerEndpoint] + "," + cheEnv[envName]
-	} else {
-		cheEnv[envName] = secret.Annotations[constants.CheEclipseOrgScmServerEndpoint]
-	}
-	return nil
 }
 
-func GetCheConfigMapVersion(deployContext *chetypes.DeployContext) string {
-	cheConfigMap := &corev1.ConfigMap{}
-	exists, _ := deploy.GetNamespacedObject(deployContext, CheConfigMapName, cheConfigMap)
-	if exists {
-		return cheConfigMap.ResourceVersion
-	}
-	return ""
-}
+func (s *CheServerReconciler) updateUserClusterRoleEnv(ctx *chetypes.DeployContext, cheEnv map[string]string) {
+	userClusterRolesSet := map[string]bool{}
 
-func (s *CheServerReconciler) updateUserClusterRoles(ctx *chetypes.DeployContext, cheEnv map[string]string) {
-	userClusterRoles := strings.Join(s.getDefaultUserClusterRoles(ctx), ", ")
+	for _, role := range s.getDefaultUserClusterRoles(ctx) {
+		userClusterRolesSet[role] = true
+	}
 
 	for _, role := range strings.Split(cheEnv["CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"], ",") {
-		role := strings.TrimSpace(role)
-		if !strings.Contains(userClusterRoles, role) {
-			userClusterRoles = userClusterRoles + ", " + role
+		role = strings.TrimSpace(role)
+		if role != "" {
+			userClusterRolesSet[strings.TrimSpace(role)] = true
 		}
 	}
 
 	if ctx.CheCluster.Spec.DevEnvironments.User != nil {
 		for _, role := range ctx.CheCluster.Spec.DevEnvironments.User.ClusterRoles {
-			role := strings.TrimSpace(role)
-			if !strings.Contains(userClusterRoles, role) {
-				userClusterRoles = userClusterRoles + ", " + role
+			role = strings.TrimSpace(role)
+			if role != "" {
+				userClusterRolesSet[strings.TrimSpace(role)] = true
 			}
 		}
 	}
 
-	cheEnv["CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"] = userClusterRoles
+	userClusterRoles := slices.Collect(maps.Keys(userClusterRolesSet))
+	sort.Strings(userClusterRoles)
+
+	cheEnv["CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"] = strings.Join(userClusterRoles, ",")
+}
+
+func (s *CheServerReconciler) updateServerEndpointsEnv(ctx *chetypes.DeployContext, cheEnv map[string]string) error {
+	// https://github.com/eclipse-che/che-operator/pull/1250
+	oAuthProviders := []string{constants.BitbucketOAuth, constants.AzureDevOpsOAuth}
+
+	for _, oauthProvider := range oAuthProviders {
+		secret, err := getOAuthConfigSecret(ctx, oauthProvider)
+		if err != nil {
+			return err
+		} else if secret == nil {
+			continue
+		}
+
+		envName := fmt.Sprintf(
+			"CHE_INTEGRATION_%s_SERVER__ENDPOINTS",
+			strings.ReplaceAll(
+				strings.ToUpper(oauthProvider),
+				"-",
+				"_",
+			),
+		)
+
+		// make endpoints uniq and sorted
+		endpointsSet := map[string]bool{}
+
+		for _, endpointsStr := range []string{
+			secret.Annotations[constants.CheEclipseOrgScmServerEndpoint],
+			cheEnv[envName],
+		} {
+			for _, endpoint := range strings.Split(endpointsStr, ",") {
+				endpoint = strings.TrimSpace(endpoint)
+				if endpoint != "" {
+					endpointsSet[strings.TrimSpace(endpoint)] = true
+				}
+			}
+		}
+
+		endpoints := slices.Collect(maps.Keys(endpointsSet))
+		sort.Strings(endpoints)
+
+		cheEnv[envName] = strings.Join(endpoints, ",")
+	}
+
+	return nil
 }

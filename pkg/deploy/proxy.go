@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -132,7 +132,7 @@ func MergeNonProxy(noProxy1 string, noProxy2 string) string {
 }
 
 // GenerateProxyJavaOpts converts given proxy configuration into Java format.
-func GenerateProxyJavaOpts(proxy *chetypes.Proxy, noProxy string) (javaOpts string, err error) {
+func GenerateProxyJavaOpts(proxy *chetypes.Proxy, noProxy string) (javaOpts string) {
 	if noProxy == "" {
 		noProxy = proxy.NoProxy
 	}
@@ -153,11 +153,9 @@ func GenerateProxyJavaOpts(proxy *chetypes.Proxy, noProxy string) (javaOpts stri
 			" -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes="
 	}
 
-	javaOpts =
-		" -Dhttp.proxyHost=" + removeProtocolPrefix(proxy.HttpHost) + " -Dhttp.proxyPort=" + proxy.HttpPort +
-			" -Dhttps.proxyHost=" + removeProtocolPrefix(proxy.HttpsHost) + " -Dhttps.proxyPort=" + proxy.HttpsPort +
-			" -Dhttp.nonProxyHosts='" + noProxy + "'" + proxyUserPassword
-	return javaOpts, nil
+	return " -Dhttp.proxyHost=" + removeProtocolPrefix(proxy.HttpHost) + " -Dhttp.proxyPort=" + proxy.HttpPort +
+		" -Dhttps.proxyHost=" + removeProtocolPrefix(proxy.HttpsHost) + " -Dhttps.proxyPort=" + proxy.HttpsPort +
+		" -Dhttp.nonProxyHosts='" + noProxy + "'" + proxyUserPassword
 }
 
 func removeProtocolPrefix(url string) string {
