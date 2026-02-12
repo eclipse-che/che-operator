@@ -214,7 +214,7 @@ func (s *CheServerReconciler) updateUserClusterRoleEnv(ctx *chetypes.DeployConte
 	for _, role := range strings.Split(cheEnv["CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"], ",") {
 		role = strings.TrimSpace(role)
 		if role != "" {
-			userClusterRolesSet[strings.TrimSpace(role)] = true
+			userClusterRolesSet[role] = true
 		}
 	}
 
@@ -222,7 +222,7 @@ func (s *CheServerReconciler) updateUserClusterRoleEnv(ctx *chetypes.DeployConte
 		for _, role := range ctx.CheCluster.Spec.DevEnvironments.User.ClusterRoles {
 			role = strings.TrimSpace(role)
 			if role != "" {
-				userClusterRolesSet[strings.TrimSpace(role)] = true
+				userClusterRolesSet[role] = true
 			}
 		}
 	}
@@ -264,7 +264,7 @@ func (s *CheServerReconciler) updateServerEndpointsEnv(ctx *chetypes.DeployConte
 			for _, endpoint := range strings.Split(endpointsStr, ",") {
 				endpoint = strings.TrimSpace(endpoint)
 				if endpoint != "" {
-					endpointsSet[strings.TrimSpace(endpoint)] = true
+					endpointsSet[endpoint] = true
 				}
 			}
 		}
