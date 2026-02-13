@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -36,7 +36,10 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 		return nil, err
 	}
 
-	cmResourceVersions := GetCheConfigMapVersion(ctx)
+	cmResourceVersions, err := s.getConfigMapRevision(ctx)
+	if err != nil {
+		return nil, err
+	}
 	cmResourceVersions += "," + tls.GetAdditionalCACertsConfigMapVersion(ctx)
 
 	terminationGracePeriodSeconds := int64(30)
@@ -129,12 +132,12 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "http",
-									ContainerPort: 8080,
+									ContainerPort: constants.DefaultServerPort,
 									Protocol:      "TCP",
 								},
 								{
 									Name:          "http-debug",
-									ContainerPort: 8000,
+									ContainerPort: constants.DefaultServerPort,
 									Protocol:      "TCP",
 								},
 								{
@@ -200,7 +203,7 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 					Path: "/api/system/state",
 					Port: intstr.IntOrString{
 						Type:   intstr.Int,
-						IntVal: int32(8080),
+						IntVal: constants.DefaultServerPort,
 					},
 					Scheme: corev1.URISchemeHTTP,
 				},
@@ -219,7 +222,7 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 					Path: "/api/system/state",
 					Port: intstr.IntOrString{
 						Type:   intstr.Int,
-						IntVal: int32(8080),
+						IntVal: constants.DefaultServerPort,
 					},
 					Scheme: corev1.URISchemeHTTP,
 				},
@@ -242,7 +245,7 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 }
 
 func MountBitBucketOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1.Deployment) error {
-	secret, err := getOAuthConfig(ctx, "bitbucket")
+	secret, err := getOAuthConfigSecret(ctx, constants.BitbucketOAuth)
 	if secret == nil {
 		return err
 	}
@@ -302,7 +305,7 @@ func MountGitHubOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1.Depl
 }
 
 func MountAzureDevOpsOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1.Deployment) error {
-	secret, err := getOAuthConfig(ctx, constants.AzureDevOpsOAuth)
+	secret, err := getOAuthConfigSecret(ctx, constants.AzureDevOpsOAuth)
 	if secret == nil {
 		return err
 	}

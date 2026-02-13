@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -48,7 +48,7 @@ func TestGenerateProxyJavaOptsWithUsernameAndPassword(t *testing.T) {
 		logrus.Errorf("Failed to set env %s", err)
 	}
 
-	javaOpts, _ := GenerateProxyJavaOpts(proxy, "")
+	javaOpts := GenerateProxyJavaOpts(proxy, "")
 	expectedJavaOpts := " -Dhttp.proxyHost=myproxy.com -Dhttp.proxyPort=1234 -Dhttps.proxyHost=myproxy.com " +
 		"-Dhttps.proxyPort=1234 -Dhttp.nonProxyHosts='localhost|myhost.com' -Dhttp.proxyUser=user " +
 		"-Dhttp.proxyPassword=password -Dhttps.proxyUser=user -Dhttps.proxyPassword=password " +
@@ -71,7 +71,7 @@ func TestGenerateProxyJavaOptsWithoutAuthentication(t *testing.T) {
 
 		NoProxy: "localhost,myhost.com",
 	}
-	javaOpts, _ := GenerateProxyJavaOpts(proxy, "test-no-proxy.com")
+	javaOpts := GenerateProxyJavaOpts(proxy, "test-no-proxy.com")
 	expectedJavaOptsWithoutUsernamePassword := " -Dhttp.proxyHost=myproxy.com -Dhttp.proxyPort=1234 -Dhttps.proxyHost=myproxy.com " +
 		"-Dhttps.proxyPort=1234 -Dhttp.nonProxyHosts='test-no-proxy.com'"
 
@@ -92,7 +92,7 @@ func TestGenerateProxyJavaOptsWildcardInNonProxyHosts(t *testing.T) {
 
 		NoProxy: ".example.com,localhost, *.wildcard.domain.com ,myhost.com , .wildcard.net , 127.* ",
 	}
-	javaOpts, _ := GenerateProxyJavaOpts(proxy, "")
+	javaOpts := GenerateProxyJavaOpts(proxy, "")
 	expectedJavaOptsWithoutUsernamePassword := " -Dhttp.proxyHost=myproxy.com -Dhttp.proxyPort=1234 -Dhttps.proxyHost=myproxy.com " +
 		"-Dhttps.proxyPort=1234 -Dhttp.nonProxyHosts='*.example.com|localhost|*.wildcard.domain.com|myhost.com|*.wildcard.net|127.*'"
 

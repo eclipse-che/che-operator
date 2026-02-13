@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -15,9 +15,10 @@ package server
 import (
 	"testing"
 
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"k8s.io/utils/pointer"
 
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
@@ -28,39 +29,60 @@ import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 )
 
-func TestNewCheConfigMap(t *testing.T) {
+func TestGetConfigMapData(t *testing.T) {
 	type testCase struct {
 		name         string
-		initObjects  []runtime.Object
 		cheCluster   *chev2.CheCluster
+		initObjects  []runtime.Object
 		expectedData map[string]string
 	}
 
 	testCases := []testCase{
 		{
-			name:        "Test",
+			name:        "Test defaults",
 			initObjects: []runtime.Object{},
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
 						CheServer: chev2.CheServer{
 							ExtraProperties: map[string]string{
-								"CHE_WORKSPACE_NO_PROXY": "myproxy.myhostname.com",
+								"EXTRA_PROPERTY": "extra-value",
 							},
+							Proxy: &chev2.Proxy{
+								Url:  "http://127.0.0.1",
+								Port: "8080",
+							},
+						},
+					},
+					Networking: chev2.CheClusterSpecNetworking{
+						Auth: chev2.Auth{
+							IdentityProviderURL: "http://identity-provider",
 						},
 					},
 				},
 				Status: chev2.CheClusterStatus{
-					CheURL: "https://che-host",
+					CheURL: "https://che.che",
 				},
 			},
 			expectedData: map[string]string{
-				"CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER": "openshift-v4",
-				"CHE_API":                "https://che-host/api",
-				"CHE_WORKSPACE_NO_PROXY": "myproxy.myhostname.com",
+				"EXTRA_PROPERTY":            "extra-value",
+				"JAVA_OPTS":                 "-XX:MaxRAMPercentage=85.0 -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=8080 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=8080 -Dhttp.nonProxyHosts=''",
+				"CHE_HOST":                  "che.che",
+				"CHE_PORT":                  "8080",
+				"CHE_DEBUG_SERVER":          "false",
+				"CHE_LOG_LEVEL":             "INFO",
+				"CHE_METRICS_ENABLED":       "false",
+				"CHE_INFRASTRUCTURE_ACTIVE": "openshift",
+				"CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES":        "eclipse-che-cheworkspaces-clusterrole,eclipse-che-cheworkspaces-devworkspace-clusterrole",
+				"CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT":           "<username>-" + defaults.GetCheFlavor(),
+				"CHE_INFRA_KUBERNETES_NAMESPACE_CREATION__ALLOWED": "true",
+				"KUBERNETES_LABELS":                                labels.FormatLabels(deploy.GetLabels(defaults.GetCheFlavor())),
+				"HTTP2_DISABLE":                                    "true",
+				"CHE_OIDC_AUTH__SERVER__URL":                       "http://identity-provider",
 			},
 		},
 	}
@@ -68,16 +90,23 @@ func TestNewCheConfigMap(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			ctx.Proxy.HttpProxy = "http://127.0.0.1:8080"
+			ctx.Proxy.HttpHost = "127.0.0.1"
+			ctx.Proxy.HttpPort = "8080"
+			ctx.Proxy.HttpsProxy = "http://127.0.0.1:8080"
+			ctx.Proxy.HttpsHost = "127.0.0.1"
+			ctx.Proxy.HttpsPort = "8080"
 
-			server := NewCheServerReconciler()
-			actualData, err := server.getCheConfigMapData(ctx)
-			assert.Nil(t, err)
-			test.ValidateContainData(actualData, testCase.expectedData, t)
+			serverReconciler := NewCheServerReconciler()
+			actualData, err := serverReconciler.getConfigMapData(ctx)
+
+			assert.NoError(t, err)
+			assert.Equal(t, testCase.expectedData, actualData)
 		})
 	}
 }
 
-func TestConfigMap(t *testing.T) {
+func TestGetConfigMapDataWithServerEndpoints(t *testing.T) {
 	type testCase struct {
 		name         string
 		initObjects  []client.Object
@@ -87,126 +116,7 @@ func TestConfigMap(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name:        "Test k8s data, no tls secret",
-			initObjects: []client.Object{},
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: chev2.CheClusterSpec{
-					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DefaultNamespace: chev2.DefaultNamespace{
-							Template: "<username>-che",
-						},
-					},
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_INFRA_KUBERNETES_TLS__CERT": "",
-				"CHE_INFRA_KUBERNETES_TLS__KEY":  "",
-			},
-		},
-		{
-			name: "Test k8s data, with tls secret",
-			initObjects: []client.Object{
-				&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "che-tls",
-						Namespace: "eclipse-che",
-					},
-					Data: map[string][]byte{
-						"tls.crt": []byte("CRT"),
-						"tls.key": []byte("KEY"),
-					},
-				},
-			},
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: chev2.CheClusterSpec{
-					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DefaultNamespace: chev2.DefaultNamespace{
-							Template: "<username>-che",
-						},
-					},
-					Networking: chev2.CheClusterSpecNetworking{
-						TlsSecretName: "che-tls",
-					},
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_INFRA_KUBERNETES_TLS__CERT": "CRT",
-				"CHE_INFRA_KUBERNETES_TLS__KEY":  "KEY",
-			},
-		},
-		{
-			name: "Test k8s data, check public url when internal network enabled.",
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "eclipse-che",
-					Namespace: "eclipse-che",
-				},
-				Status: chev2.CheClusterStatus{
-					CheURL: "https://che-host",
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_WEBSOCKET_ENDPOINT": "wss://che-host/api/websocket",
-			},
-		},
-		{
-			name: "Test k8s data, with internal cluster svc names",
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "eclipse-che",
-					Namespace: "eclipse-che",
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_WEBSOCKET_INTERNAL_ENDPOINT": "ws://che-host.eclipse-che.svc:8080/api/websocket",
-			},
-		},
-		{
-			name: "Test k8s data, without internal cluster svc names",
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "eclipse-che",
-					Namespace: "eclipse-che",
-				},
-				Status: chev2.CheClusterStatus{
-					CheURL: "https://che-host",
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_WEBSOCKET_ENDPOINT": "wss://che-host/api/websocket",
-			},
-		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
-
-			server := NewCheServerReconciler()
-			actualData, err := server.getCheConfigMapData(ctx)
-			assert.Nil(t, err)
-			test.ValidateContainData(actualData, testCase.expectedData, t)
-		})
-	}
-}
-
-func TestUpdateIntegrationServerEndpoints(t *testing.T) {
-	type testCase struct {
-		name         string
-		initObjects  []client.Object
-		cheCluster   *chev2.CheCluster
-		expectedData map[string]string
-	}
-
-	testCases := []testCase{
-		{
-			name: "Test set BitBucket endpoints from secret",
+			name: "Test use endpoint from secret",
 			initObjects: []client.Object{
 				&corev1.Secret{
 					TypeMeta: metav1.TypeMeta{
@@ -214,7 +124,7 @@ func TestUpdateIntegrationServerEndpoints(t *testing.T) {
 						APIVersion: "v1",
 					},
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "github-oauth-config",
+						Name:      "bitbucket-oauth-config",
 						Namespace: "eclipse-che",
 						Labels: map[string]string{
 							"app.kubernetes.io/part-of":   "che.eclipse.org",
@@ -222,39 +132,25 @@ func TestUpdateIntegrationServerEndpoints(t *testing.T) {
 						},
 						Annotations: map[string]string{
 							"che.eclipse.org/oauth-scm-server":    "bitbucket",
-							"che.eclipse.org/scm-server-endpoint": "bitbucket_endpoint_2",
+							"che.eclipse.org/scm-server-endpoint": "bitbucket_endpoint",
 						},
 					},
 				},
-			},
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-					Name:      "eclipse-che",
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS": "bitbucket_endpoint_2",
-			},
-		},
-		{
-			name: "Test update BitBucket endpoints",
-			initObjects: []client.Object{
 				&corev1.Secret{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "Secret",
 						APIVersion: "v1",
 					},
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "github-oauth-config",
+						Name:      "azure-devops-oauth-config",
 						Namespace: "eclipse-che",
 						Labels: map[string]string{
 							"app.kubernetes.io/part-of":   "che.eclipse.org",
 							"app.kubernetes.io/component": "oauth-scm-configuration",
 						},
 						Annotations: map[string]string{
-							"che.eclipse.org/oauth-scm-server":    "bitbucket",
-							"che.eclipse.org/scm-server-endpoint": "bitbucket_endpoint_2",
+							"che.eclipse.org/oauth-scm-server":    "azure-devops",
+							"che.eclipse.org/scm-server-endpoint": "azure-devops_endpoint",
 						},
 					},
 				},
@@ -264,22 +160,14 @@ func TestUpdateIntegrationServerEndpoints(t *testing.T) {
 					Namespace: "eclipse-che",
 					Name:      "eclipse-che",
 				},
-				Spec: chev2.CheClusterSpec{
-					Components: chev2.CheClusterComponents{
-						CheServer: chev2.CheServer{
-							ExtraProperties: map[string]string{
-								"CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS": "bitbucket_endpoint_1",
-							},
-						},
-					},
-				},
 			},
 			expectedData: map[string]string{
-				"CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS": "bitbucket_endpoint_2,bitbucket_endpoint_1",
+				"CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS":    "bitbucket_endpoint",
+				"CHE_INTEGRATION_AZURE_DEVOPS_SERVER__ENDPOINTS": "azure-devops_endpoint",
 			},
 		},
 		{
-			name:        "Test don't update BitBucket endpoints",
+			name:        "Test use endpoint from extra properties",
 			initObjects: []client.Object{},
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -289,14 +177,138 @@ func TestUpdateIntegrationServerEndpoints(t *testing.T) {
 					Components: chev2.CheClusterComponents{
 						CheServer: chev2.CheServer{
 							ExtraProperties: map[string]string{
-								"CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS": "bitbucket_endpoint_1",
+								"CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS":    "bitbucket_endpoint",
+								"CHE_INTEGRATION_AZURE_DEVOPS_SERVER__ENDPOINTS": "azure-devops_endpoint",
 							},
 						},
 					},
 				},
 			},
 			expectedData: map[string]string{
-				"CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS": "bitbucket_endpoint_1",
+				"CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS":    "bitbucket_endpoint",
+				"CHE_INTEGRATION_AZURE_DEVOPS_SERVER__ENDPOINTS": "azure-devops_endpoint",
+			},
+		},
+		{
+			name: "Test duplicate endpoints",
+			initObjects: []client.Object{
+				&corev1.Secret{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "Secret",
+						APIVersion: "v1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "bitbucket-oauth-config",
+						Namespace: "eclipse-che",
+						Labels: map[string]string{
+							"app.kubernetes.io/part-of":   "che.eclipse.org",
+							"app.kubernetes.io/component": "oauth-scm-configuration",
+						},
+						Annotations: map[string]string{
+							"che.eclipse.org/oauth-scm-server":    "bitbucket",
+							"che.eclipse.org/scm-server-endpoint": "bitbucket_endpoint",
+						},
+					},
+				},
+				&corev1.Secret{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "Secret",
+						APIVersion: "v1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "azure-devops-oauth-config",
+						Namespace: "eclipse-che",
+						Labels: map[string]string{
+							"app.kubernetes.io/part-of":   "che.eclipse.org",
+							"app.kubernetes.io/component": "oauth-scm-configuration",
+						},
+						Annotations: map[string]string{
+							"che.eclipse.org/oauth-scm-server":    "azure-devops",
+							"che.eclipse.org/scm-server-endpoint": "azure-devops_endpoint",
+						},
+					},
+				},
+			},
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						CheServer: chev2.CheServer{
+							ExtraProperties: map[string]string{
+								"CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS":    "bitbucket_endpoint",
+								"CHE_INTEGRATION_AZURE_DEVOPS_SERVER__ENDPOINTS": "azure-devops_endpoint",
+							},
+						},
+					},
+				},
+			},
+			expectedData: map[string]string{
+				"CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS":    "bitbucket_endpoint",
+				"CHE_INTEGRATION_AZURE_DEVOPS_SERVER__ENDPOINTS": "azure-devops_endpoint",
+			},
+		},
+		{
+			name: "Test update endpoints",
+			initObjects: []client.Object{
+				&corev1.Secret{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "Secret",
+						APIVersion: "v1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "bitbucket-oauth-config",
+						Namespace: "eclipse-che",
+						Labels: map[string]string{
+							"app.kubernetes.io/part-of":   "che.eclipse.org",
+							"app.kubernetes.io/component": "oauth-scm-configuration",
+						},
+						Annotations: map[string]string{
+							"che.eclipse.org/oauth-scm-server":    "bitbucket",
+							"che.eclipse.org/scm-server-endpoint": "bitbucket_endpoint_1",
+						},
+					},
+				},
+				&corev1.Secret{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "Secret",
+						APIVersion: "v1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "azure-devops-oauth-config",
+						Namespace: "eclipse-che",
+						Labels: map[string]string{
+							"app.kubernetes.io/part-of":   "che.eclipse.org",
+							"app.kubernetes.io/component": "oauth-scm-configuration",
+						},
+						Annotations: map[string]string{
+							"che.eclipse.org/oauth-scm-server":    "azure-devops",
+							"che.eclipse.org/scm-server-endpoint": "azure-devops_endpoint_1",
+						},
+					},
+				},
+			},
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						CheServer: chev2.CheServer{
+							ExtraProperties: map[string]string{
+								"CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS":    "bitbucket_endpoint_2",
+								"CHE_INTEGRATION_AZURE_DEVOPS_SERVER__ENDPOINTS": "azure-devops_endpoint_2",
+							},
+						},
+					},
+				},
+			},
+			expectedData: map[string]string{
+				"CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS":    "bitbucket_endpoint_1,bitbucket_endpoint_2",
+				"CHE_INTEGRATION_AZURE_DEVOPS_SERVER__ENDPOINTS": "azure-devops_endpoint_1,azure-devops_endpoint_2",
 			},
 		},
 	}
@@ -304,123 +316,17 @@ func TestUpdateIntegrationServerEndpoints(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
+			serverReconciler := NewCheServerReconciler()
 
-			server := NewCheServerReconciler()
-			actualData, err := server.getCheConfigMapData(ctx)
+			actualData, err := serverReconciler.getConfigMapData(ctx)
+
 			assert.Nil(t, err)
 			test.ValidateContainData(actualData, testCase.expectedData, t)
 		})
 	}
 }
 
-func TestShouldSetUpCorrectlyPluginRegistryURL(t *testing.T) {
-	type testCase struct {
-		name         string
-		initObjects  []client.Object
-		cheCluster   *chev2.CheCluster
-		expectedData map[string]string
-	}
-
-	testCases := []testCase{
-		{
-			name: "Test #1",
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: chev2.CheClusterSpec{
-					Components: chev2.CheClusterComponents{
-						PluginRegistry: chev2.PluginRegistry{
-							DisableInternalRegistry: true,
-							ExternalPluginRegistries: []chev2.ExternalPluginRegistry{
-								{Url: "external-plugin-registry"},
-							},
-						},
-					},
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL": "",
-				"CHE_WORKSPACE_PLUGIN__REGISTRY__URL":           "external-plugin-registry",
-			},
-		},
-		{
-			name: "Test CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL #2",
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: chev2.CheClusterSpec{
-					Components: chev2.CheClusterComponents{
-						PluginRegistry: chev2.PluginRegistry{
-							DisableInternalRegistry: false,
-							OpenVSXURL:              pointer.String(""),
-						},
-					},
-				},
-				Status: chev2.CheClusterStatus{
-					PluginRegistryURL: "internal-plugin-registry",
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL": "http://plugin-registry.eclipse-che.svc:8080/v3",
-				"CHE_WORKSPACE_PLUGIN__REGISTRY__URL":           "internal-plugin-registry",
-			},
-		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
-
-			server := NewCheServerReconciler()
-			actualData, err := server.getCheConfigMapData(ctx)
-			assert.Nil(t, err)
-			test.ValidateContainData(actualData, testCase.expectedData, t)
-		})
-	}
-}
-
-func TestShouldSetUpCorrectlyInternalCheServerURL(t *testing.T) {
-	type testCase struct {
-		name         string
-		initObjects  []runtime.Object
-		cheCluster   *chev2.CheCluster
-		expectedData map[string]string
-	}
-
-	testCases := []testCase{
-		{
-			name: "Should use internal che-server url, when internal network is enabled",
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: chev2.CheClusterSpec{
-					Networking: chev2.CheClusterSpecNetworking{
-						Hostname: "che-host",
-					},
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_API_INTERNAL": "http://che-host.eclipse-che.svc:8080/api",
-			},
-		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
-
-			server := NewCheServerReconciler()
-			actualData, err := server.getCheConfigMapData(ctx)
-			assert.Nil(t, err)
-			test.ValidateContainData(actualData, testCase.expectedData, t)
-		})
-	}
-}
-
-func TestUpdateUserClusterRoles(t *testing.T) {
+func TestGetConfigMapDataWithUserClusterRoles(t *testing.T) {
 	type testCase struct {
 		name                     string
 		cheCluster               *chev2.CheCluster
@@ -429,17 +335,17 @@ func TestUpdateUserClusterRoles(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name: "Test #1",
+			name: "Test defaults roles",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
 					Namespace: "eclipse-che",
 				},
 			},
-			expectedUserClusterRoles: "eclipse-che-cheworkspaces-clusterrole, eclipse-che-cheworkspaces-devworkspace-clusterrole",
+			expectedUserClusterRoles: "eclipse-che-cheworkspaces-clusterrole,eclipse-che-cheworkspaces-devworkspace-clusterrole",
 		},
 		{
-			name: "Test #2",
+			name: "Test additional roles #1",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
@@ -455,10 +361,10 @@ func TestUpdateUserClusterRoles(t *testing.T) {
 					},
 				},
 			},
-			expectedUserClusterRoles: "eclipse-che-cheworkspaces-clusterrole, eclipse-che-cheworkspaces-devworkspace-clusterrole, test-roles-1, test-roles-2",
+			expectedUserClusterRoles: "eclipse-che-cheworkspaces-clusterrole,eclipse-che-cheworkspaces-devworkspace-clusterrole,test-roles-1,test-roles-2",
 		},
 		{
-			name: "Test #3",
+			name: "Test additional roles #2",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
@@ -481,16 +387,16 @@ func TestUpdateUserClusterRoles(t *testing.T) {
 					},
 				},
 			},
-			expectedUserClusterRoles: "eclipse-che-cheworkspaces-clusterrole, eclipse-che-cheworkspaces-devworkspace-clusterrole, test-roles-1, test-roles-2, test-roles-3",
+			expectedUserClusterRoles: "eclipse-che-cheworkspaces-clusterrole,eclipse-che-cheworkspaces-devworkspace-clusterrole,test-roles-1,test-roles-2,test-roles-3",
 		},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			serverReconciler := NewCheServerReconciler()
 
-			reconciler := NewCheServerReconciler()
-			cheEnv, err := reconciler.getCheConfigMapData(ctx)
+			cheEnv, err := serverReconciler.getConfigMapData(ctx)
 
 			assert.NoError(t, err)
 			assert.Equal(t, testCase.expectedUserClusterRoles, cheEnv["CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"])

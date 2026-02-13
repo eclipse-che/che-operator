@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -87,7 +87,7 @@ func TestConfiguringLabelsForRoutes(t *testing.T) {
 	assert.Nil(t, err)
 
 	route := &routev1.Route{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: getComponentName(ctx), Namespace: "eclipse-che"}, route)
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: getComponentName(), Namespace: "eclipse-che"}, route)
 	assert.Nil(t, err)
 	assert.Equal(t, route.ObjectMeta.Labels["route"], "one")
 }
@@ -98,6 +98,6 @@ func TestCheHostReconciler(t *testing.T) {
 	cheHostReconciler := NewCheHostReconciler()
 	test.EnsureReconcile(t, ctx, cheHostReconciler.Reconcile)
 
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: getComponentName(ctx), Namespace: "eclipse-che"}, &routev1.Route{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: getComponentName(), Namespace: "eclipse-che"}, &routev1.Route{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: deploy.CheServiceName, Namespace: "eclipse-che"}, &corev1.Service{}))
 }

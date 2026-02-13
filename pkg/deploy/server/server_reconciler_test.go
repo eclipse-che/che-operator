@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -46,10 +46,10 @@ func TestReconcile(t *testing.T) {
 	server := NewCheServerReconciler()
 	test.EnsureReconcile(t, ctx, server.Reconcile)
 
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: CheConfigMapName, Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: configMapName, Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Namespace: "eclipse-che", Name: "che"}, &corev1.ServiceAccount{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test-role"}, &rbac.ClusterRoleBinding{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: getComponentName(ctx), Namespace: "eclipse-che"}, &appsv1.Deployment{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: getComponentName(), Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 	assert.Equal(t, ctx.CheCluster.Status.ChePhase, chev2.CheClusterPhase(chev2.ClusterPhaseInactive))
 	assert.Equal(t, 1, len(ctx.CheCluster.Finalizers))
 

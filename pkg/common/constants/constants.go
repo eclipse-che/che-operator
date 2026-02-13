@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -42,8 +42,10 @@ const (
 	DefaultServerCpuLimit                  = "1"
 	DefaultServerCpuRequest                = "100m"
 	DefaultServerLogLevel                  = "INFO"
+	DefaultServerDebug                     = false
 	DefaultServerMetricsPort               = int32(8087)
 	DefaultServerDebugPort                 = int32(8000)
+	DefaultServerPort                      = int32(8080)
 	DefaultCaBundleCertsCMName             = "ca-certs"
 	DefaultProxyCredentialsSecret          = "proxy-credentials"
 	DefaultGitSelfSignedCertsConfigMapName = "che-git-self-signed-cert"
@@ -74,6 +76,7 @@ const (
 	AccessToken                                = "access_token"
 	IdToken                                    = "id_token"
 	OpenShiftOAuthScope                        = "user:full"
+	BitbucketOAuth                             = "bitbucket"
 
 	// Labels
 	KubernetesComponentLabelKey = "app.kubernetes.io/component"

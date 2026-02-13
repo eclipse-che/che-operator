@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -18,20 +18,19 @@ import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 const (
 	crb                   = ".crb."
 	cheCRBFinalizerSuffix = crb + constants.FinalizerSuffix
+	configMapName         = "che"
 )
 
 type CheServerReconciler struct {
@@ -43,14 +42,14 @@ func NewCheServerReconciler() *CheServerReconciler {
 }
 
 func (s *CheServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	done, err := s.syncCheConfigMap(ctx)
+	done, err := s.syncConfigMap(ctx)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
 
 	// ensure configmap is created
 	// the version of the object is used in the deployment
-	exists, err := deploy.GetNamespacedObject(ctx, CheConfigMapName, &corev1.ConfigMap{})
+	exists, err := deploy.GetNamespacedObject(ctx, configMapName, &corev1.ConfigMap{})
 	if !exists {
 		return reconcile.Result{}, false, err
 	}
@@ -90,32 +89,9 @@ func (c *CheServerReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	return c.deletePermissions(ctx)
 }
 
-func (s *CheServerReconciler) syncCheConfigMap(ctx *chetypes.DeployContext) (bool, error) {
-	data, err := s.getCheConfigMapData(ctx)
-	if err != nil {
-		return false, err
-	}
-
-	cm := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        CheConfigMapName,
-			Namespace:   ctx.CheCluster.Namespace,
-			Labels:      deploy.GetLabels(getComponentName(ctx)),
-			Annotations: data,
-		},
-		Data: data,
-	}
-
-	return deploy.Sync(ctx, cm, diffs.ConfigMapAllLabels)
-}
-
 func (s *CheServerReconciler) syncActiveChePhase(ctx *chetypes.DeployContext) (bool, error) {
 	cheDeployment := &appsv1.Deployment{}
-	exists, err := deploy.GetNamespacedObject(ctx, getComponentName(ctx), cheDeployment)
+	exists, err := deploy.GetNamespacedObject(ctx, getComponentName(), cheDeployment)
 	if err != nil {
 		return false, err
 	}
@@ -184,7 +160,7 @@ func (s CheServerReconciler) syncCheURL(ctx *chetypes.DeployContext) (bool, erro
 		logrus.Infof("%s is now available at: %s", product, cheUrl)
 
 		ctx.CheCluster.Status.CheURL = cheUrl
-		err := deploy.UpdateCheCRStatus(ctx, getComponentName(ctx)+" server URL", cheUrl)
+		err := deploy.UpdateCheCRStatus(ctx, getComponentName()+" server URL", cheUrl)
 		return err == nil, err
 	}
 
