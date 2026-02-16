@@ -22,7 +22,7 @@ jobs:
       id: run-minikube
       uses: che-incubator/setup-minikube-action@next
       with:
-        minikube-version: v1.29.0
+        minikube-version: v1.37.0
     - name: Install yq
       run: sudo pip install yq
     - name: Install chectl

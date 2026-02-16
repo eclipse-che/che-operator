@@ -23,68 +23,43 @@ on:
       - main
 jobs:
   build-operator-image-multiarch:
-    strategy:
-      fail-fast: false
-      matrix:
-        runners: ['ubuntu-24.04', 'ubuntu-24.04-arm']
-    runs-on: ${{matrix.runners}}
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
-      - name: Set arch environment variable
-        run: |
-          if [[ ${{matrix.runners}} == 'ubuntu-24.04' ]]; then
-            echo arch="amd64" >> $GITHUB_ENV
-          else
-            echo arch="arm64" >> $GITHUB_ENV
-          fi
-      - name: Set short_sha environment variable
-        run: echo short_sha="$(git rev-parse --short=7 HEAD)" >> $GITHUB_ENV
-      - name: Login to quay.io
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.QUAY_USERNAME }}
-          password: ${{ secrets.QUAY_PASSWORD }}
-          registry: quay.io
-      - name: Build operator image
-        run: |
-          docker buildx build \
-          --platform linux/${{env.arch}} \
-          --progress=plain \
-          --push \
-          -t quay.io/eclipse/che-operator:${{env.arch}}-${{env.short_sha}} .
-
-  publish-operator-manifest:
-    name: publish operator image
     runs-on: ubuntu-24.04
-    needs: build-operator-image-multiarch
+
+    outputs:
+      git-sha: ${{ steps.git-sha.outputs.sha }}
+
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
-      - name: Login to Quay.io
-        uses: docker/login-action@v2
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Set output for Git short SHA
+        id: git-sha
+        run: echo "sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Login to quay.io
+        uses: docker/login-action@v3
         with:
-          registry: quay.io
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
-      - name: Set short_sha environment variable
-        run: echo short_sha="$(git rev-parse --short=7 HEAD)" >> $GITHUB_ENV
-      - name: publish
-        run: |
-          docker manifest create quay.io/eclipse/che-operator:next \
-            --amend quay.io/eclipse/che-operator:amd64-${{env.short_sha}} \
-            --amend quay.io/eclipse/che-operator:arm64-${{env.short_sha}}
-          docker manifest annotate quay.io/eclipse/che-operator:next \
-            quay.io/eclipse/che-operator:amd64-${{env.short_sha}} \
-            --os linux --arch amd64
-          docker manifest annotate quay.io/eclipse/che-operator:next \
-             quay.io/eclipse/che-operator:arm64-${{env.short_sha}} \
-            --os linux --arch arm64
-          docker manifest push quay.io/eclipse/che-operator:next
+          registry: quay.io
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64, linux/arm64, linux/ppc64le, linux/s390x
+          tags: |
+            quay.io/eclipse/che-operator:next
+            quay.io/eclipse/che-operator:sha-${{ steps.git-sha.outputs.sha }}
+          file: ./Dockerfile
 
   build-catalog:
     runs-on: ubuntu-24.04
-    needs: publish-operator-manifest
+    needs: build-operator-image-multiarch
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -95,7 +70,7 @@ jobs:
       - name: Install yq
         run: sudo pip install yq
       - name: Login to quay.io
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
@@ -121,7 +96,7 @@ jobs:
       - name: Install yq
         run: sudo pip install yq
       - name: Login to quay.io
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
