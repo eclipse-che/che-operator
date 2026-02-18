@@ -494,3 +494,140 @@ func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 	assert.Equal(t, caCertsMergedCM.Data["tls-ca-bundle.pem"], "# ConfigMap: ca-certs,  Key: ca-bundle.crt\nopenshift-ca-bundle-new\n\n")
 	assert.Equal(t, 1, len(caCertsMergedCM.Data))
 }
+
+func TestSyncCheCABundleCertsWithEmptyConfigMap(t *testing.T) {
+	// A CA bundle ConfigMap exists but has no data entries
+	emptyCert := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "empty-cert",
+			Namespace: "eclipse-che",
+			Labels: map[string]string{
+				"app.kubernetes.io/component": constants.CheCABundle,
+				"app.kubernetes.io/part-of":   constants.CheEclipseOrg,
+			},
+		},
+		Data: map[string]string{},
+	}
+	ctx := test.NewCtxBuilder().WithObjects(emptyCert).Build()
+
+	certificates := NewCertificatesReconciler()
+
+	_, err := certificates.syncCheCABundleCerts(ctx)
+	assert.NoError(t, err)
+
+	cm := &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
+	assert.NoError(t, err)
+
+	// Merged CM should have no tls-ca-bundle.pem key when source ConfigMap is empty
+	assert.Empty(t, cm.Data)
+}
+
+func TestSyncCheCABundleCertsWithEmptyAndNonEmptyConfigMaps(t *testing.T) {
+	emptyCert := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "empty-cert",
+			Namespace: "eclipse-che",
+			Labels: map[string]string{
+				"app.kubernetes.io/component": constants.CheCABundle,
+				"app.kubernetes.io/part-of":   constants.CheEclipseOrg,
+			},
+		},
+		Data: map[string]string{},
+	}
+	nonEmptyCert := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "non-empty-cert",
+			Namespace: "eclipse-che",
+			Labels: map[string]string{
+				"app.kubernetes.io/component": constants.CheCABundle,
+				"app.kubernetes.io/part-of":   constants.CheEclipseOrg,
+			},
+		},
+		Data: map[string]string{"ca.crt": "some-cert"},
+	}
+	ctx := test.NewCtxBuilder().WithObjects(emptyCert, nonEmptyCert).Build()
+
+	certificates := NewCertificatesReconciler()
+
+	_, err := certificates.syncCheCABundleCerts(ctx)
+	assert.NoError(t, err)
+
+	cm := &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
+	assert.NoError(t, err)
+
+	// Only the non-empty ConfigMap's cert should be in the merged bundle
+	expected := "# ConfigMap: non-empty-cert,  Key: ca.crt\nsome-cert\n\n"
+	assert.Equal(t, expected, cm.Data[kubernetesCABundleCertsFile])
+}
+
+func TestSyncCheCABundleCertsWithNilDataConfigMap(t *testing.T) {
+	// A CA bundle ConfigMap exists with nil Data (not initialized)
+	nilDataCert := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "nil-data-cert",
+			Namespace: "eclipse-che",
+			Labels: map[string]string{
+				"app.kubernetes.io/component": constants.CheCABundle,
+				"app.kubernetes.io/part-of":   constants.CheEclipseOrg,
+			},
+		},
+	}
+	ctx := test.NewCtxBuilder().WithObjects(nilDataCert).Build()
+
+	certificates := NewCertificatesReconciler()
+
+	_, err := certificates.syncCheCABundleCerts(ctx)
+	assert.NoError(t, err)
+
+	cm := &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
+	assert.NoError(t, err)
+
+	// Merged CM should have no tls-ca-bundle.pem key when source ConfigMap has nil Data
+	assert.Empty(t, cm.Data)
+}
+
+func TestSyncCheCABundleCertsGitTrustedCertsOnlyGitHostKey(t *testing.T) {
+	// Git trusted certs ConfigMap has only the githost key (no actual cert)
+	ctx := test.NewCtxBuilder().WithCheCluster(
+		&chev2.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "eclipse-che",
+				Namespace: "eclipse-che",
+			},
+			Spec: chev2.CheClusterSpec{
+				DevEnvironments: chev2.CheClusterDevEnvironments{
+					TrustedCerts: &chev2.TrustedCerts{
+						GitTrustedCertsConfigMapName: "git-trusted-certs",
+					},
+				},
+			},
+		}).WithObjects(
+		&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "git-trusted-certs",
+				Namespace: "eclipse-che",
+				Labels: map[string]string{
+					"app.kubernetes.io/component": constants.CheCABundle,
+					"app.kubernetes.io/part-of":   constants.CheEclipseOrg,
+				},
+			},
+			Data: map[string]string{
+				constants.GitSelfSignedCertsConfigMapGitHostKey: "https://git.example.com",
+			},
+		}).Build()
+
+	certificates := NewCertificatesReconciler()
+
+	_, err := certificates.syncCheCABundleCerts(ctx)
+	assert.NoError(t, err)
+
+	cm := &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
+	assert.NoError(t, err)
+
+	// All keys were skipped (githost is excluded), so merged CM should be empty
+	assert.Empty(t, cm.Data)
+}

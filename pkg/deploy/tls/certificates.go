@@ -336,10 +336,7 @@ func (c *CertificatesReconciler) syncCheCABundleCerts(ctx *chetypes.DeployContex
 		for _, dataKey := range dataKeys {
 			// Skip the "githost" key from the git trusted certs ConfigMap:
 			// it contains a hostname, not a certificate, and should not be included in the CA bundle.
-			if dataKey == constants.GitSelfSignedCertsConfigMapGitHostKey &&
-				(cm.Name == constants.DefaultGitSelfSignedCertsConfigMapName ||
-					(ctx.CheCluster.Spec.DevEnvironments.TrustedCerts != nil &&
-						cm.Name == ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName)) {
+			if dataKey == constants.GitSelfSignedCertsConfigMapGitHostKey && isGitTrustedCertsConfigMap(ctx, &cm) {
 				continue
 			}
 
@@ -413,4 +410,17 @@ func printCert(cm *corev1.ConfigMap, key string) string {
 		key,
 		cm.Data[key],
 	)
+}
+
+func isGitTrustedCertsConfigMap(ctx *chetypes.DeployContext, cm *corev1.ConfigMap) bool {
+	if cm.Name == constants.DefaultGitSelfSignedCertsConfigMapName {
+		return true
+	}
+
+	if ctx.CheCluster.Spec.DevEnvironments.TrustedCerts != nil &&
+		cm.Name == ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName {
+		return true
+	}
+
+	return false
 }
