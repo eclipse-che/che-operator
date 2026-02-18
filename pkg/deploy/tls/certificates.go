@@ -320,7 +320,9 @@ func (c *CertificatesReconciler) syncCheCABundleCerts(ctx *chetypes.DeployContex
 		return false, err
 	}
 
-	// Sort ConfigMaps to avoid endless reconcile loop
+	// Sort ConfigMaps by name and their data keys alphabetically to ensure
+	// deterministic ordering. This prevents spurious reconcile loops that occur
+	// when Go's random map iteration produces different output each time.
 	sort.Slice(cheCABundlesCMs, func(i, j int) bool {
 		return strings.Compare(cheCABundlesCMs[i].Name, cheCABundlesCMs[j].Name) < 0
 	})
@@ -334,10 +336,10 @@ func (c *CertificatesReconciler) syncCheCABundleCerts(ctx *chetypes.DeployContex
 		for _, dataKey := range dataKeys {
 			// Skip the "githost" key from the git trusted certs ConfigMap:
 			// it contains a hostname, not a certificate, and should not be included in the CA bundle.
-			if ctx.CheCluster.Spec.DevEnvironments.TrustedCerts != nil &&
-				cm.Name == ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName &&
-				dataKey == constants.GitSelfSignedCertsConfigMapGitHostKey {
-
+			if dataKey == constants.GitSelfSignedCertsConfigMapGitHostKey &&
+				(cm.Name == constants.DefaultGitSelfSignedCertsConfigMapName ||
+					(ctx.CheCluster.Spec.DevEnvironments.TrustedCerts != nil &&
+						cm.Name == ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName)) {
 				continue
 			}
 

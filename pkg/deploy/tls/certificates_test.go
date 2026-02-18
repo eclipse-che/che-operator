@@ -355,6 +355,36 @@ func TestSyncCheCABundleCertsGitTrustedCertsExcludesGitHostKey(t *testing.T) {
 	assert.Equal(t, expected, cm.Data[kubernetesCABundleCertsFile])
 }
 
+func TestSyncCheCABundleCertsExcludesGitHostKeyWithDefaultConfigMap(t *testing.T) {
+	ctx := test.NewCtxBuilder().WithObjects(
+		&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.DefaultGitSelfSignedCertsConfigMapName, // "che-git-self-signed-cert"
+				Namespace: "eclipse-che",
+				Labels: map[string]string{
+					"app.kubernetes.io/component": constants.CheCABundle,
+					"app.kubernetes.io/part-of":   constants.CheEclipseOrg,
+				},
+			},
+			Data: map[string]string{
+				constants.GitSelfSignedCertsConfigMapCertKey:    "cert-data",
+				constants.GitSelfSignedCertsConfigMapGitHostKey: "https://git.example.com",
+			},
+		}).Build()
+
+	certificates := NewCertificatesReconciler()
+	_, err := certificates.syncCheCABundleCerts(ctx)
+	assert.NoError(t, err)
+
+	cm := &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
+	assert.NoError(t, err)
+
+	// Verify githost is excluded even when using default ConfigMap name
+	expected := "# ConfigMap: che-git-self-signed-cert,  Key: ca.crt\ncert-data\n\n"
+	assert.Equal(t, expected, cm.Data[kubernetesCABundleCertsFile])
+}
+
 func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 	// Enable workspace CA bundle mount
 	ctx := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
