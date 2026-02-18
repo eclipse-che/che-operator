@@ -15,7 +15,9 @@ package tls
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 
@@ -213,7 +215,7 @@ func (c *CertificatesReconciler) syncGitTrustedCertificates(ctx *chetypes.Deploy
 		return err == nil, err
 	}
 
-	if gitTrustedCertsCM.Data["ca.crt"] != "" {
+	if gitTrustedCertsCM.Data[constants.GitSelfSignedCertsConfigMapCertKey] != "" {
 		gitTrustedCertsCM.TypeMeta = metav1.TypeMeta{
 			Kind:       "ConfigMap",
 			APIVersion: "v1",
@@ -318,22 +320,28 @@ func (c *CertificatesReconciler) syncCheCABundleCerts(ctx *chetypes.DeployContex
 		return false, err
 	}
 
-	// Sort configmaps by name, always have the same order and content
-	// to avoid endless reconcile loop
+	// Sort ConfigMaps to avoid endless reconcile loop
 	sort.Slice(cheCABundlesCMs, func(i, j int) bool {
 		return strings.Compare(cheCABundlesCMs[i].Name, cheCABundlesCMs[j].Name) < 0
 	})
 
-	// Calculated revisions and content
 	cheCABundlesContent := ""
 	for _, cm := range cheCABundlesCMs {
-		for dataKey, dataValue := range cm.Data {
-			cheCABundlesContent += fmt.Sprintf(
-				"# ConfigMap: %s,  Key: %s\n%s\n\n",
-				cm.Name,
-				dataKey,
-				dataValue,
-			)
+		// Sort keys to produce deterministic output and avoid endless reconcile loop
+		dataKeys := slices.Collect(maps.Keys(cm.Data))
+		sort.Strings(dataKeys)
+
+		for _, dataKey := range dataKeys {
+			// Skip the "githost" key from the git trusted certs ConfigMap:
+			// it contains a hostname, not a certificate, and should not be included in the CA bundle.
+			if ctx.CheCluster.Spec.DevEnvironments.TrustedCerts != nil &&
+				cm.Name == ctx.CheCluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName &&
+				dataKey == constants.GitSelfSignedCertsConfigMapGitHostKey {
+
+				continue
+			}
+
+			cheCABundlesContent += printCert(&cm, dataKey)
 		}
 	}
 
@@ -393,4 +401,14 @@ func readKubernetesCaBundle() ([]byte, error) {
 	}
 
 	return data, nil
+}
+
+// printCert formats a single certificate entry with its ConfigMap name and key as a header comment.
+func printCert(cm *corev1.ConfigMap, key string) string {
+	return fmt.Sprintf(
+		"# ConfigMap: %s,  Key: %s\n%s\n\n",
+		cm.Name,
+		key,
+		cm.Data[key],
+	)
 }

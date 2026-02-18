@@ -263,6 +263,98 @@ func TestSyncCheCABundleCerts(t *testing.T) {
 	assert.Equal(t, cm.Data[kubernetesCABundleCertsFile], "# ConfigMap: cert1,  Key: a1\nb1\n\n# ConfigMap: cert2,  Key: a2\nb2\n\n")
 }
 
+func TestSyncCheCABundleCertsDeterministicKeyOrder(t *testing.T) {
+	ctx := test.NewCtxBuilder().WithObjects(
+		&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "cert1",
+				Namespace: "eclipse-che",
+				Labels: map[string]string{
+					"app.kubernetes.io/component": "ca-bundle",
+					"app.kubernetes.io/part-of":   "che.eclipse.org",
+				},
+			},
+			Data: map[string]string{
+				"z-key": "z-value",
+				"a-key": "a-value",
+				"m-key": "m-value",
+			},
+		}).Build()
+
+	certificatesReconciler := NewCertificatesReconciler()
+
+	_, err := certificatesReconciler.syncCheCABundleCerts(ctx)
+	assert.NoError(t, err)
+
+	cm := &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
+	assert.Nil(t, err)
+
+	expected := "# ConfigMap: cert1,  Key: a-key\na-value\n\n" +
+		"# ConfigMap: cert1,  Key: m-key\nm-value\n\n" +
+		"# ConfigMap: cert1,  Key: z-key\nz-value\n\n"
+	assert.Equal(t, expected, cm.Data[kubernetesCABundleCertsFile])
+}
+
+func TestSyncCheCABundleCertsGitTrustedCertsExcludesGitHostKey(t *testing.T) {
+	ctx := test.NewCtxBuilder().WithCheCluster(
+		&chev2.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "eclipse-che",
+				Namespace: "eclipse-che",
+			},
+			Spec: chev2.CheClusterSpec{
+				DevEnvironments: chev2.CheClusterDevEnvironments{
+					TrustedCerts: &chev2.TrustedCerts{
+						GitTrustedCertsConfigMapName: "git-trusted-certs",
+					},
+				},
+			},
+		}).WithObjects(
+		&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "git-trusted-certs",
+				Namespace: "eclipse-che",
+				Labels: map[string]string{
+					"app.kubernetes.io/component": constants.CheCABundle,
+					"app.kubernetes.io/part-of":   constants.CheEclipseOrg,
+				},
+			},
+			Data: map[string]string{
+				constants.GitSelfSignedCertsConfigMapCertKey:    "git-cert-value",
+				constants.GitSelfSignedCertsConfigMapGitHostKey: "https://git.example.com",
+			},
+		},
+		&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "other-cert",
+				Namespace: "eclipse-che",
+				Labels: map[string]string{
+					"app.kubernetes.io/component": constants.CheCABundle,
+					"app.kubernetes.io/part-of":   constants.CheEclipseOrg,
+				},
+			},
+			Data: map[string]string{
+				"cert-key": "other-cert-value",
+			},
+		}).Build()
+
+	certificates := NewCertificatesReconciler()
+
+	_, err := certificates.syncCheCABundleCerts(ctx)
+	assert.NoError(t, err)
+
+	cm := &corev1.ConfigMap{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
+	assert.NoError(t, err)
+
+	// Verify that the githost key is excluded from the merged bundle
+	expected := "# ConfigMap: git-trusted-certs,  Key: ca.crt\ngit-cert-value\n\n" +
+		"# ConfigMap: other-cert,  Key: cert-key\nother-cert-value\n\n"
+
+	assert.Equal(t, expected, cm.Data[kubernetesCABundleCertsFile])
+}
+
 func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 	// Enable workspace CA bundle mount
 	ctx := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{

@@ -460,7 +460,7 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 		return delConfigMap()
 	}
 
-	if gitCert.Data["ca.crt"] == "" {
+	if gitCert.Data[constants.GitSelfSignedCertsConfigMapCertKey] == "" {
 		return delConfigMap()
 	}
 
@@ -479,12 +479,12 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 			}),
 		},
 		Data: map[string]string{
-			"certificate": gitCert.Data["ca.crt"],
+			"certificate": gitCert.Data[constants.GitSelfSignedCertsConfigMapCertKey],
 		},
 	}
 
-	if gitCert.Data["githost"] != "" {
-		target.Data["host"] = gitCert.Data["githost"]
+	if gitCert.Data[constants.GitSelfSignedCertsConfigMapGitHostKey] != "" {
+		target.Data["host"] = gitCert.Data[constants.GitSelfSignedCertsConfigMapGitHostKey]
 	}
 
 	_, err := deploy.Sync(deployContext, &target, diffs.ConfigMapAllLabels)
