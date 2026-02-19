@@ -37,22 +37,31 @@ const (
 	DefaultPluginRegistryCpuRequest                           = "100m"
 
 	// Server
-	DefaultServerMemoryLimit               = "1024Mi"
-	DefaultServerMemoryRequest             = "512Mi"
-	DefaultServerCpuLimit                  = "1"
-	DefaultServerCpuRequest                = "100m"
-	DefaultServerLogLevel                  = "INFO"
-	DefaultServerDebug                     = false
-	DefaultServerMetricsPort               = int32(8087)
-	DefaultServerDebugPort                 = int32(8000)
-	DefaultServerPort                      = int32(8080)
+	DefaultServerMemoryLimit        = "1024Mi"
+	DefaultServerMemoryRequest      = "512Mi"
+	DefaultServerCpuLimit           = "1"
+	DefaultServerCpuRequest         = "100m"
+	DefaultServerLogLevel           = "INFO"
+	DefaultServerDebug              = false
+	DefaultServerMetricsPort        = int32(8087)
+	DefaultServerDebugPort          = int32(8000)
+	DefaultServerPort               = int32(8080)
+	DefaultProxyCredentialsSecret   = "proxy-credentials"
+	DefaultJavaOpts                 = "-XX:MaxRAMPercentage=85.0"
+	DefaultSecurityContextFsGroup   = 1724
+	DefaultSecurityContextRunAsUser = 1724
+	DefaultCheServiceAccountName    = "che"
+
+	// Certificates
 	DefaultCaBundleCertsCMName             = "ca-certs"
-	DefaultProxyCredentialsSecret          = "proxy-credentials"
 	DefaultGitSelfSignedCertsConfigMapName = "che-git-self-signed-cert"
-	DefaultJavaOpts                        = "-XX:MaxRAMPercentage=85.0"
-	DefaultSecurityContextFsGroup          = 1724
-	DefaultSecurityContextRunAsUser        = 1724
-	DefaultCheServiceAccountName           = "che"
+	// GitSelfSignedCertsConfigMapCertKey is the ConfigMap data key that holds the CA certificate
+	// in the git self-signed certificates ConfigMap.
+	GitSelfSignedCertsConfigMapCertKey = "ca.crt"
+	// GitSelfSignedCertsConfigMapGitHostKey is the ConfigMap data key that holds the git server hostname
+	// in the git self-signed certificates ConfigMap. This value is not a certificate and must be
+	// excluded when merging CA bundles.
+	GitSelfSignedCertsConfigMapGitHostKey = "githost"
 
 	// OAuth
 	BitBucketOAuthConfigClientIdFileName       = "id"
