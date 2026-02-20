@@ -47,7 +47,7 @@ func (r *ContainerRun) getSCCSpec(sccName string) *securityv1.SecurityContextCon
 		AllowHostPorts:           false,
 		AllowPrivilegeEscalation: pointer.Bool(true),
 		AllowPrivilegedContainer: false,
-		AllowedCapabilities:      []corev1.Capability{"SETUID", "SETGID"},
+		AllowedCapabilities:      []corev1.Capability{"SETUID", "SETGID", "CHOWN"},
 		DefaultAddCapabilities:   nil,
 		FSGroup: securityv1.FSGroupStrategyOptions{
 			Type:   securityv1.FSGroupStrategyMustRunAs,

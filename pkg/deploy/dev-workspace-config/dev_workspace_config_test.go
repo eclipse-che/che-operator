@@ -827,7 +827,7 @@ func TestReconcileDevWorkspaceConfigForContainerCapabilities(t *testing.T) {
 							ContainerSecurityContext: &corev1.SecurityContext{
 								ProcMount: &unmasked,
 								Capabilities: &corev1.Capabilities{
-									Add: []corev1.Capability{"SETUID", "SETGID"},
+									Add: []corev1.Capability{"SETUID", "SETGID", "CHOWN"},
 								},
 							},
 						},
@@ -845,7 +845,7 @@ func TestReconcileDevWorkspaceConfigForContainerCapabilities(t *testing.T) {
 					ContainerSecurityContext: &corev1.SecurityContext{
 						ProcMount: &unmasked,
 						Capabilities: &corev1.Capabilities{
-							Add: []corev1.Capability{"SETUID", "SETGID"},
+							Add: []corev1.Capability{"SETUID", "SETGID", "CHOWN"},
 						},
 					},
 					DeploymentStrategy: "Recreate",
@@ -961,7 +961,7 @@ func TestReconcileDevWorkspaceConfigForContainerCapabilities(t *testing.T) {
 							ContainerSecurityContext: &corev1.SecurityContext{
 								ProcMount: &unmasked,
 								Capabilities: &corev1.Capabilities{
-									Add: []corev1.Capability{"SETUID", "SETGID"},
+									Add: []corev1.Capability{"SETUID", "SETGID", "CHOWN"},
 								},
 							},
 						},
@@ -979,7 +979,7 @@ func TestReconcileDevWorkspaceConfigForContainerCapabilities(t *testing.T) {
 					ContainerSecurityContext: &corev1.SecurityContext{
 						ProcMount: &unmasked,
 						Capabilities: &corev1.Capabilities{
-							Add: []corev1.Capability{"SETUID", "SETGID"},
+							Add: []corev1.Capability{"SETUID", "SETGID", "CHOWN"},
 						},
 					},
 					DeploymentStrategy: "Recreate",
