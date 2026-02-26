@@ -18,7 +18,7 @@ ARG SKIP_TESTS="false"
 USER root
 
 ### Start installing go
-ENV GO_VERSION=1.25.5
+ENV GO_VERSION=1.25.7
 ENV GOROOT=/usr/local/go
 ENV PATH=$PATH:$GOROOT/bin
 RUN dnf install unzip gcc -y

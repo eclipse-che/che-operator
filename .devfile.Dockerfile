@@ -1,9 +1,10 @@
 FROM quay.io/devfile/universal-developer-image:ubi8-latest
 
-RUN cd /tmp && wget https://go.dev/dl/go1.25.5.linux-amd64.tar.gz && \
-        mkdir $HOME/go1.25.5 && \
-        tar -xvzf go1.25.5.linux-amd64.tar.gz -C $HOME/go1.25.5 --strip-components 1 && \
-        if ! grep -q "export PATH=\$HOME/go1.19/bin:\$PATH" $HOME/.bashrc; then echo "export PATH=\$HOME/go1.24.7/bin:\$PATH" >> $HOME/.bashrc; fi
+ENV GO_VERSION=1.25.7
+RUN cd /tmp && wget https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz && \
+        mkdir $HOME/go${GO_VERSION} && \
+        tar -xvzf go${GO_VERSION}.linux-amd64.tar.gz -C $HOME/go${GO_VERSION} --strip-components 1 && \
+        if ! grep -q "export PATH=\$HOME/go${GO_VERSION}/bin:\$PATH" $HOME/.bashrc; then echo "export PATH=\$HOME/go${GO_VERSION}/bin:\$PATH" >> $HOME/.bashrc; fi
 
 # install chectl
 RUN tag=$(curl https://api.github.com/repos/che-incubator/chectl/tags | jq -r '.[0].name') && \
@@ -13,4 +14,4 @@ RUN tag=$(curl https://api.github.com/repos/che-incubator/chectl/tags | jq -r '.
         if ! grep -q "export PATH=\$HOME/chectl/bin:\$PATH" $HOME/.bashrc; then echo "export PATH=\$HOME/chectl/bin:\$PATH" >> $HOME/.bashrc; fi
 
 # install goimports
-RUN $HOME/go1.25.5/bin/go install golang.org/x/tools/cmd/goimports@latest
+RUN $HOME/go${GO_VERSION}/bin/go install golang.org/x/tools/cmd/goimports@latest
