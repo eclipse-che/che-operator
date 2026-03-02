@@ -5934,6 +5934,7 @@ spec:
                             add:
                             - SETGID
                             - SETUID
+                            - CHOWN
                           procMount: Unmasked
                         description: |-
                           SecurityContext applied to all workspace containers when run capabilities are enabled.

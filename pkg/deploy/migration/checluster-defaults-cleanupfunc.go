@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -14,11 +14,11 @@ package migration
 
 import (
 	"encoding/json"
+	"slices"
 	"strconv"
 
-	chev2 "github.com/eclipse-che/che-operator/api/v2"
-
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -176,4 +176,30 @@ func cleanUpContainersResources(ctx *chetypes.DeployContext) (bool, error) {
 	}
 
 	return done, nil
+}
+
+// updateDevEnvironmentsContainerRunConfiguration adds `CHOWN` to the list of added capabilities.
+// See for details: https://github.com/eclipse-che/che/issues/23748
+func updateDevEnvironmentsContainerRunConfiguration(ctx *chetypes.DeployContext) (bool, error) {
+	runConfiguration := ctx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration
+	if runConfiguration == nil ||
+		runConfiguration.ContainerSecurityContext == nil ||
+		runConfiguration.ContainerSecurityContext.Capabilities == nil {
+		return false, nil
+	}
+
+	// Not default empty list.
+	// Probably configured by a user.
+	if len(runConfiguration.ContainerSecurityContext.Capabilities.Add) == 0 {
+		return false, nil
+	}
+
+	if slices.Contains(runConfiguration.ContainerSecurityContext.Capabilities.Add, "CHOWN") {
+		return false, nil
+	}
+
+	runConfiguration.ContainerSecurityContext.Capabilities.Add =
+		append(runConfiguration.ContainerSecurityContext.Capabilities.Add, "CHOWN")
+
+	return true, nil
 }
