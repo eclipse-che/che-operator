@@ -914,7 +914,7 @@ type ContainerRunConfiguration struct {
 	// which safely isolates the container's `/proc` from the host. This allows the container
 	// to modify its own sysctl settings for configuring networking for nested containers.
 	// +optional
-	// +kubebuilder:default:={procMount: "Unmasked", allowPrivilegeEscalation: true, capabilities: {add: {"SETGID", "SETUID"}}}
+	// +kubebuilder:default:={procMount: "Unmasked", allowPrivilegeEscalation: true, capabilities: {add: {"SETGID", "SETUID", "CHOWN"}}}
 	ContainerSecurityContext *corev1.SecurityContext `json:"containerSecurityContext,omitempty"`
 }
 
