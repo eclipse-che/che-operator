@@ -15,23 +15,17 @@ package migration
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	ctrl "sigs.k8s.io/controller-runtime"
-
-	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var (
-	logger = ctrl.Log.WithName("checluster-defaults-cleaner")
-)
+var logger = ctrl.Log.WithName("checluster-defaults-cleaner")
 
-const (
-	cheClusterDefaultsCleanupAnnotation = "che.eclipse.org/checluster-defaults-cleanup"
-)
+const cheClusterDefaultsCleanupAnnotation = "che.eclipse.org/checluster-defaults-cleanup"
 
 // CheClusterDefaultsCleaner is a migration tool that cleans up the CheCluster CR by removing values
 // that have been set by the operator in the past as defaults.
@@ -46,40 +40,40 @@ type CheClusterDefaultsCleaner struct {
 }
 
 type ActionTask struct {
-	field      string
-	actionFunc func(*chetypes.DeployContext) (bool, error)
+	field    string
+	doUpdate func(*chetypes.DeployContext) (bool, error)
 }
 
 func NewCheClusterDefaultsCleaner() *CheClusterDefaultsCleaner {
 	return &CheClusterDefaultsCleaner{
 		actionTasks: []ActionTask{
 			{
-				field:      "spec.devEnvironments.defaultEditor",
-				actionFunc: cleanUpDevEnvironmentsDefaultEditor,
+				field:    "spec.devEnvironments.defaultEditor",
+				doUpdate: cleanUpDevEnvironmentsDefaultEditor,
 			},
 			{
-				field:      "spec.devEnvironments.defaultComponents",
-				actionFunc: cleanUpDevEnvironmentsDefaultComponents,
+				field:    "spec.devEnvironments.defaultComponents",
+				doUpdate: cleanUpDevEnvironmentsDefaultComponents,
 			},
 			{
-				field:      "spec.devEnvironments.disableContainerBuildCapabilities",
-				actionFunc: cleanUpDevEnvironmentsDisableContainerBuildCapabilities,
+				field:    "spec.devEnvironments.disableContainerBuildCapabilities",
+				doUpdate: cleanUpDevEnvironmentsDisableContainerBuildCapabilities,
 			},
 			{
-				field:      "spec.components.dashboard.headerMessage",
-				actionFunc: cleanUpDashboardHeaderMessage,
+				field:    "spec.components.dashboard.headerMessage",
+				doUpdate: cleanUpDashboardHeaderMessage,
 			},
 			{
-				field:      "spec.components.pluginRegistry.openVSXURL",
-				actionFunc: cleanUpPluginRegistryOpenVSXURL,
+				field:    "spec.components.pluginRegistry.openVSXURL",
+				doUpdate: cleanUpPluginRegistryOpenVSXURL,
 			},
 			{
-				field:      "containers.resources",
-				actionFunc: cleanUpContainersResources,
+				field:    "containers.resources",
+				doUpdate: cleanUpContainersResources,
 			},
 			{
-				field:      "spec.devEnvironments.containerRunConfiguration.containerSecurityContext.capabilities.add",
-				actionFunc: updateDevEnvironmentsContainerRunConfiguration,
+				field:    "spec.devEnvironments.containerRunConfiguration.containerSecurityContext.capabilities.add",
+				doUpdate: updateDevEnvironmentsContainerRunConfiguration,
 			},
 		},
 	}
@@ -92,13 +86,13 @@ func (dc *CheClusterDefaultsCleaner) Reconcile(ctx *chetypes.DeployContext) (rec
 		}
 
 		if !ctx.CheCluster.IsCheBeingInstalled() {
-			if done, err := actionTask.actionFunc(ctx); err != nil {
+			done, err := actionTask.doUpdate(ctx)
+			if err != nil {
 				return reconcile.Result{}, false, err
-			} else if done {
+			}
+			if done {
 				logger.Info("CheCluster CR updated", "field", actionTask.field)
 			}
-			// done == false
-			// means nothing to update
 		}
 
 		dc.setFieldProcessed(ctx, actionTask.field)
@@ -126,7 +120,7 @@ func (dc *CheClusterDefaultsCleaner) setFieldProcessed(ctx *chetypes.DeployConte
 
 	data, err := json.Marshal(fields)
 	if err != nil {
-		logger.Error(err, fmt.Sprintf("Failed to marshal %s annotation", cheClusterDefaultsCleanupAnnotation))
+		logger.Error(err, "Failed to marshal annotation", "annotation", cheClusterDefaultsCleanupAnnotation)
 	}
 
 	annotations := utils.GetMapOrDefault(ctx.CheCluster.GetAnnotations(), map[string]string{})
@@ -144,7 +138,7 @@ func (dc *CheClusterDefaultsCleaner) getProcessedFields(ctx *chetypes.DeployCont
 
 	fields := map[string]string{}
 	if err := json.Unmarshal([]byte(data), &fields); err != nil {
-		logger.Error(err, fmt.Sprintf("Failed to unmarshal %s annotation", cheClusterDefaultsCleanupAnnotation))
+		logger.Error(err, "Failed to unmarshal annotation", "annotation", cheClusterDefaultsCleanupAnnotation)
 	}
 
 	return fields
