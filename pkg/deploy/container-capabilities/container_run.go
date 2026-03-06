@@ -16,10 +16,8 @@ import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	securityv1 "github.com/openshift/api/security/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 )
 
@@ -30,55 +28,45 @@ func NewContainerRun() *ContainerRun {
 	return &ContainerRun{}
 }
 
-func (r *ContainerRun) getSCCSpec(sccName string) *securityv1.SecurityContextConstraints {
-	return &securityv1.SecurityContextConstraints{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "SecurityContextConstraints",
-			APIVersion: securityv1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   sccName,
-			Labels: deploy.GetLabels(defaults.GetCheFlavor()),
-		},
-		AllowHostDirVolumePlugin: false,
-		AllowHostIPC:             false,
-		AllowHostNetwork:         false,
-		AllowHostPID:             false,
-		AllowHostPorts:           false,
-		AllowPrivilegeEscalation: pointer.Bool(true),
-		AllowPrivilegedContainer: false,
-		AllowedCapabilities:      []corev1.Capability{"SETUID", "SETGID"},
-		DefaultAddCapabilities:   nil,
-		FSGroup: securityv1.FSGroupStrategyOptions{
-			Type:   securityv1.FSGroupStrategyMustRunAs,
-			Ranges: []securityv1.IDRange{{Min: 1000, Max: 65534}},
-		},
-		ReadOnlyRootFilesystem:   false,
-		RequiredDropCapabilities: []corev1.Capability{"KILL", "MKNOD"},
-		RunAsUser: securityv1.RunAsUserStrategyOptions{
-			Type: securityv1.RunAsUserStrategyMustRunAs,
-			UID:  pointer.Int64(1000),
-		},
-		SELinuxContext: securityv1.SELinuxContextStrategyOptions{
-			Type:           securityv1.SELinuxStrategyMustRunAs,
-			SELinuxOptions: &corev1.SELinuxOptions{Type: "container_engine_t"},
-		},
-		SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
-			Type:   securityv1.SupplementalGroupsStrategyMustRunAs,
-			Ranges: []securityv1.IDRange{{Min: 1000, Max: 65534}},
-		},
-		Users:  []string{},
-		Groups: []string{},
-		Volumes: []securityv1.FSType{
-			securityv1.FSTypeConfigMap,
-			securityv1.FSTypeDownwardAPI,
-			securityv1.FSTypeEmptyDir,
-			securityv1.FSTypePersistentVolumeClaim,
-			securityv1.FSProjected,
-			securityv1.FSTypeSecret,
-		},
-		UserNamespaceLevel: securityv1.NamespaceLevelRequirePod,
+func (r *ContainerRun) applySCCSpec(scc *securityv1.SecurityContextConstraints) {
+	scc.AllowHostDirVolumePlugin = false
+	scc.AllowHostIPC = false
+	scc.AllowHostNetwork = false
+	scc.AllowHostPID = false
+	scc.AllowHostPorts = false
+	scc.AllowPrivilegeEscalation = pointer.Bool(true)
+	scc.AllowPrivilegedContainer = false
+	scc.AllowedCapabilities = []corev1.Capability{"SETUID", "SETGID", "CHOWN"}
+	scc.DefaultAddCapabilities = nil
+	scc.FSGroup = securityv1.FSGroupStrategyOptions{
+		Type:   securityv1.FSGroupStrategyMustRunAs,
+		Ranges: []securityv1.IDRange{{Min: 1000, Max: 65534}},
 	}
+	scc.ReadOnlyRootFilesystem = false
+	scc.RequiredDropCapabilities = []corev1.Capability{"KILL", "MKNOD"}
+	scc.RunAsUser = securityv1.RunAsUserStrategyOptions{
+		Type: securityv1.RunAsUserStrategyMustRunAs,
+		UID:  pointer.Int64(1000),
+	}
+	scc.SELinuxContext = securityv1.SELinuxContextStrategyOptions{
+		Type:           securityv1.SELinuxStrategyMustRunAs,
+		SELinuxOptions: &corev1.SELinuxOptions{Type: "container_engine_t"},
+	}
+	scc.SupplementalGroups = securityv1.SupplementalGroupsStrategyOptions{
+		Type:   securityv1.SupplementalGroupsStrategyMustRunAs,
+		Ranges: []securityv1.IDRange{{Min: 1000, Max: 65534}},
+	}
+	scc.Users = []string{}
+	scc.Groups = []string{}
+	scc.Volumes = []securityv1.FSType{
+		securityv1.FSTypeConfigMap,
+		securityv1.FSTypeDownwardAPI,
+		securityv1.FSTypeEmptyDir,
+		securityv1.FSTypePersistentVolumeClaim,
+		securityv1.FSProjected,
+		securityv1.FSTypeSecret,
+	}
+	scc.UserNamespaceLevel = securityv1.NamespaceLevelRequirePod
 }
 
 func (r *ContainerRun) GetUserRoleName() string {
