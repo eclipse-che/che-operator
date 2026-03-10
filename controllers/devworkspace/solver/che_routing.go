@@ -102,10 +102,6 @@ func (c *CheRoutingSolver) provisionServices(objs *solvers.RoutingObjects, cheCl
 	}
 	objs.Services = append(objs.Services, *commonService)
 
-	annos := map[string]string{}
-	annos[dwdefaults.ConfigAnnotationCheManagerName] = cheCluster.Name
-	annos[dwdefaults.ConfigAnnotationCheManagerNamespace] = cheCluster.Namespace
-
 	additionalLabels := dwdefaults.GetLabelsForComponent(cheCluster, "exposure")
 
 	for i := range objs.Services {
@@ -125,13 +121,6 @@ func (c *CheRoutingSolver) provisionServices(objs *solvers.RoutingObjects, cheCl
 
 		if s.Annotations == nil {
 			s.Annotations = map[string]string{}
-		}
-
-		for k, v := range annos {
-
-			if len(s.Annotations[k]) == 0 {
-				s.Annotations[k] = v
-			}
 		}
 	}
 
@@ -219,14 +208,8 @@ func (c *CheRoutingSolver) provisionPodAdditions(objs *solvers.RoutingObjects, c
 	return nil
 }
 
-func (c *CheRoutingSolver) cheExposedEndpoints(cheCluster *chev2.CheCluster, workspaceID string, componentEndpoints map[string]dwo.EndpointList, routingObj solvers.RoutingObjects) (exposedEndpoints map[string]dwo.ExposedEndpointList, ready bool, err error) {
-	if cheCluster.Status.GatewayPhase == chev2.GatewayPhaseInitializing {
-		return nil, false, nil
-	}
-
+func (c *CheRoutingSolver) cheExposedEndpoints(gatewayHost string, workspaceID string, componentEndpoints map[string]dwo.EndpointList, routingObj solvers.RoutingObjects) (exposedEndpoints map[string]dwo.ExposedEndpointList, ready bool, err error) {
 	exposedEndpoints = map[string]dwo.ExposedEndpointList{}
-
-	gatewayHost := cheCluster.GetCheHost()
 
 	endpointStrategy := getEndpointPathStrategy(c.client, workspaceID, routingObj.Services[0].Namespace, routingObj.Services[0].ObjectMeta.OwnerReferences[0].Name)
 
@@ -786,44 +769,42 @@ func findRouteForEndpoint(componentName string, endpoint dwo.Endpoint, objs *sol
 	return nil
 }
 
-func (c *CheRoutingSolver) cheRoutingFinalize(cheManager *chev2.CheCluster, routing *dwo.DevWorkspaceRouting) error {
-	selector, err := labels.Parse(fmt.Sprintf("%s=%s", dwconstants.DevWorkspaceIDLabel, routing.Spec.DevWorkspaceId))
+func (c *CheRoutingSolver) cheRoutingFinalize(routing *dwo.DevWorkspaceRouting) error {
+	selector := labels.SelectorFromSet(
+		labels.Set{
+			dwconstants.DevWorkspaceIDLabel: routing.Spec.DevWorkspaceId,
+		},
+	)
+
+	err := c.client.DeleteAllOf(
+		context.TODO(),
+		&corev1.ConfigMap{},
+		&client.DeleteAllOfOptions{
+			ListOptions: client.ListOptions{Namespace: routing.Namespace, LabelSelector: selector},
+		},
+	)
 	if err != nil {
 		return err
 	}
 
-	// delete configs from che namespace
-	if deleteErr := c.deleteConfigs(&client.ListOptions{
-		Namespace:     cheManager.Namespace,
-		LabelSelector: selector,
-	}); deleteErr != nil {
-		return deleteErr
-	}
-
-	// delete configs from workspace namespace
-	if deleteErr := c.deleteConfigs(&client.ListOptions{
-		Namespace:     routing.Namespace,
-		LabelSelector: selector,
-	}); deleteErr != nil {
-		return deleteErr
-	}
-
-	return nil
-}
-
-func (c *CheRoutingSolver) deleteConfigs(listOpts *client.ListOptions) error {
-	configs := &corev1.ConfigMapList{}
-	err := c.client.List(context.TODO(), configs, listOpts)
+	cheCluster, err := deploy.FindCheClusterCRInNamespace(c.client, "")
 	if err != nil {
 		return err
 	}
 
-	for _, cm := range configs.Items {
-		err = c.client.Delete(context.TODO(), &cm)
+	if cheCluster != nil {
+		err = c.client.DeleteAllOf(
+			context.TODO(),
+			&corev1.ConfigMap{},
+			&client.DeleteAllOfOptions{
+				ListOptions: client.ListOptions{Namespace: cheCluster.Namespace, LabelSelector: selector},
+			},
+		)
 		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 

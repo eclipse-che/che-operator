@@ -956,12 +956,6 @@ type EditorDownloadUrl struct {
 // GatewayPhase describes the different phases of the Che gateway lifecycle.
 type GatewayPhase string
 
-const (
-	GatewayPhaseInitializing = "Initializing"
-	GatewayPhaseEstablished  = "Established"
-	GatewayPhaseInactive     = "Inactive"
-)
-
 // CheClusterPhase describes the different phases of the Che cluster lifecycle.
 type CheClusterPhase string
 
@@ -974,6 +968,7 @@ const (
 
 // CheClusterStatus defines the observed state of Che installation.
 type CheClusterStatus struct {
+	// Deprecated.
 	// Specifies the current phase of the gateway deployment.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
