@@ -14,7 +14,7 @@ schemaVersion: 2.3.0
 metadata:
   name: jetbrains-sshd
   displayName: JetBrains IDE (over Toolbox)
-  description: JetBrains IDE for Eclipse Che over Toolbox - next
+  description: Local JetBrains IDE for Eclipse Che over Toolbox - next
   tags:
     - jetbrains
     - ssh
