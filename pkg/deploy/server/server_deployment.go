@@ -311,6 +311,7 @@ func MountAzureDevOpsOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1
 	}
 
 	mountVolumes(deployment, secret, constants.AzureDevOpsOAuthConfigMountPath)
+	mountEnv(deployment, "CHE_OAUTH2_AZURE_DEVOPS_TENANTID__FILEPATH", constants.AzureDevOpsOAuthConfigMountPath+"/"+constants.AzureDevOpsOAuthConfigTenantIdFileName)
 	mountEnv(deployment, "CHE_OAUTH2_AZURE_DEVOPS_CLIENTID__FILEPATH", constants.AzureDevOpsOAuthConfigMountPath+"/"+constants.AzureDevOpsOAuthConfigClientIdFileName)
 	mountEnv(deployment, "CHE_OAUTH2_AZURE_DEVOPS_CLIENTSECRET__FILEPATH", constants.AzureDevOpsOAuthConfigMountPath+"/"+constants.AzureDevOpsOAuthConfigClientSecretFileName)
 

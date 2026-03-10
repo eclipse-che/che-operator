@@ -75,6 +75,7 @@ const (
 	GitHubOAuthConfigClientSecretFileName      = "secret"
 	AzureDevOpsOAuth                           = "azure-devops"
 	AzureDevOpsOAuthConfigMountPath            = "/che-conf/oauth/azure-devops"
+	AzureDevOpsOAuthConfigTenantIdFileName     = "tenant-id"
 	AzureDevOpsOAuthConfigClientIdFileName     = "id"
 	AzureDevOpsOAuthConfigClientSecretFileName = "secret"
 	GitlabOAuth                                = "gitlab"
