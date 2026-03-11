@@ -13,19 +13,14 @@
 package server
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	routev1 "github.com/openshift/api/route/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -45,12 +40,11 @@ func (r *BaseDomainReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile
 
 	if baseDomain == "" {
 		if infrastructure.IsOpenShift() {
-			openshiftBaseDomain, err := r.detectOpenShiftRouteBaseDomain(ctx)
-			if err != nil {
-				return reconcile.Result{}, false, err
+			items := strings.SplitAfterN(ctx.CheHost, ".", 2)
+			if len(items) != 2 {
+				return reconcile.Result{}, false, fmt.Errorf("unable to detect base domain")
 			}
-
-			baseDomain = openshiftBaseDomain
+			baseDomain = items[1]
 		}
 	}
 
@@ -70,36 +64,4 @@ func (r *BaseDomainReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile
 
 func (r *BaseDomainReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	return true
-}
-
-// Tries to autodetect the route base domain.
-func (r *BaseDomainReconciler) detectOpenShiftRouteBaseDomain(ctx *chetypes.DeployContext) (string, error) {
-	name := "devworkspace-che-test"
-	testRoute := &routev1.Route{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ctx.CheCluster.Namespace,
-			Name:      name,
-			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
-		},
-		Spec: routev1.RouteSpec{
-			To: routev1.RouteTargetReference{
-				Kind: "Service",
-				Name: name,
-			},
-		},
-	}
-
-	if err := ctx.ClusterAPI.ClientWrapper.Create(context.TODO(), testRoute); err != nil {
-		return "", err
-	}
-
-	defer func() {
-		_ = ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
-			context.TODO(),
-			types.NamespacedName{Name: testRoute.Name, Namespace: testRoute.Namespace},
-			&routev1.Route{})
-	}()
-
-	items := strings.SplitAfterN(testRoute.Spec.Host, ".", 2)
-	return items[1], nil
 }
