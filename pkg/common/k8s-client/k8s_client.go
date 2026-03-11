@@ -92,6 +92,23 @@ func (k K8sClientWrapper) Create(
 	return k.doCreate(ctx, obj, false, opts...)
 }
 
+func (k K8sClientWrapper) CreateIgnoreIfAlreadyExists(
+	ctx context.Context,
+	obj client.Object,
+	opts ...client.CreateOption,
+) error {
+	defer func() {
+		// ensure GVK is set (for original object) when function returns
+		_ = k.ensureGVK(obj)
+	}()
+
+	if err := k.ensureGVK(obj); err != nil {
+		return err
+	}
+
+	return k.doCreate(ctx, obj, true, opts...)
+}
+
 func (k K8sClientWrapper) GetIgnoreNotFound(
 	ctx context.Context,
 	key client.ObjectKey,

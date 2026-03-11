@@ -18,6 +18,7 @@ import (
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	routev1 "github.com/openshift/api/route/v1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -130,21 +131,27 @@ func TestBaseDomainStatusUpdated(t *testing.T) {
 	assert.Equal(t, "new-domain.com", cheCluster.Status.WorkspaceBaseDomain)
 }
 
-func TestBaseDomainFromCheHost(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+func TestBaseDomainFromRoute(t *testing.T) {
+	route := &routev1.Route{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Route",
+			APIVersion: routev1.GroupVersion.String(),
+		},
 		ObjectMeta: metav1.ObjectMeta{
+			Name:      "devworkspace-che-test",
 			Namespace: "eclipse-che",
-			Name:      "eclipse-che",
 		},
-		Status: chev2.CheClusterStatus{
-			CheURL: "https://che.apps.cluster.example.com",
+		Spec: routev1.RouteSpec{
+			Host: "devworkspace-che-test.eclipse.org",
 		},
-	}).Build()
+	}
+
+	ctx := test.NewCtxBuilder().WithObjects(route).Build()
 
 	reconciler := NewBaseDomainReconciler()
 	_, done, err := reconciler.Reconcile(ctx)
 
 	assert.True(t, done)
 	assert.Nil(t, err)
-	assert.Equal(t, "apps.cluster.example.com", ctx.CheCluster.Status.WorkspaceBaseDomain)
+	assert.Equal(t, "eclipse.org", ctx.CheCluster.Status.WorkspaceBaseDomain)
 }
