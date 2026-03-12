@@ -18,6 +18,7 @@ import (
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -108,6 +109,58 @@ func TestContainerBuildReconciler(t *testing.T) {
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerRunCapability.getDWOClusterRoleBindingName()}, &rbacv1.ClusterRoleBinding{}))
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerRunCapability.GetUserRoleName()}, &rbacv1.ClusterRole{}))
 	assert.False(t, utils.Contains(ctx.CheCluster.Finalizers, containerBuildReconciler.containerRunCapability.getFinalizer()))
+}
+
+func TestShouldUpdateManagedSCCOnReconcile(t *testing.T) {
+	dwPod := &corev1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Pod",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "devworkspace-controller",
+			Namespace: "devworkspace-controller",
+			Labels: map[string]string{
+				constants.KubernetesNameLabelKey:   constants.DevWorkspaceControllerName,
+				constants.KubernetesPartOfLabelKey: constants.DevWorkspaceOperatorName,
+			},
+		},
+		Spec: corev1.PodSpec{
+			ServiceAccountName: constants.DevWorkspaceServiceAccountName,
+		},
+	}
+
+	// Create an SCC managed by operator with outdated capabilities (missing CHOWN)
+	sccRun := &securityv1.SecurityContextConstraints{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "SecurityContextConstraints",
+			APIVersion: securityv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "scc-run",
+			Labels: deploy.GetLabels(defaults.GetCheFlavor()),
+		},
+		AllowedCapabilities: []corev1.Capability{"SETUID", "SETGID"},
+	}
+
+	ctx := test.NewCtxBuilder().WithObjects(dwPod, sccRun).Build()
+
+	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.Bool(true)
+	ctx.CheCluster.Spec.DevEnvironments.DisableContainerRunCapabilities = pointer.Bool(false)
+	ctx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration = &chev2.ContainerRunConfiguration{OpenShiftSecurityContextConstraint: "scc-run"}
+	err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
+	assert.NoError(t, err)
+
+	containerBuildReconciler := NewContainerCapabilitiesReconciler()
+	test.EnsureReconcile(t, ctx, containerBuildReconciler.Reconcile)
+
+	// Verify the SCC was updated with the new capabilities including CHOWN
+	scc := &securityv1.SecurityContextConstraints{}
+	exists, err := deploy.GetClusterObject(ctx, "scc-run", scc)
+	assert.True(t, exists)
+	assert.NoError(t, err)
+	assert.Equal(t, []corev1.Capability{"SETUID", "SETGID", "CHOWN"}, scc.AllowedCapabilities)
+	assert.Equal(t, securityv1.NamespaceLevelRequirePod, scc.UserNamespaceLevel)
 }
 
 func TestShouldNotSyncSCCIfAlreadyExists(t *testing.T) {
