@@ -24,6 +24,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	routev1 "github.com/openshift/api/route/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -92,35 +93,33 @@ func (r *BaseDomainReconciler) detectOpenShiftRouteBaseDomain(ctx *chetypes.Depl
 		},
 	}
 
-	if err := ctx.ClusterAPI.ClientWrapper.CreateIgnoreIfAlreadyExists(context.TODO(), testRoute); err != nil {
+	// We don't use ClientWrapper here not to print logs (improve in the future)
+	if err := ctx.ClusterAPI.Client.Create(context.TODO(), testRoute); err != nil {
+		if !errors.IsAlreadyExists(err) {
+			return "", err
+		}
+	}
+
+	// Re-read the route to get the Host field populated by the OpenShift router
+	route := &routev1.Route{}
+	routeKey := types.NamespacedName{Name: name, Namespace: ctx.CheCluster.Namespace}
+	if err := ctx.ClusterAPI.Client.Get(context.TODO(), routeKey, route); err != nil {
+		if errors.IsNotFound(err) {
+			return "", nil
+		}
+
 		return "", err
 	}
 
 	defer func() {
-		if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
-			context.TODO(),
-			types.NamespacedName{Namespace: testRoute.Namespace, Name: testRoute.Name},
-			testRoute,
-		); err != nil {
-			log.Error(err, "unable to delete test route")
+		if err := ctx.ClusterAPI.Client.Delete(context.TODO(), route); err != nil {
+			log.Error(err, "unable to delete test route %s", name)
 		}
 	}()
 
-	// Re-read the route to get the Host field populated by the OpenShift router
-	existedRoute := &routev1.Route{}
-	if exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-		context.TODO(),
-		types.NamespacedName{Name: name, Namespace: ctx.CheCluster.Namespace},
-		existedRoute,
-	); err != nil {
-		return "", err
-	} else if !exists {
-		return "", nil
-	}
-
-	items := strings.SplitN(existedRoute.Spec.Host, ".", 2)
+	items := strings.SplitN(route.Spec.Host, ".", 2)
 	if len(items) != 2 {
-		return "", fmt.Errorf("unable to detect base domain")
+		return "", fmt.Errorf("unable to detect workspace base domain from %s", route.Spec.Host)
 	}
 
 	return items[1], nil
