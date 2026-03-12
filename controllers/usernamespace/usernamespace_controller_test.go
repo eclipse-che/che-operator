@@ -27,10 +27,10 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 	configv1 "github.com/openshift/api/config/v1"
 	projectv1 "github.com/openshift/api/project/v1"
@@ -221,7 +221,7 @@ func TestSkipsUnlabeledNamespaces(t *testing.T) {
 	})
 
 	t.Run("openshift", func(t *testing.T) {
-		test(t, infrastructure.OpenShiftv4, &projectv1.Project{
+		test(t, infrastructure.OpenShiftV4, &projectv1.Project{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "prj",
 			},
@@ -317,7 +317,7 @@ func TestCreatesDataInNamespace(t *testing.T) {
 	})
 
 	t.Run("openshift", func(t *testing.T) {
-		test(t, infrastructure.OpenShiftv4,
+		test(t, infrastructure.OpenShiftV4,
 			&corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "prj",
@@ -348,7 +348,7 @@ func TestCreatesDataInNamespace(t *testing.T) {
 }
 
 func TestUpdateSccClusterRoleBinding(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 
 	pr1 := &projectv1.Project{
 		ObjectMeta: metav1.ObjectMeta{
@@ -400,7 +400,7 @@ func TestUpdateSccClusterRoleBinding(t *testing.T) {
 	}
 
 	allObjs := []client.Object{ns1, pr1, cheCluster}
-	scheme, cl, usernamespaceReconciler := setup(infrastructure.OpenShiftv4, allObjs...)
+	scheme, cl, usernamespaceReconciler := setup(infrastructure.OpenShiftV4, allObjs...)
 
 	// the reconciliation needs to run twice for it to be truly finished - we're setting up finalizers etc...
 	devworkspaceReconciler := devworkspace.New(cl, scheme)

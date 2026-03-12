@@ -16,7 +16,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	util "github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/sirupsen/logrus"
 

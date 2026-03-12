@@ -29,8 +29,8 @@ import (
 
 	rbacv1 "k8s.io/api/rbac/v1"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	templatev1 "github.com/openshift/api/template/v1"
