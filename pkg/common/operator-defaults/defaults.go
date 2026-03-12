@@ -20,9 +20,9 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	util "github.com/eclipse-che/che-operator/pkg/common/utils"
-	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 )
 
@@ -52,17 +52,23 @@ var (
 	defaultDevfileRegistryExternalDevfileRegistries         string
 
 	initialized = false
+
+	log = ctrl.Log.WithName("defaults")
 )
 
 func InitializeForTesting(operatorDeploymentFilePath string) {
 	operatorDeployment := &appsv1.Deployment{}
 	if err := util.ReadObjectInto(operatorDeploymentFilePath, operatorDeployment); err != nil {
-		logrus.Fatalf("Failed to read operator deployment from '%s', cause: %v", operatorDeploymentFilePath, err)
+		log.Error(err, "Error reading operator deployment")
+		os.Exit(1)
 	}
 
 	for _, container := range operatorDeployment.Spec.Template.Spec.Containers {
 		for _, env := range container.Env {
-			os.Setenv(env.Name, env.Value)
+			err := os.Setenv(env.Name, env.Value)
+			if err != nil {
+				log.Error(err, "Error setting env variable", "name", env.Name)
+			}
 		}
 	}
 
@@ -109,7 +115,8 @@ func Initialize() {
 func ensureEnv(name string) string {
 	value := os.Getenv(name)
 	if value == "" {
-		logrus.Fatalf("Failed to initialize default value: '%s'. Environment variable not found.", name)
+		log.Error(fmt.Errorf("environment variable %s not set", name), "unable to determine required environment variable")
+		os.Exit(1)
 	}
 
 	return value
@@ -117,7 +124,7 @@ func ensureEnv(name string) string {
 
 func GetCheServerImage(checluster interface{}) string {
 	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
+		Initialize()
 	}
 
 	return PatchDefaultImageName(checluster, defaultCheServerImage)
@@ -125,7 +132,7 @@ func GetCheServerImage(checluster interface{}) string {
 
 func GetCheTLSSecretsCreationJobImage() string {
 	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
+		Initialize()
 	}
 
 	return defaultCheTLSSecretsCreationJobImage
@@ -133,7 +140,7 @@ func GetCheTLSSecretsCreationJobImage() string {
 
 func GetCheVersion() string {
 	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
+		Initialize()
 	}
 
 	return defaultCheVersion
@@ -141,7 +148,7 @@ func GetCheVersion() string {
 
 func GetDashboardImage(checluster interface{}) string {
 	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
+		Initialize()
 	}
 
 	return PatchDefaultImageName(checluster, defaultDashboardImage)
@@ -149,7 +156,7 @@ func GetDashboardImage(checluster interface{}) string {
 
 func GetPluginRegistryImage(checluster interface{}) string {
 	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
+		Initialize()
 	}
 
 	return PatchDefaultImageName(checluster, defaultPluginRegistryImage)
@@ -157,7 +164,7 @@ func GetPluginRegistryImage(checluster interface{}) string {
 
 func GetGatewayImage(checluster interface{}) string {
 	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
+		Initialize()
 	}
 
 	return PatchDefaultImageName(checluster, defaultSingleHostGatewayImage)
@@ -165,7 +172,7 @@ func GetGatewayImage(checluster interface{}) string {
 
 func GetGatewayConfigSidecarImage(checluster interface{}) string {
 	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
+		Initialize()
 	}
 
 	return PatchDefaultImageName(checluster, defaultSingleHostGatewayConfigSidecarImage)
@@ -173,7 +180,7 @@ func GetGatewayConfigSidecarImage(checluster interface{}) string {
 
 func GetGatewayKubernetesAuthenticationSidecarImage(checluster interface{}) string {
 	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
+		Initialize()
 	}
 
 	return PatchDefaultImageName(checluster, defaultGatewayKubernetesAuthenticationSidecarImage)
@@ -181,7 +188,7 @@ func GetGatewayKubernetesAuthenticationSidecarImage(checluster interface{}) stri
 
 func GetGatewayKubernetesAuthorizationSidecarImage(checluster interface{}) string {
 	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
+		Initialize()
 	}
 
 	return PatchDefaultImageName(checluster, defaultGatewayKubernetesAuthorizationSidecarImage)
@@ -189,7 +196,7 @@ func GetGatewayKubernetesAuthorizationSidecarImage(checluster interface{}) strin
 
 func GetGatewayOpenShiftAuthenticationSidecarImage(checluster interface{}) string {
 	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
+		Initialize()
 	}
 
 	return PatchDefaultImageName(checluster, defaultGatewayOpenShiftAuthenticationSidecarImage)
@@ -197,7 +204,7 @@ func GetGatewayOpenShiftAuthenticationSidecarImage(checluster interface{}) strin
 
 func GetGatewayOpenShiftAuthorizationSidecarImage(checluster interface{}) string {
 	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
+		Initialize()
 	}
 
 	return PatchDefaultImageName(checluster, defaultGatewayOpenShiftAuthorizationSidecarImage)
@@ -205,7 +212,7 @@ func GetGatewayOpenShiftAuthorizationSidecarImage(checluster interface{}) string
 
 func GetCheFlavor() string {
 	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
+		Initialize()
 	}
 
 	return defaultCheFlavor
@@ -213,7 +220,7 @@ func GetCheFlavor() string {
 
 func GetConsoleLinkName() string {
 	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
+		Initialize()
 	}
 
 	return defaultConsoleLinkName
@@ -221,7 +228,7 @@ func GetConsoleLinkName() string {
 
 func GetConsoleLinkDisplayName() string {
 	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
+		Initialize()
 	}
 
 	return defaultConsoleLinkDisplayName
@@ -229,7 +236,7 @@ func GetConsoleLinkDisplayName() string {
 
 func GetConsoleLinkSection() string {
 	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
+		Initialize()
 	}
 
 	return defaultConsoleLinkSection
@@ -237,7 +244,7 @@ func GetConsoleLinkSection() string {
 
 func GetConsoleLinkImage() string {
 	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
+		Initialize()
 	}
 
 	return defaultsConsoleLinkImage
@@ -245,7 +252,7 @@ func GetConsoleLinkImage() string {
 
 func GetDevfileRegistryExternalDevfileRegistries() string {
 	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
+		Initialize()
 	}
 
 	return defaultDevfileRegistryExternalDevfileRegistries
@@ -253,7 +260,7 @@ func GetDevfileRegistryExternalDevfileRegistries() string {
 
 func GetPluginRegistryOpenVSXURL() string {
 	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
+		Initialize()
 	}
 
 	return defaultPluginRegistryOpenVSXURL
@@ -261,7 +268,7 @@ func GetPluginRegistryOpenVSXURL() string {
 
 func GetDashboardHeaderMessageText() string {
 	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
+		Initialize()
 	}
 
 	return defaultDashboardHeaderMessageText
@@ -269,7 +276,7 @@ func GetDashboardHeaderMessageText() string {
 
 func GetDevEnvironmentsDefaultEditor() string {
 	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
+		Initialize()
 	}
 
 	return defaultDevEnvironmentsDefaultEditor
@@ -277,7 +284,7 @@ func GetDevEnvironmentsDefaultEditor() string {
 
 func GetDevEnvironmentsDefaultComponents() string {
 	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
+		Initialize()
 	}
 
 	return defaultDevEnvironmentsDefaultComponents
@@ -285,7 +292,7 @@ func GetDevEnvironmentsDefaultComponents() string {
 
 func GetDevEnvironmentsContainerSecurityContext() string {
 	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
+		Initialize()
 	}
 
 	return defaultDevEnvironmentsContainerSecurityContext
@@ -293,7 +300,7 @@ func GetDevEnvironmentsContainerSecurityContext() string {
 
 func GetDevEnvironmentsDisableContainerBuildCapabilities() string {
 	if !initialized {
-		logrus.Fatalf("Operator defaults are not initialized.")
+		Initialize()
 	}
 
 	return defaultDevEnvironmentsDisableContainerBuildCapabilities

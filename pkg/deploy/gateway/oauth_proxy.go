@@ -199,21 +199,14 @@ func getOauthProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
 	configMapRevision := map[bool]string{true: cm.GetResourceVersion(), false: ""}[exists]
 
 	var image, probePath string
-	var args []string
+	var args = []string{"--config=/etc/oauth-proxy/oauth-proxy.cfg"}
 	if infrastructure.IsOpenShiftOAuthEnabled() {
 		image = defaults.GetGatewayOpenShiftAuthenticationSidecarImage(ctx.CheCluster)
 		probePath = "/oauth/healthz"
-		args = []string{
-			"--config=/etc/oauth-proxy/oauth-proxy.cfg",
-		}
 	} else {
 		image = defaults.GetGatewayKubernetesAuthenticationSidecarImage(ctx.CheCluster)
 		probePath = "/ping"
-		args = []string{
-			"--config=/etc/oauth-proxy/oauth-proxy.cfg",
-			"--ping-path=/ping",
-			"--exclude-logging-path=/ping",
-		}
+		args = append(args, "--ping-path=/ping", "--exclude-logging-path=/ping")
 	}
 
 	return corev1.Container{
