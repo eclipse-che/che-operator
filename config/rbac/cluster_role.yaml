@@ -200,6 +200,7 @@ rules:
     verbs:
       - create
       - delete
+      - deletecollection
       - get
       - update
       - patch

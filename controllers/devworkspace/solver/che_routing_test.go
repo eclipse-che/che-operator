@@ -18,18 +18,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/stretchr/testify/assert"
 
 	dwCommon "github.com/devfile/devworkspace-operator/pkg/common"
 	dwConstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
-	controller "github.com/eclipse-che/che-operator/controllers/devworkspace"
-	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	corev1 "k8s.io/api/core/v1"
@@ -39,7 +36,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/yaml"
 )
 
@@ -48,12 +44,7 @@ var (
 )
 
 func getSpecObjectsForManager(t *testing.T, mgr *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, additionalInitialObjects ...client.Object) (client.Client, solvers.RoutingSolver, solvers.RoutingObjects) {
-	allObjs := []client.Object{mgr, routing}
-	for i := range additionalInitialObjects {
-		allObjs = append(allObjs, additionalInitialObjects[i])
-	}
-
-	ctx := test.NewCtxBuilder().WithObjects(allObjs...).Build()
+	ctx := test.NewCtxBuilder().WithCheCluster(mgr).WithObjects(routing).WithObjects(additionalInitialObjects...).Build()
 	scheme := ctx.ClusterAPI.Scheme
 	cl := ctx.ClusterAPI.Client
 
@@ -66,13 +57,6 @@ func getSpecObjectsForManager(t *testing.T, mgr *chev2.CheCluster, routing *dwo.
 		DevWorkspaceId: routing.Spec.DevWorkspaceId,
 		Namespace:      routing.GetNamespace(),
 		PodSelector:    routing.Spec.PodSelector,
-	}
-
-	// we need to do 1 round of che manager reconciliation so that the solver gets initialized
-	cheRecon := controller.New(cl, scheme)
-	_, err = cheRecon.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: mgr.Name, Namespace: mgr.Namespace}})
-	if err != nil {
-		t.Fatal(err)
 	}
 
 	objs, err := solver.GetSpecObjects(routing, meta)
@@ -100,18 +84,14 @@ func getSpecObjectsForManager(t *testing.T, mgr *chev2.CheCluster, routing *dwo.
 		}
 	}
 
-	// now we need a second round of che manager reconciliation so that it proclaims the che gateway as established
-	cheRecon.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: "che", Namespace: "ns"}})
-
 	return cl, solver, objs
 }
 
 func getSpecObjects(t *testing.T, routing *dwo.DevWorkspaceRouting) (client.Client, solvers.RoutingSolver, solvers.RoutingObjects) {
 	return getSpecObjectsForManager(t, &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:       "che",
-			Namespace:  "ns",
-			Finalizers: []string{controller.FinalizerName},
+			Name:      "che",
+			Namespace: "ns",
 		},
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
@@ -327,9 +307,8 @@ func relocatableDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 func userProfileSecret(username string) *corev1.Secret {
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:       "user-profile",
-			Namespace:  "ws",
-			Finalizers: []string{controller.FinalizerName},
+			Name:      "user-profile",
+			Namespace: "ws",
 		},
 		Data: map[string][]byte{
 			"name": []byte(username),
@@ -380,14 +359,6 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 	for i := range objs.Services {
 		t.Run(fmt.Sprintf("service-%d", i), func(t *testing.T) {
 			svc := &objs.Services[i]
-			if svc.Annotations[defaults.ConfigAnnotationCheManagerName] != "che" {
-				t.Errorf("The name of the associated che manager should have been recorded in the service annotation")
-			}
-
-			if svc.Annotations[defaults.ConfigAnnotationCheManagerNamespace] != "ns" {
-				t.Errorf("The namespace of the associated che manager should have been recorded in the service annotation")
-			}
-
 			if svc.Labels[dwConstants.DevWorkspaceIDLabel] != "wsid" {
 				t.Errorf("The workspace ID should be recorded in the service labels")
 			}
@@ -507,9 +478,8 @@ func TestCreateRelocatedObjectsK8SLegacy(t *testing.T) {
 
 	cl, _, objs := getSpecObjectsForManager(t, &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:       "che",
-			Namespace:  "ns",
-			Finalizers: []string{controller.FinalizerName},
+			Name:      "che",
+			Namespace: "ns",
 		},
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
@@ -751,9 +721,8 @@ func TestCreateRelocatedObjectsOpenshiftLegacy(t *testing.T) {
 
 	cl, _, objs := getSpecObjectsForManager(t, &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:       "che",
-			Namespace:  "ns",
-			Finalizers: []string{controller.FinalizerName},
+			Name:      "che",
+			Namespace: "ns",
 		},
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
@@ -979,9 +948,8 @@ func TestUniqueMainEndpointLegacy(t *testing.T) {
 
 	cl, _, _ := getSpecObjectsForManager(t, &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:       "che",
-			Namespace:  "ns",
-			Finalizers: []string{controller.FinalizerName},
+			Name:      "che",
+			Namespace: "ns",
 		},
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
@@ -1053,14 +1021,6 @@ func TestCreateSubDomainObjects(t *testing.T) {
 		for i := range objs.Services {
 			t.Run(fmt.Sprintf("service-%d", i), func(t *testing.T) {
 				svc := &objs.Services[i]
-				if svc.Annotations[defaults.ConfigAnnotationCheManagerName] != "che" {
-					t.Errorf("The name of the associated che manager should have been recorded in the service annotation")
-				}
-
-				if svc.Annotations[defaults.ConfigAnnotationCheManagerNamespace] != "ns" {
-					t.Errorf("The namespace of the associated che manager should have been recorded in the service annotation")
-				}
-
 				if svc.Labels[dwConstants.DevWorkspaceIDLabel] != "wsid" {
 					t.Errorf("The workspace ID should be recorded in the service labels")
 				}
@@ -1112,9 +1072,8 @@ func TestCreateSubDomainObjectsLegacy(t *testing.T) {
 
 		cl, _, objs := getSpecObjectsForManager(t, &chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:       "che",
-				Namespace:  "ns",
-				Finalizers: []string{controller.FinalizerName},
+				Name:      "che",
+				Namespace: "ns",
 			},
 			Spec: chev2.CheClusterSpec{
 				Networking: chev2.CheClusterSpecNetworking{
@@ -1136,14 +1095,6 @@ func TestCreateSubDomainObjectsLegacy(t *testing.T) {
 		for i := range objs.Services {
 			t.Run(fmt.Sprintf("service-%d", i), func(t *testing.T) {
 				svc := &objs.Services[i]
-				if svc.Annotations[defaults.ConfigAnnotationCheManagerName] != "che" {
-					t.Errorf("The name of the associated che manager should have been recorded in the service annotation")
-				}
-
-				if svc.Annotations[defaults.ConfigAnnotationCheManagerNamespace] != "ns" {
-					t.Errorf("The namespace of the associated che manager should have been recorded in the service annotation")
-				}
-
 				if svc.Labels[dwConstants.DevWorkspaceIDLabel] != "wsid" {
 					t.Errorf("The workspace ID should be recorded in the service labels")
 				}
@@ -1250,9 +1201,8 @@ func TestReportRelocatableExposedEndpointsLegacy(t *testing.T) {
 	routing := relocatableDevWorkspaceRouting()
 	_, solver, objs := getSpecObjectsForManager(t, &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:       "che",
-			Namespace:  "ns",
-			Finalizers: []string{controller.FinalizerName},
+			Name:      "che",
+			Namespace: "ns",
 		},
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
@@ -1513,9 +1463,8 @@ func TestExposeEndpointsLegacy(t *testing.T) {
 
 	_, solver, objs := getSpecObjectsForManager(t, &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:       "che",
-			Namespace:  "ns",
-			Finalizers: []string{controller.FinalizerName},
+			Name:      "che",
+			Namespace: "ns",
 		},
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
@@ -1614,9 +1563,8 @@ func TestReportSubdomainExposedEndpointsLongUsername(t *testing.T) {
 	routing := subdomainDevWorkspaceRouting()
 	_, solver, objs := getSpecObjectsForManager(t, &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:       "che",
-			Namespace:  "ns",
-			Finalizers: []string{controller.FinalizerName},
+			Name:      "che",
+			Namespace: "ns",
 		},
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
@@ -1681,9 +1629,8 @@ func TestReportSubdomainExposedEndpointsLegacy(t *testing.T) {
 	routing := subdomainDevWorkspaceRouting()
 	_, solver, objs := getSpecObjectsForManager(t, &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:       "che",
-			Namespace:  "ns",
-			Finalizers: []string{controller.FinalizerName},
+			Name:      "che",
+			Namespace: "ns",
 		},
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
@@ -1789,9 +1736,8 @@ func TestUsesIngressAnnotationsForWorkspaceEndpointIngresses(t *testing.T) {
 
 	mgr := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:       "che",
-			Namespace:  "ns",
-			Finalizers: []string{controller.FinalizerName},
+			Name:      "che",
+			Namespace: "ns",
 		},
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
@@ -1826,9 +1772,8 @@ func TestUsesEndpointAnnotationsForWorkspaceEndpointIngresses(t *testing.T) {
 
 	mgr := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:       "che",
-			Namespace:  "ns",
-			Finalizers: []string{controller.FinalizerName},
+			Name:      "che",
+			Namespace: "ns",
 		},
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
@@ -1874,9 +1819,8 @@ func TestUsesEndpointAnnotationsForWorkspaceEndpointRoutes(t *testing.T) {
 
 	mgr := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:       "che",
-			Namespace:  "ns",
-			Finalizers: []string{controller.FinalizerName},
+			Name:      "che",
+			Namespace: "ns",
 		},
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
@@ -1918,9 +1862,8 @@ func TestUsesEndpointServiceWithDiscoverableAttributeSetRoutes(t *testing.T) {
 
 	mgr := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:       "che",
-			Namespace:  "ns",
-			Finalizers: []string{controller.FinalizerName},
+			Name:      "che",
+			Namespace: "ns",
 		},
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
@@ -1962,9 +1905,8 @@ func TestUsesEndpointServiceWithDiscoverableAttributeSetIngresses(t *testing.T) 
 
 	mgr := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:       "che",
-			Namespace:  "ns",
-			Finalizers: []string{controller.FinalizerName},
+			Name:      "che",
+			Namespace: "ns",
 		},
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
@@ -2014,9 +1956,8 @@ func TestUsesCustomCertificateForWorkspaceEndpointIngresses(t *testing.T) {
 
 	mgr := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:       "che",
-			Namespace:  "ns",
-			Finalizers: []string{controller.FinalizerName},
+			Name:      "che",
+			Namespace: "ns",
 		},
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
@@ -2098,9 +2039,8 @@ func TestUsesCustomCertificateForWorkspaceEndpointRoutes(t *testing.T) {
 
 	mgr := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:       "che",
-			Namespace:  "ns",
-			Finalizers: []string{controller.FinalizerName},
+			Name:      "che",
+			Namespace: "ns",
 		},
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{

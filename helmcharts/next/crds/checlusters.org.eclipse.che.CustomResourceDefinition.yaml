@@ -11138,7 +11138,9 @@ spec:
                 description: Deprecated the public URL of the internal devfile registry.
                 type: string
               gatewayPhase:
-                description: Specifies the current phase of the gateway deployment.
+                description: |-
+                  Deprecated.
+                  Specifies the current phase of the gateway deployment.
                 type: string
               message:
                 description: A human readable message indicating details about why

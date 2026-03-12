@@ -166,7 +166,9 @@ spec:
         path: devfileRegistryURL
         x-descriptors:
         - urn:alm:descriptor:org.w3:link
-      - description: Specifies the current phase of the gateway deployment.
+      - description: |-
+          Deprecated.
+          Specifies the current phase of the gateway deployment.
         displayName: Gateway phase
         path: gatewayPhase
         x-descriptors:
