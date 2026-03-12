@@ -14,6 +14,7 @@ package infrastructure
 
 import (
 	"os"
+	"slices"
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,7 +29,6 @@ const (
 	Unknown Type = iota
 	Kubernetes
 	OpenShiftV4
-	OpenShiftV5
 
 	LeasesResources                = "leases"
 	OAuthClientsResources          = "oauthclients"
@@ -57,7 +57,7 @@ func GetOperatorNamespace() (string, error) {
 
 func IsOpenShift() bool {
 	initializeIfNeeded()
-	return infrastructure == OpenShiftV4 || infrastructure == OpenShiftV5
+	return infrastructure == OpenShiftV4
 }
 
 func IsOpenShiftOAuthEnabled() bool {
@@ -111,7 +111,7 @@ func initializeIfNeeded() {
 		os.Exit(1)
 	}
 
-	if hasAPIGroup(apiGroups, "route.openshift.io") {
+	if hasAPIGroup(apiGroups, "config.openshift.io") {
 		infrastructure = OpenShiftV4
 		isOpenShiftOAuthEnabled = hasAPIResource(apiResources, OAuthClientsResources)
 	} else {
@@ -124,13 +124,9 @@ func initializeIfNeeded() {
 }
 
 func hasAPIGroup(source []*metav1.APIGroup, apiName string) bool {
-	for i := 0; i < len(source); i++ {
-		if source[i].Name == apiName {
-			return true
-		}
-	}
-
-	return false
+	return slices.ContainsFunc(source, func(g *metav1.APIGroup) bool {
+		return g.Name == apiName
+	})
 }
 
 func hasAPIResource(resources []*metav1.APIResourceList, resourceName string) bool {

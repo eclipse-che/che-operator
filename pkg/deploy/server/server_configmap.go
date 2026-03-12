@@ -22,10 +22,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
@@ -38,7 +38,6 @@ import (
 )
 
 type CheConfigMap struct {
-<<<<<<< HEAD
 	JavaOpts                 string `json:"JAVA_OPTS"`
 	CheHost                  string `json:"CHE_HOST"`
 	ChePort                  string `json:"CHE_PORT"`
@@ -52,44 +51,8 @@ type CheConfigMap struct {
 	Http2Disable             string `json:"HTTP2_DISABLE"`
 	KubernetesLabels         string `json:"KUBERNETES_LABELS"`
 	OpenShiftOAuthEnabled    string `json:"CHE_INFRA_OPENSHIFT_OAUTH__ENABLED"`
-
 	// TODO remove when keycloak codebase is removed from che-server component
 	CheOIDCAuthServerUrl string `json:"CHE_OIDC_AUTH__SERVER__URL,omitempty"`
-=======
-	CheHost                              string `json:"CHE_HOST"`
-	CheMultiUser                         string `json:"CHE_MULTIUSER"`
-	ChePort                              string `json:"CHE_PORT"`
-	CheApi                               string `json:"CHE_API"`
-	CheApiInternal                       string `json:"CHE_API_INTERNAL"`
-	CheWebSocketEndpoint                 string `json:"CHE_WEBSOCKET_ENDPOINT"`
-	CheWebSocketInternalEndpoint         string `json:"CHE_WEBSOCKET_INTERNAL_ENDPOINT"`
-	CheDebugServer                       string `json:"CHE_DEBUG_SERVER"`
-	CheMetricsEnabled                    string `json:"CHE_METRICS_ENABLED"`
-	CheInfrastructureActive              string `json:"CHE_INFRASTRUCTURE_ACTIVE"`
-	CheInfraKubernetesServiceAccountName string `json:"CHE_INFRA_KUBERNETES_SERVICE__ACCOUNT__NAME"`
-	CheInfraKubernetesUserClusterRoles   string `json:"CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"`
-	DefaultTargetNamespace               string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"`
-	NamespaceCreationAllowed             string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_CREATION__ALLOWED"`
-	PvcStrategy                          string `json:"CHE_INFRA_KUBERNETES_PVC_STRATEGY"`
-	PvcClaimSize                         string `json:"CHE_INFRA_KUBERNETES_PVC_QUANTITY"`
-	WorkspacePvcStorageClassName         string `json:"CHE_INFRA_KUBERNETES_PVC_STORAGE__CLASS__NAME"`
-	TlsSupport                           string `json:"CHE_INFRA_OPENSHIFT_TLS__ENABLED"`
-	OpenShiftOAuthEnabled                string `json:"CHE_INFRA_OPENSHIFT_OAUTH__ENABLED"`
-	K8STrustCerts                        string `json:"CHE_INFRA_KUBERNETES_TRUST__CERTS"`
-	CheLogLevel                          string `json:"CHE_LOG_LEVEL"`
-	IdentityProviderUrl                  string `json:"CHE_OIDC_AUTH__SERVER__URL,omitempty"`
-	IdentityProviderInternalURL          string `json:"CHE_OIDC_AUTH__INTERNAL__SERVER__URL,omitempty"`
-	JavaOpts                             string `json:"JAVA_OPTS"`
-	PluginRegistryUrl                    string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__URL,omitempty"`
-	PluginRegistryInternalUrl            string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL,omitempty"`
-	CheJGroupsKubernetesLabels           string `json:"KUBERNETES_LABELS,omitempty"`
-	CheTrustedCABundlesConfigMap         string `json:"CHE_TRUSTED__CA__BUNDLES__CONFIGMAP,omitempty"`
-	ServerStrategy                       string `json:"CHE_INFRA_KUBERNETES_SERVER__STRATEGY"`
-	WorkspaceExposure                    string `json:"CHE_INFRA_KUBERNETES_SINGLEHOST_WORKSPACE_EXPOSURE"`
-	SingleHostGatewayConfigMapLabels     string `json:"CHE_INFRA_KUBERNETES_SINGLEHOST_GATEWAY_CONFIGMAP__LABELS"`
-	CheDevWorkspacesEnabled              string `json:"CHE_DEVWORKSPACES_ENABLED"`
-	Http2Disable                         string `json:"HTTP2_DISABLE"`
->>>>>>> 18f9ee13 (fixup)
 }
 
 func (s *CheServerReconciler) syncConfigMap(ctx *chetypes.DeployContext) (bool, error) {
@@ -98,7 +61,6 @@ func (s *CheServerReconciler) syncConfigMap(ctx *chetypes.DeployContext) (bool, 
 		return false, err
 	}
 
-<<<<<<< HEAD
 	cm := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
@@ -142,59 +104,6 @@ func (s *CheServerReconciler) getConfigMapData(ctx *chetypes.DeployContext) (che
 	var cheInfrastructure string
 	if infrastructure.IsOpenShift() {
 		cheInfrastructure = "openshift"
-=======
-	infra := "kubernetes"
-	if infrastructure.IsOpenShift() {
-		infra = "openshift"
-	}
-
-	proxyJavaOpts := ""
-	cheWorkspaceNoProxy := ctx.Proxy.NoProxy
-	if ctx.Proxy.HttpProxy != "" {
-		proxyJavaOpts, err = deploy.GenerateProxyJavaOpts(ctx.Proxy, cheWorkspaceNoProxy)
-		if err != nil {
-			logrus.Errorf("Failed to generate java proxy options: %v", err)
-		}
-	}
-
-	ingressDomain := ctx.CheCluster.Spec.Networking.Domain
-	tlsSecretName := ctx.CheCluster.Spec.Networking.TlsSecretName
-
-	securityContextFsGroup := strconv.FormatInt(constants.DefaultSecurityContextFsGroup, 10)
-	securityContextRunAsUser := strconv.FormatInt(constants.DefaultSecurityContextRunAsUser, 10)
-	if ctx.CheCluster.Spec.Components.CheServer.Deployment != nil {
-		if ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext != nil {
-			if ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext.FsGroup != nil {
-				securityContextFsGroup = strconv.FormatInt(*ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext.FsGroup, 10)
-			}
-			if ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext.RunAsUser != nil {
-				securityContextRunAsUser = strconv.FormatInt(*ctx.CheCluster.Spec.Components.CheServer.Deployment.SecurityContext.RunAsUser, 10)
-			}
-		}
-	}
-
-	ingressClass := utils.GetValue(ctx.CheCluster.Spec.Networking.Annotations["kubernetes.io/ingress.class"], constants.DefaultIngressClass)
-
-	pluginRegistryURL := ctx.CheCluster.Status.PluginRegistryURL
-	for _, r := range ctx.CheCluster.Spec.Components.PluginRegistry.ExternalPluginRegistries {
-		if strings.Index(pluginRegistryURL, r.Url) == -1 {
-			pluginRegistryURL += " " + r.Url
-		}
-	}
-	pluginRegistryURL = strings.TrimSpace(pluginRegistryURL)
-
-	cheLogLevel := utils.GetValue(ctx.CheCluster.Spec.Components.CheServer.LogLevel, constants.DefaultServerLogLevel)
-	cheDebug := "false"
-	if ctx.CheCluster.Spec.Components.CheServer.Debug != nil {
-		cheDebug = strconv.FormatBool(*ctx.CheCluster.Spec.Components.CheServer.Debug)
-	}
-	cheMetrics := strconv.FormatBool(ctx.CheCluster.Spec.Components.Metrics.Enable)
-	cheLabels := labels.FormatLabels(deploy.GetLabels(defaults.GetCheFlavor()))
-
-	singleHostGatewayConfigMapLabels := ""
-	if len(ctx.CheCluster.Spec.Networking.Auth.Gateway.ConfigLabels) != 0 {
-		singleHostGatewayConfigMapLabels = labels.FormatLabels(ctx.CheCluster.Spec.Networking.Auth.Gateway.ConfigLabels)
->>>>>>> 18f9ee13 (fixup)
 	} else {
 		cheInfrastructure = "kubernetes"
 	}
@@ -228,7 +137,6 @@ func (s *CheServerReconciler) getConfigMapData(ctx *chetypes.DeployContext) (che
 	kubernetesLabels := labels.FormatLabels(deploy.GetLabels(defaults.GetCheFlavor()))
 
 	data := &CheConfigMap{
-<<<<<<< HEAD
 		JavaOpts:                 javaOpts,
 		CheHost:                  ctx.CheHost,
 		ChePort:                  chePort,
@@ -241,34 +149,6 @@ func (s *CheServerReconciler) getConfigMapData(ctx *chetypes.DeployContext) (che
 		NamespaceCreationAllowed: namespaceCreationAllowed,
 		KubernetesLabels:         kubernetesLabels,
 		OpenShiftOAuthEnabled:    strconv.FormatBool(infrastructure.IsOpenShiftOAuthEnabled()),
-=======
-		CheMultiUser:                         "true",
-		CheHost:                              ctx.CheHost,
-		ChePort:                              "8080",
-		CheApi:                               cheAPI,
-		CheApiInternal:                       cheInternalAPI,
-		CheWebSocketEndpoint:                 webSocketEndpoint,
-		CheWebSocketInternalEndpoint:         webSocketInternalEndpoint,
-		CheDebugServer:                       cheDebug,
-		CheInfrastructureActive:              infra,
-		CheInfraKubernetesServiceAccountName: cheWorkspaceServiceAccount,
-		DefaultTargetNamespace:               workspaceNamespaceDefault,
-		NamespaceCreationAllowed:             namespaceCreationAllowed,
-		TlsSupport:                           "true",
-		K8STrustCerts:                        "true",
-		CheLogLevel:                          cheLogLevel,
-		JavaOpts:                             constants.DefaultJavaOpts + " " + proxyJavaOpts,
-		PluginRegistryUrl:                    pluginRegistryURL,
-		PluginRegistryInternalUrl:            pluginRegistryInternalURL,
-		CheJGroupsKubernetesLabels:           cheLabels,
-		CheMetricsEnabled:                    cheMetrics,
-		CheTrustedCABundlesConfigMap:         deploytls.CheMergedCABundleCertsCMName,
-		ServerStrategy:                       "single-host",
-		WorkspaceExposure:                    "gateway",
-		SingleHostGatewayConfigMapLabels:     singleHostGatewayConfigMapLabels,
-		CheDevWorkspacesEnabled:              strconv.FormatBool(true),
-		OpenShiftOAuthEnabled:                strconv.FormatBool(infrastructure.IsOpenShiftOAuthEnabled()),
->>>>>>> 18f9ee13 (fixup)
 		// Disable HTTP2 protocol.
 		// Fix issue with creating config maps on the cluster https://issues.redhat.com/browse/CRW-2677
 		// The root cause is in the HTTP2 protocol support of the okttp3 library that is used by fabric8.kubernetes-client that is used by che-server
