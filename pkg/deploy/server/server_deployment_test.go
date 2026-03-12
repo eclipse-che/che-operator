@@ -395,13 +395,14 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 
 func TestMountAzureDevOpsOAuthEnvVar(t *testing.T) {
 	type testCase struct {
-		name                  string
-		initObjects           []client.Object
-		expectedIdKeyPath     string
-		expectedSecretKeyPath string
-		expectedOAuthEndpoint string
-		expectedVolume        corev1.Volume
-		expectedVolumeMount   corev1.VolumeMount
+		name                    string
+		initObjects             []client.Object
+		expectedTenantIdKeyPath string
+		expectedIdKeyPath       string
+		expectedSecretKeyPath   string
+		expectedOAuthEndpoint   string
+		expectedVolume          corev1.Volume
+		expectedVolumeMount     corev1.VolumeMount
 	}
 
 	testCases := []testCase{
@@ -425,14 +426,16 @@ func TestMountAzureDevOpsOAuthEnvVar(t *testing.T) {
 						},
 					},
 					Data: map[string][]byte{
-						"id":     []byte("some_id"),
-						"secret": []byte("some_secret"),
+						"tenant-id": []byte("some_tenant"),
+						"id":        []byte("some_id"),
+						"secret":    []byte("some_secret"),
 					},
 				},
 			},
-			expectedIdKeyPath:     "/che-conf/oauth/azure-devops/id",
-			expectedSecretKeyPath: "/che-conf/oauth/azure-devops/secret",
-			expectedOAuthEndpoint: "endpoint_1",
+			expectedTenantIdKeyPath: "/che-conf/oauth/azure-devops/tenant-id",
+			expectedIdKeyPath:       "/che-conf/oauth/azure-devops/id",
+			expectedSecretKeyPath:   "/che-conf/oauth/azure-devops/secret",
+			expectedOAuthEndpoint:   "endpoint_1",
 			expectedVolume: corev1.Volume{
 				Name: "azure-devops-oauth-config",
 				VolumeSource: corev1.VolumeSource{
@@ -458,7 +461,10 @@ func TestMountAzureDevOpsOAuthEnvVar(t *testing.T) {
 
 			container := &deployment.Spec.Template.Spec.Containers[0]
 
-			value := utils.GetEnvByName("CHE_OAUTH2_AZURE_DEVOPS_CLIENTID__FILEPATH", container.Env)
+			value := utils.GetEnvByName("CHE_OAUTH2_AZURE_DEVOPS_TENANTID__FILEPATH", container.Env)
+			assert.Equal(t, testCase.expectedTenantIdKeyPath, value)
+
+			value = utils.GetEnvByName("CHE_OAUTH2_AZURE_DEVOPS_CLIENTID__FILEPATH", container.Env)
 			assert.Equal(t, testCase.expectedIdKeyPath, value)
 
 			value = utils.GetEnvByName("CHE_OAUTH2_AZURE_DEVOPS_CLIENTSECRET__FILEPATH", container.Env)
