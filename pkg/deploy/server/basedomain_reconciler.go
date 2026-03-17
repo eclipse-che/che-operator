@@ -16,6 +16,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
@@ -51,7 +52,7 @@ func (r *BaseDomainReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile
 				return reconcile.Result{}, false, err
 			}
 			if openshiftBaseDomain == "" {
-				return reconcile.Result{}, false, nil
+				return reconcile.Result{RequeueAfter: time.Second}, false, nil
 			}
 
 			workspaceBaseDomain = openshiftBaseDomain
@@ -105,6 +106,7 @@ func (r *BaseDomainReconciler) detectOpenShiftRouteBaseDomain(ctx *chetypes.Depl
 	routeKey := types.NamespacedName{Name: name, Namespace: ctx.CheCluster.Namespace}
 	if err := ctx.ClusterAPI.Client.Get(context.TODO(), routeKey, route); err != nil {
 		if errors.IsNotFound(err) {
+			// Route is not ready
 			return "", nil
 		}
 
@@ -116,6 +118,11 @@ func (r *BaseDomainReconciler) detectOpenShiftRouteBaseDomain(ctx *chetypes.Depl
 			log.Error(err, "unable to delete test route %s", name)
 		}
 	}()
+
+	if route.Spec.Host == "" {
+		// Route is not ready
+		return "", nil
+	}
 
 	items := strings.SplitN(route.Spec.Host, ".", 2)
 	if len(items) != 2 {
