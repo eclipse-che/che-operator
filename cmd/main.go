@@ -37,7 +37,6 @@ import (
 	devworkspaceinfra "github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/eclipse-che/che-operator/controllers/devworkspace"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/signal"
@@ -310,14 +309,6 @@ func main() {
 		}
 	}
 	sigHandler := signal.SetupSignalHandler(terminationPeriod)
-
-	// we install the devworkspace CheCluster reconciler even if dw is not supported so that it
-	// can write meaningful status messages into the CheCluster CRs.
-	dwChe := devworkspace.CheClusterReconciler{}
-	if err := dwChe.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to set up devWorkspace controller", "controller", "DevWorkspaceReconciler")
-		os.Exit(1)
-	}
 
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
 		if err = chev2.SetupWebhookWithManager(mgr); err != nil {

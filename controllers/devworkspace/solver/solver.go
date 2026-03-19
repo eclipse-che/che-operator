@@ -14,16 +14,15 @@ package solver
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/devfile/devworkspace-operator/pkg/constants"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
-	controller "github.com/eclipse-che/che-operator/controllers/devworkspace"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -123,22 +122,17 @@ func (c *CheRoutingSolver) FinalizerRequired(routing *controllerv1alpha1.DevWork
 }
 
 func (c *CheRoutingSolver) Finalize(routing *controllerv1alpha1.DevWorkspaceRouting) error {
-	cheManager, err := cheManagerOfRouting(routing)
-	if err != nil {
-		return err
-	}
-
-	return c.cheRoutingFinalize(cheManager, routing)
+	return c.cheRoutingFinalize(routing)
 }
 
 // GetSpecObjects constructs cluster routing objects which should be applied on the cluster
 func (c *CheRoutingSolver) GetSpecObjects(routing *controllerv1alpha1.DevWorkspaceRouting, workspaceMeta solvers.DevWorkspaceMetadata) (solvers.RoutingObjects, error) {
-	cheManager, err := cheManagerOfRouting(routing)
+	cheCluster, err := c.getCheClusterReady()
 	if err != nil {
 		return solvers.RoutingObjects{}, err
 	}
 
-	return c.cheSpecObjects(cheManager, routing, workspaceMeta)
+	return c.cheSpecObjects(cheCluster, routing, workspaceMeta)
 }
 
 // GetExposedEndpoints retreives the URL for each endpoint in a devfile spec from a set of RoutingObjects.
@@ -150,51 +144,35 @@ func (c *CheRoutingSolver) GetExposedEndpoints(endpoints map[string]controllerv1
 		return map[string]controllerv1alpha1.ExposedEndpointList{}, true, nil
 	}
 
-	managerName := routingObj.Services[0].Annotations[defaults.ConfigAnnotationCheManagerName]
-	managerNamespace := routingObj.Services[0].Annotations[defaults.ConfigAnnotationCheManagerNamespace]
 	workspaceID := routingObj.Services[0].Labels[constants.DevWorkspaceIDLabel]
 
-	manager, err := findCheManager(client.ObjectKey{Name: managerName, Namespace: managerNamespace})
+	cheCluster, err := c.getCheClusterReady()
 	if err != nil {
 		return nil, false, err
 	}
 
-	return c.cheExposedEndpoints(manager, workspaceID, endpoints, routingObj)
+	return c.cheExposedEndpoints(cheCluster.GetCheHost(), workspaceID, endpoints, routingObj)
 }
 
 func isSupported(routingClass controllerv1alpha1.DevWorkspaceRoutingClass) bool {
 	return routingClass == "che"
 }
 
-func cheManagerOfRouting(routing *controllerv1alpha1.DevWorkspaceRouting) (*chev2.CheCluster, error) {
-	cheName := routing.Annotations[defaults.ConfigAnnotationCheManagerName]
-	cheNamespace := routing.Annotations[defaults.ConfigAnnotationCheManagerNamespace]
-
-	return findCheManager(client.ObjectKey{Name: cheName, Namespace: cheNamespace})
-}
-
-func findCheManager(cheManagerKey client.ObjectKey) (*chev2.CheCluster, error) {
-	managers := controller.GetCurrentCheClusterInstances()
-	if len(managers) == 0 {
-		// the CheManager has not been reconciled yet, so let's wait a bit
-		return &chev2.CheCluster{}, &solvers.RoutingNotReady{Retry: 1 * time.Second}
+func (c *CheRoutingSolver) getCheClusterReady() (*chev2.CheCluster, error) {
+	cheCluster, err := deploy.FindCheClusterCRInNamespace(c.client, "")
+	if err != nil {
+		return nil, err
 	}
 
-	if len(cheManagerKey.Name) == 0 {
-		if len(managers) > 1 {
-			return &chev2.CheCluster{}, &solvers.RoutingInvalid{Reason: fmt.Sprintf("the routing does not specify any Che manager in its configuration but there are %d Che managers in the cluster", len(managers))}
-		}
-		for _, m := range managers {
-			return &m, nil
-		}
-
+	if cheCluster == nil {
+		// Not found, let's wait
+		return nil, &solvers.RoutingNotReady{Retry: 10 * time.Second}
 	}
 
-	if m, ok := managers[cheManagerKey]; ok {
-		return &m, nil
+	if cheCluster.Status.CheURL == "" || cheCluster.Status.WorkspaceBaseDomain == "" {
+		// Required status fields are not set
+		return nil, &solvers.RoutingNotReady{Retry: 5 * time.Second}
 	}
 
-	logger.Info("Routing requires a non-existing che manager. Retrying in 10 seconds.", "key", cheManagerKey)
-
-	return &chev2.CheCluster{}, &solvers.RoutingNotReady{Retry: 10 * time.Second}
+	return cheCluster, nil
 }

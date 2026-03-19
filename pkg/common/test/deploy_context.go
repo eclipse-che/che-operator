@@ -42,10 +42,16 @@ func (f *DeployContextBuild) WithObjects(initObjs ...client.Object) *DeployConte
 
 func (f *DeployContextBuild) WithCheCluster(cheCluster *chev2.CheCluster) *DeployContextBuild {
 	f.cheCluster = cheCluster
-	if f.cheCluster != nil && f.cheCluster.TypeMeta.Kind == "" {
+	if f.cheCluster != nil {
 		f.cheCluster.TypeMeta = metav1.TypeMeta{
 			Kind:       "CheCluster",
 			APIVersion: chev2.GroupVersion.String(),
+		}
+		if f.cheCluster.Status.WorkspaceBaseDomain == "" {
+			f.cheCluster.Status.WorkspaceBaseDomain = f.cheCluster.Spec.Networking.Domain
+		}
+		if f.cheCluster.Status.CheURL == "" {
+			f.cheCluster.Status.CheURL = "https://" + f.cheCluster.Spec.Networking.Hostname
 		}
 	}
 	return f

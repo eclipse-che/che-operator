@@ -108,6 +108,7 @@ func NewReconciler(
 	// we have to expose che endpoint independently of syncing other server
 	// resources since che host is used for dashboard deployment and che config map
 	reconcilerManager.AddReconciler(server.NewCheHostReconciler())
+	reconcilerManager.AddReconciler(server.NewBaseDomainReconciler())
 	reconcilerManager.AddReconciler(postgres.NewPostgresReconciler())
 	if infrastructure.IsOpenShift() {
 		reconcilerManager.AddReconciler(identityprovider.NewIdentityProviderReconciler())

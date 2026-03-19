@@ -29,7 +29,6 @@ import (
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
-	"github.com/eclipse-che/che-operator/controllers/devworkspace"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 	configv1 "github.com/openshift/api/config/v1"
@@ -153,18 +152,9 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 		t.Fatal(err)
 	}
 
-	r := devworkspace.New(cl, scheme)
-	// the reconciliation needs to run twice for it to be truly finished - we're setting up finalizers etc...
-	if _, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: cheName, Namespace: cheNamespaceName}}); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: cheName, Namespace: cheNamespaceName}}); err != nil {
-		t.Fatal(err)
-	}
 }
 
 func setup(infraType infrastructure.Type, objs ...client.Object) (*runtime.Scheme, client.Client, *CheUserNamespaceReconciler) {
-	devworkspace.CleanCheClusterInstancesForTest()
 	infrastructure.InitializeForTesting(infraType)
 
 	ctx := test.NewCtxBuilder().WithObjects(objs...).WithCheCluster(nil).Build()
@@ -400,16 +390,7 @@ func TestUpdateSccClusterRoleBinding(t *testing.T) {
 	}
 
 	allObjs := []client.Object{ns1, pr1, cheCluster}
-	scheme, cl, usernamespaceReconciler := setup(infrastructure.OpenShiftv4, allObjs...)
-
-	// the reconciliation needs to run twice for it to be truly finished - we're setting up finalizers etc...
-	devworkspaceReconciler := devworkspace.New(cl, scheme)
-	if _, err := devworkspaceReconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"}}); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := devworkspaceReconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"}}); err != nil {
-		t.Fatal(err)
-	}
+	_, cl, usernamespaceReconciler := setup(infrastructure.OpenShiftv4, allObjs...)
 
 	_, err := usernamespaceReconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: ns1.GetName()}})
 	assert.Nil(t, err)
