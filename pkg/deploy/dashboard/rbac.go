@@ -53,6 +53,11 @@ func GetPrivilegedPoliciesRulesForKubernetes() []rbacv1.PolicyRule {
 			Resources: []string{"configmaps"},
 			Verbs:     []string{"get", "list"},
 		},
+		{
+			APIGroups: []string{"controller.devfile.io"},
+			Resources: []string{"devworkspaceoperatorconfigs"},
+			Verbs:     []string{"get"},
+		},
 	}
 
 	if !infrastructure.IsOpenShift() {
