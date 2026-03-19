@@ -14,7 +14,6 @@ package containercapabilities
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -24,10 +23,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"k8s.io/apimachinery/pkg/labels"
-
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
@@ -35,7 +30,6 @@ import (
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	securityv1 "github.com/openshift/api/security/v1"
-	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -116,11 +110,6 @@ func (r *ContainerCapabilitiesReconciler) sync(ctx *chetypes.DeployContext, cc C
 		return nil
 	}
 
-	devWorkspaceServiceAccountNamespace, err := r.getDevWorkspaceServiceAccountNamespace(ctx)
-	if err != nil {
-		return err
-	}
-
 	if err := ctx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
 		r.getDWOClusterRole(
@@ -135,7 +124,7 @@ func (r *ContainerCapabilitiesReconciler) sync(ctx *chetypes.DeployContext, cc C
 	if err := ctx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
 		r.getDWClusterRoleBinding(
-			devWorkspaceServiceAccountNamespace,
+			ctx.DwoNamespace,
 			cc.getDWOClusterRoleName(),
 			cc.getDWOClusterRoleBindingName(),
 		),
@@ -237,35 +226,6 @@ func (r *ContainerCapabilitiesReconciler) delete(ctx *chetypes.DeployContext, cc
 	}
 
 	return nil
-}
-
-// getDevWorkspaceServiceAccountNamespace returns the namespace of the DevWorkspace ServiceAccount.
-// It searches for the DevWorkspace Operator Pods by its labels.
-func (r *ContainerCapabilitiesReconciler) getDevWorkspaceServiceAccountNamespace(ctx *chetypes.DeployContext) (string, error) {
-	selector := labels.SelectorFromSet(
-		labels.Set{
-			constants.KubernetesNameLabelKey:   constants.DevWorkspaceControllerName,
-			constants.KubernetesPartOfLabelKey: constants.DevWorkspaceOperatorName,
-		},
-	)
-
-	items, err := ctx.ClusterAPI.NonCachingClientWrapper.List(
-		context.TODO(),
-		&corev1.PodList{},
-		&client.ListOptions{LabelSelector: selector},
-	)
-	if err != nil {
-		return "", err
-	}
-
-	for _, item := range items {
-		pod := item.(*corev1.Pod)
-		if pod.Spec.ServiceAccountName == constants.DevWorkspaceServiceAccountName {
-			return pod.Namespace, nil
-		}
-	}
-
-	return "", fmt.Errorf("ServiceAccount %s not found", constants.DevWorkspaceServiceAccountName)
 }
 
 func (r *ContainerCapabilitiesReconciler) getUserClusterRole(sccName string, clusterRoleName string) *rbacv1.ClusterRole {

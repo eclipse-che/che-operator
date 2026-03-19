@@ -68,7 +68,8 @@ func (f *DeployContextBuild) Build() *chetypes.DeployContext {
 			ClientWrapper:           k8s_client.NewK8sClient(fakeClient, scheme),
 			NonCachingClientWrapper: k8s_client.NewK8sClient(fakeClient, scheme),
 		},
-		Proxy: &chetypes.Proxy{},
+		Proxy:        &chetypes.Proxy{},
+		DwoNamespace: "devworkspace-controller",
 	}
 
 	if f.cheCluster != nil {

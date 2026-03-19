@@ -94,6 +94,15 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployCon
 			Value: ctx.CheCluster.Name},
 	)
 
+	if ctx.DwoNamespace != "" {
+		envVars = append(envVars,
+			corev1.EnvVar{
+				Name:  "DWO_NAMESPACE",
+				Value: ctx.DwoNamespace,
+			},
+		)
+	}
+
 	envVars = append(envVars,
 		corev1.EnvVar{
 			Name:  "CHE_DASHBOARD_INTERNAL_URL",

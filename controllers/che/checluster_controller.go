@@ -19,6 +19,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
+	"github.com/eclipse-che/che-operator/pkg/deploy/devwrokspace"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
@@ -28,16 +29,14 @@ import (
 
 	editorsdefinitions "github.com/eclipse-che/che-operator/pkg/deploy/editors-definitions"
 
-	"github.com/eclipse-che/che-operator/pkg/common/test"
-	containerbuild "github.com/eclipse-che/che-operator/pkg/deploy/container-capabilities"
-
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/consolelink"
+	containerbuild "github.com/eclipse-che/che-operator/pkg/deploy/container-capabilities"
 	"github.com/eclipse-che/che-operator/pkg/deploy/dashboard"
-	devworkspaceconfig "github.com/eclipse-che/che-operator/pkg/deploy/dev-workspace-config"
 	"github.com/eclipse-che/che-operator/pkg/deploy/devfileregistry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	identityprovider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
@@ -103,7 +102,7 @@ func NewReconciler(
 
 	reconcilerManager.AddReconciler(tls.NewCertificatesReconciler())
 	reconcilerManager.AddReconciler(tls.NewTlsSecretReconciler())
-	reconcilerManager.AddReconciler(devworkspaceconfig.NewDevWorkspaceConfigReconciler())
+	reconcilerManager.AddReconciler(devwrokspace.NewDevWorkspaceConfigReconciler())
 	reconcilerManager.AddReconciler(rbac.NewGatewayPermissionsReconciler())
 
 	// we have to expose che endpoint independently of syncing other server
@@ -116,6 +115,7 @@ func NewReconciler(
 	reconcilerManager.AddReconciler(devfileregistry.NewDevfileRegistryReconciler())
 	reconcilerManager.AddReconciler(pluginregistry.NewPluginRegistryReconciler())
 	reconcilerManager.AddReconciler(editorsdefinitions.NewEditorsDefinitionsReconciler())
+	reconcilerManager.AddReconciler(devwrokspace.NewDwoNamespaceReconciler())
 	reconcilerManager.AddReconciler(dashboard.NewDashboardReconciler())
 	reconcilerManager.AddReconciler(gateway.NewGatewayReconciler())
 	reconcilerManager.AddReconciler(server.NewCheServerReconciler())
