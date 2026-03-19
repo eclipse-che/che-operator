@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package devwrokspace
+package devworkspace
 
 import (
 	"context"
