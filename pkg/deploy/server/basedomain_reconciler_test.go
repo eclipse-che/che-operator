@@ -16,6 +16,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	routev1 "github.com/openshift/api/route/v1"
@@ -129,6 +130,74 @@ func TestBaseDomainStatusUpdated(t *testing.T) {
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"}, cheCluster)
 	assert.Nil(t, err)
 	assert.Equal(t, "new-domain.com", cheCluster.Status.WorkspaceBaseDomain)
+}
+
+func TestBaseDomainIdempotency(t *testing.T) {
+	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
+			Name:      "eclipse-che",
+		},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Domain: "my-domain.com",
+			},
+		},
+		Status: chev2.CheClusterStatus{
+			WorkspaceBaseDomain: "my-domain.com",
+		},
+	}).Build()
+
+	reconciler := NewBaseDomainReconciler()
+
+	// First reconcile
+	_, done, err := reconciler.Reconcile(ctx)
+	assert.True(t, done)
+	assert.Nil(t, err)
+	assert.Equal(t, "my-domain.com", ctx.CheCluster.Status.WorkspaceBaseDomain)
+
+	// Second reconcile should produce the same result
+	_, done, err = reconciler.Reconcile(ctx)
+	assert.True(t, done)
+	assert.Nil(t, err)
+	assert.Equal(t, "my-domain.com", ctx.CheCluster.Status.WorkspaceBaseDomain)
+}
+
+func TestBaseDomainFailsWhenNoDomainResolved(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	defer infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+
+	ctx := test.NewCtxBuilder().Build()
+
+	reconciler := NewBaseDomainReconciler()
+	_, done, err := reconciler.Reconcile(ctx)
+
+	assert.False(t, done)
+	assert.NotNil(t, err)
+}
+
+func TestBaseDomainFailsWhenRouteHostMalformed(t *testing.T) {
+	route := &routev1.Route{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Route",
+			APIVersion: routev1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "devworkspace-che-test",
+			Namespace: "eclipse-che",
+		},
+		Spec: routev1.RouteSpec{
+			Host: "nodots",
+		},
+	}
+
+	ctx := test.NewCtxBuilder().WithObjects(route).Build()
+
+	reconciler := NewBaseDomainReconciler()
+	_, done, err := reconciler.Reconcile(ctx)
+
+	assert.False(t, done)
+	assert.NotNil(t, err)
 }
 
 func TestBaseDomainFromRoute(t *testing.T) {
