@@ -15,6 +15,7 @@ package imagepuller
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -49,38 +50,31 @@ const (
 	defaultConfigMapName    = "k8s-image-puller"
 	defaultDeploymentName   = "kubernetes-image-puller"
 	defaultImagePullerImage = "quay.io/eclipse/kubernetes-image-puller:next"
-
-	externalImagesFilePath = "/tmp/external_images.txt"
 )
 
 type ImagePuller struct {
 	reconciler.Reconcilable
-	imageProvider DefaultImagesProvider
+	externalImages *ExternalImagesProvider
 }
 
 func NewImagePuller() *ImagePuller {
 	return &ImagePuller{
-		imageProvider: NewDashboardApiDefaultImagesProvider(),
+		externalImages: NewExternalImagesProvider(),
 	}
 }
 
 func (ip *ImagePuller) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	defaultImages, err := ip.imageProvider.get(ctx.CheCluster.Namespace)
+	externalImages, err := ip.externalImages.Get(ctx)
 	if err != nil {
-		logger.Error(err, "Failed to get default images", "error", err)
-
-		// Don't block the reconciliation if we can't get the default images
-		return reconcile.Result{}, true, nil
-	}
-
-	// Always fetch and persist the default images before actual sync.
-	// The purpose is to ability read them from the file on demand by admin (should be documented)
-	err = ip.imageProvider.persist(defaultImages, externalImagesFilePath)
-	if err != nil {
-		logger.Error(err, "Failed to save default images", "error", err)
-
-		// Don't block the reconciliation if we can't save the default images on FS
-		return reconcile.Result{}, true, nil
+		// Previously, failures to get external images didn't block reconciliation.
+		// Actually it should not happen, because all requests go to dashboard service (not external url).
+		// Added a workaround env var to ignore failures in case of any possible issues.
+		ignoreGetExternalImagesFailures := os.Getenv("CHE_OPERATOR__GET_EXTERNAL_IMAGES__IGNORE_FAILURES")
+		if ignoreGetExternalImagesFailures == "true" {
+			logger.Error(err, "Failed to get external images")
+		} else {
+			return reconcile.Result{}, false, err
+		}
 	}
 
 	if ctx.CheCluster.Spec.Components.ImagePuller.Enable {
@@ -89,7 +83,7 @@ func (ip *ImagePuller) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result,
 			return reconcile.Result{}, false, errors.New(errMsg)
 		}
 
-		if done, err := ip.syncKubernetesImagePuller(defaultImages, ctx); !done {
+		if done, err := ip.syncKubernetesImagePuller(externalImages, ctx); !done {
 			return reconcile.Result{RequeueAfter: time.Second}, false, err
 		}
 	} else {
@@ -109,7 +103,7 @@ func (ip *ImagePuller) Finalize(ctx *chetypes.DeployContext) bool {
 }
 
 func (ip *ImagePuller) uninstallImagePuller(ctx *chetypes.DeployContext) (bool, error) {
-	// Keep it here for backward compatability
+	// Keep it here for backward compatibility
 	if err := deploy.DeleteFinalizer(ctx, finalizerName); err != nil {
 		return false, err
 	}
@@ -129,7 +123,7 @@ func (ip *ImagePuller) uninstallImagePuller(ctx *chetypes.DeployContext) (bool, 
 	return true, nil
 }
 
-func (ip *ImagePuller) syncKubernetesImagePuller(defaultImages []string, ctx *chetypes.DeployContext) (bool, error) {
+func (ip *ImagePuller) syncKubernetesImagePuller(externalImages []string, ctx *chetypes.DeployContext) (bool, error) {
 	imagePuller := &chev1alpha1.KubernetesImagePuller{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: chev1alpha1.GroupVersion.String(),
@@ -153,7 +147,7 @@ func (ip *ImagePuller) syncKubernetesImagePuller(defaultImages []string, ctx *ch
 	imagePuller.Spec.DeploymentName = utils.GetValue(imagePuller.Spec.DeploymentName, defaultDeploymentName)
 	imagePuller.Spec.ImagePullerImage = utils.GetValue(imagePuller.Spec.ImagePullerImage, defaultImagePullerImage)
 	if strings.TrimSpace(imagePuller.Spec.Images) == "" {
-		imagePuller.Spec.Images = convertToSpecField(defaultImages)
+		imagePuller.Spec.Images = convertToSpecField(externalImages)
 	}
 
 	return deploy.SyncForClient(ctx.ClusterAPI.NonCachingClient, ctx, imagePuller, kubernetesImagePullerDiffOpts)
@@ -173,7 +167,7 @@ func convertToSpecField(images []string) string {
 			name = "image"
 		}
 
-		// Adding index make the name unique
+		// Adding index makes the name unique
 		specField += fmt.Sprintf("%s-%d=%s;", name, index, image)
 	}
 

@@ -18,4 +18,6 @@ components:
       container:
           image: image_3
     - name: tools_2
-
+    - name: tools_3
+      container:
+        image: image_1

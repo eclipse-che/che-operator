@@ -317,6 +317,7 @@ genenerate-env:
 	      | sed -E 's|(.*)=(.*)|\1="\2"|g' \
 	  > $(BASH_ENV_FILE)
 	echo "export WATCH_NAMESPACE=$${OPERATOR_NAMESPACE}" >> $(BASH_ENV_FILE)
+	echo "export CHE_OPERATOR__GET_EXTERNAL_IMAGES__IGNORE_FAILURES=true" >> $(BASH_ENV_FILE)
 	echo "[INFO] Created $(BASH_ENV_FILE)"
 
 	cat $(CONFIG_MANAGER) \
@@ -330,6 +331,7 @@ genenerate-env:
 	      | sed -E 's|(.*)=(.*)|\1="\2"|g' \
 	  > $(VSCODE_ENV_FILE)
 	echo "WATCH_NAMESPACE=$${OPERATOR_NAMESPACE}" >> $(VSCODE_ENV_FILE)
+	echo "CHE_OPERATOR__GET_EXTERNAL_IMAGES__IGNORE_FAILURES=true" >> $(VSCODE_ENV_FILE)
 	echo "[INFO] Created $(VSCODE_ENV_FILE)"
 
 	cat $(BASH_ENV_FILE)

@@ -141,8 +141,9 @@ func TestImagePullerConfiguration(t *testing.T) {
 			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
 
 			ip := &ImagePuller{
-				imageProvider: &DashboardApiDefaultImagesProvider{
-					requestRawDataFunc: func(url string) ([]byte, error) {
+				externalImages: &ExternalImagesProvider{
+					imagesFilePath: externalImagesStoreFilePath,
+					fetchRawDataFunc: func(url string) ([]byte, error) {
 						return os.ReadFile(testCase.testCaseFilePath)
 					},
 				},
