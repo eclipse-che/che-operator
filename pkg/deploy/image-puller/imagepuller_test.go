@@ -15,6 +15,7 @@ package imagepuller
 import (
 	"context"
 	"os"
+	"path/filepath"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -142,7 +143,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 
 			ip := &ImagePuller{
 				externalImages: &ExternalImagesProvider{
-					imagesFilePath: externalImagesStoreFilePath,
+					imagesFilePath: filepath.Join(os.TempDir(), externalImagesStoreFileName),
 					fetchRawDataFunc: func(url string) ([]byte, error) {
 						return os.ReadFile(testCase.testCaseFilePath)
 					},

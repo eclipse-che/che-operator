@@ -18,6 +18,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"slices"
 	"sort"
 	"strings"
@@ -29,7 +30,7 @@ import (
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 )
 
-const externalImagesStoreFilePath = "/tmp/external_images.txt"
+const externalImagesStoreFileName = "external_images.txt"
 
 type ExternalImagesProvider struct {
 	// Path to store retrieved external images
@@ -41,7 +42,7 @@ type ExternalImagesProvider struct {
 
 func NewExternalImagesProvider() *ExternalImagesProvider {
 	p := &ExternalImagesProvider{
-		imagesFilePath:   externalImagesStoreFilePath,
+		imagesFilePath:   filepath.Join(os.TempDir(), externalImagesStoreFileName),
 		fetchRawDataFunc: fetchRawData,
 	}
 	return p
@@ -139,9 +140,9 @@ func (p *ExternalImagesProvider) parseSampleURLs(rawData []byte) ([]string, erro
 			continue
 		}
 
-		url := sample["url"]
-		if url != nil {
-			urls = append(urls, url.(string))
+		url, ok := sample["url"].(string)
+		if ok {
+			urls = append(urls, url)
 		}
 	}
 
@@ -222,30 +223,32 @@ func (p *ExternalImagesProvider) extractContainerImages(devfile map[string]inter
 			continue
 		}
 
-		if container["image"] != nil {
-			devfileImages = append(devfileImages, container["image"].(string))
+		if image, ok := container["image"].(string); ok {
+			devfileImages = append(devfileImages, image)
 		}
 	}
 
 	return devfileImages
 }
 
+func getDashboardBaseInternalURL(ctx *chetypes.DeployContext) string {
+	namespace := ctx.CheCluster.Namespace
+	serviceName := defaults.GetCheFlavor() + "-dashboard"
+	return fmt.Sprintf("http://%s.%s.svc:8080/dashboard/api", serviceName, namespace)
+}
+
 func getDashboardEditorsInternalAPIUrl(ctx *chetypes.DeployContext) string {
-	dashboardNamespace := ctx.CheCluster.Namespace
-	dashboardServiceName := defaults.GetCheFlavor() + "-dashboard"
-	return fmt.Sprintf("http://%s.%s.svc:8080/dashboard/api/editors", dashboardServiceName, dashboardNamespace)
+	return fmt.Sprintf("%s/editors", getDashboardBaseInternalURL(ctx))
 }
 
 func getDashboardSamplesInternalAPIUrl(ctx *chetypes.DeployContext) string {
-	dashboardNamespace := ctx.CheCluster.Namespace
-	dashboardServiceName := defaults.GetCheFlavor() + "-dashboard"
-	return fmt.Sprintf("http://%s.%s.svc:8080/dashboard/api/airgap-sample", dashboardServiceName, dashboardNamespace)
+	return fmt.Sprintf("%s/airgap-sample", getDashboardBaseInternalURL(ctx))
 }
 
 func fetchRawData(url string) ([]byte, error) {
 	client := &http.Client{
 		Transport: &http.Transport{},
-		Timeout:   time.Second * 1,
+		Timeout:   time.Second * 5,
 	}
 
 	request, err := http.NewRequest("GET", url, nil)

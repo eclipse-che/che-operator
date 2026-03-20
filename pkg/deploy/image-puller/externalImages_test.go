@@ -15,6 +15,8 @@ package imagepuller
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 
@@ -54,7 +56,7 @@ func TestGetExternalImages(t *testing.T) {
 			samplesEndpointUrl := getDashboardSamplesInternalAPIUrl(ctx)
 
 			imagesProvider := &ExternalImagesProvider{
-				imagesFilePath: externalImagesStoreFilePath,
+				imagesFilePath: filepath.Join(os.TempDir(), externalImagesStoreFileName),
 				fetchRawDataFunc: func(url string) ([]byte, error) {
 					switch url {
 					case editorsEndpointUrl:
@@ -76,16 +78,10 @@ func TestGetExternalImages(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expectedImages, images)
 
-			data, err := os.ReadFile(externalImagesStoreFilePath)
+			data, err := os.ReadFile(filepath.Join(os.TempDir(), externalImagesStoreFileName))
 			assert.NoError(t, err)
 
-			expectedFileContent := ""
-			for i, img := range tc.expectedImages {
-				if i > 0 {
-					expectedFileContent += "\n"
-				}
-				expectedFileContent += img
-			}
+			expectedFileContent := strings.Join(tc.expectedImages, "\n")
 			assert.Equal(t, expectedFileContent, string(data))
 		})
 	}
