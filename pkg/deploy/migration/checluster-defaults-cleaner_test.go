@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -25,6 +25,7 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -195,7 +196,7 @@ func TestCheClusterDefaultsCleanerDefaultEditor(t *testing.T) {
 
 			assert.Equal(t, testCase.expectedDefaultEditor, ctx.CheCluster.Spec.DevEnvironments.DefaultEditor)
 
-			cheClusterFields := cheClusterDefaultsCleanup.readCheClusterDefaultsCleanupAnnotation(ctx)
+			cheClusterFields := cheClusterDefaultsCleanup.getProcessedFields(ctx)
 			assert.Equal(t, "true", cheClusterFields["spec.devEnvironments.defaultEditor"])
 
 			test.EnsureReconcile(t, ctx, cheClusterDefaultsCleanup.Reconcile)
@@ -312,7 +313,7 @@ func TestCheClusterDefaultsCleanerDefaultComponents(t *testing.T) {
 
 			assert.Equal(t, testCase.expectedDefaultComponents, ctx.CheCluster.Spec.DevEnvironments.DefaultComponents)
 
-			cheClusterFields := cheClusterDefaultsCleanup.readCheClusterDefaultsCleanupAnnotation(ctx)
+			cheClusterFields := cheClusterDefaultsCleanup.getProcessedFields(ctx)
 			assert.Equal(t, "true", cheClusterFields["spec.devEnvironments.defaultComponents"])
 
 			test.EnsureReconcile(t, ctx, cheClusterDefaultsCleanup.Reconcile)
@@ -401,7 +402,7 @@ func TestCheClusterDefaultsCleanerOpenVSXURL(t *testing.T) {
 
 			assert.Equal(t, testCase.expectedOpenVSXURL, ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL)
 
-			cheClusterFields := cheClusterDefaultsCleanup.readCheClusterDefaultsCleanupAnnotation(ctx)
+			cheClusterFields := cheClusterDefaultsCleanup.getProcessedFields(ctx)
 			assert.Equal(t, "true", cheClusterFields["spec.components.pluginRegistry.openVSXURL"])
 
 			test.EnsureReconcile(t, ctx, cheClusterDefaultsCleanup.Reconcile)
@@ -509,7 +510,7 @@ func TestCheClusterDefaultsCleanerDashboardHeaderMessage(t *testing.T) {
 
 			assert.Equal(t, testCase.expectedHeaderMessage, ctx.CheCluster.Spec.Components.Dashboard.HeaderMessage)
 
-			cheClusterFields := cheClusterDefaultsCleanup.readCheClusterDefaultsCleanupAnnotation(ctx)
+			cheClusterFields := cheClusterDefaultsCleanup.getProcessedFields(ctx)
 			assert.Equal(t, "true", cheClusterFields["spec.components.dashboard.headerMessage"])
 
 			test.EnsureReconcile(t, ctx, cheClusterDefaultsCleanup.Reconcile)
@@ -574,7 +575,7 @@ func TestCheClusterDefaultsCleanerDisableContainerBuildCapabilities(t *testing.T
 
 			assert.Equal(t, testCase.expectedDisableContainerBuildCapabilities, ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities)
 
-			cheClusterFields := cheClusterDefaultsCleanup.readCheClusterDefaultsCleanupAnnotation(ctx)
+			cheClusterFields := cheClusterDefaultsCleanup.getProcessedFields(ctx)
 			assert.Equal(t, "true", cheClusterFields["spec.devEnvironments.disableContainerBuildCapabilities"])
 
 			// run twice to check that fields are not changed
@@ -712,13 +713,175 @@ func TestCheClusterDefaultsCleanerContainerResources(t *testing.T) {
 
 			assert.Equal(t, testCase.expectedDeployment, ctx.CheCluster.Spec.Components.CheServer.Deployment)
 
-			cheClusterFields := cheClusterDefaultsCleanup.readCheClusterDefaultsCleanupAnnotation(ctx)
+			cheClusterFields := cheClusterDefaultsCleanup.getProcessedFields(ctx)
 			assert.Equal(t, "true", cheClusterFields["containers.resources"])
 
 			// run twice to check that fields are not changed
 			test.EnsureReconcile(t, ctx, cheClusterDefaultsCleanup.Reconcile)
 
 			assert.Equal(t, testCase.expectedDeployment, ctx.CheCluster.Spec.Components.CheServer.Deployment)
+		})
+	}
+}
+
+func TestCheClusterDefaultsCleanerContainerRunConfiguration(t *testing.T) {
+	type testCase struct {
+		name                 string
+		cheCluster           *chev2.CheCluster
+		expectedCapabilities []corev1.Capability
+	}
+
+	testCases := []testCase{
+		{
+			name: "Add CHOWN when capabilities exist without it",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						ContainerRunConfiguration: &chev2.ContainerRunConfiguration{
+							ContainerSecurityContext: &corev1.SecurityContext{
+								Capabilities: &corev1.Capabilities{
+									Add: []corev1.Capability{"SETGID", "SETUID"},
+								},
+							},
+						},
+					},
+				},
+				Status: chev2.CheClusterStatus{
+					CheVersion: "next",
+				},
+			},
+			expectedCapabilities: []corev1.Capability{"SETGID", "SETUID", "CHOWN"},
+		},
+		{
+			name: "Do not duplicate CHOWN when already present",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						ContainerRunConfiguration: &chev2.ContainerRunConfiguration{
+							ContainerSecurityContext: &corev1.SecurityContext{
+								Capabilities: &corev1.Capabilities{
+									Add: []corev1.Capability{"SETGID", "SETUID", "CHOWN"},
+								},
+							},
+						},
+					},
+				},
+				Status: chev2.CheClusterStatus{
+					CheVersion: "next",
+				},
+			},
+			expectedCapabilities: []corev1.Capability{"SETGID", "SETUID", "CHOWN"},
+		},
+		{
+			name: "Do nothing when ContainerRunConfiguration is nil",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Status: chev2.CheClusterStatus{
+					CheVersion: "next",
+				},
+			},
+			expectedCapabilities: nil,
+		},
+		{
+			name: "Do nothing when ContainerSecurityContext is nil",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						ContainerRunConfiguration: &chev2.ContainerRunConfiguration{},
+					},
+				},
+				Status: chev2.CheClusterStatus{
+					CheVersion: "next",
+				},
+			},
+			expectedCapabilities: nil,
+		},
+		{
+			name: "Do nothing when Capabilities is nil",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						ContainerRunConfiguration: &chev2.ContainerRunConfiguration{
+							ContainerSecurityContext: &corev1.SecurityContext{},
+						},
+					},
+				},
+				Status: chev2.CheClusterStatus{
+					CheVersion: "next",
+				},
+			},
+			expectedCapabilities: nil,
+		},
+		{
+			name: "Do nothing when capabilities list is empty",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						ContainerRunConfiguration: &chev2.ContainerRunConfiguration{
+							ContainerSecurityContext: &corev1.SecurityContext{
+								Capabilities: &corev1.Capabilities{
+									Add: []corev1.Capability{},
+								},
+							},
+						},
+					},
+				},
+				Status: chev2.CheClusterStatus{
+					CheVersion: "next",
+				},
+			},
+			expectedCapabilities: nil,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			defaultsCleanup := NewCheClusterDefaultsCleaner()
+
+			// run twice, to ensure nothing changes
+			for i := 0; i < 2; i++ {
+				test.EnsureReconcile(t, ctx, defaultsCleanup.Reconcile)
+
+				runConfiguration := ctx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration
+				if testCase.expectedCapabilities == nil {
+					assert.True(
+						t,
+						runConfiguration == nil ||
+							runConfiguration.ContainerSecurityContext == nil ||
+							runConfiguration.ContainerSecurityContext.Capabilities == nil ||
+							len(runConfiguration.ContainerSecurityContext.Capabilities.Add) == 0,
+					)
+				} else {
+					assert.Equal(t, testCase.expectedCapabilities, runConfiguration.ContainerSecurityContext.Capabilities.Add)
+				}
+
+				fields := defaultsCleanup.getProcessedFields(ctx)
+				assert.Equal(t, "true", fields["spec.devEnvironments.containerRunConfiguration.containerSecurityContext.capabilities.add"])
+			}
 		})
 	}
 }

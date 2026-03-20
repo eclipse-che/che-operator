@@ -46,7 +46,7 @@ type ContainerCapability interface {
 	getDWOClusterRoleBindingName() string
 	getSCCName(cheCluster *chev2.CheCluster) string
 	getDefaultSCCName() string
-	getSCCSpec(sccName string) *securityv1.SecurityContextConstraints
+	applySCCSpec(scc *securityv1.SecurityContextConstraints)
 	getFinalizer() string
 }
 
@@ -150,20 +150,36 @@ func (r *ContainerCapabilitiesReconciler) sync(ctx *chetypes.DeployContext, cc C
 	if exists, err := ctx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(context.TODO(), sccKey, scc); exists {
 		if deploy.IsPartOfEclipseCheResourceAndManagedByOperator(scc.Labels) {
 			// SCC exists and created by operator (custom SCC won't be updated).
-			// So, remove priority. See details https://issues.redhat.com/browse/CRW-3894
+			// Remove priority, see details https://issues.redhat.com/browse/CRW-389
 			scc.Priority = nil
+			// Merge desired spec fields into the cluster SCC to preserve k8s defaults
+			// and avoid endless reconcile loop
+			cc.applySCCSpec(scc)
 
 			if err := ctx.ClusterAPI.NonCachingClientWrapper.Sync(
 				context.TODO(),
 				scc,
+				&k8sclient.SyncOptions{DiffOpts: diffs.SecurityContextConstraints},
 			); err != nil {
 				return err
 			}
 		}
 	} else if err == nil {
+		scc = &securityv1.SecurityContextConstraints{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "SecurityContextConstraints",
+				APIVersion: securityv1.GroupVersion.String(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:   sccName,
+				Labels: deploy.GetLabels(defaults.GetCheFlavor()),
+			},
+		}
+		cc.applySCCSpec(scc)
+
 		if err := ctx.ClusterAPI.NonCachingClientWrapper.Create(
 			context.TODO(),
-			cc.getSCCSpec(sccName),
+			scc,
 		); err != nil {
 			return err
 		}
