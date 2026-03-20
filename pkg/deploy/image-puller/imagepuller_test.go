@@ -15,6 +15,7 @@ package imagepuller
 import (
 	"context"
 	"os"
+	"path/filepath"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -141,8 +142,9 @@ func TestImagePullerConfiguration(t *testing.T) {
 			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
 
 			ip := &ImagePuller{
-				imageProvider: &DashboardApiDefaultImagesProvider{
-					requestRawDataFunc: func(url string) ([]byte, error) {
+				externalImages: &ExternalImagesProvider{
+					imagesFilePath: filepath.Join(os.TempDir(), externalImagesStoreFileName),
+					fetchRawDataFunc: func(url string) ([]byte, error) {
 						return os.ReadFile(testCase.testCaseFilePath)
 					},
 				},

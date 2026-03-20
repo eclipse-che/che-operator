@@ -24,6 +24,15 @@
   {
     "components": [
       {
+        "container": {
+          "image": "image_2"
+        }
+      }
+    ]
+  },
+  {
+    "components": [
+      {
         "container": {}
       }
     ]
