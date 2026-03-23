@@ -38,18 +38,19 @@ import (
 )
 
 type CheConfigMap struct {
-	JavaOpts                 string `json:"JAVA_OPTS"`
-	CheHost                  string `json:"CHE_HOST"`
-	ChePort                  string `json:"CHE_PORT"`
-	CheDebugServer           string `json:"CHE_DEBUG_SERVER"`
-	CheLogLevel              string `json:"CHE_LOG_LEVEL"`
-	CheMetricsEnabled        string `json:"CHE_METRICS_ENABLED"`
-	CheInfrastructure        string `json:"CHE_INFRASTRUCTURE_ACTIVE"`
-	UserClusterRoles         string `json:"CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"`
-	NamespaceDefault         string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"`
-	NamespaceCreationAllowed string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_CREATION__ALLOWED"`
-	Http2Disable             string `json:"HTTP2_DISABLE"`
-	KubernetesLabels         string `json:"KUBERNETES_LABELS"`
+	JavaOpts                         string `json:"JAVA_OPTS"`
+	CheHost                          string `json:"CHE_HOST"`
+	ChePort                          string `json:"CHE_PORT"`
+	CheDebugServer                   string `json:"CHE_DEBUG_SERVER"`
+	CheLogLevel                      string `json:"CHE_LOG_LEVEL"`
+	CheMetricsEnabled                string `json:"CHE_METRICS_ENABLED"`
+	CheInfrastructure                string `json:"CHE_INFRASTRUCTURE_ACTIVE"`
+	UserClusterRoles                 string `json:"CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"`
+	NamespaceDefault                 string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"`
+	NamespaceCreationAllowed         string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_CREATION__ALLOWED"`
+	Http2Disable                     string `json:"HTTP2_DISABLE"`
+	KubernetesLabels                 string `json:"KUBERNETES_LABELS"`
+	OpenShiftDirectNamespaceCreation string `json:"CHE_INFRA_OPENSHIFT__DIRECT_NAMESPACE_CREATION"`
 
 	// TODO remove when keycloak codebase is removed from che-server component
 	CheOIDCAuthServerUrl string `json:"CHE_OIDC_AUTH__SERVER__URL,omitempty"`
@@ -136,18 +137,26 @@ func (s *CheServerReconciler) getConfigMapData(ctx *chetypes.DeployContext) (che
 
 	kubernetesLabels := labels.FormatLabels(deploy.GetLabels(defaults.GetCheFlavor()))
 
+	openShiftDirectNamespaceCreation := strconv.FormatBool(
+		pointer.BoolDeref(
+			ctx.CheCluster.Spec.DevEnvironments.DefaultNamespace.DirectNamespaceCreation,
+			constants.OpenShiftDirectNamespaceCreation,
+		),
+	)
+
 	data := &CheConfigMap{
-		JavaOpts:                 javaOpts,
-		CheHost:                  ctx.CheHost,
-		ChePort:                  chePort,
-		CheDebugServer:           cheDebugServer,
-		CheLogLevel:              cheLogLevel,
-		CheMetricsEnabled:        cheMetricsEnabled,
-		CheInfrastructure:        cheInfrastructure,
-		CheOIDCAuthServerUrl:     ctx.CheCluster.Spec.Networking.Auth.IdentityProviderURL,
-		NamespaceDefault:         namespaceDefault,
-		NamespaceCreationAllowed: namespaceCreationAllowed,
-		KubernetesLabels:         kubernetesLabels,
+		JavaOpts:                         javaOpts,
+		CheHost:                          ctx.CheHost,
+		ChePort:                          chePort,
+		CheDebugServer:                   cheDebugServer,
+		CheLogLevel:                      cheLogLevel,
+		CheMetricsEnabled:                cheMetricsEnabled,
+		CheInfrastructure:                cheInfrastructure,
+		CheOIDCAuthServerUrl:             ctx.CheCluster.Spec.Networking.Auth.IdentityProviderURL,
+		NamespaceDefault:                 namespaceDefault,
+		NamespaceCreationAllowed:         namespaceCreationAllowed,
+		KubernetesLabels:                 kubernetesLabels,
+		OpenShiftDirectNamespaceCreation: openShiftDirectNamespaceCreation,
 		// Disable HTTP2 protocol.
 		// Fix issue with creating config maps on the cluster https://issues.redhat.com/browse/CRW-2677
 		// The root cause is in the HTTP2 protocol support of the okttp3 library that is used by fabric8.kubernetes-client that is used by che-server
