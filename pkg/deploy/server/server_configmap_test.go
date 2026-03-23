@@ -84,6 +84,7 @@ func TestGetConfigMapData(t *testing.T) {
 				"HTTP2_DISABLE":                                    "true",
 				"CHE_OIDC_AUTH__SERVER__URL":                       "http://identity-provider",
 				"CHE_INFRA_OPENSHIFT_OAUTH__ENABLED":               "true",
+				"CHE_INFRA_OPENSHIFT__DIRECT_NAMESPACE_CREATION":   "false",
 			},
 		},
 	}
