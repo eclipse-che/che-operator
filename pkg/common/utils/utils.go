@@ -242,6 +242,17 @@ func FormatLabels(m map[string]string) string {
 	return labels.FormatLabels(m)
 }
 
+func FindAvailableDelimiter(s string) string {
+	delimiters := []string{",", "|", ";", ":", "#", "\t"}
+	for _, delimiter := range delimiters {
+		if !strings.Contains(s, delimiter) {
+			return delimiter
+		}
+	}
+
+	return ""
+}
+
 // Whitelists the host.
 // Sample: Whitelist("che.yourcompany.com") -> ".yourcompany.com"
 func Whitelist(hostname string) (value string) {

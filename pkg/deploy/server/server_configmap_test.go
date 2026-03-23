@@ -403,3 +403,144 @@ func TestGetConfigMapDataWithUserClusterRoles(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdateAdvancedAuthorizationEnv(t *testing.T) {
+	type testCase struct {
+		name          string
+		cheCluster    *chev2.CheCluster
+		expectedData  map[string]string
+		errorExpected bool
+	}
+
+	testCases := []testCase{
+		{
+			name: "Test advanced authorization with comma (default) delimiter",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Networking: chev2.CheClusterSpecNetworking{
+						Auth: chev2.Auth{
+							AdvancedAuthorization: &chev2.AdvancedAuthorization{
+								AllowUsers: []string{"user1", "user2"},
+							},
+						},
+					},
+				},
+			},
+			expectedData: map[string]string{
+				"CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_ALLOW__USERS": "user1,user2",
+				"CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_DELIMITER":    ",",
+			},
+		},
+		{
+			name: "Test advanced authorization picks alternative delimiter",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Networking: chev2.CheClusterSpecNetworking{
+						Auth: chev2.Auth{
+							AdvancedAuthorization: &chev2.AdvancedAuthorization{
+								AllowUsers:  []string{"user1,a", "user2,b"},
+								DenyUsers:   []string{},
+								AllowGroups: []string{},
+								DenyGroups:  []string{},
+							},
+						},
+					},
+				},
+			},
+			expectedData: map[string]string{
+				"CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_ALLOW__USERS":  "user1,a|user2,b",
+				"CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_DENY__USERS":   "",
+				"CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_ALLOW__GROUPS": "",
+				"CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_DENY__GROUPS":  "",
+				"CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_DELIMITER":     "|",
+			},
+		},
+		{
+			name: "Test advanced authorization nil does nothing",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+			},
+			expectedData: map[string]string{},
+		},
+		{
+			name: "Test advanced authorization fails when no delimiter available",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Networking: chev2.CheClusterSpecNetworking{
+						Auth: chev2.Auth{
+							AdvancedAuthorization: &chev2.AdvancedAuthorization{
+								AllowUsers:  []string{",|;:#\t"},
+								DenyUsers:   []string{},
+								AllowGroups: []string{},
+								DenyGroups:  []string{},
+							},
+						},
+					},
+				},
+			},
+			errorExpected: true,
+		},
+		{
+			name: "Test advanced authorization picks up configured delimiter",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Components: chev2.CheClusterComponents{
+						CheServer: chev2.CheServer{
+							ExtraProperties: map[string]string{
+								"CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_DELIMITER": "@",
+							},
+						},
+					},
+					Networking: chev2.CheClusterSpecNetworking{
+						Auth: chev2.Auth{
+							AdvancedAuthorization: &chev2.AdvancedAuthorization{
+								AllowUsers:  []string{",|;:#\t", ",|;:#\t"},
+								DenyUsers:   []string{},
+								AllowGroups: []string{},
+								DenyGroups:  []string{},
+							},
+						},
+					},
+				},
+			},
+			expectedData: map[string]string{"CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_ALLOW__USERS": ",|;:#\t@,|;:#\t"},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+
+			serverReconciler := NewCheServerReconciler()
+			cheEnv, err := serverReconciler.getConfigMapData(ctx)
+
+			if testCase.errorExpected {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				for k, v := range testCase.expectedData {
+					assert.Equal(t, v, cheEnv[k], "key: %s", k)
+				}
+			}
+		})
+	}
+}
