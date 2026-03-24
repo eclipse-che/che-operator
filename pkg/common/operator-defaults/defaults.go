@@ -67,7 +67,7 @@ func InitializeForTesting(operatorDeploymentFilePath string) {
 		for _, env := range container.Env {
 			err := os.Setenv(env.Name, env.Value)
 			if err != nil {
-				log.Error(err, "Error setting env variable", "name", env.Name)
+				panic(fmt.Sprintf("Error setting env var %s=%s", env.Name, env.Value))
 			}
 		}
 	}

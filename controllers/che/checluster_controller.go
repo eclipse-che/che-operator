@@ -24,13 +24,14 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/eclipse-che/che-operator/pkg/deploy/devworkspace"
 	imagepuller "github.com/eclipse-che/che-operator/pkg/deploy/image-puller"
 
 	editorsdefinitions "github.com/eclipse-che/che-operator/pkg/deploy/editors-definitions"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/consolelink"

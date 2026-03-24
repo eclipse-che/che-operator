@@ -95,20 +95,17 @@ func initializeIfNeeded() {
 
 	kubeCfg, err := config.GetConfig()
 	if err != nil {
-		logger.Error(err, "Failed to get kubeconfig")
-		os.Exit(1)
+		panic("Failed to get kubeconfig")
 	}
 
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(kubeCfg)
 	if err != nil {
-		logger.Error(err, "Failed to create discovery client")
-		os.Exit(1)
+		panic("Failed to create discovery client")
 	}
 
 	apiGroups, apiResources, err := discoveryClient.ServerGroupsAndResources()
 	if err != nil {
-		logger.Error(err, "Failed to get API Groups and Resources")
-		os.Exit(1)
+		panic("Failed to get API Groups and Resources")
 	}
 
 	if hasAPIGroup(apiGroups, "config.openshift.io") {
