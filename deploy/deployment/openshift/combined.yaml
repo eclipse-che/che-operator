@@ -7683,7 +7683,7 @@ spec:
                           Indicates if is allowed to automatically create a user namespace.
                           If it set to false, then user namespace must be pre-created by a cluster administrator.
                         type: boolean
-                      directNamespaceCreation:
+                      createNamespaceDirectly:
                         description: |-
                           For OpenShift clusters only, setting this to `true` creates
                           a standard Kubernetes Namespace directly. When false (default), the OpenShift ProjectRequest API
