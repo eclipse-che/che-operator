@@ -115,7 +115,7 @@ const (
 	CommonPVCStorageStrategy         = "common"
 	DefaultDeploymentStrategy        = "Recreate"
 	DefaultAutoProvision             = true
-	OpenShiftDirectNamespaceCreation = false
+	OpenShiftCreateNamespaceDirectly = false
 
 	// Ingress
 	DefaultSelfSignedCertificateSecretName = "self-signed-certificate"
