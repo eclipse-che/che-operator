@@ -29,6 +29,8 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+var delimiters = []string{",", "|", ";", ":", "#", "\t"}
+
 func Contains(list []string, s string) bool {
 	for _, v := range list {
 		if v == s {
@@ -242,8 +244,11 @@ func FormatLabels(m map[string]string) string {
 	return labels.FormatLabels(m)
 }
 
+// FindAvailableDelimiter returns the first delimiter from a predefined list (comma, pipe, semicolon,
+// colon, hash, tab) that is not present in the given string. This is useful for selecting a safe
+// separator character when joining values that may themselves contain common delimiters.
+// Returns an empty string if all candidate delimiters are already present in the input.
 func FindAvailableDelimiter(s string) string {
-	delimiters := []string{",", "|", ";", ":", "#", "\t"}
 	for _, delimiter := range delimiters {
 		if !strings.Contains(s, delimiter) {
 			return delimiter
