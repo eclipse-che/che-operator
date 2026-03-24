@@ -51,7 +51,7 @@ type CheConfigMap struct {
 	Http2Disable                     string `json:"HTTP2_DISABLE"`
 	KubernetesLabels                 string `json:"KUBERNETES_LABELS"`
 	OpenShiftOAuthEnabled            string `json:"CHE_INFRA_OPENSHIFT_OAUTH__ENABLED"`
-	OpenShiftDirectNamespaceCreation string `json:"CHE_INFRA_OPENSHIFT__DIRECT_NAMESPACE_CREATION"`
+	OpenShiftCreateNamespaceDirectly string `json:"CHE_INFRA_OPENSHIFT__DIRECT_NAMESPACE_CREATION"`
 	// TODO remove when keycloak codebase is removed from che-server component
 	CheOIDCAuthServerUrl string `json:"CHE_OIDC_AUTH__SERVER__URL,omitempty"`
 }
@@ -137,10 +137,10 @@ func (s *CheServerReconciler) getConfigMapData(ctx *chetypes.DeployContext) (che
 
 	kubernetesLabels := labels.FormatLabels(deploy.GetLabels(defaults.GetCheFlavor()))
 
-	openShiftDirectNamespaceCreation := strconv.FormatBool(
+	openShiftCreateNamespaceDirectly := strconv.FormatBool(
 		pointer.BoolDeref(
 			ctx.CheCluster.Spec.DevEnvironments.DefaultNamespace.CreateNamespaceDirectly,
-			constants.OpenShiftDirectNamespaceCreation,
+			constants.OpenShiftCreateNamespaceDirectly,
 		),
 	)
 
@@ -157,7 +157,7 @@ func (s *CheServerReconciler) getConfigMapData(ctx *chetypes.DeployContext) (che
 		NamespaceCreationAllowed:         namespaceCreationAllowed,
 		KubernetesLabels:                 kubernetesLabels,
 		OpenShiftOAuthEnabled:            strconv.FormatBool(infrastructure.IsOpenShiftOAuthEnabled()),
-		OpenShiftDirectNamespaceCreation: openShiftDirectNamespaceCreation,
+		OpenShiftCreateNamespaceDirectly: openShiftCreateNamespaceDirectly,
 		// Disable HTTP2 protocol.
 		// Fix issue with creating config maps on the cluster https://issues.redhat.com/browse/CRW-2677
 		// The root cause is in the HTTP2 protocol support of the okttp3 library that is used by fabric8.kubernetes-client that is used by che-server
