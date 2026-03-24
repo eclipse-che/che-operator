@@ -503,7 +503,8 @@ type DefaultNamespace struct {
 	// For OpenShift clusters only, setting this to `true` creates
 	// a standard Kubernetes Namespace directly. When false (default), the OpenShift ProjectRequest API
 	// is used instead to trigger cluster-specific Project Templates.
-	DirectNamespaceCreation *bool `json:"directNamespaceCreation,omitempty"`
+	// +optional
+	CreateNamespaceDirectly *bool `json:"createNamespaceDirectly,omitempty"`
 }
 
 type DashboardHeaderMessage struct {

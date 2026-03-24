@@ -139,7 +139,7 @@ func (s *CheServerReconciler) getConfigMapData(ctx *chetypes.DeployContext) (che
 
 	openShiftDirectNamespaceCreation := strconv.FormatBool(
 		pointer.BoolDeref(
-			ctx.CheCluster.Spec.DevEnvironments.DefaultNamespace.DirectNamespaceCreation,
+			ctx.CheCluster.Spec.DevEnvironments.DefaultNamespace.CreateNamespaceDirectly,
 			constants.OpenShiftDirectNamespaceCreation,
 		),
 	)
