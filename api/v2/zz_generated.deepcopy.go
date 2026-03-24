@@ -738,8 +738,8 @@ func (in *DefaultNamespace) DeepCopyInto(out *DefaultNamespace) {
 		*out = new(bool)
 		**out = **in
 	}
-	if in.DirectNamespaceCreation != nil {
-		in, out := &in.DirectNamespaceCreation, &out.DirectNamespaceCreation
+	if in.CreateNamespaceDirectly != nil {
+		in, out := &in.CreateNamespaceDirectly, &out.CreateNamespaceDirectly
 		*out = new(bool)
 		**out = **in
 	}
