@@ -398,6 +398,26 @@ func mergeConfig(from, to *controller.OperatorConfiguration) {
 				to.Workspace.ProjectCloneConfig.Env = from.Workspace.ProjectCloneConfig.Env
 			}
 		}
+		if from.Workspace.RestoreConfig != nil {
+			if to.Workspace.RestoreConfig == nil {
+				to.Workspace.RestoreConfig = &controller.RestoreConfig{}
+			}
+			if from.Workspace.RestoreConfig.ImagePullPolicy != "" {
+				to.Workspace.RestoreConfig.ImagePullPolicy = from.Workspace.RestoreConfig.ImagePullPolicy
+			}
+			if from.Workspace.RestoreConfig.Resources != nil {
+				if to.Workspace.RestoreConfig.Resources == nil {
+					to.Workspace.RestoreConfig.Resources = &corev1.ResourceRequirements{}
+				}
+				to.Workspace.RestoreConfig.Resources = mergeResources(from.Workspace.RestoreConfig.Resources, to.Workspace.RestoreConfig.Resources)
+			}
+
+			// Overwrite env instead of trying to merge, don't want to bother merging lists when
+			// the default is empty
+			if from.Workspace.RestoreConfig.Env != nil {
+				to.Workspace.RestoreConfig.Env = from.Workspace.RestoreConfig.Env
+			}
+		}
 		if from.Workspace.DefaultContainerResources != nil {
 			if to.Workspace.DefaultContainerResources == nil {
 				to.Workspace.DefaultContainerResources = &corev1.ResourceRequirements{}
@@ -465,6 +485,9 @@ func mergeConfig(from, to *controller.OperatorConfiguration) {
 				if from.Workspace.BackupCronJob.OrasConfig.ExtraArgs != "" {
 					to.Workspace.BackupCronJob.OrasConfig.ExtraArgs = from.Workspace.BackupCronJob.OrasConfig.ExtraArgs
 				}
+			}
+			if from.Workspace.BackupCronJob.BackoffLimit != nil {
+				to.Workspace.BackupCronJob.BackoffLimit = from.Workspace.BackupCronJob.BackoffLimit
 			}
 		}
 
@@ -735,11 +758,21 @@ func GetCurrentConfigString(currConfig *controller.OperatorConfiguration) string
 			if workspace.BackupCronJob.Enable != nil && *workspace.BackupCronJob.Enable != *defaultConfig.Workspace.BackupCronJob.Enable {
 				config = append(config, fmt.Sprintf("workspace.backupCronJob.enable=%t", *workspace.BackupCronJob.Enable))
 			}
-
 			if workspace.BackupCronJob.Schedule != defaultConfig.Workspace.BackupCronJob.Schedule {
-				config = append(config, fmt.Sprintf("workspace.backupCronJob.cronJobScript=%s", workspace.BackupCronJob.Schedule))
+				config = append(config, fmt.Sprintf("workspace.backupCronJob.schedule=%s", workspace.BackupCronJob.Schedule))
 			}
-
+			if workspace.BackupCronJob.Registry != nil {
+				config = append(config, fmt.Sprintf("workspace.backupCronJob.registry.path=%s", workspace.BackupCronJob.Registry.Path))
+				config = append(config, fmt.Sprintf("workspace.backupCronJob.registry.authSecret=%s", workspace.BackupCronJob.Registry.AuthSecret))
+			}
+			if workspace.BackupCronJob.OrasConfig != nil {
+				if workspace.BackupCronJob.OrasConfig.ExtraArgs != "" {
+					config = append(config, fmt.Sprintf("workspace.backupCronJob.orasConfig.extraArgs=%s", workspace.BackupCronJob.OrasConfig.ExtraArgs))
+				}
+			}
+			if workspace.BackupCronJob.BackoffLimit != nil && *workspace.BackupCronJob.BackoffLimit != *defaultConfig.Workspace.BackupCronJob.BackoffLimit {
+				config = append(config, fmt.Sprintf("workspace.backupCronJob.backoffLimit=%d", *workspace.BackupCronJob.BackoffLimit))
+			}
 		}
 		if workspace.HostUsers != nil {
 			config = append(config, fmt.Sprintf("workspace.hostUsers=%t", *workspace.HostUsers))

@@ -3,7 +3,7 @@ package semver
 import (
 	"fmt"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 )
 
 // BuildIdCompare compares two versions and returns negative one if the first arg is less than the second arg, positive one if it is larger, and zero if they are equal.
@@ -27,6 +27,7 @@ func BuildIdCompare(b semver.Version, v semver.Version) (int, error) {
 }
 
 func buildAsPrerelease(v semver.Version) (*semver.Version, error) {
+	// nolint:prealloc
 	var pre []semver.PRVersion
 	for _, b := range v.Build {
 		p, err := semver.NewPRVersion(b)
