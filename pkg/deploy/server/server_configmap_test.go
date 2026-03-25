@@ -522,7 +522,10 @@ func TestUpdateAdvancedAuthorizationEnv(t *testing.T) {
 					},
 				},
 			},
-			expectedData: map[string]string{"CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_ALLOW__USERS": ",|;:#\t@,|;:#\t"},
+			expectedData: map[string]string{
+				"CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_ALLOW__USERS": ",|;:#\t@,|;:#\t",
+				"CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_DELIMITER":    "@",
+			},
 		},
 	}
 
