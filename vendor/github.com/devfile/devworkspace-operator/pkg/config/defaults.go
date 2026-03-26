@@ -68,6 +68,18 @@ var defaultConfig = &v1alpha1.OperatorConfiguration{
 				},
 			},
 		},
+		RestoreConfig: &v1alpha1.RestoreConfig{
+			Resources: &corev1.ResourceRequirements{
+				Limits: corev1.ResourceList{
+					corev1.ResourceMemory: resource.MustParse("1Gi"),
+					corev1.ResourceCPU:    resource.MustParse("500m"),
+				},
+				Requests: corev1.ResourceList{
+					corev1.ResourceMemory: resource.MustParse("128Mi"),
+					corev1.ResourceCPU:    resource.MustParse("100m"),
+				},
+			},
+		},
 		DefaultContainerResources: &corev1.ResourceRequirements{
 			Limits: corev1.ResourceList{
 				corev1.ResourceMemory: resource.MustParse("128Mi"),
@@ -83,8 +95,9 @@ var defaultConfig = &v1alpha1.OperatorConfiguration{
 			Schedule:   "0 0 1 * *",
 		},
 		BackupCronJob: &v1alpha1.BackupCronJobConfig{
-			Enable:   pointer.Bool(false),
-			Schedule: "0 0 1 * *",
+			Enable:       pointer.Bool(false),
+			Schedule:     "0 0 1 * *",
+			BackoffLimit: pointer.Int32(3),
 		},
 		// Do not declare a default value for this field.
 		// Setting a default leads to an endless reconcile loop when UserNamespacesSupport is disabled,

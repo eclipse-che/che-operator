@@ -100,6 +100,20 @@ const (
 
 	// ProjectCloneDisable specifies that project cloning should be disabled.
 	ProjectCloneDisable = "disable"
+
+	// DefaultHostUsers is the default value for spec.hostUsers in pod security context.
+	// When true (default), containers run in the host's user namespace. When false,
+	// Kubernetes creates a dedicated user namespace for the pod (requires user namespace support).
+	// See: https://kubernetes.io/docs/concepts/workloads/pods/user-namespaces/
+	DefaultHostUsers = true
+
+	// RegistryAuthVolumeName is the name of the volume where registry auth secrets are mounted
+	RegistryAuthVolumeName = "registry-auth-secret"
+
+	//Role kind
+	RbacRoleKind = "Role"
+	// ClusterRole kind
+	RbacClusterRoleKind = "ClusterRole"
 )
 
 const (

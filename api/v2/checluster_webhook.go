@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -18,8 +18,6 @@ import (
 	"strconv"
 	"strings"
 
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
-
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
@@ -34,7 +32,6 @@ import (
 	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -43,8 +40,7 @@ var (
 )
 
 func SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&CheCluster{}).
+	return ctrl.NewWebhookManagedBy(mgr, &CheCluster{}).
 		WithDefaulter(&CheClusterDefaulter{}).
 		WithValidator(&CheClusterValidator{}).
 		Complete()
@@ -55,16 +51,10 @@ func SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 type CheClusterDefaulter struct{}
 
-var _ webhook.CustomDefaulter = &CheClusterDefaulter{}
+var _ admission.Defaulter[*CheCluster] = &CheClusterDefaulter{}
 
-// Default implements webhook.Defaulter so a webhook will be registered for the type
-func (r *CheClusterDefaulter) Default(_ context.Context, obj runtime.Object) error {
-	cheCluster, ok := obj.(*CheCluster)
-
-	if !ok {
-		return fmt.Errorf("expected an CheCluster object but got %T", obj)
-	}
-
+// Default implements admission.Defaulter so a webhook will be registered for the type
+func (r *CheClusterDefaulter) Default(_ context.Context, cheCluster *CheCluster) error {
 	webhookLogger.Info("Defaulting for CheCluster", "name", cheCluster.GetName())
 
 	r.setDisableContainerRunCapabilities(cheCluster)
@@ -109,16 +99,10 @@ func (r *CheClusterDefaulter) setContainerBuildConfiguration(cheCluster *CheClus
 
 type CheClusterValidator struct{}
 
-var _ admission.CustomValidator = &CheClusterValidator{}
+var _ admission.Validator[*CheCluster] = &CheClusterValidator{}
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *CheClusterValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	cheCluster, ok := obj.(*CheCluster)
-
-	if !ok {
-		return nil, fmt.Errorf("expected an CheCluster object but got %T", obj)
-	}
-
+// ValidateCreate implements admission.Validator so a webhook will be registered for the type
+func (r *CheClusterValidator) ValidateCreate(_ context.Context, cheCluster *CheCluster) (admission.Warnings, error) {
 	webhookLogger.Info("Validation for CheCluster upon creation", "name", cheCluster.GetName())
 
 	if err := r.ensureSingletonCheCluster(); err != nil {
@@ -127,21 +111,15 @@ func (r *CheClusterValidator) ValidateCreate(_ context.Context, obj runtime.Obje
 	return []string{}, r.validate(cheCluster)
 }
 
-// ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type CheCluster.
-func (r *CheClusterValidator) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
-	cheCluster, ok := newObj.(*CheCluster)
+// ValidateUpdate implements admission.Validator so a webhook will be registered for the type CheCluster.
+func (r *CheClusterValidator) ValidateUpdate(_ context.Context, _, newObj *CheCluster) (admission.Warnings, error) {
+	webhookLogger.Info("Validation for CheCluster upon update", "name", newObj.GetName())
 
-	if !ok {
-		return nil, fmt.Errorf("expected an CheCluster object but got %T", newObj)
-	}
-
-	webhookLogger.Info("Validation for CheCluster upon update", "name", cheCluster.GetName())
-
-	return nil, r.validate(cheCluster)
+	return nil, r.validate(newObj)
 }
 
-// ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type CheCluster.
-func (r *CheClusterValidator) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+// ValidateDelete implements admission.Validator so a webhook will be registered for the type CheCluster.
+func (r *CheClusterValidator) ValidateDelete(_ context.Context, _ *CheCluster) (admission.Warnings, error) {
 	return nil, nil
 }
 
