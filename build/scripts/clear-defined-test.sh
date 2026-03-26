@@ -80,6 +80,16 @@ declare -A replaced_modules=(
   ["go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.60.0"]="github.com/open-telemetry/opentelemetry-go-contrib v1.35.0"
   # https://github.com/open-telemetry/opentelemetry-go-contrib/commit/bc53d2b4eb4de79471bc54f64a5c3dcefa8720d7#
   ["go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.60.0"]="github.com/open-telemetry/opentelemetry-go-contrib v1.35.0"
+  # https://github.com/open-telemetry/opentelemetry-go-contrib/commit/a89d958e7a2575cf539ffca09657cfd90821d6e4
+  ["go.opentelemetry.io/contrib/bridges/prometheus v0.65.0"]="github.com/open-telemetry/opentelemetry-go-contrib v1.40.0"
+  # https://github.com/open-telemetry/opentelemetry-go-contrib/commit/a89d958e7a2575cf539ffca09657cfd90821d6e4
+  ["go.opentelemetry.io/contrib/exporters/autoexport v0.65.0"]="github.com/open-telemetry/opentelemetry-go-contrib v1.40.0"
+  # https://github.com/open-telemetry/opentelemetry-go-contrib/commit/a89d958e7a2575cf539ffca09657cfd90821d6e4
+  ["go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.65.0"]="github.com/open-telemetry/opentelemetry-go-contrib v1.40.0"
+  # https://github.com/open-telemetry/opentelemetry-go-contrib/commit/a89d958e7a2575cf539ffca09657cfd90821d6e4
+  ["go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.65.0"]="github.com/open-telemetry/opentelemetry-go-contrib v1.40.0"
+  # https://github.com/open-telemetry/opentelemetry-go/commit/a3a5317c5caed1656fb5b301b66dfeb3c4c944e0
+  ["go.opentelemetry.io/otel/exporters/prometheus v0.62.0"]="github.com/open-telemetry/opentelemetry-go v1.40.0"
   # https://github.com/census-instrumentation/opencensus-go/commits/v0.23.0/
   ["go.opencensus.io v0.23.0"]="census-instrumentation/opencensus-go 49838f207d61097fc0ebb8aeef306913388376ca"
   # https://github.com/census-instrumentation/opencensus-go/commits/v0.24.0/
@@ -95,6 +105,9 @@ declare -A replaced_paths=(
   ["go.starlark.net"]="github.com/google/starlark-go"
   ["gotest.tools"]="github.com/gotestyourself/gotest.tools"
   ["gioui.org"]="github.com/gioui/gio"
+  # ["go.podman.io/common"]="github.com/containers/container-libs"
+  # ["go.podman.io/image/v5"]="github.com/containers/container-libs"
+  # ["go.podman.io/storage"]="github.com/containers/container-libs"
 )
 
 # replaces to have a correct link for clearlydefined.io api request
@@ -106,12 +119,104 @@ declare -A replaced_api_suffix=(
 
 # Exceptions for dependencies that are not yet harvested in clearlydefined.io
 # License must be checked manually
+# https://clearlydefined.io/harvest
 declare -A ignored_paths=(
   ["github.com/devfile/devworkspace-operator"]="Harvesting is in progress"
+  ["github.com/go-openapi/testify/enable/yaml/v2"]="Harvesting is in progress"
+  ["github.com/grpc-ecosystem/grpc-health-probe"]="Harvesting is in progress"
+  ["github.com/miekg/pkcs11"]="Harvesting is in progress"
+  ["github.com/openshift/api"]="Harvesting is in progress"
+  ["github.com/openshift/library-go"]="Harvesting is in progress"
+  ["github.com/operator-framework/api"]="Harvesting is in progress"
+  ["github.com/operator-framework/operator-lifecycle-manager"]="Harvesting is in progress"
+  ["github.com/operator-framework/operator-registry"]="Harvesting is in progress"
+  ["github.com/redis/go-redis/extra/rediscmd/v9"]="Harvesting is in progress"
+  ["github.com/redis/go-redis/extra/redisotel/v9"]="Harvesting is in progress"
+  ["github.com/sigstore/fulcio"]="Harvesting is in progress"
+  ["github.com/open-telemetry/opentelemetry-go-contrib"]="Harvesting is in progress"
+  ["github.com/open-telemetry/opentelemetry-go"]="Harvesting is in progress"
+  ["go.podman.io/common"]="Harvesting is in progress"
+  ["go.podman.io/image/v5"]="Harvesting is in progress"
+  ["go.podman.io/storage"]="Harvesting is in progress"
+  ["golang.org/x/tools/go/packages/packagestest"]="Harvesting is in progress"
+  ["google.golang.org/genproto"]="Harvesting is in progress"
+  ["k8s.io/api"]="Harvesting is in progress"
+  ["k8s.io/apiextensions-apiserver"]="Harvesting is in progress"
+  ["k8s.io/apimachinery"]="Harvesting is in progress"
+  ["k8s.io/apiserver"]="Harvesting is in progress"
+  ["k8s.io/client-go"]="Harvesting is in progress"
+  ["k8s.io/code-generator"]="Harvesting is in progress"
+  ["k8s.io/component-base"]="Harvesting is in progress"
+  ["k8s.io/kms"]="Harvesting is in progress"
+  ["k8s.io/kube-aggregator"]="Harvesting is in progress"
+  ["k8s.io/utils"]="Harvesting is in progress"
+  ["sigs.k8s.io/controller-tools"]="Harvesting is in progress"
 )
 
-declare -A ignored_paths_license=(
+declare -A ignored_paths_licenses=(
+  # https://github.com/devfile/devworkspace-operator?tab=Apache-2.0-1-ov-file#readme
   ["github.com/devfile/devworkspace-operator"]="Apache-2.0"
+  # https://github.com/go-openapi/testify?tab=Apache-2.0-1-ov-file#readme
+  ["github.com/go-openapi/testify/enable/yaml/v2"]="Apache-2.0"
+  # https://github.com/grpc-ecosystem/grpc-health-probe?tab=Apache-2.0-1-ov-file#readme
+  ["github.com/grpc-ecosystem/grpc-health-probe"]="Apache-2.0"
+  # https://github.com/miekg/pkcs11?tab=BSD-3-Clause-1-ov-file#readme
+  ["github.com/miekg/pkcs11"]="BSD-3-Clause"
+  # https://github.com/openshift/api?tab=Apache-2.0-1-ov-file#readme
+  ["github.com/openshift/api"]="Apache-2.0"
+  # https://github.com/openshift/library-go?tab=Apache-2.0-1-ov-file#readme
+  ["github.com/openshift/library-go"]="Apache-2.0"
+  # https://github.com/operator-framework/api/?tab=Apache-2.0-1-ov-file#readme
+  ["github.com/operator-framework/api"]="Apache-2.0"
+  # https://github.com/operator-framework/operator-lifecycle-manager/?tab=Apache-2.0-1-ov-file#readme
+  ["github.com/operator-framework/operator-lifecycle-manager"]="Apache-2.0"
+  # https://github.com/operator-framework/operator-registry/?tab=Apache-2.0-1-ov-file#readme
+  ["github.com/operator-framework/operator-registry"]="Apache-2.0"
+  # https://github.com/redis/go-redis?tab=BSD-2-Clause-1-ov-file#readme
+  ["github.com/redis/go-redis/extra/rediscmd/v9"]="BSD-2-Clause"
+  # https://github.com/redis/go-redis?tab=BSD-2-Clause-1-ov-file#readme
+  ["github.com/redis/go-redis/extra/redisotel/v9"]="BSD-2-Clause"
+  # https://github.com/sigstore/fulcio/tree/v1.8.5?tab=License-1-ov-file
+  ["github.com/sigstore/fulcio"]="BSD-2-Clause"
+  # https://github.com/open-telemetry/opentelemetry-go-contrib?tab=Apache-2.0-1-ov-file
+  ["github.com/open-telemetry/opentelemetry-go-contrib"]="Apache-2.0"
+  # https://github.com/open-telemetry/opentelemetry-go?tab=Apache-2.0-1-ov-file
+  ["github.com/open-telemetry/opentelemetry-go"]="Apache-2.0"
+  # https://github.com/containers/container-libs/?tab=readme-ov-file#license
+  ["go.podman.io/common"]="Apache-2.0"
+  ["go.podman.io/image/v5"]="Apache-2.0"
+  ["go.podman.io/storage"]="Apache-2.0"
+  # https://github.com/golang/tools/tree/go/packages/packagestest/v0.1.1-deprecated?tab=License-1-ov-file
+  ["golang.org/x/tools/go/packages/packagestest"]="BSD-3-Clause"
+  # https://github.com/googleapis/go-genproto?tab=Apache-2.0-1-ov-file
+  ["google.golang.org/genproto"]="Apache-2.0"
+  # https://github.com/kubernetes/api?tab=Apache-2.0-1-ov-file
+  ["k8s.io/api"]="Apache-2.0"
+  # https://github.com/kubernetes/apiextensions-apiserver?tab=Apache-2.0-1-ov-file
+  ["k8s.io/apiextensions-apiserver"]="Apache-2.0"
+  # https://github.com/kubernetes/apimachinery?tab=Apache-2.0-1-ov-file
+  ["k8s.io/apimachinery"]="Apache-2.0"
+  # https://github.com/kubernetes/apiserver?tab=Apache-2.0-1-ov-file
+  ["k8s.io/apiserver"]="Apache-2.0"
+  # https://github.com/kubernetes/client-go?tab=Apache-2.0-1-ov-file
+  ["k8s.io/client-go"]="Apache-2.0"
+  # https://github.com/kubernetes/code-generator?tab=Apache-2.0-1-ov-file
+  ["k8s.io/code-generator"]="Apache-2.0"
+  # https://github.com/kubernetes/component-base?tab=Apache-2.0-1-ov-file
+  ["k8s.io/component-base"]="Apache-2.0"
+  # https://github.com/kubernetes/kms?tab=Apache-2.0-1-ov-file
+  ["k8s.io/kms"]="Apache-2.0"
+  # https://github.com/kubernetes/kube-aggregator?tab=Apache-2.0-1-ov-file
+  ["k8s.io/kube-aggregator"]="Apache-2.0"
+  # https://github.com/kubernetes/utils?tab=Apache-2.0-1-ov-file
+  ["k8s.io/utils"]="Apache-2.0"
+  # https://github.com/kubernetes-sigs/controller-tools?tab=Apache-2.0-1-ov-file
+  ["sigs.k8s.io/controller-tools"]="Apache-2.0"
+)
+
+declare -A declared_licenses=(
+  # https://github.com/microsoft/hcsshim?tab=MIT-1-ov-file#readme
+  ["github.com/Microsoft/hcsshim"]="MIT"
 )
 
 retryUrl() {
@@ -152,7 +257,7 @@ go list -m -mod=mod all | while read -r module; do
     path=$(echo "$module" | awk '{print $1}')
 
     if [[ -v ignored_paths["$path"] ]]; then
-      license="${ignored_paths_license["$path"]}"
+      license="${ignored_paths_licenses["$path"]}"
       reason="${ignored_paths["$path"]}"
 
       printf "%-7s %-70s %-25s %-10s %s\n" "[WARN]" "$orig_module" "$license" "N/A" "$reason"
@@ -207,22 +312,26 @@ go list -m -mod=mod all | while read -r module; do
       exit 1
     fi
 
+    if [[ -v declared_licenses["$path"] ]]; then
+      license="${declared_licenses["$path"]}"
+      license_approved=true
+    else
+      # analyze the license
+      license=$(curl -s "$url" | jq -r '.licensed.declared')
+      license="${license%% AND*}"
 
-    # analyze the license
-    license=$(curl -s "$url" | jq -r '.licensed.declared')
-    license="${license%% AND*}"
-
-    # Handle OR licenses - split and check each one
-    IFS=' OR ' read -ra license_parts <<< "$license"
-    license_approved=false
-    for license_part in "${license_parts[@]}"; do
-      for allowed_license in "${allowed_licenses[@]}"; do
-        if [[ "${allowed_license^^}" == "${license_part^^}" ]]; then
-          license_approved=true
-          break 2
-        fi
+      # Handle OR licenses - split and check each one
+      IFS=' OR ' read -ra license_parts <<< "$license"
+      license_approved=false
+      for license_part in "${license_parts[@]}"; do
+        for allowed_license in "${allowed_licenses[@]}"; do
+          if [[ "${allowed_license^^}" == "${license_part^^}" ]]; then
+            license_approved=true
+            break 2
+          fi
+        done
       done
-    done
+    fi
 
     if [[ $license_approved == "false" ]]; then
       printf "%-7s %-70s %-25s %-10s %s\n" "[ERROR]" "$orig_module" "$license" "$score" "$url"
