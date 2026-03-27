@@ -22,10 +22,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
@@ -50,7 +50,7 @@ type CheConfigMap struct {
 	NamespaceCreationAllowed string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_CREATION__ALLOWED"`
 	Http2Disable             string `json:"HTTP2_DISABLE"`
 	KubernetesLabels         string `json:"KUBERNETES_LABELS"`
-
+	OpenShiftOAuthEnabled    string `json:"CHE_INFRA_OPENSHIFT_OAUTH__ENABLED"`
 	// TODO remove when keycloak codebase is removed from che-server component
 	CheOIDCAuthServerUrl string `json:"CHE_OIDC_AUTH__SERVER__URL,omitempty"`
 }
@@ -148,6 +148,7 @@ func (s *CheServerReconciler) getConfigMapData(ctx *chetypes.DeployContext) (che
 		NamespaceDefault:         namespaceDefault,
 		NamespaceCreationAllowed: namespaceCreationAllowed,
 		KubernetesLabels:         kubernetesLabels,
+		OpenShiftOAuthEnabled:    strconv.FormatBool(infrastructure.IsOpenShiftOAuthEnabled()),
 		// Disable HTTP2 protocol.
 		// Fix issue with creating config maps on the cluster https://issues.redhat.com/browse/CRW-2677
 		// The root cause is in the HTTP2 protocol support of the okttp3 library that is used by fabric8.kubernetes-client that is used by che-server

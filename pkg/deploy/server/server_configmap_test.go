@@ -83,6 +83,7 @@ func TestGetConfigMapData(t *testing.T) {
 				"KUBERNETES_LABELS":                                labels.FormatLabels(deploy.GetLabels(defaults.GetCheFlavor())),
 				"HTTP2_DISABLE":                                    "true",
 				"CHE_OIDC_AUTH__SERVER__URL":                       "http://identity-provider",
+				"CHE_INFRA_OPENSHIFT_OAUTH__ENABLED":               "true",
 			},
 		},
 	}

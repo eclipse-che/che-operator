@@ -19,18 +19,18 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
-	"github.com/eclipse-che/che-operator/pkg/deploy/devworkspace"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/eclipse-che/che-operator/pkg/deploy/devworkspace"
 	imagepuller "github.com/eclipse-che/che-operator/pkg/deploy/image-puller"
 
 	editorsdefinitions "github.com/eclipse-che/che-operator/pkg/deploy/editors-definitions"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -110,7 +110,7 @@ func NewReconciler(
 	reconcilerManager.AddReconciler(server.NewCheHostReconciler())
 	reconcilerManager.AddReconciler(server.NewBaseDomainReconciler())
 	reconcilerManager.AddReconciler(postgres.NewPostgresReconciler())
-	if infrastructure.IsOpenShift() {
+	if infrastructure.IsOpenShiftOAuthEnabled() {
 		reconcilerManager.AddReconciler(identityprovider.NewIdentityProviderReconciler())
 	}
 	reconcilerManager.AddReconciler(devfileregistry.NewDevfileRegistryReconciler())
