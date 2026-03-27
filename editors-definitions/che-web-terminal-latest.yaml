@@ -43,37 +43,55 @@ metadata:
         </rect>
       </svg>
 
+commands:
+  - id: init-ttyd-command
+    apply:
+      component: ttyd-injector
+events:
+  preStart:
+    - init-ttyd-command
 components:
-  - name: web-terminal-runtime
+  - name: ttyd-injector
     container:
-      image: tsl0922/ttyd:latest
-      mountSources: true
-      args:
-        - --port
-        - "7681"
-        - --writable
-        - -w
-        - /projects
-        - /bin/bash
-      memoryLimit: 1024Mi
-      memoryRequest: 256Mi
+      image: docker.io/tsl0922/ttyd:1.7.7-alpine
+      command:
+        - sh
+        - -c
+        - cp /usr/bin/ttyd /ttyd-vol/ttyd && chmod +x /ttyd-vol/ttyd
+      volumeMounts:
+        - name: ttyd-volume
+          path: /ttyd-vol
+      memoryLimit: 64Mi
+      memoryRequest: 16Mi
       cpuLimit: 500m
       cpuRequest: 30m
+  - name: ttyd-runtime
+    attributes:
+      app.kubernetes.io/component: web-terminal-runtime
+      app.kubernetes.io/part-of: web-terminal.eclipse.org
+      controller.devfile.io/container-contribution: true
+    container:
+      image: docker.io/tsl0922/ttyd:1.7.7-alpine
+      memoryLimit: 128Mi
+      memoryRequest: 32Mi
+      cpuLimit: 500m
+      cpuRequest: 30m
+      volumeMounts:
+        - name: ttyd-volume
+          path: /ttyd-vol
       endpoints:
         - name: web-terminal
+          targetPort: 7681
+          exposure: public
+          protocol: https
           attributes:
             type: main
             cookiesAuthEnabled: true
             discoverable: false
             urlRewriteSupported: true
-          targetPort: 7681
-          exposure: public
-          secure: true
-          protocol: https
-    attributes:
-      app.kubernetes.io/component: web-terminal-runtime
-      app.kubernetes.io/part-of: web-terminal.eclipse.org
-      controller.devfile.io/container-contribution: true
+  - name: ttyd-volume
+    volume:
+      ephemeral: true
 
 attributes:
   version: null
