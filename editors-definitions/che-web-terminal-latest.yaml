@@ -1,0 +1,78 @@
+#
+# Copyright (c) 2026 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Red Hat, Inc. - initial API and implementation
+#
+
+schemaVersion: 2.3.0
+metadata:
+  name: che-web-terminal
+  displayName: Web Terminal
+  description: Web-based terminal using ttyd for Eclipse Che
+  tags:
+    - terminal
+    - ttyd
+  attributes:
+    arch:
+      - x86_64
+      - arm64
+      - s390x
+      - ppc64le
+    publisher: che-incubator
+    version: latest
+    title: Web Terminal for Eclipse Che
+    repository: https://github.com/tsl0922/ttyd
+    firstPublicationDate: '2026-04-01'
+    iconMediatype: image/svg+xml
+    iconData: |
+      <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+        <rect width="100" height="100" rx="10" fill="#1a1a1a"/>
+        <text x="10" y="35" font-family="monospace" font-size="14" fill="#00ff00">$</text>
+        <rect x="20" y="25" width="10" height="2" fill="#00ff00"/>
+        <text x="10" y="55" font-family="monospace" font-size="14" fill="#00ff00">$</text>
+        <rect x="20" y="45" width="10" height="2" fill="#00ff00"/>
+        <text x="10" y="75" font-family="monospace" font-size="14" fill="#00ff00">$</text>
+        <rect x="20" y="65" width="10" height="2" fill="#00ff00" class="blink">
+          <animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/>
+        </rect>
+      </svg>
+
+commands:
+  - id: start-ttyd-command
+    exec:
+      component: ttyd-runtime
+      commandLine: /usr/bin/ttyd -p 7681 /bin/sh
+events:
+  postStart:
+    - start-ttyd-command
+components:
+  - name: ttyd-runtime
+    attributes:
+      app.kubernetes.io/component: web-terminal-runtime
+      app.kubernetes.io/part-of: web-terminal.eclipse.org
+      controller.devfile.io/container-contribution: true
+    container:
+      image: docker.io/tsl0922/ttyd:1.7.7-alpine
+      memoryLimit: 128Mi
+      memoryRequest: 32Mi
+      cpuLimit: 500m
+      cpuRequest: 30m
+      endpoints:
+        - name: web-terminal
+          targetPort: 7681
+          exposure: public
+          protocol: https
+          attributes:
+            type: main
+            cookiesAuthEnabled: true
+            discoverable: false
+            urlRewriteSupported: true
+
+attributes:
+  version: null
