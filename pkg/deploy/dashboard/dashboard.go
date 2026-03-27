@@ -14,6 +14,7 @@ package dashboard
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -73,12 +74,12 @@ func (d *DashboardReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 
 	done, err = deploy.SyncClusterRoleToCluster(ctx, d.getClusterRoleName(ctx), GetPrivilegedPoliciesRulesForKubernetes())
 	if !done {
-		return reconcile.Result{}, false, err
+		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
 	done, err = deploy.SyncClusterRoleBindingToCluster(ctx, d.getClusterRoleBindingName(ctx), DashboardSA, d.getClusterRoleName(ctx))
 	if !done {
-		return reconcile.Result{}, false, err
+		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
 	err = deploy.AppendFinalizer(ctx, ClusterPermissionsDashboardFinalizer)
