@@ -44,14 +44,33 @@ metadata:
       </svg>
 
 commands:
+  - id: init-ttyd-command
+    apply:
+      component: ttyd-injector
   - id: start-ttyd-command
     exec:
       component: ttyd-runtime
-      commandLine: /usr/bin/ttyd -p 7681 /bin/sh
+      commandLine: nohup /ttyd-vol/ttyd -W -p 7681 -t titleFixed=Terminal /bin/sh -c 'cd "${PROJECT_SOURCE:-.}" && exec /bin/sh' > /ttyd-vol/ttyd.log 2>&1 &
 events:
+  preStart:
+    - init-ttyd-command
   postStart:
     - start-ttyd-command
 components:
+  - name: ttyd-injector
+    container:
+      image: docker.io/tsl0922/ttyd:1.7.7-alpine
+      command:
+        - sh
+        - -c
+        - cp /usr/bin/ttyd /ttyd-vol/ttyd && chmod +x /ttyd-vol/ttyd
+      volumeMounts:
+        - name: ttyd-volume
+          path: /ttyd-vol
+      memoryLimit: 64Mi
+      memoryRequest: 16Mi
+      cpuLimit: 500m
+      cpuRequest: 30m
   - name: ttyd-runtime
     attributes:
       app.kubernetes.io/component: web-terminal-runtime
@@ -59,10 +78,13 @@ components:
       controller.devfile.io/container-contribution: true
     container:
       image: docker.io/tsl0922/ttyd:1.7.7-alpine
-      memoryLimit: 128Mi
-      memoryRequest: 32Mi
+      memoryLimit: 256Mi
+      memoryRequest: 64Mi
       cpuLimit: 500m
       cpuRequest: 30m
+      volumeMounts:
+        - name: ttyd-volume
+          path: /ttyd-vol
       endpoints:
         - name: web-terminal
           targetPort: 7681
@@ -73,6 +95,9 @@ components:
             cookiesAuthEnabled: true
             discoverable: false
             urlRewriteSupported: true
+            secure: true
+  - name: ttyd-volume
+    volume: {}
 
 attributes:
   version: null
