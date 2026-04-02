@@ -146,6 +146,13 @@ func OverrideDeployment(
 				deployment.Spec.Template.Spec.Tolerations[i] = t
 			}
 		}
+
+		if len(overrideDeploymentSettings.Volumes) > 0 {
+			deployment.Spec.Template.Spec.Volumes = make([]corev1.Volume, len(overrideDeploymentSettings.Volumes))
+			for i := range overrideDeploymentSettings.Volumes {
+				overrideDeploymentSettings.Volumes[i].DeepCopyInto(&deployment.Spec.Template.Spec.Volumes[i])
+			}
+		}
 	}
 
 	if !infrastructure.IsOpenShift() {
@@ -166,6 +173,53 @@ func OverrideDeployment(
 	}
 
 	return nil
+}
+
+func mergeContainerSecurityContext(container *corev1.Container, src *corev1.SecurityContext) {
+	if src == nil {
+		return
+	}
+	if container.SecurityContext == nil {
+		container.SecurityContext = &corev1.SecurityContext{}
+	}
+	dst := container.SecurityContext
+	if src.Capabilities != nil {
+		dst.Capabilities = src.Capabilities.DeepCopy()
+	}
+	if src.Privileged != nil {
+		dst.Privileged = pointer.Bool(*src.Privileged)
+	}
+	if src.SELinuxOptions != nil {
+		dst.SELinuxOptions = src.SELinuxOptions.DeepCopy()
+	}
+	if src.WindowsOptions != nil {
+		dst.WindowsOptions = src.WindowsOptions.DeepCopy()
+	}
+	if src.RunAsUser != nil {
+		dst.RunAsUser = pointer.Int64(*src.RunAsUser)
+	}
+	if src.RunAsGroup != nil {
+		dst.RunAsGroup = pointer.Int64(*src.RunAsGroup)
+	}
+	if src.RunAsNonRoot != nil {
+		dst.RunAsNonRoot = pointer.Bool(*src.RunAsNonRoot)
+	}
+	if src.ReadOnlyRootFilesystem != nil {
+		dst.ReadOnlyRootFilesystem = pointer.Bool(*src.ReadOnlyRootFilesystem)
+	}
+	if src.AllowPrivilegeEscalation != nil {
+		dst.AllowPrivilegeEscalation = pointer.Bool(*src.AllowPrivilegeEscalation)
+	}
+	if src.ProcMount != nil {
+		pm := *src.ProcMount
+		dst.ProcMount = &pm
+	}
+	if src.SeccompProfile != nil {
+		dst.SeccompProfile = src.SeccompProfile.DeepCopy()
+	}
+	if src.AppArmorProfile != nil {
+		dst.AppArmorProfile = src.AppArmorProfile.DeepCopy()
+	}
 }
 
 func OverrideContainer(
@@ -204,6 +258,16 @@ func OverrideContainer(
 			container.Env = append(container.Env, env)
 		} else {
 			container.Env[index] = env
+		}
+	}
+
+	// VolumeMounts (merge by mount name, same as env)
+	for _, vm := range overrideSettings.VolumeMounts {
+		index := utils.IndexVolumeMount(vm.Name, container.VolumeMounts)
+		if index == -1 {
+			container.VolumeMounts = append(container.VolumeMounts, vm)
+		} else {
+			container.VolumeMounts[index] = vm
 		}
 	}
 
@@ -252,6 +316,11 @@ func OverrideContainer(
 				container.Resources.Limits = nil
 			}
 		}
+	}
+
+	// SecurityContext (merge non-nil fields, same pattern as resources)
+	if overrideSettings.SecurityContext != nil {
+		mergeContainerSecurityContext(container, overrideSettings.SecurityContext)
 	}
 
 	return nil

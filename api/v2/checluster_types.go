@@ -758,6 +758,10 @@ type Deployment struct {
 	// The pod tolerations of the component pod limit where the pod can run.
 	// +optional
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+	// List of volumes that can be mounted by containers belonging to the pod.
+	// When set, replaces the pod volumes from the default deployment spec (same semantics as tolerations).
+	// +optional
+	Volumes []corev1.Volume `json:"volumes,omitempty"`
 }
 
 // Container custom settings.
@@ -778,6 +782,12 @@ type Container struct {
 	// List of environment variables to set in the container.
 	// +optional
 	Env []corev1.EnvVar `json:"env,omitempty"`
+	// Security options the container should run with. When set, fields are merged into the container security context (same semantics as resources).
+	// +optional
+	SecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`
+	// Pod volumes to mount into the container's filesystem. Entries are merged by volume mount name (same semantics as env).
+	// +optional
+	VolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty"`
 }
 
 // Describes the compute resource requirements.
