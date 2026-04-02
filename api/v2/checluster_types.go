@@ -594,32 +594,36 @@ type WorkspaceSecurityConfig struct {
 // Authentication settings.
 type Auth struct {
 	// Public URL of the Identity Provider server.
+	// For OpenShift with built-in OAuth, this field is not used, as OpenShift provides its own OAuth server.
 	// +optional
 	IdentityProviderURL string `json:"identityProviderURL,omitempty"`
-	// Name of the OpenShift `OAuthClient` resource used to set up identity federation on the OpenShift side.
+	// Defined the OIDC client id.
+	// For OpenShift with built-in OAuth, this is the name of the `OAuthClient` resource used to set up identity federation.
 	// +optional
 	OAuthClientName string `json:"oAuthClientName,omitempty"`
-	// Name of the secret set in the OpenShift `OAuthClient` resource used to set up identity federation on the OpenShift side.
-	// For Kubernetes, this can either be the plain text oAuthSecret value, or the name of a kubernetes secret which contains a
-	// key `oAuthSecret` and the value is the secret. NOTE: this secret must exist in the same namespace as the `CheCluster`
-	// resource and contain the label `app.kubernetes.io/part-of=che.eclipse.org`.
+	// Defines the OAuth client secret.
+	// It can either be a plain text secret value or the name of a Kubernetes secret
+	// containing a key `oAuthSecret` with the secret value. The Kubernetes secret must exist in the same namespace
+	// as the `CheCluster` resource and have the label `app.kubernetes.io/part-of=che.eclipse.org`.
+	// For OpenShift with built-in OAuth, this is the secret set in the `OAuthClient` resource used to set up identity federation.
 	// +optional
 	OAuthSecret string `json:"oAuthSecret,omitempty"`
-	// Access Token Scope.
-	// This field is specific to Che installations made for Kubernetes only and ignored for OpenShift.
+	// Defines the scope requested from the OIDC provider.
+	// For OpenShift with built-in OAuth, the scope `user:full` is used by default.
 	// +optional
 	OAuthScope string `json:"oAuthScope,omitempty"`
-	// Inactivity timeout for tokens to set in the OpenShift `OAuthClient` resource used to set up identity federation on the OpenShift side.
+	// Inactivity timeout for tokens in seconds.
+	// This field is specific to OpenShift with built-in OAuth. It is set on the `OAuthClient` resource.
 	// 0 means tokens for this client never time out.
 	// +optional
 	OAuthAccessTokenInactivityTimeoutSeconds *int32 `json:"oAuthAccessTokenInactivityTimeoutSeconds,omitempty"`
-	// Access token max age for tokens to set in the OpenShift `OAuthClient` resource used to set up identity federation on the OpenShift side.
+	// Access token max age in seconds.
+	// This field is specific to OpenShift with built-in OAuth. It is set on the `OAuthClient` resource.
 	// 0 means no expiration.
 	// +optional
 	OAuthAccessTokenMaxAgeSeconds *int32 `json:"oAuthAccessTokenMaxAgeSeconds,omitempty"`
-	// Identity token to be passed to upstream. There are two types of tokens supported: `id_token` and `access_token`.
-	// Default value is `id_token`.
-	// This field is specific to Che installations made for Kubernetes only and ignored for OpenShift.
+	// Identity token type to be passed to upstream services. Defaults to `id_token`.
+	// For OpenShift with built-in OAuth, defaults to `access_token`.
 	// +optional
 	// +kubebuilder:validation:Enum=id_token;access_token
 	IdentityToken string `json:"identityToken,omitempty"`
@@ -627,11 +631,12 @@ type Auth struct {
 	// +optional
 	// +kubebuilder:default:={configLabels: {app: che, component: che-gateway-config}}
 	Gateway Gateway `json:"gateway,omitempty"`
-	// Advance authorization settings. Determines which users and groups are allowed to access Che.
-	// User is allowed to access Che if he/she is either in the `allowUsers` list or is member of group from `allowGroups` list
-	// and not in neither the `denyUsers` list nor is member of group from `denyGroups` list.
+	// Advanced authorization settings. Determines which users and groups are allowed to access Che.
+	// A user is allowed to access Che if the user is in the `allowUsers` list or is a member of a group in the `allowGroups` list,
+	// and is not in the `denyUsers` list nor a member of a group in the `denyGroups` list.
 	// If `allowUsers` and `allowGroups` are empty, then all users are allowed to access Che.
-	// if `denyUsers` and `denyGroups` are empty, then no users are denied to access Che.
+	// If `denyUsers` and `denyGroups` are empty, then no users are denied access to Che.
+	// Note: group-based authorization (`allowGroups` and `denyGroups`) is currently supported on OpenShift only.
 	// +optional
 	AdvancedAuthorization *AdvancedAuthorization `json:"advancedAuthorization,omitempty"`
 }
