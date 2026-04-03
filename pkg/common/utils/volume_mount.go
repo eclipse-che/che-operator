@@ -25,3 +25,13 @@ func IndexVolumeMount(name string, mounts []corev1.VolumeMount) int {
 	}
 	return -1
 }
+
+// IndexVolume returns the index of the volume with the given name, or -1 if not found.
+func IndexVolume(name string, volumes []corev1.Volume) int {
+	for i, v := range volumes {
+		if v.Name == name {
+			return i
+		}
+	}
+	return -1
+}

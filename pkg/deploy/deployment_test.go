@@ -1070,8 +1070,49 @@ func TestCustomizeDeploymentVolumes(t *testing.T) {
 	err := OverrideDeployment(ctx, initDeployment, customization)
 	assert.Nil(t, err)
 
+	assert.Len(t, initDeployment.Spec.Template.Spec.Volumes, 2)
+	assert.Equal(t, "drop-me", initDeployment.Spec.Template.Spec.Volumes[0].Name)
+	assert.NotNil(t, initDeployment.Spec.Template.Spec.Volumes[0].EmptyDir)
+	assert.Equal(t, "custom", initDeployment.Spec.Template.Spec.Volumes[1].Name)
+	assert.NotNil(t, initDeployment.Spec.Template.Spec.Volumes[1].ConfigMap)
+}
+
+func TestCustomizeDeploymentVolumesReplaceByName(t *testing.T) {
+	initDeployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "test",
+		},
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Volumes: []corev1.Volume{
+						{Name: "shared", VolumeSource: corev1.VolumeSource{
+							EmptyDir: &corev1.EmptyDirVolumeSource{},
+						}},
+					},
+					Containers: []corev1.Container{{Name: "test"}},
+				},
+			},
+		},
+	}
+	customization := &chev2.Deployment{
+		Volumes: []corev1.Volume{
+			{Name: "shared", VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{Name: "cm"},
+				},
+			}},
+		},
+		Containers: []chev2.Container{{Name: "test"}},
+	}
+	ctx := test.NewCtxBuilder().Build()
+	err := OverrideDeployment(ctx, initDeployment, customization)
+	assert.Nil(t, err)
+
 	assert.Len(t, initDeployment.Spec.Template.Spec.Volumes, 1)
-	assert.Equal(t, "custom", initDeployment.Spec.Template.Spec.Volumes[0].Name)
+	assert.Equal(t, "shared", initDeployment.Spec.Template.Spec.Volumes[0].Name)
+	assert.Nil(t, initDeployment.Spec.Template.Spec.Volumes[0].EmptyDir)
 	assert.NotNil(t, initDeployment.Spec.Template.Spec.Volumes[0].ConfigMap)
 }
 

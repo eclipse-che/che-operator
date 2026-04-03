@@ -147,10 +147,15 @@ func OverrideDeployment(
 			}
 		}
 
-		if len(overrideDeploymentSettings.Volumes) > 0 {
-			deployment.Spec.Template.Spec.Volumes = make([]corev1.Volume, len(overrideDeploymentSettings.Volumes))
-			for i := range overrideDeploymentSettings.Volumes {
-				overrideDeploymentSettings.Volumes[i].DeepCopyInto(&deployment.Spec.Template.Spec.Volumes[i])
+		// Merge by volume name (same idea as container VolumeMounts) so partial overrides
+		// do not drop operator-defined volumes (e.g. che-gateway static-config / dynamic-config).
+		for i := range overrideDeploymentSettings.Volumes {
+			v := &overrideDeploymentSettings.Volumes[i]
+			idx := utils.IndexVolume(v.Name, deployment.Spec.Template.Spec.Volumes)
+			if idx == -1 {
+				deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes, *v.DeepCopy())
+			} else {
+				v.DeepCopyInto(&deployment.Spec.Template.Spec.Volumes[idx])
 			}
 		}
 	}
