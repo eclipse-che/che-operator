@@ -15,6 +15,7 @@ package deploy
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -151,7 +152,7 @@ func OverrideDeployment(
 		// do not drop operator-defined volumes (e.g. che-gateway static-config / dynamic-config).
 		for i := range overrideDeploymentSettings.Volumes {
 			v := &overrideDeploymentSettings.Volumes[i]
-			idx := utils.IndexVolume(v.Name, deployment.Spec.Template.Spec.Volumes)
+			idx := slices.IndexFunc(deployment.Spec.Template.Spec.Volumes, func(vol corev1.Volume) bool { return vol.Name == v.Name })
 			if idx == -1 {
 				deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes, *v.DeepCopy())
 			} else {
@@ -268,7 +269,7 @@ func OverrideContainer(
 
 	// VolumeMounts (merge by mount name, same as env)
 	for _, vm := range overrideSettings.VolumeMounts {
-		index := utils.IndexVolumeMount(vm.Name, container.VolumeMounts)
+		index := slices.IndexFunc(container.VolumeMounts, func(m corev1.VolumeMount) bool { return m.Name == vm.Name })
 		if index == -1 {
 			container.VolumeMounts = append(container.VolumeMounts, vm)
 		} else {
