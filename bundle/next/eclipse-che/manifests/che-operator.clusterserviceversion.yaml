@@ -108,7 +108,7 @@ metadata:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.arm64: supported
     operatorframework.io/os.linux: supported
-  name: eclipse-che.v7.116.0-957.next
+  name: eclipse-che.v7.117.0-968.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1144,7 +1144,7 @@ spec:
       name: gateway-authorization-sidecar-k8s
     - image: quay.io/che-incubator/header-rewrite-proxy:latest
       name: gateway-header-sidecar
-  version: 7.116.0-957.next
+  version: 7.117.0-968.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1

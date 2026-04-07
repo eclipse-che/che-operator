@@ -759,7 +759,7 @@ type Deployment struct {
 	// +optional
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 	// List of volumes that can be mounted by containers belonging to the pod.
-	// When set, replaces the pod volumes from the default deployment spec (same semantics as tolerations).
+	// Entries are merged by volume name (same semantics as container volumeMounts); unknown names are appended, matching names replace the default volume definition.
 	// +optional
 	Volumes []corev1.Volume `json:"volumes,omitempty"`
 }

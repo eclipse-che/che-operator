@@ -4948,7 +4948,7 @@ spec:
                           volumes:
                             description: |-
                               List of volumes that can be mounted by containers belonging to the pod.
-                              When set, replaces the pod volumes from the default deployment spec (same semantics as tolerations).
+                              Entries are merged by volume name (same semantics as container volumeMounts); unknown names are appended, matching names replace the default volume definition.
                             items:
                               description: Volume represents a named volume in a pod
                                 that may be accessed by any container in the pod.
@@ -7527,7 +7527,7 @@ spec:
                           volumes:
                             description: |-
                               List of volumes that can be mounted by containers belonging to the pod.
-                              When set, replaces the pod volumes from the default deployment spec (same semantics as tolerations).
+                              Entries are merged by volume name (same semantics as container volumeMounts); unknown names are appended, matching names replace the default volume definition.
                             items:
                               description: Volume represents a named volume in a pod
                                 that may be accessed by any container in the pod.
@@ -10072,7 +10072,7 @@ spec:
                           volumes:
                             description: |-
                               List of volumes that can be mounted by containers belonging to the pod.
-                              When set, replaces the pod volumes from the default deployment spec (same semantics as tolerations).
+                              Entries are merged by volume name (same semantics as container volumeMounts); unknown names are appended, matching names replace the default volume definition.
                             items:
                               description: Volume represents a named volume in a pod
                                 that may be accessed by any container in the pod.
@@ -12657,7 +12657,7 @@ spec:
                           volumes:
                             description: |-
                               List of volumes that can be mounted by containers belonging to the pod.
-                              When set, replaces the pod volumes from the default deployment spec (same semantics as tolerations).
+                              Entries are merged by volume name (same semantics as container volumeMounts); unknown names are appended, matching names replace the default volume definition.
                             items:
                               description: Volume represents a named volume in a pod
                                 that may be accessed by any container in the pod.
@@ -20587,7 +20587,7 @@ spec:
                               volumes:
                                 description: |-
                                   List of volumes that can be mounted by containers belonging to the pod.
-                                  When set, replaces the pod volumes from the default deployment spec (same semantics as tolerations).
+                                  Entries are merged by volume name (same semantics as container volumeMounts); unknown names are appended, matching names replace the default volume definition.
                                 items:
                                   description: Volume represents a named volume in
                                     a pod that may be accessed by any container in
