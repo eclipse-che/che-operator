@@ -45,11 +45,10 @@ var DefaultDeploymentDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(appsv1.Deployment{}, "TypeMeta", "ObjectMeta", "Status"),
 	cmpopts.IgnoreFields(appsv1.DeploymentSpec{}, "Replicas", "RevisionHistoryLimit", "ProgressDeadlineSeconds"),
 	cmpopts.IgnoreFields(appsv1.DeploymentStrategy{}, "RollingUpdate"),
-	cmpopts.IgnoreFields(corev1.Container{}, "ReadinessProbe", "LivenessProbe", "TerminationMessagePath", "TerminationMessagePolicy", "SecurityContext"),
-	cmpopts.IgnoreFields(corev1.PodSpec{}, "DNSPolicy", "SchedulerName", "SecurityContext", "DeprecatedServiceAccount"),
+	cmpopts.IgnoreFields(corev1.Container{}, "ReadinessProbe", "LivenessProbe", "TerminationMessagePath", "TerminationMessagePolicy"),
+	cmpopts.IgnoreFields(corev1.PodSpec{}, "DNSPolicy", "SchedulerName", "DeprecatedServiceAccount"),
 	cmpopts.IgnoreFields(corev1.ConfigMapVolumeSource{}, "DefaultMode"),
 	cmpopts.IgnoreFields(corev1.SecretVolumeSource{}, "DefaultMode"),
-	cmpopts.IgnoreFields(corev1.VolumeSource{}, "EmptyDir"),
 	cmp.Comparer(func(x, y resource.Quantity) bool {
 		return x.Cmp(y) == 0
 	}),
