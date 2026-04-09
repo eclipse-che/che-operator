@@ -36,6 +36,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
 )
 
 var (
@@ -990,6 +991,172 @@ func TestCustomizeDeploymentEnvVar(t *testing.T) {
 			assert.Equal(t, testCase.expectedEnv, testCase.initDeployment.Spec.Template.Spec.Containers[0].Env)
 		})
 	}
+}
+
+func TestCustomizeDeploymentVolumeMounts(t *testing.T) {
+	initDeployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "test",
+		},
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name: "test",
+							VolumeMounts: []corev1.VolumeMount{
+								{Name: "vm-1", MountPath: "/a"},
+								{Name: "vm-3", MountPath: "/c"},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	customization := &chev2.Deployment{
+		Containers: []chev2.Container{
+			{
+				Name: "test",
+				VolumeMounts: []corev1.VolumeMount{
+					{Name: "vm-1", MountPath: "/b"},
+					{Name: "vm-2", MountPath: "/d"},
+				},
+			},
+		},
+	}
+	ctx := test.NewCtxBuilder().Build()
+	err := OverrideDeployment(ctx, initDeployment, customization)
+	assert.Nil(t, err)
+
+	assert.Equal(t, []corev1.VolumeMount{
+		{Name: "vm-1", MountPath: "/b"},
+		{Name: "vm-3", MountPath: "/c"},
+		{Name: "vm-2", MountPath: "/d"},
+	}, initDeployment.Spec.Template.Spec.Containers[0].VolumeMounts)
+}
+
+func TestCustomizeDeploymentVolumes(t *testing.T) {
+	initDeployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "test",
+		},
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Volumes: []corev1.Volume{
+						{Name: "drop-me", VolumeSource: corev1.VolumeSource{
+							EmptyDir: &corev1.EmptyDirVolumeSource{},
+						}},
+					},
+					Containers: []corev1.Container{{Name: "test"}},
+				},
+			},
+		},
+	}
+	customization := &chev2.Deployment{
+		Volumes: []corev1.Volume{
+			{Name: "custom", VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{Name: "cm"},
+				},
+			}},
+		},
+		Containers: []chev2.Container{{Name: "test"}},
+	}
+	ctx := test.NewCtxBuilder().Build()
+	err := OverrideDeployment(ctx, initDeployment, customization)
+	assert.Nil(t, err)
+
+	assert.Len(t, initDeployment.Spec.Template.Spec.Volumes, 2)
+	assert.Equal(t, "drop-me", initDeployment.Spec.Template.Spec.Volumes[0].Name)
+	assert.NotNil(t, initDeployment.Spec.Template.Spec.Volumes[0].EmptyDir)
+	assert.Equal(t, "custom", initDeployment.Spec.Template.Spec.Volumes[1].Name)
+	assert.NotNil(t, initDeployment.Spec.Template.Spec.Volumes[1].ConfigMap)
+}
+
+func TestCustomizeDeploymentVolumesReplaceByName(t *testing.T) {
+	initDeployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "test",
+		},
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Volumes: []corev1.Volume{
+						{Name: "shared", VolumeSource: corev1.VolumeSource{
+							EmptyDir: &corev1.EmptyDirVolumeSource{},
+						}},
+					},
+					Containers: []corev1.Container{{Name: "test"}},
+				},
+			},
+		},
+	}
+	customization := &chev2.Deployment{
+		Volumes: []corev1.Volume{
+			{Name: "shared", VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{Name: "cm"},
+				},
+			}},
+		},
+		Containers: []chev2.Container{{Name: "test"}},
+	}
+	ctx := test.NewCtxBuilder().Build()
+	err := OverrideDeployment(ctx, initDeployment, customization)
+	assert.Nil(t, err)
+
+	assert.Len(t, initDeployment.Spec.Template.Spec.Volumes, 1)
+	assert.Equal(t, "shared", initDeployment.Spec.Template.Spec.Volumes[0].Name)
+	assert.Nil(t, initDeployment.Spec.Template.Spec.Volumes[0].EmptyDir)
+	assert.NotNil(t, initDeployment.Spec.Template.Spec.Volumes[0].ConfigMap)
+}
+
+func TestCustomizeDeploymentContainerSecurityContext(t *testing.T) {
+	runAs := int64(1001)
+	initDeployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "test",
+		},
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name: "test",
+							SecurityContext: &corev1.SecurityContext{
+								AllowPrivilegeEscalation: pointer.Bool(false),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	customization := &chev2.Deployment{
+		Containers: []chev2.Container{
+			{
+				Name: "test",
+				SecurityContext: &corev1.SecurityContext{
+					RunAsUser: &runAs,
+				},
+			},
+		},
+	}
+	ctx := test.NewCtxBuilder().Build()
+	err := OverrideDeployment(ctx, initDeployment, customization)
+	assert.Nil(t, err)
+
+	sc := initDeployment.Spec.Template.Spec.Containers[0].SecurityContext
+	assert.NotNil(t, sc.RunAsUser)
+	assert.Equal(t, runAs, *sc.RunAsUser)
+	assert.NotNil(t, sc.AllowPrivilegeEscalation)
+	assert.False(t, *sc.AllowPrivilegeEscalation)
 }
 
 func TestShouldNotThrowErrorIfOverrideDeploymentSettingsIsEmpty(t *testing.T) {

@@ -15,6 +15,7 @@ package deploy
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -44,11 +45,10 @@ var DefaultDeploymentDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(appsv1.Deployment{}, "TypeMeta", "ObjectMeta", "Status"),
 	cmpopts.IgnoreFields(appsv1.DeploymentSpec{}, "Replicas", "RevisionHistoryLimit", "ProgressDeadlineSeconds"),
 	cmpopts.IgnoreFields(appsv1.DeploymentStrategy{}, "RollingUpdate"),
-	cmpopts.IgnoreFields(corev1.Container{}, "ReadinessProbe", "LivenessProbe", "TerminationMessagePath", "TerminationMessagePolicy", "SecurityContext"),
-	cmpopts.IgnoreFields(corev1.PodSpec{}, "DNSPolicy", "SchedulerName", "SecurityContext", "DeprecatedServiceAccount"),
+	cmpopts.IgnoreFields(corev1.Container{}, "ReadinessProbe", "LivenessProbe", "TerminationMessagePath", "TerminationMessagePolicy"),
+	cmpopts.IgnoreFields(corev1.PodSpec{}, "DNSPolicy", "SchedulerName", "DeprecatedServiceAccount"),
 	cmpopts.IgnoreFields(corev1.ConfigMapVolumeSource{}, "DefaultMode"),
 	cmpopts.IgnoreFields(corev1.SecretVolumeSource{}, "DefaultMode"),
-	cmpopts.IgnoreFields(corev1.VolumeSource{}, "EmptyDir"),
 	cmp.Comparer(func(x, y resource.Quantity) bool {
 		return x.Cmp(y) == 0
 	}),
@@ -146,6 +146,18 @@ func OverrideDeployment(
 				deployment.Spec.Template.Spec.Tolerations[i] = t
 			}
 		}
+
+		// Merge by volume name (same idea as container VolumeMounts) so partial overrides
+		// do not drop operator-defined volumes (e.g. che-gateway static-config / dynamic-config).
+		for i := range overrideDeploymentSettings.Volumes {
+			v := &overrideDeploymentSettings.Volumes[i]
+			idx := slices.IndexFunc(deployment.Spec.Template.Spec.Volumes, func(vol corev1.Volume) bool { return vol.Name == v.Name })
+			if idx == -1 {
+				deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes, *v.DeepCopy())
+			} else {
+				v.DeepCopyInto(&deployment.Spec.Template.Spec.Volumes[idx])
+			}
+		}
 	}
 
 	if !infrastructure.IsOpenShift() {
@@ -166,6 +178,53 @@ func OverrideDeployment(
 	}
 
 	return nil
+}
+
+func mergeContainerSecurityContext(container *corev1.Container, src *corev1.SecurityContext) {
+	if src == nil {
+		return
+	}
+	if container.SecurityContext == nil {
+		container.SecurityContext = &corev1.SecurityContext{}
+	}
+	dst := container.SecurityContext
+	if src.Capabilities != nil {
+		dst.Capabilities = src.Capabilities.DeepCopy()
+	}
+	if src.Privileged != nil {
+		dst.Privileged = pointer.Bool(*src.Privileged)
+	}
+	if src.SELinuxOptions != nil {
+		dst.SELinuxOptions = src.SELinuxOptions.DeepCopy()
+	}
+	if src.WindowsOptions != nil {
+		dst.WindowsOptions = src.WindowsOptions.DeepCopy()
+	}
+	if src.RunAsUser != nil {
+		dst.RunAsUser = pointer.Int64(*src.RunAsUser)
+	}
+	if src.RunAsGroup != nil {
+		dst.RunAsGroup = pointer.Int64(*src.RunAsGroup)
+	}
+	if src.RunAsNonRoot != nil {
+		dst.RunAsNonRoot = pointer.Bool(*src.RunAsNonRoot)
+	}
+	if src.ReadOnlyRootFilesystem != nil {
+		dst.ReadOnlyRootFilesystem = pointer.Bool(*src.ReadOnlyRootFilesystem)
+	}
+	if src.AllowPrivilegeEscalation != nil {
+		dst.AllowPrivilegeEscalation = pointer.Bool(*src.AllowPrivilegeEscalation)
+	}
+	if src.ProcMount != nil {
+		pm := *src.ProcMount
+		dst.ProcMount = &pm
+	}
+	if src.SeccompProfile != nil {
+		dst.SeccompProfile = src.SeccompProfile.DeepCopy()
+	}
+	if src.AppArmorProfile != nil {
+		dst.AppArmorProfile = src.AppArmorProfile.DeepCopy()
+	}
 }
 
 func OverrideContainer(
@@ -204,6 +263,16 @@ func OverrideContainer(
 			container.Env = append(container.Env, env)
 		} else {
 			container.Env[index] = env
+		}
+	}
+
+	// VolumeMounts (merge by mount name, same as env)
+	for _, vm := range overrideSettings.VolumeMounts {
+		index := slices.IndexFunc(container.VolumeMounts, func(m corev1.VolumeMount) bool { return m.Name == vm.Name })
+		if index == -1 {
+			container.VolumeMounts = append(container.VolumeMounts, vm)
+		} else {
+			container.VolumeMounts[index] = vm
 		}
 	}
 
@@ -252,6 +321,11 @@ func OverrideContainer(
 				container.Resources.Limits = nil
 			}
 		}
+	}
+
+	// SecurityContext (merge non-nil fields, same pattern as resources)
+	if overrideSettings.SecurityContext != nil {
+		mergeContainerSecurityContext(container, overrideSettings.SecurityContext)
 	}
 
 	return nil
