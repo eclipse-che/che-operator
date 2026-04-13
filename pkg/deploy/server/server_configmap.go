@@ -51,7 +51,7 @@ type CheConfigMap struct {
 	Http2Disable                        string `json:"HTTP2_DISABLE"`
 	KubernetesLabels                    string `json:"KUBERNETES_LABELS"`
 	OpenShiftOAuthEnabled               string `json:"CHE_INFRA_OPENSHIFT_OAUTH__ENABLED"`
-	OpenShiftCreateKubernetesNamespaces string `json:"CHE_INFRA_OPENSHIFT__DIRECT_NAMESPACE_CREATION"`
+	OpenShiftCreateKubernetesNamespaces string `json:"CHE_INFRA_OPENSHIFT__KUBERNETES_NAMESPACES_CREATION"`
 	// TODO remove when keycloak codebase is removed from che-server component
 	CheOIDCAuthServerUrl string `json:"CHE_OIDC_AUTH__SERVER__URL,omitempty"`
 }
@@ -140,7 +140,7 @@ func (s *CheServerReconciler) getConfigMapData(ctx *chetypes.DeployContext) (che
 	openShiftCreateKubernetesNamespaces := strconv.FormatBool(
 		pointer.BoolDeref(
 			ctx.CheCluster.Spec.DevEnvironments.DefaultNamespace.CreateKubernetesNamespaces,
-			constants.ShiftCreateKubernetesNamespaces,
+			constants.OpenShiftCreateKubernetesNamespaces,
 		),
 	)
 

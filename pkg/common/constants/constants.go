@@ -108,14 +108,14 @@ const (
 	ConfigOpenShiftIOInjectTrustedCaBundle          = "config.openshift.io/inject-trusted-cabundle"
 
 	// DevEnvironments
-	PerUserPVCStorageStrategy       = "per-user"
-	DefaultPvcStorageStrategy       = "per-user"
-	PerWorkspacePVCStorageStrategy  = "per-workspace"
-	EphemeralPVCStorageStrategy     = "ephemeral"
-	CommonPVCStorageStrategy        = "common"
-	DefaultDeploymentStrategy       = "Recreate"
-	DefaultAutoProvision            = true
-	ShiftCreateKubernetesNamespaces = false
+	PerUserPVCStorageStrategy           = "per-user"
+	DefaultPvcStorageStrategy           = "per-user"
+	PerWorkspacePVCStorageStrategy      = "per-workspace"
+	EphemeralPVCStorageStrategy         = "ephemeral"
+	CommonPVCStorageStrategy            = "common"
+	DefaultDeploymentStrategy           = "Recreate"
+	DefaultAutoProvision                = true
+	OpenShiftCreateKubernetesNamespaces = false
 
 	// Ingress
 	DefaultSelfSignedCertificateSecretName = "self-signed-certificate"
