@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -251,6 +251,10 @@ type CheClusterDevEnvironments struct {
 	// Typical uses cases include injecting organization tools/configs, initializing persistent home, etc.
 	// +optional
 	InitContainers []corev1.Container `json:"initContainers,omitempty"`
+	// Enables metrics for DevWorkspace Operator.
+	// +optional
+	// +kubebuilder:default:=true
+	Metrics *bool `json:"metrics,omitempty"`
 }
 
 // Che components configuration.

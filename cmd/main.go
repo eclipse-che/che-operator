@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -21,6 +21,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	userv1 "github.com/openshift/api/user/v1"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
@@ -141,6 +142,10 @@ func init() {
 		utilruntime.Must(projectv1.Install(scheme))
 		utilruntime.Must(securityv1.Install(scheme))
 		utilruntime.Must(templatev1.Install(scheme))
+	}
+
+	if infrastructure.IsServiceMonitorEnabled() {
+		utilruntime.Must(monitoringv1.AddToScheme(scheme))
 	}
 
 	// User and OAuthClient API are disabled in case of external IDP
@@ -389,6 +394,10 @@ func getCacheFunc() (cache.NewCacheFunc, error) {
 	if infrastructure.IsOpenShift() {
 		selectors[&routev1.Route{}] = cache.ByObject{Label: partOfCheObjectSelector}
 		selectors[&templatev1.Template{}] = cache.ByObject{Label: partOfCheObjectSelector}
+	}
+
+	if infrastructure.IsServiceMonitorEnabled() {
+		selectors[&monitoringv1.ServiceMonitor{}] = cache.ByObject{Label: partOfCheObjectSelector}
 	}
 
 	if infrastructure.IsOpenShiftOAuthEnabled() {
