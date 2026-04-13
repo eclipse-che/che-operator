@@ -501,10 +501,10 @@ type DefaultNamespace struct {
 	// +kubebuilder:default:=true
 	AutoProvision *bool `json:"autoProvision,omitempty"`
 	// For OpenShift clusters only, setting this to `true` creates
-	// a standard Kubernetes Namespace directly. When false (default), the OpenShift ProjectRequest API
+	// a standard Kubernetes Namespace. When false (default), the OpenShift ProjectRequest API
 	// is used instead to trigger cluster-specific Project Templates.
 	// +optional
-	CreateNamespaceDirectly *bool `json:"createNamespaceDirectly,omitempty"`
+	CreateKubernetesNamespaces *bool `json:"createKubernetesNamespaces,omitempty"`
 }
 
 type DashboardHeaderMessage struct {
