@@ -116,6 +116,7 @@ const (
 	DefaultDeploymentStrategy           = "Recreate"
 	DefaultAutoProvision                = true
 	OpenShiftCreateKubernetesNamespaces = false
+	DefaultDWOMetricsEnabled            = true
 
 	// Ingress
 	DefaultSelfSignedCertificateSecretName = "self-signed-certificate"
@@ -132,6 +133,7 @@ const (
 	KubernetesImagePullerComponentName = "kubernetes-image-puller"
 	EditorDefinitionComponentName      = "editor-definition"
 	CheCABundle                        = "ca-bundle"
+	MetricsComponentName               = "metrics"
 
 	// common
 	CheFlavor             = "che"

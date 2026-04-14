@@ -19,7 +19,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
@@ -33,6 +32,7 @@ const (
 	LeasesResources                = "leases"
 	OAuthClientsResources          = "oauthclients"
 	KubernetesImagePullerResources = "kubernetesimagepullers"
+	ServiceMonitorResources        = "servicemonitors"
 )
 
 var (
@@ -41,18 +41,21 @@ var (
 	isOpenShiftOAuthEnabled        bool
 	isLeaderElectionEnabled        bool
 	isKubernetesImagePullerEnabled bool
+	isServiceMonitorEnabled        bool
 
-	logger = ctrl.Log.WithName("infrastructure")
+	operatorNamespace string
 )
 
 func GetOperatorNamespace() (string, error) {
-	nsBytes, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-	if err != nil {
-		return "", err
+	if operatorNamespace == "" {
+		nsBytes, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+		if err != nil {
+			return "", err
+		}
+		operatorNamespace = strings.TrimSpace(string(nsBytes))
 	}
 
-	ns := strings.TrimSpace(string(nsBytes))
-	return ns, nil
+	return operatorNamespace, nil
 }
 
 func IsOpenShift() bool {
@@ -75,17 +78,25 @@ func IsKubernetesImagePullerEnabled() bool {
 	return isKubernetesImagePullerEnabled
 }
 
+func IsServiceMonitorEnabled() bool {
+	initializeIfNeeded()
+	return isServiceMonitorEnabled
+}
+
 func InitializeForTesting(desiredInfrastructure Type) {
 	infrastructure = desiredInfrastructure
 
 	if IsOpenShift() {
 		isOpenShiftOAuthEnabled = true
+		operatorNamespace = "openshift-operators"
 	} else {
 		isOpenShiftOAuthEnabled = false
+		operatorNamespace = "eclipse-che"
 	}
 
 	isKubernetesImagePullerEnabled = true
 	isLeaderElectionEnabled = true
+	isServiceMonitorEnabled = true
 }
 
 func initializeIfNeeded() {
@@ -118,6 +129,7 @@ func initializeIfNeeded() {
 
 	isLeaderElectionEnabled = hasAPIResource(apiResources, LeasesResources)
 	isKubernetesImagePullerEnabled = hasAPIResource(apiResources, KubernetesImagePullerResources)
+	isServiceMonitorEnabled = hasAPIResource(apiResources, ServiceMonitorResources)
 }
 
 func hasAPIGroup(source []*metav1.APIGroup, apiName string) bool {
