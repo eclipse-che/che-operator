@@ -16553,6 +16553,12 @@ spec:
                             Indicates if is allowed to automatically create a user namespace.
                             If it set to false, then user namespace must be pre-created by a cluster administrator.
                           type: boolean
+                        createKubernetesNamespaces:
+                          description: |-
+                            For OpenShift clusters only, setting this to `true` creates
+                            a standard Kubernetes Namespace. When false (default), the OpenShift ProjectRequest API
+                            is used instead to trigger cluster-specific Project Templates.
+                          type: boolean
                         template:
                           default: <username>-che
                           description: |-
