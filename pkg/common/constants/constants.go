@@ -116,7 +116,7 @@ const (
 	DefaultDeploymentStrategy           = "Recreate"
 	DefaultAutoProvision                = true
 	OpenShiftCreateKubernetesNamespaces = false
-	DefaultDWOMetricsEnabled       		= true
+	DefaultDWOMetricsEnabled            = true
 
 	// Ingress
 	DefaultSelfSignedCertificateSecretName = "self-signed-certificate"
