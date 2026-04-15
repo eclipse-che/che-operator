@@ -14653,6 +14653,8 @@ spec:
                     template: <username>-che
                   disableContainerRunCapabilities: true
                   maxNumberOfWorkspacesPerUser: -1
+                  persistUserHome:
+                    enabled: true
                   secondsOfInactivityBeforeIdling: 1800
                   secondsOfRunBeforeIdling: -1
                   startTimeoutSeconds: 300
@@ -18676,6 +18678,8 @@ spec:
                       workspace pods.
                     type: object
                   persistUserHome:
+                    default:
+                      enabled: true
                     description: |-
                       PersistUserHome defines configuration options for persisting the
                       user home directory in workspaces.
@@ -18690,11 +18694,11 @@ spec:
                           The init container is enabled by default.
                         type: boolean
                       enabled:
+                        default: true
                         description: |-
                           Determines whether the user home directory in workspaces should persist between
                           workspace shutdown and startup.
                           Must be used with the 'per-user' or 'per-workspace' PVC strategy in order to take effect.
-                          Disabled by default.
                         type: boolean
                     type: object
                   podSchedulerName:
