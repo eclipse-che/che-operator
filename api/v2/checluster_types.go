@@ -47,7 +47,7 @@ type CheClusterSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Development environments"
-	// +kubebuilder:default:={storage: {pvcStrategy: per-user}, defaultNamespace: {template: <username>-che, autoProvision: true}, secondsOfInactivityBeforeIdling:1800, secondsOfRunBeforeIdling:-1, startTimeoutSeconds:300, maxNumberOfWorkspacesPerUser:-1, disableContainerRunCapabilities:true}
+	// +kubebuilder:default:={storage: {pvcStrategy: per-user}, defaultNamespace: {template: <username>-che, autoProvision: true}, secondsOfInactivityBeforeIdling:1800, secondsOfRunBeforeIdling:-1, startTimeoutSeconds:300, maxNumberOfWorkspacesPerUser:-1, disableContainerRunCapabilities:true, persistUserHome: {enabled: true}}
 	DevEnvironments CheClusterDevEnvironments `json:"devEnvironments"`
 	// Che components configuration.
 	// +optional
@@ -89,6 +89,7 @@ type CheClusterDevEnvironments struct {
 	// PersistUserHome defines configuration options for persisting the
 	// user home directory in workspaces.
 	// +optional
+	// +kubebuilder:default:={enabled: true}
 	PersistUserHome *PersistentHomeConfig `json:"persistUserHome,omitempty"`
 	// Default plug-ins applied to DevWorkspaces.
 	// +optional
@@ -563,7 +564,8 @@ type PersistentHomeConfig struct {
 	// Determines whether the user home directory in workspaces should persist between
 	// workspace shutdown and startup.
 	// Must be used with the 'per-user' or 'per-workspace' PVC strategy in order to take effect.
-	// Disabled by default.
+	// +optional
+	// +kubebuilder:default:=true
 	Enabled *bool `json:"enabled,omitempty"`
 	// Determines whether the init container that initializes the persistent home directory should be disabled.
 	// When the `/home/user` directory is persisted, the init container is used to initialize the directory before
