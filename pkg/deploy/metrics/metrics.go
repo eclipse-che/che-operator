@@ -39,7 +39,8 @@ const (
 )
 
 var (
-	log = ctrl.Log.WithName("metrics")
+	log                         = ctrl.Log.WithName("metrics")
+	isAbandonedResourcesDeleted = false
 )
 
 type PrometheusResourceProvider interface {
@@ -76,8 +77,13 @@ func (r *MetricsReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Re
 		}
 	}
 
-	if err := deleteAbandonedResources(ctx); err != nil {
-		return reconcile.Result{}, false, err
+	if !isAbandonedResourcesDeleted {
+		if err := deleteAbandonedResources(ctx); err != nil {
+			return reconcile.Result{}, false, err
+		}
+
+		// We don't need to delete them on every reconcile loop
+		isAbandonedResourcesDeleted = true
 	}
 
 	return reconcile.Result{}, true, nil
@@ -281,13 +287,7 @@ func deleteAbandonedResources(ctx *chetypes.DeployContext) error {
 			syncObject.Object,
 		)
 		if err != nil {
-			log.Error(
-				err,
-				"Failed to delete resource",
-				"kind",
-				syncObject.Object.GetObjectKind().GroupVersionKind(),
-				syncObject.Key,
-			)
+			return err
 		}
 	}
 
