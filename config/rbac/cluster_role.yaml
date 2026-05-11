@@ -384,5 +384,18 @@ rules:
     resources:
       - servicemonitors
     verbs:
-      - get
       - create
+      - delete
+      - get
+      - update
+      - patch
+      - watch
+      - list
+  - apiGroups:
+      - ''
+    resources:
+      - endpoints
+    verbs:
+      - get
+      - watch
+      - list

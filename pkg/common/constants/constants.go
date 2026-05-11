@@ -132,6 +132,7 @@ const (
 	KubernetesImagePullerComponentName = "kubernetes-image-puller"
 	EditorDefinitionComponentName      = "editor-definition"
 	CheCABundle                        = "ca-bundle"
+	MetricsComponentName               = "metrics"
 
 	// common
 	CheFlavor             = "che"

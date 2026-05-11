@@ -17,6 +17,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -38,6 +39,12 @@ type K8sClient interface {
 	// List returns list of runtime objects.
 	// Returns nil if list is retrieved otherwise returns error.
 	List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) ([]runtime.Object, error)
+}
+
+type SyncTarget struct {
+	Object   client.Object
+	Key      types.NamespacedName
+	DiffOpts []cmp.Option
 }
 
 type SyncOption interface {

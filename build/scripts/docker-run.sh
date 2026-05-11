@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2019-2023 Red Hat, Inc.
+# Copyright (c) 2019-2026 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -29,7 +29,7 @@ init() {
 build() {
   printf "%bBuilding image %b${IMAGE_NAME}${NC}..." "${BOLD}" "${BLUE}"
   if docker build -t ${IMAGE_NAME} > docker-build-log 2>&1  -<<EOF
-  FROM docker.io/golang:1.24-bookworm
+  FROM docker.io/golang:1.25-bookworm
   RUN apt update && apt install python3-pip skopeo jq rsync unzip -y && \
     pip install --break-system-packages yq && \
     curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
