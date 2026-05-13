@@ -388,6 +388,7 @@ rules:
   - watch
   - list
   - create
+  - delete
 - apiGroups:
   - ""
   resources:

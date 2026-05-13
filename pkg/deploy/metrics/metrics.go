@@ -80,12 +80,15 @@ func (r *MetricsReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Re
 		}
 	}
 
+	// It is safe to remove abandoned resources after reconciling new ones
+	// since resources names are different.
 	if !isAbandonedResourcesDeleted {
 		if err := deleteAbandonedResources(ctx); err != nil {
 			return reconcile.Result{}, false, err
 		}
 
-		// We don't need to delete them on every reconcile loop
+		// We don't need to delete them on every reconcile loop even
+		// having the fact they can be recreated by external tools.
 		isAbandonedResourcesDeleted = true
 	}
 
