@@ -62,8 +62,10 @@ func (r *MetricsReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Re
 		return reconcile.Result{}, false, err
 	}
 
-	if err := addOpenShiftMonitoringLabel(ctx); err != nil {
-		return reconcile.Result{}, false, err
+	if infrastructure.IsOpenShift() {
+		if err := addOpenShiftMonitoringLabel(ctx); err != nil {
+			return reconcile.Result{}, false, err
+		}
 	}
 
 	isCheServerMetricsEnabled := ctx.CheCluster.Spec.Components.Metrics.Enable
@@ -90,6 +92,9 @@ func (r *MetricsReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Re
 }
 
 func (r *MetricsReconciler) Finalize(ctx *chetypes.DeployContext) bool {
+	// Do not remove the openshift.io/cluster-monitoring label,
+	// as it may have already existed.
+
 	cheServerPrometheusResources, err := collectPrometheusResources(ctx, &CheServerPrometheusResourceProvider{})
 	if err != nil {
 		log.Error(err, "Failed to collect Prometheus resources")

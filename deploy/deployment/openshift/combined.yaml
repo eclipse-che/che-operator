@@ -23180,11 +23180,7 @@ rules:
   resources:
   - servicemonitors
   verbs:
-  - create
-  - delete
   - get
-  - update
-  - patch
   - watch
   - list
 - apiGroups:

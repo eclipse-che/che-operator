@@ -114,3 +114,52 @@ func TestReconcileMetricsDisabled(t *testing.T) {
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: cheServerRoleBindingName, Namespace: "eclipse-che"}, &rbacv1.RoleBinding{}))
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: cheServerServiceMonitorName, Namespace: "eclipse-che"}, &monitoringv1.ServiceMonitor{}))
 }
+
+func TestFinalizeMetrics(t *testing.T) {
+	cheCluster := &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
+			Name:      "eclipse-che",
+		},
+		Spec: chev2.CheClusterSpec{
+			Components: chev2.CheClusterComponents{
+				Metrics: chev2.ServerMetrics{Enable: true},
+			},
+		},
+	}
+
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "eclipse-che",
+		},
+	}
+
+	ctx := test.NewCtxBuilder().WithCheCluster(cheCluster).WithObjects(namespace).Build()
+
+	reconciler := NewMetricsReconciler()
+	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
+
+	cheFlavor := defaults.GetCheFlavor()
+	cheServerRoleName := fmt.Sprintf(cheServerPrometheusRoleNameTemplate, cheFlavor)
+	cheServerRoleBindingName := fmt.Sprintf(cheServerPrometheusRoleBindingNameTemplate, cheFlavor)
+	cheServerServiceMonitorName := fmt.Sprintf(cheServerServiceMonitorNameTemplate, cheFlavor)
+
+	// Verify resources exist before finalize
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dwoPrometheusRoleName, Namespace: "openshift-operators"}, &rbacv1.Role{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dwoPrometheusRoleBindingName, Namespace: "openshift-operators"}, &rbacv1.RoleBinding{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dwoServiceMonitorName, Namespace: "eclipse-che"}, &monitoringv1.ServiceMonitor{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: cheServerRoleName, Namespace: "eclipse-che"}, &rbacv1.Role{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: cheServerRoleBindingName, Namespace: "eclipse-che"}, &rbacv1.RoleBinding{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: cheServerServiceMonitorName, Namespace: "eclipse-che"}, &monitoringv1.ServiceMonitor{}))
+
+	done := reconciler.Finalize(ctx)
+	assert.True(t, done)
+
+	// Verify all resources are deleted
+	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dwoPrometheusRoleName, Namespace: "openshift-operators"}, &rbacv1.Role{}))
+	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dwoPrometheusRoleBindingName, Namespace: "openshift-operators"}, &rbacv1.RoleBinding{}))
+	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dwoServiceMonitorName, Namespace: "eclipse-che"}, &monitoringv1.ServiceMonitor{}))
+	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: cheServerRoleName, Namespace: "eclipse-che"}, &rbacv1.Role{}))
+	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: cheServerRoleBindingName, Namespace: "eclipse-che"}, &rbacv1.RoleBinding{}))
+	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: cheServerServiceMonitorName, Namespace: "eclipse-che"}, &monitoringv1.ServiceMonitor{}))
+}

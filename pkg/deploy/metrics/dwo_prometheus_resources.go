@@ -84,7 +84,7 @@ func (r *DWOPrometheusResourceProvider) GetPrometheusRole(ctx *chetypes.DeployCo
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dwoPrometheusRoleName,
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: namespace,
 			Labels:    deploy.GetLabels(constants.MetricsComponentName),
 		},
 		Rules: []rbacv1.PolicyRule{
