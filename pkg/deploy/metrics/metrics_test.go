@@ -56,7 +56,7 @@ func TestReconcileMetrics(t *testing.T) {
 	cheFlavor := defaults.GetCheFlavor()
 
 	// DWO resources
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dwoPrometheusRoleName, Namespace: "eclipse-che"}, &rbacv1.Role{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dwoPrometheusRoleName, Namespace: "openshift-operators"}, &rbacv1.Role{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dwoPrometheusRoleBindingName, Namespace: "openshift-operators"}, &rbacv1.RoleBinding{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dwoServiceMonitorName, Namespace: "eclipse-che"}, &monitoringv1.ServiceMonitor{}))
 
@@ -102,7 +102,7 @@ func TestReconcileMetricsDisabled(t *testing.T) {
 	cheFlavor := defaults.GetCheFlavor()
 
 	// DWO resources should still exist
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dwoPrometheusRoleName, Namespace: "eclipse-che"}, &rbacv1.Role{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dwoPrometheusRoleName, Namespace: "openshift-operators"}, &rbacv1.Role{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dwoPrometheusRoleBindingName, Namespace: "openshift-operators"}, &rbacv1.RoleBinding{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dwoServiceMonitorName, Namespace: "eclipse-che"}, &monitoringv1.ServiceMonitor{}))
 
