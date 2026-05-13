@@ -12,6 +12,8 @@
 
 package gateway
 
+import "k8s.io/utils/pointer"
+
 const (
 	StripPrefixMiddlewareSuffix   = "-strip-prefix"
 	HeaderRewriteMiddlewareSuffix = "-header-rewrite"
@@ -88,8 +90,9 @@ func (cfg *TraefikConfig) AddOpenShiftTokenCheck(componentName string) {
 	cfg.HTTP.Routers[componentName].Middlewares = append(cfg.HTTP.Routers[componentName].Middlewares, middlewareName)
 	cfg.HTTP.Middlewares[middlewareName] = &TraefikConfigMiddleware{
 		ForwardAuth: &TraefikConfigForwardAuth{
-			Address:            "https://kubernetes.default.svc/apis/user.openshift.io/v1/users/~",
-			TrustForwardHeader: true,
+			Address:             "https://kubernetes.default.svc/apis/user.openshift.io/v1/users/~",
+			TrustForwardHeader:  true,
+			MaxResponseBodySize: pointer.Int(1048576),
 			TLS: &TraefikConfigTLS{
 				InsecureSkipVerify: true,
 			},
@@ -102,7 +105,8 @@ func (cfg *TraefikConfig) AddAuth(componentName string, authAddress string) {
 	cfg.HTTP.Routers[componentName].Middlewares = append(cfg.HTTP.Routers[componentName].Middlewares, middlewareName)
 	cfg.HTTP.Middlewares[middlewareName] = &TraefikConfigMiddleware{
 		ForwardAuth: &TraefikConfigForwardAuth{
-			Address: authAddress,
+			Address:             authAddress,
+			MaxResponseBodySize: pointer.Int(1048576),
 		},
 	}
 }
