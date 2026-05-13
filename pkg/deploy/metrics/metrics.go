@@ -19,6 +19,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
+	"github.com/pkg/errors"
 	rbacv1 "k8s.io/api/rbac/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -141,7 +142,7 @@ func syncResources(ctx *chetypes.DeployContext, prometheusResourceProvider Prome
 				DiffOpts: resource.DiffOpts,
 			},
 		); err != nil {
-			return err
+			return errors.Wrap(err, "Failed to sync resource")
 		}
 	}
 
@@ -163,7 +164,7 @@ func deleteResources(ctx *chetypes.DeployContext, prometheusResourceProvider Pro
 			},
 			resource.Object,
 		); err != nil {
-			return err
+			return errors.Wrap(err, "Failed to delete resource")
 		}
 	}
 
@@ -229,59 +230,35 @@ func deleteAbandonedResources(ctx *chetypes.DeployContext) error {
 	syncObjects := []k8sclient.SyncTarget{
 		{
 			Object: &monitoringv1.ServiceMonitor{},
-			Key: types.NamespacedName{
-				Name:      "che-host",
-				Namespace: ctx.CheCluster.Namespace,
-			},
+			Key:    types.NamespacedName{Name: "che-host", Namespace: ctx.CheCluster.Namespace},
 		},
 		{
 			Object: &monitoringv1.ServiceMonitor{},
-			Key: types.NamespacedName{
-				Name:      "devworkspace-controller",
-				Namespace: ctx.CheCluster.Namespace,
-			},
+			Key:    types.NamespacedName{Name: "devworkspace-controller", Namespace: ctx.CheCluster.Namespace},
 		},
 		{
 			Object: &monitoringv1.ServiceMonitor{},
-			Key: types.NamespacedName{
-				Name:      "openshift-devspaces-metrics-exporter",
-				Namespace: operatorNamespace,
-			},
+			Key:    types.NamespacedName{Name: "openshift-devspaces-metrics-exporter", Namespace: operatorNamespace},
 		},
 		{
 			Object: &rbacv1.Role{},
-			Key: types.NamespacedName{
-				Name:      "prometheus-k8s",
-				Namespace: ctx.CheCluster.Namespace,
-			},
+			Key:    types.NamespacedName{Name: "prometheus-k8s", Namespace: ctx.CheCluster.Namespace},
 		},
 		{
 			Object: &rbacv1.Role{},
-			Key: types.NamespacedName{
-				Name:      "prometheus-k8s",
-				Namespace: operatorNamespace,
-			},
+			Key:    types.NamespacedName{Name: "prometheus-k8s", Namespace: operatorNamespace},
 		},
 		{
 			Object: &rbacv1.RoleBinding{},
-			Key: types.NamespacedName{
-				Name:      fmt.Sprintf("view-%s-openshift-monitoring-prometheus-k8s", defaults.GetCheFlavor()),
-				Namespace: ctx.CheCluster.Namespace,
-			},
+			Key:    types.NamespacedName{Name: fmt.Sprintf("view-%s-openshift-monitoring-prometheus-k8s", defaults.GetCheFlavor()), Namespace: ctx.CheCluster.Namespace},
 		},
 		{
 			Object: &rbacv1.RoleBinding{},
-			Key: types.NamespacedName{
-				Name:      fmt.Sprintf("view-%s-openshift-monitoring-prometheus-k8s", defaults.GetCheFlavor()),
-				Namespace: operatorNamespace,
-			},
+			Key:    types.NamespacedName{Name: fmt.Sprintf("view-%s-openshift-monitoring-prometheus-k8s", defaults.GetCheFlavor()), Namespace: operatorNamespace},
 		},
 		{
 			Object: &rbacv1.RoleBinding{},
-			Key: types.NamespacedName{
-				Name:      "view-openshift-monitoring-prometheus-k8s",
-				Namespace: operatorNamespace,
-			},
+			Key:    types.NamespacedName{Name: "view-openshift-monitoring-prometheus-k8s", Namespace: operatorNamespace},
 		},
 	}
 
@@ -292,7 +269,7 @@ func deleteAbandonedResources(ctx *chetypes.DeployContext) error {
 			syncObject.Object,
 		)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "Failed to delete resource")
 		}
 	}
 
