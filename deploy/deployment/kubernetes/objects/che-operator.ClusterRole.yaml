@@ -121,6 +121,7 @@ rules:
   - create
   - update
   - watch
+  - patch
 - apiGroups:
   - apps
   resources:
