@@ -121,6 +121,7 @@ rules:
       - create
       - update
       - watch
+      - patch
   - apiGroups:
       - apps
     resources:
@@ -385,4 +386,15 @@ rules:
       - servicemonitors
     verbs:
       - get
+      - watch
+      - list
       - create
+      - delete
+  - apiGroups:
+      - ''
+    resources:
+      - endpoints
+    verbs:
+      - get
+      - watch
+      - list

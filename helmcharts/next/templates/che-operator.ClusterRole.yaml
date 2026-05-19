@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2024 Red Hat, Inc.
+# Copyright (c) 2019-2026 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -121,6 +121,7 @@ rules:
   - create
   - update
   - watch
+  - patch
 - apiGroups:
   - apps
   resources:
@@ -385,4 +386,15 @@ rules:
   - servicemonitors
   verbs:
   - get
+  - watch
+  - list
   - create
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - endpoints
+  verbs:
+  - get
+  - watch
+  - list

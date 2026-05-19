@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -19,6 +19,8 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
+	"github.com/eclipse-che/che-operator/pkg/deploy/metrics"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
@@ -127,6 +129,10 @@ func NewReconciler(
 		reconcilerManager.AddReconciler(consolelink.NewConsoleLinkReconciler())
 	}
 
+	if infrastructure.IsServiceMonitorEnabled() {
+		reconcilerManager.AddReconciler(metrics.NewMetricsReconciler())
+	}
+
 	return &CheClusterReconciler{
 		Scheme: scheme,
 		Log:    ctrl.Log.WithName("controllers").WithName("CheCluster"),
@@ -180,6 +186,10 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		bld.Owns(&routev1.Route{})
 	} else {
 		bld.Owns(&networking.Ingress{})
+	}
+
+	if infrastructure.IsServiceMonitorEnabled() {
+		bld.Owns(&monitoringv1.ServiceMonitor{})
 	}
 
 	if r.namespace != "" {
