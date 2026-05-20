@@ -265,7 +265,7 @@ func TestCustomizeGatewayDeploymentSingleImage(t *testing.T) {
 	assert.Equal(t, defaults.GetGatewayOpenShiftAuthenticationSidecarImage(checluster), containers[2].Image)
 
 	assert.Equal(t, constants.GatewayAuthorizationContainerName, containers[3].Name)
-	assert.Equal(t, defaults.GetGatewayOpenShiftAuthorizationSidecarImage(checluster), containers[3].Image)
+	assert.Equal(t, defaults.GetGatewayAuthorizationSidecarImage(checluster), containers[3].Image)
 }
 
 func TestTraefikLogLevel(t *testing.T) {

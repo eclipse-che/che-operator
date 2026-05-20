@@ -16,7 +16,6 @@ import (
 	"strconv"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -55,16 +54,10 @@ authorization:
 }
 
 func getKubeRbacProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
+	image := defaults.GetGatewayAuthorizationSidecarImage(ctx.CheCluster)
 	logLevel := constants.DefaultKubeRbacProxyLogLevel
 	if ctx.CheCluster.Spec.Networking.Auth.Gateway.KubeRbacProxy != nil && ctx.CheCluster.Spec.Networking.Auth.Gateway.KubeRbacProxy.LogLevel != nil {
 		logLevel = *ctx.CheCluster.Spec.Networking.Auth.Gateway.KubeRbacProxy.LogLevel
-	}
-
-	var image string
-	if infrastructure.IsOpenShiftOAuthEnabled() {
-		image = defaults.GetGatewayOpenShiftAuthorizationSidecarImage(ctx.CheCluster)
-	} else {
-		image = defaults.GetGatewayKubernetesAuthorizationSidecarImage(ctx.CheCluster)
 	}
 
 	return corev1.Container{

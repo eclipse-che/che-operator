@@ -36,9 +36,8 @@ var (
 	defaultSingleHostGatewayImage                           string
 	defaultSingleHostGatewayConfigSidecarImage              string
 	defaultGatewayKubernetesAuthenticationSidecarImage      string
-	defaultGatewayKubernetesAuthorizationSidecarImage       string
 	defaultGatewayOpenShiftAuthenticationSidecarImage       string
-	defaultGatewayOpenShiftAuthorizationSidecarImage        string
+	defaultGatewayAuthorizationSidecarImage                 string
 	defaultConsoleLinkName                                  string
 	defaultConsoleLinkDisplayName                           string
 	defaultConsoleLinkSection                               string
@@ -99,10 +98,9 @@ func Initialize() {
 	defaultSingleHostGatewayImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_single_host_gateway"))
 	defaultSingleHostGatewayConfigSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_single_host_gateway_config_sidecar"))
 
+	defaultGatewayAuthorizationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authorization_sidecar"))
 	defaultGatewayOpenShiftAuthenticationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authentication_sidecar"))
-	defaultGatewayOpenShiftAuthorizationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authorization_sidecar"))
 	defaultGatewayKubernetesAuthenticationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authentication_sidecar_k8s"))
-	defaultGatewayKubernetesAuthorizationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authorization_sidecar_k8s"))
 
 	// Don't get some k8s specific env
 	if !infrastructure.IsOpenShift() {
@@ -186,14 +184,6 @@ func GetGatewayKubernetesAuthenticationSidecarImage(checluster interface{}) stri
 	return PatchDefaultImageName(checluster, defaultGatewayKubernetesAuthenticationSidecarImage)
 }
 
-func GetGatewayKubernetesAuthorizationSidecarImage(checluster interface{}) string {
-	if !initialized {
-		Initialize()
-	}
-
-	return PatchDefaultImageName(checluster, defaultGatewayKubernetesAuthorizationSidecarImage)
-}
-
 func GetGatewayOpenShiftAuthenticationSidecarImage(checluster interface{}) string {
 	if !initialized {
 		Initialize()
@@ -202,12 +192,12 @@ func GetGatewayOpenShiftAuthenticationSidecarImage(checluster interface{}) strin
 	return PatchDefaultImageName(checluster, defaultGatewayOpenShiftAuthenticationSidecarImage)
 }
 
-func GetGatewayOpenShiftAuthorizationSidecarImage(checluster interface{}) string {
+func GetGatewayAuthorizationSidecarImage(checluster interface{}) string {
 	if !initialized {
 		Initialize()
 	}
 
-	return PatchDefaultImageName(checluster, defaultGatewayOpenShiftAuthorizationSidecarImage)
+	return PatchDefaultImageName(checluster, defaultGatewayAuthorizationSidecarImage)
 }
 
 func GetCheFlavor() string {
