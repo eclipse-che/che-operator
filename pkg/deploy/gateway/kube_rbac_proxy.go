@@ -74,7 +74,6 @@ func getKubeRbacProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container
 		Args: []string{
 			"--insecure-listen-address=0.0.0.0:8089",
 			"--upstream=http://127.0.0.1:8090/ping",
-			"--logtostderr=true",
 			"--config-file=/etc/kube-rbac-proxy/authorization-config.yaml",
 			"--v=" + strconv.FormatInt(int64(logLevel), 10),
 		},
