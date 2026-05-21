@@ -265,7 +265,7 @@ func TestCustomizeGatewayDeploymentSingleImage(t *testing.T) {
 	assert.Equal(t, defaults.GetGatewayOpenShiftAuthenticationSidecarImage(checluster), containers[2].Image)
 
 	assert.Equal(t, constants.GatewayAuthorizationContainerName, containers[3].Name)
-	assert.Equal(t, defaults.GetGatewayOpenShiftAuthorizationSidecarImage(checluster), containers[3].Image)
+	assert.Equal(t, defaults.GetGatewayAuthorizationSidecarImage(checluster), containers[3].Image)
 }
 
 func TestTraefikLogLevel(t *testing.T) {
@@ -325,7 +325,7 @@ func TestKubeRbacProxyLogLevel(t *testing.T) {
 
 	containers := deployment.Spec.Template.Spec.Containers
 	assert.Equal(t, constants.GatewayAuthorizationContainerName, containers[3].Name)
-	assert.Equal(t, "--v=10", containers[3].Args[4])
+	assert.Equal(t, "--v=10", containers[3].Args[3])
 }
 
 func TestKubeRbacProxyLogLevelDefault(t *testing.T) {
@@ -336,5 +336,5 @@ func TestKubeRbacProxyLogLevelDefault(t *testing.T) {
 
 	containers := deployment.Spec.Template.Spec.Containers
 	assert.Equal(t, constants.GatewayAuthorizationContainerName, containers[3].Name)
-	assert.Equal(t, "--v=0", containers[3].Args[4])
+	assert.Equal(t, "--v=0", containers[3].Args[3])
 }

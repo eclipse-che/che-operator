@@ -16,7 +16,6 @@ import (
 	"strconv"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -55,16 +54,10 @@ authorization:
 }
 
 func getKubeRbacProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
+	image := defaults.GetGatewayAuthorizationSidecarImage(ctx.CheCluster)
 	logLevel := constants.DefaultKubeRbacProxyLogLevel
 	if ctx.CheCluster.Spec.Networking.Auth.Gateway.KubeRbacProxy != nil && ctx.CheCluster.Spec.Networking.Auth.Gateway.KubeRbacProxy.LogLevel != nil {
 		logLevel = *ctx.CheCluster.Spec.Networking.Auth.Gateway.KubeRbacProxy.LogLevel
-	}
-
-	var image string
-	if infrastructure.IsOpenShiftOAuthEnabled() {
-		image = defaults.GetGatewayOpenShiftAuthorizationSidecarImage(ctx.CheCluster)
-	} else {
-		image = defaults.GetGatewayKubernetesAuthorizationSidecarImage(ctx.CheCluster)
 	}
 
 	return corev1.Container{
@@ -74,7 +67,6 @@ func getKubeRbacProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container
 		Args: []string{
 			"--insecure-listen-address=0.0.0.0:8089",
 			"--upstream=http://127.0.0.1:8090/ping",
-			"--logtostderr=true",
 			"--config-file=/etc/kube-rbac-proxy/authorization-config.yaml",
 			"--v=" + strconv.FormatInt(int64(logLevel), 10),
 		},
