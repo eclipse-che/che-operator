@@ -47,7 +47,7 @@ const (
 
 	// The ConfigMap name for merged CA bundle certificates
 	CheMergedCABundleCertsCMName = "ca-certs-merged"
-	IssuerCACMName               = "issuer-ca"
+	IssuerCACMName               = "oidc-issuer-ca"
 )
 
 type CertificatesReconciler struct {

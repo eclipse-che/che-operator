@@ -79,7 +79,7 @@ func ResolveOIDCAuthentication(ctx *chetypes.DeployContext) (*chetypes.OIDCAuthe
 
 			// Sync issuer CA
 			if oidcProvider.Issuer.CertificateAuthority.Name != "" {
-				issuerCA, err := readIssuerCASecret(
+				issuerCA, err := readIssuerCA(
 					oidcProvider.Issuer.CertificateAuthority.Name,
 					openshiftConfigNamespace,
 					ctx,
@@ -121,7 +121,7 @@ func ResolveOIDCAuthentication(ctx *chetypes.DeployContext) (*chetypes.OIDCAuthe
 		if authentication.OIDCClientId == "" {
 			// Reuse the console's OIDC client credentials when no explicit client is configured.
 			for _, oidcClient := range oidcProvider.OIDCClients {
-				if oidcClient.ComponentName == "openshift-console" {
+				if oidcClient.ComponentName == "console" {
 					authentication.OIDCClientId = oidcClient.ClientID
 
 					if oidcClient.ClientSecret.Name != "" {
@@ -196,24 +196,24 @@ func resolveOIDCClientSecret(oidcClientSecret string, ctx *chetypes.DeployContex
 	return []byte(oidcClientSecret), nil
 }
 
-func readIssuerCASecret(
-	issuerCASecretName string,
-	issuerCASecretNamespace string,
+func readIssuerCA(
+	issuerCAConfigMapName string,
+	issuerCAConfigMapNamespace string,
 	ctx *chetypes.DeployContext,
 ) (string, error) {
-	secret := &corev1.Secret{}
+	cm := &corev1.ConfigMap{}
 
 	err := ctx.ClusterAPI.NonCachingClient.Get(
 		context.TODO(),
 		types.NamespacedName{
-			Name:      issuerCASecretName,
-			Namespace: issuerCASecretNamespace,
+			Name:      issuerCAConfigMapName,
+			Namespace: issuerCAConfigMapNamespace,
 		},
-		secret,
+		cm,
 	)
 	if err != nil {
 		return "", err
 	}
 
-	return string(secret.Data[issuerCAKey]), nil
+	return cm.Data[issuerCAKey], nil
 }

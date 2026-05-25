@@ -152,7 +152,7 @@ func (s *CheServerReconciler) getConfigMapData(ctx *chetypes.DeployContext) (che
 		CheLogLevel:                         cheLogLevel,
 		CheMetricsEnabled:                   cheMetricsEnabled,
 		CheInfrastructure:                   cheInfrastructure,
-		CheOIDCAuthServerUrl:                ctx.CheCluster.Spec.Networking.Auth.IdentityProviderURL,
+		CheOIDCAuthServerUrl:                ctx.OIDCAuthentication.IssuerURL,
 		NamespaceDefault:                    namespaceDefault,
 		NamespaceCreationAllowed:            namespaceCreationAllowed,
 		KubernetesLabels:                    kubernetesLabels,

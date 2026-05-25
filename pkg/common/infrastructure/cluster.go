@@ -13,6 +13,7 @@
 package infrastructure
 
 import (
+	"fmt"
 	"os"
 	"slices"
 	"strings"
@@ -49,10 +50,16 @@ var (
 func GetOperatorNamespace() (string, error) {
 	if operatorNamespace == "" {
 		nsBytes, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-		if err != nil {
-			return "", err
+		if err == nil {
+			operatorNamespace = strings.TrimSpace(string(nsBytes))
 		}
-		operatorNamespace = strings.TrimSpace(string(nsBytes))
+
+		namespace, ok := os.LookupEnv("WATCH_NAMESPACE")
+		if !ok {
+			return "", fmt.Errorf("WATCH_NAMESPACE environment variable not set")
+		}
+
+		return namespace, nil
 	}
 
 	return operatorNamespace, nil
