@@ -192,7 +192,7 @@ func (s *CheServerReconciler) getConfigMapData(ctx *chetypes.DeployContext) (che
 		return nil, err
 	}
 
-	if infrastructure.IsOpenShiftWithoutOAuth() {
+	if infrastructure.IsOpenShiftExternalAuth() {
 		s.updateOIDCClaimMappings(ctx, cheEnv)
 	}
 

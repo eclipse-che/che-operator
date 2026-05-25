@@ -17,16 +17,10 @@ import (
 	"fmt"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	configv1 "github.com/openshift/api/config/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -37,8 +31,6 @@ const (
 
 	openShiftNamespaceOIDCClientSecretKey = "clientSecret"
 	cheNamespaceOIDCClientSecretKey       = "oAuthSecret"
-
-	oidcIssuerCAConfigMapName = "oidc-issuer-ca"
 )
 
 // ResolveOIDCAuthentication builds an Authentication config from the CheCluster spec,
@@ -61,7 +53,7 @@ func ResolveOIDCAuthentication(ctx *chetypes.DeployContext) (*chetypes.OIDCAuthe
 		authentication.OIDCClientSecret = oidcClientSecret
 	}
 
-	if infrastructure.IsOpenShiftWithoutOAuth() {
+	if infrastructure.IsOpenShiftExternalAuth() {
 		clusterAuthentication := &configv1.Authentication{}
 		err := ctx.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, clusterAuthentication)
 		if err != nil {
@@ -72,8 +64,12 @@ func ResolveOIDCAuthentication(ctx *chetypes.DeployContext) (*chetypes.OIDCAuthe
 			return nil, fmt.Errorf("authentication type is not OIDC")
 		}
 
+		if len(clusterAuthentication.Spec.OIDCProviders) == 0 {
+			return nil, fmt.Errorf("no OIDC providers configured")
+		}
+
 		if len(clusterAuthentication.Spec.OIDCProviders) != 1 {
-			return nil, fmt.Errorf("ambiguous OIDC providers")
+			return nil, fmt.Errorf("multiple OIDC providers configured, expected exactly one")
 		}
 
 		oidcProvider := clusterAuthentication.Spec.OIDCProviders[0]
@@ -83,7 +79,7 @@ func ResolveOIDCAuthentication(ctx *chetypes.DeployContext) (*chetypes.OIDCAuthe
 
 			// Sync issuer CA
 			if oidcProvider.Issuer.CertificateAuthority.Name != "" {
-				err = syncIssuerCASecret(
+				issuerCA, err := readIssuerCASecret(
 					oidcProvider.Issuer.CertificateAuthority.Name,
 					openshiftConfigNamespace,
 					ctx,
@@ -91,6 +87,7 @@ func ResolveOIDCAuthentication(ctx *chetypes.DeployContext) (*chetypes.OIDCAuthe
 				if err != nil {
 					return nil, fmt.Errorf("failed to sync issuer CA: %w", err)
 				}
+				authentication.IssuerCA = issuerCA
 			}
 		}
 
@@ -99,14 +96,16 @@ func ResolveOIDCAuthentication(ctx *chetypes.DeployContext) (*chetypes.OIDCAuthe
 		}
 
 		if authentication.UsernamePrefix == "" {
-			if oidcProvider.ClaimMappings.Username.Prefix != nil {
-				if oidcProvider.ClaimMappings.Username.PrefixPolicy == configv1.NoOpinion {
-					// NoOpinion (default): prefix with issuerURL unless claim is "email"
+			if authentication.UsernamePrefix == "" {
+				switch oidcProvider.ClaimMappings.Username.PrefixPolicy {
+				case configv1.NoOpinion:
 					if authentication.UsernameClaim != "email" {
 						authentication.UsernamePrefix = fmt.Sprintf("%s#", authentication.IssuerURL)
 					}
-				} else {
-					authentication.UsernamePrefix = oidcProvider.ClaimMappings.Username.Prefix.PrefixString
+				case configv1.Prefix:
+					if oidcProvider.ClaimMappings.Username.Prefix != nil {
+						authentication.UsernamePrefix = oidcProvider.ClaimMappings.Username.Prefix.PrefixString
+					}
 				}
 			}
 		}
@@ -197,58 +196,24 @@ func resolveOIDCClientSecret(oidcClientSecret string, ctx *chetypes.DeployContex
 	return []byte(oidcClientSecret), nil
 }
 
-func syncIssuerCASecret(
+func readIssuerCASecret(
 	issuerCASecretName string,
 	issuerCASecretNamespace string,
 	ctx *chetypes.DeployContext,
-) error {
-	sourceIssuerCASecret := &corev1.Secret{}
+) (string, error) {
+	secret := &corev1.Secret{}
 
-	// Fetch from a foreign namespace (e.g. openshift-config), use client instead of wrapper
-	// in order to catch all errors including NotFound
 	err := ctx.ClusterAPI.NonCachingClient.Get(
 		context.TODO(),
 		types.NamespacedName{
 			Name:      issuerCASecretName,
 			Namespace: issuerCASecretNamespace,
 		},
-		sourceIssuerCASecret,
+		secret,
 	)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	// Labeled as CheCABundle so it gets merged into `ca-certs-merged` and mounted to all components.
-	oidcIssuerCACM := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      oidcIssuerCAConfigMapName,
-			Namespace: ctx.CheCluster.Namespace,
-			Labels:    deploy.GetLabels(constants.CheCABundle),
-		},
-		Data: map[string]string{
-			"ca-bundle.crt": string(sourceIssuerCASecret.Data[issuerCAKey]),
-		},
-	}
-
-	err = controllerutil.SetControllerReference(ctx.CheCluster, oidcIssuerCACM, ctx.ClusterAPI.Scheme)
-	if err != nil {
-		return err
-	}
-
-	err = ctx.ClusterAPI.ClientWrapper.Sync(
-		context.TODO(),
-		oidcIssuerCACM,
-		&k8sclient.SyncOptions{
-			DiffOpts: diffs.ConfigMapEnsureLabels,
-		},
-	)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return string(secret.Data[issuerCAKey]), nil
 }

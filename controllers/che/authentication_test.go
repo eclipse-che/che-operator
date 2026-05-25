@@ -13,7 +13,6 @@
 package che
 
 import (
-	"strings"
 	"testing"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -38,13 +37,12 @@ type oidcAuthResult struct {
 
 func TestResolveOIDCAuthentication(t *testing.T) {
 	type testCase struct {
-		name           string
-		isOpenShift    bool
-		oAuthEnabled   bool
-		cheCluster     *chev2.CheCluster
-		initObjects    []client.Object
-		expectedAuth   *oidcAuthResult
-		expectedErrMsg string
+		name         string
+		isOpenShift  bool
+		oAuthEnabled bool
+		cheCluster   *chev2.CheCluster
+		initObjects  []client.Object
+		expectedAuth *oidcAuthResult
 	}
 
 	testCases := []testCase{
@@ -203,7 +201,11 @@ func TestResolveOIDCAuthentication(t *testing.T) {
 			} else {
 				infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 			}
-			defer infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+
+			defer func() {
+				infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+				infrastructure.SetOpenShiftOAuthEnabledForTesting(true)
+			}()
 
 			ctx := test.NewCtxBuilder().
 				WithCheCluster(tc.cheCluster).
@@ -211,16 +213,6 @@ func TestResolveOIDCAuthentication(t *testing.T) {
 				Build()
 
 			auth, err := ResolveOIDCAuthentication(ctx)
-
-			if tc.expectedErrMsg != "" {
-				if err == nil {
-					t.Fatalf("Expected error containing %q, got nil", tc.expectedErrMsg)
-				}
-				if !strings.Contains(err.Error(), tc.expectedErrMsg) {
-					t.Fatalf("Expected error containing %q, got %q", tc.expectedErrMsg, err.Error())
-				}
-				return
-			}
 
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)

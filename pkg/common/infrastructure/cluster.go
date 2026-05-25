@@ -68,7 +68,7 @@ func IsOpenShiftOAuthEnabled() bool {
 	return isOpenShiftOAuthEnabled
 }
 
-func IsOpenShiftWithoutOAuth() bool {
+func IsOpenShiftExternalAuth() bool {
 	initializeIfNeeded()
 	return IsOpenShift() && !IsOpenShiftOAuthEnabled()
 }

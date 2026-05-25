@@ -46,6 +46,7 @@ type OIDCAuthentication struct {
 	UsernamePrefix string
 
 	IssuerURL string
+	IssuerCA  string
 
 	OIDCClientId     string
 	OIDCClientSecret []byte

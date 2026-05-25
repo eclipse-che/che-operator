@@ -13,6 +13,7 @@
 package tls
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"maps"
@@ -22,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
@@ -45,6 +47,7 @@ const (
 
 	// The ConfigMap name for merged CA bundle certificates
 	CheMergedCABundleCertsCMName = "ca-certs-merged"
+	IssuerCACMName               = "issuer-ca"
 )
 
 type CertificatesReconciler struct {
@@ -79,6 +82,12 @@ func (c *CertificatesReconciler) Reconcile(ctx *chetypes.DeployContext) (reconci
 
 	if ctx.IsSelfSignedCertificate {
 		if done, err := c.syncSelfSignedCertificates(ctx); !done {
+			return reconcile.Result{}, false, err
+		}
+	}
+
+	if ctx.OIDCAuthentication.IssuerCA != "" {
+		if done, err := c.syncIssuerCertificate(ctx); !done {
 			return reconcile.Result{}, false, err
 		}
 	}
@@ -309,6 +318,26 @@ func (c *CertificatesReconciler) syncKubernetesRootCertificates(ctx *chetypes.De
 		kubeRootCertsCM,
 		diffs.ConfigMap([]string{constants.KubernetesPartOfLabelKey, constants.KubernetesComponentLabelKey}, nil),
 	)
+}
+
+func (c *CertificatesReconciler) syncIssuerCertificate(ctx *chetypes.DeployContext) (bool, error) {
+	cm := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      IssuerCACMName,
+			Namespace: ctx.CheCluster.Namespace,
+			Labels:    deploy.GetLabels(constants.CheCABundle),
+		},
+		Data: map[string]string{
+			"ca-bundle.crt": ctx.OIDCAuthentication.IssuerCA,
+		},
+	}
+
+	err := ctx.ClusterAPI.ClientWrapper.Sync(context.TODO(), cm, &k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels})
+	return err == nil, err
 }
 
 // syncCheCABundleCerts merges all trusted CA certificates into a single ConfigMap `ca-certs-merged`,

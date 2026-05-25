@@ -245,6 +245,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	oidcAuthentication, err := ResolveOIDCAuthentication(deployContext)
 	if err != nil {
+		r.Log.Error(err, "Error on resolving OIDC authentication")
 		return ctrl.Result{}, err
 	}
 	deployContext.OIDCAuthentication = oidcAuthentication
