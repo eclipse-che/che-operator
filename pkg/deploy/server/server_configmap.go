@@ -78,7 +78,7 @@ func (s *CheServerReconciler) syncConfigMap(ctx *chetypes.DeployContext) (bool, 
 	err = ctx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
 		cm,
-		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapAllLabels},
+		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
 	)
 
 	return err == nil, err
@@ -190,6 +190,10 @@ func (s *CheServerReconciler) getConfigMapData(ctx *chetypes.DeployContext) (che
 	// Update `CHE_INTEGRATION_<...>_SERVER__ENDPOINTS`
 	if err := s.updateServerEndpointsEnv(ctx, cheEnv); err != nil {
 		return nil, err
+	}
+
+	if infrastructure.IsOpenShiftWithoutOAuth() {
+		s.updateOIDCClaimMappings(ctx, cheEnv)
 	}
 
 	return cheEnv, nil
@@ -306,4 +310,11 @@ func (s *CheServerReconciler) updateServerEndpointsEnv(ctx *chetypes.DeployConte
 	}
 
 	return nil
+}
+
+func (s *CheServerReconciler) updateOIDCClaimMappings(ctx *chetypes.DeployContext, cheEnv map[string]string) {
+	cheEnv["CHE_OIDC_GROUPS__CLAIM"] = ctx.OIDCAuthentication.GroupsClaim
+	cheEnv["CHE_OIDC_GROUPS__PREFIX"] = ctx.OIDCAuthentication.GroupsPrefix
+	cheEnv["CHE_OIDC_USERNAME__CLAIM"] = ctx.OIDCAuthentication.UsernameClaim
+	cheEnv["CHE_OIDC_USERNAME__PREFIX"] = ctx.OIDCAuthentication.UsernamePrefix
 }

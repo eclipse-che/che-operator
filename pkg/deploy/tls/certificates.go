@@ -194,7 +194,7 @@ func (c *CertificatesReconciler) syncKubernetesCABundleCertificates(ctx *chetype
 		Data: map[string]string{kubernetesCABundleCertsFile: string(data)},
 	}
 
-	return deploy.Sync(ctx, kubernetesCaBundleCM, diffs.ConfigMapAllLabels)
+	return deploy.Sync(ctx, kubernetesCaBundleCM, diffs.ConfigMapEnsureLabels)
 }
 
 // syncGitTrustedCertificates adds labels to git trusted certificates ConfigMap
@@ -268,7 +268,7 @@ func (c *CertificatesReconciler) syncSelfSignedCertificates(ctx *chetypes.Deploy
 			Data: map[string]string{"ca.crt": string(selfSignedCertSecret.Data["ca.crt"])},
 		}
 
-		return deploy.Sync(ctx, selfSignedCertCM, diffs.ConfigMapAllLabels)
+		return deploy.Sync(ctx, selfSignedCertCM, diffs.ConfigMapEnsureLabels)
 	}
 
 	return true, nil

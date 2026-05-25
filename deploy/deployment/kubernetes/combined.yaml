@@ -23045,6 +23045,7 @@ rules:
   - cluster
   resources:
   - proxies
+  - authentications
   verbs:
   - get
 - apiGroups:

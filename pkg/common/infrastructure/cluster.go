@@ -68,6 +68,11 @@ func IsOpenShiftOAuthEnabled() bool {
 	return isOpenShiftOAuthEnabled
 }
 
+func IsOpenShiftWithoutOAuth() bool {
+	initializeIfNeeded()
+	return IsOpenShift() && !IsOpenShiftOAuthEnabled()
+}
+
 func IsLeaderElectionEnabled() bool {
 	initializeIfNeeded()
 	return isLeaderElectionEnabled
@@ -81,6 +86,10 @@ func IsKubernetesImagePullerEnabled() bool {
 func IsServiceMonitorEnabled() bool {
 	initializeIfNeeded()
 	return isServiceMonitorEnabled
+}
+
+func SetOpenShiftOAuthEnabledForTesting(enabled bool) {
+	isOpenShiftOAuthEnabled = enabled
 }
 
 func InitializeForTesting(desiredInfrastructure Type) {

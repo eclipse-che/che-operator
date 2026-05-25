@@ -243,6 +243,12 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 	deployContext.Proxy = proxy
 
+	oidcAuthentication, err := ResolveOIDCAuthentication(deployContext)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	deployContext.OIDCAuthentication = oidcAuthentication
+
 	// Detect whether self-signed certificate is used
 	isSelfSignedCertificate, err := tls.IsSelfSignedCertificateUsed(deployContext)
 	if err != nil {

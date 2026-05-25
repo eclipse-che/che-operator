@@ -247,6 +247,7 @@ rules:
       - config.openshift.io
     resources:
       - proxies
+      - authentications
     resourceNames:
       - cluster
     verbs:

@@ -24,6 +24,7 @@ type DeployContext struct {
 	CheCluster              *chev2.CheCluster
 	ClusterAPI              ClusterAPI
 	Proxy                   *Proxy
+	OIDCAuthentication      *OIDCAuthentication
 	IsSelfSignedCertificate bool
 	CheHost                 string
 	DwoNamespace            string
@@ -36,6 +37,18 @@ type ClusterAPI struct {
 	Scheme                  *runtime.Scheme
 	ClientWrapper           *k8sclient.K8sClientWrapper
 	NonCachingClientWrapper *k8sclient.K8sClientWrapper
+}
+
+type OIDCAuthentication struct {
+	GroupsClaim    string
+	GroupsPrefix   string
+	UsernameClaim  string
+	UsernamePrefix string
+
+	IssuerURL string
+
+	OIDCClientId     string
+	OIDCClientSecret []byte
 }
 
 type Proxy struct {

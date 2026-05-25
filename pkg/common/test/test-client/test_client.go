@@ -90,7 +90,7 @@ func getScheme() *runtime.Scheme {
 	scheme.AddKnownTypes(controllerv1alpha1.GroupVersion, &controllerv1alpha1.DevWorkspaceOperatorConfig{}, &controllerv1alpha1.DevWorkspaceOperatorConfigList{})
 	scheme.AddKnownTypes(controllerv1alpha1.GroupVersion, &controllerv1alpha1.DevWorkspaceRouting{}, &controllerv1alpha1.DevWorkspaceRoutingList{})
 	scheme.AddKnownTypes(oauthv1.GroupVersion, &oauthv1.OAuthClient{}, &oauthv1.OAuthClientList{})
-	scheme.AddKnownTypes(configv1.GroupVersion, &configv1.Proxy{}, &configv1.Console{})
+	scheme.AddKnownTypes(configv1.GroupVersion, &configv1.Proxy{}, &configv1.Console{}, &configv1.Authentication{}, &configv1.AuthenticationList{})
 	scheme.AddKnownTypes(templatev1.GroupVersion, &templatev1.Template{}, &templatev1.TemplateList{})
 	scheme.AddKnownTypes(routev1.GroupVersion, &routev1.Route{}, &routev1.RouteList{})
 	scheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.Secret{}, &corev1.SecretList{})

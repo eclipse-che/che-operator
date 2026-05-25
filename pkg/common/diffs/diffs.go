@@ -44,7 +44,7 @@ var SecurityContextConstraints = cmp.Options{
 	cmpopts.IgnoreFields(securityv1.SecurityContextConstraints{}, "TypeMeta", "ObjectMeta", "Priority"),
 }
 
-var ConfigMapAllLabels = cmp.Options{
+var ConfigMapEnsureLabels = cmp.Options{
 	cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
 	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
 		return maps.Equal(x.Labels, y.Labels)
