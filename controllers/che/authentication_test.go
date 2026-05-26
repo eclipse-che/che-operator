@@ -97,13 +97,21 @@ func TestResolveOIDCAuthentication(t *testing.T) {
 			},
 		},
 		{
-			name:         "OpenShift without OAuth, fields resolved from cluster Authentication",
+			name:         "OpenShift without OAuth, claim mappings resolved from cluster Authentication",
 			isOpenShift:  true,
 			oAuthEnabled: false,
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
 					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Networking: chev2.CheClusterSpecNetworking{
+						Auth: chev2.Auth{
+							IdentityProviderURL: "https://oidc.example.com",
+							OAuthClientName:     "che-client",
+						},
+					},
 				},
 			},
 			initObjects: []client.Object{
@@ -134,11 +142,11 @@ func TestResolveOIDCAuthentication(t *testing.T) {
 								},
 								OIDCClients: []configv1.OIDCClientConfig{
 									{
-										ComponentName:      "openshift-console",
+										ComponentName:      "console",
 										ComponentNamespace: "openshift-console",
-										ClientID:           "console-client-id",
+										ClientID:           "che-client",
 										ClientSecret: configv1.SecretNameReference{
-											Name: "console-secret",
+											Name: "che-secret",
 										},
 									},
 								},
@@ -148,18 +156,18 @@ func TestResolveOIDCAuthentication(t *testing.T) {
 				},
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "console-secret",
+						Name:      "che-secret",
 						Namespace: "openshift-config",
 					},
 					Data: map[string][]byte{
-						"clientSecret": []byte("console-secret-value"),
+						"clientSecret": []byte("che-secret-value"),
 					},
 				},
 			},
 			expectedAuth: &oidcAuthResult{
 				IssuerURL:        "https://oidc.example.com",
-				OIDCClientId:     "console-client-id",
-				OIDCClientSecret: "console-secret-value",
+				OIDCClientId:     "che-client",
+				OIDCClientSecret: "che-secret-value",
 				UsernameClaim:    "sub",
 				UsernamePrefix:   "oidc-user:",
 				GroupsClaim:      "groups",
@@ -212,7 +220,7 @@ func TestResolveOIDCAuthentication(t *testing.T) {
 				WithObjects(tc.initObjects...).
 				Build()
 
-			auth, err := ResolveOIDCAuthentication(ctx)
+			auth, err := ResolveAuthentication(ctx)
 
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
@@ -220,8 +228,8 @@ func TestResolveOIDCAuthentication(t *testing.T) {
 
 			got := &oidcAuthResult{
 				IssuerURL:        auth.IssuerURL,
-				OIDCClientId:     auth.OIDCClientId,
-				OIDCClientSecret: string(auth.OIDCClientSecret),
+				OIDCClientId:     auth.ClientId,
+				OIDCClientSecret: string(auth.ClientSecret),
 				UsernameClaim:    auth.UsernameClaim,
 				UsernamePrefix:   auth.UsernamePrefix,
 				GroupsClaim:      auth.GroupsClaim,

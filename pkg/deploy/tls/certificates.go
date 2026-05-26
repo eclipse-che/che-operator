@@ -86,7 +86,7 @@ func (c *CertificatesReconciler) Reconcile(ctx *chetypes.DeployContext) (reconci
 		}
 	}
 
-	if ctx.OIDCAuthentication.IssuerCA != "" {
+	if ctx.Authentication.IssuerCA != "" {
 		if done, err := c.syncIssuerCertificate(ctx); !done {
 			return reconcile.Result{}, false, err
 		}
@@ -332,7 +332,7 @@ func (c *CertificatesReconciler) syncIssuerCertificate(ctx *chetypes.DeployConte
 			Labels:    deploy.GetLabels(constants.CheCABundle),
 		},
 		Data: map[string]string{
-			"ca-bundle.crt": ctx.OIDCAuthentication.IssuerCA,
+			"ca-bundle.crt": ctx.Authentication.IssuerCA,
 		},
 	}
 

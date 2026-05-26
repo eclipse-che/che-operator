@@ -124,9 +124,9 @@ cookie_domains = "%s"
 %s
 `, GatewayServicePort,
 		ctx.CheHost,
-		ctx.OIDCAuthentication.IssuerURL,
-		ctx.OIDCAuthentication.OIDCClientId,
-		string(ctx.OIDCAuthentication.OIDCClientSecret),
+		ctx.Authentication.IssuerURL,
+		ctx.Authentication.ClientId,
+		string(ctx.Authentication.ClientSecret),
 		cookieSecret,
 		cookieExpireAsString(ctx.CheCluster),
 		utils.Whitelist(ctx.CheHost),

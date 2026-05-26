@@ -152,7 +152,7 @@ func (s *CheServerReconciler) getConfigMapData(ctx *chetypes.DeployContext) (che
 		CheLogLevel:                         cheLogLevel,
 		CheMetricsEnabled:                   cheMetricsEnabled,
 		CheInfrastructure:                   cheInfrastructure,
-		CheOIDCAuthServerUrl:                ctx.OIDCAuthentication.IssuerURL,
+		CheOIDCAuthServerUrl:                ctx.Authentication.IssuerURL,
 		NamespaceDefault:                    namespaceDefault,
 		NamespaceCreationAllowed:            namespaceCreationAllowed,
 		KubernetesLabels:                    kubernetesLabels,
@@ -313,8 +313,8 @@ func (s *CheServerReconciler) updateServerEndpointsEnv(ctx *chetypes.DeployConte
 }
 
 func (s *CheServerReconciler) updateOIDCClaimMappings(ctx *chetypes.DeployContext, cheEnv map[string]string) {
-	cheEnv["CHE_OIDC_GROUPS__CLAIM"] = ctx.OIDCAuthentication.GroupsClaim
-	cheEnv["CHE_OIDC_GROUPS__PREFIX"] = ctx.OIDCAuthentication.GroupsPrefix
-	cheEnv["CHE_OIDC_USERNAME__CLAIM"] = ctx.OIDCAuthentication.UsernameClaim
-	cheEnv["CHE_OIDC_USERNAME__PREFIX"] = ctx.OIDCAuthentication.UsernamePrefix
+	cheEnv["CHE_OIDC_GROUPS__CLAIM"] = ctx.Authentication.GroupsClaim
+	cheEnv["CHE_OIDC_GROUPS__PREFIX"] = ctx.Authentication.GroupsPrefix
+	cheEnv["CHE_OIDC_USERNAME__CLAIM"] = ctx.Authentication.UsernameClaim
+	cheEnv["CHE_OIDC_USERNAME__PREFIX"] = ctx.Authentication.UsernamePrefix
 }

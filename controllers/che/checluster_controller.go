@@ -235,7 +235,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		CheCluster: checluster,
 	}
 
-	// Read proxy configuration
+	// Resolve proxy configuration
 	proxy, err := GetProxyConfiguration(deployContext)
 	if err != nil {
 		r.Log.Error(err, "Error on reading proxy configuration")
@@ -243,12 +243,13 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 	deployContext.Proxy = proxy
 
-	oidcAuthentication, err := ResolveOIDCAuthentication(deployContext)
+	// Resolve authentication configuration
+	authentication, err := ResolveAuthentication(deployContext)
 	if err != nil {
-		r.Log.Error(err, "Error on resolving OIDC authentication")
+		r.Log.Error(err, "Error on resolving authentication")
 		return ctrl.Result{}, err
 	}
-	deployContext.OIDCAuthentication = oidcAuthentication
+	deployContext.Authentication = authentication
 
 	// Detect whether self-signed certificate is used
 	isSelfSignedCertificate, err := tls.IsSelfSignedCertificateUsed(deployContext)

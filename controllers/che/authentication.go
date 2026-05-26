@@ -15,12 +15,14 @@ package che
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	configv1 "github.com/openshift/api/config/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -28,29 +30,32 @@ const (
 	// See: https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/authentication_and_authorization/external-auth
 	openshiftConfigNamespace = "openshift-config"
 	issuerCAKey              = "ca-bundle.crt"
-
-	openShiftNamespaceOIDCClientSecretKey = "clientSecret"
-	cheNamespaceOIDCClientSecretKey       = "oAuthSecret"
+	oidcClientSecretKey      = "clientSecret"
 )
 
-// ResolveOIDCAuthentication builds an Authentication config from the CheCluster spec,
+// ResolveAuthentication builds an Authentication config from the CheCluster spec,
 // falling back to the OpenShift cluster Authentication resource for any unset fields.
-func ResolveOIDCAuthentication(ctx *chetypes.DeployContext) (*chetypes.OIDCAuthentication, error) {
-	authentication := &chetypes.OIDCAuthentication{
+func ResolveAuthentication(ctx *chetypes.DeployContext) (*chetypes.Authentication, error) {
+	authentication := &chetypes.Authentication{
 		UsernameClaim:  ctx.CheCluster.Spec.Components.CheServer.ExtraProperties["CHE_OIDC_USERNAME__CLAIM"],
 		UsernamePrefix: ctx.CheCluster.Spec.Components.CheServer.ExtraProperties["CHE_OIDC_USERNAME__PREFIX"],
 		GroupsClaim:    ctx.CheCluster.Spec.Components.CheServer.ExtraProperties["CHE_OIDC_GROUPS__CLAIM"],
 		GroupsPrefix:   ctx.CheCluster.Spec.Components.CheServer.ExtraProperties["CHE_OIDC_GROUPS__PREFIX"],
 		IssuerURL:      ctx.CheCluster.Spec.Networking.Auth.IdentityProviderURL,
-		OIDCClientId:   ctx.CheCluster.Spec.Networking.Auth.OAuthClientName,
+		// OIDC client ID must be explicitly defined; the openshift-console client
+		// cannot be reused because it has a different callback URL.
+		ClientId: ctx.CheCluster.Spec.Networking.Auth.OAuthClientName,
 	}
 
+	// must be outside main `if` condition
 	if ctx.CheCluster.Spec.Networking.Auth.OAuthSecret != "" {
-		oidcClientSecret, err := resolveOIDCClientSecret(ctx.CheCluster.Spec.Networking.Auth.OAuthSecret, ctx)
+		// `OAuthSecret` can be a Kubernetes Secret name in CheCluster namespace
+		// or a literal value; resolve accordingly.
+		clientSecret, err := resolveOAuthSecretInCheNamespace(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("failed to resolve OIDC client secret: %w", err)
+			return nil, fmt.Errorf("failed to resolve secret: %w", err)
 		}
-		authentication.OIDCClientSecret = oidcClientSecret
+		authentication.ClientSecret = clientSecret
 	}
 
 	if infrastructure.IsOpenShiftExternalAuth() {
@@ -74,70 +79,59 @@ func ResolveOIDCAuthentication(ctx *chetypes.DeployContext) (*chetypes.OIDCAuthe
 
 		oidcProvider := clusterAuthentication.Spec.OIDCProviders[0]
 
+		// issuer URL and certificate authority
 		if authentication.IssuerURL == "" {
 			authentication.IssuerURL = oidcProvider.Issuer.URL
 
-			// Sync issuer CA
 			if oidcProvider.Issuer.CertificateAuthority.Name != "" {
-				issuerCA, err := readIssuerCA(
-					oidcProvider.Issuer.CertificateAuthority.Name,
-					openshiftConfigNamespace,
-					ctx,
-				)
+				issuerCA, err := readIssuerCA(oidcProvider.Issuer.CertificateAuthority.Name, ctx)
 				if err != nil {
-					return nil, fmt.Errorf("failed to sync issuer CA: %w", err)
+					return nil, fmt.Errorf("failed to read issuer CA: %w", err)
 				}
 				authentication.IssuerCA = issuerCA
 			}
 		}
 
-		if authentication.UsernameClaim == "" {
-			authentication.UsernameClaim = oidcProvider.ClaimMappings.Username.Claim
-		}
-
-		if authentication.UsernamePrefix == "" {
-			if authentication.UsernamePrefix == "" {
-				switch oidcProvider.ClaimMappings.Username.PrefixPolicy {
-				case configv1.NoOpinion:
-					if authentication.UsernameClaim != "email" {
-						authentication.UsernamePrefix = fmt.Sprintf("%s#", authentication.IssuerURL)
-					}
-				case configv1.Prefix:
-					if oidcProvider.ClaimMappings.Username.Prefix != nil {
-						authentication.UsernamePrefix = oidcProvider.ClaimMappings.Username.Prefix.PrefixString
-					}
-				}
-			}
-		}
-
+		// username/groups claim mappings
 		if authentication.GroupsClaim == "" {
 			authentication.GroupsClaim = oidcProvider.ClaimMappings.Groups.Claim
 		}
-
 		if authentication.GroupsPrefix == "" {
 			authentication.GroupsPrefix = oidcProvider.ClaimMappings.Groups.Prefix
 		}
 
-		if authentication.OIDCClientId == "" {
-			// Reuse the console's OIDC client credentials when no explicit client is configured.
-			for _, oidcClient := range oidcProvider.OIDCClients {
-				if oidcClient.ComponentName == "console" {
-					authentication.OIDCClientId = oidcClient.ClientID
-
-					if oidcClient.ClientSecret.Name != "" {
-						oidcClientSecret, err := readOIDCClientSecretFromOpenShiftNamespace(oidcClient.ClientSecret.Name, ctx)
-						if err != nil {
-							return nil, fmt.Errorf("failed to read OIDC client secret: %w", err)
-						}
-						authentication.OIDCClientSecret = oidcClientSecret
-					}
-
-					break
+		if authentication.UsernameClaim == "" {
+			authentication.UsernameClaim = oidcProvider.ClaimMappings.Username.Claim
+		}
+		if authentication.UsernamePrefix == "" {
+			switch oidcProvider.ClaimMappings.Username.PrefixPolicy {
+			case configv1.NoOpinion:
+				// See `NoOpinion` description
+				if authentication.UsernameClaim != "email" {
+					authentication.UsernamePrefix = fmt.Sprintf("%s#", authentication.IssuerURL)
+				}
+			case configv1.Prefix:
+				if oidcProvider.ClaimMappings.Username.Prefix != nil {
+					authentication.UsernamePrefix = oidcProvider.ClaimMappings.Username.Prefix.PrefixString
 				}
 			}
+		}
 
-			if authentication.OIDCClientId == "" {
-				return nil, fmt.Errorf("failed to find `openshift-console` OIDC client")
+		// client secret
+		if len(authentication.ClientSecret) == 0 {
+			idx := slices.IndexFunc(oidcProvider.OIDCClients, func(config configv1.OIDCClientConfig) bool {
+				return config.ClientID == authentication.ClientId
+			})
+
+			if idx != -1 {
+				oidcClient := oidcProvider.OIDCClients[idx]
+				if oidcClient.ClientSecret.Name != "" {
+					clientSecret, err := resolveClientSecretInOpenShiftConfigNamespace(oidcClient.ClientSecret.Name, ctx)
+					if err != nil {
+						return nil, fmt.Errorf("failed to read client secret: %w", err)
+					}
+					authentication.ClientSecret = clientSecret
+				}
 			}
 		}
 	}
@@ -145,75 +139,66 @@ func ResolveOIDCAuthentication(ctx *chetypes.DeployContext) (*chetypes.OIDCAuthe
 	return authentication, nil
 }
 
-func readOIDCClientSecretFromOpenShiftNamespace(oidcClientSecretName string, ctx *chetypes.DeployContext) ([]byte, error) {
+func resolveClientSecretInOpenShiftConfigNamespace(secretName string, ctx *chetypes.DeployContext) ([]byte, error) {
 	secret := &corev1.Secret{}
-
-	// Use client instead of wrapper in order to catch all errors including NotFound
 	err := ctx.ClusterAPI.NonCachingClient.Get(
 		context.TODO(),
-		types.NamespacedName{
-			Name:      oidcClientSecretName,
-			Namespace: openshiftConfigNamespace,
-		},
+		types.NamespacedName{Name: secretName, Namespace: openshiftConfigNamespace},
 		secret,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	value, ok := secret.Data[openShiftNamespaceOIDCClientSecretKey]
-	if !ok {
-		return nil, fmt.Errorf("no client secret found")
-	}
-
-	return value, nil
-}
-
-func resolveOIDCClientSecret(oidcClientSecret string, ctx *chetypes.DeployContext) ([]byte, error) {
-	secret := &corev1.Secret{}
-
-	// treat as Secret name first
-	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-		context.TODO(),
-		types.NamespacedName{
-			Name:      oidcClientSecret,
-			Namespace: ctx.CheCluster.Namespace,
-		},
-		secret,
-	)
-	if err != nil {
-		return nil, err
-	} else if exists {
-		value, ok := secret.Data[cheNamespaceOIDCClientSecretKey]
-		if !ok {
-			return nil, fmt.Errorf("failed to fetch OIDC client secret: no client secret found")
-		}
-
+	value, ok := secret.Data[oidcClientSecretKey]
+	if ok {
 		return value, nil
 	}
 
-	// Backward compatibility: treat OIDCClientSecretName as a literal secret value, not a reference.
-	return []byte(oidcClientSecret), nil
+	return nil, fmt.Errorf("client secret not found in: %s", secretName)
 }
 
-func readIssuerCA(
-	issuerCAConfigMapName string,
-	issuerCAConfigMapNamespace string,
-	ctx *chetypes.DeployContext,
-) (string, error) {
-	cm := &corev1.ConfigMap{}
+func resolveOAuthSecretInCheNamespace(ctx *chetypes.DeployContext) ([]byte, error) {
+	secrets, err := ctx.ClusterAPI.ClientWrapper.List(
+		context.TODO(),
+		&corev1.SecretList{},
+		&client.ListOptions{Namespace: ctx.CheCluster.Namespace},
+	)
+	if err != nil {
+		return nil, err
+	}
 
+	for _, obj := range secrets {
+		secret := obj.(*corev1.Secret)
+		if secret.Name == ctx.CheCluster.Spec.Networking.Auth.OAuthSecret {
+			value, ok := secret.Data["oAuthSecret"]
+			if ok {
+				return value, nil
+			}
+
+			return nil, fmt.Errorf("client secret not found in: %s", ctx.CheCluster.Spec.Networking.Auth.OAuthSecret)
+		}
+	}
+
+	// Backward compatibility: treat as a literal secret value, not a reference.
+	return []byte(ctx.CheCluster.Spec.Networking.Auth.OAuthSecret), nil
+}
+
+func readIssuerCA(cmName string, ctx *chetypes.DeployContext) (string, error) {
+	cm := &corev1.ConfigMap{}
 	err := ctx.ClusterAPI.NonCachingClient.Get(
 		context.TODO(),
-		types.NamespacedName{
-			Name:      issuerCAConfigMapName,
-			Namespace: issuerCAConfigMapNamespace,
-		},
+		types.NamespacedName{Name: cmName, Namespace: openshiftConfigNamespace},
 		cm,
 	)
 	if err != nil {
 		return "", err
 	}
 
-	return cm.Data[issuerCAKey], nil
+	ca, ok := cm.Data[issuerCAKey]
+	if !ok {
+		return "", fmt.Errorf("issuer CA not found in the ConfigMap %s", cmName)
+	}
+
+	return ca, nil
 }
