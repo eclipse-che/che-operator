@@ -80,6 +80,9 @@ func TestResolveOIDCAuthentication(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "my-secret",
 						Namespace: "eclipse-che",
+						Labels: map[string]string{
+							"app.kubernetes.io/part-of": "eclipse-che",
+						},
 					},
 					Data: map[string][]byte{
 						"oAuthSecret": []byte("secret-value"),

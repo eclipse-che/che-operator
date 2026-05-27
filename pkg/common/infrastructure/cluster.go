@@ -54,12 +54,13 @@ func GetOperatorNamespace() (string, error) {
 			operatorNamespace = strings.TrimSpace(string(nsBytes))
 		}
 
+		// for the purpose of local run
 		namespace, ok := os.LookupEnv("WATCH_NAMESPACE")
 		if !ok {
 			return "", fmt.Errorf("WATCH_NAMESPACE environment variable not set")
 		}
 
-		return namespace, nil
+		operatorNamespace = namespace
 	}
 
 	return operatorNamespace, nil

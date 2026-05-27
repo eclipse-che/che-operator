@@ -22,7 +22,6 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -79,10 +78,13 @@ func ResolveAuthentication(ctx *chetypes.DeployContext) (*chetypes.Authenticatio
 
 		oidcProvider := clusterAuthentication.Spec.OIDCProviders[0]
 
-		// issuer URL and certificate authority
+		// issuer URL
 		if authentication.IssuerURL == "" {
 			authentication.IssuerURL = oidcProvider.Issuer.URL
+		}
 
+		// issuer certificate authority
+		if authentication.IssuerURL == oidcProvider.Issuer.URL {
 			if oidcProvider.Issuer.CertificateAuthority.Name != "" {
 				issuerCA, err := readIssuerCA(oidcProvider.Issuer.CertificateAuthority.Name, ctx)
 				if err != nil {
@@ -159,25 +161,25 @@ func resolveClientSecretInOpenShiftConfigNamespace(secretName string, ctx *chety
 }
 
 func resolveOAuthSecretInCheNamespace(ctx *chetypes.DeployContext) ([]byte, error) {
-	secrets, err := ctx.ClusterAPI.ClientWrapper.List(
+	secret := &corev1.Secret{}
+	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
 		context.TODO(),
-		&corev1.SecretList{},
-		&client.ListOptions{Namespace: ctx.CheCluster.Namespace},
+		types.NamespacedName{
+			Name:      ctx.CheCluster.Spec.Networking.Auth.OAuthSecret,
+			Namespace: ctx.CheCluster.Namespace,
+		},
+		secret,
 	)
 	if err != nil {
 		return nil, err
 	}
-
-	for _, obj := range secrets {
-		secret := obj.(*corev1.Secret)
-		if secret.Name == ctx.CheCluster.Spec.Networking.Auth.OAuthSecret {
-			value, ok := secret.Data["oAuthSecret"]
-			if ok {
-				return value, nil
-			}
-
-			return nil, fmt.Errorf("client secret not found in: %s", ctx.CheCluster.Spec.Networking.Auth.OAuthSecret)
+	if exists {
+		value, ok := secret.Data["oAuthSecret"]
+		if ok {
+			return value, nil
 		}
+
+		return nil, fmt.Errorf("client secret not found in: %s", ctx.CheCluster.Spec.Networking.Auth.OAuthSecret)
 	}
 
 	// Backward compatibility: treat as a literal secret value, not a reference.
