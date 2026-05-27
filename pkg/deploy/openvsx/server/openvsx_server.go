@@ -94,9 +94,11 @@ func (r *OpenVSXServerReconciler) syncService(ctx *chetypes.DeployContext) (bool
 }
 
 func (r *OpenVSXServerReconciler) exposeEndpoint(ctx *chetypes.DeployContext) (string, bool, error) {
-	return expose.Expose(
+	return expose.ExposeWithHostPath(
 		ctx,
 		constants.OpenVSXServerName,
+		"",
+		openVSXPathPrefix,
 		r.createGatewayConfig())
 }
 

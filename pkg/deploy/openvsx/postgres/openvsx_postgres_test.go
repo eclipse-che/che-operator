@@ -57,7 +57,7 @@ func TestGetDeploymentSpec(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
 						OpenVSX: chev2.OpenVSX{
-							Enabled: true,
+							Enable: true,
 						},
 					},
 				},
@@ -77,7 +77,7 @@ func TestGetDeploymentSpec(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
 						OpenVSX: chev2.OpenVSX{
-							Enabled: true,
+							Enable: true,
 							Postgres: &chev2.OpenVSXPostgres{
 								Deployment: &chev2.Deployment{
 									Containers: []chev2.Container{
@@ -135,7 +135,7 @@ func TestDeploymentSpecVolumes(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
 				OpenVSX: chev2.OpenVSX{
-					Enabled: true,
+					Enable: true,
 				},
 			},
 		},
@@ -164,7 +164,7 @@ func TestReconcileCreatesResources(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
 				OpenVSX: chev2.OpenVSX{
-					Enabled: true,
+					Enable: true,
 				},
 			},
 		},
@@ -188,7 +188,7 @@ func TestReconcileDeletesResourcesWhenDisabled(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
 				OpenVSX: chev2.OpenVSX{
-					Enabled: true,
+					Enable: true,
 				},
 			},
 		},
@@ -199,7 +199,7 @@ func TestReconcileDeletesResourcesWhenDisabled(t *testing.T) {
 
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXPostgresName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 
-	ctx.CheCluster.Spec.Components.OpenVSX.Enabled = false
+	ctx.CheCluster.Spec.Components.OpenVSX.Enable = false
 	err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
 	assert.NoError(t, err)
 
@@ -220,7 +220,7 @@ func TestReconcileSecretNotRecreated(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
 				OpenVSX: chev2.OpenVSX{
-					Enabled: true,
+					Enable: true,
 				},
 			},
 		},
@@ -255,7 +255,7 @@ func TestReconcileCustomClaimSize(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
 				OpenVSX: chev2.OpenVSX{
-					Enabled: true,
+					Enable: true,
 					Postgres: &chev2.OpenVSXPostgres{
 						ClaimSize: "5Gi",
 					},
@@ -282,7 +282,7 @@ func TestDeploymentSpecEnvVars(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
 				OpenVSX: chev2.OpenVSX{
-					Enabled: true,
+					Enable: true,
 				},
 			},
 		},

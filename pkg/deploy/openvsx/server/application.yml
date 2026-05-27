@@ -48,6 +48,8 @@ server:
 
 management:
   health:
+    elasticsearch:
+      enabled: false
     redis:
       enabled: false
     probes:

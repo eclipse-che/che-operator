@@ -38,7 +38,7 @@ func TestReconcileCreatesResources(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
 				OpenVSX: chev2.OpenVSX{
-					Enabled: true,
+					Enable: true,
 				},
 			},
 		},
@@ -63,7 +63,7 @@ func TestReconcileDeletesResourcesWhenDisabled(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
 				OpenVSX: chev2.OpenVSX{
-					Enabled: true,
+					Enable: true,
 				},
 			},
 		},
@@ -75,7 +75,7 @@ func TestReconcileDeletesResourcesWhenDisabled(t *testing.T) {
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 	assert.NotEmpty(t, ctx.CheCluster.Status.OpenVSXURL)
 
-	ctx.CheCluster.Spec.Components.OpenVSX.Enabled = false
+	ctx.CheCluster.Spec.Components.OpenVSX.Enable = false
 	err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
 	assert.NoError(t, err)
 
@@ -100,7 +100,7 @@ func TestReconcileSetsOpenVSXURL(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
 				OpenVSX: chev2.OpenVSX{
-					Enabled: true,
+					Enable: true,
 				},
 			},
 		},
@@ -109,7 +109,7 @@ func TestReconcileSetsOpenVSXURL(t *testing.T) {
 	reconciler := NewOpenVSXServerReconciler()
 	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
 
-	assert.Equal(t, "https://che-host/openvsx-server", ctx.CheCluster.Status.OpenVSXURL)
+	assert.Equal(t, "https://che-host/openvsx", ctx.CheCluster.Status.OpenVSXURL)
 }
 
 func TestGatewayConfig(t *testing.T) {
@@ -151,7 +151,7 @@ func TestGetDeploymentSpec(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
 						OpenVSX: chev2.OpenVSX{
-							Enabled: true,
+							Enable: true,
 						},
 					},
 				},
@@ -171,7 +171,7 @@ func TestGetDeploymentSpec(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
 						OpenVSX: chev2.OpenVSX{
-							Enabled: true,
+							Enable: true,
 							Server: &chev2.OpenVSXServer{
 								Deployment: &chev2.Deployment{
 									Containers: []chev2.Container{
@@ -229,7 +229,7 @@ func TestDeploymentSpecEnvVars(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
 				OpenVSX: chev2.OpenVSX{
-					Enabled: true,
+					Enable: true,
 				},
 			},
 		},
@@ -263,7 +263,7 @@ func TestDeploymentSpecProbes(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
 				OpenVSX: chev2.OpenVSX{
-					Enabled: true,
+					Enable: true,
 				},
 			},
 		},
@@ -296,7 +296,7 @@ func TestDeploymentSpecVolumes(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
 				OpenVSX: chev2.OpenVSX{
-					Enabled: true,
+					Enable: true,
 				},
 			},
 		},

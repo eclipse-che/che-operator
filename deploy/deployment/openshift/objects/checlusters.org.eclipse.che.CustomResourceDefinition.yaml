@@ -12102,7 +12102,7 @@ spec:
                       OpenVSX registry configuration.
                       When enabled, the operator manages an OpenVSX server and PostgreSQL database.
                     properties:
-                      enabled:
+                      enable:
                         description: |-
                           Enables managing OpenVSX as an operand.
                           When enabled, the operator deploys and manages an OpenVSX server instance

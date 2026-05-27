@@ -134,7 +134,7 @@ func TestValidateOpenVSXClaimSize(t *testing.T) {
 		Spec: CheClusterSpec{
 			Components: CheClusterComponents{
 				OpenVSX: OpenVSX{
-					Enabled: true,
+					Enable: true,
 					Postgres: &OpenVSXPostgres{
 						ClaimSize: "5Gi",
 					},
@@ -158,7 +158,7 @@ func TestValidateOpenVSXClaimSizeInvalid(t *testing.T) {
 		Spec: CheClusterSpec{
 			Components: CheClusterComponents{
 				OpenVSX: OpenVSX{
-					Enabled: true,
+					Enable: true,
 					Postgres: &OpenVSXPostgres{
 						ClaimSize: "invalid",
 					},
