@@ -280,6 +280,10 @@ type CheClusterComponents struct {
 	// Configuration settings related to the dashboard used by the Che installation.
 	// +optional
 	Dashboard Dashboard `json:"dashboard"`
+	// OpenVSX registry configuration.
+	// When enabled, the operator manages an OpenVSX server and PostgreSQL database.
+	// +optional
+	OpenVSX OpenVSX `json:"openVSX"`
 	// Kubernetes Image Puller configuration.
 	// +optional
 	ImagePuller ImagePuller `json:"imagePuller"`
@@ -443,6 +447,53 @@ type PluginRegistry struct {
 	// Open VSX registry URL. If omitted an embedded instance will be used.
 	// +optional
 	OpenVSXURL *string `json:"openVSXURL,omitempty"`
+}
+
+// Configuration settings related to the OpenVSX registry managed by the Che installation.
+// +k8s:openapi-gen=true
+type OpenVSX struct {
+	// Enables managing OpenVSX as an operand.
+	// When enabled, the operator deploys and manages an OpenVSX server instance
+	// and auto-populates pluginRegistry.openVSXURL with the managed instance URL.
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
+	// OpenVSX server configuration.
+	// +optional
+	Server *OpenVSXServer `json:"server,omitempty"`
+	// OpenVSX WebUI configuration. Serves the React-based frontend on port 3000.
+	// +optional
+	WebUI *OpenVSXWebUI `json:"webUI,omitempty"`
+	// PostgreSQL database configuration for OpenVSX.
+	// +optional
+	Postgres *OpenVSXPostgres `json:"postgres,omitempty"`
+}
+
+// OpenVSX server component configuration.
+// +k8s:openapi-gen=true
+type OpenVSXServer struct {
+	// Deployment override options.
+	// +optional
+	Deployment *Deployment `json:"deployment,omitempty"`
+}
+
+// OpenVSX WebUI component configuration.
+// +k8s:openapi-gen=true
+type OpenVSXWebUI struct {
+	// Deployment override options.
+	// +optional
+	Deployment *Deployment `json:"deployment,omitempty"`
+}
+
+// PostgreSQL configuration for OpenVSX.
+// +k8s:openapi-gen=true
+type OpenVSXPostgres struct {
+	// Deployment override options.
+	// +optional
+	Deployment *Deployment `json:"deployment,omitempty"`
+	// PVC claim size for PostgreSQL data. Defaults to 1Gi.
+	// +optional
+	// +kubebuilder:default:="1Gi"
+	ClaimSize string `json:"claimSize,omitempty"`
 }
 
 // Configuration settings related to the devfile registry used by the Che installation.
@@ -1034,6 +1085,12 @@ type CheClusterStatus struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Plugin registry URL"
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors="urn:alm:descriptor:org.w3:link"
 	PluginRegistryURL string `json:"pluginRegistryURL"`
+	// The public URL of the managed OpenVSX registry.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="OpenVSX registry URL"
+	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors="urn:alm:descriptor:org.w3:link"
+	OpenVSXURL string `json:"openVSXURL,omitempty"`
 	// A human readable message indicating details about why the Che deployment is in the current phase.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
@@ -1172,6 +1229,11 @@ func (c *CheCluster) IsEmbeddedOpenVSXRegistryConfigured() bool {
 
 func (c *CheCluster) IsInternalPluginRegistryDisabled() bool {
 	return c.Spec.Components.PluginRegistry.DisableInternalRegistry || !c.IsEmbeddedOpenVSXRegistryConfigured()
+}
+
+// IsOpenVSXOperandEnabled returns true if the OpenVSX operand is enabled.
+func (c *CheCluster) IsOpenVSXOperandEnabled() bool {
+	return c.Spec.Components.OpenVSX.Enabled
 }
 
 // IsCheBeingInstalled returns true if the Che version is not set in the status.

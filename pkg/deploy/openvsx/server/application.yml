@@ -1,0 +1,91 @@
+#
+# Copyright (c) 2019-2026 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Red Hat, Inc. - initial API and implementation
+#
+
+spring:
+  application:
+    name: openvsx-server
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.actuate.autoconfigure.tracing.zipkin.ZipkinAutoConfiguration
+  profiles:
+    include: ovsx
+  cache:
+    jcache:
+      config: classpath:ehcache.xml
+  datasource:
+    url: jdbc:postgresql://openvsx-postgres:5432/openvsx
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 0.1.0
+    baseline-description: JobRunr tables
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: none
+  session:
+    store-type: jdbc
+    jdbc:
+      initialize-schema: never
+  thymeleaf:
+    enabled: false
+
+server:
+  port: 8080
+
+management:
+  health:
+    redis:
+      enabled: false
+    probes:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+
+org:
+  jobrunr:
+    job-scheduler:
+      enabled: true
+    background-job-server:
+      enabled: true
+      worker-count: 2
+    dashboard:
+      enabled: false
+    database:
+      type: sql
+    miscellaneous:
+      allow-anonymous-data-usage: false
+
+bucket4j:
+  enabled: false
+
+ovsx:
+  databasesearch:
+    enabled: true
+  elasticsearch:
+    enabled: false
+  redis:
+    enabled: false
+  integrity:
+    key-pair: create
+  registry:
+    version: 'v0.34.6'
+  storage:
+    local:
+      directory: /tmp/extensions

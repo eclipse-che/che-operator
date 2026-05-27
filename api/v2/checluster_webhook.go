@@ -24,6 +24,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/json"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -140,6 +141,10 @@ func (r *CheClusterValidator) ensureSingletonCheCluster() error {
 }
 
 func (r *CheClusterValidator) validate(checluster *CheCluster) error {
+	if err := r.validateOpenVSX(checluster); err != nil {
+		return err
+	}
+
 	for _, github := range checluster.Spec.GitServices.GitHub {
 		if err := r.validateOAuthSecret(github.SecretName, "github", github.Endpoint, github.DisableSubdomainIsolation, checluster.Namespace); err != nil {
 			return err
@@ -268,6 +273,15 @@ func (r *CheClusterValidator) ensureScmLabelsAndAnnotations(secret *corev1.Secre
 		return err
 	}
 
+	return nil
+}
+
+func (r *CheClusterValidator) validateOpenVSX(checluster *CheCluster) error {
+	if checluster.Spec.Components.OpenVSX.Postgres != nil && checluster.Spec.Components.OpenVSX.Postgres.ClaimSize != "" {
+		if _, err := resource.ParseQuantity(checluster.Spec.Components.OpenVSX.Postgres.ClaimSize); err != nil {
+			return fmt.Errorf("invalid spec.components.openVSX.postgres.claimSize: %v", err)
+		}
+	}
 	return nil
 }
 

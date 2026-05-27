@@ -260,6 +260,11 @@ spec:
             path: message
             x-descriptors:
               - urn:alm:descriptor:text
+          - description: The public URL of the managed OpenVSX registry.
+            displayName: OpenVSX registry URL
+            path: openVSXURL
+            x-descriptors:
+              - urn:alm:descriptor:org.w3:link
           - description: The public URL of the internal plug-in registry.
             displayName: Plugin registry URL
             path: pluginRegistryURL
@@ -986,6 +991,12 @@ spec:
                         value: quay.io/brancz/kube-rbac-proxy:v0.22.0
                       - name: RELATED_IMAGE_gateway_header_sidecar
                         value: quay.io/che-incubator/header-rewrite-proxy:latest
+                      - name: RELATED_IMAGE_openvsx_server
+                        value: ghcr.io/eclipse-openvsx/openvsx-server:v0.34.6
+                      - name: RELATED_IMAGE_openvsx_webui
+                        value: ghcr.io/eclipse-openvsx/openvsx-webui:v0.34.6
+                      - name: RELATED_IMAGE_openvsx_postgres
+                        value: quay.io/sclorg/postgresql-16-c9s:20260319
                       - name: CHE_FLAVOR
                         value: che
                       - name: CONSOLE_LINK_NAME
@@ -1153,6 +1164,12 @@ spec:
       name: gateway-authorization-sidecar
     - image: quay.io/che-incubator/header-rewrite-proxy:latest
       name: gateway-header-sidecar
+    - image: ghcr.io/eclipse-openvsx/openvsx-server:v0.34.6
+      name: openvsx-server
+    - image: ghcr.io/eclipse-openvsx/openvsx-webui:v0.34.6
+      name: openvsx-webui
+    - image: quay.io/sclorg/postgresql-16-c9s:20260319
+      name: openvsx-postgres
   version: 7.120.0-991.next
   webhookdefinitions:
     - admissionReviewVersions:
