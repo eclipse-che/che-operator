@@ -37,7 +37,7 @@ func TestReconcileCreatesResources(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
 				OpenVSX: chev2.OpenVSX{
-					Enabled: true,
+					Enable: true,
 				},
 			},
 		},
@@ -60,7 +60,7 @@ func TestReconcileDeletesResourcesWhenDisabled(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
 				OpenVSX: chev2.OpenVSX{
-					Enabled: true,
+					Enable: true,
 				},
 			},
 		},
@@ -71,7 +71,7 @@ func TestReconcileDeletesResourcesWhenDisabled(t *testing.T) {
 
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXWebUIName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 
-	ctx.CheCluster.Spec.Components.OpenVSX.Enabled = false
+	ctx.CheCluster.Spec.Components.OpenVSX.Enable = false
 	err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
 	assert.NoError(t, err)
 
@@ -89,6 +89,11 @@ func TestGatewayConfig(t *testing.T) {
 	assert.Contains(t, cfg.HTTP.Routers[constants.OpenVSXWebUIName].Rule, "PathPrefix(`/openvsx`)")
 	assert.Equal(t, 10, cfg.HTTP.Routers[constants.OpenVSXWebUIName].Priority)
 	assert.Equal(t, "http://"+constants.OpenVSXWebUIName+":3000", cfg.HTTP.Services[constants.OpenVSXWebUIName].LoadBalancer.Servers[0].URL)
+
+	assetsRouter := cfg.HTTP.Routers[constants.OpenVSXWebUIName+"-assets"]
+	assert.NotNil(t, assetsRouter)
+	assert.Equal(t, 5, assetsRouter.Priority)
+	assert.Equal(t, constants.OpenVSXWebUIName, assetsRouter.Service)
 }
 
 func TestGetDeploymentSpec(t *testing.T) {
@@ -121,7 +126,7 @@ func TestGetDeploymentSpec(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
 						OpenVSX: chev2.OpenVSX{
-							Enabled: true,
+							Enable: true,
 						},
 					},
 				},
@@ -141,7 +146,7 @@ func TestGetDeploymentSpec(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
 						OpenVSX: chev2.OpenVSX{
-							Enabled: true,
+							Enable: true,
 							WebUI: &chev2.OpenVSXWebUI{
 								Deployment: &chev2.Deployment{
 									Containers: []chev2.Container{
@@ -199,7 +204,7 @@ func TestDeploymentSpecProbes(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
 				OpenVSX: chev2.OpenVSX{
-					Enabled: true,
+					Enable: true,
 				},
 			},
 		},

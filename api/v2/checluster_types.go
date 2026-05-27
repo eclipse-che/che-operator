@@ -456,7 +456,7 @@ type OpenVSX struct {
 	// When enabled, the operator deploys and manages an OpenVSX server instance
 	// and auto-populates pluginRegistry.openVSXURL with the managed instance URL.
 	// +optional
-	Enabled bool `json:"enabled,omitempty"`
+	Enable bool `json:"enable,omitempty"`
 	// OpenVSX server configuration.
 	// +optional
 	Server *OpenVSXServer `json:"server,omitempty"`
@@ -1233,7 +1233,7 @@ func (c *CheCluster) IsInternalPluginRegistryDisabled() bool {
 
 // IsOpenVSXOperandEnabled returns true if the OpenVSX operand is enabled.
 func (c *CheCluster) IsOpenVSXOperandEnabled() bool {
-	return c.Spec.Components.OpenVSX.Enabled
+	return c.Spec.Components.OpenVSX.Enable
 }
 
 // IsCheBeingInstalled returns true if the Che version is not set in the status.

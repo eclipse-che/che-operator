@@ -92,10 +92,21 @@ func (r *OpenVSXWebUIReconciler) syncDeployment(ctx *chetypes.DeployContext) (bo
 }
 
 func (r *OpenVSXWebUIReconciler) createGatewayConfig() *gateway.TraefikConfig {
-	return gateway.CreateCommonTraefikConfig(
+	serviceAddr := "http://" + constants.OpenVSXWebUIName + ":3000"
+	cfg := gateway.CreateCommonTraefikConfig(
 		constants.OpenVSXWebUIName,
 		fmt.Sprintf("PathPrefix(`%s`)", openVSXPathPrefix),
 		10,
-		"http://"+constants.OpenVSXWebUIName+":3000",
+		serviceAddr,
 		[]string{openVSXPathPrefix})
+
+	assetsRouter := constants.OpenVSXWebUIName + "-assets"
+	cfg.HTTP.Routers[assetsRouter] = &gateway.TraefikConfigRouter{
+		Rule:        "Path(`/favicon.ico`) || Path(`/default-icon.png`) || PathRegexp(`^/[^/]+\\.(js|css|js\\.map)$`)",
+		Service:     constants.OpenVSXWebUIName,
+		Middlewares: []string{},
+		Priority:    5,
+	}
+
+	return cfg
 }
