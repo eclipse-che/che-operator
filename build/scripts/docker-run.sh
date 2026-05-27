@@ -28,7 +28,7 @@ init() {
 # Build image
 build() {
   printf "%bBuilding image %b${IMAGE_NAME}${NC}..." "${BOLD}" "${BLUE}"
-  if docker build -t ${IMAGE_NAME} > docker-build-log 2>&1  -<<EOF
+  if podman build -t ${IMAGE_NAME} > docker-build-log 2>&1  -<<EOF
   FROM docker.io/golang:1.25-bookworm
   RUN apt update && apt install python3-pip skopeo jq rsync unzip -y && \
     pip install --break-system-packages yq && \
@@ -58,7 +58,7 @@ fi
 
 run() {
   printf "%bRunning%b $*\n" "${BOLD}" "${NC}"
-  if docker run --rm -it -v "${GIT_ROOT_DIRECTORY}":/che-operator ${IMAGE_NAME} "$@"
+  if podman run --rm -it -v "${GIT_ROOT_DIRECTORY}":/che-operator ${IMAGE_NAME} "$@"
   then
     printf "Script execution %b[OK]%b\n" "${GREEN}" "${NC}"
   else

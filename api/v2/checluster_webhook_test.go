@@ -123,6 +123,55 @@ func TestValidateScmSecrets(t *testing.T) {
 	assert.Equal(t, constants.CheEclipseOrg, bitbucketSecret.Labels[constants.KubernetesPartOfLabelKey])
 }
 
+func TestValidateOpenVSXClaimSize(t *testing.T) {
+	cheClusterValidator := CheClusterValidator{}
+
+	checluster := &CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+		Spec: CheClusterSpec{
+			Components: CheClusterComponents{
+				OpenVSX: OpenVSX{
+					Enabled: true,
+					Postgres: &OpenVSXPostgres{
+						ClaimSize: "5Gi",
+					},
+				},
+			},
+		},
+	}
+
+	err := cheClusterValidator.validate(checluster)
+	assert.NoError(t, err)
+}
+
+func TestValidateOpenVSXClaimSizeInvalid(t *testing.T) {
+	cheClusterValidator := CheClusterValidator{}
+
+	checluster := &CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+		Spec: CheClusterSpec{
+			Components: CheClusterComponents{
+				OpenVSX: OpenVSX{
+					Enabled: true,
+					Postgres: &OpenVSXPostgres{
+						ClaimSize: "invalid",
+					},
+				},
+			},
+		},
+	}
+
+	err := cheClusterValidator.validate(checluster)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid spec.components.openVSX.postgres.claimSize")
+}
+
 func TestValidateScmSecretsShouldThrowError(t *testing.T) {
 	checluster := &CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
