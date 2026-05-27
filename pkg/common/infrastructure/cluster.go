@@ -52,15 +52,17 @@ func GetOperatorNamespace() (string, error) {
 		nsBytes, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 		if err == nil {
 			operatorNamespace = strings.TrimSpace(string(nsBytes))
+			return operatorNamespace, nil
 		}
 
 		// for the purpose of local run
 		namespace, ok := os.LookupEnv("WATCH_NAMESPACE")
-		if !ok {
-			return "", fmt.Errorf("WATCH_NAMESPACE environment variable not set")
+		if ok {
+			operatorNamespace = namespace
+			return operatorNamespace, nil
 		}
 
-		operatorNamespace = namespace
+		return "", fmt.Errorf("operator namespace is not set")
 	}
 
 	return operatorNamespace, nil

@@ -27,6 +27,7 @@ import (
 
 type oidcAuthResult struct {
 	IssuerURL        string
+	IssuerCA         string
 	OIDCClientId     string
 	OIDCClientSecret string
 	UsernameClaim    string
@@ -111,8 +112,7 @@ func TestResolveOIDCAuthentication(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					Networking: chev2.CheClusterSpecNetworking{
 						Auth: chev2.Auth{
-							IdentityProviderURL: "https://oidc.example.com",
-							OAuthClientName:     "che-client",
+							OAuthClientName: "che-client",
 						},
 					},
 				},
@@ -202,6 +202,282 @@ func TestResolveOIDCAuthentication(t *testing.T) {
 				OIDCClientSecret: "literal-secret-value",
 			},
 		},
+		{
+			name:         "OpenShift: IssuerCA not resolved when issuer URLs differ",
+			isOpenShift:  true,
+			oAuthEnabled: false,
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Networking: chev2.CheClusterSpecNetworking{
+						Auth: chev2.Auth{
+							IdentityProviderURL: "https://custom-oidc.example.com",
+							OAuthClientName:     "che-client",
+						},
+					},
+				},
+			},
+			initObjects: []client.Object{
+				&configv1.Authentication{
+					ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
+					Spec: configv1.AuthenticationSpec{
+						Type: configv1.AuthenticationTypeOIDC,
+						OIDCProviders: []configv1.OIDCProvider{
+							{
+								Name: "my-oidc",
+								Issuer: configv1.TokenIssuer{
+									URL:                  "https://cluster-oidc.example.com",
+									CertificateAuthority: configv1.ConfigMapNameReference{Name: "issuer-ca"},
+								},
+							},
+						},
+					},
+				},
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "issuer-ca",
+						Namespace: "openshift-config",
+					},
+					Data: map[string]string{
+						"ca-bundle.crt": "should-not-be-used",
+					},
+				},
+			},
+			expectedAuth: &oidcAuthResult{
+				IssuerURL:    "https://custom-oidc.example.com",
+				OIDCClientId: "che-client",
+				IssuerCA:     "",
+			},
+		},
+		{
+			name:         "OpenShift: UsernamePrefix with NoOpinion policy and claim is email",
+			isOpenShift:  true,
+			oAuthEnabled: false,
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Networking: chev2.CheClusterSpecNetworking{
+						Auth: chev2.Auth{
+							IdentityProviderURL: "https://oidc.example.com",
+							OAuthClientName:     "che-client",
+						},
+					},
+				},
+			},
+			initObjects: []client.Object{
+				&configv1.Authentication{
+					ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
+					Spec: configv1.AuthenticationSpec{
+						Type: configv1.AuthenticationTypeOIDC,
+						OIDCProviders: []configv1.OIDCProvider{
+							{
+								Name: "my-oidc",
+								Issuer: configv1.TokenIssuer{
+									URL: "https://oidc.example.com",
+								},
+								ClaimMappings: configv1.TokenClaimMappings{
+									Username: configv1.UsernameClaimMapping{
+										Claim:        "email",
+										PrefixPolicy: configv1.NoOpinion,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedAuth: &oidcAuthResult{
+				IssuerURL:     "https://oidc.example.com",
+				OIDCClientId:  "che-client",
+				UsernameClaim: "email",
+			},
+		},
+		{
+			name:         "OpenShift: UsernamePrefix with NoOpinion policy and claim is not email",
+			isOpenShift:  true,
+			oAuthEnabled: false,
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Networking: chev2.CheClusterSpecNetworking{
+						Auth: chev2.Auth{
+							IdentityProviderURL: "https://oidc.example.com",
+							OAuthClientName:     "che-client",
+						},
+					},
+				},
+			},
+			initObjects: []client.Object{
+				&configv1.Authentication{
+					ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
+					Spec: configv1.AuthenticationSpec{
+						Type: configv1.AuthenticationTypeOIDC,
+						OIDCProviders: []configv1.OIDCProvider{
+							{
+								Name: "my-oidc",
+								Issuer: configv1.TokenIssuer{
+									URL: "https://oidc.example.com",
+								},
+								ClaimMappings: configv1.TokenClaimMappings{
+									Username: configv1.UsernameClaimMapping{
+										Claim:        "sub",
+										PrefixPolicy: configv1.NoOpinion,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedAuth: &oidcAuthResult{
+				IssuerURL:      "https://oidc.example.com",
+				OIDCClientId:   "che-client",
+				UsernameClaim:  "sub",
+				UsernamePrefix: "https://oidc.example.com#",
+			},
+		},
+		{
+			name:         "OpenShift: Client secret not resolved when no OIDCClient matches ClientID",
+			isOpenShift:  true,
+			oAuthEnabled: false,
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Networking: chev2.CheClusterSpecNetworking{
+						Auth: chev2.Auth{
+							IdentityProviderURL: "https://oidc.example.com",
+							OAuthClientName:     "che-client",
+						},
+					},
+				},
+			},
+			initObjects: []client.Object{
+				&configv1.Authentication{
+					ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
+					Spec: configv1.AuthenticationSpec{
+						Type: configv1.AuthenticationTypeOIDC,
+						OIDCProviders: []configv1.OIDCProvider{
+							{
+								Name: "my-oidc",
+								Issuer: configv1.TokenIssuer{
+									URL: "https://oidc.example.com",
+								},
+								OIDCClients: []configv1.OIDCClientConfig{
+									{
+										ClientID: "other-client",
+										ClientSecret: configv1.SecretNameReference{
+											Name: "other-secret",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedAuth: &oidcAuthResult{
+				IssuerURL:        "https://oidc.example.com",
+				OIDCClientId:     "che-client",
+				OIDCClientSecret: "",
+			},
+		},
+		{
+			name:         "OpenShift: CheCluster fields take precedence over cluster Authentication",
+			isOpenShift:  true,
+			oAuthEnabled: false,
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					Networking: chev2.CheClusterSpecNetworking{
+						Auth: chev2.Auth{
+							IdentityProviderURL: "https://custom-oidc.example.com",
+							OAuthClientName:     "che-client",
+							OAuthSecret:         "che-override-secret",
+						},
+					},
+					Components: chev2.CheClusterComponents{
+						CheServer: chev2.CheServer{
+							ExtraProperties: map[string]string{
+								"CHE_OIDC_USERNAME__CLAIM":  "custom_user",
+								"CHE_OIDC_USERNAME__PREFIX": "custom-prefix:",
+								"CHE_OIDC_GROUPS__CLAIM":    "custom_groups",
+								"CHE_OIDC_GROUPS__PREFIX":   "custom-group:",
+							},
+						},
+					},
+				},
+			},
+			initObjects: []client.Object{
+				&configv1.Authentication{
+					ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
+					Spec: configv1.AuthenticationSpec{
+						Type: configv1.AuthenticationTypeOIDC,
+						OIDCProviders: []configv1.OIDCProvider{
+							{
+								Name: "my-oidc",
+								Issuer: configv1.TokenIssuer{
+									URL: "https://cluster-oidc.example.com",
+								},
+								ClaimMappings: configv1.TokenClaimMappings{
+									Username: configv1.UsernameClaimMapping{
+										Claim:        "sub",
+										Prefix:       &configv1.UsernamePrefix{PrefixString: "cluster:"},
+										PrefixPolicy: configv1.Prefix,
+									},
+									Groups: configv1.PrefixedClaimMapping{
+										TokenClaimMapping: configv1.TokenClaimMapping{
+											Claim: "groups",
+										},
+										Prefix: "cluster-group:",
+									},
+								},
+								OIDCClients: []configv1.OIDCClientConfig{
+									{
+										ClientID: "che-client",
+										ClientSecret: configv1.SecretNameReference{
+											Name: "cluster-secret",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "cluster-secret",
+						Namespace: "openshift-config",
+					},
+					Data: map[string][]byte{
+						"clientSecret": []byte("cluster-secret-value"),
+					},
+				},
+			},
+			expectedAuth: &oidcAuthResult{
+				IssuerURL:        "https://custom-oidc.example.com",
+				OIDCClientId:     "che-client",
+				OIDCClientSecret: "che-override-secret",
+				UsernameClaim:    "custom_user",
+				UsernamePrefix:   "custom-prefix:",
+				GroupsClaim:      "custom_groups",
+				GroupsPrefix:     "custom-group:",
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -231,6 +507,7 @@ func TestResolveOIDCAuthentication(t *testing.T) {
 
 			got := &oidcAuthResult{
 				IssuerURL:        auth.IssuerURL,
+				IssuerCA:         auth.IssuerCA,
 				OIDCClientId:     auth.ClientId,
 				OIDCClientSecret: string(auth.ClientSecret),
 				UsernameClaim:    auth.UsernameClaim,

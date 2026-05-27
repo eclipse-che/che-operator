@@ -98,14 +98,14 @@ func ResolveAuthentication(ctx *chetypes.DeployContext) (*chetypes.Authenticatio
 		if authentication.GroupsClaim == "" {
 			authentication.GroupsClaim = oidcProvider.ClaimMappings.Groups.Claim
 		}
-		if authentication.GroupsPrefix == "" {
+		if authentication.GroupsClaim != "" && authentication.GroupsPrefix == "" {
 			authentication.GroupsPrefix = oidcProvider.ClaimMappings.Groups.Prefix
 		}
 
 		if authentication.UsernameClaim == "" {
 			authentication.UsernameClaim = oidcProvider.ClaimMappings.Username.Claim
 		}
-		if authentication.UsernamePrefix == "" {
+		if authentication.UsernameClaim != "" && authentication.UsernamePrefix == "" {
 			switch oidcProvider.ClaimMappings.Username.PrefixPolicy {
 			case configv1.NoOpinion:
 				// See `NoOpinion` description

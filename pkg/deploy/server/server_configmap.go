@@ -35,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 type CheConfigMap struct {
@@ -73,6 +74,10 @@ func (s *CheServerReconciler) syncConfigMap(ctx *chetypes.DeployContext) (bool, 
 			Labels:    deploy.GetLabels(getComponentName()),
 		},
 		Data: data,
+	}
+
+	if err := controllerutil.SetControllerReference(ctx.CheCluster, cm, ctx.ClusterAPI.Scheme); err != nil {
+		return false, err
 	}
 
 	err = ctx.ClusterAPI.ClientWrapper.Sync(

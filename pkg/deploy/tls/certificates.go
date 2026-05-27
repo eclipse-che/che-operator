@@ -25,6 +25,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 
@@ -47,7 +48,7 @@ const (
 
 	// The ConfigMap name for merged CA bundle certificates
 	CheMergedCABundleCertsCMName = "ca-certs-merged"
-	IssuerCACMName               = "oidc-issuer-ca"
+	OIDCIssuerCACMName           = "oidc-issuer-ca"
 )
 
 type CertificatesReconciler struct {
@@ -87,7 +88,7 @@ func (c *CertificatesReconciler) Reconcile(ctx *chetypes.DeployContext) (reconci
 	}
 
 	if ctx.Authentication.IssuerCA != "" {
-		if done, err := c.syncIssuerCertificate(ctx); !done {
+		if done, err := c.syncOIDCIssuerCertificate(ctx); !done {
 			return reconcile.Result{}, false, err
 		}
 	}
@@ -320,20 +321,24 @@ func (c *CertificatesReconciler) syncKubernetesRootCertificates(ctx *chetypes.De
 	)
 }
 
-func (c *CertificatesReconciler) syncIssuerCertificate(ctx *chetypes.DeployContext) (bool, error) {
+func (c *CertificatesReconciler) syncOIDCIssuerCertificate(ctx *chetypes.DeployContext) (bool, error) {
 	cm := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      IssuerCACMName,
+			Name:      OIDCIssuerCACMName,
 			Namespace: ctx.CheCluster.Namespace,
 			Labels:    deploy.GetLabels(constants.CheCABundle),
 		},
 		Data: map[string]string{
 			"ca-bundle.crt": ctx.Authentication.IssuerCA,
 		},
+	}
+
+	if err := controllerutil.SetControllerReference(ctx.CheCluster, cm, ctx.ClusterAPI.Scheme); err != nil {
+		return false, err
 	}
 
 	err := ctx.ClusterAPI.ClientWrapper.Sync(context.TODO(), cm, &k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels})
