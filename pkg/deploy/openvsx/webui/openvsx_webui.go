@@ -13,20 +13,14 @@
 package webui
 
 import (
-	"fmt"
-
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
-	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
-
-const openVSXPathPrefix = "/openvsx"
 
 type OpenVSXWebUIReconciler struct {
 	reconciler.Reconcilable
@@ -40,16 +34,10 @@ func (r *OpenVSXWebUIReconciler) Reconcile(ctx *chetypes.DeployContext) (reconci
 	if !ctx.CheCluster.IsOpenVSXOperandEnabled() {
 		_, _ = deploy.DeleteNamespacedObject(ctx, constants.OpenVSXWebUIName, &appsv1.Deployment{})
 		_, _ = deploy.DeleteNamespacedObject(ctx, constants.OpenVSXWebUIName, &corev1.Service{})
-		_, _ = deploy.DeleteNamespacedObject(ctx, gateway.GatewayConfigMapNamePrefix+constants.OpenVSXWebUIName, &corev1.ConfigMap{})
 		return reconcile.Result{}, true, nil
 	}
 
 	done, err := r.syncService(ctx)
-	if !done {
-		return reconcile.Result{}, false, err
-	}
-
-	_, done, err = r.exposeEndpoint(ctx)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
@@ -75,13 +63,6 @@ func (r *OpenVSXWebUIReconciler) syncService(ctx *chetypes.DeployContext) (bool,
 		constants.OpenVSXWebUIName)
 }
 
-func (r *OpenVSXWebUIReconciler) exposeEndpoint(ctx *chetypes.DeployContext) (string, bool, error) {
-	return expose.Expose(
-		ctx,
-		constants.OpenVSXWebUIName,
-		r.createGatewayConfig())
-}
-
 func (r *OpenVSXWebUIReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
 	spec, err := r.getDeploymentSpec(ctx)
 	if err != nil {
@@ -89,24 +70,4 @@ func (r *OpenVSXWebUIReconciler) syncDeployment(ctx *chetypes.DeployContext) (bo
 	}
 
 	return deploy.SyncDeploymentSpecToCluster(ctx, spec, deploy.DefaultDeploymentDiffOpts)
-}
-
-func (r *OpenVSXWebUIReconciler) createGatewayConfig() *gateway.TraefikConfig {
-	serviceAddr := "http://" + constants.OpenVSXWebUIName + ":3000"
-	cfg := gateway.CreateCommonTraefikConfig(
-		constants.OpenVSXWebUIName,
-		fmt.Sprintf("PathPrefix(`%s`)", openVSXPathPrefix),
-		10,
-		serviceAddr,
-		[]string{openVSXPathPrefix})
-
-	assetsRouter := constants.OpenVSXWebUIName + "-assets"
-	cfg.HTTP.Routers[assetsRouter] = &gateway.TraefikConfigRouter{
-		Rule:        "Path(`/favicon.ico`) || Path(`/default-icon.png`) || PathRegexp(`^/[^/]+\\.(js|css|js\\.map)$`)",
-		Service:     constants.OpenVSXWebUIName,
-		Middlewares: []string{},
-		Priority:    5,
-	}
-
-	return cfg
 }
