@@ -18,6 +18,7 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
@@ -151,9 +152,15 @@ func (r *OpenVSXExposeReconciler) getIngressSpec(ctx *chetypes.DeployContext, ho
 		Backend:  webuiBackend,
 	})
 
+	var ingressClassNamePtr *string
 	ingressClassName := ctx.CheCluster.Spec.Networking.IngressClassName
-	if ingressClassName == "" {
-		ingressClassName = annotations["kubernetes.io/ingress.class"]
+	if ingressClassName != "" {
+		ingressClassNamePtr = pointer.String(ingressClassName)
+	} else if !infrastructure.IsOpenShift() {
+		className := annotations["kubernetes.io/ingress.class"]
+		if className != "" {
+			ingressClassNamePtr = pointer.String(className)
+		}
 	}
 	delete(annotations, "kubernetes.io/ingress.class")
 
@@ -169,7 +176,7 @@ func (r *OpenVSXExposeReconciler) getIngressSpec(ctx *chetypes.DeployContext, ho
 			Annotations: annotations,
 		},
 		Spec: networking.IngressSpec{
-			IngressClassName: pointer.String(ingressClassName),
+			IngressClassName: ingressClassNamePtr,
 			TLS: []networking.IngressTLS{
 				{
 					Hosts:      []string{hostname},
@@ -198,7 +205,7 @@ func (r *OpenVSXExposeReconciler) getAnnotations(ctx *chetypes.DeployContext) ma
 		for k, v := range ctx.CheCluster.Spec.Networking.Annotations {
 			annotations[k] = v
 		}
-	} else {
+	} else if !infrastructure.IsOpenShift() {
 		for k, v := range deploy.DefaultIngressAnnotations {
 			annotations[k] = v
 		}
