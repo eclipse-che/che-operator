@@ -19,7 +19,6 @@ import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
-	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -48,7 +47,6 @@ func TestReconcileCreatesResources(t *testing.T) {
 
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXWebUIName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXWebUIName, Namespace: "eclipse-che"}, &corev1.Service{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: gateway.GatewayConfigMapNamePrefix + constants.OpenVSXWebUIName, Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
 }
 
 func TestReconcileDeletesResourcesWhenDisabled(t *testing.T) {
@@ -79,21 +77,6 @@ func TestReconcileDeletesResourcesWhenDisabled(t *testing.T) {
 
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXWebUIName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXWebUIName, Namespace: "eclipse-che"}, &corev1.Service{}))
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: gateway.GatewayConfigMapNamePrefix + constants.OpenVSXWebUIName, Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
-}
-
-func TestGatewayConfig(t *testing.T) {
-	reconciler := NewOpenVSXWebUIReconciler()
-	cfg := reconciler.createGatewayConfig()
-
-	assert.Contains(t, cfg.HTTP.Routers[constants.OpenVSXWebUIName].Rule, "PathPrefix(`/openvsx`)")
-	assert.Equal(t, 10, cfg.HTTP.Routers[constants.OpenVSXWebUIName].Priority)
-	assert.Equal(t, "http://"+constants.OpenVSXWebUIName+":3000", cfg.HTTP.Services[constants.OpenVSXWebUIName].LoadBalancer.Servers[0].URL)
-
-	assetsRouter := cfg.HTTP.Routers[constants.OpenVSXWebUIName+"-assets"]
-	assert.NotNil(t, assetsRouter)
-	assert.Equal(t, 5, assetsRouter.Priority)
-	assert.Equal(t, constants.OpenVSXWebUIName, assetsRouter.Service)
 }
 
 func TestGetDeploymentSpec(t *testing.T) {

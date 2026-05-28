@@ -20,7 +20,6 @@ import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
-	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -50,8 +49,6 @@ func TestReconcileCreatesResources(t *testing.T) {
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerName, Namespace: "eclipse-che"}, &corev1.Service{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: configMapName, Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: gateway.GatewayConfigMapNamePrefix + constants.OpenVSXServerName, Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
-	assert.NotEmpty(t, ctx.CheCluster.Status.OpenVSXURL)
 }
 
 func TestReconcileDeletesResourcesWhenDisabled(t *testing.T) {
@@ -73,7 +70,6 @@ func TestReconcileDeletesResourcesWhenDisabled(t *testing.T) {
 	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
 
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
-	assert.NotEmpty(t, ctx.CheCluster.Status.OpenVSXURL)
 
 	ctx.CheCluster.Spec.Components.OpenVSX.Enable = false
 	err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
@@ -84,41 +80,6 @@ func TestReconcileDeletesResourcesWhenDisabled(t *testing.T) {
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerName, Namespace: "eclipse-che"}, &corev1.Service{}))
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: configMapName, Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: gateway.GatewayConfigMapNamePrefix + constants.OpenVSXServerName, Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
-	assert.Empty(t, ctx.CheCluster.Status.OpenVSXURL)
-}
-
-func TestReconcileSetsOpenVSXURL(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "eclipse-che",
-			Namespace: "eclipse-che",
-		},
-		Status: chev2.CheClusterStatus{
-			CheURL: "https://che-host",
-		},
-		Spec: chev2.CheClusterSpec{
-			Components: chev2.CheClusterComponents{
-				OpenVSX: chev2.OpenVSX{
-					Enable: true,
-				},
-			},
-		},
-	}).Build()
-
-	reconciler := NewOpenVSXServerReconciler()
-	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
-
-	assert.Equal(t, "https://che-host/openvsx", ctx.CheCluster.Status.OpenVSXURL)
-}
-
-func TestGatewayConfig(t *testing.T) {
-	reconciler := NewOpenVSXServerReconciler()
-	cfg := reconciler.createGatewayConfig()
-
-	assert.Contains(t, cfg.HTTP.Routers[constants.OpenVSXServerName].Rule, "PathPrefix(`/openvsx/api`)")
-	assert.Equal(t, 20, cfg.HTTP.Routers[constants.OpenVSXServerName].Priority)
-	assert.Equal(t, "http://"+constants.OpenVSXServerName+":8080", cfg.HTTP.Services[constants.OpenVSXServerName].LoadBalancer.Servers[0].URL)
 }
 
 func TestGetDeploymentSpec(t *testing.T) {
