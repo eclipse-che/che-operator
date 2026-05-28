@@ -126,7 +126,8 @@ func TestIngressSpec(t *testing.T) {
 	assert.Equal(t, constants.OpenVSXWebUIName, webuiPath.Backend.Service.Name)
 	assert.Equal(t, int32(3000), webuiPath.Backend.Service.Port.Number)
 
-	assert.Equal(t, hostname, ingress.Spec.TLS[0].Hosts[0])
+	assert.Empty(t, ingress.Spec.TLS)
+	assert.Equal(t, "edge", ingress.Annotations["route.openshift.io/termination"])
 }
 
 func TestHostnameDerivation(t *testing.T) {
