@@ -164,6 +164,18 @@ func (r *OpenVSXExposeReconciler) getIngressSpec(ctx *chetypes.DeployContext, ho
 	}
 	delete(annotations, "kubernetes.io/ingress.class")
 
+	if infrastructure.IsOpenShift() {
+		annotations["route.openshift.io/termination"] = "edge"
+	}
+
+	var tls []networking.IngressTLS
+	tlsSecretName := ctx.CheCluster.Spec.Networking.TlsSecretName
+	if tlsSecretName != "" {
+		tls = []networking.IngressTLS{{Hosts: []string{hostname}, SecretName: tlsSecretName}}
+	} else if !infrastructure.IsOpenShift() {
+		tls = []networking.IngressTLS{{Hosts: []string{hostname}}}
+	}
+
 	ingress := &networking.Ingress{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Ingress",
@@ -177,12 +189,7 @@ func (r *OpenVSXExposeReconciler) getIngressSpec(ctx *chetypes.DeployContext, ho
 		},
 		Spec: networking.IngressSpec{
 			IngressClassName: ingressClassNamePtr,
-			TLS: []networking.IngressTLS{
-				{
-					Hosts:      []string{hostname},
-					SecretName: ctx.CheCluster.Spec.Networking.TlsSecretName,
-				},
-			},
+			TLS:              tls,
 			Rules: []networking.IngressRule{
 				{
 					Host: hostname,
