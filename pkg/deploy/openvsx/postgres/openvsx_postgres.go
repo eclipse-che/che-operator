@@ -20,6 +20,8 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -138,7 +140,11 @@ func (p *OpenVSXPostgresReconciler) syncPVC(ctx *chetypes.DeployContext) (bool, 
 		},
 	}
 
-	return deploy.Sync(ctx, pvc)
+	pvcDiffOpts := cmp.Options{
+		cmpopts.IgnoreFields(corev1.PersistentVolumeClaim{}, "TypeMeta", "ObjectMeta"),
+		cmpopts.IgnoreFields(corev1.PersistentVolumeClaimSpec{}, "VolumeName", "StorageClassName", "VolumeMode"),
+	}
+	return deploy.Sync(ctx, pvc, pvcDiffOpts)
 }
 
 func (p *OpenVSXPostgresReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
