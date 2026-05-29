@@ -151,6 +151,7 @@ func (r *WorkspacesConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return bld.WithOptions(
 		controller.TypedOptions[reconcile.Request]{
 			SkipNameValidation: pointer.Bool(true),
+			UsePriorityQueue:   pointer.Bool(false),
 		}).Complete(r)
 }
 
