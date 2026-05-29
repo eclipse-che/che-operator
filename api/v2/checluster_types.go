@@ -460,9 +460,6 @@ type OpenVSX struct {
 	// OpenVSX server configuration.
 	// +optional
 	Server *OpenVSXServer `json:"server,omitempty"`
-	// OpenVSX WebUI configuration. Serves the React-based frontend on port 3000.
-	// +optional
-	WebUI *OpenVSXWebUI `json:"webUI,omitempty"`
 	// PostgreSQL database configuration for OpenVSX.
 	// +optional
 	Postgres *OpenVSXPostgres `json:"postgres,omitempty"`
@@ -471,14 +468,6 @@ type OpenVSX struct {
 // OpenVSX server component configuration.
 // +k8s:openapi-gen=true
 type OpenVSXServer struct {
-	// Deployment override options.
-	// +optional
-	Deployment *Deployment `json:"deployment,omitempty"`
-}
-
-// OpenVSX WebUI component configuration.
-// +k8s:openapi-gen=true
-type OpenVSXWebUI struct {
 	// Deployment override options.
 	// +optional
 	Deployment *Deployment `json:"deployment,omitempty"`

@@ -47,8 +47,7 @@ var (
 	defaultDevEnvironmentsDisableContainerBuildCapabilities string
 	defaultDevEnvironmentsContainerSecurityContext          string
 	defaultPluginRegistryOpenVSXURL                         string
-	defaultOpenVSXServerImage                               string
-	defaultOpenVSXWebUIImage                                string
+	defaultOpenVSXImage                                     string
 	defaultOpenVSXPostgresImage                             string
 	defaultDashboardHeaderMessageText                       string
 	defaultDevfileRegistryExternalDevfileRegistries         string
@@ -105,8 +104,7 @@ func Initialize() {
 	defaultGatewayOpenShiftAuthenticationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authentication_sidecar"))
 	defaultGatewayKubernetesAuthenticationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authentication_sidecar_k8s"))
 
-	defaultOpenVSXServerImage = os.Getenv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_openvsx_server"))
-	defaultOpenVSXWebUIImage = os.Getenv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_openvsx_webui"))
+	defaultOpenVSXImage = os.Getenv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_openvsx"))
 	defaultOpenVSXPostgresImage = os.Getenv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_openvsx_postgres"))
 
 	// Don't get some k8s specific env
@@ -167,20 +165,12 @@ func GetPluginRegistryImage(checluster interface{}) string {
 	return PatchDefaultImageName(checluster, defaultPluginRegistryImage)
 }
 
-func GetOpenVSXServerImage(checluster interface{}) string {
+func GetOpenVSXImage(checluster interface{}) string {
 	if !initialized {
 		Initialize()
 	}
 
-	return PatchDefaultImageName(checluster, defaultOpenVSXServerImage)
-}
-
-func GetOpenVSXWebUIImage(checluster interface{}) string {
-	if !initialized {
-		Initialize()
-	}
-
-	return PatchDefaultImageName(checluster, defaultOpenVSXWebUIImage)
+	return PatchDefaultImageName(checluster, defaultOpenVSXImage)
 }
 
 func GetOpenVSXPostgresImage(checluster interface{}) string {

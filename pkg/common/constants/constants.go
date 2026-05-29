@@ -42,12 +42,6 @@ const (
 	DefaultOpenVSXServerCpuLimit      = "1"
 	DefaultOpenVSXServerCpuRequest    = "100m"
 
-	// OpenVSX WebUI
-	DefaultOpenVSXWebUIMemoryLimit   = "512Mi"
-	DefaultOpenVSXWebUIMemoryRequest = "128Mi"
-	DefaultOpenVSXWebUICpuLimit      = "500m"
-	DefaultOpenVSXWebUICpuRequest    = "50m"
-
 	// OpenVSX Postgres
 	DefaultOpenVSXPostgresMemoryLimit   = "1024Mi"
 	DefaultOpenVSXPostgresMemoryRequest = "256Mi"
@@ -145,7 +139,6 @@ const (
 	DevfileRegistryName                = "devfile-registry"
 	PluginRegistryName                 = "plugin-registry"
 	OpenVSXServerName                  = "openvsx-server"
-	OpenVSXWebUIName                   = "openvsx-webui"
 	OpenVSXPostgresName                = "openvsx-postgres"
 	OpenVSXPostgresCredentialsSecret   = "openvsx-postgres-credentials"
 	GatewayContainerName               = "gateway"
