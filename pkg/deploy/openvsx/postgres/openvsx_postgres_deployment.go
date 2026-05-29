@@ -54,6 +54,7 @@ func (p *OpenVSXPostgresReconciler) getDeploymentSpec(ctx *chetypes.DeployContex
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
+					RestartPolicy:                 corev1.RestartPolicyAlways,
 					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
 					Containers: []corev1.Container{
 						{
