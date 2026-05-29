@@ -975,7 +975,7 @@ spec:
                       - name: RELATED_IMAGE_che_tls_secrets_creation_job
                         value: quay.io/eclipse/che-tls-secret-creator:9f9d4a6
                       - name: RELATED_IMAGE_single_host_gateway
-                        value: quay.io/eclipse/che--traefik:v3.7.5-d6858791f9e74df44ca4014166647c41cdc2abd3bf2a71b832ca4e1c6a91b257
+                        value: quay.io/eclipse/che--traefik:v3.6.15-8cb20d16e01a53d8d7f7696ac2f1af7d200d5c9984d226ce2299731d9eab6d6c
                       - name: RELATED_IMAGE_single_host_gateway_config_sidecar
                         value: quay.io/che-incubator/configbump:next
                       - name: RELATED_IMAGE_gateway_authentication_sidecar
@@ -986,6 +986,10 @@ spec:
                         value: quay.io/brancz/kube-rbac-proxy:v0.22.0
                       - name: RELATED_IMAGE_gateway_header_sidecar
                         value: quay.io/che-incubator/header-rewrite-proxy:latest
+                      - name: RELATED_IMAGE_openvsx
+                        value: ghcr.io/eclipse-openvsx/openvsx-server:v0.34.6
+                      - name: RELATED_IMAGE_openvsx_postgres
+                        value: quay.io/sclorg/postgresql-16-c9s:20260319
                       - name: CHE_FLAVOR
                         value: che
                       - name: CONSOLE_LINK_NAME
@@ -1141,7 +1145,7 @@ spec:
       name: plugin-registry
     - image: quay.io/eclipse/che-tls-secret-creator:9f9d4a6
       name: che-tls-secrets-creation-job
-    - image: quay.io/eclipse/che--traefik:v3.7.5-d6858791f9e74df44ca4014166647c41cdc2abd3bf2a71b832ca4e1c6a91b257
+    - image: quay.io/eclipse/che--traefik:v3.6.15-8cb20d16e01a53d8d7f7696ac2f1af7d200d5c9984d226ce2299731d9eab6d6c
       name: single-host-gateway
     - image: quay.io/che-incubator/configbump:next
       name: single-host-gateway-config-sidecar
@@ -1154,9 +1158,7 @@ spec:
     - image: quay.io/che-incubator/header-rewrite-proxy:latest
       name: gateway-header-sidecar
     - image: ghcr.io/eclipse-openvsx/openvsx-server:v0.34.6
-      name: openvsx-server
-    - image: ghcr.io/eclipse-openvsx/openvsx-webui:v0.34.6
-      name: openvsx-webui
+      name: openvsx
     - image: quay.io/sclorg/postgresql-16-c9s:20260319
       name: openvsx-postgres
   version: 7.120.0-991.next
