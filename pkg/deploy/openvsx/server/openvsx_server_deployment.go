@@ -37,7 +37,7 @@ const (
 var applicationConfig string
 
 func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
-	image := defaults.GetOpenVSXServerImage(ctx.CheCluster)
+	image := defaults.GetOpenVSXImage(ctx.CheCluster)
 	pullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(image))
 	labels, labelSelector := deploy.GetLabelsAndSelector(constants.OpenVSXServerName)
 	terminationGracePeriodSeconds := int64(30)
@@ -110,7 +110,7 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 							ReadinessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
-										Path: "/actuator/health",
+										Path: "/openvsx/actuator/health",
 										Port: intstr.FromInt32(serverPort),
 									},
 								},
@@ -122,7 +122,7 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 							LivenessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
-										Path: "/actuator/health",
+										Path: "/openvsx/actuator/health",
 										Port: intstr.FromInt32(serverPort),
 									},
 								},

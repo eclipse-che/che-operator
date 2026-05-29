@@ -31377,10 +31377,8 @@ spec:
           value: quay.io/brancz/kube-rbac-proxy:v0.22.0
         - name: RELATED_IMAGE_gateway_header_sidecar
           value: quay.io/che-incubator/header-rewrite-proxy:latest
-        - name: RELATED_IMAGE_openvsx_server
+        - name: RELATED_IMAGE_openvsx
           value: ghcr.io/eclipse-openvsx/openvsx-server:v0.34.6
-        - name: RELATED_IMAGE_openvsx_webui
-          value: ghcr.io/eclipse-openvsx/openvsx-webui:v0.34.6
         - name: RELATED_IMAGE_openvsx_postgres
           value: quay.io/sclorg/postgresql-16-c9s:20260319
         - name: CHE_FLAVOR
