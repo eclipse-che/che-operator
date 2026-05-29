@@ -45,8 +45,6 @@ spring:
 
 server:
   port: 8080
-  servlet:
-    context-path: /openvsx
 
 management:
   health:

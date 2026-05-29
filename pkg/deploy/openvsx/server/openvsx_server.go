@@ -13,23 +13,15 @@
 package server
 
 import (
-	"fmt"
-
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
-	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-)
-
-const (
-	openVSXPathPrefix = "/openvsx"
 )
 
 type OpenVSXServerReconciler struct {
@@ -45,28 +37,10 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 		_, _ = deploy.DeleteNamespacedObject(ctx, constants.OpenVSXServerName, &appsv1.Deployment{})
 		_, _ = deploy.DeleteNamespacedObject(ctx, constants.OpenVSXServerName, &corev1.Service{})
 		_, _ = deploy.DeleteNamespacedObject(ctx, configMapName, &corev1.ConfigMap{})
-		_, _ = deploy.DeleteNamespacedObject(ctx, gateway.GatewayConfigMapNamePrefix+constants.OpenVSXServerName, &corev1.ConfigMap{})
-
-		if ctx.CheCluster.Status.OpenVSXURL != "" {
-			ctx.CheCluster.Status.OpenVSXURL = ""
-			err := deploy.UpdateCheCRStatus(ctx, "OpenVSXURL", "")
-			return reconcile.Result{}, err == nil, err
-		}
-
 		return reconcile.Result{}, true, nil
 	}
 
 	done, err := r.syncService(ctx)
-	if !done {
-		return reconcile.Result{}, false, err
-	}
-
-	endpoint, done, err := r.exposeEndpoint(ctx)
-	if !done {
-		return reconcile.Result{}, false, err
-	}
-
-	done, err = r.updateStatus(ctx, endpoint)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
@@ -114,35 +88,6 @@ func (r *OpenVSXServerReconciler) syncConfigMap(ctx *chetypes.DeployContext) (bo
 	}
 
 	return deploy.Sync(ctx, cm, diffs.ConfigMapAllLabels)
-}
-
-func (r *OpenVSXServerReconciler) exposeEndpoint(ctx *chetypes.DeployContext) (string, bool, error) {
-	return expose.Expose(
-		ctx,
-		constants.OpenVSXServerName,
-		r.createGatewayConfig())
-}
-
-func (r *OpenVSXServerReconciler) createGatewayConfig() *gateway.TraefikConfig {
-	return gateway.CreateCommonTraefikConfig(
-		constants.OpenVSXServerName,
-		fmt.Sprintf("PathPrefix(`%s`)", openVSXPathPrefix),
-		10,
-		"http://"+constants.OpenVSXServerName+":8080",
-		[]string{})
-}
-
-func (r *OpenVSXServerReconciler) updateStatus(ctx *chetypes.DeployContext, endpoint string) (bool, error) {
-	openVSXURL := "https://" + endpoint
-
-	if openVSXURL != ctx.CheCluster.Status.OpenVSXURL {
-		ctx.CheCluster.Status.OpenVSXURL = openVSXURL
-		if err := deploy.UpdateCheCRStatus(ctx, "status: OpenVSX URL", openVSXURL); err != nil {
-			return false, err
-		}
-	}
-
-	return true, nil
 }
 
 func (r *OpenVSXServerReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {

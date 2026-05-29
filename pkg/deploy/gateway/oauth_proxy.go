@@ -161,9 +161,6 @@ func skipAuthConfig(instance *chev2.CheCluster) string {
 	if !instance.IsInternalPluginRegistryDisabled() {
 		skipAuthPaths = append(skipAuthPaths, "^/"+constants.PluginRegistryName)
 	}
-	if instance.IsOpenVSXOperandEnabled() {
-		skipAuthPaths = append(skipAuthPaths, "^/openvsx")
-	}
 	skipAuthPaths = append(skipAuthPaths, "^/$")
 	skipAuthPaths = append(skipAuthPaths, "/healthz$")
 	skipAuthPaths = append(skipAuthPaths, "^/dashboard/static/preload")

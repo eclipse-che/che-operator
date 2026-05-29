@@ -28,7 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var ingressDiffOpts = cmp.Options{
+var IngressDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(networking.Ingress{}, "TypeMeta", "Status"),
 	cmpopts.IgnoreFields(networking.HTTPIngressPath{}, "PathType"),
 	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
@@ -57,7 +57,7 @@ func SyncIngressToCluster(
 	component string) (endpointUrl string, done bool, err error) {
 
 	ingressUrl, ingressSpec := GetIngressSpec(deployContext, name, path, serviceName, servicePort, component)
-	sync, err := Sync(deployContext, ingressSpec, ingressDiffOpts)
+	sync, err := Sync(deployContext, ingressSpec, IngressDiffOpts)
 	return ingressUrl, sync, err
 }
 
