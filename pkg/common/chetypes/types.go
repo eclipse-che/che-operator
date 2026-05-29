@@ -24,6 +24,7 @@ type DeployContext struct {
 	CheCluster              *chev2.CheCluster
 	ClusterAPI              ClusterAPI
 	Proxy                   *Proxy
+	Authentication          *Authentication
 	IsSelfSignedCertificate bool
 	CheHost                 string
 	DwoNamespace            string
@@ -36,6 +37,19 @@ type ClusterAPI struct {
 	Scheme                  *runtime.Scheme
 	ClientWrapper           *k8sclient.K8sClientWrapper
 	NonCachingClientWrapper *k8sclient.K8sClientWrapper
+}
+
+type Authentication struct {
+	GroupsClaim    string
+	GroupsPrefix   string
+	UsernameClaim  string
+	UsernamePrefix string
+
+	IssuerURL string
+	IssuerCA  string
+
+	ClientId     string
+	ClientSecret []byte
 }
 
 type Proxy struct {

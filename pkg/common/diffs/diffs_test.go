@@ -34,7 +34,7 @@ func TestConfigMap(t *testing.T) {
 		{
 			srcCm:   &corev1.ConfigMap{},
 			dstCm:   &corev1.ConfigMap{},
-			diffs:   ConfigMapAllLabels,
+			diffs:   ConfigMapEnsureLabels,
 			isEqual: true,
 		},
 		{
@@ -45,7 +45,7 @@ func TestConfigMap(t *testing.T) {
 				},
 			},
 			dstCm:   &corev1.ConfigMap{},
-			diffs:   ConfigMapAllLabels,
+			diffs:   ConfigMapEnsureLabels,
 			isEqual: true,
 		},
 	}

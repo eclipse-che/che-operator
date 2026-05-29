@@ -15,6 +15,7 @@ package identityprovider
 import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	oauth "github.com/openshift/api/oauth/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -58,9 +59,5 @@ func GetOAuthClient(ctx *chetypes.DeployContext) (*oauth.OAuthClient, error) {
 }
 
 func GetOAuthClientName(ctx *chetypes.DeployContext) string {
-	if ctx.CheCluster.Spec.Networking.Auth.OAuthClientName != "" {
-		return ctx.CheCluster.Spec.Networking.Auth.OAuthClientName
-	}
-
-	return ctx.CheCluster.Namespace + "-client"
+	return utils.GetValue(ctx.Authentication.ClientId, ctx.CheCluster.Namespace+"-client")
 }

@@ -74,8 +74,9 @@ func (f *DeployContextBuild) Build() *chetypes.DeployContext {
 			ClientWrapper:           k8s_client.NewK8sClient(fakeClient, scheme),
 			NonCachingClientWrapper: k8s_client.NewK8sClient(fakeClient, scheme),
 		},
-		Proxy:        &chetypes.Proxy{},
-		DwoNamespace: "devworkspace-controller",
+		Proxy:          &chetypes.Proxy{},
+		Authentication: buildAuthentication(f.cheCluster),
+		DwoNamespace:   "devworkspace-controller",
 	}
 
 	if f.cheCluster != nil {
@@ -83,6 +84,21 @@ func (f *DeployContextBuild) Build() *chetypes.DeployContext {
 	}
 
 	return ctx
+}
+
+func buildAuthentication(cheCluster *chev2.CheCluster) *chetypes.Authentication {
+	if cheCluster == nil {
+		return &chetypes.Authentication{}
+	}
+	return &chetypes.Authentication{
+		IssuerURL:      cheCluster.Spec.Networking.Auth.IdentityProviderURL,
+		ClientId:       cheCluster.Spec.Networking.Auth.OAuthClientName,
+		ClientSecret:   []byte(cheCluster.Spec.Networking.Auth.OAuthSecret),
+		UsernameClaim:  cheCluster.Spec.Components.CheServer.ExtraProperties["CHE_OIDC_USERNAME__CLAIM"],
+		UsernamePrefix: cheCluster.Spec.Components.CheServer.ExtraProperties["CHE_OIDC_USERNAME__PREFIX"],
+		GroupsClaim:    cheCluster.Spec.Components.CheServer.ExtraProperties["CHE_OIDC_GROUPS__CLAIM"],
+		GroupsPrefix:   cheCluster.Spec.Components.CheServer.ExtraProperties["CHE_OIDC_GROUPS__PREFIX"],
+	}
 }
 
 func getDefaultCheCluster() *chev2.CheCluster {

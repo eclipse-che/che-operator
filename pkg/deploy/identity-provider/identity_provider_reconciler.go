@@ -74,10 +74,10 @@ func syncOAuthClient(ctx *chetypes.DeployContext) (bool, error) {
 
 	if oauthClient != nil {
 		oauthClientName = oauthClient.Name
-		oauthSecret = utils.GetValue(ctx.CheCluster.Spec.Networking.Auth.OAuthSecret, oauthClient.Secret)
+		oauthSecret = utils.GetValue(string(ctx.Authentication.ClientSecret), oauthClient.Secret)
 	} else {
 		oauthClientName = GetOAuthClientName(ctx)
-		oauthSecret = utils.GetValue(ctx.CheCluster.Spec.Networking.Auth.OAuthSecret, utils.GeneratePassword(12))
+		oauthSecret = utils.GetValue(string(ctx.Authentication.ClientSecret), utils.GeneratePassword(12))
 	}
 
 	redirectURIs := []string{"https://" + ctx.CheHost + "/oauth/callback"}
