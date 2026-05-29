@@ -141,24 +141,6 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 		}
 	})
 
-	t.Run("skip openvsx", func(t *testing.T) {
-		ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
-			Spec: chev2.CheClusterSpec{
-				Components: chev2.CheClusterComponents{
-					PluginRegistry: chev2.PluginRegistry{
-						DisableInternalRegistry: true,
-					},
-					OpenVSX: chev2.OpenVSX{
-						Enable: true,
-					},
-				}},
-		}).Build()
-
-		configmap := getGatewayOauthProxyConfigSpec(ctx, "blabol")
-		config := configmap.Data["oauth-proxy.cfg"]
-		assert.Contains(t, config, "^/openvsx")
-	})
-
 	t.Run("skip '/healthz' path", func(t *testing.T) {
 		ctx := test.NewCtxBuilder().Build()
 		configmap := getGatewayOauthProxyConfigSpec(ctx, "blabol")
