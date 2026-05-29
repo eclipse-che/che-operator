@@ -141,7 +141,7 @@ func (p *OpenVSXPostgresReconciler) syncPVC(ctx *chetypes.DeployContext) (bool, 
 	}
 
 	pvcDiffOpts := cmp.Options{
-		cmpopts.IgnoreFields(corev1.PersistentVolumeClaim{}, "TypeMeta", "ObjectMeta"),
+		cmpopts.IgnoreFields(corev1.PersistentVolumeClaim{}, "TypeMeta", "ObjectMeta", "Status"),
 		cmpopts.IgnoreFields(corev1.PersistentVolumeClaimSpec{}, "VolumeName", "StorageClassName", "VolumeMode"),
 	}
 	return deploy.Sync(ctx, pvc, pvcDiffOpts)
