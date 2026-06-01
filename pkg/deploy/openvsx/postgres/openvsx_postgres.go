@@ -96,11 +96,13 @@ func (p *OpenVSXPostgresReconciler) syncSecret(ctx *chetypes.DeployContext) (boo
 	}
 
 	data := map[string][]byte{
-		"user":     []byte("openvsx"),
-		"password": []byte(utils.GeneratePassword(16)),
-		"database": []byte("openvsx"),
-		"userName": []byte("eclipse-che"),
-		"userPAT":  []byte("eclipse_che_token"),
+		"user":      []byte("openvsx"),
+		"password":  []byte(utils.GeneratePassword(16)),
+		"database":  []byte("openvsx"),
+		"userName":  []byte("eclipse-che"),
+		"userPAT":   []byte("eclipse_che_token"),
+		"adminName": []byte("openvsx-admin"),
+		"adminPAT":  []byte("openvsx_admin_token"),
 	}
 
 	return deploy.SyncSecretToCluster(ctx, constants.OpenVSXPostgresCredentialsSecret, ctx.CheCluster.Namespace, data)

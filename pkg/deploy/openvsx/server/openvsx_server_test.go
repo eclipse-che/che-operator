@@ -216,6 +216,8 @@ func TestDeploymentSpecEnvVars(t *testing.T) {
 
 	assert.Equal(t, "user", secretEnvMap["DB_USERNAME"])
 	assert.Equal(t, "password", secretEnvMap["DB_PASSWORD"])
+	assert.Equal(t, "userPAT", secretEnvMap["OPENVSX_USER_PAT"])
+	assert.Equal(t, "adminPAT", secretEnvMap["OPENVSX_ADMIN_PAT"])
 }
 
 func TestDeploymentSpecProbes(t *testing.T) {

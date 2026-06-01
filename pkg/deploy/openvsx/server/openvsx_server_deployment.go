@@ -97,6 +97,12 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 										},
 									},
 								},
+								envFromSecret("OPENVSX_USER_PAT", constants.OpenVSXPostgresCredentialsSecret, "userPAT"),
+								envFromSecret("OPENVSX_ADMIN_PAT", constants.OpenVSXPostgresCredentialsSecret, "adminPAT"),
+								{
+									Name:  "OPENVSX_URL",
+									Value: ctx.CheCluster.Status.OpenVSXURL,
+								},
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
