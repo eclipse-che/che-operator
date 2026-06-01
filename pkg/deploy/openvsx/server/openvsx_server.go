@@ -123,6 +123,16 @@ func (r *OpenVSXServerReconciler) syncUserSetupJob(ctx *chetypes.DeployContext) 
 
 	secretName := constants.OpenVSXPostgresCredentialsSecret
 
+	dbEnvVars := []corev1.EnvVar{
+		{
+			Name:  "PGHOST",
+			Value: constants.OpenVSXPostgresName,
+		},
+		envFromSecret("PGDATABASE", secretName, "database"),
+		envFromSecret("PGUSER", secretName, "user"),
+		envFromSecret("PGPASSWORD", secretName, "password"),
+	}
+
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Job",
@@ -144,22 +154,26 @@ func (r *OpenVSXServerReconciler) syncUserSetupJob(ctx *chetypes.DeployContext) 
 					SecurityContext: &corev1.PodSecurityContext{
 						RunAsNonRoot: &runAsNonRoot,
 					},
+					InitContainers: []corev1.Container{
+						{
+							Name:            "wait-for-schema",
+							Image:           image,
+							ImagePullPolicy: pullPolicy,
+							Env:             dbEnvVars,
+							Command: []string{"sh", "-c",
+								`until psql -c "SELECT 1 FROM user_data LIMIT 0" 2>/dev/null; do echo "Waiting for Flyway migrations..."; sleep 5; done`,
+							},
+						},
+					},
 					Containers: []corev1.Container{
 						{
 							Name:            userSetupJobName,
 							Image:           image,
 							ImagePullPolicy: pullPolicy,
-							Env: []corev1.EnvVar{
-								{
-									Name:  "PGHOST",
-									Value: constants.OpenVSXPostgresName,
-								},
-								envFromSecret("PGDATABASE", secretName, "database"),
-								envFromSecret("PGUSER", secretName, "user"),
-								envFromSecret("PGPASSWORD", secretName, "password"),
+							Env: append(dbEnvVars,
 								envFromSecret("OPENVSX_USER_NAME", secretName, "userName"),
 								envFromSecret("OPENVSX_USER_PAT", secretName, "userPAT"),
-							},
+							),
 							Command: []string{"sh", "-c",
 								`psql -c "INSERT INTO user_data (id, login_name, role) VALUES (1001, '$OPENVSX_USER_NAME', 'privileged') ON CONFLICT (id) DO NOTHING; INSERT INTO personal_access_token (id, user_data, value, active, created_timestamp, accessed_timestamp, description, notified) VALUES (1001, 1001, '$OPENVSX_USER_PAT', true, current_timestamp, current_timestamp, 'extensions publisher', false) ON CONFLICT (id) DO NOTHING;"`,
 							},
