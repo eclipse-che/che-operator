@@ -21,6 +21,7 @@ import (
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -100,8 +101,12 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 								envFromSecret("OPENVSX_USER_PAT", constants.OpenVSXPostgresCredentialsSecret, "userPAT"),
 								envFromSecret("OPENVSX_ADMIN_PAT", constants.OpenVSXPostgresCredentialsSecret, "adminPAT"),
 								{
-									Name:  "OPENVSX_URL",
+									Name:  "OVSX_REGISTRY_URL",
 									Value: ctx.CheCluster.Status.OpenVSXURL,
+								},
+								{
+									Name:  "NODE_EXTRA_CA_CERTS",
+									Value: "/public-certs/tls-ca-bundle.pem",
 								},
 							},
 							Resources: corev1.ResourceRequirements{
@@ -144,6 +149,11 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 									MountPath: "/home/openvsx/server/config",
 									ReadOnly:  true,
 								},
+								{
+									Name:      "ca-certs",
+									MountPath: "/public-certs",
+									ReadOnly:  true,
+								},
 							},
 						},
 					},
@@ -154,6 +164,16 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
 										Name: configMapName,
+									},
+								},
+							},
+						},
+						{
+							Name: "ca-certs",
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &corev1.ConfigMapVolumeSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: tls.CheMergedCABundleCertsCMName,
 									},
 								},
 							},
