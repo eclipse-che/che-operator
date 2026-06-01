@@ -13,6 +13,7 @@
 package infrastructure
 
 import (
+	"fmt"
 	"os"
 	"slices"
 	"strings"
@@ -49,10 +50,19 @@ var (
 func GetOperatorNamespace() (string, error) {
 	if operatorNamespace == "" {
 		nsBytes, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-		if err != nil {
-			return "", err
+		if err == nil {
+			operatorNamespace = strings.TrimSpace(string(nsBytes))
+			return operatorNamespace, nil
 		}
-		operatorNamespace = strings.TrimSpace(string(nsBytes))
+
+		// for the purpose of local run
+		namespace, ok := os.LookupEnv("WATCH_NAMESPACE")
+		if ok {
+			operatorNamespace = namespace
+			return operatorNamespace, nil
+		}
+
+		return "", fmt.Errorf("operator namespace is not set")
 	}
 
 	return operatorNamespace, nil
@@ -68,6 +78,11 @@ func IsOpenShiftOAuthEnabled() bool {
 	return isOpenShiftOAuthEnabled
 }
 
+func IsOpenShiftExternalAuth() bool {
+	initializeIfNeeded()
+	return IsOpenShift() && !IsOpenShiftOAuthEnabled()
+}
+
 func IsLeaderElectionEnabled() bool {
 	initializeIfNeeded()
 	return isLeaderElectionEnabled
@@ -81,6 +96,10 @@ func IsKubernetesImagePullerEnabled() bool {
 func IsServiceMonitorEnabled() bool {
 	initializeIfNeeded()
 	return isServiceMonitorEnabled
+}
+
+func SetOpenShiftOAuthEnabledForTesting(enabled bool) {
+	isOpenShiftOAuthEnabled = enabled
 }
 
 func InitializeForTesting(desiredInfrastructure Type) {

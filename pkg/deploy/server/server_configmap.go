@@ -35,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 type CheConfigMap struct {
@@ -75,10 +76,14 @@ func (s *CheServerReconciler) syncConfigMap(ctx *chetypes.DeployContext) (bool, 
 		Data: data,
 	}
 
+	if err := controllerutil.SetControllerReference(ctx.CheCluster, cm, ctx.ClusterAPI.Scheme); err != nil {
+		return false, err
+	}
+
 	err = ctx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
 		cm,
-		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapAllLabels},
+		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
 	)
 
 	return err == nil, err
@@ -152,7 +157,7 @@ func (s *CheServerReconciler) getConfigMapData(ctx *chetypes.DeployContext) (che
 		CheLogLevel:                         cheLogLevel,
 		CheMetricsEnabled:                   cheMetricsEnabled,
 		CheInfrastructure:                   cheInfrastructure,
-		CheOIDCAuthServerUrl:                ctx.CheCluster.Spec.Networking.Auth.IdentityProviderURL,
+		CheOIDCAuthServerUrl:                ctx.Authentication.IssuerURL,
 		NamespaceDefault:                    namespaceDefault,
 		NamespaceCreationAllowed:            namespaceCreationAllowed,
 		KubernetesLabels:                    kubernetesLabels,
@@ -190,6 +195,10 @@ func (s *CheServerReconciler) getConfigMapData(ctx *chetypes.DeployContext) (che
 	// Update `CHE_INTEGRATION_<...>_SERVER__ENDPOINTS`
 	if err := s.updateServerEndpointsEnv(ctx, cheEnv); err != nil {
 		return nil, err
+	}
+
+	if infrastructure.IsOpenShiftExternalAuth() {
+		s.updateOIDCClaimMappings(ctx, cheEnv)
 	}
 
 	return cheEnv, nil
@@ -306,4 +315,11 @@ func (s *CheServerReconciler) updateServerEndpointsEnv(ctx *chetypes.DeployConte
 	}
 
 	return nil
+}
+
+func (s *CheServerReconciler) updateOIDCClaimMappings(ctx *chetypes.DeployContext, cheEnv map[string]string) {
+	cheEnv["CHE_OIDC_GROUPS__CLAIM"] = ctx.Authentication.GroupsClaim
+	cheEnv["CHE_OIDC_GROUPS__PREFIX"] = ctx.Authentication.GroupsPrefix
+	cheEnv["CHE_OIDC_USERNAME__CLAIM"] = ctx.Authentication.UsernameClaim
+	cheEnv["CHE_OIDC_USERNAME__PREFIX"] = ctx.Authentication.UsernamePrefix
 }
