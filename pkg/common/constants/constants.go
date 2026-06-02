@@ -41,6 +41,7 @@ const (
 	DefaultOpenVSXServerMemoryRequest = "256Mi"
 	DefaultOpenVSXServerCpuLimit      = "1"
 	DefaultOpenVSXServerCpuRequest    = "100m"
+	DefaultOpenVSXServerClaimSize     = "2Gi"
 
 	// OpenVSX Postgres
 	DefaultOpenVSXPostgresMemoryLimit   = "1024Mi"

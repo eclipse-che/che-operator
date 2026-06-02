@@ -14722,6 +14722,11 @@ spec:
                         server:
                           description: OpenVSX server configuration.
                           properties:
+                            claimSize:
+                              default: 2Gi
+                              description: PVC claim size for extension storage. Defaults
+                                to 2Gi.
+                              type: string
                             deployment:
                               description: Deployment override options.
                               properties:

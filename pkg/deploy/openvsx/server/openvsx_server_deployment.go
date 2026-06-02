@@ -163,6 +163,10 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 									MountPath: "/public-certs",
 									ReadOnly:  true,
 								},
+								{
+									Name:      "extensions-data",
+									MountPath: "/tmp/extensions",
+								},
 							},
 						},
 					},
@@ -184,6 +188,14 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 									LocalObjectReference: corev1.LocalObjectReference{
 										Name: tls.CheMergedCABundleCertsCMName,
 									},
+								},
+							},
+						},
+						{
+							Name: "extensions-data",
+							VolumeSource: corev1.VolumeSource{
+								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+									ClaimName: serverPVCName,
 								},
 							},
 						},

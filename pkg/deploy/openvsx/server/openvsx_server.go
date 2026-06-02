@@ -24,10 +24,13 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -45,6 +48,7 @@ const (
 	userSetupJobName        = "openvsx-user-setup"
 	extensionsConfigMapName = "openvsx-extensions"
 	extensionPublishJobName = "openvsx-extension-publish"
+	serverPVCName           = "openvsx-server-data"
 )
 
 func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
@@ -55,6 +59,7 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 		_, _ = deploy.DeleteNamespacedObject(ctx, userSetupJobName, &batchv1.Job{})
 		_, _ = deploy.DeleteNamespacedObject(ctx, extensionPublishJobName, &batchv1.Job{})
 		_, _ = deploy.DeleteNamespacedObject(ctx, extensionsConfigMapName, &corev1.ConfigMap{})
+		_, _ = deploy.DeleteNamespacedObject(ctx, serverPVCName, &corev1.PersistentVolumeClaim{})
 		return reconcile.Result{}, true, nil
 	}
 
@@ -64,6 +69,11 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 	}
 
 	done, err = r.syncConfigMap(ctx)
+	if !done {
+		return reconcile.Result{}, false, err
+	}
+
+	done, err = r.syncPVC(ctx)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
@@ -150,6 +160,40 @@ func (r *OpenVSXServerReconciler) getConfigMapRevision(ctx *chetypes.DeployConte
 		return "", err
 	}
 	return cm.ResourceVersion, nil
+}
+
+func (r *OpenVSXServerReconciler) syncPVC(ctx *chetypes.DeployContext) (bool, error) {
+	claimSize := constants.DefaultOpenVSXServerClaimSize
+	if ctx.CheCluster.Spec.Components.OpenVSX.Server != nil &&
+		ctx.CheCluster.Spec.Components.OpenVSX.Server.ClaimSize != "" {
+		claimSize = ctx.CheCluster.Spec.Components.OpenVSX.Server.ClaimSize
+	}
+
+	pvc := &corev1.PersistentVolumeClaim{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "PersistentVolumeClaim",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      serverPVCName,
+			Namespace: ctx.CheCluster.Namespace,
+			Labels:    deploy.GetLabels(constants.OpenVSXServerName),
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+			Resources: corev1.VolumeResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceStorage: resource.MustParse(claimSize),
+				},
+			},
+		},
+	}
+
+	pvcDiffOpts := cmp.Options{
+		cmpopts.IgnoreFields(corev1.PersistentVolumeClaim{}, "TypeMeta", "ObjectMeta", "Status"),
+		cmpopts.IgnoreFields(corev1.PersistentVolumeClaimSpec{}, "VolumeName", "StorageClassName", "VolumeMode"),
+	}
+	return deploy.Sync(ctx, pvc, pvcDiffOpts)
 }
 
 func (r *OpenVSXServerReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {

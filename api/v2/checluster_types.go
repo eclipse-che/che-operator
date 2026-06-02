@@ -471,6 +471,10 @@ type OpenVSXServer struct {
 	// Deployment override options.
 	// +optional
 	Deployment *Deployment `json:"deployment,omitempty"`
+	// PVC claim size for extension storage. Defaults to 2Gi.
+	// +optional
+	// +kubebuilder:default:="2Gi"
+	ClaimSize string `json:"claimSize,omitempty"`
 }
 
 // PostgreSQL configuration for OpenVSX.
