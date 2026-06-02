@@ -162,6 +162,20 @@ func (r *OpenVSXServerReconciler) syncDeployment(ctx *chetypes.DeployContext) (b
 }
 
 func (r *OpenVSXServerReconciler) syncUserSetupJob(ctx *chetypes.DeployContext) (bool, error) {
+	existing := &batchv1.Job{}
+	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{
+		Name:      userSetupJobName,
+		Namespace: ctx.CheCluster.Namespace,
+	}, existing)
+
+	if err == nil {
+		return true, nil
+	}
+
+	if !errors.IsNotFound(err) {
+		return false, err
+	}
+
 	image := defaults.GetOpenVSXPostgresImage(ctx.CheCluster)
 	pullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(image))
 	labels := deploy.GetLabels(constants.OpenVSXServerName)
