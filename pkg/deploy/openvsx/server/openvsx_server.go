@@ -105,6 +105,20 @@ func (r *OpenVSXServerReconciler) syncService(ctx *chetypes.DeployContext) (bool
 }
 
 func (r *OpenVSXServerReconciler) syncConfigMap(ctx *chetypes.DeployContext) (bool, error) {
+	existing := &corev1.ConfigMap{}
+	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{
+		Name:      configMapName,
+		Namespace: ctx.CheCluster.Namespace,
+	}, existing)
+
+	if err == nil {
+		return true, nil
+	}
+
+	if !errors.IsNotFound(err) {
+		return false, err
+	}
+
 	cm := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
@@ -121,6 +135,21 @@ func (r *OpenVSXServerReconciler) syncConfigMap(ctx *chetypes.DeployContext) (bo
 	}
 
 	return deploy.Sync(ctx, cm, diffs.ConfigMapAllLabels)
+}
+
+func (r *OpenVSXServerReconciler) getConfigMapRevision(ctx *chetypes.DeployContext) (string, error) {
+	cm := &corev1.ConfigMap{}
+	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{
+		Name:      configMapName,
+		Namespace: ctx.CheCluster.Namespace,
+	}, cm)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return "", nil
+		}
+		return "", err
+	}
+	return cm.ResourceVersion, nil
 }
 
 func (r *OpenVSXServerReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {

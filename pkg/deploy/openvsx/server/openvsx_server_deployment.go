@@ -38,6 +38,11 @@ const (
 var applicationConfig string
 
 func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
+	cmRevision, err := r.getConfigMapRevision(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	image := defaults.GetOpenVSXImage(ctx.CheCluster)
 	pullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(image))
 	labels, labelSelector := deploy.GetLabelsAndSelector(constants.OpenVSXServerName)
@@ -80,6 +85,10 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 								},
 							},
 							Env: []corev1.EnvVar{
+								{
+									Name:  "CM_REVISION",
+									Value: cmRevision,
+								},
 								{
 									Name: "DB_USERNAME",
 									ValueFrom: &corev1.EnvVarSource{
