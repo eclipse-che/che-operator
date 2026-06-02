@@ -191,7 +191,7 @@ func (r *OpenVSXServerReconciler) syncPVC(ctx *chetypes.DeployContext) (bool, er
 
 	pvcDiffOpts := cmp.Options{
 		cmpopts.IgnoreFields(corev1.PersistentVolumeClaim{}, "TypeMeta", "ObjectMeta", "Status"),
-		cmpopts.IgnoreFields(corev1.PersistentVolumeClaimSpec{}, "VolumeName", "StorageClassName", "VolumeMode"),
+		cmpopts.IgnoreFields(corev1.PersistentVolumeClaimSpec{}, "VolumeName", "StorageClassName", "VolumeMode", "VolumeAttributesClassName", "DataSource", "DataSourceRef"),
 	}
 	return deploy.Sync(ctx, pvc, pvcDiffOpts)
 }

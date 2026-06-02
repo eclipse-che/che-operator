@@ -87,7 +87,7 @@ ovsx:
   integrity:
     key-pair: create
   registry:
-    version: 'v0.34.6'
+    version: 'v1.0.0'
   storage:
     local:
       directory: /tmp/extensions
