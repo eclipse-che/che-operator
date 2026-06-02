@@ -24,8 +24,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -169,31 +167,51 @@ func (r *OpenVSXServerReconciler) syncPVC(ctx *chetypes.DeployContext) (bool, er
 		claimSize = ctx.CheCluster.Spec.Components.OpenVSX.Server.ClaimSize
 	}
 
-	pvc := &corev1.PersistentVolumeClaim{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "PersistentVolumeClaim",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      serverPVCName,
-			Namespace: ctx.CheCluster.Namespace,
-			Labels:    deploy.GetLabels(constants.OpenVSXServerName),
-		},
-		Spec: corev1.PersistentVolumeClaimSpec{
-			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-			Resources: corev1.VolumeResourceRequirements{
-				Requests: corev1.ResourceList{
-					corev1.ResourceStorage: resource.MustParse(claimSize),
+	desiredSize := resource.MustParse(claimSize)
+
+	existing := &corev1.PersistentVolumeClaim{}
+	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{
+		Name:      serverPVCName,
+		Namespace: ctx.CheCluster.Namespace,
+	}, existing)
+
+	if errors.IsNotFound(err) {
+		pvc := &corev1.PersistentVolumeClaim{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "PersistentVolumeClaim",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      serverPVCName,
+				Namespace: ctx.CheCluster.Namespace,
+				Labels:    deploy.GetLabels(constants.OpenVSXServerName),
+			},
+			Spec: corev1.PersistentVolumeClaimSpec{
+				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+				Resources: corev1.VolumeResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceStorage: desiredSize,
+					},
 				},
 			},
-		},
+		}
+		return deploy.Sync(ctx, pvc, deploy.DefaultDeploymentDiffOpts)
 	}
 
-	pvcDiffOpts := cmp.Options{
-		cmpopts.IgnoreFields(corev1.PersistentVolumeClaim{}, "TypeMeta", "ObjectMeta", "Status"),
-		cmpopts.IgnoreFields(corev1.PersistentVolumeClaimSpec{}, "VolumeName", "StorageClassName", "VolumeMode", "VolumeAttributesClassName", "DataSource", "DataSourceRef"),
+	if err != nil {
+		return false, err
 	}
-	return deploy.Sync(ctx, pvc, pvcDiffOpts)
+
+	currentSize := existing.Spec.Resources.Requests[corev1.ResourceStorage]
+	if currentSize.Cmp(desiredSize) != 0 {
+		existing.Spec.Resources.Requests[corev1.ResourceStorage] = desiredSize
+		err = ctx.ClusterAPI.Client.Update(context.TODO(), existing)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	return true, nil
 }
 
 func (r *OpenVSXServerReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
