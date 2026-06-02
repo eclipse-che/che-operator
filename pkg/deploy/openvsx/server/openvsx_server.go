@@ -140,7 +140,6 @@ func (r *OpenVSXServerReconciler) syncUserSetupJob(ctx *chetypes.DeployContext) 
 	parallelism := int32(1)
 	completions := int32(1)
 	terminationGracePeriodSeconds := int64(30)
-	ttlSecondsAfterFinished := int32(30)
 	runAsNonRoot := true
 
 	secretName := constants.OpenVSXPostgresCredentialsSecret
@@ -205,10 +204,9 @@ func (r *OpenVSXServerReconciler) syncUserSetupJob(ctx *chetypes.DeployContext) 
 					},
 				},
 			},
-			TTLSecondsAfterFinished: &ttlSecondsAfterFinished,
-			Parallelism:             &parallelism,
-			BackoffLimit:            &backoffLimit,
-			Completions:             &completions,
+			Parallelism:  &parallelism,
+			BackoffLimit: &backoffLimit,
+			Completions:  &completions,
 		},
 	}
 
@@ -271,7 +269,6 @@ func (r *OpenVSXServerReconciler) syncExtensionPublishJob(ctx *chetypes.DeployCo
 	parallelism := int32(1)
 	completions := int32(1)
 	terminationGracePeriodSeconds := int64(30)
-	ttlSecondsAfterFinished := int32(300)
 	runAsNonRoot := true
 
 	secretName := constants.OpenVSXPostgresCredentialsSecret
@@ -357,10 +354,9 @@ func (r *OpenVSXServerReconciler) syncExtensionPublishJob(ctx *chetypes.DeployCo
 					},
 				},
 			},
-			TTLSecondsAfterFinished: &ttlSecondsAfterFinished,
-			Parallelism:             &parallelism,
-			BackoffLimit:            &backoffLimit,
-			Completions:             &completions,
+			Parallelism:  &parallelism,
+			BackoffLimit: &backoffLimit,
+			Completions:  &completions,
 		},
 	}
 
