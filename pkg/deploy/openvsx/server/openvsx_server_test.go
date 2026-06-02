@@ -51,6 +51,7 @@ func TestReconcileCreatesResources(t *testing.T) {
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerName, Namespace: "eclipse-che"}, &corev1.Service{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: configMapName, Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: userSetupJobName, Namespace: "eclipse-che"}, &batchv1.Job{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: extensionsConfigMapName, Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
 }
 
 func TestReconcileDeletesResourcesWhenDisabled(t *testing.T) {
@@ -83,6 +84,7 @@ func TestReconcileDeletesResourcesWhenDisabled(t *testing.T) {
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerName, Namespace: "eclipse-che"}, &corev1.Service{}))
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: configMapName, Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: userSetupJobName, Namespace: "eclipse-che"}, &batchv1.Job{}))
+	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: extensionsConfigMapName, Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
 }
 
 func TestGetDeploymentSpec(t *testing.T) {
