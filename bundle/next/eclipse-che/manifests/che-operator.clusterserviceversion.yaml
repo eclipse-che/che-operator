@@ -86,7 +86,7 @@ metadata:
     categories: Developer Tools
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:next
-    createdAt: "2026-06-23T10:08:27Z"
+    createdAt: "2026-06-05T08:52:54Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
     features.operators.openshift.io/cnf: "false"
@@ -108,7 +108,7 @@ metadata:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.arm64: supported
     operatorframework.io/os.linux: supported
-  name: eclipse-che.v7.120.0-991.next
+  name: eclipse-che.v7.119.0-1004.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -260,6 +260,11 @@ spec:
             path: message
             x-descriptors:
               - urn:alm:descriptor:text
+          - description: The public URL of the managed OpenVSX registry.
+            displayName: OpenVSX registry URL
+            path: openVSXURL
+            x-descriptors:
+              - urn:alm:descriptor:org.w3:link
           - description: The public URL of the internal plug-in registry.
             displayName: Plugin registry URL
             path: pluginRegistryURL
@@ -987,7 +992,7 @@ spec:
                       - name: RELATED_IMAGE_gateway_header_sidecar
                         value: quay.io/che-incubator/header-rewrite-proxy:latest
                       - name: RELATED_IMAGE_openvsx
-                        value: ghcr.io/eclipse-openvsx/openvsx-server:v0.34.6
+                        value: quay.io/che-incubator/che-openvsx:v1.0.0
                       - name: RELATED_IMAGE_openvsx_postgres
                         value: quay.io/sclorg/postgresql-16-c9s:20260319
                       - name: CHE_FLAVOR
@@ -1157,11 +1162,11 @@ spec:
       name: gateway-authorization-sidecar
     - image: quay.io/che-incubator/header-rewrite-proxy:latest
       name: gateway-header-sidecar
-    - image: ghcr.io/eclipse-openvsx/openvsx-server:v0.34.6
+    - image: quay.io/che-incubator/che-openvsx:v1.0.0
       name: openvsx
     - image: quay.io/sclorg/postgresql-16-c9s:20260319
       name: openvsx-postgres
-  version: 7.120.0-991.next
+  version: 7.119.0-1004.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1
