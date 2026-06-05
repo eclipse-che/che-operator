@@ -12110,8 +12110,7 @@ spec:
                       enable:
                         description: |-
                           Enables managing OpenVSX as an operand.
-                          When enabled, the operator deploys and manages an OpenVSX server instance
-                          and auto-populates pluginRegistry.openVSXURL with the managed instance URL.
+                          When enabled, the operator deploys and manages an OpenVSX server instance.
                         type: boolean
                       postgres:
                         description: PostgreSQL database configuration for OpenVSX.
@@ -14664,9 +14663,9 @@ spec:
                         description: OpenVSX server configuration.
                         properties:
                           claimSize:
-                            default: 2Gi
+                            default: 3Gi
                             description: PVC claim size for extension storage. Defaults
-                              to 2Gi.
+                              to 3Gi.
                             type: string
                           deployment:
                             description: Deployment override options.

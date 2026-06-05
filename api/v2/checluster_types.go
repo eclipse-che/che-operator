@@ -453,8 +453,7 @@ type PluginRegistry struct {
 // +k8s:openapi-gen=true
 type OpenVSX struct {
 	// Enables managing OpenVSX as an operand.
-	// When enabled, the operator deploys and manages an OpenVSX server instance
-	// and auto-populates pluginRegistry.openVSXURL with the managed instance URL.
+	// When enabled, the operator deploys and manages an OpenVSX server instance.
 	// +optional
 	Enable bool `json:"enable,omitempty"`
 	// OpenVSX server configuration.
@@ -471,9 +470,9 @@ type OpenVSXServer struct {
 	// Deployment override options.
 	// +optional
 	Deployment *Deployment `json:"deployment,omitempty"`
-	// PVC claim size for extension storage. Defaults to 2Gi.
+	// PVC claim size for extension storage. Defaults to 3Gi.
 	// +optional
-	// +kubebuilder:default:="2Gi"
+	// +kubebuilder:default:="3Gi"
 	ClaimSize string `json:"claimSize,omitempty"`
 }
 
