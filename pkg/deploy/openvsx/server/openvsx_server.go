@@ -142,7 +142,7 @@ func (r *OpenVSXServerReconciler) syncConfigMap(ctx *chetypes.DeployContext) (bo
 		},
 	}
 
-	return deploy.Sync(ctx, cm, diffs.ConfigMapAllLabels)
+	return deploy.Sync(ctx, cm, diffs.ConfigMapEnsureLabels)
 }
 
 func (r *OpenVSXServerReconciler) getConfigMapRevision(ctx *chetypes.DeployContext) (string, error) {
@@ -348,7 +348,7 @@ func (r *OpenVSXServerReconciler) syncExtensionsConfigMap(ctx *chetypes.DeployCo
 		},
 	}
 
-	return deploy.Sync(ctx, cm, diffs.ConfigMapAllLabels)
+	return deploy.Sync(ctx, cm, diffs.ConfigMapEnsureLabels)
 }
 
 func (r *OpenVSXServerReconciler) syncExtensionPublishJob(ctx *chetypes.DeployContext) (bool, error) {
