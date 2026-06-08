@@ -71,6 +71,8 @@ jobs:
           git --no-pager diff
           exit 1
         fi
+    - name: Lint with go vet
+      run: go vet ./...
     - name: Check format
       run: |
         go install golang.org/x/tools/cmd/goimports@latest
