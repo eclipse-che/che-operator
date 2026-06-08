@@ -1,0 +1,12 @@
+run:
+  timeout: 5m
+  modules-download-mode: vendor
+
+linters:
+  enable:
+    - govet
+    - gofmt
+    - goimports
+    - ineffassign
+    - unused
+    - misspell
