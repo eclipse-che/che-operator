@@ -382,7 +382,7 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.36.11
+# google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
 ## explicit; go 1.23
 google.golang.org/protobuf/encoding/protodelim
 google.golang.org/protobuf/encoding/protojson
@@ -502,8 +502,8 @@ k8s.io/api/storagemigration/v1beta1
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1
-# k8s.io/apimachinery v0.35.3
-## explicit; go 1.25.0
+# k8s.io/apimachinery v0.36.1
+## explicit; go 1.26.0
 k8s.io/apimachinery/pkg/api/equality
 k8s.io/apimachinery/pkg/api/errors
 k8s.io/apimachinery/pkg/api/meta
@@ -914,6 +914,8 @@ k8s.io/klog/v2/internal/dbg
 k8s.io/klog/v2/internal/serialize
 k8s.io/klog/v2/internal/severity
 k8s.io/klog/v2/internal/sloghandler
+k8s.io/klog/v2/internal/verbosity
+k8s.io/klog/v2/textlogger
 # k8s.io/kube-openapi v0.0.0-20260317180543-43fb72c5454a
 ## explicit; go 1.23.0
 k8s.io/kube-openapi/pkg/cached
@@ -930,6 +932,7 @@ k8s.io/kube-openapi/pkg/validation/spec
 ## explicit; go 1.23
 k8s.io/utils/buffer
 k8s.io/utils/clock
+k8s.io/utils/dump
 k8s.io/utils/internal/third_party/forked/golang/golang-lru
 k8s.io/utils/internal/third_party/forked/golang/net
 k8s.io/utils/lru
