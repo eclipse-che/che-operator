@@ -17,4 +17,4 @@ updates:
     schedule:
       interval: daily
     open-pull-requests-limit: 5
-    insecure-external-code-execution: allow
+    vendor: true
