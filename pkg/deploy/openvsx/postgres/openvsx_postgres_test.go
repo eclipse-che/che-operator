@@ -261,7 +261,7 @@ func TestReconcileCustomClaimSize(t *testing.T) {
 				OpenVSX: chev2.OpenVSX{
 					Enable: true,
 					Postgres: &chev2.OpenVSXPostgres{
-						ClaimSize: "5Gi",
+						Storage: &chev2.PVC{ClaimSize: "5Gi"},
 					},
 				},
 			},

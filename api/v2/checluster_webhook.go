@@ -277,9 +277,18 @@ func (r *CheClusterValidator) ensureScmLabelsAndAnnotations(secret *corev1.Secre
 }
 
 func (r *CheClusterValidator) validateOpenVSX(checluster *CheCluster) error {
-	if checluster.Spec.Components.OpenVSX.Postgres != nil && checluster.Spec.Components.OpenVSX.Postgres.ClaimSize != "" {
-		if _, err := resource.ParseQuantity(checluster.Spec.Components.OpenVSX.Postgres.ClaimSize); err != nil {
-			return fmt.Errorf("invalid spec.components.openVSX.postgres.claimSize: %v", err)
+	if checluster.Spec.Components.OpenVSX.Postgres != nil &&
+		checluster.Spec.Components.OpenVSX.Postgres.Storage != nil &&
+		checluster.Spec.Components.OpenVSX.Postgres.Storage.ClaimSize != "" {
+		if _, err := resource.ParseQuantity(checluster.Spec.Components.OpenVSX.Postgres.Storage.ClaimSize); err != nil {
+			return fmt.Errorf("invalid spec.components.openVSX.postgres.pvc.claimSize: %v", err)
+		}
+	}
+	if checluster.Spec.Components.OpenVSX.Server != nil &&
+		checluster.Spec.Components.OpenVSX.Server.Storage != nil &&
+		checluster.Spec.Components.OpenVSX.Server.Storage.ClaimSize != "" {
+		if _, err := resource.ParseQuantity(checluster.Spec.Components.OpenVSX.Server.Storage.ClaimSize); err != nil {
+			return fmt.Errorf("invalid spec.components.openVSX.server.pvc.claimSize: %v", err)
 		}
 	}
 	return nil

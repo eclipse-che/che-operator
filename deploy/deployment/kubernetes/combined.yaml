@@ -12115,11 +12115,6 @@ spec:
                       postgres:
                         description: PostgreSQL database configuration for OpenVSX.
                         properties:
-                          claimSize:
-                            default: 1Gi
-                            description: PVC claim size for PostgreSQL data. Defaults
-                              to 1Gi.
-                            type: string
                           deployment:
                             description: Deployment override options.
                             properties:
@@ -14658,15 +14653,34 @@ spec:
                                   type: object
                                 type: array
                             type: object
+                          pvc:
+                            description: PVC settings for PostgreSQL data.
+                            properties:
+                              claimSize:
+                                description: Persistent Volume Claim size. To update
+                                  the claim size, the storage class that provisions
+                                  it must support resizing.
+                                type: string
+                              storageAccessMode:
+                                description: |-
+                                  StorageAccessMode are the desired access modes the volume should have.
+                                  It is used to specify PersistentVolume access mode type to RWO/RWX when using per-user strategy, allowing
+                                  user to re-use volume across multiple workspaces.
+
+                                  It defaults to ReadWriteOnce if not specified
+                                items:
+                                  type: string
+                                type: array
+                              storageClass:
+                                description: Storage class for the Persistent Volume
+                                  Claim. When omitted or left blank, a default storage
+                                  class is used.
+                                type: string
+                            type: object
                         type: object
                       server:
                         description: OpenVSX server configuration.
                         properties:
-                          claimSize:
-                            default: 3Gi
-                            description: PVC claim size for extension storage. Defaults
-                              to 3Gi.
-                            type: string
                           deployment:
                             description: Deployment override options.
                             properties:
@@ -17204,6 +17218,30 @@ spec:
                                   - name
                                   type: object
                                 type: array
+                            type: object
+                          pvc:
+                            description: PVC settings for extension storage.
+                            properties:
+                              claimSize:
+                                description: Persistent Volume Claim size. To update
+                                  the claim size, the storage class that provisions
+                                  it must support resizing.
+                                type: string
+                              storageAccessMode:
+                                description: |-
+                                  StorageAccessMode are the desired access modes the volume should have.
+                                  It is used to specify PersistentVolume access mode type to RWO/RWX when using per-user strategy, allowing
+                                  user to re-use volume across multiple workspaces.
+
+                                  It defaults to ReadWriteOnce if not specified
+                                items:
+                                  type: string
+                                type: array
+                              storageClass:
+                                description: Storage class for the Persistent Volume
+                                  Claim. When omitted or left blank, a default storage
+                                  class is used.
+                                type: string
                             type: object
                         type: object
                     type: object

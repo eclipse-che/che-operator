@@ -59,6 +59,13 @@ func ConfigMap(labelKeys []string, annotationKeys []string) cmp.Options {
 	}
 }
 
+var PVC = cmp.Options{
+	cmpopts.IgnoreFields(corev1.PersistentVolumeClaim{}, "TypeMeta", "ObjectMeta", "Status"),
+	cmp.Comparer(func(x, y corev1.PersistentVolumeClaimSpec) bool {
+		return x.Resources.Requests[corev1.ResourceStorage] == y.Resources.Requests[corev1.ResourceStorage]
+	}),
+}
+
 var ServiceMonitor = cmp.Options{
 	cmpopts.IgnoreFields(monitoringv1.ServiceMonitor{}, "TypeMeta", "ObjectMeta"),
 }

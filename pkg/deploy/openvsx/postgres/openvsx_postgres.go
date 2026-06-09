@@ -17,6 +17,7 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -118,55 +119,32 @@ func (p *OpenVSXPostgresReconciler) syncService(ctx *chetypes.DeployContext) (bo
 func (p *OpenVSXPostgresReconciler) syncPVC(ctx *chetypes.DeployContext) (bool, error) {
 	claimSize := constants.DefaultOpenVSXPostgresClaimSize
 	if ctx.CheCluster.Spec.Components.OpenVSX.Postgres != nil &&
-		ctx.CheCluster.Spec.Components.OpenVSX.Postgres.ClaimSize != "" {
-		claimSize = ctx.CheCluster.Spec.Components.OpenVSX.Postgres.ClaimSize
+		ctx.CheCluster.Spec.Components.OpenVSX.Postgres.Storage != nil &&
+		ctx.CheCluster.Spec.Components.OpenVSX.Postgres.Storage.ClaimSize != "" {
+		claimSize = ctx.CheCluster.Spec.Components.OpenVSX.Postgres.Storage.ClaimSize
 	}
 
-	desiredSize := resource.MustParse(claimSize)
-
-	existing := &corev1.PersistentVolumeClaim{}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{
-		Name:      pvcName,
-		Namespace: ctx.CheCluster.Namespace,
-	}, existing)
-
-	if errors.IsNotFound(err) {
-		pvc := &corev1.PersistentVolumeClaim{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "PersistentVolumeClaim",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      pvcName,
-				Namespace: ctx.CheCluster.Namespace,
-				Labels:    deploy.GetLabels(constants.OpenVSXPostgresName),
-			},
-			Spec: corev1.PersistentVolumeClaimSpec{
-				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-				Resources: corev1.VolumeResourceRequirements{
-					Requests: corev1.ResourceList{
-						corev1.ResourceStorage: desiredSize,
-					},
+	pvc := &corev1.PersistentVolumeClaim{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "PersistentVolumeClaim",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      pvcName,
+			Namespace: ctx.CheCluster.Namespace,
+			Labels:    deploy.GetLabels(constants.OpenVSXPostgresName),
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+			Resources: corev1.VolumeResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceStorage: resource.MustParse(claimSize),
 				},
 			},
-		}
-		return deploy.Sync(ctx, pvc, deploy.DefaultDeploymentDiffOpts)
+		},
 	}
 
-	if err != nil {
-		return false, err
-	}
-
-	currentSize := existing.Spec.Resources.Requests[corev1.ResourceStorage]
-	if currentSize.Cmp(desiredSize) != 0 {
-		existing.Spec.Resources.Requests[corev1.ResourceStorage] = desiredSize
-		err = ctx.ClusterAPI.Client.Update(context.TODO(), existing)
-		if err != nil {
-			return false, err
-		}
-	}
-
-	return true, nil
+	return deploy.Sync(ctx, pvc, diffs.PVC)
 }
 
 func (p *OpenVSXPostgresReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {

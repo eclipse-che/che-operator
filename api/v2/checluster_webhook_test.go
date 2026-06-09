@@ -136,7 +136,7 @@ func TestValidateOpenVSXClaimSize(t *testing.T) {
 				OpenVSX: OpenVSX{
 					Enable: true,
 					Postgres: &OpenVSXPostgres{
-						ClaimSize: "5Gi",
+						Storage: &PVC{ClaimSize: "5Gi"},
 					},
 				},
 			},
@@ -160,7 +160,7 @@ func TestValidateOpenVSXClaimSizeInvalid(t *testing.T) {
 				OpenVSX: OpenVSX{
 					Enable: true,
 					Postgres: &OpenVSXPostgres{
-						ClaimSize: "invalid",
+						Storage: &PVC{ClaimSize: "invalid"},
 					},
 				},
 			},
@@ -169,7 +169,7 @@ func TestValidateOpenVSXClaimSizeInvalid(t *testing.T) {
 
 	err := cheClusterValidator.validate(checluster)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid spec.components.openVSX.postgres.claimSize")
+	assert.Contains(t, err.Error(), "invalid spec.components.openVSX.postgres.pvc.claimSize")
 }
 
 func TestValidateScmSecretsShouldThrowError(t *testing.T) {

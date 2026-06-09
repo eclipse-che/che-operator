@@ -470,10 +470,9 @@ type OpenVSXServer struct {
 	// Deployment override options.
 	// +optional
 	Deployment *Deployment `json:"deployment,omitempty"`
-	// PVC claim size for extension storage. Defaults to 3Gi.
+	// PVC settings for extension storage.
 	// +optional
-	// +kubebuilder:default:="3Gi"
-	ClaimSize string `json:"claimSize,omitempty"`
+	Storage *PVC `json:"pvc,omitempty"`
 }
 
 // PostgreSQL configuration for OpenVSX.
@@ -482,10 +481,9 @@ type OpenVSXPostgres struct {
 	// Deployment override options.
 	// +optional
 	Deployment *Deployment `json:"deployment,omitempty"`
-	// PVC claim size for PostgreSQL data. Defaults to 1Gi.
+	// PVC settings for PostgreSQL data.
 	// +optional
-	// +kubebuilder:default:="1Gi"
-	ClaimSize string `json:"claimSize,omitempty"`
+	Storage *PVC `json:"pvc,omitempty"`
 }
 
 // Configuration settings related to the devfile registry used by the Che installation.

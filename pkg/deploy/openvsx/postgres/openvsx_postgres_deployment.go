@@ -47,7 +47,7 @@ func (p *OpenVSXPostgresReconciler) getDeploymentSpec(ctx *chetypes.DeployContex
 				MatchLabels: labelSelector,
 			},
 			Strategy: appsv1.DeploymentStrategy{
-				Type: appsv1.RollingUpdateDeploymentStrategyType,
+				Type: appsv1.RecreateDeploymentStrategyType,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
