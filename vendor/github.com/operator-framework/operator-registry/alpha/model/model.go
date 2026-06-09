@@ -337,7 +337,7 @@ type Bundle struct {
 
 func (b *Bundle) VersionString() string {
 	if len(b.Release.Pre) > 0 {
-		pres := []string{}
+		pres := make([]string, 0, len(b.Release.Pre))
 		for _, pre := range b.Release.Pre {
 			pres = append(pres, pre.String())
 		}
@@ -402,6 +402,11 @@ func (b *Bundle) Validate() error {
 	for i, skip := range b.Skips {
 		if skip == "" {
 			result.subErrors = append(result.subErrors, fmt.Errorf("skip[%d] is empty", i))
+		}
+	}
+	if b.SkipRange != "" {
+		if _, err := semver.ParseRange(b.SkipRange); err != nil {
+			result.subErrors = append(result.subErrors, fmt.Errorf("invalid skipRange %q: %v", b.SkipRange, err))
 		}
 	}
 	// TODO(joelanford): Validate related images? It looks like some
