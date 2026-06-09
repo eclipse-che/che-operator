@@ -140,8 +140,8 @@ func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(ctx *chetypes
 	if ctx.CheCluster.IsDisableWorkspaceCaBundleMount() {
 		// Remove annotation to stop OpenShift network operator from injecting certificates
 		// https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/networking/configuring-a-custom-pki#certificate-injection-using-operators_configuring-a-custom-pki
-		delete(openShiftCaBundleCM.ObjectMeta.Labels, constants.ConfigOpenShiftIOInjectTrustedCaBundle)
-		delete(openShiftCaBundleCM.ObjectMeta.Annotations, constants.OpenShiftIOOwningComponent)
+		delete(openShiftCaBundleCM.Labels, constants.ConfigOpenShiftIOInjectTrustedCaBundle)
+		delete(openShiftCaBundleCM.Annotations, constants.OpenShiftIOOwningComponent)
 
 		// Remove key where OpenShift network operator injects certificates
 		// https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/networking/configuring-a-custom-pki#certificate-injection-using-operators_configuring-a-custom-pki
@@ -172,7 +172,7 @@ func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(ctx *chetypes
 	} else {
 		// Add annotation to allow OpenShift network operator inject certificates
 		// https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/networking/configuring-a-custom-pki#certificate-injection-using-operators_configuring-a-custom-pki
-		openShiftCaBundleCM.ObjectMeta.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle] = "true"
+		openShiftCaBundleCM.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle] = "true"
 
 		// Ignore Data field to allow OpenShift network operator inject certificates into CM
 		// and avoid endless reconciliation loop
@@ -400,14 +400,14 @@ func (c *CertificatesReconciler) syncCheCABundleCerts(ctx *chetypes.DeployContex
 
 	if !ctx.CheCluster.IsDisableWorkspaceCaBundleMount() {
 		// Mount the CA bundle into /etc/pki/ca-trust/extracted/pem
-		mergedCABundlesCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountAsAnnotation] = "subpath"
-		mergedCABundlesCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountPathAnnotation] = kubernetesCABundleCertsDir
+		mergedCABundlesCM.Annotations[dwconstants.DevWorkspaceMountAsAnnotation] = "subpath"
+		mergedCABundlesCM.Annotations[dwconstants.DevWorkspaceMountPathAnnotation] = kubernetesCABundleCertsDir
 	} else {
 		// Default behavior is to mount the CA bundle into /public-certs
-		mergedCABundlesCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountAsAnnotation] = "file"
-		mergedCABundlesCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountPathAnnotation] = constants.PublicCertsDir
+		mergedCABundlesCM.Annotations[dwconstants.DevWorkspaceMountAsAnnotation] = "file"
+		mergedCABundlesCM.Annotations[dwconstants.DevWorkspaceMountPathAnnotation] = constants.PublicCertsDir
 	}
-	mergedCABundlesCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountAccessModeAnnotation] = "0444"
+	mergedCABundlesCM.Annotations[dwconstants.DevWorkspaceMountAccessModeAnnotation] = "0444"
 
 	return deploy.Sync(
 		ctx,

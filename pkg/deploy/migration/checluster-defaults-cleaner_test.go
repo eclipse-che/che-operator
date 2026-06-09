@@ -17,18 +17,17 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/utils/ptr"
 
 	devfile "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
-
-	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -71,7 +70,7 @@ func TestCheClusterDefaultsCleanerShouldNotChangeValuesOnInstallation(t *testing
 							},
 						},
 						PluginRegistry: chev2.PluginRegistry{
-							OpenVSXURL: pointer.String("https://open-vsx.org"),
+							OpenVSXURL: ptr.To("https://open-vsx.org"),
 						},
 						Dashboard: chev2.Dashboard{
 							HeaderMessage: &chev2.DashboardHeaderMessage{
@@ -81,7 +80,7 @@ func TestCheClusterDefaultsCleanerShouldNotChangeValuesOnInstallation(t *testing
 						},
 					},
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(false),
+						DisableContainerBuildCapabilities: ptr.To(false),
 						DefaultEditor:                     "che-incubator/che-code/insiders",
 						DefaultComponents: []devfile.Component{
 							{
@@ -341,7 +340,7 @@ func TestCheClusterDefaultsCleanerOpenVSXURL(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
 						PluginRegistry: chev2.PluginRegistry{
-							OpenVSXURL: pointer.StringPtr("https://open-vsx.org"),
+							OpenVSXURL: ptr.To("https://open-vsx.org"),
 						},
 					},
 				},
@@ -360,7 +359,7 @@ func TestCheClusterDefaultsCleanerOpenVSXURL(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
 						PluginRegistry: chev2.PluginRegistry{
-							OpenVSXURL: pointer.StringPtr("https://bla-bla-bla"),
+							OpenVSXURL: ptr.To("https://bla-bla-bla"),
 						},
 					},
 				},
@@ -368,7 +367,7 @@ func TestCheClusterDefaultsCleanerOpenVSXURL(t *testing.T) {
 					CheVersion: "next",
 				},
 			},
-			expectedOpenVSXURL: pointer.StringPtr("https://bla-bla-bla"),
+			expectedOpenVSXURL: ptr.To("https://bla-bla-bla"),
 		},
 		{
 			name: "Case #3",
@@ -380,7 +379,7 @@ func TestCheClusterDefaultsCleanerOpenVSXURL(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
 						PluginRegistry: chev2.PluginRegistry{
-							OpenVSXURL: pointer.String(""),
+							OpenVSXURL: ptr.To(""),
 						},
 					},
 				},
@@ -389,7 +388,7 @@ func TestCheClusterDefaultsCleanerOpenVSXURL(t *testing.T) {
 				},
 			},
 			// Make it works in downstream as well
-			expectedOpenVSXURL: map[bool]*string{true: nil, false: pointer.String("")}[defaults.GetPluginRegistryOpenVSXURL() == ""],
+			expectedOpenVSXURL: map[bool]*string{true: nil, false: ptr.To("")}[defaults.GetPluginRegistryOpenVSXURL() == ""],
 		},
 	}
 
@@ -553,14 +552,14 @@ func TestCheClusterDefaultsCleanerDisableContainerBuildCapabilities(t *testing.T
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.BoolPtr(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
 					},
 				},
 				Status: chev2.CheClusterStatus{
 					CheVersion: "next",
 				},
 			},
-			expectedDisableContainerBuildCapabilities: pointer.BoolPtr(true),
+			expectedDisableContainerBuildCapabilities: ptr.To(true),
 		},
 	}
 

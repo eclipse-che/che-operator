@@ -34,7 +34,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -125,7 +125,7 @@ func (s *CheServerReconciler) getConfigMapData(ctx *chetypes.DeployContext) (che
 	)
 
 	cheDebugServer := strconv.FormatBool(
-		pointer.BoolDeref(
+		ptr.Deref(
 			ctx.CheCluster.Spec.Components.CheServer.Debug,
 			constants.DefaultServerDebug,
 		))
@@ -135,7 +135,7 @@ func (s *CheServerReconciler) getConfigMapData(ctx *chetypes.DeployContext) (che
 
 	namespaceDefault := ctx.CheCluster.GetDefaultNamespace()
 	namespaceCreationAllowed := strconv.FormatBool(
-		pointer.BoolDeref(
+		ptr.Deref(
 			ctx.CheCluster.Spec.DevEnvironments.DefaultNamespace.AutoProvision,
 			constants.DefaultAutoProvision,
 		))
@@ -143,7 +143,7 @@ func (s *CheServerReconciler) getConfigMapData(ctx *chetypes.DeployContext) (che
 	kubernetesLabels := labels.FormatLabels(deploy.GetLabels(defaults.GetCheFlavor()))
 
 	openShiftCreateKubernetesNamespaces := strconv.FormatBool(
-		pointer.BoolDeref(
+		ptr.Deref(
 			ctx.CheCluster.Spec.DevEnvironments.DefaultNamespace.CreateKubernetesNamespaces,
 			constants.OpenShiftCreateKubernetesNamespaces,
 		),

@@ -15,7 +15,7 @@ package gateway
 import (
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
@@ -51,7 +51,6 @@ const (
 	GatewayServicePort = 8080
 
 	serverComponentName        = "server"
-	gatewayKubeAuthConfigName  = "che-gateway-route-kube-auth"
 	gatewayConfigComponentName = "che-gateway-config"
 	gatewayOauthSecretName     = "che-gateway-oauth-secret"
 	GatewayConfigMapNamePrefix = "che-gateway-route-"
@@ -146,7 +145,7 @@ func syncAll(deployContext *chetypes.DeployContext) (bool, error) {
 		return false, err
 	}
 
-	if done, err := deploy.Sync(deployContext, &fallbackConfig, configMapDiffOpts); !done {
+	if done, err := deploy.Sync(deployContext, fallbackConfig, configMapDiffOpts); !done {
 		return false, err
 	}
 
@@ -165,7 +164,7 @@ func syncAll(deployContext *chetypes.DeployContext) (bool, error) {
 	}
 
 	if serverConfig, cfgErr := getGatewayServerConfigSpec(deployContext); cfgErr == nil {
-		if done, err := deploy.Sync(deployContext, &serverConfig, configMapDiffOpts); !done {
+		if done, err := deploy.Sync(deployContext, serverConfig, configMapDiffOpts); !done {
 			return done, err
 		}
 	}
@@ -208,7 +207,7 @@ func generateOauthSecretSpec(deployContext *chetypes.DeployContext) *corev1.Secr
 
 // below functions declare the desired states of the various objects required for the gateway
 
-func getGatewayServerConfigSpec(deployContext *chetypes.DeployContext) (corev1.ConfigMap, error) {
+func getGatewayServerConfigSpec(deployContext *chetypes.DeployContext) (*corev1.ConfigMap, error) {
 	cfg := CreateCommonTraefikConfig(
 		serverComponentName,
 		"PathPrefix(`/api`) || PathPrefix(`/swagger`) || PathPrefix(`/_app`)",
@@ -233,14 +232,14 @@ func getGatewayServerConfigSpec(deployContext *chetypes.DeployContext) (corev1.C
 func GetConfigmapForGatewayConfig(
 	deployContext *chetypes.DeployContext,
 	componentName string,
-	gatewayConfig *TraefikConfig) (corev1.ConfigMap, error) {
+	gatewayConfig *TraefikConfig) (*corev1.ConfigMap, error) {
 
 	gatewayConfigContent, err := yaml.Marshal(gatewayConfig)
 	if err != nil {
 		logrus.Error(err, "can't serialize traefik config")
 	}
 
-	ret := corev1.ConfigMap{
+	ret := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "ConfigMap",
@@ -257,7 +256,10 @@ func GetConfigmapForGatewayConfig(
 		},
 	}
 
-	controllerutil.SetControllerReference(deployContext.CheCluster, &ret, deployContext.ClusterAPI.Scheme)
+	err = controllerutil.SetControllerReference(deployContext.CheCluster, ret, deployContext.ClusterAPI.Scheme)
+	if err != nil {
+		return nil, err
+	}
 
 	return ret, nil
 }
@@ -327,13 +329,13 @@ func generateRandomCookieSecret() []byte {
 }
 
 func getGatewayHeaderRewritePluginConfigSpec(instance *chev2.CheCluster) (*corev1.ConfigMap, error) {
-	headerRewrite, err := ioutil.ReadFile("/tmp/header-rewrite-traefik-plugin/headerRewrite.go")
+	headerRewrite, err := os.ReadFile("/tmp/header-rewrite-traefik-plugin/headerRewrite.go")
 	if err != nil {
 		if !test.IsTestMode() {
 			return nil, err
 		}
 	}
-	pluginMeta, err := ioutil.ReadFile("/tmp/header-rewrite-traefik-plugin/.traefik.yml")
+	pluginMeta, err := os.ReadFile("/tmp/header-rewrite-traefik-plugin/.traefik.yml")
 	if err != nil {
 		if !test.IsTestMode() {
 			return nil, err
@@ -407,7 +409,7 @@ experimental:
 	}
 }
 
-func createGatewayFallbackConfig(ctx *chetypes.DeployContext) (corev1.ConfigMap, error) {
+func createGatewayFallbackConfig(ctx *chetypes.DeployContext) (*corev1.ConfigMap, error) {
 	cfg := CreateEmptyTraefikConfig()
 
 	// clear services to prevent the following error fom traefik pod:

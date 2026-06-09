@@ -16,6 +16,7 @@ import (
 	"context"
 	"reflect"
 
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
@@ -36,7 +37,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
 )
 
 var (
@@ -1130,7 +1130,7 @@ func TestCustomizeDeploymentContainerSecurityContext(t *testing.T) {
 						{
 							Name: "test",
 							SecurityContext: &corev1.SecurityContext{
-								AllowPrivilegeEscalation: pointer.Bool(false),
+								AllowPrivilegeEscalation: ptr.To(false),
 							},
 						},
 					},

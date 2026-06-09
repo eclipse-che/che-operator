@@ -125,7 +125,7 @@ func IsSelfSignedCertificateUsed(ctx *chetypes.DeployContext) (bool, error) {
 // GetTLSCrtChain retrieves TLS certificates chain from a test route/ingress.
 func GetTLSCrtChain(ctx *chetypes.DeployContext) ([]*x509.Certificate, error) {
 	if test.IsTestMode() {
-		return nil, stderrors.New("Not allowed for tests")
+		return nil, stderrors.New("not allowed for tests")
 	}
 
 	var requestURL string
@@ -244,11 +244,18 @@ func doRequestForTLSCrtChain(ctx *chetypes.DeployContext, requestURL string, ski
 	}
 
 	req, err := http.NewRequest("GET", requestURL, nil)
-	resp, err := client.Do(req)
 	if err != nil {
-		logrus.Errorf("An error occurred when reaching test TLS route: %s", err)
 		return nil, err
 	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	return resp.TLS.PeerCertificates, nil
 }
@@ -312,7 +319,7 @@ func K8sHandleCheTLSSecrets(ctx *chetypes.DeployContext) (reconcile.Result, erro
 				logrus.Infof("Waiting on job '%s' to be finished", CheTLSJobName)
 				return reconcile.Result{RequeueAfter: 2 * time.Second}, nil
 			} else if job.Status.Succeeded > 0 {
-				// Secrets are ready, restart reconcilation loop
+				// Secrets are ready, restart reconciliation loop
 				return reconcile.Result{}, nil
 			}
 		}
@@ -408,7 +415,7 @@ func K8sHandleCheTLSSecrets(ctx *chetypes.DeployContext) (reconcile.Result, erro
 	}
 
 	// Check owner reference
-	if cheTLSSecret.ObjectMeta.OwnerReferences == nil {
+	if cheTLSSecret.OwnerReferences == nil {
 		// Set owner Che cluster as Che TLS secret owner
 		if err := controllerutil.SetControllerReference(ctx.CheCluster, cheTLSSecret, ctx.ClusterAPI.Scheme); err != nil {
 			logrus.Errorf("Failed to set owner for Che TLS secret \"%s\". Error: %s", cheTLSSecretName, err)
@@ -452,7 +459,7 @@ func K8sHandleCheTLSSecrets(ctx *chetypes.DeployContext) (reconcile.Result, erro
 		}
 
 		// Check owner reference
-		if cheTLSSelfSignedCertificateSecret.ObjectMeta.OwnerReferences == nil {
+		if cheTLSSelfSignedCertificateSecret.OwnerReferences == nil {
 			// Set owner Che cluster as Che TLS secret owner
 			if err := controllerutil.SetControllerReference(ctx.CheCluster, cheTLSSelfSignedCertificateSecret, ctx.ClusterAPI.Scheme); err != nil {
 				logrus.Errorf("Failed to set owner for Che self-signed certificate secret \"%s\". Error: %s", constants.DefaultSelfSignedCertificateSecretName, err)

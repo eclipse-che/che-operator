@@ -146,6 +146,7 @@ func TestSyncAndMergeLabelsAnnotations(t *testing.T) {
 
 	cm := &corev1.ConfigMap{}
 	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "test"}, cm)
+	assert.NoError(t, err)
 
 	assert.Equal(t, "value_1", cm.Labels["label_1"])
 	assert.Equal(t, "cluster_value_2", cm.Labels["label_2"])

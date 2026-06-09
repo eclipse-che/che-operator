@@ -367,7 +367,7 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 
 	t.Run("traefikConfig", func(t *testing.T) {
 		cms := &corev1.ConfigMapList{}
-		cl.List(context.TODO(), cms)
+		_ = cl.List(context.TODO(), cms)
 
 		assert.Len(t, cms.Items, 2)
 
@@ -503,7 +503,7 @@ func TestCreateRelocatedObjectsK8SLegacy(t *testing.T) {
 
 	t.Run("traefikConfig", func(t *testing.T) {
 		cms := &corev1.ConfigMapList{}
-		cl.List(context.TODO(), cms)
+		_ = cl.List(context.TODO(), cms)
 
 		assert.Len(t, cms.Items, 2)
 
@@ -630,7 +630,7 @@ func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 
 	t.Run("traefikConfig", func(t *testing.T) {
 		cms := &corev1.ConfigMapList{}
-		cl.List(context.TODO(), cms)
+		_ = cl.List(context.TODO(), cms)
 
 		assert.Len(t, cms.Items, 2)
 
@@ -737,7 +737,7 @@ func TestCreateRelocatedObjectsOpenshiftLegacy(t *testing.T) {
 
 	t.Run("traefikConfig", func(t *testing.T) {
 		cms := &corev1.ConfigMapList{}
-		cl.List(context.TODO(), cms)
+		_ = cl.List(context.TODO(), cms)
 
 		assert.Len(t, cms.Items, 2)
 
@@ -863,7 +863,7 @@ func TestUniqueMainEndpoint(t *testing.T) {
 	})
 
 	cms := &corev1.ConfigMapList{}
-	cl.List(context.TODO(), cms)
+	_ = cl.List(context.TODO(), cms)
 
 	assert.Len(t, cms.Items, 2)
 
@@ -960,7 +960,7 @@ func TestUniqueMainEndpointLegacy(t *testing.T) {
 	}, routing)
 
 	cms := &corev1.ConfigMapList{}
-	cl.List(context.TODO(), cms)
+	_ = cl.List(context.TODO(), cms)
 
 	assert.Len(t, cms.Items, 2)
 
@@ -1029,7 +1029,7 @@ func TestCreateSubDomainObjects(t *testing.T) {
 
 		t.Run("noWorkspaceTraefikConfig", func(t *testing.T) {
 			cms := &corev1.ConfigMapList{}
-			cl.List(context.TODO(), cms)
+			_ = cl.List(context.TODO(), cms)
 
 			if len(cms.Items) != 2 {
 				t.Errorf("there should be 2 configmaps create but found: %d", len(cms.Items))
@@ -1103,7 +1103,7 @@ func TestCreateSubDomainObjectsLegacy(t *testing.T) {
 
 		t.Run("noWorkspaceTraefikConfig", func(t *testing.T) {
 			cms := &corev1.ConfigMapList{}
-			cl.List(context.TODO(), cms)
+			_ = cl.List(context.TODO(), cms)
 
 			if len(cms.Items) != 2 {
 				t.Errorf("there should be 2 configmaps create but found: %d", len(cms.Items))
@@ -1286,8 +1286,8 @@ func TestExposeEndpoints(t *testing.T) {
 						Exposure:   dwo.InternalEndpointExposure,
 						Protocol:   "http",
 						Attributes: map[string]apiext.JSON{
-							"urlRewriteSupported": apiext.JSON{Raw: []byte("\"true\"")},
-							"cookiesAuthEnabled":  apiext.JSON{Raw: []byte("\"true\"")},
+							"urlRewriteSupported": {Raw: []byte("\"true\"")},
+							"cookiesAuthEnabled":  {Raw: []byte("\"true\"")},
 						},
 					},
 				},
@@ -1306,8 +1306,8 @@ func TestExposeEndpoints(t *testing.T) {
 						Exposure:   dwo.NoneEndpointExposure,
 						Protocol:   "http",
 						Attributes: map[string]apiext.JSON{
-							"urlRewriteSupported": apiext.JSON{Raw: []byte("\"true\"")},
-							"cookiesAuthEnabled":  apiext.JSON{Raw: []byte("\"true\"")},
+							"urlRewriteSupported": {Raw: []byte("\"true\"")},
+							"cookiesAuthEnabled":  {Raw: []byte("\"true\"")},
 						},
 					},
 				},
@@ -1326,8 +1326,8 @@ func TestExposeEndpoints(t *testing.T) {
 						Exposure:   dwo.PublicEndpointExposure,
 						Protocol:   "http",
 						Attributes: map[string]apiext.JSON{
-							"urlRewriteSupported": apiext.JSON{Raw: []byte("\"true\"")},
-							"cookiesAuthEnabled":  apiext.JSON{Raw: []byte("\"true\"")},
+							"urlRewriteSupported": {Raw: []byte("\"true\"")},
+							"cookiesAuthEnabled":  {Raw: []byte("\"true\"")},
 						},
 					},
 				},
@@ -1404,8 +1404,8 @@ func TestExposeEndpointsLegacy(t *testing.T) {
 						Exposure:   dwo.InternalEndpointExposure,
 						Protocol:   "http",
 						Attributes: map[string]apiext.JSON{
-							"urlRewriteSupported": apiext.JSON{Raw: []byte("\"true\"")},
-							"cookiesAuthEnabled":  apiext.JSON{Raw: []byte("\"true\"")},
+							"urlRewriteSupported": {Raw: []byte("\"true\"")},
+							"cookiesAuthEnabled":  {Raw: []byte("\"true\"")},
 						},
 					},
 				},
@@ -1424,8 +1424,8 @@ func TestExposeEndpointsLegacy(t *testing.T) {
 						Exposure:   dwo.NoneEndpointExposure,
 						Protocol:   "http",
 						Attributes: map[string]apiext.JSON{
-							"urlRewriteSupported": apiext.JSON{Raw: []byte("\"true\"")},
-							"cookiesAuthEnabled":  apiext.JSON{Raw: []byte("\"true\"")},
+							"urlRewriteSupported": {Raw: []byte("\"true\"")},
+							"cookiesAuthEnabled":  {Raw: []byte("\"true\"")},
 						},
 					},
 				},
@@ -1444,8 +1444,8 @@ func TestExposeEndpointsLegacy(t *testing.T) {
 						Exposure:   dwo.PublicEndpointExposure,
 						Protocol:   "http",
 						Attributes: map[string]apiext.JSON{
-							"urlRewriteSupported": apiext.JSON{Raw: []byte("\"true\"")},
-							"cookiesAuthEnabled":  apiext.JSON{Raw: []byte("\"true\"")},
+							"urlRewriteSupported": {Raw: []byte("\"true\"")},
+							"cookiesAuthEnabled":  {Raw: []byte("\"true\"")},
 						},
 					},
 				},
@@ -1701,7 +1701,7 @@ func TestFinalize(t *testing.T) {
 	}
 
 	cms := &corev1.ConfigMapList{}
-	cl.List(context.TODO(), cms)
+	_ = cl.List(context.TODO(), cms)
 
 	if len(cms.Items) != 0 {
 		t.Fatalf("There should be just 0 configmaps after routing finalization, but there were %d found", len(cms.Items))

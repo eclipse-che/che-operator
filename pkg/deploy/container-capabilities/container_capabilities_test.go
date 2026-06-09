@@ -28,7 +28,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 func TestContainerBuildReconciler(t *testing.T) {
@@ -56,10 +56,10 @@ func TestContainerBuildReconciler(t *testing.T) {
 	test.EnsureReconcile(t, ctx, containerBuildReconciler.Reconcile)
 
 	// Enable container capabilities
-	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.Bool(false)
+	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = ptr.To(false)
 	ctx.CheCluster.Spec.DevEnvironments.ContainerBuildConfiguration = &chev2.ContainerBuildConfiguration{OpenShiftSecurityContextConstraint: "scc-build"}
 
-	ctx.CheCluster.Spec.DevEnvironments.DisableContainerRunCapabilities = pointer.Bool(false)
+	ctx.CheCluster.Spec.DevEnvironments.DisableContainerRunCapabilities = ptr.To(false)
 	ctx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration = &chev2.ContainerRunConfiguration{OpenShiftSecurityContextConstraint: "scc-run"}
 
 	err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
@@ -90,8 +90,8 @@ func TestContainerBuildReconciler(t *testing.T) {
 	assert.Equal(t, "devworkspace-controller", crb.Subjects[0].Namespace)
 
 	// Disable Container capabilities
-	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.Bool(true)
-	ctx.CheCluster.Spec.DevEnvironments.DisableContainerRunCapabilities = pointer.Bool(true)
+	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = ptr.To(true)
+	ctx.CheCluster.Spec.DevEnvironments.DisableContainerRunCapabilities = ptr.To(true)
 
 	err = ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
 	assert.NoError(t, err)
@@ -145,8 +145,8 @@ func TestShouldUpdateManagedSCCOnReconcile(t *testing.T) {
 
 	ctx := test.NewCtxBuilder().WithObjects(dwPod, sccRun).Build()
 
-	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.Bool(true)
-	ctx.CheCluster.Spec.DevEnvironments.DisableContainerRunCapabilities = pointer.Bool(false)
+	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = ptr.To(true)
+	ctx.CheCluster.Spec.DevEnvironments.DisableContainerRunCapabilities = ptr.To(false)
 	ctx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration = &chev2.ContainerRunConfiguration{OpenShiftSecurityContextConstraint: "scc-run"}
 	err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
 	assert.NoError(t, err)
@@ -204,11 +204,12 @@ func TestShouldNotSyncSCCIfAlreadyExists(t *testing.T) {
 	ctx := test.NewCtxBuilder().WithObjects(dwPod, sccBuild, sccRun).Build()
 	ctx.DwoNamespace = "devworkspace-controller"
 
-	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.Bool(false)
+	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = ptr.To(false)
 	ctx.CheCluster.Spec.DevEnvironments.ContainerBuildConfiguration = &chev2.ContainerBuildConfiguration{OpenShiftSecurityContextConstraint: "scc-build"}
-	ctx.CheCluster.Spec.DevEnvironments.DisableContainerRunCapabilities = pointer.Bool(false)
+	ctx.CheCluster.Spec.DevEnvironments.DisableContainerRunCapabilities = ptr.To(false)
 	ctx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration = &chev2.ContainerRunConfiguration{OpenShiftSecurityContextConstraint: "scc-run"}
 	err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
+	assert.NoError(t, err)
 
 	containerBuildReconciler := NewContainerCapabilitiesReconciler()
 
@@ -227,9 +228,10 @@ func TestShouldNotSyncSCCIfAlreadyExists(t *testing.T) {
 	assert.True(t, scc.Labels[deploy.GetManagedByLabel()] == "")
 
 	// Disable Container capabilities
-	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.Bool(true)
-	ctx.CheCluster.Spec.DevEnvironments.DisableContainerRunCapabilities = pointer.Bool(true)
+	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = ptr.To(true)
+	ctx.CheCluster.Spec.DevEnvironments.DisableContainerRunCapabilities = ptr.To(true)
 	err = ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
+	assert.NoError(t, err)
 
 	test.EnsureReconcile(t, ctx, containerBuildReconciler.Reconcile)
 

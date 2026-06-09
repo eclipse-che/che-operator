@@ -289,6 +289,9 @@ fmt: download-addlicense ## Run go fmt against code.
 vet: ## Run go vet against code.
 	go vet ./...
 
+lint: ## Run static code analyzers
+	golangci-lint run
+
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
 test: download-gateway-resources ## Run tests.
 	export MOCK_API=true; go test -mod=vendor ./... -coverprofile cover.out

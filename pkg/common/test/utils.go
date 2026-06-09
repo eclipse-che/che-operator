@@ -19,7 +19,7 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/stretchr/testify/assert"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -86,7 +86,7 @@ func CompareResources(actualDeployment *appsv1.Deployment, expected TestExpected
 
 func ValidateSecurityContext(actualDeployment *appsv1.Deployment, t *testing.T) {
 	assert.Equal(t, corev1.Capability("ALL"), actualDeployment.Spec.Template.Spec.Containers[0].SecurityContext.Capabilities.Drop[0])
-	assert.Equal(t, pointer.Bool(false), actualDeployment.Spec.Template.Spec.Containers[0].SecurityContext.AllowPrivilegeEscalation)
+	assert.Equal(t, ptr.To(false), actualDeployment.Spec.Template.Spec.Containers[0].SecurityContext.AllowPrivilegeEscalation)
 }
 
 func compareQuantity(resource string, actualQuantity *resource.Quantity, expected string, t *testing.T) {
@@ -131,11 +131,7 @@ func FindVolumeMount(volumes []corev1.VolumeMount, name string) corev1.VolumeMou
 
 func IsObjectExists(client client.Client, key types.NamespacedName, blueprint client.Object) bool {
 	err := client.Get(context.TODO(), key, blueprint)
-	if err != nil {
-		return false
-	}
-
-	return true
+	return err == nil
 }
 
 func GetResourceQuantity(value string, defaultValue string) resource.Quantity {

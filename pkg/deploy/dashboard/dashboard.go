@@ -66,7 +66,7 @@ func (d *DashboardReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 		return reconcile.Result{}, false, err
 	}
 
-	// we create dashboard SA in any case to keep a track on resources we access withing it
+	// we create dashboard SA in any case to keep a track on resources we access within it
 	done, err = deploy.SyncServiceAccountToCluster(ctx, DashboardSA)
 	if !done {
 		return reconcile.Result{}, false, err

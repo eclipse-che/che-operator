@@ -12,7 +12,9 @@
 
 package gateway
 
-import "k8s.io/utils/pointer"
+import (
+	"k8s.io/utils/ptr"
+)
 
 const (
 	StripPrefixMiddlewareSuffix   = "-strip-prefix"
@@ -92,7 +94,7 @@ func (cfg *TraefikConfig) AddOpenShiftTokenCheck(componentName string) {
 		ForwardAuth: &TraefikConfigForwardAuth{
 			Address:             "https://kubernetes.default.svc/apis/user.openshift.io/v1/users/~",
 			TrustForwardHeader:  true,
-			MaxResponseBodySize: pointer.Int(16384), // 16KB
+			MaxResponseBodySize: ptr.To(16384), // 16KB
 			TLS: &TraefikConfigTLS{
 				InsecureSkipVerify: true,
 			},
@@ -106,7 +108,7 @@ func (cfg *TraefikConfig) AddAuth(componentName string, authAddress string) {
 	cfg.HTTP.Middlewares[middlewareName] = &TraefikConfigMiddleware{
 		ForwardAuth: &TraefikConfigForwardAuth{
 			Address:             authAddress,
-			MaxResponseBodySize: pointer.Int(16384), // 16KB
+			MaxResponseBodySize: ptr.To(16384), // 16KB
 		},
 	}
 }

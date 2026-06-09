@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,10 +51,7 @@ var (
 		},
 		Data: map[string][]byte{"x": []byte("y")},
 	}
-	testKey  = client.ObjectKey{Name: "test-secret", Namespace: "eclipse-che"}
-	diffOpts = cmp.Options{
-		cmpopts.IgnoreFields(corev1.Secret{}, "TypeMeta", "ObjectMeta"),
-	}
+	testKey = client.ObjectKey{Name: "test-secret", Namespace: "eclipse-che"}
 )
 
 func TestGet(t *testing.T) {
@@ -119,10 +115,6 @@ func TestUpdate(t *testing.T) {
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), testKey, actual)
 	if err != nil && !errors.IsNotFound(err) {
 		t.Fatalf("Failed to get object: %v", err)
-	}
-
-	if actual == nil {
-		t.Fatalf("Object not found")
 	}
 
 	if actual.Labels["a"] != "b" {

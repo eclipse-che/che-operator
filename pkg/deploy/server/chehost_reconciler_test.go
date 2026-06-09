@@ -15,7 +15,7 @@ package server
 import (
 	"context"
 
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
@@ -40,7 +40,7 @@ func TestSyncService(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
 				CheServer: chev2.CheServer{
-					Debug: pointer.Bool(true),
+					Debug: ptr.To(true),
 				},
 				Metrics: chev2.ServerMetrics{
 					Enable: true,
@@ -89,7 +89,7 @@ func TestConfiguringLabelsForRoutes(t *testing.T) {
 	route := &routev1.Route{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: getComponentName(), Namespace: "eclipse-che"}, route)
 	assert.Nil(t, err)
-	assert.Equal(t, route.ObjectMeta.Labels["route"], "one")
+	assert.Equal(t, route.Labels["route"], "one")
 }
 
 func TestCheHostReconciler(t *testing.T) {

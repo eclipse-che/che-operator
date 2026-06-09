@@ -18,7 +18,7 @@ import (
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	securityv1 "github.com/openshift/api/security/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 type ContainerRun struct {
@@ -34,7 +34,7 @@ func (r *ContainerRun) applySCCSpec(scc *securityv1.SecurityContextConstraints) 
 	scc.AllowHostNetwork = false
 	scc.AllowHostPID = false
 	scc.AllowHostPorts = false
-	scc.AllowPrivilegeEscalation = pointer.Bool(true)
+	scc.AllowPrivilegeEscalation = ptr.To(true)
 	scc.AllowPrivilegedContainer = false
 	scc.AllowedCapabilities = []corev1.Capability{"SETUID", "SETGID", "CHOWN"}
 	scc.DefaultAddCapabilities = nil
@@ -46,7 +46,7 @@ func (r *ContainerRun) applySCCSpec(scc *securityv1.SecurityContextConstraints) 
 	scc.RequiredDropCapabilities = []corev1.Capability{"KILL", "MKNOD"}
 	scc.RunAsUser = securityv1.RunAsUserStrategyOptions{
 		Type: securityv1.RunAsUserStrategyMustRunAs,
-		UID:  pointer.Int64(1000),
+		UID:  ptr.To(int64(1000)),
 	}
 	scc.SELinuxContext = securityv1.SELinuxContextStrategyOptions{
 		Type:           securityv1.SELinuxStrategyMustRunAs,

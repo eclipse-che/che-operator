@@ -20,7 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	chev1 "github.com/eclipse-che/che-operator/api/v1"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -164,8 +164,8 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 								},
 							},
 							SecurityContext: &chev2.PodSecurityContext{
-								RunAsUser: pointer.Int64Ptr(64),
-								FsGroup:   pointer.Int64Ptr(65),
+								RunAsUser: ptr.To(int64(64)),
+								FsGroup:   ptr.To(int64(65)),
 							},
 						},
 						HeaderMessage: &chev2.DashboardHeaderMessage{
@@ -197,12 +197,12 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 								},
 							},
 							SecurityContext: &chev2.PodSecurityContext{
-								RunAsUser: pointer.Int64Ptr(64),
-								FsGroup:   pointer.Int64Ptr(65),
+								RunAsUser: ptr.To(int64(64)),
+								FsGroup:   ptr.To(int64(65)),
 							},
 						},
 						LogLevel:     "LogLevel",
-						Debug:        pointer.BoolPtr(true),
+						Debug:        ptr.To(true),
 						ClusterRoles: []string{"ClusterRoles_1", "ClusterRoles_2"},
 						Proxy: &chev2.Proxy{
 							Url:                   "ProxyUrl",
@@ -280,7 +280,7 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 						Value:    "Value",
 						Effect:   "Effect",
 					}},
-					MaxNumberOfRunningWorkspacesPerUser: pointer.Int64Ptr(10),
+					MaxNumberOfRunningWorkspacesPerUser: ptr.To(int64(10)),
 					User: &chev2.UserConfiguration{
 						ClusterRoles: []string{
 							"ClusterRoles_1",

@@ -18,12 +18,11 @@ import (
 	"strconv"
 	"strings"
 
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
-	"k8s.io/utils/pointer"
-
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -68,13 +67,13 @@ func (r *CheClusterDefaulter) Default(_ context.Context, cheCluster *CheCluster)
 
 func (r *CheClusterDefaulter) setDisableContainerBuildCapabilities(cheCluster *CheCluster) {
 	if !infrastructure.IsOpenShift() {
-		cheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.Bool(true)
+		cheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = ptr.To(true)
 	}
 }
 
 func (r *CheClusterDefaulter) setDisableContainerRunCapabilities(cheCluster *CheCluster) {
 	if !infrastructure.IsOpenShift() {
-		cheCluster.Spec.DevEnvironments.DisableContainerRunCapabilities = pointer.Bool(true)
+		cheCluster.Spec.DevEnvironments.DisableContainerRunCapabilities = ptr.To(true)
 	}
 }
 
@@ -251,11 +250,11 @@ func (r *CheClusterValidator) ensureScmLabelsAndAnnotations(secret *corev1.Secre
 	}
 
 	if disableSubdomainIsolation != nil && secret.Annotations[constants.CheEclipseOrgScmGitHubDisableSubdomainIsolation] == "" {
-		// for backward compatability, copy CheCluster CR value into annotation
+		// for backward compatibility, copy CheCluster CR value into annotation
 		patch.Annotations[constants.CheEclipseOrgScmGitHubDisableSubdomainIsolation] = strconv.FormatBool(*disableSubdomainIsolation)
 	}
 	if serverEndpoint != "" && secret.Annotations[constants.CheEclipseOrgScmServerEndpoint] == "" {
-		// for backward compatability, copy CheCluster CR value into annotation
+		// for backward compatibility, copy CheCluster CR value into annotation
 		patch.Annotations[constants.CheEclipseOrgScmServerEndpoint] = serverEndpoint
 	}
 

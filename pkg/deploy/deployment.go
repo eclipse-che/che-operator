@@ -21,10 +21,10 @@ import (
 
 	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
-	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -91,7 +91,7 @@ func SyncDeploymentSpecToCluster(
 	}
 
 	actual := &appsv1.Deployment{}
-	exists, err := GetNamespacedObject(deployContext, deploymentSpec.ObjectMeta.Name, actual)
+	exists, err := GetNamespacedObject(deployContext, deploymentSpec.Name, actual)
 	if !exists || err != nil {
 		return false, err
 	}
@@ -110,7 +110,7 @@ func OverrideDeployment(
 	deployment *appsv1.Deployment,
 	overrideDeploymentSettings *chev2.Deployment) error {
 
-	for index, _ := range deployment.Spec.Template.Spec.Containers {
+	for index := range deployment.Spec.Template.Spec.Containers {
 		var overrideContainerSettings *chev2.Container
 		container := &deployment.Spec.Template.Spec.Containers[index]
 
@@ -142,9 +142,7 @@ func OverrideDeployment(
 
 		if len(overrideDeploymentSettings.Tolerations) > 0 {
 			deployment.Spec.Template.Spec.Tolerations = make([]corev1.Toleration, len(overrideDeploymentSettings.Tolerations))
-			for i, t := range overrideDeploymentSettings.Tolerations {
-				deployment.Spec.Template.Spec.Tolerations[i] = t
-			}
+			copy(deployment.Spec.Template.Spec.Tolerations, overrideDeploymentSettings.Tolerations)
 		}
 
 		// Merge by volume name (same idea as container VolumeMounts) so partial overrides
@@ -168,10 +166,10 @@ func OverrideDeployment(
 				}
 
 				if overrideDeploymentSettings.SecurityContext.FsGroup != nil {
-					deployment.Spec.Template.Spec.SecurityContext.FSGroup = pointer.Int64Ptr(*overrideDeploymentSettings.SecurityContext.FsGroup)
+					deployment.Spec.Template.Spec.SecurityContext.FSGroup = ptr.To(*overrideDeploymentSettings.SecurityContext.FsGroup)
 				}
 				if overrideDeploymentSettings.SecurityContext.RunAsUser != nil {
-					deployment.Spec.Template.Spec.SecurityContext.RunAsUser = pointer.Int64Ptr(*overrideDeploymentSettings.SecurityContext.RunAsUser)
+					deployment.Spec.Template.Spec.SecurityContext.RunAsUser = ptr.To(*overrideDeploymentSettings.SecurityContext.RunAsUser)
 				}
 			}
 		}
@@ -192,7 +190,7 @@ func mergeContainerSecurityContext(container *corev1.Container, src *corev1.Secu
 		dst.Capabilities = src.Capabilities.DeepCopy()
 	}
 	if src.Privileged != nil {
-		dst.Privileged = pointer.Bool(*src.Privileged)
+		dst.Privileged = ptr.To(*src.Privileged)
 	}
 	if src.SELinuxOptions != nil {
 		dst.SELinuxOptions = src.SELinuxOptions.DeepCopy()
@@ -201,19 +199,19 @@ func mergeContainerSecurityContext(container *corev1.Container, src *corev1.Secu
 		dst.WindowsOptions = src.WindowsOptions.DeepCopy()
 	}
 	if src.RunAsUser != nil {
-		dst.RunAsUser = pointer.Int64(*src.RunAsUser)
+		dst.RunAsUser = ptr.To(*src.RunAsUser)
 	}
 	if src.RunAsGroup != nil {
-		dst.RunAsGroup = pointer.Int64(*src.RunAsGroup)
+		dst.RunAsGroup = ptr.To(*src.RunAsGroup)
 	}
 	if src.RunAsNonRoot != nil {
-		dst.RunAsNonRoot = pointer.Bool(*src.RunAsNonRoot)
+		dst.RunAsNonRoot = ptr.To(*src.RunAsNonRoot)
 	}
 	if src.ReadOnlyRootFilesystem != nil {
-		dst.ReadOnlyRootFilesystem = pointer.Bool(*src.ReadOnlyRootFilesystem)
+		dst.ReadOnlyRootFilesystem = ptr.To(*src.ReadOnlyRootFilesystem)
 	}
 	if src.AllowPrivilegeEscalation != nil {
-		dst.AllowPrivilegeEscalation = pointer.Bool(*src.AllowPrivilegeEscalation)
+		dst.AllowPrivilegeEscalation = ptr.To(*src.AllowPrivilegeEscalation)
 	}
 	if src.ProcMount != nil {
 		pm := *src.ProcMount
@@ -334,14 +332,14 @@ func OverrideContainer(
 // EnsurePodSecurityStandards sets SecurityContext accordingly
 // to standards https://kubernetes.io/docs/concepts/security/pod-security-standards/#restricted
 func EnsurePodSecurityStandards(deployment *appsv1.Deployment, userId int64, groupId int64) {
-	for i, _ := range deployment.Spec.Template.Spec.Containers {
+	for i := range deployment.Spec.Template.Spec.Containers {
 		if deployment.Spec.Template.Spec.Containers[i].SecurityContext == nil {
 			deployment.Spec.Template.Spec.Containers[i].SecurityContext = &corev1.SecurityContext{}
 		}
 
-		deployment.Spec.Template.Spec.Containers[i].SecurityContext.AllowPrivilegeEscalation = pointer.Bool(false)
+		deployment.Spec.Template.Spec.Containers[i].SecurityContext.AllowPrivilegeEscalation = ptr.To(false)
 		deployment.Spec.Template.Spec.Containers[i].SecurityContext.Capabilities = &corev1.Capabilities{Drop: []corev1.Capability{"ALL"}}
-		deployment.Spec.Template.Spec.Containers[i].SecurityContext.RunAsNonRoot = pointer.Bool(true)
+		deployment.Spec.Template.Spec.Containers[i].SecurityContext.RunAsNonRoot = ptr.To(true)
 	}
 
 	if deployment.Spec.Template.Spec.SecurityContext == nil {
@@ -349,8 +347,8 @@ func EnsurePodSecurityStandards(deployment *appsv1.Deployment, userId int64, gro
 	}
 
 	if !infrastructure.IsOpenShift() {
-		deployment.Spec.Template.Spec.SecurityContext.RunAsUser = pointer.Int64(userId)
-		deployment.Spec.Template.Spec.SecurityContext.FSGroup = pointer.Int64(groupId)
+		deployment.Spec.Template.Spec.SecurityContext.RunAsUser = ptr.To(userId)
+		deployment.Spec.Template.Spec.SecurityContext.FSGroup = ptr.To(groupId)
 	} else {
 		if deployment.Spec.Template.Spec.SecurityContext.SeccompProfile == nil {
 			deployment.Spec.Template.Spec.SecurityContext.SeccompProfile = &corev1.SeccompProfile{}
@@ -415,7 +413,7 @@ func MountSecrets(specDeployment *appsv1.Deployment, deployContext *chetypes.Dep
 			}
 			specDeployment.Spec.Template.Spec.Volumes = append(specDeployment.Spec.Template.Spec.Volumes, volume)
 
-			for fileName, _ := range secretObj.Data {
+			for fileName := range secretObj.Data {
 				mountPath := secretObj.Annotations[constants.CheEclipseOrgMountPath]
 				if strings.HasSuffix(mountPath, "/") {
 					mountPath += fileName
@@ -435,7 +433,7 @@ func MountSecrets(specDeployment *appsv1.Deployment, deployContext *chetypes.Dep
 			if err != nil {
 				return err
 			} else if !exists {
-				return fmt.Errorf("Secret '%s' not found", secretObj.Name)
+				return fmt.Errorf("secret '%s' not found", secretObj.Name)
 			}
 
 			// grab all keys and sort first to have the same order every time
@@ -457,9 +455,9 @@ func MountSecrets(specDeployment *appsv1.Deployment, deployContext *chetypes.Dep
 					// check if there is only one env name to mount
 					envName, envNameExists = secretObj.Annotations[constants.CheEclipseOrgEnvName]
 					if len(secret.Data) > 1 {
-						return fmt.Errorf("There are more than one environment variable to mount. Use annotation '%s' to specify a name", envNameAnnotation)
+						return fmt.Errorf("there are more than one environment variable to mount. Use annotation '%s' to specify a name", envNameAnnotation)
 					} else if !envNameExists {
-						return fmt.Errorf("Environment name to mount secret key not found. Use annotation '%s' to specify a name", constants.CheEclipseOrgEnvName)
+						return fmt.Errorf("environment name to mount secret key not found. Use annotation '%s' to specify a name", constants.CheEclipseOrgEnvName)
 					}
 				}
 
@@ -544,7 +542,7 @@ func MountConfigMaps(specDeployment *appsv1.Deployment, deployContext *chetypes.
 			}
 			specDeployment.Spec.Template.Spec.Volumes = append(specDeployment.Spec.Template.Spec.Volumes, volume)
 
-			for fileName, _ := range configMapObj.Data {
+			for fileName := range configMapObj.Data {
 				mountPath := configMapObj.Annotations[constants.CheEclipseOrgMountPath]
 				if strings.HasSuffix(mountPath, "/") {
 					mountPath += fileName
@@ -587,9 +585,9 @@ func MountConfigMaps(specDeployment *appsv1.Deployment, deployContext *chetypes.
 					// check if there is only one env name to mount
 					envName, envNameExists = configMapObj.Annotations[constants.CheEclipseOrgEnvName]
 					if len(configmap.Data) > 1 {
-						return fmt.Errorf("There are more than one environment variable to mount. Use annotation '%s' to specify a name", envNameAnnotation)
+						return fmt.Errorf("there are more than one environment variable to mount. Use annotation '%s' to specify a name", envNameAnnotation)
 					} else if !envNameExists {
-						return fmt.Errorf("Environment name to mount configmap key not found. Use annotation '%s' to specify a name", constants.CheEclipseOrgEnvName)
+						return fmt.Errorf("environment name to mount configmap key not found. Use annotation '%s' to specify a name", constants.CheEclipseOrgEnvName)
 					}
 				}
 
@@ -615,7 +613,7 @@ func MountConfigMaps(specDeployment *appsv1.Deployment, deployContext *chetypes.
 // setDesiredReplicas sets replicas count from the actual deployment.
 func setDesiredReplicas(deployment *appsv1.Deployment, deployCtx *chetypes.DeployContext) error {
 	actual := &appsv1.Deployment{}
-	if exists, err := GetNamespacedObject(deployCtx, deployment.ObjectMeta.Name, actual); !exists {
+	if exists, err := GetNamespacedObject(deployCtx, deployment.Name, actual); !exists {
 		return err
 	}
 

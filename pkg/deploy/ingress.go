@@ -16,7 +16,7 @@ import (
 	"reflect"
 	"sort"
 
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -146,7 +146,7 @@ func GetIngressSpec(
 			Annotations: annotations,
 		},
 		Spec: networking.IngressSpec{
-			IngressClassName: pointer.String(ingressClassName),
+			IngressClassName: ptr.To(ingressClassName),
 			Rules: []networking.IngressRule{
 				{
 					Host: host,

@@ -19,7 +19,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 func TestReload(t *testing.T) {
@@ -40,7 +40,7 @@ func TestReload(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
 				PluginRegistry: chev2.PluginRegistry{
-					OpenVSXURL: pointer.StringPtr("https://open-vsx.org"),
+					OpenVSXURL: ptr.To("https://open-vsx.org"),
 				},
 			},
 		},
@@ -51,7 +51,7 @@ func TestReload(t *testing.T) {
 		t.Errorf("Failed to reload checluster, %v", err)
 	}
 
-	assert.Equal(t, "1", ctx.CheCluster.ObjectMeta.ResourceVersion)
+	assert.Equal(t, "1", ctx.CheCluster.ResourceVersion)
 	assert.Nil(t, ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL)
 }
 

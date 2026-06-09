@@ -21,7 +21,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/deploy/metrics"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -74,7 +74,7 @@ type CheClusterReconciler struct {
 
 	// This client, is a simple client
 	// that reads objects without using the cache,
-	// to simply read objects thta we don't intend
+	// to simply read objects that we don't intend
 	// to further watch
 	nonCachedClient client.Client
 	// A discovery client to check for the existence of certain APIs registered
@@ -199,8 +199,8 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// Use controller.TypedOptions to allow to configure 2 controllers for same object being reconciled
 	return bld.WithOptions(
 		controller.TypedOptions[reconcile.Request]{
-			SkipNameValidation: pointer.Bool(true),
-			UsePriorityQueue:   pointer.Bool(false),
+			SkipNameValidation: ptr.To(true),
+			UsePriorityQueue:   ptr.To(false),
 		}).Complete(r)
 }
 
@@ -222,7 +222,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// Fetch the CheCluster instance
-	checluster, err := deploy.FindCheClusterCRInNamespace(r.client, req.NamespacedName.Namespace)
+	checluster, err := deploy.FindCheClusterCRInNamespace(r.client, req.Namespace)
 	if checluster == nil {
 		r.Log.Info("CheCluster Custom Resource not found.")
 		return ctrl.Result{}, nil
@@ -260,7 +260,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 	deployContext.IsSelfSignedCertificate = isSelfSignedCertificate
 
-	if deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
+	if deployContext.CheCluster.DeletionTimestamp.IsZero() {
 		result, done, err := r.reconcilerManager.ReconcileAll(deployContext)
 		if done {
 			// Clean up status if so

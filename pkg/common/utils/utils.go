@@ -15,10 +15,9 @@ package utils
 import (
 	"crypto/sha256"
 	"encoding/base64"
-	"io/ioutil"
 	"math/rand"
+	"os"
 	"strings"
-	"time"
 
 	"k8s.io/apimachinery/pkg/labels"
 
@@ -48,7 +47,6 @@ func Remove(list []string, s string) []string {
 }
 
 func GeneratePassword(stringLength int) (passwd string) {
-	rand.Seed(time.Now().UnixNano())
 	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
 		"abcdefghijklmnopqrstuvwxyz" +
 		"0123456789")
@@ -101,7 +99,7 @@ func GetImageNameAndTag(image string) (string, string) {
 }
 
 func ReadObjectInto(yamlFile string, obj interface{}) error {
-	data, err := ioutil.ReadFile(yamlFile)
+	data, err := os.ReadFile(yamlFile)
 	if err != nil {
 		return err
 	}

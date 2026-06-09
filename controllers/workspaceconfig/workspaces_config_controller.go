@@ -22,7 +22,7 @@ import (
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	networkingv1 "k8s.io/api/networking/v1"
@@ -150,8 +150,8 @@ func (r *WorkspacesConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// Use controller.TypedOptions to allow to configure 2 controllers for same object being reconciled
 	return bld.WithOptions(
 		controller.TypedOptions[reconcile.Request]{
-			SkipNameValidation: pointer.Bool(true),
-			UsePriorityQueue:   pointer.Bool(false),
+			SkipNameValidation: ptr.To(true),
+			UsePriorityQueue:   ptr.To(false),
 		}).Complete(r)
 }
 
@@ -161,9 +161,8 @@ func (r *WorkspacesConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	checluster, err := deploy.FindCheClusterCRInNamespace(r.client, "")
-	if checluster == nil {
-		// There is no CheCluster CR, the source namespace is unknown
-		return ctrl.Result{}, nil
+	if err != nil || checluster == nil {
+		return ctrl.Result{}, err
 	}
 
 	info, err := r.namespaceCache.ExamineNamespace(ctx, req.Name)
@@ -308,7 +307,7 @@ func (r *WorkspacesConfigReconciler) syncNamespace(
 
 	// Iterates over sync config and deletes obsolete objects, if so.
 	// It means that object key presents in sync config, but the object is not synced with source object.
-	for objKey, _ := range syncConfig.Data {
+	for objKey := range syncConfig.Data {
 		if err := r.deleteIfObjectIsObsolete(
 			objKey,
 			ctx,

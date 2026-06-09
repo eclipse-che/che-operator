@@ -211,7 +211,6 @@ func TestMountBitbucketOAuthEnvVar(t *testing.T) {
 		initObjects           []client.Object
 		expectedIdKeyPath     string
 		expectedSecretKeyPath string
-		expectedOAuthEndpoint string
 		expectedVolume        corev1.Volume
 		expectedVolumeMount   corev1.VolumeMount
 	}

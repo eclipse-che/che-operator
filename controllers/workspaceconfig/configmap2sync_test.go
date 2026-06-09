@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
+	"k8s.io/utils/ptr"
 
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 
@@ -28,8 +29,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
-
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/stretchr/testify/assert"
@@ -65,7 +64,7 @@ func TestSyncConfigMap(t *testing.T) {
 		Data: map[string]string{
 			"a": "b",
 		},
-		Immutable: pointer.Bool(false),
+		Immutable: ptr.To(false),
 	}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(

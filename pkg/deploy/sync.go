@@ -144,7 +144,7 @@ func DeleteByKeyWithClient(cli client.Client, key client.ObjectKey, objectMeta c
 }
 
 func isUpdateUsingDeleteCreate(kind string) bool {
-	return "Service" == kind || "Ingress" == kind || "Route" == kind || "Job" == kind || "Secret" == kind
+	return kind == "Service" || kind == "Ingress" || kind == "Route" || kind == "Job" || kind == "Secret"
 }
 
 func setOwnerReferenceIfNeeded(deployContext *chetypes.DeployContext, blueprint metav1.Object) error {

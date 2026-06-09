@@ -80,7 +80,7 @@ func (ip *ImagePuller) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result,
 
 	if ctx.CheCluster.Spec.Components.ImagePuller.Enable {
 		if !infrastructure.IsKubernetesImagePullerEnabled() {
-			errMsg := "Kubernetes Image Puller is not installed, in order to enable the property admin should install the operator first"
+			errMsg := "kubernetes Image Puller is not installed, in order to enable the property admin should install the operator first"
 			return reconcile.Result{}, false, errors.New(errMsg)
 		}
 

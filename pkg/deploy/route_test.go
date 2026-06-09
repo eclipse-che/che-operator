@@ -195,7 +195,7 @@ func TestSyncRouteToCluster(t *testing.T) {
 	actual = &routev1.Route{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
 	assert.Nil(t, err)
-	assert.Equal(t, "b", actual.ObjectMeta.Labels["a"])
+	assert.Equal(t, "b", actual.Labels["a"])
 
 	expectedHost := map[bool]string{false: "eclipse-che.domain", true: "devspaces.domain"}[defaults.GetCheFlavor() == "devspaces"]
 	assert.Equal(t, expectedHost, actual.Spec.Host)
@@ -203,11 +203,13 @@ func TestSyncRouteToCluster(t *testing.T) {
 	// sync route with annotations
 	ctx.CheCluster.Spec.Networking.Annotations = map[string]string{"a": "b"}
 	done, err = SyncRouteToCluster(ctx, "test", "", "service", 90, "test")
+	assert.Nil(t, err)
+	assert.True(t, done)
 
 	actual = &routev1.Route{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
 	assert.Nil(t, err)
 	assert.True(t, done)
-	assert.Equal(t, "b", actual.ObjectMeta.Annotations["a"])
-	assert.NotEmpty(t, actual.ObjectMeta.Annotations[constants.CheEclipseOrgManagedAnnotationsDigest])
+	assert.Equal(t, "b", actual.Annotations["a"])
+	assert.NotEmpty(t, actual.Annotations[constants.CheEclipseOrgManagedAnnotationsDigest])
 }

@@ -26,7 +26,6 @@ import (
 )
 
 const (
-	cheServerServiceMonitorNameTemplate        = "%s"
 	cheServerPrometheusRoleNameTemplate        = "%s-prometheus"
 	cheServerPrometheusRoleBindingNameTemplate = "%s-prometheus"
 )
@@ -98,7 +97,7 @@ func (r *CheServerPrometheusResourceProvider) GetPrometheusRole(ctx *chetypes.De
 }
 
 func (r *CheServerPrometheusResourceProvider) GetServiceMonitor(ctx *chetypes.DeployContext) (*monitoringv1.ServiceMonitor, error) {
-	serviceMonitorName := fmt.Sprintf(cheServerServiceMonitorNameTemplate, defaults.GetCheFlavor())
+	serviceMonitorName := defaults.GetCheFlavor()
 
 	interval, err := getServiceMonitorInterval(ctx, serviceMonitorName, ctx.CheCluster.Namespace)
 	if err != nil {

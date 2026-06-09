@@ -69,7 +69,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 							},
 						},
 						Spec: corev1.LimitRangeSpec{
-							[]corev1.LimitRangeItem{
+							Limits: []corev1.LimitRangeItem{
 								{
 									Type: corev1.LimitTypeContainer,
 								},
@@ -126,7 +126,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 					Name: objectName,
 				},
 				Spec: corev1.LimitRangeSpec{
-					[]corev1.LimitRangeItem{
+					Limits: []corev1.LimitRangeItem{
 						{
 							Type: corev1.LimitTypePod,
 						},
@@ -262,7 +262,7 @@ func TestSyncUnstructuredShouldRetainIfAnnotationSetTrue(t *testing.T) {
 							},
 						},
 						Spec: corev1.LimitRangeSpec{
-							[]corev1.LimitRangeItem{
+							Limits: []corev1.LimitRangeItem{
 								{
 									Type: corev1.LimitTypeContainer,
 								},
@@ -347,7 +347,7 @@ func TestSyncUnstructuredShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 							},
 						},
 						Spec: corev1.LimitRangeSpec{
-							[]corev1.LimitRangeItem{
+							Limits: []corev1.LimitRangeItem{
 								{
 									Type: corev1.LimitTypeContainer,
 								},
@@ -430,7 +430,7 @@ func TestSyncUnstructuredShouldNotRetainIfAnnotationIsNotSet(t *testing.T) {
 							},
 						},
 						Spec: corev1.LimitRangeSpec{
-							[]corev1.LimitRangeItem{
+							Limits: []corev1.LimitRangeItem{
 								{
 									Type: corev1.LimitTypeContainer,
 								},

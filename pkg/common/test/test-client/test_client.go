@@ -58,7 +58,7 @@ func GetTestClients(initObjs ...client.Object) (client.Client, *fakeDiscovery.Fa
 
 	clientSet := fakeclientset.NewClientset()
 	discoveryClient, _ := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
-	discoveryClient.Fake.Resources = []*metav1.APIResourceList{
+	discoveryClient.Resources = []*metav1.APIResourceList{
 		{
 			APIResources: []metav1.APIResource{
 				{Name: "consolelinks"},

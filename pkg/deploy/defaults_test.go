@@ -13,7 +13,6 @@
 package deploy
 
 import (
-	"fmt"
 	"testing"
 
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -79,8 +78,4 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 			}
 		})
 	}
-}
-
-func makeAirGapImagePath(hostname, org, nameAndTag string) string {
-	return fmt.Sprintf("%s/%s/%s", hostname, org, nameAndTag)
 }

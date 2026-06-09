@@ -20,7 +20,7 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -1138,7 +1138,7 @@ func (c *CheCluster) IsAccessTokenConfigured() bool {
 }
 
 func (c *CheCluster) IsContainerRunCapabilitiesEnabled() bool {
-	return !pointer.BoolDeref(c.Spec.DevEnvironments.DisableContainerRunCapabilities, constants.DefaultDisableContainerRunCapabilities)
+	return !ptr.Deref(c.Spec.DevEnvironments.DisableContainerRunCapabilities, constants.DefaultDisableContainerRunCapabilities)
 }
 
 // IsContainerBuildCapabilitiesEnabled returns true if container build capabilities are enabled.

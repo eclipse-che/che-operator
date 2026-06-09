@@ -15,16 +15,14 @@ package deploy
 import (
 	"context"
 
-	"github.com/stretchr/testify/assert"
-
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
-	networking "k8s.io/api/networking/v1"
-	v1 "k8s.io/api/networking/v1"
+	"github.com/stretchr/testify/assert"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"testing"
 )
@@ -32,7 +30,7 @@ import (
 func TestIngressSpec(t *testing.T) {
 	type testCase struct {
 		name            string
-		expectedIngress *networking.Ingress
+		expectedIngress *networkingv1.Ingress
 		cheCluster      *chev2.CheCluster
 	}
 
@@ -53,7 +51,7 @@ func TestIngressSpec(t *testing.T) {
 					},
 				},
 			},
-			expectedIngress: &networking.Ingress{
+			expectedIngress: &networkingv1.Ingress{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "eclipse-che",
@@ -72,28 +70,28 @@ func TestIngressSpec(t *testing.T) {
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Ingress",
-					APIVersion: networking.SchemeGroupVersion.String(),
+					APIVersion: networkingv1.SchemeGroupVersion.String(),
 				},
-				Spec: networking.IngressSpec{
-					IngressClassName: pointer.String("nginx"),
-					TLS:              []v1.IngressTLS{{Hosts: []string{"test-host"}}},
-					Rules: []networking.IngressRule{
+				Spec: networkingv1.IngressSpec{
+					IngressClassName: ptr.To("nginx"),
+					TLS:              []networkingv1.IngressTLS{{Hosts: []string{"test-host"}}},
+					Rules: []networkingv1.IngressRule{
 						{
 							Host: "test-host",
-							IngressRuleValue: networking.IngressRuleValue{
-								HTTP: &networking.HTTPIngressRuleValue{
-									Paths: []networking.HTTPIngressPath{
+							IngressRuleValue: networkingv1.IngressRuleValue{
+								HTTP: &networkingv1.HTTPIngressRuleValue{
+									Paths: []networkingv1.HTTPIngressPath{
 										{
-											Backend: networking.IngressBackend{
-												Service: &networking.IngressServiceBackend{
+											Backend: networkingv1.IngressBackend{
+												Service: &networkingv1.IngressServiceBackend{
 													Name: "che-host",
-													Port: networking.ServiceBackendPort{
+													Port: networkingv1.ServiceBackendPort{
 														Number: 8080,
 													},
 												},
 											},
 											Path:     "/",
-											PathType: (*networking.PathType)(pointer.StringPtr(string(networking.PathTypeImplementationSpecific))),
+											PathType: (*networkingv1.PathType)(ptr.To(string(networkingv1.PathTypeImplementationSpecific))),
 										},
 									},
 								},
@@ -118,7 +116,7 @@ func TestIngressSpec(t *testing.T) {
 					},
 				},
 			},
-			expectedIngress: &networking.Ingress{
+			expectedIngress: &networkingv1.Ingress{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "eclipse-che",
@@ -137,28 +135,28 @@ func TestIngressSpec(t *testing.T) {
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Ingress",
-					APIVersion: networking.SchemeGroupVersion.String(),
+					APIVersion: networkingv1.SchemeGroupVersion.String(),
 				},
-				Spec: networking.IngressSpec{
-					IngressClassName: pointer.String("nginx"),
-					TLS:              []v1.IngressTLS{{Hosts: []string{"test-host"}}},
-					Rules: []networking.IngressRule{
+				Spec: networkingv1.IngressSpec{
+					IngressClassName: ptr.To("nginx"),
+					TLS:              []networkingv1.IngressTLS{{Hosts: []string{"test-host"}}},
+					Rules: []networkingv1.IngressRule{
 						{
 							Host: "test-host",
-							IngressRuleValue: networking.IngressRuleValue{
-								HTTP: &networking.HTTPIngressRuleValue{
-									Paths: []networking.HTTPIngressPath{
+							IngressRuleValue: networkingv1.IngressRuleValue{
+								HTTP: &networkingv1.HTTPIngressRuleValue{
+									Paths: []networkingv1.HTTPIngressPath{
 										{
-											Backend: networking.IngressBackend{
-												Service: &networking.IngressServiceBackend{
+											Backend: networkingv1.IngressBackend{
+												Service: &networkingv1.IngressServiceBackend{
 													Name: "che-host",
-													Port: networking.ServiceBackendPort{
+													Port: networkingv1.ServiceBackendPort{
 														Number: 8080,
 													},
 												},
 											},
 											Path:     "/",
-											PathType: (*networking.PathType)(pointer.StringPtr(string(networking.PathTypeImplementationSpecific))),
+											PathType: (*networkingv1.PathType)(ptr.To(string(networkingv1.PathTypeImplementationSpecific))),
 										},
 									},
 								},
@@ -208,10 +206,10 @@ func TestSyncIngressToCluster(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, done)
 
-	actual := &networking.Ingress{}
+	actual := &networkingv1.Ingress{}
 	err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
 	assert.Nil(t, err)
 
 	assert.Equal(t, "host-2", actual.Spec.Rules[0].Host)
-	assert.Equal(t, "service-2", actual.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Backend.Service.Name)
+	assert.Equal(t, "service-2", actual.Spec.Rules[0].HTTP.Paths[0].Backend.Service.Name)
 }

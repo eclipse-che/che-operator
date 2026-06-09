@@ -64,19 +64,15 @@ var ServiceMonitor = cmp.Options{
 
 func objectMetaComparator(labels []string, annotations []string) cmp.Option {
 	return cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
-		if labels != nil {
-			for _, label := range labels {
-				if x.Labels[label] != y.Labels[label] {
-					return false
-				}
+		for _, label := range labels {
+			if x.Labels[label] != y.Labels[label] {
+				return false
 			}
 		}
 
-		if annotations != nil {
-			for _, annotation := range annotations {
-				if x.Annotations[annotation] != y.Annotations[annotation] {
-					return false
-				}
+		for _, annotation := range annotations {
+			if x.Annotations[annotation] != y.Annotations[annotation] {
+				return false
 			}
 		}
 
