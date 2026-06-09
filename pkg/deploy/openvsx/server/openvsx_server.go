@@ -168,27 +168,47 @@ func (r *OpenVSXServerReconciler) syncPVC(ctx *chetypes.DeployContext) (bool, er
 		claimSize = ctx.CheCluster.Spec.Components.OpenVSX.Server.Storage.ClaimSize
 	}
 
-	pvc := &corev1.PersistentVolumeClaim{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "PersistentVolumeClaim",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      serverPVCName,
-			Namespace: ctx.CheCluster.Namespace,
-			Labels:    deploy.GetLabels(constants.OpenVSXServerName),
-		},
-		Spec: corev1.PersistentVolumeClaimSpec{
-			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-			Resources: corev1.VolumeResourceRequirements{
-				Requests: corev1.ResourceList{
-					corev1.ResourceStorage: resource.MustParse(claimSize),
+	desiredSize := resource.MustParse(claimSize)
+
+	existing := &corev1.PersistentVolumeClaim{}
+	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{
+		Name:      serverPVCName,
+		Namespace: ctx.CheCluster.Namespace,
+	}, existing)
+
+	if errors.IsNotFound(err) {
+		pvc := &corev1.PersistentVolumeClaim{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "PersistentVolumeClaim",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      serverPVCName,
+				Namespace: ctx.CheCluster.Namespace,
+				Labels:    deploy.GetLabels(constants.OpenVSXServerName),
+			},
+			Spec: corev1.PersistentVolumeClaimSpec{
+				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+				Resources: corev1.VolumeResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceStorage: desiredSize,
+					},
 				},
 			},
-		},
+		}
+		return deploy.Sync(ctx, pvc, deploy.DefaultDeploymentDiffOpts)
+	}
+	if err != nil {
+		return false, err
 	}
 
-	return deploy.Sync(ctx, pvc, diffs.PVC)
+	currentSize := existing.Spec.Resources.Requests[corev1.ResourceStorage]
+	if desiredSize.Cmp(currentSize) > 0 {
+		existing.Spec.Resources.Requests[corev1.ResourceStorage] = desiredSize
+		return false, ctx.ClusterAPI.Client.Update(context.TODO(), existing)
+	}
+
+	return true, nil
 }
 
 func (r *OpenVSXServerReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
