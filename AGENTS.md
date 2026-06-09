@@ -31,6 +31,9 @@ make fmt
 # Run go vet
 make vet
 
+# Run static code analyzers
+make lint
+
 # Regenerate CRDs, DeepCopy methods, and related manifests
 build/scripts/docker-run.sh make update-dev-resources
 
@@ -38,34 +41,15 @@ build/scripts/docker-run.sh make update-dev-resources
 make docker-build IMG=<image>
 ```
 
-## Single-File Verification
-
-```bash
-# Lint a single file
-golangci-lint run path/to/file.go
-
-# Lint a single package
-go vet ./pkg/deploy/gateway/...
-
-# Type-check a single package (Go compiler is the type-checker)
-go build ./path/to/package/...
-
-# Format a single file
-goimports -w path/to/file.go
-
-# or if goimports is not installed:
-gofmt -w path/to/file.go
-```
-
 ## Architecture
 
 ### CRD & API Versions
 
 - **v2** (`api/v2/`) — current storage version. `CheClusterSpec` has top-level sections: `DevEnvironments`, `Components`, `GitServices`, `Networking`, `ContainerRegistry`.
-- **v1** (`api/v1/`) — deprecated, kept for conversion. Files `checluster_conversion_from.go` / `checluster_conversion_to.go` handle round-trip conversion.
+- **v1** (`api/v1/`) — deprecated
 - Webhooks (validation, defaulting, conversion) live in `api/v2/checluster_webhook.go`.
 
-After modifying `api/v2/checluster_types.go`, run `make generate` then `make manifests`.
+After modifying `api/v2/checluster_types.go`, run `build/scripts/docker-run.sh make update-dev-resources`.
 
 ### Controller Structure
 
@@ -78,9 +62,9 @@ After modifying `api/v2/checluster_types.go`, run `make generate` then `make man
 
 ### Reconciliation Pipeline
 
-`CheClusterReconciler` uses a `ReconcilerManager` (`pkg/common/reconciler/`) that runs a chain of `Reconcilable` implementations **in order**. Each reconciler returns `(result, done, err)` — the chain stops at the first `done=false`. Registration order in `controllers/che/checluster_controller.go` defines the execution order:
-
-migration → validation → TLS → DevWorkspace config → RBAC → host resolution → postgres → identity provider → registries → editors → dashboard → gateway → Che server → image puller → container capabilities → console link → metrics
+`CheClusterReconciler` uses a `ReconcilerManager` (`pkg/common/reconciler/`) that runs a chain of 
+`Reconcilable` implementations **in order**. Each reconciler returns `(result, done, err)` — the chain stops 
+at the first `done=false`. Registration order in `controllers/che/checluster_controller.go` defines the execution order:
 
 ### DeployContext
 
@@ -97,19 +81,19 @@ Each Che component has its own package under `pkg/deploy/` (e.g., `dashboard/`, 
 - Kubernetes resource spec builders
 - Tests
 
-Helper functions for creating/syncing k8s resources live in `pkg/deploy/` root (e.g., `SyncDeploymentSpecToCluster` in `deployment.go`).
-
 ### Platform Detection
 
-`pkg/common/infrastructure/` detects Kubernetes vs OpenShift and feature availability (OAuth, image puller, service monitors). Some reconcilers are conditionally registered based on platform (e.g., `ConsoleLink` and `ContainerCapabilities` are OpenShift-only).
+`pkg/common/infrastructure/` detects Kubernetes vs OpenShift and feature availability (OAuth, image puller, service monitors). 
+Some reconcilers are conditionally registered based on platform (e.g., `ConsoleLink` and `ContainerCapabilities` are OpenShift-only).
 
 ### Operator Defaults
 
-`pkg/common/operator-defaults/` reads default container images and configuration from environment variables. Resource limit/request defaults live in `pkg/common/constants/`.
+`pkg/common/operator-defaults/` reads default container images and configuration from environment variables. 
+Resource limit/request defaults live in `pkg/common/constants/`.
 
 ### Testing
 
-Tests use `MOCK_API=true` to enable a mocked API server. Test helpers in `pkg/common/test/` provide utilities for setting up fake k8s clients and test environments. Tests are co-located with source files (`*_test.go`).
+Test helpers in `pkg/common/test/` provide utilities for setting up fake k8s clients and test environments. Tests are co-located with source files (`*_test.go`).
 
 ### OLM & Deployment
 
@@ -129,20 +113,6 @@ build/scripts/olm/test-catalog-from-sources.sh
 # Minikube
 build/scripts/minikube-tests/test-operator-from-sources.sh
 ```
-
-## Pattern References
-
-- **New reconciler component:** follow the pattern in `pkg/deploy/dashboard/` — reconciler struct, resource builders, tests
-- **New API field:** see `api/v2/checluster_types.go` for examples, then `make generate && make manifests`
-- **API conversion (v1↔v2):** follow the pattern in `api/v1/checluster_conversion_to.go` and `api/v1/checluster_conversion_from.go`
-- **Syncing resources to workspace namespaces:** follow the pattern in `controllers/workspaceconfig/configmap2sync.go`
-
-## Key Conventions
-
-- Dependencies are vendored (`vendor/`). Commit vendor changes with dependency updates.
-- Freeze new transitive dependencies using `replace` directives in `go.mod` to prevent CQ issues.
-- License headers are required on all source files — `make license` adds them via `addlicense`.
-- Version is in `version/version.go`.
 
 ## Red Hat Compliance and Responsible AI Rules
 

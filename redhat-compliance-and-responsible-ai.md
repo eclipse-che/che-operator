@@ -42,7 +42,6 @@ Replace `{AGENT_NAME}` with the specific agent name (e.g., `Claude Opus 4.6`, `G
 - Never include credentials, tokens, or secrets in code
 - Validate all user inputs
 - Follow secure coding practices for Kubernetes API interactions
-- Do not introduce new cluster-wide RBAC requirements without explicit approval
 
 ## 5. Documentation
 
