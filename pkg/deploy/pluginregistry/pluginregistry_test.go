@@ -23,7 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"testing"
 )
@@ -37,7 +37,7 @@ func TestShouldDeployPluginRegistryIfOpenVSXIsEmpty(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
 				PluginRegistry: chev2.PluginRegistry{
-					OpenVSXURL: pointer.String(""),
+					OpenVSXURL: ptr.To(""),
 				},
 			},
 		},
@@ -85,7 +85,7 @@ func TestShouldNotDeployPluginRegistryIfOpenVSXConfigured(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
 				PluginRegistry: chev2.PluginRegistry{
-					OpenVSXURL: pointer.String("https://openvsx.org"),
+					OpenVSXURL: ptr.To("https://openvsx.org"),
 				},
 			},
 		},

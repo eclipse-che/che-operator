@@ -4,7 +4,9 @@ This file provides guidance to AI coding agents when working with code in this r
 
 ## Project Overview
 
-Eclipse Che Operator — a Kubernetes/OpenShift operator built with Operator SDK and controller-runtime that manages the lifecycle of Eclipse Che installations. It watches `CheCluster` custom resources and reconciles all Che components (dashboard, gateway, devfile/plugin registries, Che server, postgres, identity provider, etc.).
+Eclipse Che Operator — a Kubernetes/OpenShift operator built with Operator SDK and controller-runtime that manages 
+the lifecycle of Eclipse Che installations. It watches `CheCluster` custom resources and reconciles all Che components 
+(dashboard, gateway, devfile registry, Che server, etc.).
 
 Go module: `github.com/eclipse-che/che-operator`
 
@@ -14,7 +16,7 @@ Go module: `github.com/eclipse-che/che-operator`
 # Build operator binary
 make build
 
-# Run all unit tests (sets MOCK_API=true automatically)
+# Run all unit tests
 make test
 
 # Run a single test file or package
@@ -29,23 +31,11 @@ make fmt
 # Run go vet
 make vet
 
-# Generate DeepCopy methods after modifying api/v2/checluster_types.go
-make generate
-
-# Regenerate CRDs, RBAC, and webhook manifests after modifying API types or RBAC markers
-make manifests
-
-# Full regeneration of deployment resources (after changes to config/ or API types)
-make update-dev-resources
+# Regenerate CRDs, DeepCopy methods, and related manifests
+build/scripts/docker-run.sh make update-dev-resources
 
 # Build operator Docker image
 make docker-build IMG=<image>
-
-# Generate OLM bundle (requires CHANNEL=next|stable)
-make bundle CHANNEL=next
-
-# Update Go dependencies (runs tidy + vendor)
-make update-go-dependencies
 ```
 
 ## Single-File Verification
@@ -62,6 +52,7 @@ go build ./path/to/package/...
 
 # Format a single file
 goimports -w path/to/file.go
+
 # or if goimports is not installed:
 gofmt -w path/to/file.go
 ```
@@ -84,7 +75,6 @@ After modifying `api/v2/checluster_types.go`, run `make generate` then `make man
 2. **DevWorkspaceRouting solver** (`controllers/devworkspace/solver/`) — implements `CheRoutingSolver` for DevWorkspace routing.
 3. **UserNamespace controller** (`controllers/usernamespace/`) — manages per-user namespace setup.
 4. **WorkspaceConfig controller** (`controllers/workspaceconfig/`) — syncs ConfigMaps, Secrets, PVCs, and unstructured objects into workspace namespaces.
-5. **NamespaceCache** (`controllers/namespacecache/`) — in-memory cache of workspace namespace metadata.
 
 ### Reconciliation Pipeline
 

@@ -16,6 +16,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"time"
 
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -29,7 +30,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -71,7 +72,10 @@ func (d *DevWorkspaceConfigReconciler) Reconcile(ctx *chetypes.DeployContext) (r
 	}
 
 	done, err := deploy.Sync(ctx, dwoc)
-	return reconcile.Result{Requeue: !done}, done, err
+	if !done || err != nil {
+		return reconcile.Result{RequeueAfter: time.Second}, false, err
+	}
+	return reconcile.Result{}, true, nil
 }
 
 func (d *DevWorkspaceConfigReconciler) Finalize(ctx *chetypes.DeployContext) bool {
@@ -149,7 +153,7 @@ func updateSecurityContext(operatorConfig *controllerv1alpha1.OperatorConfigurat
 			operatorConfig.Workspace.ContainerSecurityContext = cheCluster.Spec.DevEnvironments.ContainerRunConfiguration.ContainerSecurityContext
 		}
 	} else if cheCluster.IsContainerBuildCapabilitiesEnabled() {
-		// for backward compatability, try old way get Container Security Context
+		// for backward compatibility, try old way get Container Security Context
 		// when container build capabilities enabled
 		if containerSecurityContext, err := getContainerSecurityContextForBuildCapabilitiesFromEnv(); err != nil {
 			return err
@@ -246,13 +250,13 @@ func updateIgnoredUnrecoverableEvents(ignoredUnrecoverableEvents []string, works
 }
 
 func updateWorkspaceServiceAccountConfig(devEnvironments *chev2.CheClusterDevEnvironments, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
-	isNamespaceAutoProvisioned := pointer.BoolDeref(devEnvironments.DefaultNamespace.AutoProvision, constants.DefaultAutoProvision)
+	isNamespaceAutoProvisioned := ptr.Deref(devEnvironments.DefaultNamespace.AutoProvision, constants.DefaultAutoProvision)
 
 	workspaceConfig.ServiceAccount = &controllerv1alpha1.ServiceAccountConfig{
 		ServiceAccountName:   devEnvironments.ServiceAccount,
 		ServiceAccountTokens: devEnvironments.ServiceAccountTokens,
 		// If user's Namespace is not auto provisioned (is pre-created by admin), then ServiceAccount must be pre-created as well
-		DisableCreation: pointer.Bool(!isNamespaceAutoProvisioned && devEnvironments.ServiceAccount != ""),
+		DisableCreation: ptr.To(!isNamespaceAutoProvisioned && devEnvironments.ServiceAccount != ""),
 	}
 
 	if len(workspaceConfig.ServiceAccount.ServiceAccountTokens) == 0 {
@@ -287,7 +291,7 @@ func updateProjectCloneConfig(devEnvironments *chev2.CheClusterDevEnvironments, 
 
 func updateHostUsers(cheCluster *chev2.CheCluster, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
 	if cheCluster.IsContainerRunCapabilitiesEnabled() {
-		workspaceConfig.HostUsers = pointer.Bool(false)
+		workspaceConfig.HostUsers = ptr.To(false)
 	} else {
 		workspaceConfig.HostUsers = nil
 	}
@@ -302,9 +306,9 @@ func disableDWOProxy(routingConfig *controllerv1alpha1.RoutingConfig) {
 	// proxy handling in DWO; otherwise the env vars added by DWO will override the env
 	// vars we intend to mount via configmap.
 	routingConfig.ProxyConfig = &controllerv1alpha1.Proxy{}
-	routingConfig.ProxyConfig.HttpProxy = pointer.String("")
-	routingConfig.ProxyConfig.HttpsProxy = pointer.String("")
-	routingConfig.ProxyConfig.NoProxy = pointer.String("")
+	routingConfig.ProxyConfig.HttpProxy = ptr.To("")
+	routingConfig.ProxyConfig.HttpsProxy = ptr.To("")
+	routingConfig.ProxyConfig.NoProxy = ptr.To("")
 }
 
 // Returns the default container security context required for container builds from environment variable.

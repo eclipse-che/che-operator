@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/stretchr/testify/assert"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -35,13 +36,14 @@ func TestSyncRoleToCluster(t *testing.T) {
 		t.Fatalf("Failed to sync role: %v", err)
 	}
 
-	done, err = SyncRoleToCluster(ctx, "test", []rbacv1.PolicyRule{
+	_, err = SyncRoleToCluster(ctx, "test", []rbacv1.PolicyRule{
 		{
 			APIGroups: []string{"test-2"},
 			Resources: []string{"test-2"},
 			Verbs:     []string{"test-2"},
 		},
 	})
+	assert.NoError(t, err)
 
 	actual := &rbacv1.Role{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)

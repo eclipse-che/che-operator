@@ -33,9 +33,9 @@ Replace `{AGENT_NAME}` with the specific agent name (e.g., `Claude Opus 4.6`, `G
 - Follow existing code patterns and conventions
 - Ensure all code passes `go vet` and `gofmt`
 - Include appropriate error handling
-- Add tests for new functionality (with `MOCK_API=true`)
+- Add tests for new functionality
 - Maintain backward compatibility unless explicitly breaking
-- Run `make generate` and `make manifests` after modifying API types
+- Run `build/scripts/docker-run.sh make update-dev-resources` after modifying API types
 
 ## 4. Security Considerations
 

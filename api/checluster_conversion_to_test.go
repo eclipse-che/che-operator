@@ -16,7 +16,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	devfile "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	chev1 "github.com/eclipse-che/che-operator/api/v1"
@@ -163,7 +163,7 @@ func TestConvertTo(t *testing.T) {
 				CheClusterRoles:                     "CheClusterRoles_1,CheClusterRoles_2",
 				CheWorkspaceClusterRole:             "ClusterRoles_1,ClusterRoles_2",
 				WorkspaceNamespaceDefault:           "WorkspaceNamespaceDefault",
-				AllowAutoProvisionUserNamespace:     pointer.BoolPtr(true),
+				AllowAutoProvisionUserNamespace:     ptr.To(true),
 				WorkspaceDefaultEditor:              "WorkspaceDefaultEditor",
 				WorkspaceDefaultComponents: []devfile.Component{
 					{
@@ -252,7 +252,7 @@ func TestConvertTo(t *testing.T) {
 						Value: "dashboard-value",
 					},
 				},
-				OpenVSXRegistryURL: pointer.StringPtr("open-vsx-registry"),
+				OpenVSXRegistryURL: ptr.To("open-vsx-registry"),
 			},
 			Auth: chev1.CheClusterSpecAuth{
 				IdentityProviderURL:               "IdentityProviderURL",
@@ -307,8 +307,8 @@ func TestConvertTo(t *testing.T) {
 			DevWorkspace: chev1.CheClusterSpecDevWorkspace{
 				Enable:                          true,
 				RunningLimit:                    "10",
-				SecondsOfInactivityBeforeIdling: pointer.Int32Ptr(1800),
-				SecondsOfRunBeforeIdling:        pointer.Int32Ptr(-1),
+				SecondsOfInactivityBeforeIdling: ptr.To(int32(1800)),
+				SecondsOfRunBeforeIdling:        ptr.To(int32(-1)),
 			},
 			Dashboard: chev1.CheClusterSpecDashboard{
 				Warning: "DashboardWarning",
@@ -349,8 +349,8 @@ func TestConvertTo(t *testing.T) {
 	err := checlusterv1.ConvertTo(checlusterv2)
 	assert.Nil(t, err)
 
-	assert.Equal(t, checlusterv2.ObjectMeta.Name, "eclipse-che")
-	assert.Equal(t, checlusterv2.ObjectMeta.Namespace, "eclipse-che")
+	assert.Equal(t, checlusterv2.Name, "eclipse-che")
+	assert.Equal(t, checlusterv2.Namespace, "eclipse-che")
 
 	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[0].Name, constants.GatewayContainerName)
 	assert.Equal(t, checlusterv2.Spec.Networking.Auth.Gateway.Deployment.Containers[0].Image, "SingleHostGatewayImage")
@@ -399,7 +399,7 @@ func TestConvertTo(t *testing.T) {
 
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName, "che-git-self-signed-cert")
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.DefaultNamespace.Template, "WorkspaceNamespaceDefault")
-	assert.Equal(t, checlusterv2.Spec.DevEnvironments.DefaultNamespace.AutoProvision, pointer.BoolPtr(true))
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.DefaultNamespace.AutoProvision, ptr.To(true))
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.DefaultEditor, "WorkspaceDefaultEditor")
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.DefaultComponents, []devfile.Component{{Name: "universal-developer-image"}})
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.NodeSelector, map[string]string{"a": "b", "c": "d"})
@@ -468,9 +468,9 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.ClaimSize, "PerWorkspaceStrategyPvcClaimSize")
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Storage.PerWorkspaceStrategyPvcConfig.StorageClass, "PerWorkspaceStrategyPVCStorageClassName")
 	assert.Equal(t, checlusterv2.Spec.DevEnvironments.Storage.PvcStrategy, "PvcStrategy")
-	assert.Equal(t, checlusterv2.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling, pointer.Int32Ptr(1800))
-	assert.Equal(t, checlusterv2.Spec.DevEnvironments.SecondsOfRunBeforeIdling, pointer.Int32Ptr(-1))
-	assert.Equal(t, checlusterv2.Spec.DevEnvironments.MaxNumberOfRunningWorkspacesPerUser, pointer.Int64Ptr(10))
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling, ptr.To(int32(1800)))
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.SecondsOfRunBeforeIdling, ptr.To(int32(-1)))
+	assert.Equal(t, checlusterv2.Spec.DevEnvironments.MaxNumberOfRunningWorkspacesPerUser, ptr.To(int64(10)))
 
 	assert.Equal(t, checlusterv2.Status.CheURL, "CheURL")
 	assert.Equal(t, checlusterv2.Status.CheVersion, "CheVersion")

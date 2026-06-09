@@ -16,4 +16,4 @@ Reference implementation: `pkg/deploy/dashboard/`
 3. Build k8s resource specs (Deployment, Service, ConfigMap, etc.) in the same package
 4. Register the reconciler in `controllers/che/checluster_controller.go` via `reconcilerManager.AddReconciler()`
 5. Placement in the chain matters — add after dependencies are reconciled
-6. Add tests with `MOCK_API=true`
+6. Run `make test` to verify

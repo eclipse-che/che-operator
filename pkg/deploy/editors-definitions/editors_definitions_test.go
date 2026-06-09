@@ -23,6 +23,7 @@ import (
 
 func TestReadEditorDefinitions(t *testing.T) {
 	err := os.Setenv("RELATED_IMAGE_editor_definition_che_code_1_2_3_component_a", "image-new-1_2_3-a")
+	assert.NoError(t, err)
 	err = os.Setenv("RELATED_IMAGE_editor_definition_che_code_2022_1_component_a", "image-new-2022_1-a")
 	assert.NoError(t, err)
 
@@ -52,7 +53,7 @@ func TestReadEditorDefinitions(t *testing.T) {
 	assert.Equal(t, "image-b", container["image"])
 
 	component = components[2].(map[string]interface{})
-	container, ok := component["container"].(map[string]interface{})
+	_, ok := component["container"].(map[string]interface{})
 	assert.False(t, ok)
 
 	err = yaml.Unmarshal(editorDefinitions["devfile-2.yaml"], &devfile)

@@ -16,7 +16,7 @@ import (
 	"os"
 	"testing"
 
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
@@ -30,7 +30,7 @@ import (
 
 func TestFinalizeDefaultOAuthClientName(t *testing.T) {
 	oauthClient := GetOAuthClientSpec("eclipse-che-client", "secret", []string{"https://che-host/oauth/callback"}, nil, nil)
-	oauthClient.ObjectMeta.Labels = map[string]string{}
+	oauthClient.Labels = map[string]string{}
 
 	checluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -53,7 +53,7 @@ func TestFinalizeDefaultOAuthClientName(t *testing.T) {
 
 func TestFinalizeOAuthClient(t *testing.T) {
 	oauthClient := GetOAuthClientSpec("test", "secret", []string{"https://che-host/oauth/callback"}, nil, nil)
-	oauthClient.ObjectMeta.Labels = map[string]string{}
+	oauthClient.Labels = map[string]string{}
 
 	checluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -115,8 +115,8 @@ func TestSyncOAuthClientShouldSyncTokenTimeout(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
 				Auth: chev2.Auth{
-					OAuthAccessTokenInactivityTimeoutSeconds: pointer.Int32Ptr(10),
-					OAuthAccessTokenMaxAgeSeconds:            pointer.Int32Ptr(20),
+					OAuthAccessTokenInactivityTimeoutSeconds: ptr.To(int32(10)),
+					OAuthAccessTokenMaxAgeSeconds:            ptr.To(int32(20)),
 				},
 			},
 		},

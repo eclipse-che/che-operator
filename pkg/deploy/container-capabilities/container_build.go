@@ -18,7 +18,7 @@ import (
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	securityv1 "github.com/openshift/api/security/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 type ContainerBuild struct {
@@ -42,7 +42,7 @@ func (r *ContainerBuild) applySCCSpec(scc *securityv1.SecurityContextConstraints
 	scc.AllowHostNetwork = false
 	scc.AllowHostPID = false
 	scc.AllowHostPorts = false
-	scc.AllowPrivilegeEscalation = pointer.Bool(true)
+	scc.AllowPrivilegeEscalation = ptr.To(true)
 	scc.AllowPrivilegedContainer = false
 	scc.AllowedCapabilities = []corev1.Capability{"SETUID", "SETGID"}
 	scc.DefaultAddCapabilities = nil

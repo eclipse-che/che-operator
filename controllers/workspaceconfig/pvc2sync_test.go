@@ -92,6 +92,7 @@ func TestSyncPVC(t *testing.T) {
 	assert.Nil(t, err)
 	pvc.Spec.Resources.Requests[corev1.ResourceStorage] = resource.MustParse("2Gi")
 	err = deployContext.ClusterAPI.Client.Update(context.TODO(), pvc)
+	assert.Nil(t, err)
 
 	// Sync PVC
 	err = workspaceConfigReconciler.syncNamespace(context.TODO(), eclipseCheNamespace, userNamespace)

@@ -121,7 +121,7 @@ func (k K8sClientWrapper) List(ctx context.Context, list client.ObjectList, opts
 		return []runtime.Object{}, err
 	}
 
-	for i, _ := range items {
+	for i := range items {
 		if err = k.ensureGVK(items[i].(client.Object)); err != nil {
 			return nil, err
 		}
@@ -287,7 +287,7 @@ func (k K8sClientWrapper) doSync(
 
 // isRecreate returns true, if object should be deleted/created instead of being updated.
 func (k K8sClientWrapper) isRecreate(kind string) bool {
-	return "Service" == kind || "Ingress" == kind || "Route" == kind
+	return kind == "Service" || kind == "Ingress" || kind == "Route"
 }
 
 func (k K8sClientWrapper) ensureGVK(obj client.Object) error {

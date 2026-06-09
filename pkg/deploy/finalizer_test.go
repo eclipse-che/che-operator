@@ -33,7 +33,7 @@ func TestAppendFinalizer(t *testing.T) {
 		t.Fatalf("Failed to append finalizer: %v", err)
 	}
 
-	if !utils.Contains(ctx.CheCluster.ObjectMeta.Finalizers, finalizer) {
+	if !utils.Contains(ctx.CheCluster.Finalizers, finalizer) {
 		t.Fatalf("Failed to append finalizer: %v", err)
 	}
 
@@ -43,7 +43,7 @@ func TestAppendFinalizer(t *testing.T) {
 		t.Fatalf("Failed to append finalizer: %v", err)
 	}
 
-	if len(ctx.CheCluster.ObjectMeta.Finalizers) != 1 {
+	if len(ctx.CheCluster.Finalizers) != 1 {
 		t.Fatalf("Finalizer shouldn't be added twice")
 	}
 }
@@ -64,7 +64,7 @@ func TestDeleteFinalizer(t *testing.T) {
 		t.Fatalf("Failed to append finalizer: %v", err)
 	}
 
-	if utils.Contains(ctx.CheCluster.ObjectMeta.Finalizers, finalizer) {
+	if utils.Contains(ctx.CheCluster.Finalizers, finalizer) {
 		t.Fatalf("Failed to delete finalizer: %v", err)
 	}
 }

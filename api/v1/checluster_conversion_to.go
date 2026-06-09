@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/utils/ptr"
 
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -31,9 +32,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
@@ -146,9 +145,7 @@ func (src *CheCluster) convertTo_DevEnvironments(dst *chev2.CheCluster) error {
 	dst.Spec.DevEnvironments.DefaultNamespace.AutoProvision = src.Spec.Server.AllowAutoProvisionUserNamespace
 	dst.Spec.DevEnvironments.NodeSelector = utils.CloneMap(src.Spec.Server.WorkspacePodNodeSelector)
 
-	for _, v := range src.Spec.Server.WorkspacePodTolerations {
-		dst.Spec.DevEnvironments.Tolerations = append(dst.Spec.DevEnvironments.Tolerations, v)
-	}
+	dst.Spec.DevEnvironments.Tolerations = append(dst.Spec.DevEnvironments.Tolerations, src.Spec.Server.WorkspacePodTolerations...)
 
 	for _, p := range src.Spec.Server.WorkspacesDefaultPlugins {
 		dst.Spec.DevEnvironments.DefaultPlugins = append(dst.Spec.DevEnvironments.DefaultPlugins,
@@ -289,7 +286,7 @@ func (src *CheCluster) convertTo_Components(dst *chev2.CheCluster) error {
 func (src *CheCluster) convertTo_Components_DevWorkspace(dst *chev2.CheCluster) error {
 	if src.Spec.DevWorkspace.RunningLimit != "" {
 		runningLimit, err := strconv.ParseInt(src.Spec.DevWorkspace.RunningLimit, 10, 64)
-		dst.Spec.DevEnvironments.MaxNumberOfRunningWorkspacesPerUser = pointer.Int64Ptr(runningLimit)
+		dst.Spec.DevEnvironments.MaxNumberOfRunningWorkspacesPerUser = ptr.To(runningLimit)
 		return err
 	}
 	return nil
@@ -318,7 +315,7 @@ func (src *CheCluster) convertTo_Components_CheServer(dst *chev2.CheCluster) err
 		if err != nil {
 			return err
 		} else {
-			dst.Spec.Components.CheServer.Debug = pointer.BoolPtr(debug)
+			dst.Spec.Components.CheServer.Debug = ptr.To(debug)
 		}
 	}
 
@@ -342,7 +339,7 @@ func (src *CheCluster) convertTo_Components_CheServer(dst *chev2.CheCluster) err
 			src.Spec.Server.ProxyUser,
 			src.Spec.Server.ProxyPassword,
 			constants.DefaultProxyCredentialsSecret,
-			src.ObjectMeta.Namespace); err != nil {
+			src.Namespace); err != nil {
 			return err
 		}
 
@@ -470,7 +467,7 @@ func parseSecurityContext(cheClusterV1 *CheCluster) (*int64, *int64, error) {
 			return nil, nil, err
 		}
 
-		runAsUser = pointer.Int64Ptr(intValue)
+		runAsUser = ptr.To(intValue)
 	}
 
 	var fsGroup *int64 = nil
@@ -479,7 +476,7 @@ func parseSecurityContext(cheClusterV1 *CheCluster) (*int64, *int64, error) {
 		if err != nil {
 			return nil, nil, err
 		}
-		fsGroup = pointer.Int64Ptr(intValue)
+		fsGroup = ptr.To(intValue)
 	}
 
 	return runAsUser, fsGroup, nil
@@ -497,7 +494,7 @@ func createCredentialsSecret(username string, password string, secretName string
 	}
 
 	secret := &corev1.Secret{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      secretName,
 			Namespace: namespace,
 			Labels: map[string]string{

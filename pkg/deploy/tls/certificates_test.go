@@ -16,7 +16,7 @@ import (
 	"context"
 
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 
@@ -38,16 +38,16 @@ func TestSyncOpenShiftCABundleCertificates(t *testing.T) {
 	caCertsCM := &corev1.ConfigMap{}
 	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
 	assert.Nil(t, err)
-	assert.Equal(t, "true", caCertsCM.ObjectMeta.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
-	assert.Equal(t, constants.CheEclipseOrg, caCertsCM.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey])
-	assert.Equal(t, constants.CheCABundle, caCertsCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, "true", caCertsCM.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
+	assert.Equal(t, constants.CheEclipseOrg, caCertsCM.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, constants.CheCABundle, caCertsCM.Labels[constants.KubernetesComponentLabelKey])
 
 	caCertsMergedCM := &corev1.ConfigMap{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
 	assert.Nil(t, err)
-	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
-	assert.Equal(t, kubernetesCABundleCertsDir, caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
-	assert.Equal(t, "subpath", caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountAsAnnotation])
+	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, kubernetesCABundleCertsDir, caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
+	assert.Equal(t, "subpath", caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountAsAnnotation])
 	assert.Empty(t, caCertsMergedCM.Data)
 }
 
@@ -59,9 +59,9 @@ func TestSyncEmptyOpenShiftCABundleCertificates(t *testing.T) {
 	caCertsCM := &corev1.ConfigMap{}
 	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
 	assert.NoError(t, err)
-	assert.Equal(t, "true", caCertsCM.ObjectMeta.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
-	assert.Equal(t, constants.CheEclipseOrg, caCertsCM.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey])
-	assert.Equal(t, constants.CheCABundle, caCertsCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, "true", caCertsCM.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
+	assert.Equal(t, constants.CheEclipseOrg, caCertsCM.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, constants.CheCABundle, caCertsCM.Labels[constants.KubernetesComponentLabelKey])
 
 	// Let's pretend that OpenShift Network operator inject the CA bundle
 	caCertsCM.Data = map[string]string{"ca-bundle.crt": "openshift-ca-bundle"}
@@ -73,9 +73,9 @@ func TestSyncEmptyOpenShiftCABundleCertificates(t *testing.T) {
 	caCertsMergedCM := &corev1.ConfigMap{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
 	assert.Nil(t, err)
-	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
-	assert.Equal(t, kubernetesCABundleCertsDir, caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
-	assert.Equal(t, "subpath", caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountAsAnnotation])
+	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, kubernetesCABundleCertsDir, caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
+	assert.Equal(t, "subpath", caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountAsAnnotation])
 	assert.Equal(t, caCertsMergedCM.Data["tls-ca-bundle.pem"], "# ConfigMap: ca-certs,  Key: ca-bundle.crt\nopenshift-ca-bundle\n\n")
 }
 
@@ -89,7 +89,7 @@ func TestSyncOnlyCustomOpenShiftCertificates(t *testing.T) {
 			"ca-bundle.crt": "openshift-cert",
 		},
 	}).Build()
-	ctx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: pointer.Bool(true)}
+	ctx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: ptr.To(true)}
 	ctx.Proxy.TrustedCAMapName = "custom-openshift-trusted-certs-cm"
 
 	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
@@ -97,17 +97,17 @@ func TestSyncOnlyCustomOpenShiftCertificates(t *testing.T) {
 	cm := &corev1.ConfigMap{}
 	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, cm)
 	assert.Nil(t, err)
-	assert.Empty(t, cm.ObjectMeta.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
-	assert.Equal(t, constants.CheEclipseOrg, cm.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey])
-	assert.Equal(t, constants.CheCABundle, cm.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
+	assert.Empty(t, cm.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
+	assert.Equal(t, constants.CheEclipseOrg, cm.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, constants.CheCABundle, cm.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, "openshift-cert", cm.Data["ca-bundle.crt"])
 
 	caCertsMergedCM := &corev1.ConfigMap{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
 	assert.Nil(t, err)
-	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
-	assert.Equal(t, constants.PublicCertsDir, caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
-	assert.Equal(t, "file", caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountAsAnnotation])
+	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, constants.PublicCertsDir, caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
+	assert.Equal(t, "file", caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountAsAnnotation])
 	assert.Equal(t, caCertsMergedCM.Data["tls-ca-bundle.pem"], "# ConfigMap: ca-certs,  Key: ca-bundle.crt\nopenshift-cert\n\n")
 }
 
@@ -127,8 +127,8 @@ func TestSyncKubernetesCABundleCertificates(t *testing.T) {
 	cm := &corev1.ConfigMap{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, cm)
 	assert.NoError(t, err)
-	assert.Equal(t, cm.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey], constants.CheEclipseOrg)
-	assert.Equal(t, cm.ObjectMeta.Labels[constants.KubernetesComponentLabelKey], constants.CheCABundle)
+	assert.Equal(t, cm.Labels[constants.KubernetesPartOfLabelKey], constants.CheEclipseOrg)
+	assert.Equal(t, cm.Labels[constants.KubernetesComponentLabelKey], constants.CheCABundle)
 }
 
 func TestSyncKubernetesRootCertificates(t *testing.T) {
@@ -151,8 +151,8 @@ func TestSyncKubernetesRootCertificates(t *testing.T) {
 	cm := &corev1.ConfigMap{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: kubernetesRootCACertsCMName, Namespace: "eclipse-che"}, cm)
 	assert.NoError(t, err)
-	assert.Equal(t, cm.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey], constants.CheEclipseOrg)
-	assert.Equal(t, cm.ObjectMeta.Labels[constants.KubernetesComponentLabelKey], constants.CheCABundle)
+	assert.Equal(t, cm.Labels[constants.KubernetesPartOfLabelKey], constants.CheEclipseOrg)
+	assert.Equal(t, cm.Labels[constants.KubernetesComponentLabelKey], constants.CheCABundle)
 }
 
 func TestSyncGitTrustedCertificates(t *testing.T) {
@@ -188,8 +188,8 @@ func TestSyncGitTrustedCertificates(t *testing.T) {
 	cm := &corev1.ConfigMap{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "git-trusted-certs", Namespace: "eclipse-che"}, cm)
 	assert.NoError(t, err)
-	assert.Equal(t, cm.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey], constants.CheEclipseOrg)
-	assert.Equal(t, cm.ObjectMeta.Labels[constants.KubernetesComponentLabelKey], constants.CheCABundle)
+	assert.Equal(t, cm.Labels[constants.KubernetesPartOfLabelKey], constants.CheEclipseOrg)
+	assert.Equal(t, cm.Labels[constants.KubernetesComponentLabelKey], constants.CheCABundle)
 	assert.Equal(t, "git-cert", cm.Data["ca.crt"])
 }
 
@@ -213,8 +213,8 @@ func TestSyncSelfSignedCertificates(t *testing.T) {
 	cm := &corev1.ConfigMap{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.DefaultSelfSignedCertificateSecretName, Namespace: "eclipse-che"}, cm)
 	assert.NoError(t, err)
-	assert.Equal(t, cm.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey], constants.CheEclipseOrg)
-	assert.Equal(t, cm.ObjectMeta.Labels[constants.KubernetesComponentLabelKey], constants.CheCABundle)
+	assert.Equal(t, cm.Labels[constants.KubernetesPartOfLabelKey], constants.CheEclipseOrg)
+	assert.Equal(t, cm.Labels[constants.KubernetesComponentLabelKey], constants.CheCABundle)
 	assert.Equal(t, "self-signed-cert", cm.Data["ca.crt"])
 }
 
@@ -397,16 +397,16 @@ func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 		},
 	}).Build()
 	ctx.Proxy.TrustedCAMapName = "custom-openshift-trusted-certs-cm"
-	ctx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: pointer.Bool(false)}
+	ctx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: ptr.To(false)}
 
 	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
 
 	caCertsCM := &corev1.ConfigMap{}
 	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
 	assert.Nil(t, err)
-	assert.Equal(t, "true", caCertsCM.ObjectMeta.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
-	assert.Equal(t, constants.CheEclipseOrg, caCertsCM.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey])
-	assert.Equal(t, constants.CheCABundle, caCertsCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, "true", caCertsCM.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
+	assert.Equal(t, constants.CheEclipseOrg, caCertsCM.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, constants.CheCABundle, caCertsCM.Labels[constants.KubernetesComponentLabelKey])
 
 	// Let's pretend that OpenShift Network operator inject the CA bundle
 	caCertsCM.Data = map[string]string{"ca-bundle.crt": "openshift-ca-bundle"}
@@ -418,46 +418,46 @@ func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 	caCertsMergedCM := &corev1.ConfigMap{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
 	assert.Nil(t, err)
-	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
-	assert.Equal(t, kubernetesCABundleCertsDir, caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
-	assert.Equal(t, "0444", caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountAccessModeAnnotation])
-	assert.Equal(t, "subpath", caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountAsAnnotation])
+	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, kubernetesCABundleCertsDir, caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
+	assert.Equal(t, "0444", caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountAccessModeAnnotation])
+	assert.Equal(t, "subpath", caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountAsAnnotation])
 	assert.Equal(t, caCertsMergedCM.Data["tls-ca-bundle.pem"], "# ConfigMap: ca-certs,  Key: ca-bundle.crt\nopenshift-ca-bundle\n\n")
 	assert.Equal(t, 1, len(caCertsMergedCM.Data))
 
 	// Disable workspace CA bundle mount
-	ctx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: pointer.Bool(true)}
+	ctx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: ptr.To(true)}
 
 	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
 
 	caCertsCM = &corev1.ConfigMap{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
 	assert.Nil(t, err)
-	assert.Empty(t, caCertsCM.ObjectMeta.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
-	assert.Equal(t, constants.CheEclipseOrg, caCertsCM.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey])
-	assert.Equal(t, constants.CheCABundle, caCertsCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
+	assert.Empty(t, caCertsCM.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
+	assert.Equal(t, constants.CheEclipseOrg, caCertsCM.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, constants.CheCABundle, caCertsCM.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, "openshift-cert", caCertsCM.Data["ca-bundle.crt"])
 
 	caCertsMergedCM = &corev1.ConfigMap{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
 	assert.Nil(t, err)
-	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
-	assert.Equal(t, constants.PublicCertsDir, caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
-	assert.Equal(t, "0444", caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountAccessModeAnnotation])
-	assert.Equal(t, "file", caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountAsAnnotation])
+	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, constants.PublicCertsDir, caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
+	assert.Equal(t, "0444", caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountAccessModeAnnotation])
+	assert.Equal(t, "file", caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountAsAnnotation])
 	assert.Equal(t, caCertsMergedCM.Data["tls-ca-bundle.pem"], "# ConfigMap: ca-certs,  Key: ca-bundle.crt\nopenshift-cert\n\n")
 	assert.Equal(t, 1, len(caCertsMergedCM.Data))
 
 	// Enable workspace CA bundle mount
-	ctx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: pointer.Bool(false)}
+	ctx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: ptr.To(false)}
 	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
 
 	caCertsCM = &corev1.ConfigMap{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
 	assert.Nil(t, err)
-	assert.Equal(t, "true", caCertsCM.ObjectMeta.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
-	assert.Equal(t, constants.CheEclipseOrg, caCertsCM.ObjectMeta.Labels[constants.KubernetesPartOfLabelKey])
-	assert.Equal(t, constants.CheCABundle, caCertsCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, "true", caCertsCM.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
+	assert.Equal(t, constants.CheEclipseOrg, caCertsCM.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, constants.CheCABundle, caCertsCM.Labels[constants.KubernetesComponentLabelKey])
 
 	// Let's pretend that OpenShift Network operator inject the CA bundle
 	caCertsCM.Data = map[string]string{"ca-bundle.crt": "openshift-ca-bundle-new"}
@@ -469,16 +469,16 @@ func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 	caCertsMergedCM = &corev1.ConfigMap{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
 	assert.Nil(t, err)
-	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
-	assert.Equal(t, kubernetesCABundleCertsDir, caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
-	assert.Equal(t, "0444", caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountAccessModeAnnotation])
-	assert.Equal(t, "subpath", caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountAsAnnotation])
+	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, kubernetesCABundleCertsDir, caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
+	assert.Equal(t, "0444", caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountAccessModeAnnotation])
+	assert.Equal(t, "subpath", caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountAsAnnotation])
 	assert.Equal(t, caCertsMergedCM.Data["tls-ca-bundle.pem"], "# ConfigMap: ca-certs,  Key: ca-bundle.crt\nopenshift-ca-bundle-new\n\n")
 	assert.Equal(t, 1, len(caCertsMergedCM.Data))
 
 	// Check CM is reverted after changing the annotations
-	caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountPathAnnotation] = "a"
-	caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountAsAnnotation] = "b"
+	caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountPathAnnotation] = "a"
+	caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountAsAnnotation] = "b"
 	err = ctx.ClusterAPI.Client.Update(context.TODO(), caCertsMergedCM)
 	assert.NoError(t, err)
 
@@ -487,10 +487,10 @@ func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 	caCertsMergedCM = &corev1.ConfigMap{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
 	assert.Nil(t, err)
-	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.ObjectMeta.Labels[constants.KubernetesComponentLabelKey])
-	assert.Equal(t, kubernetesCABundleCertsDir, caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
-	assert.Equal(t, "0444", caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountAccessModeAnnotation])
-	assert.Equal(t, "subpath", caCertsMergedCM.ObjectMeta.Annotations[dwconstants.DevWorkspaceMountAsAnnotation])
+	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, kubernetesCABundleCertsDir, caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
+	assert.Equal(t, "0444", caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountAccessModeAnnotation])
+	assert.Equal(t, "subpath", caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountAsAnnotation])
 	assert.Equal(t, caCertsMergedCM.Data["tls-ca-bundle.pem"], "# ConfigMap: ca-certs,  Key: ca-bundle.crt\nopenshift-ca-bundle-new\n\n")
 	assert.Equal(t, 1, len(caCertsMergedCM.Data))
 }

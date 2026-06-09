@@ -284,6 +284,7 @@ func TestDeleteIfObjectIsObsolete(t *testing.T) {
 				"key": "value",
 			},
 		})
+	assert.NoError(t, err)
 
 	// sync again to check that obsolete data will be removed
 

@@ -126,9 +126,7 @@ func (dst *CheCluster) convertFrom_Server(src *chev2.CheCluster) error {
 	dst.Spec.Server.WorkspaceNamespaceDefault = src.Spec.DevEnvironments.DefaultNamespace.Template
 	dst.Spec.Server.WorkspacePodNodeSelector = utils.CloneMap(src.Spec.DevEnvironments.NodeSelector)
 
-	for _, v := range src.Spec.DevEnvironments.Tolerations {
-		dst.Spec.Server.WorkspacePodTolerations = append(dst.Spec.Server.WorkspacePodTolerations, v)
-	}
+	dst.Spec.Server.WorkspacePodTolerations = append(dst.Spec.Server.WorkspacePodTolerations, src.Spec.DevEnvironments.Tolerations...)
 
 	for _, p := range src.Spec.DevEnvironments.DefaultPlugins {
 		dst.Spec.Server.WorkspacesDefaultPlugins = append(dst.Spec.Server.WorkspacesDefaultPlugins,

@@ -51,6 +51,8 @@ jobs:
       uses: actions/setup-go@v3
       with:
         go-version: 1.25.7
+    - name: Install golangci-lint run
+      run: curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.12.2
     - name: Cache go modules
       id: cache-mod
       uses: actions/cache@v3
@@ -73,6 +75,8 @@ jobs:
         fi
     - name: Lint with go vet
       run: go vet ./...
+    - name: Lint with golangci-lint
+      run: golangci-lint run
     - name: Check format
       run: |
         go install golang.org/x/tools/cmd/goimports@latest

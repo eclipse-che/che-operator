@@ -137,11 +137,10 @@ func GenerateProxyJavaOpts(proxy *chetypes.Proxy, noProxy string) (javaOpts stri
 		noProxy = proxy.NoProxy
 	}
 	// Remove all spaces
-	noProxy = strings.Replace(noProxy, " ", "", -1)
-	// Replace , with |
-	noProxy = strings.Replace(noProxy, ",", "|", -1)
+	noProxy = strings.ReplaceAll(noProxy, " ", "") // Replace , with |
+	noProxy = strings.ReplaceAll(noProxy, ",", "|")
 	// Convert .domain wildcards to Java format *.domain
-	noProxy = strings.Replace(noProxy, "|.", "|*.", -1)
+	noProxy = strings.ReplaceAll(noProxy, "|.", "|*.")
 	if strings.HasPrefix(noProxy, ".") {
 		noProxy = "*" + noProxy
 	}

@@ -18,7 +18,7 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
@@ -96,7 +96,7 @@ func TestNativeUserGateway(t *testing.T) {
 func TestRandomCookieSecret(t *testing.T) {
 	secret := generateRandomCookieSecret()
 	if len(secret) != 24 {
-		t.Fatalf("lenght of the secret should be 24")
+		t.Fatalf("length of the secret should be 24")
 	}
 
 	_, err := base64.StdEncoding.Decode(make([]byte, 24), secret)
@@ -129,7 +129,7 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 				Components: chev2.CheClusterComponents{
 					PluginRegistry: chev2.PluginRegistry{
 						DisableInternalRegistry: false,
-						OpenVSXURL:              pointer.String(""),
+						OpenVSXURL:              ptr.To(""),
 					},
 				}},
 		}).Build()
@@ -150,8 +150,8 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 }
 
 func TestTokenValidityCheckOnOpenShiftNativeUser(t *testing.T) {
-	chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
-	corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	_ = chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
+	_ = corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
 
 	cm, err := getGatewayServerConfigSpec(&chetypes.DeployContext{
 		CheCluster: &chev2.CheCluster{},

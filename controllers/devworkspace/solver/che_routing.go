@@ -287,11 +287,12 @@ func isExposableScheme(scheme string) bool {
 }
 
 func secureScheme(scheme string) string {
-	if scheme == "http" {
+	switch scheme {
+	case "http":
 		return "https"
-	} else if scheme == "ws" {
+	case "ws":
 		return "wss"
-	} else {
+	default:
 		return scheme
 	}
 }
@@ -570,7 +571,7 @@ func determineEndpointService(objs *solvers.RoutingObjects, endpoint dwo.Endpoin
 	if endpoint.Attributes.GetBoolean(string(dwo.DiscoverableAttribute), nil) {
 		endpointService := getEndpointService(objs, endpoint)
 		if endpointService == nil {
-			return nil, fmt.Errorf("could not find endpoint-specfic service for endpoint '%s'", endpoint.Name)
+			return nil, fmt.Errorf("could not find endpoint-specific service for endpoint '%s'", endpoint.Name)
 		}
 		return endpointService, nil
 	}

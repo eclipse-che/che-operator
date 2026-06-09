@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/utils/ptr"
 
 	devfile "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	chev1 "github.com/eclipse-che/che-operator/api/v1"
@@ -25,7 +26,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/utils/pointer"
 )
 
 func TestConvertFromEmptyCheCluster(t *testing.T) {
@@ -140,8 +140,8 @@ func TestConvertFrom(t *testing.T) {
 							},
 						},
 						SecurityContext: &chev2.PodSecurityContext{
-							RunAsUser: pointer.Int64Ptr(64),
-							FsGroup:   pointer.Int64Ptr(65),
+							RunAsUser: ptr.To(int64(64)),
+							FsGroup:   ptr.To(int64(65)),
 						},
 					},
 					DisableInternalRegistry: true,
@@ -153,7 +153,7 @@ func TestConvertFrom(t *testing.T) {
 							Url: "ExternalPluginRegistries_2",
 						},
 					},
-					OpenVSXURL: pointer.StringPtr("open-vsx-registry"),
+					OpenVSXURL: ptr.To("open-vsx-registry"),
 				},
 				DevfileRegistry: chev2.DevfileRegistry{
 					Deployment: &chev2.Deployment{
@@ -179,8 +179,8 @@ func TestConvertFrom(t *testing.T) {
 							},
 						},
 						SecurityContext: &chev2.PodSecurityContext{
-							RunAsUser: pointer.Int64Ptr(64),
-							FsGroup:   pointer.Int64Ptr(65),
+							RunAsUser: ptr.To(int64(64)),
+							FsGroup:   ptr.To(int64(65)),
 						},
 					},
 					DisableInternalRegistry: true,
@@ -215,8 +215,8 @@ func TestConvertFrom(t *testing.T) {
 							},
 						},
 						SecurityContext: &chev2.PodSecurityContext{
-							RunAsUser: pointer.Int64Ptr(64),
-							FsGroup:   pointer.Int64Ptr(65),
+							RunAsUser: ptr.To(int64(64)),
+							FsGroup:   ptr.To(int64(65)),
 						},
 					},
 					HeaderMessage: &chev2.DashboardHeaderMessage{
@@ -252,12 +252,12 @@ func TestConvertFrom(t *testing.T) {
 								}},
 						},
 						SecurityContext: &chev2.PodSecurityContext{
-							RunAsUser: pointer.Int64Ptr(64),
-							FsGroup:   pointer.Int64Ptr(65),
+							RunAsUser: ptr.To(int64(64)),
+							FsGroup:   ptr.To(int64(65)),
 						},
 					},
 					LogLevel:     "LogLevel",
-					Debug:        pointer.BoolPtr(true),
+					Debug:        ptr.To(true),
 					ClusterRoles: []string{"ClusterRoles_1", "ClusterRoles_2"},
 					Proxy: &chev2.Proxy{
 						Url:                   "ProxyUrl",
@@ -326,7 +326,7 @@ func TestConvertFrom(t *testing.T) {
 			DevEnvironments: chev2.CheClusterDevEnvironments{
 				DefaultNamespace: chev2.DefaultNamespace{
 					Template:      "WorkspaceNamespaceName",
-					AutoProvision: pointer.BoolPtr(true),
+					AutoProvision: ptr.To(true),
 				},
 				TrustedCerts: &chev2.TrustedCerts{
 					GitTrustedCertsConfigMapName: "che-git-self-signed-cert",
@@ -361,9 +361,9 @@ func TestConvertFrom(t *testing.T) {
 					Value:    "Value",
 					Effect:   "Effect",
 				}},
-				SecondsOfInactivityBeforeIdling:     pointer.Int32Ptr(1800),
-				SecondsOfRunBeforeIdling:            pointer.Int32Ptr(-1),
-				MaxNumberOfRunningWorkspacesPerUser: pointer.Int64Ptr(10),
+				SecondsOfInactivityBeforeIdling:     ptr.To(int32(1800)),
+				SecondsOfRunBeforeIdling:            ptr.To(int32(-1)),
+				MaxNumberOfRunningWorkspacesPerUser: ptr.To(int64(10)),
 				User: &chev2.UserConfiguration{
 					ClusterRoles: []string{"ClusterRoles_1", "ClusterRoles_2"},
 				},
@@ -405,8 +405,8 @@ func TestConvertFrom(t *testing.T) {
 	err := checlusterv1.ConvertFrom(checlusterv2)
 	assert.Nil(t, err)
 
-	assert.Equal(t, checlusterv1.ObjectMeta.Name, "eclipse-che")
-	assert.Equal(t, checlusterv1.ObjectMeta.Namespace, "eclipse-che")
+	assert.Equal(t, checlusterv1.Name, "eclipse-che")
+	assert.Equal(t, checlusterv1.Namespace, "eclipse-che")
 
 	assert.Equal(t, checlusterv1.Status.CheClusterRunning, "Available")
 	assert.Equal(t, checlusterv1.Status.CheURL, "CheURL")
@@ -434,8 +434,8 @@ func TestConvertFrom(t *testing.T) {
 	assert.Equal(t, checlusterv1.Spec.Auth.GatewayConfigBumpEnv[0].Value, "configbump-value")
 
 	assert.Equal(t, checlusterv1.Spec.DevWorkspace.RunningLimit, "10")
-	assert.Equal(t, checlusterv1.Spec.DevWorkspace.SecondsOfInactivityBeforeIdling, pointer.Int32Ptr(1800))
-	assert.Equal(t, checlusterv1.Spec.DevWorkspace.SecondsOfRunBeforeIdling, pointer.Int32Ptr(-1))
+	assert.Equal(t, checlusterv1.Spec.DevWorkspace.SecondsOfInactivityBeforeIdling, ptr.To(int32(1800)))
+	assert.Equal(t, checlusterv1.Spec.DevWorkspace.SecondsOfRunBeforeIdling, ptr.To(int32(-1)))
 	assert.True(t, checlusterv1.Spec.DevWorkspace.Enable)
 
 	assert.Equal(t, checlusterv1.Spec.Dashboard.Warning, "DashboardWarning")
@@ -496,7 +496,7 @@ func TestConvertFrom(t *testing.T) {
 	assert.Equal(t, checlusterv1.Spec.Server.SingleHostGatewayConfigSidecarImage, "ConfigSidecarImage")
 	assert.Equal(t, checlusterv1.Spec.Server.SingleHostGatewayImage, "GatewayImage")
 	assert.Equal(t, checlusterv1.Spec.Server.WorkspaceNamespaceDefault, "WorkspaceNamespaceName")
-	assert.Equal(t, checlusterv1.Spec.Server.AllowAutoProvisionUserNamespace, pointer.BoolPtr(true))
+	assert.Equal(t, checlusterv1.Spec.Server.AllowAutoProvisionUserNamespace, ptr.To(true))
 	assert.Equal(t, checlusterv1.Spec.Server.WorkspaceDefaultEditor, "DefaultEditor")
 	assert.Equal(t, checlusterv1.Spec.Server.WorkspaceDefaultComponents, []devfile.Component{{Name: "universal-developer-image"}})
 	assert.Equal(t, checlusterv1.Spec.Server.WorkspacePodNodeSelector, map[string]string{"a": "b", "c": "d"})

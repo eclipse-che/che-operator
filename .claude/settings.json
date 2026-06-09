@@ -3,13 +3,23 @@
     "PreToolUse": [
       {
         "matcher": "Bash",
-        "command": "echo \"$CLAUDE_TOOL_INPUT\" | grep -qE '(rm -rf /|git push --force|git reset --hard)' && echo 'BLOCK: destructive operation' && exit 1 || true"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$CLAUDE_TOOL_INPUT\" | grep -qE '(rm\\s+-rf\\s+(/|\\./|\\*)|git\\s+push\\s+.*(-f|--force)|git\\s+reset\\s+--hard|git\\s+clean\\s+-f|git\\s+checkout\\s+--\\s+\\.)' && echo 'BLOCK: destructive operation' && exit 1 || true"
+          }
+        ]
       }
     ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
-        "command": "test \"${CLAUDE_FILE_PATH##*.}\" = \"go\" && gofmt -w \"$CLAUDE_FILE_PATH\" 2>/dev/null || true"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test \"${CLAUDE_FILE_PATH##*.}\" = \"go\" && gofmt -w \"$CLAUDE_FILE_PATH\" 2>/dev/null || true"
+          }
+        ]
       }
     ]
   }

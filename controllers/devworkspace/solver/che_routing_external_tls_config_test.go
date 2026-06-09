@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 func TestExternalTLSConfigForIngresses(t *testing.T) {
@@ -44,7 +44,7 @@ func TestExternalTLSConfigForIngresses(t *testing.T) {
 			DevEnvironments: chev2.CheClusterDevEnvironments{
 				Networking: &chev2.DevEnvironmentNetworking{
 					ExternalTLSConfig: &chev2.ExternalTLSConfig{
-						Enabled: pointer.Bool(true),
+						Enabled: ptr.To(true),
 						Annotations: map[string]string{
 							"annotation_key": "annotation_value",
 						},
@@ -117,7 +117,7 @@ func TestExternalTLSConfigForRoutes(t *testing.T) {
 			DevEnvironments: chev2.CheClusterDevEnvironments{
 				Networking: &chev2.DevEnvironmentNetworking{
 					ExternalTLSConfig: &chev2.ExternalTLSConfig{
-						Enabled: pointer.Bool(true),
+						Enabled: ptr.To(true),
 						Annotations: map[string]string{
 							"annotation_key": "annotation_value",
 						},

@@ -18,6 +18,7 @@ import (
 	"strconv"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"k8s.io/utils/ptr"
 
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -27,7 +28,6 @@ import (
 	devfile "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/google/go-cmp/cmp"
-	"k8s.io/utils/pointer"
 )
 
 // cleanUpDevEnvironmentsDefaultEditor cleans up CheCluster CR `Spec.DevEnvironments.DefaultEditor` field.
@@ -119,7 +119,7 @@ func cleanUpPluginRegistryOpenVSXURL(ctx *chetypes.DeployContext) (bool, error) 
 // CheCluster CR `Spec.DevEnvironments.DisableContainerBuildCapabilities` field. See also [v2.CheCluster].
 func cleanUpDevEnvironmentsDisableContainerBuildCapabilities(ctx *chetypes.DeployContext) (bool, error) {
 	if !infrastructure.IsOpenShift() {
-		ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = pointer.BoolPtr(true)
+		ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = ptr.To(true)
 		return true, nil
 	}
 

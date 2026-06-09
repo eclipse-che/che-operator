@@ -45,7 +45,7 @@ func GetLabelsAndSelector(component string) (map[string]string, map[string]strin
 	labels := GetLabels(component)
 	legacyLabels := GetLegacyLabels(component)
 
-	// For the backward compatability
+	// For the backward compatibility
 	// We have to keep these labels for a deployment since this field is immutable
 	for k, v := range legacyLabels {
 		labels[k] = v

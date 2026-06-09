@@ -60,6 +60,7 @@ func TestReconcile(t *testing.T) {
 	cheDeployment.Status.Replicas = 1
 	cheDeployment.Status.AvailableReplicas = 1
 	err = ctx.ClusterAPI.Client.Status().Update(context.TODO(), cheDeployment)
+	assert.NoError(t, err)
 
 	test.EnsureReconcile(t, ctx, server.Reconcile)
 

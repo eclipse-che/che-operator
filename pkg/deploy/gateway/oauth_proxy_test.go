@@ -15,7 +15,7 @@ package gateway
 import (
 	"testing"
 
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
@@ -30,7 +30,7 @@ func TestCookieExpireForOpenShiftOauthProxyConfig(t *testing.T) {
 				Auth: chev2.Auth{
 					Gateway: chev2.Gateway{
 						OAuthProxy: &chev2.OAuthProxy{
-							CookieExpireSeconds: pointer.Int32(3665),
+							CookieExpireSeconds: ptr.To(int32(3665)),
 						},
 					},
 				},
@@ -48,7 +48,7 @@ func TestCookieExpireKubernetesOauthProxyConfig(t *testing.T) {
 				Auth: chev2.Auth{
 					Gateway: chev2.Gateway{
 						OAuthProxy: &chev2.OAuthProxy{
-							CookieExpireSeconds: pointer.Int32(3665),
+							CookieExpireSeconds: ptr.To(int32(3665)),
 						},
 					},
 				},

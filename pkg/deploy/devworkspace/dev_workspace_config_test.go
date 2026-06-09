@@ -19,6 +19,7 @@ import (
 	"sort"
 	"testing"
 
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
@@ -32,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
 )
 
 func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
@@ -87,7 +87,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
 					},
 				},
 			},
@@ -102,7 +102,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
 						Storage: chev2.WorkspaceStorage{
 							PvcStrategy: constants.EphemeralPVCStorageStrategy,
 							PerUserStrategyPvcConfig: &chev2.PVC{
@@ -128,7 +128,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
 						Storage: chev2.WorkspaceStorage{
 							PvcStrategy: constants.PerUserPVCStorageStrategy,
 							PerUserStrategyPvcConfig: &chev2.PVC{
@@ -140,7 +140,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					StorageClassName:   pointer.String("test-storage"),
+					StorageClassName:   ptr.To("test-storage"),
 					DeploymentStrategy: "Recreate",
 				},
 			},
@@ -154,7 +154,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
 						Storage: chev2.WorkspaceStorage{
 							PvcStrategy: constants.PerUserPVCStorageStrategy,
 							PerUserStrategyPvcConfig: &chev2.PVC{
@@ -184,7 +184,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
 						Storage: chev2.WorkspaceStorage{
 							PvcStrategy: constants.PerUserPVCStorageStrategy,
 						},
@@ -206,7 +206,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
 						Storage: chev2.WorkspaceStorage{
 							PvcStrategy: constants.PerUserPVCStorageStrategy,
 							PerUserStrategyPvcConfig: &chev2.PVC{
@@ -232,7 +232,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
 						DefaultContainerResources: &corev1.ResourceRequirements{
 							Limits: corev1.ResourceList{
 								corev1.ResourceMemory: resource.MustParse("128Mi"),
@@ -267,7 +267,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
 						DefaultContainerResources:         nil,
 					},
 				},
@@ -288,7 +288,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
 						ContainerResourceCaps: &corev1.ResourceRequirements{
 							Limits: corev1.ResourceList{
 								corev1.ResourceMemory: resource.MustParse("2Gi"),
@@ -327,7 +327,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
 						ContainerResourceCaps:             nil,
 					},
 				},
@@ -348,7 +348,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
 						ContainerResourceCaps: &corev1.ResourceRequirements{
 							Limits: corev1.ResourceList{
 								corev1.ResourceMemory: resource.MustParse("2Gi"),
@@ -404,7 +404,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
 						ContainerResourceCaps: &corev1.ResourceRequirements{
 							Limits: corev1.ResourceList{
 								corev1.ResourceMemory: resource.MustParse("4Gi"),
@@ -469,7 +469,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
 						ContainerResourceCaps:             nil,
 					},
 				},
@@ -516,7 +516,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
 						Storage: chev2.WorkspaceStorage{
 							PvcStrategy: constants.PerUserPVCStorageStrategy,
 							PerUserStrategyPvcConfig: &chev2.PVC{
@@ -529,7 +529,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					StorageClassName: pointer.String("test-storage"),
+					StorageClassName: ptr.To("test-storage"),
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						Common: &quantity15Gi,
 					},
@@ -546,7 +546,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
 						Storage: chev2.WorkspaceStorage{
 							PvcStrategy: constants.PerWorkspacePVCStorageStrategy,
 							PerWorkspaceStrategyPvcConfig: &chev2.PVC{
@@ -559,7 +559,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					StorageClassName: pointer.String("test-storage"),
+					StorageClassName: ptr.To("test-storage"),
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						PerWorkspace: &quantity15Gi,
 					},
@@ -576,7 +576,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
 						Storage: chev2.WorkspaceStorage{
 							PvcStrategy: constants.PerWorkspacePVCStorageStrategy,
 							PerWorkspaceStrategyPvcConfig: &chev2.PVC{
@@ -599,7 +599,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 					},
 					Config: &controllerv1alpha1.OperatorConfiguration{
 						Workspace: &controllerv1alpha1.WorkspaceConfig{
-							StorageClassName: pointer.String("default-storage-class"),
+							StorageClassName: ptr.To("default-storage-class"),
 							DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 								PerWorkspace: &quantity10Gi,
 							},
@@ -609,7 +609,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					StorageClassName: pointer.String("test-storage"),
+					StorageClassName: ptr.To("test-storage"),
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						PerWorkspace: &quantity15Gi,
 					},
@@ -626,7 +626,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
 						Storage: chev2.WorkspaceStorage{
 							PvcStrategy: constants.PerUserPVCStorageStrategy,
 							PerUserStrategyPvcConfig: &chev2.PVC{
@@ -649,7 +649,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 					},
 					Config: &controllerv1alpha1.OperatorConfiguration{
 						Workspace: &controllerv1alpha1.WorkspaceConfig{
-							StorageClassName: pointer.String("default-storage-class"),
+							StorageClassName: ptr.To("default-storage-class"),
 							DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 								Common: &quantity10Gi,
 							},
@@ -659,7 +659,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					StorageClassName: pointer.String("test-storage"),
+					StorageClassName: ptr.To("test-storage"),
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						Common: &quantity15Gi,
 					},
@@ -676,7 +676,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
 						Storage: chev2.WorkspaceStorage{
 							PvcStrategy: constants.PerUserPVCStorageStrategy,
 							PerUserStrategyPvcConfig: &chev2.PVC{
@@ -709,7 +709,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 					DefaultRoutingClass: "routing-class",
 				},
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					StorageClassName: pointer.String("test-storage"),
+					StorageClassName: ptr.To("test-storage"),
 					DefaultStorageSize: &controllerv1alpha1.StorageSizes{
 						Common: &quantity15Gi,
 					},
@@ -766,8 +766,8 @@ func TestReconcileDevWorkspaceConfigForContainerCapabilities(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
-						DisableContainerRunCapabilities:   pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
+						DisableContainerRunCapabilities:   ptr.To(true),
 					},
 				},
 			},
@@ -784,8 +784,8 @@ func TestReconcileDevWorkspaceConfigForContainerCapabilities(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(false),
-						DisableContainerRunCapabilities:   pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(false),
+						DisableContainerRunCapabilities:   ptr.To(true),
 					},
 				},
 			},
@@ -798,7 +798,7 @@ func TestReconcileDevWorkspaceConfigForContainerCapabilities(t *testing.T) {
 								"SETUID",
 							},
 						},
-						AllowPrivilegeEscalation: pointer.Bool(true),
+						AllowPrivilegeEscalation: ptr.To(true),
 					},
 				},
 			},
@@ -816,8 +816,8 @@ func TestReconcileDevWorkspaceConfigForContainerCapabilities(t *testing.T) {
 							"annotation_1": "value_1",
 							"annotation_2": "value_1",
 						},
-						DisableContainerBuildCapabilities: pointer.Bool(true),
-						DisableContainerRunCapabilities:   pointer.Bool(false),
+						DisableContainerBuildCapabilities: ptr.To(true),
+						DisableContainerRunCapabilities:   ptr.To(false),
 						ContainerRunConfiguration: &chev2.ContainerRunConfiguration{
 							OpenShiftSecurityContextConstraint: "container-run",
 							WorkspacesPodAnnotations: map[string]string{
@@ -836,7 +836,7 @@ func TestReconcileDevWorkspaceConfigForContainerCapabilities(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					HostUsers: pointer.Bool(false),
+					HostUsers: ptr.To(false),
 					PodAnnotations: map[string]string{
 						"annotation_1": "value_2",
 						"annotation_2": "value_1",
@@ -861,8 +861,8 @@ func TestReconcileDevWorkspaceConfigForContainerCapabilities(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(false),
-						DisableContainerRunCapabilities:   pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(false),
+						DisableContainerRunCapabilities:   ptr.To(true),
 					},
 				},
 			},
@@ -890,7 +890,7 @@ func TestReconcileDevWorkspaceConfigForContainerCapabilities(t *testing.T) {
 								"SETUID",
 							},
 						},
-						AllowPrivilegeEscalation: pointer.Bool(true),
+						AllowPrivilegeEscalation: ptr.To(true),
 					},
 				},
 			},
@@ -904,8 +904,8 @@ func TestReconcileDevWorkspaceConfigForContainerCapabilities(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
-						DisableContainerRunCapabilities:   pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
+						DisableContainerRunCapabilities:   ptr.To(true),
 					},
 				},
 			},
@@ -927,7 +927,7 @@ func TestReconcileDevWorkspaceConfigForContainerCapabilities(t *testing.T) {
 									"SETUID",
 								},
 							},
-								AllowPrivilegeEscalation: pointer.Bool(true),
+								AllowPrivilegeEscalation: ptr.To(true),
 							},
 						},
 					},
@@ -950,8 +950,8 @@ func TestReconcileDevWorkspaceConfigForContainerCapabilities(t *testing.T) {
 							"annotation_1": "value_1",
 							"annotation_2": "value_1",
 						},
-						DisableContainerBuildCapabilities: pointer.Bool(false),
-						DisableContainerRunCapabilities:   pointer.Bool(false),
+						DisableContainerBuildCapabilities: ptr.To(false),
+						DisableContainerRunCapabilities:   ptr.To(false),
 						ContainerRunConfiguration: &chev2.ContainerRunConfiguration{
 							OpenShiftSecurityContextConstraint: "container-run",
 							WorkspacesPodAnnotations: map[string]string{
@@ -970,7 +970,7 @@ func TestReconcileDevWorkspaceConfigForContainerCapabilities(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					HostUsers: pointer.Bool(false),
+					HostUsers: ptr.To(false),
 					PodAnnotations: map[string]string{
 						"annotation_1": "value_2",
 						"annotation_2": "value_1",
@@ -1024,8 +1024,8 @@ func TestReconcileDevWorkspaceConfigProgressTimeout(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
-						StartTimeoutSeconds:               pointer.Int32(600),
+						DisableContainerBuildCapabilities: ptr.To(true),
+						StartTimeoutSeconds:               ptr.To(int32(600)),
 					},
 				},
 			},
@@ -1045,8 +1045,8 @@ func TestReconcileDevWorkspaceConfigProgressTimeout(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
-						StartTimeoutSeconds:               pointer.Int32(600),
+						DisableContainerBuildCapabilities: ptr.To(true),
+						StartTimeoutSeconds:               ptr.To(int32(600)),
 					},
 				},
 			},
@@ -1080,8 +1080,8 @@ func TestReconcileDevWorkspaceConfigProgressTimeout(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
-						StartTimeoutSeconds:               pointer.Int32(420),
+						DisableContainerBuildCapabilities: ptr.To(true),
+						StartTimeoutSeconds:               ptr.To(int32(420)),
 					},
 				},
 			},
@@ -1117,7 +1117,7 @@ func TestReconcileDevWorkspaceConfigProgressTimeout(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
 					},
 				},
 			},
@@ -1187,7 +1187,7 @@ func TestReconcileServiceAccountConfig(t *testing.T) {
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
 					ServiceAccount: &controllerv1alpha1.ServiceAccountConfig{
 						ServiceAccountName: "service-account",
-						DisableCreation:    pointer.Bool(false),
+						DisableCreation:    ptr.To(false),
 					},
 					DeploymentStrategy: "Recreate",
 				},
@@ -1203,7 +1203,7 @@ func TestReconcileServiceAccountConfig(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
 						DefaultNamespace: chev2.DefaultNamespace{
-							AutoProvision: pointer.Bool(false),
+							AutoProvision: ptr.To(false),
 						},
 						ServiceAccount: "service-account",
 					},
@@ -1213,7 +1213,7 @@ func TestReconcileServiceAccountConfig(t *testing.T) {
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
 					ServiceAccount: &controllerv1alpha1.ServiceAccountConfig{
 						ServiceAccountName: "service-account",
-						DisableCreation:    pointer.Bool(true),
+						DisableCreation:    ptr.To(true),
 					},
 					DeploymentStrategy: "Recreate",
 				},
@@ -1233,7 +1233,7 @@ func TestReconcileServiceAccountConfig(t *testing.T) {
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
 					ServiceAccount: &controllerv1alpha1.ServiceAccountConfig{
-						DisableCreation: pointer.Bool(false),
+						DisableCreation: ptr.To(false),
 					},
 					DeploymentStrategy: "Recreate",
 				},
@@ -1249,7 +1249,7 @@ func TestReconcileServiceAccountConfig(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
 						DefaultNamespace: chev2.DefaultNamespace{
-							AutoProvision: pointer.Bool(false),
+							AutoProvision: ptr.To(false),
 						},
 					},
 				},
@@ -1257,7 +1257,7 @@ func TestReconcileServiceAccountConfig(t *testing.T) {
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
 					ServiceAccount: &controllerv1alpha1.ServiceAccountConfig{
-						DisableCreation: pointer.Bool(false),
+						DisableCreation: ptr.To(false),
 					},
 					DeploymentStrategy: "Recreate",
 				},
@@ -1450,13 +1450,13 @@ func TestReconcileDevWorkspaceConfigRuntimeClassName(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						RuntimeClassName: pointer.String("test-runtime-class"),
+						RuntimeClassName: ptr.To("test-runtime-class"),
 					},
 				},
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					RuntimeClassName: pointer.String("test-runtime-class"),
+					RuntimeClassName: ptr.To("test-runtime-class"),
 				},
 			},
 		},
@@ -1469,7 +1469,7 @@ func TestReconcileDevWorkspaceConfigRuntimeClassName(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						RuntimeClassName: pointer.String("test-runtime-class"),
+						RuntimeClassName: ptr.To("test-runtime-class"),
 					},
 				},
 			},
@@ -1487,7 +1487,7 @@ func TestReconcileDevWorkspaceConfigRuntimeClassName(t *testing.T) {
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					RuntimeClassName: pointer.String("test-runtime-class"),
+					RuntimeClassName: ptr.To("test-runtime-class"),
 				},
 			},
 		},
@@ -1500,7 +1500,7 @@ func TestReconcileDevWorkspaceConfigRuntimeClassName(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						RuntimeClassName: pointer.String("test-runtime-class"),
+						RuntimeClassName: ptr.To("test-runtime-class"),
 					},
 				},
 			},
@@ -1516,14 +1516,14 @@ func TestReconcileDevWorkspaceConfigRuntimeClassName(t *testing.T) {
 					},
 					Config: &controllerv1alpha1.OperatorConfiguration{
 						Workspace: &controllerv1alpha1.WorkspaceConfig{
-							RuntimeClassName: pointer.String("previous-runtime-class"),
+							RuntimeClassName: ptr.To("previous-runtime-class"),
 						},
 					},
 				},
 			},
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
-					RuntimeClassName: pointer.String("test-runtime-class"),
+					RuntimeClassName: ptr.To("test-runtime-class"),
 				},
 			},
 		},
@@ -1552,7 +1552,7 @@ func TestReconcileDevWorkspaceConfigRuntimeClassName(t *testing.T) {
 					},
 					Config: &controllerv1alpha1.OperatorConfiguration{
 						Workspace: &controllerv1alpha1.WorkspaceConfig{
-							RuntimeClassName: pointer.String("previous-runtime-class"),
+							RuntimeClassName: ptr.To("previous-runtime-class"),
 						},
 					},
 				},
@@ -2145,7 +2145,7 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
 						PersistUserHome: &chev2.PersistentHomeConfig{
-							Enabled: pointer.Bool(true),
+							Enabled: ptr.To(true),
 						},
 					},
 				},
@@ -2153,7 +2153,7 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
 					PersistUserHome: &controllerv1alpha1.PersistentHomeConfig{
-						Enabled: pointer.Bool(true),
+						Enabled: ptr.To(true),
 					},
 				},
 			},
@@ -2168,7 +2168,7 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
 						PersistUserHome: &chev2.PersistentHomeConfig{
-							Enabled: pointer.Bool(true),
+							Enabled: ptr.To(true),
 						},
 					},
 				},
@@ -2188,7 +2188,7 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
 					PersistUserHome: &controllerv1alpha1.PersistentHomeConfig{
-						Enabled: pointer.Bool(true),
+						Enabled: ptr.To(true),
 					},
 				},
 			},
@@ -2203,7 +2203,7 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
 						PersistUserHome: &chev2.PersistentHomeConfig{
-							Enabled: pointer.Bool(true),
+							Enabled: ptr.To(true),
 						},
 					},
 				},
@@ -2221,7 +2221,7 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 					Config: &controllerv1alpha1.OperatorConfiguration{
 						Workspace: &controllerv1alpha1.WorkspaceConfig{
 							PersistUserHome: &controllerv1alpha1.PersistentHomeConfig{
-								Enabled: pointer.Bool(false),
+								Enabled: ptr.To(false),
 							},
 						},
 					},
@@ -2230,7 +2230,7 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
 					PersistUserHome: &controllerv1alpha1.PersistentHomeConfig{
-						Enabled: pointer.Bool(true),
+						Enabled: ptr.To(true),
 					},
 				},
 			},
@@ -2245,8 +2245,8 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
 						PersistUserHome: &chev2.PersistentHomeConfig{
-							Enabled:              pointer.Bool(true),
-							DisableInitContainer: pointer.Bool(true),
+							Enabled:              ptr.To(true),
+							DisableInitContainer: ptr.To(true),
 						},
 					},
 				},
@@ -2264,7 +2264,7 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 					Config: &controllerv1alpha1.OperatorConfiguration{
 						Workspace: &controllerv1alpha1.WorkspaceConfig{
 							PersistUserHome: &controllerv1alpha1.PersistentHomeConfig{
-								Enabled: pointer.Bool(false),
+								Enabled: ptr.To(false),
 							},
 						},
 					},
@@ -2273,8 +2273,8 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
 					PersistUserHome: &controllerv1alpha1.PersistentHomeConfig{
-						Enabled:              pointer.Bool(true),
-						DisableInitContainer: pointer.Bool(true),
+						Enabled:              ptr.To(true),
+						DisableInitContainer: ptr.To(true),
 					},
 				},
 			},
@@ -2289,8 +2289,8 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
 						PersistUserHome: &chev2.PersistentHomeConfig{
-							Enabled:              pointer.Bool(true),
-							DisableInitContainer: pointer.Bool(false),
+							Enabled:              ptr.To(true),
+							DisableInitContainer: ptr.To(false),
 						},
 					},
 				},
@@ -2308,8 +2308,8 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 					Config: &controllerv1alpha1.OperatorConfiguration{
 						Workspace: &controllerv1alpha1.WorkspaceConfig{
 							PersistUserHome: &controllerv1alpha1.PersistentHomeConfig{
-								Enabled:              pointer.Bool(true),
-								DisableInitContainer: pointer.Bool(true),
+								Enabled:              ptr.To(true),
+								DisableInitContainer: ptr.To(true),
 							},
 						},
 					},
@@ -2318,8 +2318,8 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
 					PersistUserHome: &controllerv1alpha1.PersistentHomeConfig{
-						Enabled:              pointer.Bool(true),
-						DisableInitContainer: pointer.Bool(false),
+						Enabled:              ptr.To(true),
+						DisableInitContainer: ptr.To(false),
 					},
 				},
 			},
@@ -2334,7 +2334,7 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
 						PersistUserHome: &chev2.PersistentHomeConfig{
-							Enabled: pointer.Bool(false),
+							Enabled: ptr.To(false),
 						},
 					},
 				},
@@ -2352,7 +2352,7 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 					Config: &controllerv1alpha1.OperatorConfiguration{
 						Workspace: &controllerv1alpha1.WorkspaceConfig{
 							PersistUserHome: &controllerv1alpha1.PersistentHomeConfig{
-								Enabled: pointer.Bool(true),
+								Enabled: ptr.To(true),
 							},
 						},
 					},
@@ -2361,7 +2361,7 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
 				Workspace: &controllerv1alpha1.WorkspaceConfig{
 					PersistUserHome: &controllerv1alpha1.PersistentHomeConfig{
-						Enabled: pointer.Bool(false),
+						Enabled: ptr.To(false),
 					},
 				},
 			},
@@ -2390,7 +2390,7 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 					Config: &controllerv1alpha1.OperatorConfiguration{
 						Workspace: &controllerv1alpha1.WorkspaceConfig{
 							PersistUserHome: &controllerv1alpha1.PersistentHomeConfig{
-								Enabled: pointer.Bool(true),
+								Enabled: ptr.To(true),
 							},
 						},
 					},
@@ -2437,8 +2437,8 @@ func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
 						// We disable container build capabilities so that it does not override the container security context we configured
-						DisableContainerBuildCapabilities: pointer.Bool(true),
-						DisableContainerRunCapabilities:   pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
+						DisableContainerRunCapabilities:   ptr.To(true),
 						Security: chev2.WorkspaceSecurityConfig{
 							ContainerSecurityContext: &corev1.SecurityContext{
 								Capabilities: &corev1.Capabilities{
@@ -2452,7 +2452,7 @@ func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
 										"KILL",
 									},
 								},
-								AllowPrivilegeEscalation: pointer.Bool(false),
+								AllowPrivilegeEscalation: ptr.To(false),
 							},
 						},
 					},
@@ -2472,7 +2472,7 @@ func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
 								"KILL",
 							},
 						},
-						AllowPrivilegeEscalation: pointer.Bool(false),
+						AllowPrivilegeEscalation: ptr.To(false),
 					},
 				},
 			},
@@ -2486,8 +2486,8 @@ func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
-						DisableContainerRunCapabilities:   pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
+						DisableContainerRunCapabilities:   ptr.To(true),
 						Security: chev2.WorkspaceSecurityConfig{
 							ContainerSecurityContext: &corev1.SecurityContext{
 								Capabilities: &corev1.Capabilities{
@@ -2501,7 +2501,7 @@ func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
 										"KILL",
 									},
 								},
-								AllowPrivilegeEscalation: pointer.Bool(false),
+								AllowPrivilegeEscalation: ptr.To(false),
 							}},
 					},
 				},
@@ -2532,7 +2532,7 @@ func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
 								"KILL",
 							},
 						},
-						AllowPrivilegeEscalation: pointer.Bool(false),
+						AllowPrivilegeEscalation: ptr.To(false),
 					},
 				},
 			},
@@ -2546,8 +2546,8 @@ func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
-						DisableContainerRunCapabilities:   pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
+						DisableContainerRunCapabilities:   ptr.To(true),
 						Security: chev2.WorkspaceSecurityConfig{
 							ContainerSecurityContext: &corev1.SecurityContext{
 								Capabilities: &corev1.Capabilities{
@@ -2561,7 +2561,7 @@ func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
 										"KILL",
 									},
 								},
-								AllowPrivilegeEscalation: pointer.Bool(false),
+								AllowPrivilegeEscalation: ptr.To(false),
 							},
 						},
 					},
@@ -2588,7 +2588,7 @@ func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
 										"SYS_TIME",
 									},
 								},
-								AllowPrivilegeEscalation: pointer.Bool(true),
+								AllowPrivilegeEscalation: ptr.To(true),
 							},
 						},
 					},
@@ -2608,7 +2608,7 @@ func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
 								"KILL",
 							},
 						},
-						AllowPrivilegeEscalation: pointer.Bool(false),
+						AllowPrivilegeEscalation: ptr.To(false),
 					},
 				},
 			},
@@ -2622,8 +2622,8 @@ func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					DevEnvironments: chev2.CheClusterDevEnvironments{
-						DisableContainerBuildCapabilities: pointer.Bool(true),
-						DisableContainerRunCapabilities:   pointer.Bool(true),
+						DisableContainerBuildCapabilities: ptr.To(true),
+						DisableContainerRunCapabilities:   ptr.To(true),
 					},
 				},
 			},
@@ -2648,7 +2648,7 @@ func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
 										"SYS_TIME",
 									},
 								},
-								AllowPrivilegeEscalation: pointer.Bool(true),
+								AllowPrivilegeEscalation: ptr.To(true),
 							},
 						},
 					},
@@ -2671,9 +2671,9 @@ func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
 			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
 			assert.NoError(t, err)
 
-			sortCapabilities := func(capabilites []corev1.Capability) func(i, j int) bool {
+			sortCapabilities := func(capabilities []corev1.Capability) func(i, j int) bool {
 				return func(i, j int) bool {
-					return capabilites[i] > capabilites[j]
+					return capabilities[i] > capabilities[j]
 				}
 			}
 			expectedContainerSecurityContext := testCase.expectedOperatorConfig.Workspace.ContainerSecurityContext
@@ -2703,9 +2703,9 @@ func TestReconcileDevWorkspacePodSecurityContext(t *testing.T) {
 	}
 
 	configuredPodSecurityContext := &corev1.PodSecurityContext{
-		RunAsUser:    pointer.Int64(0),
-		RunAsGroup:   pointer.Int64(0),
-		RunAsNonRoot: pointer.Bool(false),
+		RunAsUser:    ptr.To(int64(0)),
+		RunAsGroup:   ptr.To(int64(0)),
+		RunAsNonRoot: ptr.To(false),
 	}
 
 	var testCases = []testCase{
@@ -2791,9 +2791,9 @@ func TestReconcileDevWorkspacePodSecurityContext(t *testing.T) {
 					Config: &controllerv1alpha1.OperatorConfiguration{
 						Workspace: &controllerv1alpha1.WorkspaceConfig{
 							PodSecurityContext: &corev1.PodSecurityContext{
-								RunAsUser:    pointer.Int64(1000),
-								RunAsGroup:   pointer.Int64(10001),
-								RunAsNonRoot: pointer.Bool(true),
+								RunAsUser:    ptr.To(int64(1000)),
+								RunAsGroup:   ptr.To(int64(10001)),
+								RunAsNonRoot: ptr.To(true),
 								SupplementalGroups: []int64{
 									5,
 								},
@@ -2832,9 +2832,9 @@ func TestReconcileDevWorkspacePodSecurityContext(t *testing.T) {
 					Config: &controllerv1alpha1.OperatorConfiguration{
 						Workspace: &controllerv1alpha1.WorkspaceConfig{
 							PodSecurityContext: &corev1.PodSecurityContext{
-								RunAsUser:    pointer.Int64(1000),
-								RunAsGroup:   pointer.Int64(10001),
-								RunAsNonRoot: pointer.Bool(true),
+								RunAsUser:    ptr.To(int64(1000)),
+								RunAsGroup:   ptr.To(int64(10001)),
+								RunAsNonRoot: ptr.To(true),
 								SupplementalGroups: []int64{
 									5,
 								},

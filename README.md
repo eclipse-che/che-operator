@@ -6,7 +6,6 @@
 [![codecov](https://codecov.io/gh/eclipse-che/che-operator/branch/main/graph/badge.svg?token=IlYvrVU5nB)](https://codecov.io/gh/eclipse-che/che-operator)
 
 - [Description](#Description)
-- [Installation](#Installation)
 - [Development](#Development)
   - [Update golang dependencies](#Update-golang-dependencies)
   - [Run unit tests](#Run-unit-tests)
@@ -33,23 +32,6 @@ The operator watches for a Custom Resource of Kind `CheCluster`, and operator co
 * etc
 
 Che operator is implemented using [operator framework](https://github.com/operator-framework) and the Go programming language. Eclipse Che configuration defined using a custom resource definition object and stored in the custom Kubernetes resource named `checluster`(or plural `checlusters`) in the Kubernetes API group `org.eclipse.che`. Che operator extends Kubernetes API to embed Eclipse Che to Kubernetes cluster in a native way.
-
-## Installation
-
-### OpenShift (OLM)
-
-```bash
-build/scripts/olm/test-catalog-from-sources.sh
-```
-
-### Kubernetes (chectl)
-
-```bash
-make gen-chectl-tmpl TEMPLATES=<OPERATOR_RESOURCES_PATH>
-chectl server:deploy -p <platform> --che-operator-image=<IMAGE> --templates <OPERATOR_RESOURCES_PATH>
-```
-
-For production deployments, see [Eclipse Che documentation](https://eclipse.dev/che/docs/).
 
 ## Development
 

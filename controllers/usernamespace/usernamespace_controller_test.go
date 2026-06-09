@@ -21,6 +21,7 @@ import (
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	containerbuild "github.com/eclipse-che/che-operator/pkg/deploy/container-capabilities"
+	"k8s.io/utils/ptr"
 
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 
@@ -39,7 +40,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -65,7 +65,7 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 		},
 		Spec: chev2.CheClusterSpec{
 			DevEnvironments: chev2.CheClusterDevEnvironments{
-				DisableContainerBuildCapabilities: pointer.BoolPtr(true),
+				DisableContainerBuildCapabilities: ptr.To(true),
 				NodeSelector:                      map[string]string{"a": "b", "c": "d"},
 				Tolerations: []corev1.Toleration{
 					{
@@ -82,8 +82,8 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 				TrustedCerts: &chev2.TrustedCerts{
 					GitTrustedCertsConfigMapName: "che-git-self-signed-cert",
 				},
-				SecondsOfInactivityBeforeIdling: pointer.Int32Ptr(1800),
-				SecondsOfRunBeforeIdling:        pointer.Int32Ptr(-1),
+				SecondsOfInactivityBeforeIdling: ptr.To(int32(1800)),
+				SecondsOfRunBeforeIdling:        ptr.To(int32(-1)),
 				EditorsDownloadUrls: []chev2.EditorDownloadUrl{
 					{
 						Editor: "che-incubator/che-idea/latest",
@@ -118,7 +118,7 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 			"other.data": []byte("should not be copied to target ns"),
 		},
 		Type:      "Opaque",
-		Immutable: pointer.BoolPtr(true),
+		Immutable: ptr.To(true),
 	}
 	if err := cl.Create(ctx, cert); err != nil {
 		t.Fatal(err)
@@ -238,14 +238,14 @@ func TestCreatesDataInNamespace(t *testing.T) {
 
 	test := func(t *testing.T, infraType infrastructure.Type, namespace client.Object, objs ...client.Object) {
 		ctx := context.TODO()
-		allObjs := append(objs, namespace.(client.Object))
+		allObjs := append(objs, namespace)
 		scheme, cl, r := setup(infraType, allObjs...)
 		setupCheCluster(t, ctx, cl, scheme, "eclipse-che", "che")
 
 		res, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}})
 		assert.NoError(t, err, "Reconciliation should have succeeded")
 
-		assert.False(t, res.Requeue, "The reconciliation request should have succeeded but it is requesting a requeue")
+		assert.Empty(t, res.RequeueAfter)
 
 		userSettings := corev1.ConfigMap{}
 		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-user-settings", Namespace: namespace.GetName()}, &userSettings))
@@ -371,11 +371,11 @@ func TestUpdateSccClusterRoleBinding(t *testing.T) {
 		},
 		Spec: chev2.CheClusterSpec{
 			DevEnvironments: chev2.CheClusterDevEnvironments{
-				DisableContainerBuildCapabilities: pointer.Bool(false),
+				DisableContainerBuildCapabilities: ptr.To(false),
 				ContainerBuildConfiguration: &chev2.ContainerBuildConfiguration{
 					OpenShiftSecurityContextConstraint: "container-build",
 				},
-				DisableContainerRunCapabilities: pointer.Bool(false),
+				DisableContainerRunCapabilities: ptr.To(false),
 				ContainerRunConfiguration: &chev2.ContainerRunConfiguration{
 					OpenShiftSecurityContextConstraint: "container-run",
 				},
@@ -526,9 +526,9 @@ func TestWatchRulesForSecretsInOtherNamespaces(t *testing.T) {
 
 	ctx := context.TODO()
 
-	r.namespaceCache.ExamineNamespace(ctx, "ns1")
-	r.namespaceCache.ExamineNamespace(ctx, "ns2")
-	r.namespaceCache.ExamineNamespace(ctx, "eclipse-che")
+	_, _ = r.namespaceCache.ExamineNamespace(ctx, "ns1")
+	_, _ = r.namespaceCache.ExamineNamespace(ctx, "ns2")
+	_, _ = r.namespaceCache.ExamineNamespace(ctx, "eclipse-che")
 
 	h := r.watchRulesForSecrets(ctx)
 	rlq := workqueue.NewTypedRateLimitingQueue(workqueue.DefaultTypedControllerRateLimiter[reconcile.Request]())
@@ -603,9 +603,9 @@ func TestWatchRulesForConfigMapsInOtherNamespaces(t *testing.T) {
 
 	ctx := context.TODO()
 
-	r.namespaceCache.ExamineNamespace(ctx, "ns1")
-	r.namespaceCache.ExamineNamespace(ctx, "ns2")
-	r.namespaceCache.ExamineNamespace(ctx, "eclipse-che")
+	_, _ = r.namespaceCache.ExamineNamespace(ctx, "ns1")
+	_, _ = r.namespaceCache.ExamineNamespace(ctx, "ns2")
+	_, _ = r.namespaceCache.ExamineNamespace(ctx, "eclipse-che")
 
 	h := r.watchRulesForConfigMaps(ctx)
 	rlq := workqueue.NewTypedRateLimitingQueue(workqueue.DefaultTypedControllerRateLimiter[reconcile.Request]())
