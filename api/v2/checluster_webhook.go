@@ -281,7 +281,7 @@ func (r *CheClusterValidator) validateOpenVSX(checluster *CheCluster) error {
 		checluster.Spec.Components.OpenVSX.OpenVSXDatabase.Storage != nil &&
 		checluster.Spec.Components.OpenVSX.OpenVSXDatabase.Storage.ClaimSize != "" {
 		if _, err := resource.ParseQuantity(checluster.Spec.Components.OpenVSX.OpenVSXDatabase.Storage.ClaimSize); err != nil {
-			return fmt.Errorf("invalid spec.components.openVSX.postgres.pvc.claimSize: %v", err)
+			return fmt.Errorf("invalid spec.components.openVSX.database.pvc.claimSize: %v", err)
 		}
 	}
 	if checluster.Spec.Components.OpenVSX.OpenVSXServer != nil &&

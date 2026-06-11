@@ -169,7 +169,7 @@ func TestValidateOpenVSXClaimSizeInvalid(t *testing.T) {
 
 	err := cheClusterValidator.validate(checluster)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid spec.components.openVSX.postgres.pvc.claimSize")
+	assert.Contains(t, err.Error(), "invalid spec.components.openVSX.database.pvc.claimSize")
 }
 
 func TestValidateScmSecretsShouldThrowError(t *testing.T) {
