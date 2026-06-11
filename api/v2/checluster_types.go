@@ -455,6 +455,7 @@ type OpenVSX struct {
 	// Enables managing OpenVSX as an operand.
 	// When enabled, the operator deploys and manages an OpenVSX server instance.
 	// +optional
+	// +kubebuilder:default:=false
 	Enable bool `json:"enable,omitempty"`
 	// OpenVSX server configuration.
 	// +optional

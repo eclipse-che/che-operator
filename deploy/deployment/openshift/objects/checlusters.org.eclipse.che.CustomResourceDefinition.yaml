@@ -14669,6 +14669,7 @@ spec:
                             type: object
                         type: object
                       enable:
+                        default: false
                         description: |-
                           Enables managing OpenVSX as an operand.
                           When enabled, the operator deploys and manages an OpenVSX server instance.
