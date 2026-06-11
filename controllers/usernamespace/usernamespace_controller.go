@@ -220,6 +220,28 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		},
 	}
 
+	// SCC privileges must be reconciled first: the DWO mutating webhook checks RBAC
+	// immediately on DevWorkspace creation, before the operator finishes reconciling. (CRW-10504)
+	if err = r.reconcileSCCPrivileges(
+		info.Username,
+		req.Name,
+		containercapabilties.NewContainerBuild(),
+		checluster.IsContainerBuildCapabilitiesEnabled(),
+	); err != nil {
+		logrus.Errorf("Failed to reconcile the SCC privileges in namespace '%s': %v", req.Name, err)
+		return ctrl.Result{}, err
+	}
+
+	if err = r.reconcileSCCPrivileges(
+		info.Username,
+		req.Name,
+		containercapabilties.NewContainerRun(),
+		checluster.IsContainerRunCapabilitiesEnabled(),
+	); err != nil {
+		logrus.Errorf("Failed to reconcile the SCC privileges in namespace '%s': %v", req.Name, err)
+		return ctrl.Result{}, err
+	}
+
 	// Deprecated [CRW-6792].
 	// All certificates are mounted into /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 	// and automatically added to the system trust store.
@@ -254,26 +276,6 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	if err = r.reconcileNodeSelectorAndTolerations(ctx, req.Name, checluster, deployContext); err != nil {
 		logrus.Errorf("Failed to reconcile the workspace pod node selector and tolerations in namespace '%s': %v", req.Name, err)
-		return ctrl.Result{}, err
-	}
-
-	if err = r.reconcileSCCPrivileges(
-		info.Username,
-		req.Name,
-		containercapabilties.NewContainerBuild(),
-		checluster.IsContainerBuildCapabilitiesEnabled(),
-	); err != nil {
-		logrus.Errorf("Failed to reconcile the SCC privileges in namespace '%s': %v", req.Name, err)
-		return ctrl.Result{}, err
-	}
-
-	if err = r.reconcileSCCPrivileges(
-		info.Username,
-		req.Name,
-		containercapabilties.NewContainerRun(),
-		checluster.IsContainerRunCapabilitiesEnabled(),
-	); err != nil {
-		logrus.Errorf("Failed to reconcile the SCC privileges in namespace '%s': %v", req.Name, err)
 		return ctrl.Result{}, err
 	}
 
