@@ -3342,10 +3342,10 @@ func TestReconcileDevWorkspaceConfigForInitContainers(t *testing.T) {
 
 func TestReconcileDevWorkspaceConfigTLSCertificateConfigmapRef(t *testing.T) {
 	type testCase struct {
-		name                   string
-		cheCluster             *chev2.CheCluster
-		existedObjects         []client.Object
-		expectedRoutingConfig  *controllerv1alpha1.RoutingConfig
+		name                  string
+		cheCluster            *chev2.CheCluster
+		existedObjects        []client.Object
+		expectedRoutingConfig *controllerv1alpha1.RoutingConfig
 	}
 
 	var testCases = []testCase{
@@ -3441,6 +3441,7 @@ func TestReconcileDevWorkspaceConfigTLSCertificateConfigmapRef(t *testing.T) {
 						Name:      tls.CheMergedCABundleCertsCMName,
 						Namespace: "eclipse-che",
 					},
+					Data: map[string]string{},
 				},
 			},
 			expectedRoutingConfig: nil,
@@ -3455,17 +3456,17 @@ func TestReconcileDevWorkspaceConfigTLSCertificateConfigmapRef(t *testing.T) {
 			test.EnsureReconcile(t, deployContext, devWorkspaceConfigReconciler.Reconcile)
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
-			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+			err := deployContext.ClusterAPI.Client.Get(
+				context.TODO(),
+				types.NamespacedName{
+					Name:      devWorkspaceConfigName,
+					Namespace: testCase.cheCluster.Namespace,
+				},
+				dwoc,
+			)
 
 			assert.NoError(t, err)
-			if testCase.expectedRoutingConfig == nil {
-				if dwoc.Config.Routing != nil {
-					assert.Nil(t, dwoc.Config.Routing.TLSCertificateConfigmapRef)
-				}
-			} else {
-				assert.NotNil(t, dwoc.Config.Routing)
-				assert.Equal(t, testCase.expectedRoutingConfig, dwoc.Config.Routing)
-			}
+			assert.Equal(t, testCase.expectedRoutingConfig, dwoc.Config.Routing)
 		})
 	}
 }
