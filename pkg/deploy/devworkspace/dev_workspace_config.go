@@ -26,6 +26,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -123,14 +124,17 @@ func updateWorkspaceConfig(ctx *chetypes.DeployContext, operatorConfig *controll
 
 	updateInitContainers(devEnvironments, operatorConfig.Workspace)
 
+	if operatorConfig.Routing == nil {
+		operatorConfig.Routing = &controllerv1alpha1.RoutingConfig{}
+	}
+
+	updateTLSCertificateConfigmapRef(ctx.CheCluster, operatorConfig.Routing)
+
 	// If the CheCluster has a configured proxy, or if the Che Operator has detected a proxy configuration,
 	// we need to disable automatic proxy handling in the DevWorkspace Operator as its implementation collides
 	// with ours -- they set environment variables the deployment spec explicitly, which overrides the proxy-settings
 	// automount configmap.
 	if ctx.Proxy.HttpProxy != "" || ctx.Proxy.HttpsProxy != "" {
-		if operatorConfig.Routing == nil {
-			operatorConfig.Routing = &controllerv1alpha1.RoutingConfig{}
-		}
 		disableDWOProxy(operatorConfig.Routing)
 	}
 
@@ -299,6 +303,13 @@ func updateHostUsers(cheCluster *chev2.CheCluster, workspaceConfig *controllerv1
 
 func updateInitContainers(devEnvironments *chev2.CheClusterDevEnvironments, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
 	workspaceConfig.InitContainers = devEnvironments.InitContainers
+}
+
+func updateTLSCertificateConfigmapRef(cheCluster *chev2.CheCluster, routing *controllerv1alpha1.RoutingConfig) {
+	routing.TLSCertificateConfigmapRef = &controllerv1alpha1.ConfigmapReference{
+		Name:      tls.CheMergedCABundleCertsCMName,
+		Namespace: cheCluster.Namespace,
+	}
 }
 
 func disableDWOProxy(routingConfig *controllerv1alpha1.RoutingConfig) {

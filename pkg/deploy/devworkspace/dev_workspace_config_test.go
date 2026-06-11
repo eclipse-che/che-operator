@@ -26,6 +26,7 @@ import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
@@ -730,7 +731,10 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
 			assert.NoError(t, err)
 
-			diff := cmp.Diff(testCase.expectedOperatorConfig, dwoc.Config, cmp.Options{cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount")})
+			diff := cmp.Diff(testCase.expectedOperatorConfig, dwoc.Config, cmp.Options{
+				cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount"),
+				cmpopts.IgnoreFields(controllerv1alpha1.OperatorConfiguration{}, "Routing"),
+			})
 			assert.Empty(t, diff)
 		})
 	}
@@ -1000,7 +1004,10 @@ func TestReconcileDevWorkspaceConfigForContainerCapabilities(t *testing.T) {
 			assert.NoError(t, err)
 
 			diff := cmp.Diff(testCase.expectedOperatorConfig, dwoc.Config,
-				cmp.Options{cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount", "ProjectCloneConfig", "DeploymentStrategy", "DefaultStorageSize", "StorageClassName")})
+				cmp.Options{
+					cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount", "ProjectCloneConfig", "DeploymentStrategy", "DefaultStorageSize", "StorageClassName"),
+					cmpopts.IgnoreFields(controllerv1alpha1.OperatorConfiguration{}, "Routing"),
+				})
 			assert.Empty(t, diff)
 		})
 	}
@@ -1156,7 +1163,10 @@ func TestReconcileDevWorkspaceConfigProgressTimeout(t *testing.T) {
 			assert.NoError(t, err)
 
 			diff := cmp.Diff(testCase.expectedOperatorConfig, dwoc.Config,
-				cmp.Options{cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount", "DefaultStorageSize", "StorageClassName", "ProjectCloneConfig", "DeploymentStrategy")})
+				cmp.Options{
+					cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount", "DefaultStorageSize", "StorageClassName", "ProjectCloneConfig", "DeploymentStrategy"),
+					cmpopts.IgnoreFields(controllerv1alpha1.OperatorConfiguration{}, "Routing"),
+				})
 			assert.Empty(t, diff)
 		})
 	}
@@ -2412,7 +2422,10 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
 			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
 			assert.NoError(t, err)
-			diff := cmp.Diff(testCase.expectedOperatorConfig, dwoc.Config, cmp.Options{cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount", "DeploymentStrategy", "ContainerSecurityContext")})
+			diff := cmp.Diff(testCase.expectedOperatorConfig, dwoc.Config, cmp.Options{
+				cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount", "DeploymentStrategy", "ContainerSecurityContext"),
+				cmpopts.IgnoreFields(controllerv1alpha1.OperatorConfiguration{}, "Routing"),
+			})
 			assert.Empty(t, diff)
 		})
 	}
@@ -3323,6 +3336,86 @@ func TestReconcileDevWorkspaceConfigForInitContainers(t *testing.T) {
 			assert.NoError(t, err)
 
 			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.InitContainers, dwoc.Config.Workspace.InitContainers)
+		})
+	}
+}
+
+func TestReconcileDevWorkspaceConfigTLSCertificateConfigmapRef(t *testing.T) {
+	type testCase struct {
+		name                   string
+		cheCluster             *chev2.CheCluster
+		existedObjects         []client.Object
+		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
+	}
+
+	var testCases = []testCase{
+		{
+			name: "Create DevWorkspaceOperatorConfig with TLSCertificateConfigmapRef",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Routing: &controllerv1alpha1.RoutingConfig{
+					TLSCertificateConfigmapRef: &controllerv1alpha1.ConfigmapReference{
+						Name:      tls.CheMergedCABundleCertsCMName,
+						Namespace: "eclipse-che",
+					},
+				},
+			},
+		},
+		{
+			name: "Update existing DevWorkspaceOperatorConfig with TLSCertificateConfigmapRef",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+			},
+			existedObjects: []client.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Routing: &controllerv1alpha1.RoutingConfig{
+							DefaultRoutingClass: "che",
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Routing: &controllerv1alpha1.RoutingConfig{
+					DefaultRoutingClass: "che",
+					TLSCertificateConfigmapRef: &controllerv1alpha1.ConfigmapReference{
+						Name:      tls.CheMergedCABundleCertsCMName,
+						Namespace: "eclipse-che",
+					},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.existedObjects...).Build()
+
+			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
+			test.EnsureReconcile(t, deployContext, devWorkspaceConfigReconciler.Reconcile)
+
+			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
+			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+
+			assert.NoError(t, err)
+			assert.NotNil(t, dwoc.Config.Routing)
+			assert.Equal(t, testCase.expectedOperatorConfig.Routing, dwoc.Config.Routing)
 		})
 	}
 }

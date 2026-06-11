@@ -117,7 +117,7 @@ func (p *PluginRegistryReconciler) syncConfigMap(ctx *chetypes.DeployContext) (b
 		Data: data,
 	}
 
-	return deploy.Sync(ctx, cm, diffs.ConfigMapEnsureLabels)
+	return deploy.Sync(ctx, cm, diffs.ConfigMapEnsureMetadata(cm))
 }
 
 func (p *PluginRegistryReconciler) ExposeEndpoint(ctx *chetypes.DeployContext) (string, bool, error) {

@@ -434,7 +434,7 @@ func (r *CheUserNamespaceReconciler) reconcileUserSettings(
 		Data: data,
 	}
 
-	_, err := deploy.Sync(deployContext, cm, diffs.ConfigMapEnsureLabels)
+	_, err := deploy.Sync(deployContext, cm, diffs.ConfigMapEnsureMetadata(cm))
 	return err
 }
 
@@ -488,7 +488,7 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 		target.Data["host"] = gitCert.Data[constants.GitSelfSignedCertsConfigMapGitHostKey]
 	}
 
-	_, err := deploy.Sync(deployContext, &target, diffs.ConfigMapEnsureLabels)
+	_, err := deploy.Sync(deployContext, &target, diffs.ConfigMapEnsureMetadata(&target))
 	return err
 }
 

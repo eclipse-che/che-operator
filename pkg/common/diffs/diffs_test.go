@@ -34,7 +34,7 @@ func TestConfigMap(t *testing.T) {
 		{
 			srcCm:   &corev1.ConfigMap{},
 			dstCm:   &corev1.ConfigMap{},
-			diffs:   ConfigMapEnsureLabels,
+			diffs:   ConfigMapEnsureMetadata(&corev1.ConfigMap{}),
 			isEqual: true,
 		},
 		{
@@ -44,8 +44,13 @@ func TestConfigMap(t *testing.T) {
 					Annotations: map[string]string{},
 				},
 			},
-			dstCm:   &corev1.ConfigMap{},
-			diffs:   ConfigMapEnsureLabels,
+			dstCm: &corev1.ConfigMap{},
+			diffs: ConfigMapEnsureMetadata(&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels:      map[string]string{},
+					Annotations: map[string]string{},
+				},
+			}),
 			isEqual: true,
 		},
 	}

@@ -164,11 +164,7 @@ func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(ctx *chetypes
 			}
 		}
 
-		return deploy.Sync(
-			ctx,
-			openShiftCaBundleCM,
-			diffs.ConfigMap(append(deploy.DefaultsLabelKeys, constants.ConfigOpenShiftIOInjectTrustedCaBundle), nil),
-		)
+		return deploy.Sync(ctx, openShiftCaBundleCM, diffs.ConfigMapEnsureMetadata(openShiftCaBundleCM))
 	} else {
 		// Add annotation to allow OpenShift network operator inject certificates
 		// https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/networking/configuring-a-custom-pki#certificate-injection-using-operators_configuring-a-custom-pki
@@ -176,11 +172,7 @@ func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(ctx *chetypes
 
 		// Ignore Data field to allow OpenShift network operator inject certificates into CM
 		// and avoid endless reconciliation loop
-		return deploy.Sync(
-			ctx,
-			openShiftCaBundleCM,
-			diffs.ConfigMap(append(deploy.DefaultsLabelKeys, constants.ConfigOpenShiftIOInjectTrustedCaBundle), nil),
-		)
+		return deploy.Sync(ctx, openShiftCaBundleCM, diffs.ConfigMapEnsureMetadata(openShiftCaBundleCM))
 	}
 }
 
@@ -204,7 +196,7 @@ func (c *CertificatesReconciler) syncKubernetesCABundleCertificates(ctx *chetype
 		Data: map[string]string{kubernetesCABundleCertsFile: string(data)},
 	}
 
-	return deploy.Sync(ctx, kubernetesCaBundleCM, diffs.ConfigMapEnsureLabels)
+	return deploy.Sync(ctx, kubernetesCaBundleCM, diffs.ConfigMapEnsureMetadata(kubernetesCaBundleCM))
 }
 
 // syncGitTrustedCertificates adds labels to git trusted certificates ConfigMap
@@ -242,7 +234,7 @@ func (c *CertificatesReconciler) syncGitTrustedCertificates(ctx *chetypes.Deploy
 		return deploy.Sync(
 			ctx,
 			gitTrustedCertsCM,
-			diffs.ConfigMap([]string{constants.KubernetesPartOfLabelKey, constants.KubernetesComponentLabelKey}, nil),
+			diffs.ConfigMapEnsureMetadata(gitTrustedCertsCM),
 		)
 	}
 
@@ -278,7 +270,7 @@ func (c *CertificatesReconciler) syncSelfSignedCertificates(ctx *chetypes.Deploy
 			Data: map[string]string{"ca.crt": string(selfSignedCertSecret.Data["ca.crt"])},
 		}
 
-		return deploy.Sync(ctx, selfSignedCertCM, diffs.ConfigMapEnsureLabels)
+		return deploy.Sync(ctx, selfSignedCertCM, diffs.ConfigMapEnsureMetadata(selfSignedCertCM))
 	}
 
 	return true, nil
@@ -317,7 +309,7 @@ func (c *CertificatesReconciler) syncKubernetesRootCertificates(ctx *chetypes.De
 		client,
 		ctx,
 		kubeRootCertsCM,
-		diffs.ConfigMap([]string{constants.KubernetesPartOfLabelKey, constants.KubernetesComponentLabelKey}, nil),
+		diffs.ConfigMapEnsureMetadata(kubeRootCertsCM),
 	)
 }
 
@@ -341,7 +333,7 @@ func (c *CertificatesReconciler) syncOIDCIssuerCertificate(ctx *chetypes.DeployC
 		return false, err
 	}
 
-	err := ctx.ClusterAPI.ClientWrapper.Sync(context.TODO(), cm, &k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels})
+	err := ctx.ClusterAPI.ClientWrapper.Sync(context.TODO(), cm, &k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureMetadata(cm)})
 	return err == nil, err
 }
 
@@ -378,6 +370,12 @@ func (c *CertificatesReconciler) syncCheCABundleCerts(ctx *chetypes.DeployContex
 		}
 	}
 
+	// Mark ConfigMap as workspace config (will be mounted in all users' containers)
+	labels := deploy.GetLabels(constants.WorkspacesConfig)
+
+	// Mark as `controller.devfile.io/watch-configmap=true` to allow DWO read custom certificates
+	labels[dwconstants.DevWorkspaceWatchConfigMapLabel] = "true"
+
 	// Sync a new ConfigMap with all trusted CA certificates
 	mergedCABundlesCM := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
@@ -385,10 +383,9 @@ func (c *CertificatesReconciler) syncCheCABundleCerts(ctx *chetypes.DeployContex
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      CheMergedCABundleCertsCMName,
-			Namespace: ctx.CheCluster.Namespace,
-			// Mark ConfigMap as workspace config (will be mounted in all users' containers)
-			Labels:      deploy.GetLabels(constants.WorkspacesConfig),
+			Name:        CheMergedCABundleCertsCMName,
+			Namespace:   ctx.CheCluster.Namespace,
+			Labels:      labels,
 			Annotations: map[string]string{},
 		},
 		Data: map[string]string{},
@@ -409,18 +406,12 @@ func (c *CertificatesReconciler) syncCheCABundleCerts(ctx *chetypes.DeployContex
 	}
 	mergedCABundlesCM.Annotations[dwconstants.DevWorkspaceMountAccessModeAnnotation] = "0444"
 
-	return deploy.Sync(
-		ctx,
-		mergedCABundlesCM,
-		diffs.ConfigMap(
-			deploy.DefaultsLabelKeys,
-			[]string{
-				dwconstants.DevWorkspaceMountAsAnnotation,
-				dwconstants.DevWorkspaceMountPathAnnotation,
-				dwconstants.DevWorkspaceMountAccessModeAnnotation,
-			},
-		),
-	)
+	if err := controllerutil.SetControllerReference(ctx.CheCluster, mergedCABundlesCM, ctx.ClusterAPI.Scheme); err != nil {
+		return false, err
+	}
+
+	err = ctx.ClusterAPI.ClientWrapper.Sync(context.TODO(), mergedCABundlesCM, &k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureMetadata(mergedCABundlesCM)})
+	return err == nil, err
 }
 
 func readKubernetesCaBundle() ([]byte, error) {

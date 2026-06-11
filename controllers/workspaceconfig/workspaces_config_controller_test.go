@@ -18,8 +18,6 @@ import (
 	"testing"
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
-	"github.com/eclipse-che/che-operator/pkg/common/diffs"
-	"github.com/google/go-cmp/cmp"
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -141,7 +139,8 @@ func TestUpdate(t *testing.T) {
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, srcCm)
 
 	assert.NoError(t, err)
-	assert.True(t, cmp.Equal(dstCm, srcCm, diffs.ConfigMap([]string{constants.KubernetesPartOfLabelKey, constants.KubernetesComponentLabelKey}, nil)))
+	assert.Equal(t, srcCm.Labels[constants.KubernetesPartOfLabelKey], dstCm.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, srcCm.Labels[constants.KubernetesComponentLabelKey], dstCm.Labels[constants.KubernetesComponentLabelKey])
 
 	// update source and destination config maps
 

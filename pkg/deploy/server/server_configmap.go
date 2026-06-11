@@ -83,7 +83,7 @@ func (s *CheServerReconciler) syncConfigMap(ctx *chetypes.DeployContext) (bool, 
 	err = ctx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
 		cm,
-		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
+		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureMetadata(cm)},
 	)
 
 	return err == nil, err

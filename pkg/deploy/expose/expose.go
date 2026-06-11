@@ -76,7 +76,7 @@ func exposeWithGateway(deployContext *chetypes.DeployContext,
 	if err != nil {
 		return "", false, err
 	}
-	done, err = deploy.Sync(deployContext, cfg, diffs.ConfigMapEnsureLabels)
+	done, err = deploy.Sync(deployContext, cfg, diffs.ConfigMapEnsureMetadata(cfg))
 	if !done {
 		if err != nil {
 			logrus.Error(err)
