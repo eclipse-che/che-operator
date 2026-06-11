@@ -119,7 +119,9 @@ func (p *OpenVSXDatabaseReconciler) syncSecret(ctx *chetypes.DeployContext) (boo
 		},
 	}
 
-	controllerutil.SetControllerReference(ctx.CheCluster, secret, ctx.ClusterAPI.Scheme)
+	if err := controllerutil.SetControllerReference(ctx.CheCluster, secret, ctx.ClusterAPI.Scheme); err != nil {
+		return false, err
+	}
 	return true, ctx.ClusterAPI.ClientWrapper.Sync(context.TODO(), secret)
 }
 
