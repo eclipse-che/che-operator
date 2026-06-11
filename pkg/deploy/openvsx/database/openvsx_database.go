@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package postgres
+package database
 
 import (
 	"context"
@@ -30,24 +30,24 @@ import (
 )
 
 const (
-	pvcName      = "openvsx-postgres-data"
+	pvcName      = "openvsx-database-data"
 	postgresPort = int32(5432)
 )
 
-type OpenVSXPostgresReconciler struct {
+type OpenVSXDatabaseReconciler struct {
 	reconciler.Reconcilable
 }
 
-func NewOpenVSXPostgresReconciler() *OpenVSXPostgresReconciler {
-	return &OpenVSXPostgresReconciler{}
+func NewOpenVSXDatabaseReconciler() *OpenVSXDatabaseReconciler {
+	return &OpenVSXDatabaseReconciler{}
 }
 
-func (p *OpenVSXPostgresReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
+func (p *OpenVSXDatabaseReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	if !ctx.CheCluster.IsOpenVSXOperandEnabled() {
-		_, _ = deploy.DeleteNamespacedObject(ctx, constants.OpenVSXPostgresName, &appsv1.Deployment{})
-		_, _ = deploy.DeleteNamespacedObject(ctx, constants.OpenVSXPostgresName, &corev1.Service{})
+		_, _ = deploy.DeleteNamespacedObject(ctx, constants.OpenVSXDatabaseName, &appsv1.Deployment{})
+		_, _ = deploy.DeleteNamespacedObject(ctx, constants.OpenVSXDatabaseName, &corev1.Service{})
 		_, _ = deploy.DeleteNamespacedObject(ctx, pvcName, &corev1.PersistentVolumeClaim{})
-		_, _ = deploy.DeleteNamespacedObject(ctx, constants.OpenVSXPostgresCredentialsSecret, &corev1.Secret{})
+		_, _ = deploy.DeleteNamespacedObject(ctx, constants.OpenVSXDatabaseCredentialsSecret, &corev1.Secret{})
 		return reconcile.Result{}, true, nil
 	}
 
@@ -74,14 +74,14 @@ func (p *OpenVSXPostgresReconciler) Reconcile(ctx *chetypes.DeployContext) (reco
 	return reconcile.Result{}, true, nil
 }
 
-func (p *OpenVSXPostgresReconciler) Finalize(ctx *chetypes.DeployContext) bool {
+func (p *OpenVSXDatabaseReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	return true
 }
 
-func (p *OpenVSXPostgresReconciler) syncSecret(ctx *chetypes.DeployContext) (bool, error) {
+func (p *OpenVSXDatabaseReconciler) syncSecret(ctx *chetypes.DeployContext) (bool, error) {
 	secret := &corev1.Secret{}
 	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{
-		Name:      constants.OpenVSXPostgresCredentialsSecret,
+		Name:      constants.OpenVSXDatabaseCredentialsSecret,
 		Namespace: ctx.CheCluster.Namespace,
 	}, secret)
 
@@ -103,24 +103,24 @@ func (p *OpenVSXPostgresReconciler) syncSecret(ctx *chetypes.DeployContext) (boo
 		"adminPAT":  []byte("openvsx_admin_token"),
 	}
 
-	return deploy.SyncSecretToCluster(ctx, constants.OpenVSXPostgresCredentialsSecret, ctx.CheCluster.Namespace, data)
+	return deploy.SyncSecretToCluster(ctx, constants.OpenVSXDatabaseCredentialsSecret, ctx.CheCluster.Namespace, data)
 }
 
-func (p *OpenVSXPostgresReconciler) syncService(ctx *chetypes.DeployContext) (bool, error) {
+func (p *OpenVSXDatabaseReconciler) syncService(ctx *chetypes.DeployContext) (bool, error) {
 	return deploy.SyncServiceToCluster(
 		ctx,
-		constants.OpenVSXPostgresName,
+		constants.OpenVSXDatabaseName,
 		[]string{"tcp-postgresql"},
 		[]int32{postgresPort},
-		constants.OpenVSXPostgresName)
+		constants.OpenVSXDatabaseName)
 }
 
-func (p *OpenVSXPostgresReconciler) syncPVC(ctx *chetypes.DeployContext) (bool, error) {
-	claimSize := constants.DefaultOpenVSXPostgresClaimSize
-	if ctx.CheCluster.Spec.Components.OpenVSX.Postgres != nil &&
-		ctx.CheCluster.Spec.Components.OpenVSX.Postgres.Storage != nil &&
-		ctx.CheCluster.Spec.Components.OpenVSX.Postgres.Storage.ClaimSize != "" {
-		claimSize = ctx.CheCluster.Spec.Components.OpenVSX.Postgres.Storage.ClaimSize
+func (p *OpenVSXDatabaseReconciler) syncPVC(ctx *chetypes.DeployContext) (bool, error) {
+	claimSize := constants.DefaultOpenVSXDatabaseClaimSize
+	if ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXDatabase != nil &&
+		ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXDatabase.Storage != nil &&
+		ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXDatabase.Storage.ClaimSize != "" {
+		claimSize = ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXDatabase.Storage.ClaimSize
 	}
 
 	desiredSize := resource.MustParse(claimSize)
@@ -140,7 +140,7 @@ func (p *OpenVSXPostgresReconciler) syncPVC(ctx *chetypes.DeployContext) (bool, 
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pvcName,
 				Namespace: ctx.CheCluster.Namespace,
-				Labels:    deploy.GetLabels(constants.OpenVSXPostgresName),
+				Labels:    deploy.GetLabels(constants.OpenVSXDatabaseName),
 			},
 			Spec: corev1.PersistentVolumeClaimSpec{
 				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
@@ -166,7 +166,7 @@ func (p *OpenVSXPostgresReconciler) syncPVC(ctx *chetypes.DeployContext) (bool, 
 	return true, nil
 }
 
-func (p *OpenVSXPostgresReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
+func (p *OpenVSXDatabaseReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
 	spec, err := p.getDeploymentSpec(ctx)
 	if err != nil {
 		return false, err

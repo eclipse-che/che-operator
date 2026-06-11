@@ -93,7 +93,7 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 									Name: "DB_USERNAME",
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: constants.OpenVSXPostgresCredentialsSecret},
+											LocalObjectReference: corev1.LocalObjectReference{Name: constants.OpenVSXDatabaseCredentialsSecret},
 											Key:                  "user",
 										},
 									},
@@ -102,13 +102,13 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 									Name: "DB_PASSWORD",
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: constants.OpenVSXPostgresCredentialsSecret},
+											LocalObjectReference: corev1.LocalObjectReference{Name: constants.OpenVSXDatabaseCredentialsSecret},
 											Key:                  "password",
 										},
 									},
 								},
-								envFromSecret("OPENVSX_USER_PAT", constants.OpenVSXPostgresCredentialsSecret, "userPAT"),
-								envFromSecret("OPENVSX_ADMIN_PAT", constants.OpenVSXPostgresCredentialsSecret, "adminPAT"),
+								envFromSecret("OPENVSX_USER_PAT", constants.OpenVSXDatabaseCredentialsSecret, "userPAT"),
+								envFromSecret("OPENVSX_ADMIN_PAT", constants.OpenVSXDatabaseCredentialsSecret, "adminPAT"),
 								{
 									Name:  "OVSX_REGISTRY_URL",
 									Value: ctx.CheCluster.Status.OpenVSXURL,
@@ -208,8 +208,8 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 	deploy.EnsurePodSecurityStandards(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
 
 	var overrideDeployment *chev2.Deployment
-	if ctx.CheCluster.Spec.Components.OpenVSX.Server != nil {
-		overrideDeployment = ctx.CheCluster.Spec.Components.OpenVSX.Server.Deployment
+	if ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXServer != nil {
+		overrideDeployment = ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXServer.Deployment
 	}
 	if err := deploy.OverrideDeployment(ctx, deployment, overrideDeployment); err != nil {
 		return nil, err

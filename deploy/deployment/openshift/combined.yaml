@@ -12107,13 +12107,8 @@ spec:
                       OpenVSX registry configuration.
                       When enabled, the operator manages an OpenVSX server and PostgreSQL database.
                     properties:
-                      enable:
-                        description: |-
-                          Enables managing OpenVSX as an operand.
-                          When enabled, the operator deploys and manages an OpenVSX server instance.
-                        type: boolean
-                      postgres:
-                        description: PostgreSQL database configuration for OpenVSX.
+                      database:
+                        description: Database configuration for OpenVSX.
                         properties:
                           deployment:
                             description: Deployment override options.
@@ -14678,6 +14673,11 @@ spec:
                                 type: string
                             type: object
                         type: object
+                      enable:
+                        description: |-
+                          Enables managing OpenVSX as an operand.
+                          When enabled, the operator deploys and manages an OpenVSX server instance.
+                        type: boolean
                       server:
                         description: OpenVSX server configuration.
                         properties:

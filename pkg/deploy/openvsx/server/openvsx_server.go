@@ -162,10 +162,10 @@ func (r *OpenVSXServerReconciler) getConfigMapRevision(ctx *chetypes.DeployConte
 
 func (r *OpenVSXServerReconciler) syncPVC(ctx *chetypes.DeployContext) (bool, error) {
 	claimSize := constants.DefaultOpenVSXServerClaimSize
-	if ctx.CheCluster.Spec.Components.OpenVSX.Server != nil &&
-		ctx.CheCluster.Spec.Components.OpenVSX.Server.Storage != nil &&
-		ctx.CheCluster.Spec.Components.OpenVSX.Server.Storage.ClaimSize != "" {
-		claimSize = ctx.CheCluster.Spec.Components.OpenVSX.Server.Storage.ClaimSize
+	if ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXServer != nil &&
+		ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXServer.Storage != nil &&
+		ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXServer.Storage.ClaimSize != "" {
+		claimSize = ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXServer.Storage.ClaimSize
 	}
 
 	desiredSize := resource.MustParse(claimSize)
@@ -235,7 +235,7 @@ func (r *OpenVSXServerReconciler) syncUserSetupJob(ctx *chetypes.DeployContext) 
 		return false, err
 	}
 
-	image := defaults.GetOpenVSXPostgresImage(ctx.CheCluster)
+	image := defaults.GetOpenVSXDatabaseImage(ctx.CheCluster)
 	pullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(image))
 	labels := deploy.GetLabels(constants.OpenVSXServerName)
 	backoffLimit := int32(3)
@@ -244,12 +244,12 @@ func (r *OpenVSXServerReconciler) syncUserSetupJob(ctx *chetypes.DeployContext) 
 	terminationGracePeriodSeconds := int64(30)
 	runAsNonRoot := true
 
-	secretName := constants.OpenVSXPostgresCredentialsSecret
+	secretName := constants.OpenVSXDatabaseCredentialsSecret
 
 	dbEnvVars := []corev1.EnvVar{
 		{
 			Name:  "PGHOST",
-			Value: constants.OpenVSXPostgresName,
+			Value: constants.OpenVSXDatabaseName,
 		},
 		envFromSecret("PGDATABASE", secretName, "database"),
 		envFromSecret("PGUSER", secretName, "user"),
@@ -373,7 +373,7 @@ func (r *OpenVSXServerReconciler) syncExtensionPublishJob(ctx *chetypes.DeployCo
 	terminationGracePeriodSeconds := int64(30)
 	runAsNonRoot := true
 
-	secretName := constants.OpenVSXPostgresCredentialsSecret
+	secretName := constants.OpenVSXDatabaseCredentialsSecret
 	extensionsHash := utils.ComputeHash256([]byte(extensionsList))
 
 	job := &batchv1.Job{

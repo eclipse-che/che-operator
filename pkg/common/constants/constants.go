@@ -43,12 +43,12 @@ const (
 	DefaultOpenVSXServerCpuRequest    = "100m"
 	DefaultOpenVSXServerClaimSize     = "3Gi"
 
-	// OpenVSX Postgres
-	DefaultOpenVSXPostgresMemoryLimit   = "1024Mi"
-	DefaultOpenVSXPostgresMemoryRequest = "256Mi"
-	DefaultOpenVSXPostgresCpuLimit      = "1"
-	DefaultOpenVSXPostgresCpuRequest    = "100m"
-	DefaultOpenVSXPostgresClaimSize     = "1Gi"
+	// OpenVSX Database
+	DefaultOpenVSXDatabaseMemoryLimit   = "1024Mi"
+	DefaultOpenVSXDatabaseMemoryRequest = "256Mi"
+	DefaultOpenVSXDatabaseCpuLimit      = "1"
+	DefaultOpenVSXDatabaseCpuRequest    = "100m"
+	DefaultOpenVSXDatabaseClaimSize     = "1Gi"
 
 	// Server
 	DefaultServerMemoryLimit        = "1024Mi"
@@ -140,8 +140,8 @@ const (
 	DevfileRegistryName                = "devfile-registry"
 	PluginRegistryName                 = "plugin-registry"
 	OpenVSXServerName                  = "openvsx-server"
-	OpenVSXPostgresName                = "openvsx-postgres"
-	OpenVSXPostgresCredentialsSecret   = "openvsx-postgres-credentials"
+	OpenVSXDatabaseName                = "openvsx-database"
+	OpenVSXDatabaseCredentialsSecret   = "openvsx-database-credentials"
 	GatewayContainerName               = "gateway"
 	GatewayConfigSideCarContainerName  = "configbump"
 	GatewayAuthenticationContainerName = "oauth-proxy"

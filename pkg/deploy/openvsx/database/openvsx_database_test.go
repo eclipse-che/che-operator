@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package postgres
+package database
 
 import (
 	"context"
@@ -45,10 +45,10 @@ func TestGetDeploymentSpec(t *testing.T) {
 	testCases := []testCase{
 		{
 			name:          "Test default resource limits",
-			memoryLimit:   constants.DefaultOpenVSXPostgresMemoryLimit,
-			memoryRequest: constants.DefaultOpenVSXPostgresMemoryRequest,
+			memoryLimit:   constants.DefaultOpenVSXDatabaseMemoryLimit,
+			memoryRequest: constants.DefaultOpenVSXDatabaseMemoryRequest,
 			cpuLimit:      "0",
-			cpuRequest:    constants.DefaultOpenVSXPostgresCpuRequest,
+			cpuRequest:    constants.DefaultOpenVSXDatabaseCpuRequest,
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -78,11 +78,11 @@ func TestGetDeploymentSpec(t *testing.T) {
 					Components: chev2.CheClusterComponents{
 						OpenVSX: chev2.OpenVSX{
 							Enable: true,
-							Postgres: &chev2.OpenVSXPostgres{
+							OpenVSXDatabase: &chev2.OpenVSXDatabase{
 								Deployment: &chev2.Deployment{
 									Containers: []chev2.Container{
 										{
-											Name: constants.OpenVSXPostgresName,
+											Name: constants.OpenVSXDatabaseName,
 											Resources: &chev2.ResourceRequirements{
 												Requests: &chev2.ResourceList{
 													Memory: &memoryRequest,
@@ -108,7 +108,7 @@ func TestGetDeploymentSpec(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 
-			reconciler := NewOpenVSXPostgresReconciler()
+			reconciler := NewOpenVSXDatabaseReconciler()
 			deployment, err := reconciler.getDeploymentSpec(ctx)
 			assert.NoError(t, err)
 
@@ -143,7 +143,7 @@ func TestDeploymentSpecVolumes(t *testing.T) {
 
 	ctx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
 
-	reconciler := NewOpenVSXPostgresReconciler()
+	reconciler := NewOpenVSXDatabaseReconciler()
 	deployment, err := reconciler.getDeploymentSpec(ctx)
 	assert.NoError(t, err)
 
@@ -170,13 +170,13 @@ func TestReconcileCreatesResources(t *testing.T) {
 		},
 	}).Build()
 
-	reconciler := NewOpenVSXPostgresReconciler()
+	reconciler := NewOpenVSXDatabaseReconciler()
 	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
 
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXPostgresName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXPostgresName, Namespace: "eclipse-che"}, &corev1.Service{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXDatabaseName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXDatabaseName, Namespace: "eclipse-che"}, &corev1.Service{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: pvcName, Namespace: "eclipse-che"}, &corev1.PersistentVolumeClaim{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXPostgresCredentialsSecret, Namespace: "eclipse-che"}, &corev1.Secret{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXDatabaseCredentialsSecret, Namespace: "eclipse-che"}, &corev1.Secret{}))
 }
 
 func TestReconcileDeletesResourcesWhenDisabled(t *testing.T) {
@@ -194,10 +194,10 @@ func TestReconcileDeletesResourcesWhenDisabled(t *testing.T) {
 		},
 	}).Build()
 
-	reconciler := NewOpenVSXPostgresReconciler()
+	reconciler := NewOpenVSXDatabaseReconciler()
 	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
 
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXPostgresName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXDatabaseName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 
 	ctx.CheCluster.Spec.Components.OpenVSX.Enable = false
 	err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
@@ -205,10 +205,10 @@ func TestReconcileDeletesResourcesWhenDisabled(t *testing.T) {
 
 	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
 
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXPostgresName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXPostgresName, Namespace: "eclipse-che"}, &corev1.Service{}))
+	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXDatabaseName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
+	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXDatabaseName, Namespace: "eclipse-che"}, &corev1.Service{}))
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: pvcName, Namespace: "eclipse-che"}, &corev1.PersistentVolumeClaim{}))
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXPostgresCredentialsSecret, Namespace: "eclipse-che"}, &corev1.Secret{}))
+	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXDatabaseCredentialsSecret, Namespace: "eclipse-che"}, &corev1.Secret{}))
 }
 
 func TestReconcileSecretNotRecreated(t *testing.T) {
@@ -226,11 +226,11 @@ func TestReconcileSecretNotRecreated(t *testing.T) {
 		},
 	}).Build()
 
-	reconciler := NewOpenVSXPostgresReconciler()
+	reconciler := NewOpenVSXDatabaseReconciler()
 	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
 
 	secret := &corev1.Secret{}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.OpenVSXPostgresCredentialsSecret, Namespace: "eclipse-che"}, secret)
+	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.OpenVSXDatabaseCredentialsSecret, Namespace: "eclipse-che"}, secret)
 	assert.NoError(t, err)
 	password := string(secret.Data["password"])
 	assert.NotEmpty(t, password)
@@ -245,7 +245,7 @@ func TestReconcileSecretNotRecreated(t *testing.T) {
 	assert.True(t, done)
 
 	secret2 := &corev1.Secret{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.OpenVSXPostgresCredentialsSecret, Namespace: "eclipse-che"}, secret2)
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.OpenVSXDatabaseCredentialsSecret, Namespace: "eclipse-che"}, secret2)
 	assert.NoError(t, err)
 	assert.Equal(t, password, string(secret2.Data["password"]))
 }
@@ -260,7 +260,7 @@ func TestReconcileCustomClaimSize(t *testing.T) {
 			Components: chev2.CheClusterComponents{
 				OpenVSX: chev2.OpenVSX{
 					Enable: true,
-					Postgres: &chev2.OpenVSXPostgres{
+					OpenVSXDatabase: &chev2.OpenVSXDatabase{
 						Storage: &chev2.PVC{ClaimSize: "5Gi"},
 					},
 				},
@@ -268,7 +268,7 @@ func TestReconcileCustomClaimSize(t *testing.T) {
 		},
 	}).Build()
 
-	reconciler := NewOpenVSXPostgresReconciler()
+	reconciler := NewOpenVSXDatabaseReconciler()
 	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
 
 	pvc := &corev1.PersistentVolumeClaim{}
@@ -294,7 +294,7 @@ func TestDeploymentSpecEnvVars(t *testing.T) {
 
 	ctx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
 
-	reconciler := NewOpenVSXPostgresReconciler()
+	reconciler := NewOpenVSXDatabaseReconciler()
 	deployment, err := reconciler.getDeploymentSpec(ctx)
 	assert.NoError(t, err)
 

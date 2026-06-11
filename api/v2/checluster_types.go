@@ -458,10 +458,10 @@ type OpenVSX struct {
 	Enable bool `json:"enable,omitempty"`
 	// OpenVSX server configuration.
 	// +optional
-	Server *OpenVSXServer `json:"server,omitempty"`
-	// PostgreSQL database configuration for OpenVSX.
+	OpenVSXServer *OpenVSXServer `json:"server,omitempty"`
+	// Database configuration for OpenVSX.
 	// +optional
-	Postgres *OpenVSXPostgres `json:"postgres,omitempty"`
+	OpenVSXDatabase *OpenVSXDatabase `json:"database,omitempty"`
 }
 
 // OpenVSX server component configuration.
@@ -475,9 +475,9 @@ type OpenVSXServer struct {
 	Storage *PVC `json:"pvc,omitempty"`
 }
 
-// PostgreSQL configuration for OpenVSX.
+// Database configuration for OpenVSX.
 // +k8s:openapi-gen=true
-type OpenVSXPostgres struct {
+type OpenVSXDatabase struct {
 	// Deployment override options.
 	// +optional
 	Deployment *Deployment `json:"deployment,omitempty"`

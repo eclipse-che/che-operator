@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package postgres
+package database
 
 import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -26,10 +26,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func (p *OpenVSXPostgresReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
-	image := defaults.GetOpenVSXPostgresImage(ctx.CheCluster)
+func (p *OpenVSXDatabaseReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
+	image := defaults.GetOpenVSXDatabaseImage(ctx.CheCluster)
 	pullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(image))
-	labels, labelSelector := deploy.GetLabelsAndSelector(constants.OpenVSXPostgresName)
+	labels, labelSelector := deploy.GetLabelsAndSelector(constants.OpenVSXDatabaseName)
 	terminationGracePeriodSeconds := int64(30)
 
 	deployment := &appsv1.Deployment{
@@ -38,7 +38,7 @@ func (p *OpenVSXPostgresReconciler) getDeploymentSpec(ctx *chetypes.DeployContex
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.OpenVSXPostgresName,
+			Name:      constants.OpenVSXDatabaseName,
 			Namespace: ctx.CheCluster.Namespace,
 			Labels:    labels,
 		},
@@ -58,7 +58,7 @@ func (p *OpenVSXPostgresReconciler) getDeploymentSpec(ctx *chetypes.DeployContex
 					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
 					Containers: []corev1.Container{
 						{
-							Name:            constants.OpenVSXPostgresName,
+							Name:            constants.OpenVSXDatabaseName,
 							Image:           image,
 							ImagePullPolicy: pullPolicy,
 							Ports: []corev1.ContainerPort{
@@ -73,7 +73,7 @@ func (p *OpenVSXPostgresReconciler) getDeploymentSpec(ctx *chetypes.DeployContex
 									Name: "POSTGRESQL_USER",
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: constants.OpenVSXPostgresCredentialsSecret},
+											LocalObjectReference: corev1.LocalObjectReference{Name: constants.OpenVSXDatabaseCredentialsSecret},
 											Key:                  "user",
 										},
 									},
@@ -82,7 +82,7 @@ func (p *OpenVSXPostgresReconciler) getDeploymentSpec(ctx *chetypes.DeployContex
 									Name: "POSTGRESQL_PASSWORD",
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: constants.OpenVSXPostgresCredentialsSecret},
+											LocalObjectReference: corev1.LocalObjectReference{Name: constants.OpenVSXDatabaseCredentialsSecret},
 											Key:                  "password",
 										},
 									},
@@ -91,7 +91,7 @@ func (p *OpenVSXPostgresReconciler) getDeploymentSpec(ctx *chetypes.DeployContex
 									Name: "POSTGRESQL_DATABASE",
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: constants.OpenVSXPostgresCredentialsSecret},
+											LocalObjectReference: corev1.LocalObjectReference{Name: constants.OpenVSXDatabaseCredentialsSecret},
 											Key:                  "database",
 										},
 									},
@@ -99,12 +99,12 @@ func (p *OpenVSXPostgresReconciler) getDeploymentSpec(ctx *chetypes.DeployContex
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse(constants.DefaultOpenVSXPostgresMemoryRequest),
-									corev1.ResourceCPU:    resource.MustParse(constants.DefaultOpenVSXPostgresCpuRequest),
+									corev1.ResourceMemory: resource.MustParse(constants.DefaultOpenVSXDatabaseMemoryRequest),
+									corev1.ResourceCPU:    resource.MustParse(constants.DefaultOpenVSXDatabaseCpuRequest),
 								},
 								Limits: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse(constants.DefaultOpenVSXPostgresMemoryLimit),
-									corev1.ResourceCPU:    resource.MustParse(constants.DefaultOpenVSXPostgresCpuLimit),
+									corev1.ResourceMemory: resource.MustParse(constants.DefaultOpenVSXDatabaseMemoryLimit),
+									corev1.ResourceCPU:    resource.MustParse(constants.DefaultOpenVSXDatabaseCpuLimit),
 								},
 							},
 							ReadinessProbe: &corev1.Probe{
@@ -155,8 +155,8 @@ func (p *OpenVSXPostgresReconciler) getDeploymentSpec(ctx *chetypes.DeployContex
 	deploy.EnsurePodSecurityStandards(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
 
 	var overrideDeployment *chev2.Deployment
-	if ctx.CheCluster.Spec.Components.OpenVSX.Postgres != nil {
-		overrideDeployment = ctx.CheCluster.Spec.Components.OpenVSX.Postgres.Deployment
+	if ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXDatabase != nil {
+		overrideDeployment = ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXDatabase.Deployment
 	}
 	if err := deploy.OverrideDeployment(ctx, deployment, overrideDeployment); err != nil {
 		return nil, err

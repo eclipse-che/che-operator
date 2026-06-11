@@ -48,7 +48,7 @@ var (
 	defaultDevEnvironmentsContainerSecurityContext          string
 	defaultPluginRegistryOpenVSXURL                         string
 	defaultOpenVSXImage                                     string
-	defaultOpenVSXPostgresImage                             string
+	defaultOpenVSXDatabaseImage                             string
 	defaultDashboardHeaderMessageText                       string
 	defaultDevfileRegistryExternalDevfileRegistries         string
 
@@ -105,7 +105,7 @@ func Initialize() {
 	defaultGatewayKubernetesAuthenticationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authentication_sidecar_k8s"))
 
 	defaultOpenVSXImage = os.Getenv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_openvsx"))
-	defaultOpenVSXPostgresImage = os.Getenv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_openvsx_postgres"))
+	defaultOpenVSXDatabaseImage = os.Getenv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_openvsx_postgres"))
 
 	// Don't get some k8s specific env
 	if !infrastructure.IsOpenShift() {
@@ -173,12 +173,12 @@ func GetOpenVSXImage(checluster interface{}) string {
 	return PatchDefaultImageName(checluster, defaultOpenVSXImage)
 }
 
-func GetOpenVSXPostgresImage(checluster interface{}) string {
+func GetOpenVSXDatabaseImage(checluster interface{}) string {
 	if !initialized {
 		Initialize()
 	}
 
-	return PatchDefaultImageName(checluster, defaultOpenVSXPostgresImage)
+	return PatchDefaultImageName(checluster, defaultOpenVSXDatabaseImage)
 }
 
 func GetGatewayImage(checluster interface{}) string {

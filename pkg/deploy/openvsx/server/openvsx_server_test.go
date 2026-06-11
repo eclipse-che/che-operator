@@ -140,7 +140,7 @@ func TestGetDeploymentSpec(t *testing.T) {
 					Components: chev2.CheClusterComponents{
 						OpenVSX: chev2.OpenVSX{
 							Enable: true,
-							Server: &chev2.OpenVSXServer{
+							OpenVSXServer: &chev2.OpenVSXServer{
 								Deployment: &chev2.Deployment{
 									Containers: []chev2.Container{
 										{
@@ -290,7 +290,7 @@ func TestDeploymentSpecVolumes(t *testing.T) {
 func TestApplicationConfig(t *testing.T) {
 	config := applicationConfig
 
-	assert.True(t, strings.Contains(config, "jdbc:postgresql://openvsx-postgres:5432/openvsx"))
+	assert.True(t, strings.Contains(config, "jdbc:postgresql://openvsx-database:5432/openvsx"))
 	assert.True(t, strings.Contains(config, "${DB_USERNAME}"))
 	assert.True(t, strings.Contains(config, "${DB_PASSWORD}"))
 	assert.True(t, strings.Contains(config, "databasesearch:\n    enabled: true"))
