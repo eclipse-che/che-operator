@@ -370,6 +370,27 @@ func (r *OpenVSXServerReconciler) syncExtensionPublishJob(ctx *chetypes.DeployCo
 		return false, nil
 	}
 
+	extensionsHash := utils.ComputeHash256([]byte(extensionsList))
+
+	existing := &batchv1.Job{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{
+		Name:      extensionPublishJobName,
+		Namespace: ctx.CheCluster.Namespace,
+	}, existing)
+	if err == nil {
+		for _, env := range existing.Spec.Template.Spec.Containers[0].Env {
+			if env.Name == "EXTENSIONS_HASH" {
+				if env.Value == extensionsHash {
+					return true, nil
+				}
+				break
+			}
+		}
+		_ = ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: extensionPublishJobName, Namespace: ctx.CheCluster.Namespace}, &batchv1.Job{})
+	} else if !errors.IsNotFound(err) {
+		return false, err
+	}
+
 	image := defaults.GetOpenVSXImage(ctx.CheCluster)
 	pullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(image))
 	labels := deploy.GetLabels(constants.OpenVSXServerName)
@@ -380,7 +401,6 @@ func (r *OpenVSXServerReconciler) syncExtensionPublishJob(ctx *chetypes.DeployCo
 	runAsNonRoot := true
 
 	secretName := constants.OpenVSXDatabaseCredentialsSecret
-	extensionsHash := utils.ComputeHash256([]byte(extensionsList))
 
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
