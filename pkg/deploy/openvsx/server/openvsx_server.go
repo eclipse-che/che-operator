@@ -51,13 +51,15 @@ const (
 
 func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	if !ctx.CheCluster.IsOpenVSXOperandEnabled() {
-		_, _ = deploy.DeleteNamespacedObject(ctx, constants.OpenVSXServerName, &appsv1.Deployment{})
-		_, _ = deploy.DeleteNamespacedObject(ctx, constants.OpenVSXServerName, &corev1.Service{})
-		_, _ = deploy.DeleteNamespacedObject(ctx, configMapName, &corev1.ConfigMap{})
-		_, _ = deploy.DeleteNamespacedObject(ctx, userSetupJobName, &batchv1.Job{})
-		_, _ = deploy.DeleteNamespacedObject(ctx, extensionPublishJobName, &batchv1.Job{})
-		_, _ = deploy.DeleteNamespacedObject(ctx, extensionsConfigMapName, &corev1.ConfigMap{})
-		_, _ = deploy.DeleteNamespacedObject(ctx, serverPVCName, &corev1.PersistentVolumeClaim{})
+		ns := ctx.CheCluster.Namespace
+		cw := ctx.ClusterAPI.ClientWrapper
+		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: constants.OpenVSXServerName, Namespace: ns}, &appsv1.Deployment{})
+		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: constants.OpenVSXServerName, Namespace: ns}, &corev1.Service{})
+		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: ns}, &corev1.ConfigMap{})
+		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: userSetupJobName, Namespace: ns}, &batchv1.Job{})
+		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: extensionPublishJobName, Namespace: ns}, &batchv1.Job{})
+		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: extensionsConfigMapName, Namespace: ns}, &corev1.ConfigMap{})
+		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: serverPVCName, Namespace: ns}, &corev1.PersistentVolumeClaim{})
 		return reconcile.Result{}, true, nil
 	}
 
@@ -360,7 +362,7 @@ func (r *OpenVSXServerReconciler) syncExtensionPublishJob(ctx *chetypes.DeployCo
 
 	extensionsList := strings.TrimSpace(cm.Data["extensions.txt"])
 	if extensionsList == "" {
-		_, _ = deploy.DeleteNamespacedObject(ctx, extensionPublishJobName, &batchv1.Job{})
+		_ = ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: extensionPublishJobName, Namespace: ctx.CheCluster.Namespace}, &batchv1.Job{})
 		return true, nil
 	}
 

@@ -44,10 +44,12 @@ func NewOpenVSXDatabaseReconciler() *OpenVSXDatabaseReconciler {
 
 func (p *OpenVSXDatabaseReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	if !ctx.CheCluster.IsOpenVSXOperandEnabled() {
-		_, _ = deploy.DeleteNamespacedObject(ctx, constants.OpenVSXDatabaseName, &appsv1.Deployment{})
-		_, _ = deploy.DeleteNamespacedObject(ctx, constants.OpenVSXDatabaseName, &corev1.Service{})
-		_, _ = deploy.DeleteNamespacedObject(ctx, pvcName, &corev1.PersistentVolumeClaim{})
-		_, _ = deploy.DeleteNamespacedObject(ctx, constants.OpenVSXDatabaseCredentialsSecret, &corev1.Secret{})
+		ns := ctx.CheCluster.Namespace
+		cw := ctx.ClusterAPI.ClientWrapper
+		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: constants.OpenVSXDatabaseName, Namespace: ns}, &appsv1.Deployment{})
+		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: constants.OpenVSXDatabaseName, Namespace: ns}, &corev1.Service{})
+		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: pvcName, Namespace: ns}, &corev1.PersistentVolumeClaim{})
+		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: constants.OpenVSXDatabaseCredentialsSecret, Namespace: ns}, &corev1.Secret{})
 		return reconcile.Result{}, true, nil
 	}
 
