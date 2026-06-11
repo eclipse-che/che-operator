@@ -235,9 +235,9 @@ func TestReconcileSecretNotRecreated(t *testing.T) {
 	password := string(secret.Data["password"])
 	assert.NotEmpty(t, password)
 	assert.Equal(t, "eclipse-che", string(secret.Data["userName"]))
-	assert.Equal(t, "eclipse_che_token", string(secret.Data["userPAT"]))
+	assert.Len(t, string(secret.Data["userPAT"]), 32)
 	assert.Equal(t, "openvsx-admin", string(secret.Data["adminName"]))
-	assert.Equal(t, "openvsx_admin_token", string(secret.Data["adminPAT"]))
+	assert.Len(t, string(secret.Data["adminPAT"]), 32)
 
 	// syncSecret should preserve existing secret (not regenerate password)
 	done, err := reconciler.syncSecret(ctx)

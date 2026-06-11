@@ -113,9 +113,9 @@ func (p *OpenVSXDatabaseReconciler) syncSecret(ctx *chetypes.DeployContext) (boo
 			"password":  []byte(utils.GeneratePassword(16)),
 			"database":  []byte("openvsx"),
 			"userName":  []byte("eclipse-che"),
-			"userPAT":   []byte("eclipse_che_token"),
+			"userPAT":   []byte(utils.GeneratePassword(32)),
 			"adminName": []byte("openvsx-admin"),
-			"adminPAT":  []byte("openvsx_admin_token"),
+			"adminPAT":  []byte(utils.GeneratePassword(32)),
 		},
 	}
 
