@@ -366,6 +366,10 @@ func (r *OpenVSXServerReconciler) syncExtensionPublishJob(ctx *chetypes.DeployCo
 		return true, nil
 	}
 
+	if ctx.CheCluster.Status.OpenVSXURL == "" {
+		return false, nil
+	}
+
 	image := defaults.GetOpenVSXImage(ctx.CheCluster)
 	pullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(image))
 	labels := deploy.GetLabels(constants.OpenVSXServerName)
