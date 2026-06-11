@@ -13,6 +13,7 @@
 package devworkspace
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"maps"
@@ -31,6 +32,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -124,17 +126,27 @@ func updateWorkspaceConfig(ctx *chetypes.DeployContext, operatorConfig *controll
 
 	updateInitContainers(devEnvironments, operatorConfig.Workspace)
 
-	if operatorConfig.Routing == nil {
-		operatorConfig.Routing = &controllerv1alpha1.RoutingConfig{}
-	}
+	cm := &corev1.ConfigMap{}
+	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(context.TODO(), types.NamespacedName{Name: tls.CheMergedCABundleCertsCMName, Namespace: ctx.CheCluster.Namespace}, cm)
+	if err != nil {
+		return fmt.Errorf("failed to get ConfigMap %s: %w", tls.CheMergedCABundleCertsCMName, err)
+	} else if exists && len(cm.Data) > 0 {
+		if operatorConfig.Routing == nil {
+			operatorConfig.Routing = &controllerv1alpha1.RoutingConfig{}
+		}
 
-	updateTLSCertificateConfigmapRef(ctx.CheCluster, operatorConfig.Routing)
+		updateTLSCertificateConfigmapRef(ctx.CheCluster, operatorConfig.Routing)
+	}
 
 	// If the CheCluster has a configured proxy, or if the Che Operator has detected a proxy configuration,
 	// we need to disable automatic proxy handling in the DevWorkspace Operator as its implementation collides
 	// with ours -- they set environment variables the deployment spec explicitly, which overrides the proxy-settings
 	// automount configmap.
 	if ctx.Proxy.HttpProxy != "" || ctx.Proxy.HttpsProxy != "" {
+		if operatorConfig.Routing == nil {
+			operatorConfig.Routing = &controllerv1alpha1.RoutingConfig{}
+		}
+
 		disableDWOProxy(operatorConfig.Routing)
 	}
 

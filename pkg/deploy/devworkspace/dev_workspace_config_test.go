@@ -3345,29 +3345,12 @@ func TestReconcileDevWorkspaceConfigTLSCertificateConfigmapRef(t *testing.T) {
 		name                   string
 		cheCluster             *chev2.CheCluster
 		existedObjects         []client.Object
-		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
+		expectedRoutingConfig  *controllerv1alpha1.RoutingConfig
 	}
 
 	var testCases = []testCase{
 		{
-			name: "Create DevWorkspaceOperatorConfig with TLSCertificateConfigmapRef",
-			cheCluster: &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-					Name:      "eclipse-che",
-				},
-			},
-			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
-				Routing: &controllerv1alpha1.RoutingConfig{
-					TLSCertificateConfigmapRef: &controllerv1alpha1.ConfigmapReference{
-						Name:      tls.CheMergedCABundleCertsCMName,
-						Namespace: "eclipse-che",
-					},
-				},
-			},
-		},
-		{
-			name: "Update existing DevWorkspaceOperatorConfig with TLSCertificateConfigmapRef",
+			name: "Create DevWorkspaceOperatorConfig with TLSCertificateConfigmapRef when CA bundle ConfigMap exists with data",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -3375,6 +3358,41 @@ func TestReconcileDevWorkspaceConfigTLSCertificateConfigmapRef(t *testing.T) {
 				},
 			},
 			existedObjects: []client.Object{
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      tls.CheMergedCABundleCertsCMName,
+						Namespace: "eclipse-che",
+					},
+					Data: map[string]string{
+						"ca-bundle.crt": "certificate-data",
+					},
+				},
+			},
+			expectedRoutingConfig: &controllerv1alpha1.RoutingConfig{
+				TLSCertificateConfigmapRef: &controllerv1alpha1.ConfigmapReference{
+					Name:      tls.CheMergedCABundleCertsCMName,
+					Namespace: "eclipse-che",
+				},
+			},
+		},
+		{
+			name: "Update existing DevWorkspaceOperatorConfig with TLSCertificateConfigmapRef when CA bundle ConfigMap exists with data",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+			},
+			existedObjects: []client.Object{
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      tls.CheMergedCABundleCertsCMName,
+						Namespace: "eclipse-che",
+					},
+					Data: map[string]string{
+						"ca-bundle.crt": "certificate-data",
+					},
+				},
 				&controllerv1alpha1.DevWorkspaceOperatorConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      devWorkspaceConfigName,
@@ -3391,15 +3409,41 @@ func TestReconcileDevWorkspaceConfigTLSCertificateConfigmapRef(t *testing.T) {
 					},
 				},
 			},
-			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
-				Routing: &controllerv1alpha1.RoutingConfig{
-					DefaultRoutingClass: "che",
-					TLSCertificateConfigmapRef: &controllerv1alpha1.ConfigmapReference{
+			expectedRoutingConfig: &controllerv1alpha1.RoutingConfig{
+				DefaultRoutingClass: "che",
+				TLSCertificateConfigmapRef: &controllerv1alpha1.ConfigmapReference{
+					Name:      tls.CheMergedCABundleCertsCMName,
+					Namespace: "eclipse-che",
+				},
+			},
+		},
+		{
+			name: "Do not set TLSCertificateConfigmapRef when CA bundle ConfigMap does not exist",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+			},
+			expectedRoutingConfig: nil,
+		},
+		{
+			name: "Do not set TLSCertificateConfigmapRef when CA bundle ConfigMap exists but has no data",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+			},
+			existedObjects: []client.Object{
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      tls.CheMergedCABundleCertsCMName,
 						Namespace: "eclipse-che",
 					},
 				},
 			},
+			expectedRoutingConfig: nil,
 		},
 	}
 
@@ -3414,8 +3458,14 @@ func TestReconcileDevWorkspaceConfigTLSCertificateConfigmapRef(t *testing.T) {
 			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
 
 			assert.NoError(t, err)
-			assert.NotNil(t, dwoc.Config.Routing)
-			assert.Equal(t, testCase.expectedOperatorConfig.Routing, dwoc.Config.Routing)
+			if testCase.expectedRoutingConfig == nil {
+				if dwoc.Config.Routing != nil {
+					assert.Nil(t, dwoc.Config.Routing.TLSCertificateConfigmapRef)
+				}
+			} else {
+				assert.NotNil(t, dwoc.Config.Routing)
+				assert.Equal(t, testCase.expectedRoutingConfig, dwoc.Config.Routing)
+			}
 		})
 	}
 }

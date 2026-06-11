@@ -162,5 +162,5 @@ func syncEditorDefinitions(ctx *chetypes.DeployContext, editorDefinitions map[st
 		cm.Data[fileName] = string(content)
 	}
 
-	return deploy.Sync(ctx, cm, diffs.ConfigMapEnsureMetadata(cm))
+	return deploy.Sync(ctx, cm, diffs.ConfigMapEnsureLabels)
 }

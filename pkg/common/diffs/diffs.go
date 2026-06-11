@@ -46,19 +46,17 @@ var SecurityContextConstraints = cmp.Options{
 	cmpopts.IgnoreFields(securityv1.SecurityContextConstraints{}, "TypeMeta", "ObjectMeta", "Priority"),
 }
 
-func ConfigMapEnsureMetadata(obj client.Object) cmp.Options {
-	return cmp.Options{
-		cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
-		ensureMetadata(obj),
-	}
+var ConfigMapEnsureLabels = cmp.Options{
+	cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
+	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
+		return maps.Equal(x.Labels, y.Labels)
+	}),
 }
 
-func ensureMetadata(obj client.Object) cmp.Options {
+func ConfigMapWithMetadata(labelKeys []string, annotationKeys []string) cmp.Options {
 	return cmp.Options{
-		doEnsureMetadata(
-			slices.Collect(maps.Keys(obj.GetLabels())),
-			slices.Collect(maps.Keys(obj.GetAnnotations())),
-		),
+		cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
+		cmpMetadata(labelKeys, annotationKeys),
 	}
 }
 
@@ -66,7 +64,11 @@ var ServiceMonitor = cmp.Options{
 	cmpopts.IgnoreFields(monitoringv1.ServiceMonitor{}, "TypeMeta", "ObjectMeta"),
 }
 
-func doEnsureMetadata(labels []string, annotations []string) cmp.Option {
+func GetLabelsAndAnnotations(obj client.Object) ([]string, []string) {
+	return slices.Collect(maps.Keys(obj.GetLabels())), slices.Collect(maps.Keys(obj.GetAnnotations()))
+}
+
+func cmpMetadata(labels []string, annotations []string) cmp.Option {
 	return cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
 		for _, label := range labels {
 			if x.Labels[label] != y.Labels[label] {

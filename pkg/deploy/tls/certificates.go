@@ -164,7 +164,10 @@ func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(ctx *chetypes
 			}
 		}
 
-		return deploy.Sync(ctx, openShiftCaBundleCM, diffs.ConfigMapEnsureMetadata(openShiftCaBundleCM))
+		labelKeys, annotationKeys := diffs.GetLabelsAndAnnotations(openShiftCaBundleCM)
+		labelKeys = append(labelKeys, constants.ConfigOpenShiftIOInjectTrustedCaBundle)
+
+		return deploy.Sync(ctx, openShiftCaBundleCM, diffs.ConfigMapWithMetadata(labelKeys, annotationKeys))
 	} else {
 		// Add annotation to allow OpenShift network operator inject certificates
 		// https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/networking/configuring-a-custom-pki#certificate-injection-using-operators_configuring-a-custom-pki
@@ -172,7 +175,8 @@ func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(ctx *chetypes
 
 		// Ignore Data field to allow OpenShift network operator inject certificates into CM
 		// and avoid endless reconciliation loop
-		return deploy.Sync(ctx, openShiftCaBundleCM, diffs.ConfigMapEnsureMetadata(openShiftCaBundleCM))
+		labelKeys, annotationKeys := diffs.GetLabelsAndAnnotations(openShiftCaBundleCM)
+		return deploy.Sync(ctx, openShiftCaBundleCM, diffs.ConfigMapWithMetadata(labelKeys, annotationKeys))
 	}
 }
 
@@ -196,7 +200,8 @@ func (c *CertificatesReconciler) syncKubernetesCABundleCertificates(ctx *chetype
 		Data: map[string]string{kubernetesCABundleCertsFile: string(data)},
 	}
 
-	return deploy.Sync(ctx, kubernetesCaBundleCM, diffs.ConfigMapEnsureMetadata(kubernetesCaBundleCM))
+	labelKeys, annotationKeys := diffs.GetLabelsAndAnnotations(kubernetesCaBundleCM)
+	return deploy.Sync(ctx, kubernetesCaBundleCM, diffs.ConfigMapWithMetadata(labelKeys, annotationKeys))
 }
 
 // syncGitTrustedCertificates adds labels to git trusted certificates ConfigMap
@@ -231,10 +236,11 @@ func (c *CertificatesReconciler) syncGitTrustedCertificates(ctx *chetypes.Deploy
 		gitTrustedCertsCM.Labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
 		gitTrustedCertsCM.Labels[constants.KubernetesComponentLabelKey] = constants.CheCABundle
 
+		labelKeys, annotationKeys := diffs.GetLabelsAndAnnotations(gitTrustedCertsCM)
 		return deploy.Sync(
 			ctx,
 			gitTrustedCertsCM,
-			diffs.ConfigMapEnsureMetadata(gitTrustedCertsCM),
+			diffs.ConfigMapWithMetadata(labelKeys, annotationKeys),
 		)
 	}
 
@@ -270,7 +276,8 @@ func (c *CertificatesReconciler) syncSelfSignedCertificates(ctx *chetypes.Deploy
 			Data: map[string]string{"ca.crt": string(selfSignedCertSecret.Data["ca.crt"])},
 		}
 
-		return deploy.Sync(ctx, selfSignedCertCM, diffs.ConfigMapEnsureMetadata(selfSignedCertCM))
+		labelKeys, annotationKeys := diffs.GetLabelsAndAnnotations(selfSignedCertCM)
+		return deploy.Sync(ctx, selfSignedCertCM, diffs.ConfigMapWithMetadata(labelKeys, annotationKeys))
 	}
 
 	return true, nil
@@ -305,11 +312,12 @@ func (c *CertificatesReconciler) syncKubernetesRootCertificates(ctx *chetypes.De
 	kubeRootCertsCM.Labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
 	kubeRootCertsCM.Labels[constants.KubernetesComponentLabelKey] = constants.CheCABundle
 
+	labelKeys, annotationKeys := diffs.GetLabelsAndAnnotations(kubeRootCertsCM)
 	return deploy.SyncForClient(
 		client,
 		ctx,
 		kubeRootCertsCM,
-		diffs.ConfigMapEnsureMetadata(kubeRootCertsCM),
+		diffs.ConfigMapWithMetadata(labelKeys, annotationKeys),
 	)
 }
 
@@ -333,7 +341,12 @@ func (c *CertificatesReconciler) syncOIDCIssuerCertificate(ctx *chetypes.DeployC
 		return false, err
 	}
 
-	err := ctx.ClusterAPI.ClientWrapper.Sync(context.TODO(), cm, &k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureMetadata(cm)})
+	labelKeys, annotationKeys := diffs.GetLabelsAndAnnotations(cm)
+	err := ctx.ClusterAPI.ClientWrapper.Sync(
+		context.TODO(),
+		cm,
+		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapWithMetadata(labelKeys, annotationKeys)},
+	)
 	return err == nil, err
 }
 
@@ -410,7 +423,12 @@ func (c *CertificatesReconciler) syncCheCABundleCerts(ctx *chetypes.DeployContex
 		return false, err
 	}
 
-	err = ctx.ClusterAPI.ClientWrapper.Sync(context.TODO(), mergedCABundlesCM, &k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureMetadata(mergedCABundlesCM)})
+	labelKeys, annotationKeys := diffs.GetLabelsAndAnnotations(mergedCABundlesCM)
+	err = ctx.ClusterAPI.ClientWrapper.Sync(
+		context.TODO(),
+		mergedCABundlesCM,
+		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapWithMetadata(labelKeys, annotationKeys)},
+	)
 	return err == nil, err
 }
 
