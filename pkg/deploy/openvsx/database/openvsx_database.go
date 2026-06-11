@@ -17,6 +17,7 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -26,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -95,17 +97,30 @@ func (p *OpenVSXDatabaseReconciler) syncSecret(ctx *chetypes.DeployContext) (boo
 		return false, err
 	}
 
-	data := map[string][]byte{
-		"user":      []byte("openvsx"),
-		"password":  []byte(utils.GeneratePassword(16)),
-		"database":  []byte("openvsx"),
-		"userName":  []byte("eclipse-che"),
-		"userPAT":   []byte("eclipse_che_token"),
-		"adminName": []byte("openvsx-admin"),
-		"adminPAT":  []byte("openvsx_admin_token"),
+	secret = &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.OpenVSXDatabaseCredentialsSecret,
+			Namespace: ctx.CheCluster.Namespace,
+			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
+		},
+		Type: corev1.SecretTypeOpaque,
+		Data: map[string][]byte{
+			"user":      []byte("openvsx"),
+			"password":  []byte(utils.GeneratePassword(16)),
+			"database":  []byte("openvsx"),
+			"userName":  []byte("eclipse-che"),
+			"userPAT":   []byte("eclipse_che_token"),
+			"adminName": []byte("openvsx-admin"),
+			"adminPAT":  []byte("openvsx_admin_token"),
+		},
 	}
 
-	return deploy.SyncSecretToCluster(ctx, constants.OpenVSXDatabaseCredentialsSecret, ctx.CheCluster.Namespace, data)
+	controllerutil.SetControllerReference(ctx.CheCluster, secret, ctx.ClusterAPI.Scheme)
+	return true, ctx.ClusterAPI.ClientWrapper.Sync(context.TODO(), secret)
 }
 
 func (p *OpenVSXDatabaseReconciler) syncService(ctx *chetypes.DeployContext) (bool, error) {

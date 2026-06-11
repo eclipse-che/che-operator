@@ -25,7 +25,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	networking "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -126,11 +126,11 @@ func (r *OpenVSXExposeReconciler) getIngressSpec(ctx *chetypes.DeployContext, ho
 	var ingressClassNamePtr *string
 	ingressClassName := ctx.CheCluster.Spec.Networking.IngressClassName
 	if ingressClassName != "" {
-		ingressClassNamePtr = pointer.String(ingressClassName)
+		ingressClassNamePtr = ptr.To(ingressClassName)
 	} else if !infrastructure.IsOpenShift() {
 		className := annotations["kubernetes.io/ingress.class"]
 		if className != "" {
-			ingressClassNamePtr = pointer.String(className)
+			ingressClassNamePtr = ptr.To(className)
 		}
 	}
 	delete(annotations, "kubernetes.io/ingress.class")

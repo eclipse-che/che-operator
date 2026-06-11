@@ -280,7 +280,7 @@ func TestDeploymentSpecVolumes(t *testing.T) {
 
 	volume := test.FindVolume(deployment.Spec.Template.Spec.Volumes, "config")
 	assert.NotNil(t, volume.ConfigMap)
-	assert.Equal(t, configMapName, volume.ConfigMap.LocalObjectReference.Name)
+	assert.Equal(t, configMapName, volume.ConfigMap.Name)
 
 	mount := test.FindVolumeMount(deployment.Spec.Template.Spec.Containers[0].VolumeMounts, "config")
 	assert.Equal(t, "/home/openvsx/server/config", mount.MountPath)
