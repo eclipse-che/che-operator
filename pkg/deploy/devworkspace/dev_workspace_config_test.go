@@ -3474,7 +3474,7 @@ func TestReconcileDevWorkspaceConfigTLSCertificateConfigmapRef(t *testing.T) {
 					},
 				},
 			},
-			expectedRoutingConfig: &controllerv1alpha1.RoutingConfig{},
+			expectedRoutingConfig: nil,
 		},
 		{
 			name: "Clear TLSCertificateConfigmapRef when CA bundle ConfigMap data is emptied",
@@ -3511,7 +3511,51 @@ func TestReconcileDevWorkspaceConfigTLSCertificateConfigmapRef(t *testing.T) {
 					},
 				},
 			},
-			expectedRoutingConfig: &controllerv1alpha1.RoutingConfig{},
+			expectedRoutingConfig: nil,
+		},
+		{
+			name: "Re-reconcile is stable when TLSCertificateConfigmapRef already matches",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+			},
+			existedObjects: []client.Object{
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      tls.CheMergedCABundleCertsCMName,
+						Namespace: "eclipse-che",
+					},
+					Data: map[string]string{
+						"ca-bundle.crt": "certificate-data",
+					},
+				},
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Routing: &controllerv1alpha1.RoutingConfig{
+							TLSCertificateConfigmapRef: &controllerv1alpha1.ConfigmapReference{
+								Name:      tls.CheMergedCABundleCertsCMName,
+								Namespace: "eclipse-che",
+							},
+						},
+					},
+				},
+			},
+			expectedRoutingConfig: &controllerv1alpha1.RoutingConfig{
+				TLSCertificateConfigmapRef: &controllerv1alpha1.ConfigmapReference{
+					Name:      tls.CheMergedCABundleCertsCMName,
+					Namespace: "eclipse-che",
+				},
+			},
 		},
 		{
 			name: "Clear TLSCertificateConfigmapRef while preserving other routing config",
@@ -3551,6 +3595,170 @@ func TestReconcileDevWorkspaceConfigTLSCertificateConfigmapRef(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.existedObjects...).Build()
+
+			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
+			test.EnsureReconcile(t, deployContext, devWorkspaceConfigReconciler.Reconcile)
+
+			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
+			err := deployContext.ClusterAPI.Client.Get(
+				context.TODO(),
+				types.NamespacedName{
+					Name:      devWorkspaceConfigName,
+					Namespace: testCase.cheCluster.Namespace,
+				},
+				dwoc,
+			)
+
+			assert.NoError(t, err)
+			assert.Equal(t, testCase.expectedRoutingConfig, dwoc.Config.Routing)
+		})
+	}
+}
+
+func TestReconcileDevWorkspaceConfigProxyAndTLSComposition(t *testing.T) {
+	type testCase struct {
+		name                  string
+		cheCluster            *chev2.CheCluster
+		existedObjects        []client.Object
+		httpProxy             string
+		httpsProxy            string
+		expectedRoutingConfig *controllerv1alpha1.RoutingConfig
+	}
+
+	var testCases = []testCase{
+		{
+			name: "Both proxy and TLS certificate configmap ref are set on RoutingConfig",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+			},
+			existedObjects: []client.Object{
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      tls.CheMergedCABundleCertsCMName,
+						Namespace: "eclipse-che",
+					},
+					Data: map[string]string{
+						"ca-bundle.crt": "certificate-data",
+					},
+				},
+			},
+			httpProxy:  "http://proxy.example.com:3128",
+			httpsProxy: "https://proxy.example.com:3128",
+			expectedRoutingConfig: &controllerv1alpha1.RoutingConfig{
+				TLSCertificateConfigmapRef: &controllerv1alpha1.ConfigmapReference{
+					Name:      tls.CheMergedCABundleCertsCMName,
+					Namespace: "eclipse-che",
+				},
+				ProxyConfig: &controllerv1alpha1.Proxy{
+					HttpProxy:  ptr.To(""),
+					HttpsProxy: ptr.To(""),
+					NoProxy:    ptr.To(""),
+				},
+			},
+		},
+		{
+			name: "Proxy set without TLS certificate configmap does not clobber routing",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+			},
+			httpProxy:  "http://proxy.example.com:3128",
+			httpsProxy: "https://proxy.example.com:3128",
+			expectedRoutingConfig: &controllerv1alpha1.RoutingConfig{
+				ProxyConfig: &controllerv1alpha1.Proxy{
+					HttpProxy:  ptr.To(""),
+					HttpsProxy: ptr.To(""),
+					NoProxy:    ptr.To(""),
+				},
+			},
+		},
+		{
+			name: "TLS certificate configmap ref set without proxy does not clobber routing",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+			},
+			existedObjects: []client.Object{
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      tls.CheMergedCABundleCertsCMName,
+						Namespace: "eclipse-che",
+					},
+					Data: map[string]string{
+						"ca-bundle.crt": "certificate-data",
+					},
+				},
+			},
+			expectedRoutingConfig: &controllerv1alpha1.RoutingConfig{
+				TLSCertificateConfigmapRef: &controllerv1alpha1.ConfigmapReference{
+					Name:      tls.CheMergedCABundleCertsCMName,
+					Namespace: "eclipse-che",
+				},
+			},
+		},
+		{
+			name: "Both proxy and TLS compose with existing routing config",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+			},
+			existedObjects: []client.Object{
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      tls.CheMergedCABundleCertsCMName,
+						Namespace: "eclipse-che",
+					},
+					Data: map[string]string{
+						"ca-bundle.crt": "certificate-data",
+					},
+				},
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Routing: &controllerv1alpha1.RoutingConfig{
+							DefaultRoutingClass: "che",
+						},
+					},
+				},
+			},
+			httpProxy:  "http://proxy.example.com:3128",
+			httpsProxy: "https://proxy.example.com:3128",
+			expectedRoutingConfig: &controllerv1alpha1.RoutingConfig{
+				DefaultRoutingClass: "che",
+				TLSCertificateConfigmapRef: &controllerv1alpha1.ConfigmapReference{
+					Name:      tls.CheMergedCABundleCertsCMName,
+					Namespace: "eclipse-che",
+				},
+				ProxyConfig: &controllerv1alpha1.Proxy{
+					HttpProxy:  ptr.To(""),
+					HttpsProxy: ptr.To(""),
+					NoProxy:    ptr.To(""),
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.existedObjects...).Build()
+			deployContext.Proxy.HttpProxy = testCase.httpProxy
+			deployContext.Proxy.HttpsProxy = testCase.httpsProxy
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
 			test.EnsureReconcile(t, deployContext, devWorkspaceConfigReconciler.Reconcile)

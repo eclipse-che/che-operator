@@ -335,6 +335,10 @@ func updateTLSCertificateConfigmapRef(ctx *chetypes.DeployContext, operatorConfi
 	} else {
 		if operatorConfig.Routing != nil {
 			operatorConfig.Routing.TLSCertificateConfigmapRef = nil
+
+			if *operatorConfig.Routing == (controllerv1alpha1.RoutingConfig{}) {
+				operatorConfig.Routing = nil
+			}
 		}
 	}
 

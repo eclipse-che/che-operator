@@ -25,6 +25,8 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
@@ -137,6 +139,9 @@ func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(ctx *chetypes
 	openShiftCaBundleCM.Labels = utils.GetMapOrDefault(openShiftCaBundleCM.Labels, map[string]string{})
 	utils.AddMap(openShiftCaBundleCM.Labels, deploy.GetLabels(constants.CheCABundle))
 
+	labelKeys := slices.Collect(maps.Keys(deploy.GetLabels(constants.CheCABundle)))
+	labelKeys = append(labelKeys, constants.ConfigOpenShiftIOInjectTrustedCaBundle)
+
 	if ctx.CheCluster.IsDisableWorkspaceCaBundleMount() {
 		// Remove annotation to stop OpenShift network operator from injecting certificates
 		// https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/networking/configuring-a-custom-pki#certificate-injection-using-operators_configuring-a-custom-pki
@@ -164,12 +169,7 @@ func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(ctx *chetypes
 			}
 		}
 
-		labelKeys, annotationKeys := diffs.GetLabelsAndAnnotations(openShiftCaBundleCM)
-
-		// add removed label to ensure a new object won't have it
-		labelKeys = append(labelKeys, constants.ConfigOpenShiftIOInjectTrustedCaBundle)
-
-		return deploy.Sync(ctx, openShiftCaBundleCM, diffs.ConfigMapWithMetadata(labelKeys, annotationKeys))
+		return deploy.Sync(ctx, openShiftCaBundleCM, diffs.ConfigMap(labelKeys, nil))
 	} else {
 		// Add annotation to allow OpenShift network operator inject certificates
 		// https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/networking/configuring-a-custom-pki#certificate-injection-using-operators_configuring-a-custom-pki
@@ -177,8 +177,14 @@ func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(ctx *chetypes
 
 		// Ignore Data field to allow OpenShift network operator inject certificates into CM
 		// and avoid endless reconciliation loop
-		labelKeys, annotationKeys := diffs.GetLabelsAndAnnotations(openShiftCaBundleCM)
-		return deploy.Sync(ctx, openShiftCaBundleCM, diffs.ConfigMapWithMetadata(labelKeys, annotationKeys))
+		return deploy.Sync(
+			ctx,
+			openShiftCaBundleCM,
+			cmp.Options{
+				diffs.ConfigMap(labelKeys, nil),
+				cmpopts.IgnoreFields(corev1.ConfigMap{}, "Data"),
+			},
+		)
 	}
 }
 
@@ -202,8 +208,8 @@ func (c *CertificatesReconciler) syncKubernetesCABundleCertificates(ctx *chetype
 		Data: map[string]string{kubernetesCABundleCertsFile: string(data)},
 	}
 
-	labelKeys, annotationKeys := diffs.GetLabelsAndAnnotations(kubernetesCaBundleCM)
-	return deploy.Sync(ctx, kubernetesCaBundleCM, diffs.ConfigMapWithMetadata(labelKeys, annotationKeys))
+	labelKeys, annotationKeys := deploy.GetLabelsAndAnnotations(kubernetesCaBundleCM)
+	return deploy.Sync(ctx, kubernetesCaBundleCM, diffs.ConfigMap(labelKeys, annotationKeys))
 }
 
 // syncGitTrustedCertificates adds labels to git trusted certificates ConfigMap
@@ -238,11 +244,11 @@ func (c *CertificatesReconciler) syncGitTrustedCertificates(ctx *chetypes.Deploy
 		gitTrustedCertsCM.Labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
 		gitTrustedCertsCM.Labels[constants.KubernetesComponentLabelKey] = constants.CheCABundle
 
-		labelKeys, annotationKeys := diffs.GetLabelsAndAnnotations(gitTrustedCertsCM)
+		labelKeys, annotationKeys := deploy.GetLabelsAndAnnotations(gitTrustedCertsCM)
 		return deploy.Sync(
 			ctx,
 			gitTrustedCertsCM,
-			diffs.ConfigMapWithMetadata(labelKeys, annotationKeys),
+			diffs.ConfigMap(labelKeys, annotationKeys),
 		)
 	}
 
@@ -278,8 +284,8 @@ func (c *CertificatesReconciler) syncSelfSignedCertificates(ctx *chetypes.Deploy
 			Data: map[string]string{"ca.crt": string(selfSignedCertSecret.Data["ca.crt"])},
 		}
 
-		labelKeys, annotationKeys := diffs.GetLabelsAndAnnotations(selfSignedCertCM)
-		return deploy.Sync(ctx, selfSignedCertCM, diffs.ConfigMapWithMetadata(labelKeys, annotationKeys))
+		labelKeys, annotationKeys := deploy.GetLabelsAndAnnotations(selfSignedCertCM)
+		return deploy.Sync(ctx, selfSignedCertCM, diffs.ConfigMap(labelKeys, annotationKeys))
 	}
 
 	return true, nil
@@ -314,12 +320,12 @@ func (c *CertificatesReconciler) syncKubernetesRootCertificates(ctx *chetypes.De
 	kubeRootCertsCM.Labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
 	kubeRootCertsCM.Labels[constants.KubernetesComponentLabelKey] = constants.CheCABundle
 
-	labelKeys, annotationKeys := diffs.GetLabelsAndAnnotations(kubeRootCertsCM)
+	labelKeys, annotationKeys := deploy.GetLabelsAndAnnotations(kubeRootCertsCM)
 	return deploy.SyncForClient(
 		client,
 		ctx,
 		kubeRootCertsCM,
-		diffs.ConfigMapWithMetadata(labelKeys, annotationKeys),
+		diffs.ConfigMap(labelKeys, annotationKeys),
 	)
 }
 
@@ -343,11 +349,14 @@ func (c *CertificatesReconciler) syncOIDCIssuerCertificate(ctx *chetypes.DeployC
 		return false, err
 	}
 
-	labelKeys, annotationKeys := diffs.GetLabelsAndAnnotations(cm)
+	labelKeys := slices.Collect(maps.Keys(cm.GetLabels()))
+
 	err := ctx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
 		cm,
-		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapWithMetadata(labelKeys, annotationKeys)},
+		&k8sclient.SyncOptions{
+			DiffOpts: diffs.ConfigMap(labelKeys, nil),
+		},
 	)
 	return err == nil, err
 }
@@ -425,11 +434,14 @@ func (c *CertificatesReconciler) syncCheCABundleCerts(ctx *chetypes.DeployContex
 		return false, err
 	}
 
-	labelKeys, annotationKeys := diffs.GetLabelsAndAnnotations(mergedCABundlesCM)
+	labelKeys, annotationKeys := deploy.GetLabelsAndAnnotations(mergedCABundlesCM)
+
 	err = ctx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
 		mergedCABundlesCM,
-		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapWithMetadata(labelKeys, annotationKeys)},
+		&k8sclient.SyncOptions{
+			DiffOpts: diffs.ConfigMap(labelKeys, annotationKeys),
+		},
 	)
 	return err == nil, err
 }

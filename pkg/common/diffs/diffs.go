@@ -14,7 +14,6 @@ package diffs
 
 import (
 	"maps"
-	"slices"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -23,7 +22,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var Role = cmp.Options{
@@ -53,8 +51,8 @@ var ConfigMapEnsureLabels = cmp.Options{
 	}),
 }
 
-// ConfigMapWithMetadata respect existed labels and annotations
-func ConfigMapWithMetadata(labelKeys []string, annotationKeys []string) cmp.Options {
+// ConfigMap respects existed labels and annotations
+func ConfigMap(labelKeys []string, annotationKeys []string) cmp.Options {
 	return cmp.Options{
 		cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
 		cmpMetadata(labelKeys, annotationKeys),
@@ -63,10 +61,6 @@ func ConfigMapWithMetadata(labelKeys []string, annotationKeys []string) cmp.Opti
 
 var ServiceMonitor = cmp.Options{
 	cmpopts.IgnoreFields(monitoringv1.ServiceMonitor{}, "TypeMeta", "ObjectMeta"),
-}
-
-func GetLabelsAndAnnotations(obj client.Object) ([]string, []string) {
-	return slices.Collect(maps.Keys(obj.GetLabels())), slices.Collect(maps.Keys(obj.GetAnnotations()))
 }
 
 func cmpMetadata(labels []string, annotations []string) cmp.Option {
