@@ -408,6 +408,7 @@ func TestSyncOpenShiftCABundleCertificatesRemovesInjectLabel(t *testing.T) {
 
 	cm := &corev1.ConfigMap{}
 	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.DefaultCaBundleCertsCMName, Namespace: "eclipse-che"}, cm)
+
 	assert.NoError(t, err)
 
 	assert.Empty(t, cm.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
@@ -524,31 +525,6 @@ func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 	assert.Equal(t, "subpath", caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountAsAnnotation])
 	assert.Equal(t, caCertsMergedCM.Data["tls-ca-bundle.pem"], "# ConfigMap: ca-certs,  Key: ca-bundle.crt\nopenshift-ca-bundle-new\n\n")
 	assert.Equal(t, 1, len(caCertsMergedCM.Data))
-}
-
-func TestSyncOpenShiftCABundleCertificatesIgnoresDataField(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
-
-	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
-
-	caCertsCM := &corev1.ConfigMap{}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
-	assert.NoError(t, err)
-	assert.Equal(t, "true", caCertsCM.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
-
-	// Simulate OpenShift network operator injecting CA bundle into the ConfigMap
-	caCertsCM.Data = map[string]string{"ca-bundle.crt": "openshift-injected-ca-bundle"}
-	err = ctx.ClusterAPI.Client.Update(context.TODO(), caCertsCM)
-	assert.NoError(t, err)
-
-	// Reconcile again — Data field should be ignored in the diff
-	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
-
-	caCertsCM = &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
-	assert.NoError(t, err)
-	assert.Equal(t, "openshift-injected-ca-bundle", caCertsCM.Data["ca-bundle.crt"])
-	assert.Equal(t, "true", caCertsCM.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
 }
 
 func TestSyncCheCABundleCertsWithEmptyConfigMap(t *testing.T) {

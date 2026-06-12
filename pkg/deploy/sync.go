@@ -68,21 +68,6 @@ func SyncForClient(cli client.Client, deployContext *chetypes.DeployContext, blu
 	return doUpdate(cli, deployContext, actual.(client.Object), blueprint, diffOpts...)
 }
 
-// Get gets object.
-// Returns true if object exists otherwise returns false.
-// Returns error if object cannot be retrieved otherwise returns nil.
-func Get(deployContext *chetypes.DeployContext, key client.ObjectKey, actual client.Object) (bool, error) {
-	cli := getClientForObject(key.Namespace, deployContext)
-	return doGet(context.TODO(), cli, key, actual)
-}
-
-// Get gets object.
-// Returns true if object exists otherwise returns false.
-// Returns error if object cannot be retrieved otherwise returns nil.
-func GetForClient(cli client.Client, key client.ObjectKey, actual client.Object) (bool, error) {
-	return doGet(context.TODO(), cli, key, actual)
-}
-
 // Gets namespaced scope object by name
 // Returns true if object exists otherwise returns false.
 func GetNamespacedObject(deployContext *chetypes.DeployContext, name string, actual client.Object) (bool, error) {
@@ -117,12 +102,6 @@ func Delete(deployContext *chetypes.DeployContext, key client.ObjectKey, objectM
 func DeleteNamespacedObject(deployContext *chetypes.DeployContext, name string, objectMeta client.Object) (bool, error) {
 	client := deployContext.ClusterAPI.Client
 	key := types.NamespacedName{Name: name, Namespace: deployContext.CheCluster.Namespace}
-	return DeleteByKeyWithClient(client, key, objectMeta)
-}
-
-func DeleteClusterObject(deployContext *chetypes.DeployContext, name string, objectMeta client.Object) (bool, error) {
-	client := deployContext.ClusterAPI.NonCachingClient
-	key := types.NamespacedName{Name: name}
 	return DeleteByKeyWithClient(client, key, objectMeta)
 }
 

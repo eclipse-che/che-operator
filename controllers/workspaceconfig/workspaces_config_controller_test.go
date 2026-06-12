@@ -82,10 +82,9 @@ func TestCreate(t *testing.T) {
 	assert.NoError(t, err)
 
 	dstCm := &corev1.ConfigMap{}
-	exists, err := deploy.Get(ctx, types.NamespacedName{Namespace: "user-che", Name: "test"}, dstCm)
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: "user-che", Name: "test"}, dstCm)
 
 	assert.NoError(t, err)
-	assert.True(t, exists)
 	assert.Equal(t, 1, len(dstCm.Data))
 	assert.Equal(t, "new-value", dstCm.Data["key"])
 }

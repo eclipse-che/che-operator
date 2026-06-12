@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"reflect"
 	"time"
 
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
@@ -336,7 +337,7 @@ func updateTLSCertificateConfigmapRef(ctx *chetypes.DeployContext, operatorConfi
 		if operatorConfig.Routing != nil {
 			operatorConfig.Routing.TLSCertificateConfigmapRef = nil
 
-			if *operatorConfig.Routing == (controllerv1alpha1.RoutingConfig{}) {
+			if reflect.DeepEqual(operatorConfig.Routing, &controllerv1alpha1.RoutingConfig{}) {
 				operatorConfig.Routing = nil
 			}
 		}

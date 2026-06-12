@@ -54,21 +54,6 @@ var (
 	testKey = client.ObjectKey{Name: "test-secret", Namespace: "eclipse-che"}
 )
 
-func TestGet(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
-
-	err := ctx.ClusterAPI.Client.Create(context.TODO(), testObj.DeepCopy())
-	if err != nil {
-		t.Fatalf("Failed to create object: %v", err)
-	}
-
-	actual := &corev1.Secret{}
-	exists, err := Get(ctx, testKey, actual)
-	if !exists || err != nil {
-		t.Fatalf("Failed to get object: %v", err)
-	}
-}
-
 func TestCreateIgnoreIfExistsShouldReturnTrueIfObjectCreated(t *testing.T) {
 	ctx := test.NewCtxBuilder().Build()
 

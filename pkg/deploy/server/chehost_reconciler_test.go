@@ -55,7 +55,7 @@ func TestSyncService(t *testing.T) {
 	assert.Nil(t, err)
 
 	service := &corev1.Service{}
-	done, err = deploy.Get(ctx, types.NamespacedName{Name: deploy.CheServiceName, Namespace: "eclipse-che"}, service)
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: deploy.CheServiceName, Namespace: "eclipse-che"}, service)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
