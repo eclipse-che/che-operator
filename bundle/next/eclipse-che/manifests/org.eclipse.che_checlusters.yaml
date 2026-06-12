@@ -12149,9 +12149,9 @@ spec:
                           type: boolean
                       type: object
                     openVSX:
-                      description: |-
-                        OpenVSX registry configuration.
-                        When enabled, the operator manages an OpenVSX server and PostgreSQL database.
+                      default:
+                        enable: false
+                      description: OpenVSX registry configuration.
                       properties:
                         database:
                           description: Database configuration for OpenVSX.
@@ -19856,8 +19856,10 @@ spec:
                             type: object
                           type: array
                         openVSXURL:
-                          description: Open VSX registry URL. If omitted an embedded
-                            instance will be used.
+                          description: |-
+                            Open VSX registry URL. If omitted an embedded instance will be used.
+                            Ignored when the managed OpenVSX operand is enabled (spec.components.openVSX.enable=true);
+                            in that case the URL from status.openVSXURL is used instead.
                           type: string
                       type: object
                   type: object

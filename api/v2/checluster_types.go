@@ -282,7 +282,7 @@ type CheClusterComponents struct {
 	Dashboard Dashboard `json:"dashboard"`
 	// OpenVSX registry configuration.
 	// +optional
-    // +kubebuilder:default:={enable: false}
+	// +kubebuilder:default:={enable: false}
 	OpenVSX OpenVSX `json:"openVSX"`
 	// Kubernetes Image Puller configuration.
 	// +optional
@@ -445,6 +445,8 @@ type PluginRegistry struct {
 	// +optional
 	ExternalPluginRegistries []ExternalPluginRegistry `json:"externalPluginRegistries,omitempty"`
 	// Open VSX registry URL. If omitted an embedded instance will be used.
+	// Ignored when the managed OpenVSX operand is enabled (spec.components.openVSX.enable=true);
+	// in that case the URL from status.openVSXURL is used instead.
 	// +optional
 	OpenVSXURL *string `json:"openVSXURL,omitempty"`
 }
@@ -1209,9 +1211,12 @@ func (c *CheCluster) IsCheFlavor() bool {
 	return defaults.GetCheFlavor() == constants.CheFlavor
 }
 
-// IsEmbeddedOpenVSXRegistryConfigured returns true if the Open VSX Registry is configured to be embedded
-// only if only the `Spec.Components.PluginRegistry.OpenVSXURL` is empty.
+// IsEmbeddedOpenVSXRegistryConfigured returns true if the Open VSX Registry is configured to be embedded.
+// Returns false when the managed OpenVSX operand is enabled or when an external OpenVSX URL is set.
 func (c *CheCluster) IsEmbeddedOpenVSXRegistryConfigured() bool {
+	if c.IsOpenVSXOperandEnabled() {
+		return false
+	}
 	if c.Spec.Components.PluginRegistry.OpenVSXURL != nil {
 		return *c.Spec.Components.PluginRegistry.OpenVSXURL == ""
 	}

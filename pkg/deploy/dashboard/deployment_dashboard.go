@@ -122,6 +122,14 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployCon
 	// Mount CheCluster default values
 	envVars = append(envVars, utils.GetEnvsByRegExp("^CHE_DEFAULT_SPEC.*")...)
 
+	if ctx.CheCluster.IsOpenVSXOperandEnabled() && ctx.CheCluster.Status.OpenVSXURL != "" {
+		envVars = append(envVars,
+			corev1.EnvVar{
+				Name:  "CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL",
+				Value: ctx.CheCluster.Status.OpenVSXURL},
+		)
+	}
+
 	if infrastructure.IsOpenShift() {
 		envVars = append(envVars,
 			corev1.EnvVar{
