@@ -281,7 +281,6 @@ type CheClusterComponents struct {
 	// +optional
 	Dashboard Dashboard `json:"dashboard"`
 	// OpenVSX registry configuration.
-	// When enabled, the operator manages an OpenVSX server and PostgreSQL database.
 	// +optional
 	OpenVSX OpenVSX `json:"openVSX"`
 	// Kubernetes Image Puller configuration.
