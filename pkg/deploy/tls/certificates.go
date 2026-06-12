@@ -165,6 +165,8 @@ func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(ctx *chetypes
 		}
 
 		labelKeys, annotationKeys := diffs.GetLabelsAndAnnotations(openShiftCaBundleCM)
+
+		// add removed label to ensure a new object won't have it
 		labelKeys = append(labelKeys, constants.ConfigOpenShiftIOInjectTrustedCaBundle)
 
 		return deploy.Sync(ctx, openShiftCaBundleCM, diffs.ConfigMapWithMetadata(labelKeys, annotationKeys))

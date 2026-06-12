@@ -53,6 +53,7 @@ var ConfigMapEnsureLabels = cmp.Options{
 	}),
 }
 
+// ConfigMapWithMetadata respect existed labels and annotations
 func ConfigMapWithMetadata(labelKeys []string, annotationKeys []string) cmp.Options {
 	return cmp.Options{
 		cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),

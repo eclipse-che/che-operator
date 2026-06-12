@@ -126,22 +126,8 @@ func updateWorkspaceConfig(ctx *chetypes.DeployContext, operatorConfig *controll
 
 	updateInitContainers(devEnvironments, operatorConfig.Workspace)
 
-	cm := &corev1.ConfigMap{}
-	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-		context.TODO(),
-		types.NamespacedName{
-			Name:      tls.CheMergedCABundleCertsCMName,
-			Namespace: ctx.CheCluster.Namespace,
-		},
-		cm,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to get ConfigMap %s: %w", tls.CheMergedCABundleCertsCMName, err)
-	} else if exists && len(cm.Data) > 0 {
-		if operatorConfig.Routing == nil {
-			operatorConfig.Routing = &controllerv1alpha1.RoutingConfig{}
-		}
-		updateTLSCertificateConfigmapRef(ctx.CheCluster, operatorConfig.Routing)
+	if err := updateTLSCertificateConfigmapRef(ctx, operatorConfig); err != nil {
+		return err
 	}
 
 	// If the CheCluster has a configured proxy, or if the Che Operator has detected a proxy configuration,
@@ -322,11 +308,37 @@ func updateInitContainers(devEnvironments *chev2.CheClusterDevEnvironments, work
 	workspaceConfig.InitContainers = devEnvironments.InitContainers
 }
 
-func updateTLSCertificateConfigmapRef(cheCluster *chev2.CheCluster, routing *controllerv1alpha1.RoutingConfig) {
-	routing.TLSCertificateConfigmapRef = &controllerv1alpha1.ConfigmapReference{
-		Name:      tls.CheMergedCABundleCertsCMName,
-		Namespace: cheCluster.Namespace,
+func updateTLSCertificateConfigmapRef(ctx *chetypes.DeployContext, operatorConfig *controllerv1alpha1.OperatorConfiguration) error {
+	cm := &corev1.ConfigMap{}
+	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		context.TODO(),
+		types.NamespacedName{
+			Name:      tls.CheMergedCABundleCertsCMName,
+			Namespace: ctx.CheCluster.Namespace,
+		},
+		cm,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to get ConfigMap %s: %w", tls.CheMergedCABundleCertsCMName, err)
 	}
+
+	if exists && len(cm.Data) > 0 {
+		if operatorConfig.Routing == nil {
+			operatorConfig.Routing = &controllerv1alpha1.RoutingConfig{}
+		}
+
+		operatorConfig.Routing.TLSCertificateConfigmapRef = &controllerv1alpha1.ConfigmapReference{
+			Name:      tls.CheMergedCABundleCertsCMName,
+			Namespace: ctx.CheCluster.Namespace,
+		}
+	} else {
+		if operatorConfig.Routing != nil {
+			operatorConfig.Routing.TLSCertificateConfigmapRef = nil
+		}
+	}
+
+	return nil
 }
 
 func disableDWOProxy(routingConfig *controllerv1alpha1.RoutingConfig) {

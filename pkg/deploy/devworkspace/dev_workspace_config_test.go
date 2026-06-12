@@ -1006,7 +1006,7 @@ func TestReconcileDevWorkspaceConfigForContainerCapabilities(t *testing.T) {
 			diff := cmp.Diff(testCase.expectedOperatorConfig, dwoc.Config,
 				cmp.Options{
 					cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount", "ProjectCloneConfig", "DeploymentStrategy", "DefaultStorageSize", "StorageClassName"),
-					cmpopts.IgnoreFields(controllerv1alpha1.OperatorConfiguration{}, "Routing"),
+					cmpopts.IgnoreFields(controllerv1alpha1.RoutingConfig{}, "TLSCertificateConfigmapRef"),
 				})
 			assert.Empty(t, diff)
 		})
@@ -1165,7 +1165,7 @@ func TestReconcileDevWorkspaceConfigProgressTimeout(t *testing.T) {
 			diff := cmp.Diff(testCase.expectedOperatorConfig, dwoc.Config,
 				cmp.Options{
 					cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount", "DefaultStorageSize", "StorageClassName", "ProjectCloneConfig", "DeploymentStrategy"),
-					cmpopts.IgnoreFields(controllerv1alpha1.OperatorConfiguration{}, "Routing"),
+					cmpopts.IgnoreFields(controllerv1alpha1.RoutingConfig{}, "TLSCertificateConfigmapRef"),
 				})
 			assert.Empty(t, diff)
 		})
@@ -2424,7 +2424,7 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 			assert.NoError(t, err)
 			diff := cmp.Diff(testCase.expectedOperatorConfig, dwoc.Config, cmp.Options{
 				cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount", "DeploymentStrategy", "ContainerSecurityContext"),
-				cmpopts.IgnoreFields(controllerv1alpha1.OperatorConfiguration{}, "Routing"),
+				cmpopts.IgnoreFields(controllerv1alpha1.RoutingConfig{}, "TLSCertificateConfigmapRef"),
 			})
 			assert.Empty(t, diff)
 		})
@@ -3445,6 +3445,106 @@ func TestReconcileDevWorkspaceConfigTLSCertificateConfigmapRef(t *testing.T) {
 				},
 			},
 			expectedRoutingConfig: nil,
+		},
+		{
+			name: "Clear TLSCertificateConfigmapRef when CA bundle ConfigMap is removed",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+			},
+			existedObjects: []client.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Routing: &controllerv1alpha1.RoutingConfig{
+							TLSCertificateConfigmapRef: &controllerv1alpha1.ConfigmapReference{
+								Name:      tls.CheMergedCABundleCertsCMName,
+								Namespace: "eclipse-che",
+							},
+						},
+					},
+				},
+			},
+			expectedRoutingConfig: &controllerv1alpha1.RoutingConfig{},
+		},
+		{
+			name: "Clear TLSCertificateConfigmapRef when CA bundle ConfigMap data is emptied",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+			},
+			existedObjects: []client.Object{
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      tls.CheMergedCABundleCertsCMName,
+						Namespace: "eclipse-che",
+					},
+					Data: map[string]string{},
+				},
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Routing: &controllerv1alpha1.RoutingConfig{
+							TLSCertificateConfigmapRef: &controllerv1alpha1.ConfigmapReference{
+								Name:      tls.CheMergedCABundleCertsCMName,
+								Namespace: "eclipse-che",
+							},
+						},
+					},
+				},
+			},
+			expectedRoutingConfig: &controllerv1alpha1.RoutingConfig{},
+		},
+		{
+			name: "Clear TLSCertificateConfigmapRef while preserving other routing config",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+			},
+			existedObjects: []client.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Routing: &controllerv1alpha1.RoutingConfig{
+							DefaultRoutingClass: "che",
+							TLSCertificateConfigmapRef: &controllerv1alpha1.ConfigmapReference{
+								Name:      tls.CheMergedCABundleCertsCMName,
+								Namespace: "eclipse-che",
+							},
+						},
+					},
+				},
+			},
+			expectedRoutingConfig: &controllerv1alpha1.RoutingConfig{
+				DefaultRoutingClass: "che",
+			},
 		},
 	}
 
