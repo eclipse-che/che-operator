@@ -163,7 +163,7 @@ func TestReconcileDevWorkspaceConfigTLSCertificateConfigmapRef(t *testing.T) {
 					},
 				},
 			},
-			expectedRoutingConfig: nil,
+			expectedRoutingConfig: &controllerv1alpha1.RoutingConfig{},
 		},
 		{
 			name: "Clear TLSCertificateConfigmapRef when CA bundle ConfigMap data is emptied",
