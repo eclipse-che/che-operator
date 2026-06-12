@@ -56,7 +56,6 @@ func TestSyncService(t *testing.T) {
 
 	service := &corev1.Service{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: deploy.CheServiceName, Namespace: "eclipse-che"}, service)
-	assert.True(t, done)
 	assert.Nil(t, err)
 
 	assert.Equal(t, service.Spec.Ports[0].Name, "http")

@@ -742,6 +742,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
 			_, _, err := devWorkspaceConfigReconciler.Reconcile(deployContext)
+
 			assert.Error(t, err)
 			assert.Regexp(t, regexp.MustCompile(testCase.expectedErrorMessage), err.Error(), "error message must match")
 		})

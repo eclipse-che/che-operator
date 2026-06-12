@@ -299,6 +299,10 @@ func (c *CertificatesReconciler) syncSelfSignedCertificates(ctx *chetypes.Deploy
 		mandatoryLabelKeys := slices.Collect(maps.Keys(defaultLabels))
 		mandatoryLabelKeys = append(mandatoryLabelKeys, constants.ConfigOpenShiftIOInjectTrustedCaBundle)
 
+		if err := controllerutil.SetControllerReference(ctx.CheCluster, selfSignedCertCM, ctx.ClusterAPI.Scheme); err != nil {
+			return false, err
+		}
+
 		err = ctx.ClusterAPI.ClientWrapper.Sync(
 			context.TODO(),
 			selfSignedCertCM,

@@ -387,6 +387,7 @@ func TestReconcileDevWorkspaceConfigServiceAccountTokens(t *testing.T) {
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
 			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+
 			assert.NoError(t, err)
 			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.ServiceAccount.ServiceAccountTokens, dwoc.Config.Workspace.ServiceAccount.ServiceAccountTokens)
 		})

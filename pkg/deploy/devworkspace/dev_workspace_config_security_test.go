@@ -734,6 +734,7 @@ func TestReconcileDevWorkspacePodSecurityContext(t *testing.T) {
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
 			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+
 			assert.NoError(t, err)
 			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.PodSecurityContext, dwoc.Config.Workspace.PodSecurityContext,
 				fmt.Sprintf("Did not get expected PodSecurityContext.\nDiff:%s", cmp.Diff(testCase.expectedOperatorConfig.Workspace.PodSecurityContext, dwoc.Config.Workspace.PodSecurityContext)))

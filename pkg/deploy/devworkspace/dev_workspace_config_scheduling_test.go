@@ -479,8 +479,9 @@ func TestReconcileDevWorkspaceConfigRuntimeClassName(t *testing.T) {
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
 			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+
 			assert.NoError(t, err)
-			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.SchedulerName, dwoc.Config.Workspace.SchedulerName)
+			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.RuntimeClassName, dwoc.Config.Workspace.RuntimeClassName)
 		})
 	}
 }
@@ -591,6 +592,7 @@ func TestReconcileDevWorkspaceConfigDeploymentStrategy(t *testing.T) {
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
 			err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+
 			assert.NoError(t, err)
 			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.DeploymentStrategy, dwoc.Config.Workspace.DeploymentStrategy)
 		})

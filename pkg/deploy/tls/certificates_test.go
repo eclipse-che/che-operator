@@ -240,6 +240,7 @@ func TestSyncCheCABundleCerts(t *testing.T) {
 	cm := &corev1.ConfigMap{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
 	assert.Nil(t, err)
+	assert.Equal(t, "true", cm.Labels[dwconstants.DevWorkspaceWatchConfigMapLabel])
 
 	cert2 := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
