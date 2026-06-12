@@ -282,6 +282,7 @@ type CheClusterComponents struct {
 	Dashboard Dashboard `json:"dashboard"`
 	// OpenVSX registry configuration.
 	// +optional
+    // +kubebuilder:default:={enable: false}
 	OpenVSX OpenVSX `json:"openVSX"`
 	// Kubernetes Image Puller configuration.
 	// +optional
