@@ -11,7 +11,7 @@ require (
 	github.com/openshift/api v0.0.0-20260325070019-86893981287e
 	github.com/operator-framework/api v0.41.0
 	github.com/operator-framework/operator-lifecycle-manager v0.41.0
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.86.2
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.91.0
 	github.com/sirupsen/logrus v1.9.4
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.27.1
