@@ -128,10 +128,8 @@ func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(ctx *chetypes
 		}
 	}
 
-	defaultLabels := deploy.GetLabels(constants.CheCABundle)
-
 	openShiftCaBundleCM.Labels = utils.GetMapOrDefault(openShiftCaBundleCM.Labels, map[string]string{})
-	utils.AddMap(openShiftCaBundleCM.Labels, defaultLabels)
+	utils.AddMap(openShiftCaBundleCM.Labels, deploy.GetLabels(constants.CheCABundle))
 
 	if ctx.CheCluster.IsDisableWorkspaceCaBundleMount() {
 		// Remove annotation to stop OpenShift network operator from injecting certificates
@@ -169,8 +167,7 @@ func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(ctx *chetypes
 		return false, err
 	}
 
-	mandatoryLabelKeys := slices.Collect(maps.Keys(defaultLabels))
-	mandatoryLabelKeys = append(mandatoryLabelKeys, constants.ConfigOpenShiftIOInjectTrustedCaBundle)
+	mandatoryLabelKeys := append(deploy.GetLabelKeys(), constants.ConfigOpenShiftIOInjectTrustedCaBundle)
 
 	err = ctx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
@@ -279,8 +276,6 @@ func (c *CertificatesReconciler) syncSelfSignedCertificates(ctx *chetypes.Deploy
 		return err == nil, err
 	}
 
-	defaultLabels := deploy.GetLabels(constants.CheCABundle)
-
 	if len(selfSignedCertSecret.Data["ca.crt"]) > 0 {
 		selfSignedCertCM := &corev1.ConfigMap{
 			TypeMeta: metav1.TypeMeta{
@@ -290,13 +285,11 @@ func (c *CertificatesReconciler) syncSelfSignedCertificates(ctx *chetypes.Deploy
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        constants.DefaultSelfSignedCertificateSecretName,
 				Namespace:   ctx.CheCluster.Namespace,
-				Labels:      defaultLabels,
+				Labels:      deploy.GetLabels(constants.CheCABundle),
 				Annotations: map[string]string{},
 			},
 			Data: map[string]string{"ca.crt": string(selfSignedCertSecret.Data["ca.crt"])},
 		}
-
-		mandatoryLabelKeys := slices.Collect(maps.Keys(defaultLabels))
 
 		if err := controllerutil.SetControllerReference(ctx.CheCluster, selfSignedCertCM, ctx.ClusterAPI.Scheme); err != nil {
 			return false, err
@@ -306,7 +299,7 @@ func (c *CertificatesReconciler) syncSelfSignedCertificates(ctx *chetypes.Deploy
 			context.TODO(),
 			selfSignedCertCM,
 			&k8sclient.SyncOptions{
-				DiffOpts: diffs.ConfigMap(mandatoryLabelKeys, nil),
+				DiffOpts: diffs.ConfigMap(deploy.GetLabelKeys(), nil),
 			})
 	}
 

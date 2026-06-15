@@ -200,7 +200,7 @@ func TestReconcileDevWorkspaceConfigTLSCertificateConfigmapRef(t *testing.T) {
 					},
 				},
 			},
-			expectedRoutingConfig: nil,
+			expectedRoutingConfig: &controllerv1alpha1.RoutingConfig{},
 		},
 		{
 			name: "Re-reconcile is stable when TLSCertificateConfigmapRef already matches",

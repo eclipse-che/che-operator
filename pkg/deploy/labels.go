@@ -31,6 +31,16 @@ func GetLabels(component string) map[string]string {
 	}
 }
 
+func GetLabelKeys() []string {
+	return []string{
+		constants.KubernetesNameLabelKey,
+		constants.KubernetesInstanceLabelKey,
+		constants.KubernetesPartOfLabelKey,
+		constants.KubernetesComponentLabelKey,
+		constants.KubernetesManagedByLabelKey,
+	}
+}
+
 func GetManagedByLabel() string {
 	return defaults.GetCheFlavor() + "-operator"
 }
