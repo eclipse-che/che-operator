@@ -167,6 +167,8 @@ func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(ctx *chetypes
 		return false, err
 	}
 
+	// adding `ConfigOpenShiftIOInjectTrustedCaBundle` label (even if deleted) ensures
+	// that destination ConfigMap doesn't have it
 	mandatoryLabelKeys := append(deploy.GetLabelKeys(), constants.ConfigOpenShiftIOInjectTrustedCaBundle)
 
 	err = ctx.ClusterAPI.ClientWrapper.Sync(
@@ -207,9 +209,7 @@ func (c *CertificatesReconciler) syncKubernetesCABundleCertificates(ctx *chetype
 		context.TODO(),
 		kubernetesCaBundleCM,
 		&k8sclient.SyncOptions{
-			DiffOpts: diffs.ConfigMap(
-				deploy.GetLabelsAndAnnotations(kubernetesCaBundleCM),
-			),
+			DiffOpts: diffs.ConfigMap(deploy.GetLabelKeys(), nil),
 		},
 	)
 
@@ -243,15 +243,17 @@ func (c *CertificatesReconciler) syncGitTrustedCertificates(ctx *chetypes.Deploy
 		gitTrustedCertsCM.Labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
 		gitTrustedCertsCM.Labels[constants.KubernetesComponentLabelKey] = constants.CheCABundle
 
-		// We don't need to SetControllerReference on this ConfigMap, since
-		// has been created by admin
+		// Don't need set SetControllerReference on this ConfigMap since it is created by admin
 
 		err = ctx.ClusterAPI.ClientWrapper.Sync(
 			context.TODO(),
 			gitTrustedCertsCM,
 			&k8sclient.SyncOptions{
 				DiffOpts: diffs.ConfigMap(
-					deploy.GetLabelsAndAnnotations(gitTrustedCertsCM),
+					[]string{
+						constants.KubernetesPartOfLabelKey,
+						constants.KubernetesComponentLabelKey},
+					nil,
 				),
 			},
 		)
@@ -363,13 +365,11 @@ func (c *CertificatesReconciler) syncOIDCIssuerCertificate(ctx *chetypes.DeployC
 		return false, err
 	}
 
-	mandatoryLabelKeys := slices.Collect(maps.Keys(cm.GetLabels()))
-
 	err := ctx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
 		cm,
 		&k8sclient.SyncOptions{
-			DiffOpts: diffs.ConfigMap(mandatoryLabelKeys, nil),
+			DiffOpts: diffs.ConfigMap(deploy.GetLabelKeys(), nil),
 		},
 	)
 	return err == nil, err
@@ -448,13 +448,11 @@ func (c *CertificatesReconciler) syncCheCABundleCerts(ctx *chetypes.DeployContex
 		return false, err
 	}
 
-	labelKeys, annotationKeys := deploy.GetLabelsAndAnnotations(mergedCABundlesCM)
-
 	err = ctx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
 		mergedCABundlesCM,
 		&k8sclient.SyncOptions{
-			DiffOpts: diffs.ConfigMap(labelKeys, annotationKeys),
+			DiffOpts: diffs.ConfigMap(deploy.GetLabelsAndAnnotations(mergedCABundlesCM)),
 		},
 	)
 	return err == nil, err
