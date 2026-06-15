@@ -65,6 +65,8 @@ func GetLegacyLabels(component string) map[string]string {
 	}
 }
 
+// GetLabelsAndAnnotations extracts label and annotation keys from an object.
+// Note: key order is non-deterministic (map iteration order).
 func GetLabelsAndAnnotations(obj client.Object) ([]string, []string) {
 	return slices.Collect(maps.Keys(obj.GetLabels())), slices.Collect(maps.Keys(obj.GetAnnotations()))
 }

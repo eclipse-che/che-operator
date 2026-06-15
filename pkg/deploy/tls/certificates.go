@@ -169,7 +169,7 @@ func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(ctx *chetypes
 
 	// adding `ConfigOpenShiftIOInjectTrustedCaBundle` label (even if deleted) ensures
 	// that destination ConfigMap doesn't have it
-	mandatoryLabelKeys := append(deploy.GetLabelKeys(), constants.ConfigOpenShiftIOInjectTrustedCaBundle)
+	mandatoryLabelKeys := slices.Concat(deploy.GetLabelKeys(), []string{constants.ConfigOpenShiftIOInjectTrustedCaBundle})
 
 	err = ctx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
