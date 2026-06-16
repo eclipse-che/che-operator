@@ -105,9 +105,6 @@ declare -A replaced_paths=(
   ["go.starlark.net"]="github.com/google/starlark-go"
   ["gotest.tools"]="github.com/gotestyourself/gotest.tools"
   ["gioui.org"]="github.com/gioui/gio"
-  # ["go.podman.io/common"]="github.com/containers/container-libs"
-  # ["go.podman.io/image/v5"]="github.com/containers/container-libs"
-  # ["go.podman.io/storage"]="github.com/containers/container-libs"
 )
 
 # replaces to have a correct link for clearlydefined.io api request
@@ -217,7 +214,7 @@ retryUrl() {
     url=$1
 
     body=""
-    max_retries=5
+    max_retries=1
     for ((i=1; i<=max_retries; i++)); do
       response=$(curl -s -w "HTTPSTATUS:%{http_code}" "$url")
       body=$(echo "$response" | sed -e 's/HTTPSTATUS\:.*//g')
@@ -237,6 +234,11 @@ go list -m -mod=mod all | while read -r module; do
     if [[ "$module" == "github.com/eclipse-che/che-operator" ]]; then
         continue
     fi
+
+    if [[ ! "$module" =~ "k8s.io" ]]; then
+        continue
+    fi
+
 
     # respect the replace directive in go.mod file
     if [[ "${module}" == *"=>"* ]]; then
