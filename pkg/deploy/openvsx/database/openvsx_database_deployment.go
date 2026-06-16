@@ -31,6 +31,7 @@ func (p *OpenVSXDatabaseReconciler) getDeploymentSpec(ctx *chetypes.DeployContex
 	pullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(image))
 	labels, labelSelector := deploy.GetLabelsAndSelector(constants.OpenVSXDatabaseName)
 	terminationGracePeriodSeconds := int64(30)
+	secretName := GetCredentialsSecretName(ctx)
 
 	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -73,8 +74,8 @@ func (p *OpenVSXDatabaseReconciler) getDeploymentSpec(ctx *chetypes.DeployContex
 									Name: "POSTGRESQL_USER",
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: constants.OpenVSXDatabaseCredentialsSecret},
-											Key:                  "user",
+											LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
+											Key:                  "db-user",
 										},
 									},
 								},
@@ -82,8 +83,8 @@ func (p *OpenVSXDatabaseReconciler) getDeploymentSpec(ctx *chetypes.DeployContex
 									Name: "POSTGRESQL_PASSWORD",
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: constants.OpenVSXDatabaseCredentialsSecret},
-											Key:                  "password",
+											LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
+											Key:                  "db-password",
 										},
 									},
 								},
@@ -91,8 +92,8 @@ func (p *OpenVSXDatabaseReconciler) getDeploymentSpec(ctx *chetypes.DeployContex
 									Name: "POSTGRESQL_DATABASE",
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: constants.OpenVSXDatabaseCredentialsSecret},
-											Key:                  "database",
+											LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
+											Key:                  "db-name",
 										},
 									},
 								},

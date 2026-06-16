@@ -218,10 +218,10 @@ func TestDeploymentSpecEnvVars(t *testing.T) {
 		}
 	}
 
-	assert.Equal(t, "user", secretEnvMap["DB_USERNAME"])
-	assert.Equal(t, "password", secretEnvMap["DB_PASSWORD"])
-	assert.Equal(t, "userPAT", secretEnvMap["OPENVSX_USER_PAT"])
-	assert.Equal(t, "adminPAT", secretEnvMap["OPENVSX_ADMIN_PAT"])
+	assert.Equal(t, "db-user", secretEnvMap["DB_USERNAME"])
+	assert.Equal(t, "db-password", secretEnvMap["DB_PASSWORD"])
+	assert.Equal(t, "publisher-token", secretEnvMap["OPENVSX_USER_PAT"])
+	assert.Equal(t, "admin-token", secretEnvMap["OPENVSX_ADMIN_PAT"])
 }
 
 func TestDeploymentSpecProbes(t *testing.T) {
@@ -290,7 +290,7 @@ func TestDeploymentSpecVolumes(t *testing.T) {
 func TestApplicationConfig(t *testing.T) {
 	config := applicationConfig
 
-	assert.True(t, strings.Contains(config, "jdbc:postgresql://openvsx-database:5432/openvsx"))
+	assert.True(t, strings.Contains(config, "jdbc:postgresql://openvsx-database:5432/${PGDATABASE:openvsx}"))
 	assert.True(t, strings.Contains(config, "${DB_USERNAME}"))
 	assert.True(t, strings.Contains(config, "${DB_PASSWORD}"))
 	assert.True(t, strings.Contains(config, "databasesearch:\n    enabled: true"))

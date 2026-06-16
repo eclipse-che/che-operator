@@ -232,12 +232,12 @@ func TestReconcileSecretNotRecreated(t *testing.T) {
 	secret := &corev1.Secret{}
 	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.OpenVSXDatabaseCredentialsSecret, Namespace: "eclipse-che"}, secret)
 	assert.NoError(t, err)
-	password := string(secret.Data["password"])
+	password := string(secret.Data["db-password"])
 	assert.NotEmpty(t, password)
-	assert.Equal(t, "eclipse-che", string(secret.Data["userName"]))
-	assert.Len(t, string(secret.Data["userPAT"]), 32)
-	assert.Equal(t, "openvsx-admin", string(secret.Data["adminName"]))
-	assert.Len(t, string(secret.Data["adminPAT"]), 32)
+	assert.Equal(t, "eclipse-che", string(secret.Data["publisher-name"]))
+	assert.Len(t, string(secret.Data["publisher-token"]), 32)
+	assert.Equal(t, "openvsx-admin", string(secret.Data["admin-name"]))
+	assert.Len(t, string(secret.Data["admin-token"]), 32)
 
 	// syncSecret should preserve existing secret (not regenerate password)
 	done, err := reconciler.syncSecret(ctx)
@@ -247,7 +247,110 @@ func TestReconcileSecretNotRecreated(t *testing.T) {
 	secret2 := &corev1.Secret{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.OpenVSXDatabaseCredentialsSecret, Namespace: "eclipse-che"}, secret2)
 	assert.NoError(t, err)
-	assert.Equal(t, password, string(secret2.Data["password"]))
+	assert.Equal(t, password, string(secret2.Data["db-password"]))
+}
+
+func TestUserProvidedSecret(t *testing.T) {
+	userSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "my-openvsx-creds",
+			Namespace: "eclipse-che",
+		},
+		Data: map[string][]byte{
+			"db-user":         []byte("myuser"),
+			"db-password":     []byte("mypassword"),
+			"db-name":         []byte("mydb"),
+			"publisher-name":  []byte("mypub"),
+			"publisher-token": []byte("mypubtoken"),
+			"admin-name":      []byte("myadmin"),
+			"admin-token":     []byte("myadmintoken"),
+		},
+	}
+
+	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+		Spec: chev2.CheClusterSpec{
+			Components: chev2.CheClusterComponents{
+				OpenVSX: chev2.OpenVSX{
+					Enable: true,
+					OpenVSXDatabase: &chev2.OpenVSXDatabase{
+						OpenVSXSecret: "my-openvsx-creds",
+					},
+				},
+			},
+		},
+	}).WithObjects(userSecret).Build()
+
+	reconciler := NewOpenVSXDatabaseReconciler()
+	_, done, err := reconciler.Reconcile(ctx)
+	assert.NoError(t, err)
+	assert.True(t, done)
+
+	assert.Equal(t, "my-openvsx-creds", GetCredentialsSecretName(ctx))
+}
+
+func TestUserProvidedSecretMissing(t *testing.T) {
+	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+		Spec: chev2.CheClusterSpec{
+			Components: chev2.CheClusterComponents{
+				OpenVSX: chev2.OpenVSX{
+					Enable: true,
+					OpenVSXDatabase: &chev2.OpenVSXDatabase{
+						OpenVSXSecret: "nonexistent-secret",
+					},
+				},
+			},
+		},
+	}).Build()
+
+	reconciler := NewOpenVSXDatabaseReconciler()
+	_, done, err := reconciler.Reconcile(ctx)
+	assert.Error(t, err)
+	assert.False(t, done)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestUserProvidedSecretMissingKeys(t *testing.T) {
+	userSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "incomplete-secret",
+			Namespace: "eclipse-che",
+		},
+		Data: map[string][]byte{
+			"db-user":     []byte("myuser"),
+			"db-password": []byte("mypassword"),
+		},
+	}
+
+	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+		Spec: chev2.CheClusterSpec{
+			Components: chev2.CheClusterComponents{
+				OpenVSX: chev2.OpenVSX{
+					Enable: true,
+					OpenVSXDatabase: &chev2.OpenVSXDatabase{
+						OpenVSXSecret: "incomplete-secret",
+					},
+				},
+			},
+		},
+	}).WithObjects(userSecret).Build()
+
+	reconciler := NewOpenVSXDatabaseReconciler()
+	_, done, err := reconciler.Reconcile(ctx)
+	assert.Error(t, err)
+	assert.False(t, done)
+	assert.Contains(t, err.Error(), "missing required keys")
 }
 
 func TestReconcileCustomClaimSize(t *testing.T) {
@@ -306,7 +409,7 @@ func TestDeploymentSpecEnvVars(t *testing.T) {
 		}
 	}
 
-	assert.Equal(t, "user", envNames["POSTGRESQL_USER"])
-	assert.Equal(t, "password", envNames["POSTGRESQL_PASSWORD"])
-	assert.Equal(t, "database", envNames["POSTGRESQL_DATABASE"])
+	assert.Equal(t, "db-user", envNames["POSTGRESQL_USER"])
+	assert.Equal(t, "db-password", envNames["POSTGRESQL_PASSWORD"])
+	assert.Equal(t, "db-name", envNames["POSTGRESQL_DATABASE"])
 }

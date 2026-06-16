@@ -23,6 +23,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy/openvsx/database"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -246,16 +247,16 @@ func (r *OpenVSXServerReconciler) syncUserSetupJob(ctx *chetypes.DeployContext) 
 	terminationGracePeriodSeconds := int64(30)
 	runAsNonRoot := true
 
-	secretName := constants.OpenVSXDatabaseCredentialsSecret
+	secretName := database.GetCredentialsSecretName(ctx)
 
 	dbEnvVars := []corev1.EnvVar{
 		{
 			Name:  "PGHOST",
 			Value: constants.OpenVSXDatabaseName,
 		},
-		envFromSecret("PGDATABASE", secretName, "database"),
-		envFromSecret("PGUSER", secretName, "user"),
-		envFromSecret("PGPASSWORD", secretName, "password"),
+		envFromSecret("PGDATABASE", secretName, "db-name"),
+		envFromSecret("PGUSER", secretName, "db-user"),
+		envFromSecret("PGPASSWORD", secretName, "db-password"),
 	}
 
 	job := &batchv1.Job{
@@ -296,10 +297,10 @@ func (r *OpenVSXServerReconciler) syncUserSetupJob(ctx *chetypes.DeployContext) 
 							Image:           image,
 							ImagePullPolicy: pullPolicy,
 							Env: append(dbEnvVars,
-								envFromSecret("OPENVSX_USER_NAME", secretName, "userName"),
-								envFromSecret("OPENVSX_USER_PAT", secretName, "userPAT"),
-								envFromSecret("OPENVSX_ADMIN_NAME", secretName, "adminName"),
-								envFromSecret("OPENVSX_ADMIN_PAT", secretName, "adminPAT"),
+								envFromSecret("OPENVSX_USER_NAME", secretName, "publisher-name"),
+								envFromSecret("OPENVSX_USER_PAT", secretName, "publisher-token"),
+								envFromSecret("OPENVSX_ADMIN_NAME", secretName, "admin-name"),
+								envFromSecret("OPENVSX_ADMIN_PAT", secretName, "admin-token"),
 							),
 							Command: []string{"sh", "-c",
 								`psql -c "INSERT INTO user_data (id, login_name, role) VALUES (1001, '$OPENVSX_USER_NAME', 'privileged') ON CONFLICT (id) DO NOTHING; INSERT INTO personal_access_token (id, user_data, value, active, created_timestamp, accessed_timestamp, description, notified) VALUES (1001, 1001, '$OPENVSX_USER_PAT', true, current_timestamp, current_timestamp, 'extensions publisher', false) ON CONFLICT (id) DO NOTHING; INSERT INTO user_data (id, login_name, role) VALUES (1002, '$OPENVSX_ADMIN_NAME', 'admin') ON CONFLICT (id) DO NOTHING; INSERT INTO personal_access_token (id, user_data, value, active, created_timestamp, accessed_timestamp, description, notified) VALUES (1002, 1002, '$OPENVSX_ADMIN_PAT', true, current_timestamp, current_timestamp, 'Admin API Token', false) ON CONFLICT (id) DO NOTHING;"`,
@@ -400,7 +401,7 @@ func (r *OpenVSXServerReconciler) syncExtensionPublishJob(ctx *chetypes.DeployCo
 	terminationGracePeriodSeconds := int64(30)
 	runAsNonRoot := true
 
-	secretName := constants.OpenVSXDatabaseCredentialsSecret
+	secretName := database.GetCredentialsSecretName(ctx)
 
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
@@ -433,7 +434,7 @@ func (r *OpenVSXServerReconciler) syncExtensionPublishJob(ctx *chetypes.DeployCo
 									Name:  "OVSX_REGISTRY_URL",
 									Value: ctx.CheCluster.Status.OpenVSXURL,
 								},
-								envFromSecret("OVSX_PAT", secretName, "userPAT"),
+								envFromSecret("OVSX_PAT", secretName, "publisher-token"),
 								{
 									Name:  "NODE_EXTRA_CA_CERTS",
 									Value: "/public-certs/tls-ca-bundle.pem",

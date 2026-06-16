@@ -481,6 +481,19 @@ type OpenVSXServer struct {
 // Database configuration for OpenVSX.
 // +k8s:openapi-gen=true
 type OpenVSXDatabase struct {
+	// The value can be the name of a Kubernetes Secret that contains credentials for the OpenVSX database
+	// and registry users. When specified, the operator uses this secret instead of auto-generating one.
+	// The secret must contain the following keys:
+	//   - `db-user`: PostgreSQL username.
+	//   - `db-password`: PostgreSQL password.
+	//   - `db-name`: PostgreSQL database name.
+	//   - `publisher-name`: OpenVSX publisher account login name used to publish extensions.
+	//   - `publisher-token`: Personal access token for the publisher account.
+	//   - `admin-name`: OpenVSX admin account login name.
+	//   - `admin-token`: Personal access token for the admin account.
+	// If omitted, the operator creates a secret with auto-generated random values.
+	// +optional
+	OpenVSXSecret string `json:"openVSXSecret,omitempty"`
 	// Deployment override options.
 	// +optional
 	Deployment *Deployment `json:"deployment,omitempty"`

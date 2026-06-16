@@ -22,7 +22,7 @@ spring:
     jcache:
       config: classpath:ehcache.xml
   datasource:
-    url: jdbc:postgresql://openvsx-database:5432/openvsx
+    url: jdbc:postgresql://openvsx-database:5432/${PGDATABASE:openvsx}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
   flyway:

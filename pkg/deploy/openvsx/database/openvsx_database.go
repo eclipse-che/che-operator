@@ -15,6 +15,8 @@ package database
 import (
 	"context"
 
+	"fmt"
+
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -23,6 +25,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,7 +54,9 @@ func (p *OpenVSXDatabaseReconciler) Reconcile(ctx *chetypes.DeployContext) (reco
 		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: constants.OpenVSXDatabaseName, Namespace: ns}, &appsv1.Deployment{})
 		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: constants.OpenVSXDatabaseName, Namespace: ns}, &corev1.Service{})
 		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: pvcName, Namespace: ns}, &corev1.PersistentVolumeClaim{})
-		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: constants.OpenVSXDatabaseCredentialsSecret, Namespace: ns}, &corev1.Secret{})
+		if !isUserProvidedSecret(ctx) {
+			_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: constants.OpenVSXDatabaseCredentialsSecret, Namespace: ns}, &corev1.Secret{})
+		}
 		return reconcile.Result{}, true, nil
 	}
 
@@ -82,19 +87,34 @@ func (p *OpenVSXDatabaseReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	return true
 }
 
+var requiredSecretKeys = []string{
+	"db-user", "db-password", "db-name",
+	"publisher-name", "publisher-token",
+	"admin-name", "admin-token",
+}
+
 func (p *OpenVSXDatabaseReconciler) syncSecret(ctx *chetypes.DeployContext) (bool, error) {
+	secretName := GetCredentialsSecretName(ctx)
+
 	secret := &corev1.Secret{}
 	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{
-		Name:      constants.OpenVSXDatabaseCredentialsSecret,
+		Name:      secretName,
 		Namespace: ctx.CheCluster.Namespace,
 	}, secret)
 
 	if err == nil {
+		if isUserProvidedSecret(ctx) {
+			return validateSecretKeys(secret)
+		}
 		return true, nil
 	}
 
 	if !errors.IsNotFound(err) {
 		return false, err
+	}
+
+	if isUserProvidedSecret(ctx) {
+		return false, fmt.Errorf("credentials secret '%s' not found", secretName)
 	}
 
 	secret = &corev1.Secret{
@@ -103,27 +123,52 @@ func (p *OpenVSXDatabaseReconciler) syncSecret(ctx *chetypes.DeployContext) (boo
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.OpenVSXDatabaseCredentialsSecret,
+			Name:      secretName,
 			Namespace: ctx.CheCluster.Namespace,
 			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
-			"user":      []byte("openvsx"),
-			"password":  []byte(utils.GeneratePassword(16)),
-			"database":  []byte("openvsx"),
-			"userName":  []byte("eclipse-che"),
-			"userPAT":   []byte(utils.GeneratePassword(32)),
-			"adminName": []byte("openvsx-admin"),
-			"adminPAT":  []byte(utils.GeneratePassword(32)),
+			"db-user":         []byte("openvsx"),
+			"db-password":     []byte(utils.GeneratePassword(16)),
+			"db-name":         []byte("openvsx"),
+			"publisher-name":  []byte("eclipse-che"),
+			"publisher-token": []byte(utils.GeneratePassword(32)),
+			"admin-name":      []byte("openvsx-admin"),
+			"admin-token":     []byte(utils.GeneratePassword(32)),
 		},
 	}
 
 	if err := controllerutil.SetControllerReference(ctx.CheCluster, secret, ctx.ClusterAPI.Scheme); err != nil {
 		return false, err
 	}
-    err = ctx.ClusterAPI.ClientWrapper.Sync(context.TODO(), secret)
+	err = ctx.ClusterAPI.ClientWrapper.Sync(context.TODO(), secret)
 	return err == nil, err
+}
+
+func validateSecretKeys(secret *corev1.Secret) (bool, error) {
+	var missing []string
+	for _, key := range requiredSecretKeys {
+		if _, ok := secret.Data[key]; !ok {
+			missing = append(missing, key)
+		}
+	}
+	if len(missing) > 0 {
+		return false, fmt.Errorf("credentials secret '%s' is missing required keys: %v", secret.Name, missing)
+	}
+	return true, nil
+}
+
+func isUserProvidedSecret(ctx *chetypes.DeployContext) bool {
+	return ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXDatabase != nil &&
+		ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXDatabase.OpenVSXSecret != ""
+}
+
+func GetCredentialsSecretName(ctx *chetypes.DeployContext) string {
+	if isUserProvidedSecret(ctx) {
+		return ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXDatabase.OpenVSXSecret
+	}
+	return constants.OpenVSXDatabaseCredentialsSecret
 }
 
 func (p *OpenVSXDatabaseReconciler) syncService(ctx *chetypes.DeployContext) (bool, error) {

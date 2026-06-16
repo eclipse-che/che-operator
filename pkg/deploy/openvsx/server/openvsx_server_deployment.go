@@ -21,6 +21,7 @@ import (
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy/openvsx/database"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -47,6 +48,7 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 	pullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(image))
 	labels, labelSelector := deploy.GetLabelsAndSelector(constants.OpenVSXServerName)
 	terminationGracePeriodSeconds := int64(30)
+	secretName := database.GetCredentialsSecretName(ctx)
 
 	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -93,8 +95,8 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 									Name: "DB_USERNAME",
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: constants.OpenVSXDatabaseCredentialsSecret},
-											Key:                  "user",
+											LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
+											Key:                  "db-user",
 										},
 									},
 								},
@@ -102,13 +104,14 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 									Name: "DB_PASSWORD",
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: constants.OpenVSXDatabaseCredentialsSecret},
-											Key:                  "password",
+											LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
+											Key:                  "db-password",
 										},
 									},
 								},
-								envFromSecret("OPENVSX_USER_PAT", constants.OpenVSXDatabaseCredentialsSecret, "userPAT"),
-								envFromSecret("OPENVSX_ADMIN_PAT", constants.OpenVSXDatabaseCredentialsSecret, "adminPAT"),
+								envFromSecret("PGDATABASE", secretName, "db-name"),
+								envFromSecret("OPENVSX_USER_PAT", secretName, "publisher-token"),
+								envFromSecret("OPENVSX_ADMIN_PAT", secretName, "admin-token"),
 								{
 									Name:  "OVSX_REGISTRY_URL",
 									Value: ctx.CheCluster.Status.OpenVSXURL,
