@@ -302,8 +302,31 @@ func (r *OpenVSXServerReconciler) syncUserSetupJob(ctx *chetypes.DeployContext) 
 								envFromSecret("OPENVSX_ADMIN_NAME", secretName, "admin-name"),
 								envFromSecret("OPENVSX_ADMIN_PAT", secretName, "admin-token"),
 							),
-							Command: []string{"sh", "-c",
-								`psql -c "INSERT INTO user_data (id, login_name, role) VALUES (1001, '$OPENVSX_USER_NAME', 'privileged') ON CONFLICT (id) DO NOTHING; INSERT INTO personal_access_token (id, user_data, value, active, created_timestamp, accessed_timestamp, description, notified) VALUES (1001, 1001, '$OPENVSX_USER_PAT', true, current_timestamp, current_timestamp, 'extensions publisher', false) ON CONFLICT (id) DO NOTHING; INSERT INTO user_data (id, login_name, role) VALUES (1002, '$OPENVSX_ADMIN_NAME', 'admin') ON CONFLICT (id) DO NOTHING; INSERT INTO personal_access_token (id, user_data, value, active, created_timestamp, accessed_timestamp, description, notified) VALUES (1002, 1002, '$OPENVSX_ADMIN_PAT', true, current_timestamp, current_timestamp, 'Admin API Token', false) ON CONFLICT (id) DO NOTHING;"`,
+							Command: []string{"sh", "-c", `
+psql \
+  -v user_name="$OPENVSX_USER_NAME" \
+  -v user_pat="$OPENVSX_USER_PAT" \
+  -v admin_name="$OPENVSX_ADMIN_NAME" \
+  -v admin_pat="$OPENVSX_ADMIN_PAT" \
+  <<'EOSQL'
+INSERT INTO user_data (id, login_name, role)
+  VALUES (1001, :'user_name', 'privileged')
+  ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO personal_access_token
+  (id, user_data, value, active, created_timestamp, accessed_timestamp, description, notified)
+  VALUES (1001, 1001, :'user_pat', true, current_timestamp, current_timestamp, 'extensions publisher', false)
+  ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO user_data (id, login_name, role)
+  VALUES (1002, :'admin_name', 'admin')
+  ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO personal_access_token
+  (id, user_data, value, active, created_timestamp, accessed_timestamp, description, notified)
+  VALUES (1002, 1002, :'admin_pat', true, current_timestamp, current_timestamp, 'Admin API Token', false)
+  ON CONFLICT (id) DO NOTHING;
+EOSQL`,
 							},
 						},
 					},
