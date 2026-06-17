@@ -96,6 +96,21 @@ var requiredSecretKeys = []string{
 func (p *OpenVSXDatabaseReconciler) syncSecret(ctx *chetypes.DeployContext) (bool, error) {
 	secretName := GetCredentialsSecretName(ctx)
 
+	if isUserProvidedSecret(ctx) {
+		secret := &corev1.Secret{}
+		err := ctx.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{
+			Name:      secretName,
+			Namespace: ctx.CheCluster.Namespace,
+		}, secret)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return false, fmt.Errorf("credentials secret '%s' not found", secretName)
+			}
+			return false, err
+		}
+		return validateSecretKeys(secret)
+	}
+
 	secret := &corev1.Secret{}
 	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{
 		Name:      secretName,
@@ -103,18 +118,11 @@ func (p *OpenVSXDatabaseReconciler) syncSecret(ctx *chetypes.DeployContext) (boo
 	}, secret)
 
 	if err == nil {
-		if isUserProvidedSecret(ctx) {
-			return validateSecretKeys(secret)
-		}
 		return true, nil
 	}
 
 	if !errors.IsNotFound(err) {
 		return false, err
-	}
-
-	if isUserProvidedSecret(ctx) {
-		return false, fmt.Errorf("credentials secret '%s' not found", secretName)
 	}
 
 	secret = &corev1.Secret{
