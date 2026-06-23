@@ -13,18 +13,12 @@
 package deploy
 
 import (
+	"maps"
+	"slices"
+
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
-)
-
-var (
-	DefaultsLabelKeys = []string{
-		constants.KubernetesNameLabelKey,
-		constants.KubernetesInstanceLabelKey,
-		constants.KubernetesPartOfLabelKey,
-		constants.KubernetesComponentLabelKey,
-		constants.KubernetesManagedByLabelKey,
-	}
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func GetLabels(component string) map[string]string {
@@ -34,6 +28,16 @@ func GetLabels(component string) map[string]string {
 		constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
 		constants.KubernetesComponentLabelKey: component,
 		constants.KubernetesManagedByLabelKey: GetManagedByLabel(),
+	}
+}
+
+func GetLabelKeys() []string {
+	return []string{
+		constants.KubernetesNameLabelKey,
+		constants.KubernetesInstanceLabelKey,
+		constants.KubernetesPartOfLabelKey,
+		constants.KubernetesComponentLabelKey,
+		constants.KubernetesManagedByLabelKey,
 	}
 }
 
@@ -59,6 +63,12 @@ func GetLegacyLabels(component string) map[string]string {
 		"app":       defaults.GetCheFlavor(),
 		"component": component,
 	}
+}
+
+// GetLabelsAndAnnotations extracts label and annotation keys from an object.
+// Note: key order is non-deterministic (map iteration order).
+func GetLabelsAndAnnotations(obj client.Object) ([]string, []string) {
+	return slices.Collect(maps.Keys(obj.GetLabels())), slices.Collect(maps.Keys(obj.GetAnnotations()))
 }
 
 func IsPartOfEclipseCheResourceAndManagedByOperator(labels map[string]string) bool {

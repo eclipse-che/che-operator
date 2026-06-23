@@ -13,6 +13,7 @@
 package devworkspace
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"maps"
@@ -26,10 +27,12 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -122,6 +125,10 @@ func updateWorkspaceConfig(ctx *chetypes.DeployContext, operatorConfig *controll
 	updateHostUsers(ctx.CheCluster, operatorConfig.Workspace)
 
 	updateInitContainers(devEnvironments, operatorConfig.Workspace)
+
+	if err := updateTLSCertificateConfigmapRef(ctx, operatorConfig); err != nil {
+		return err
+	}
 
 	// If the CheCluster has a configured proxy, or if the Che Operator has detected a proxy configuration,
 	// we need to disable automatic proxy handling in the DevWorkspace Operator as its implementation collides
@@ -299,6 +306,39 @@ func updateHostUsers(cheCluster *chev2.CheCluster, workspaceConfig *controllerv1
 
 func updateInitContainers(devEnvironments *chev2.CheClusterDevEnvironments, workspaceConfig *controllerv1alpha1.WorkspaceConfig) {
 	workspaceConfig.InitContainers = devEnvironments.InitContainers
+}
+
+func updateTLSCertificateConfigmapRef(ctx *chetypes.DeployContext, operatorConfig *controllerv1alpha1.OperatorConfiguration) error {
+	cm := &corev1.ConfigMap{}
+	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		context.TODO(),
+		types.NamespacedName{
+			Name:      tls.CheMergedCABundleCertsCMName,
+			Namespace: ctx.CheCluster.Namespace,
+		},
+		cm,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to get ConfigMap %s: %w", tls.CheMergedCABundleCertsCMName, err)
+	}
+
+	if exists && len(cm.Data) > 0 {
+		if operatorConfig.Routing == nil {
+			operatorConfig.Routing = &controllerv1alpha1.RoutingConfig{}
+		}
+
+		operatorConfig.Routing.TLSCertificateConfigmapRef = &controllerv1alpha1.ConfigmapReference{
+			Name:      tls.CheMergedCABundleCertsCMName,
+			Namespace: ctx.CheCluster.Namespace,
+		}
+	} else {
+		if operatorConfig.Routing != nil {
+			operatorConfig.Routing.TLSCertificateConfigmapRef = nil
+		}
+	}
+
+	return nil
 }
 
 func disableDWOProxy(routingConfig *controllerv1alpha1.RoutingConfig) {

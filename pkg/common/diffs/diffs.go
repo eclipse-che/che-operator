@@ -51,10 +51,11 @@ var ConfigMapEnsureLabels = cmp.Options{
 	}),
 }
 
-func ConfigMap(labels []string, annotations []string) cmp.Options {
+// ConfigMap respects existed labels and annotations
+func ConfigMap(labelKeys []string, annotationKeys []string) cmp.Options {
 	return cmp.Options{
 		cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
-		objectMetaComparator(labels, annotations),
+		cmpMetadata(labelKeys, annotationKeys),
 	}
 }
 
@@ -62,7 +63,7 @@ var ServiceMonitor = cmp.Options{
 	cmpopts.IgnoreFields(monitoringv1.ServiceMonitor{}, "TypeMeta", "ObjectMeta"),
 }
 
-func objectMetaComparator(labels []string, annotations []string) cmp.Option {
+func cmpMetadata(labels []string, annotations []string) cmp.Option {
 	return cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
 		for _, label := range labels {
 			if x.Labels[label] != y.Labels[label] {

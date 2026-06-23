@@ -240,6 +240,7 @@ func TestSyncCheCABundleCerts(t *testing.T) {
 	cm := &corev1.ConfigMap{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
 	assert.Nil(t, err)
+	assert.Equal(t, "true", cm.Labels[dwconstants.DevWorkspaceWatchConfigMapLabel])
 
 	cert2 := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -383,6 +384,38 @@ func TestSyncCheCABundleCertsExcludesGitHostKeyWithDefaultConfigMap(t *testing.T
 	// Verify githost is excluded even when using default ConfigMap name
 	expected := "# ConfigMap: che-git-self-signed-cert,  Key: ca.crt\ncert-data\n\n"
 	assert.Equal(t, expected, cm.Data[kubernetesCABundleCertsFile])
+}
+
+func TestSyncOpenShiftCABundleCertificatesRemovesInjectLabel(t *testing.T) {
+	existingCM := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.DefaultCaBundleCertsCMName,
+			Namespace: "eclipse-che",
+			Labels: map[string]string{
+				constants.KubernetesPartOfLabelKey:               constants.CheEclipseOrg,
+				constants.KubernetesComponentLabelKey:            constants.CheCABundle,
+				constants.ConfigOpenShiftIOInjectTrustedCaBundle: "true",
+			},
+		},
+		Data: map[string]string{
+			"ca-bundle.crt": "openshift-injected-ca-bundle",
+		},
+	}
+
+	ctx := test.NewCtxBuilder().WithObjects(existingCM).Build()
+	ctx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: ptr.To(true)}
+
+	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
+
+	cm := &corev1.ConfigMap{}
+	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.DefaultCaBundleCertsCMName, Namespace: "eclipse-che"}, cm)
+
+	assert.NoError(t, err)
+
+	assert.Empty(t, cm.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
+	assert.Equal(t, constants.CheEclipseOrg, cm.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, constants.CheCABundle, cm.Labels[constants.KubernetesComponentLabelKey])
+	assert.Empty(t, cm.Data["ca-bundle.crt"])
 }
 
 func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
