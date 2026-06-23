@@ -228,7 +228,7 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
-	var testCases = []testCase{
+	testCases := []testCase{
 		{
 			name: "Create DevWorkspaceOperatorConfig when PersistUserHome is enabled",
 			cheCluster: &chev2.CheCluster{
@@ -523,7 +523,7 @@ func TestReconcileDevWorkspaceImagePullPolicy(t *testing.T) {
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
-	var testCases = []testCase{
+	testCases := []testCase{
 		{
 			name: "Set specific pull policy",
 			cheCluster: &chev2.CheCluster{
@@ -604,7 +604,7 @@ func TestReconcileDevWorkspaceAnnotations(t *testing.T) {
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
-	var testCases = []testCase{
+	testCases := []testCase{
 		{
 			name: "Set specific annotations",
 			cheCluster: &chev2.CheCluster{
@@ -694,7 +694,7 @@ func TestReconcileDevWorkspaceIgnoredUnrecoverableEvents(t *testing.T) {
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
-	var testCases = []testCase{
+	testCases := []testCase{
 		{
 			name: "Set events",
 			cheCluster: &chev2.CheCluster{

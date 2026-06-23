@@ -41,7 +41,7 @@ func TestReconcileDevWorkspaceConfigForContainerCapabilities(t *testing.T) {
 	}
 
 	var unmasked = corev1.UnmaskedProcMount
-	var testCases = []testCase{
+	testCases := []testCase{
 		{
 			name: "Create DevWorkspaceOperatorConfig without Container Security Context if all capabilities disabled",
 			cheCluster: &chev2.CheCluster{
@@ -302,7 +302,7 @@ func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
-	var testCases = []testCase{
+	testCases := []testCase{
 		{
 			name: "Create DevWorkspaceOperatorConfig with Container security context",
 			cheCluster: &chev2.CheCluster{
@@ -538,7 +538,7 @@ func TestReconcileDevWorkspaceContainerSecurityContext(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			deployContext := test.NewCtxBuilder().WithObjects(testCase.existedObjects...).WithCheCluster(testCase.cheCluster).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
 			test.EnsureReconcile(t, deployContext, devWorkspaceConfigReconciler.Reconcile)
@@ -584,7 +584,7 @@ func TestReconcileDevWorkspacePodSecurityContext(t *testing.T) {
 		RunAsNonRoot: ptr.To(false),
 	}
 
-	var testCases = []testCase{
+	testCases := []testCase{
 		{
 			name: "Create DevWorkspaceOperatorConfig with Pod security context",
 			cheCluster: &chev2.CheCluster{
@@ -727,7 +727,7 @@ func TestReconcileDevWorkspacePodSecurityContext(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			deployContext := test.NewCtxBuilder().WithObjects(testCase.existedObjects...).WithCheCluster(testCase.cheCluster).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
 			test.EnsureReconcile(t, deployContext, devWorkspaceConfigReconciler.Reconcile)

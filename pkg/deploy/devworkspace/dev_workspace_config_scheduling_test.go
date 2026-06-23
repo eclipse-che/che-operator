@@ -37,7 +37,7 @@ func TestReconcileDevWorkspaceConfigProgressTimeout(t *testing.T) {
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
-	var testCases = []testCase{
+	testCases := []testCase{
 		{
 			name: "Create DevWorkspaceOperatorConfig with progressTimeout",
 			cheCluster: &chev2.CheCluster{
@@ -196,7 +196,7 @@ func TestReconcileDevWorkspaceConfigPodSchedulerName(t *testing.T) {
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
-	var testCases = []testCase{
+	testCases := []testCase{
 		{
 			name: "Create DevWorkspaceOperatorConfig with podSchedulerName",
 			cheCluster: &chev2.CheCluster{
@@ -347,7 +347,7 @@ func TestReconcileDevWorkspaceConfigRuntimeClassName(t *testing.T) {
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
-	var testCases = []testCase{
+	testCases := []testCase{
 		{
 			name: "Create DevWorkspaceOperatorConfig with RuntimeClassName",
 			cheCluster: &chev2.CheCluster{
@@ -494,7 +494,7 @@ func TestReconcileDevWorkspaceConfigDeploymentStrategy(t *testing.T) {
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
-	var testCases = []testCase{
+	testCases := []testCase{
 		{
 			name: "Create DevWorkspaceOperatorConfig with DeploymentStrategy",
 			cheCluster: &chev2.CheCluster{

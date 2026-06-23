@@ -37,7 +37,7 @@ func TestReconcileDevWorkspaceConfigTLSCertificateConfigmapRef(t *testing.T) {
 		expectedRoutingConfig *controllerv1alpha1.RoutingConfig
 	}
 
-	var testCases = []testCase{
+	testCases := []testCase{
 		{
 			name: "Create DevWorkspaceOperatorConfig with TLSCertificateConfigmapRef when CA bundle ConfigMap exists with data",
 			cheCluster: &chev2.CheCluster{
@@ -314,7 +314,7 @@ func TestReconcileDevWorkspaceConfigProxyAndTLSComposition(t *testing.T) {
 		expectedRoutingConfig *controllerv1alpha1.RoutingConfig
 	}
 
-	var testCases = []testCase{
+	testCases := []testCase{
 		{
 			name: "Both proxy and TLS certificate configmap ref are set on RoutingConfig",
 			cheCluster: &chev2.CheCluster{

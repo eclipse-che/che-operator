@@ -75,7 +75,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 		},
 	}
 
-	var testCases = []testCase{
+	testCases := []testCase{
 		{
 			name: "Create DevWorkspaceOperatorConfig",
 			cheCluster: &chev2.CheCluster{

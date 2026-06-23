@@ -34,9 +34,9 @@ func TestReconcileServiceAccountConfig(t *testing.T) {
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
-	var testCases = []testCase{
+	testCases := []testCase{
 		{
-			name: "Case #1",
+			name: "Create DevWorkspaceOperatorConfig with ServiceAccount name and default auto-provision",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -59,7 +59,7 @@ func TestReconcileServiceAccountConfig(t *testing.T) {
 			},
 		},
 		{
-			name: "Case #2",
+			name: "Create DevWorkspaceOperatorConfig with ServiceAccount name and auto-provision disabled",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -85,7 +85,7 @@ func TestReconcileServiceAccountConfig(t *testing.T) {
 			},
 		},
 		{
-			name: "Case #3",
+			name: "Create DevWorkspaceOperatorConfig with default ServiceAccount config when no service account specified",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -105,7 +105,7 @@ func TestReconcileServiceAccountConfig(t *testing.T) {
 			},
 		},
 		{
-			name: "Case #4",
+			name: "Create DevWorkspaceOperatorConfig with default ServiceAccount config when auto-provision disabled without service account",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -154,7 +154,7 @@ func TestReconcileDevWorkspaceConfigServiceAccountTokens(t *testing.T) {
 		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
 	}
 
-	var testCases = []testCase{
+	testCases := []testCase{
 		{
 			name: "Create DevWorkspaceOperatorConfig with ServiceAccountTokens",
 			cheCluster: &chev2.CheCluster{
