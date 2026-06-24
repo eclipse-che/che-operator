@@ -12081,14 +12081,23 @@ spec:
                         description: Enables `metrics` for the Che server endpoint.
                         type: boolean
                     type: object
-                  openVSX:
-                    default:
-                      enable: false
+                  openVSXRegistry:
                     description: OpenVSX registry configuration.
                     properties:
                       database:
-                        description: Database configuration for OpenVSX.
+                        description: OpenVSX registry database configuration.
                         properties:
+                          credentialsSecretName:
+                            description: "The name of the Kubernetes Secret that contains
+                              credentials for the OpenVSX registry database.\nThe
+                              Secret must contain the following keys:\n  - `db-user`\t:
+                              PostgreSQL username.\n  - `db-password`: PostgreSQL
+                              password.\n  - `db-name`\t: PostgreSQL database name.\nAll
+                              keys are required when using a custom Secret. If no
+                              Secret name is provided,\nthe operator creates one named
+                              `openvsx-database-credentials` with randomly generated
+                              values."
+                            type: string
                           deployment:
                             description: Deployment override options.
                             properties:
@@ -14627,20 +14636,6 @@ spec:
                                   type: object
                                 type: array
                             type: object
-                          openVSXSecret:
-                            description: |-
-                              The value can be the name of a Kubernetes Secret that contains credentials for the OpenVSX database
-                              and registry users. When specified, the operator uses this secret instead of auto-generating one.
-                              The secret must contain the following keys:
-                                - `db-user`: PostgreSQL username.
-                                - `db-password`: PostgreSQL password.
-                                - `db-name`: PostgreSQL database name.
-                                - `publisher-name`: OpenVSX publisher account login name used to publish extensions.
-                                - `publisher-token`: Personal access token for the publisher account.
-                                - `admin-name`: OpenVSX admin account login name.
-                                - `admin-token`: Personal access token for the admin account.
-                              If omitted, the operator creates a secret with auto-generated random values.
-                            type: string
                           pvc:
                             description: PVC settings for PostgreSQL data.
                             properties:
@@ -14666,15 +14661,25 @@ spec:
                                 type: string
                             type: object
                         type: object
-                      enable:
-                        default: false
-                        description: |-
-                          Enables managing OpenVSX as an operand.
-                          When enabled, the operator deploys and manages an OpenVSX server instance.
+                      enabled:
+                        description: Enables internal OpenVSX registry.
                         type: boolean
                       server:
-                        description: OpenVSX server configuration.
+                        description: OpenVSX registry server configuration.
                         properties:
+                          credentialsSecretName:
+                            description: "The name of the Kubernetes Secret that contains
+                              credentials for the OpenVSX registry server.\nThe Secret
+                              must contain the following keys:\n  - `publisher-name`\t:
+                              Login name of the OpenVSX publisher account used to
+                              publish extensions.\n  - `publisher-token`: Personal
+                              access token for the publisher account.\n  - `admin-name`\t\t:
+                              Login name of the OpenVSX admin account.\n  - `admin-token`\t:
+                              Personal access token for the admin account.\nAll keys
+                              are required when using a custom Secret. If no Secret
+                              name is provided,\nthe operator creates one named `openvsx-server-credentials`
+                              with randomly generated values."
+                            type: string
                           deployment:
                             description: Deployment override options.
                             properties:
@@ -19756,7 +19761,7 @@ spec:
                         description: Disables internal plug-in registry.
                         type: boolean
                       externalPluginRegistries:
-                        description: External plugin registries.
+                        description: Deprecated external plugin registries list.
                         items:
                           description: External plug-in registries configuration.
                           properties:
@@ -19767,9 +19772,9 @@ spec:
                         type: array
                       openVSXURL:
                         description: |-
-                          Open VSX registry URL. If omitted an embedded instance will be used.
-                          Ignored when the managed OpenVSX operand is enabled (spec.components.openVSX.enable=true);
-                          in that case the URL from status.openVSXURL is used instead.
+                          OpenVSX external registry URL.
+                          When omitted, the default value from the `CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL`
+                          environment variable is used. This field is ignored when the internal enVSX registry is enabled.
                         type: string
                     type: object
                 type: object
@@ -27872,7 +27877,7 @@ spec:
                   the Che deployment is in the current phase.
                 type: string
               openVSXURL:
-                description: The public URL of the managed OpenVSX registry.
+                description: The public URL of the internal OpenVSX registry.
                 type: string
               pluginRegistryURL:
                 description: The public URL of the internal plug-in registry.

@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 )
 
 func TestReconcileCreatesResources(t *testing.T) {
@@ -37,8 +38,8 @@ func TestReconcileCreatesResources(t *testing.T) {
 		},
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
-				OpenVSX: chev2.OpenVSX{
-					Enable: true,
+				OpenVSXRegistry: chev2.OpenVSXRegistry{
+					Enabled: ptr.To(true),
 				},
 			},
 		},
@@ -63,8 +64,8 @@ func TestReconcileDeletesResourcesWhenDisabled(t *testing.T) {
 		},
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
-				OpenVSX: chev2.OpenVSX{
-					Enable: true,
+				OpenVSXRegistry: chev2.OpenVSXRegistry{
+					Enabled: ptr.To(true),
 				},
 			},
 		},
@@ -75,7 +76,7 @@ func TestReconcileDeletesResourcesWhenDisabled(t *testing.T) {
 
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 
-	ctx.CheCluster.Spec.Components.OpenVSX.Enable = false
+	ctx.CheCluster.Spec.Components.OpenVSXRegistry.Enabled = ptr.To(false)
 	err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
 	assert.NoError(t, err)
 
@@ -118,8 +119,8 @@ func TestGetDeploymentSpec(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
-						OpenVSX: chev2.OpenVSX{
-							Enable: true,
+						OpenVSXRegistry: chev2.OpenVSXRegistry{
+							Enabled: ptr.To(true),
 						},
 					},
 				},
@@ -138,9 +139,9 @@ func TestGetDeploymentSpec(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
-						OpenVSX: chev2.OpenVSX{
-							Enable: true,
-							OpenVSXServer: &chev2.OpenVSXServer{
+						OpenVSXRegistry: chev2.OpenVSXRegistry{
+							Enabled: ptr.To(true),
+							Server: &chev2.OpenVSXServer{
 								Deployment: &chev2.Deployment{
 									Containers: []chev2.Container{
 										{
@@ -196,8 +197,8 @@ func TestDeploymentSpecEnvVars(t *testing.T) {
 		},
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
-				OpenVSX: chev2.OpenVSX{
-					Enable: true,
+				OpenVSXRegistry: chev2.OpenVSXRegistry{
+					Enabled: ptr.To(true),
 				},
 			},
 		},
@@ -232,8 +233,8 @@ func TestDeploymentSpecProbes(t *testing.T) {
 		},
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
-				OpenVSX: chev2.OpenVSX{
-					Enable: true,
+				OpenVSXRegistry: chev2.OpenVSXRegistry{
+					Enabled: ptr.To(true),
 				},
 			},
 		},
@@ -265,8 +266,8 @@ func TestDeploymentSpecVolumes(t *testing.T) {
 		},
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
-				OpenVSX: chev2.OpenVSX{
-					Enable: true,
+				OpenVSXRegistry: chev2.OpenVSXRegistry{
+					Enabled: ptr.To(true),
 				},
 			},
 		},

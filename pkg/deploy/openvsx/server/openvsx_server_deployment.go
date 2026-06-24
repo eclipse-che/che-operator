@@ -112,7 +112,7 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 								envFromSecret("PGDATABASE", secretName, "db-name"),
 								envFromSecret("OPENVSX_USER_PAT", secretName, "publisher-token"),
 								envFromSecret("OPENVSX_ADMIN_PAT", secretName, "admin-token"),
-								{
+								{ // TODO
 									Name:  "OVSX_REGISTRY_URL",
 									Value: ctx.CheCluster.Status.OpenVSXURL,
 								},
@@ -211,8 +211,8 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 	deploy.EnsurePodSecurityStandards(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
 
 	var overrideDeployment *chev2.Deployment
-	if ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXServer != nil {
-		overrideDeployment = ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXServer.Deployment
+	if ctx.CheCluster.Spec.Components.OpenVSXRegistry.Server != nil {
+		overrideDeployment = ctx.CheCluster.Spec.Components.OpenVSXRegistry.Server.Deployment
 	}
 	if err := deploy.OverrideDeployment(ctx, deployment, overrideDeployment); err != nil {
 		return nil, err

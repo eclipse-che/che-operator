@@ -36,14 +36,14 @@ const (
 	DefaultPluginRegistryCpuLimit                             = "500m"
 	DefaultPluginRegistryCpuRequest                           = "100m"
 
-	// OpenVSX Server
+	// OpenVSXRegistry Server
 	DefaultOpenVSXServerMemoryLimit   = "2Gi"
 	DefaultOpenVSXServerMemoryRequest = "512Mi"
 	DefaultOpenVSXServerCpuLimit      = "1"
 	DefaultOpenVSXServerCpuRequest    = "100m"
 	DefaultOpenVSXServerClaimSize     = "3Gi"
 
-	// OpenVSX Database
+	// OpenVSXRegistry Database
 	DefaultOpenVSXDatabaseMemoryLimit   = "1024Mi"
 	DefaultOpenVSXDatabaseMemoryRequest = "256Mi"
 	DefaultOpenVSXDatabaseCpuLimit      = "1"

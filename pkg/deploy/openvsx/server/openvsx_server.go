@@ -51,7 +51,7 @@ const (
 )
 
 func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if !ctx.CheCluster.IsOpenVSXOperandEnabled() {
+	if !ctx.CheCluster.IsInternalOpenVSXRegistryEnabled() {
 		ns := ctx.CheCluster.Namespace
 		cw := ctx.ClusterAPI.ClientWrapper
 		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: constants.OpenVSXServerName, Namespace: ns}, &appsv1.Deployment{})
@@ -165,10 +165,10 @@ func (r *OpenVSXServerReconciler) getConfigMapRevision(ctx *chetypes.DeployConte
 
 func (r *OpenVSXServerReconciler) syncPVC(ctx *chetypes.DeployContext) (bool, error) {
 	claimSize := constants.DefaultOpenVSXServerClaimSize
-	if ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXServer != nil &&
-		ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXServer.Storage != nil &&
-		ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXServer.Storage.ClaimSize != "" {
-		claimSize = ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXServer.Storage.ClaimSize
+	if ctx.CheCluster.Spec.Components.OpenVSXRegistry.Server != nil &&
+		ctx.CheCluster.Spec.Components.OpenVSXRegistry.Server.Storage != nil &&
+		ctx.CheCluster.Spec.Components.OpenVSXRegistry.Server.Storage.ClaimSize != "" {
+		claimSize = ctx.CheCluster.Spec.Components.OpenVSXRegistry.Server.Storage.ClaimSize
 	}
 
 	desiredSize := resource.MustParse(claimSize)
@@ -455,7 +455,7 @@ func (r *OpenVSXServerReconciler) syncExtensionPublishJob(ctx *chetypes.DeployCo
 							Env: []corev1.EnvVar{
 								{
 									Name:  "OVSX_REGISTRY_URL",
-									Value: ctx.CheCluster.Status.OpenVSXURL,
+									Value: ctx.CheCluster.Status.OpenVSXURL, // TODO
 								},
 								envFromSecret("OVSX_PAT", secretName, "publisher-token"),
 								{

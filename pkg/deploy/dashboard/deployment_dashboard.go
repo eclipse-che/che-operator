@@ -35,7 +35,6 @@ import (
 const (
 	CHE_SELF_SIGNED_MOUNT_PATH  = "/public-certs/che-self-signed"
 	CHE_CUSTOM_CERTS_MOUNT_PATH = "/public-certs/custom"
-	ConsoleLinksResourceName    = "consolelinks"
 )
 
 func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
@@ -122,11 +121,11 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployCon
 	// Mount CheCluster default values
 	envVars = append(envVars, utils.GetEnvsByRegExp("^CHE_DEFAULT_SPEC.*")...)
 
-	if ctx.CheCluster.IsOpenVSXOperandEnabled() && ctx.CheCluster.Status.OpenVSXURL != "" {
+	if ctx.CheCluster.IsInternalOpenVSXRegistryEnabled() {
 		envVars = append(envVars,
 			corev1.EnvVar{
 				Name:  "CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL",
-				Value: ctx.CheCluster.Status.OpenVSXURL},
+				Value: ctx.CheCluster.Status.OpenVSXURL}, //TODO
 		)
 	}
 

@@ -42,7 +42,7 @@ func NewOpenVSXExposeReconciler() *OpenVSXExposeReconciler {
 }
 
 func (r *OpenVSXExposeReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if !ctx.CheCluster.IsOpenVSXOperandEnabled() {
+	if !ctx.CheCluster.IsInternalOpenVSXRegistryEnabled() {
 		_, _ = deploy.DeleteNamespacedObject(ctx, OpenVSXIngressName, &networking.Ingress{})
 
 		if ctx.CheCluster.Status.OpenVSXURL != "" {
@@ -215,7 +215,7 @@ func (r *OpenVSXExposeReconciler) updateStatus(ctx *chetypes.DeployContext, host
 
 	if openVSXURL != ctx.CheCluster.Status.OpenVSXURL {
 		ctx.CheCluster.Status.OpenVSXURL = openVSXURL
-		if err := deploy.UpdateCheCRStatus(ctx, "status: OpenVSX URL", openVSXURL); err != nil {
+		if err := deploy.UpdateCheCRStatus(ctx, "status: OpenVSXRegistry URL", openVSXURL); err != nil {
 			return false, err
 		}
 	}

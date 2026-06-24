@@ -133,9 +133,8 @@ func TestValidateOpenVSXClaimSize(t *testing.T) {
 		},
 		Spec: CheClusterSpec{
 			Components: CheClusterComponents{
-				OpenVSX: OpenVSX{
-					Enable: true,
-					OpenVSXDatabase: &OpenVSXDatabase{
+				OpenVSXRegistry: OpenVSXRegistry{
+					Database: &OpenVSXDatabase{
 						Storage: &PVC{ClaimSize: "5Gi"},
 					},
 				},
@@ -157,9 +156,8 @@ func TestValidateOpenVSXClaimSizeInvalid(t *testing.T) {
 		},
 		Spec: CheClusterSpec{
 			Components: CheClusterComponents{
-				OpenVSX: OpenVSX{
-					Enable: true,
-					OpenVSXDatabase: &OpenVSXDatabase{
+				OpenVSXRegistry: OpenVSXRegistry{
+					Database: &OpenVSXDatabase{
 						Storage: &PVC{ClaimSize: "invalid"},
 					},
 				},

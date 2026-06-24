@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 )
 
 func TestGetDeploymentSpec(t *testing.T) {
@@ -56,8 +57,8 @@ func TestGetDeploymentSpec(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
-						OpenVSX: chev2.OpenVSX{
-							Enable: true,
+						OpenVSXRegistry: chev2.OpenVSXRegistry{
+							Enabled: ptr.To(true),
 						},
 					},
 				},
@@ -76,9 +77,9 @@ func TestGetDeploymentSpec(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
-						OpenVSX: chev2.OpenVSX{
-							Enable: true,
-							OpenVSXDatabase: &chev2.OpenVSXDatabase{
+						OpenVSXRegistry: chev2.OpenVSXRegistry{
+							Enabled: ptr.To(true),
+							Database: &chev2.OpenVSXDatabase{
 								Deployment: &chev2.Deployment{
 									Containers: []chev2.Container{
 										{
@@ -134,8 +135,8 @@ func TestDeploymentSpecVolumes(t *testing.T) {
 		},
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
-				OpenVSX: chev2.OpenVSX{
-					Enable: true,
+				OpenVSXRegistry: chev2.OpenVSXRegistry{
+					Enabled: ptr.To(true),
 				},
 			},
 		},
@@ -163,8 +164,8 @@ func TestReconcileCreatesResources(t *testing.T) {
 		},
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
-				OpenVSX: chev2.OpenVSX{
-					Enable: true,
+				OpenVSXRegistry: chev2.OpenVSXRegistry{
+					Enabled: ptr.To(true),
 				},
 			},
 		},
@@ -187,8 +188,8 @@ func TestReconcileDeletesResourcesWhenDisabled(t *testing.T) {
 		},
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
-				OpenVSX: chev2.OpenVSX{
-					Enable: true,
+				OpenVSXRegistry: chev2.OpenVSXRegistry{
+					Enabled: ptr.To(true),
 				},
 			},
 		},
@@ -199,7 +200,7 @@ func TestReconcileDeletesResourcesWhenDisabled(t *testing.T) {
 
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXDatabaseName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 
-	ctx.CheCluster.Spec.Components.OpenVSX.Enable = false
+	ctx.CheCluster.Spec.Components.OpenVSXRegistry.Enabled = ptr.To(false)
 	err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
 	assert.NoError(t, err)
 
@@ -219,8 +220,8 @@ func TestReconcileSecretNotRecreated(t *testing.T) {
 		},
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
-				OpenVSX: chev2.OpenVSX{
-					Enable: true,
+				OpenVSXRegistry: chev2.OpenVSXRegistry{
+					Enabled: ptr.To(true),
 				},
 			},
 		},
@@ -274,10 +275,10 @@ func TestUserProvidedSecret(t *testing.T) {
 		},
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
-				OpenVSX: chev2.OpenVSX{
-					Enable: true,
-					OpenVSXDatabase: &chev2.OpenVSXDatabase{
-						OpenVSXSecret: "my-openvsx-creds",
+				OpenVSXRegistry: chev2.OpenVSXRegistry{
+					Enabled: ptr.To(true),
+					Database: &chev2.OpenVSXDatabase{
+						CredentialsSecretName: "my-openvsx-creds",
 					},
 				},
 			},
@@ -300,10 +301,10 @@ func TestUserProvidedSecretMissing(t *testing.T) {
 		},
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
-				OpenVSX: chev2.OpenVSX{
-					Enable: true,
-					OpenVSXDatabase: &chev2.OpenVSXDatabase{
-						OpenVSXSecret: "nonexistent-secret",
+				OpenVSXRegistry: chev2.OpenVSXRegistry{
+					Enabled: ptr.To(true),
+					Database: &chev2.OpenVSXDatabase{
+						CredentialsSecretName: "nonexistent-secret",
 					},
 				},
 			},
@@ -336,10 +337,10 @@ func TestUserProvidedSecretMissingKeys(t *testing.T) {
 		},
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
-				OpenVSX: chev2.OpenVSX{
-					Enable: true,
-					OpenVSXDatabase: &chev2.OpenVSXDatabase{
-						OpenVSXSecret: "incomplete-secret",
+				OpenVSXRegistry: chev2.OpenVSXRegistry{
+					Enabled: ptr.To(true),
+					Database: &chev2.OpenVSXDatabase{
+						CredentialsSecretName: "incomplete-secret",
 					},
 				},
 			},
@@ -361,9 +362,9 @@ func TestReconcileCustomClaimSize(t *testing.T) {
 		},
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
-				OpenVSX: chev2.OpenVSX{
-					Enable: true,
-					OpenVSXDatabase: &chev2.OpenVSXDatabase{
+				OpenVSXRegistry: chev2.OpenVSXRegistry{
+					Enabled: ptr.To(true),
+					Database: &chev2.OpenVSXDatabase{
 						Storage: &chev2.PVC{ClaimSize: "5Gi"},
 					},
 				},
@@ -388,8 +389,8 @@ func TestDeploymentSpecEnvVars(t *testing.T) {
 		},
 		Spec: chev2.CheClusterSpec{
 			Components: chev2.CheClusterComponents{
-				OpenVSX: chev2.OpenVSX{
-					Enable: true,
+				OpenVSXRegistry: chev2.OpenVSXRegistry{
+					Enabled: ptr.To(true),
 				},
 			},
 		},

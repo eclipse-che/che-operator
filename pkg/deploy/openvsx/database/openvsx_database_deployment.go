@@ -156,8 +156,8 @@ func (p *OpenVSXDatabaseReconciler) getDeploymentSpec(ctx *chetypes.DeployContex
 	deploy.EnsurePodSecurityStandards(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
 
 	var overrideDeployment *chev2.Deployment
-	if ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXDatabase != nil {
-		overrideDeployment = ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXDatabase.Deployment
+	if ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database != nil {
+		overrideDeployment = ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database.Deployment
 	}
 	if err := deploy.OverrideDeployment(ctx, deployment, overrideDeployment); err != nil {
 		return nil, err

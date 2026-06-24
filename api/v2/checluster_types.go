@@ -282,8 +282,7 @@ type CheClusterComponents struct {
 	Dashboard Dashboard `json:"dashboard"`
 	// OpenVSX registry configuration.
 	// +optional
-	// +kubebuilder:default:={enable: false}
-	OpenVSX OpenVSX `json:"openVSX"`
+	OpenVSXRegistry OpenVSXRegistry `json:"openVSXRegistry"`
 	// Kubernetes Image Puller configuration.
 	// +optional
 	ImagePuller ImagePuller `json:"imagePuller"`
@@ -441,35 +440,43 @@ type PluginRegistry struct {
 	// Disables internal plug-in registry.
 	// +optional
 	DisableInternalRegistry bool `json:"disableInternalRegistry,omitempty"`
-	// External plugin registries.
+	// Deprecated external plugin registries list.
 	// +optional
 	ExternalPluginRegistries []ExternalPluginRegistry `json:"externalPluginRegistries,omitempty"`
-	// Open VSX registry URL. If omitted an embedded instance will be used.
-	// Ignored when the managed OpenVSX operand is enabled (spec.components.openVSX.enable=true);
-	// in that case the URL from status.openVSXURL is used instead.
+	// OpenVSX external registry URL.
+	// When omitted, the default value from the `CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL`
+	// environment variable is used. This field is ignored when the internal enVSX registry is enabled.
 	// +optional
 	OpenVSXURL *string `json:"openVSXURL,omitempty"`
 }
 
-// Configuration settings related to the OpenVSX registry managed by the Che installation.
+// Configuration settings for the internal OpenVSX registry used by the Che installation.
 // +k8s:openapi-gen=true
-type OpenVSX struct {
-	// Enables managing OpenVSX as an operand.
-	// When enabled, the operator deploys and manages an OpenVSX server instance.
+type OpenVSXRegistry struct {
+	// Enables internal OpenVSX registry.
 	// +optional
-	// +kubebuilder:default:=false
-	Enable bool `json:"enable,omitempty"`
-	// OpenVSX server configuration.
+	Enabled *bool `json:"enabled,omitempty"`
+	// OpenVSX registry server configuration.
 	// +optional
-	OpenVSXServer *OpenVSXServer `json:"server,omitempty"`
-	// Database configuration for OpenVSX.
+	Server *OpenVSXServer `json:"server,omitempty"`
+	// OpenVSX registry database configuration.
 	// +optional
-	OpenVSXDatabase *OpenVSXDatabase `json:"database,omitempty"`
+	Database *OpenVSXDatabase `json:"database,omitempty"`
 }
 
-// OpenVSX server component configuration.
+// OpenVSX registry server configuration.
 // +k8s:openapi-gen=true
 type OpenVSXServer struct {
+	// The name of the Kubernetes Secret that contains credentials for the OpenVSX registry server.
+	// The Secret must contain the following keys:
+	//   - `publisher-name`	: Login name of the OpenVSX publisher account used to publish extensions.
+	//   - `publisher-token`: Personal access token for the publisher account.
+	//   - `admin-name`		: Login name of the OpenVSX admin account.
+	//   - `admin-token`	: Personal access token for the admin account.
+	// All keys are required when using a custom Secret. If no Secret name is provided,
+	// the operator creates one named `openvsx-server-credentials` with randomly generated values.
+	// +optional
+	CredentialsSecretName string `json:"credentialsSecretName,omitempty"`
 	// Deployment override options.
 	// +optional
 	Deployment *Deployment `json:"deployment,omitempty"`
@@ -478,22 +485,18 @@ type OpenVSXServer struct {
 	Storage *PVC `json:"pvc,omitempty"`
 }
 
-// Database configuration for OpenVSX.
+// OpenVSX registry database configuration.
 // +k8s:openapi-gen=true
 type OpenVSXDatabase struct {
-	// The value can be the name of a Kubernetes Secret that contains credentials for the OpenVSX database
-	// and registry users. When specified, the operator uses this secret instead of auto-generating one.
-	// The secret must contain the following keys:
-	//   - `db-user`: PostgreSQL username.
+	// The name of the Kubernetes Secret that contains credentials for the OpenVSX registry database.
+	// The Secret must contain the following keys:
+	//   - `db-user`	: PostgreSQL username.
 	//   - `db-password`: PostgreSQL password.
-	//   - `db-name`: PostgreSQL database name.
-	//   - `publisher-name`: OpenVSX publisher account login name used to publish extensions.
-	//   - `publisher-token`: Personal access token for the publisher account.
-	//   - `admin-name`: OpenVSX admin account login name.
-	//   - `admin-token`: Personal access token for the admin account.
-	// If omitted, the operator creates a secret with auto-generated random values.
+	//   - `db-name`	: PostgreSQL database name.
+	// All keys are required when using a custom Secret. If no Secret name is provided,
+	// the operator creates one named `openvsx-database-credentials` with randomly generated values.
 	// +optional
-	OpenVSXSecret string `json:"openVSXSecret,omitempty"`
+	CredentialsSecretName string `json:"credentialsSecretName,omitempty"`
 	// Deployment override options.
 	// +optional
 	Deployment *Deployment `json:"deployment,omitempty"`
@@ -1091,7 +1094,7 @@ type CheClusterStatus struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Plugin registry URL"
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors="urn:alm:descriptor:org.w3:link"
 	PluginRegistryURL string `json:"pluginRegistryURL"`
-	// The public URL of the managed OpenVSX registry.
+	// The public URL of the internal OpenVSX registry.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="OpenVSX registry URL"
@@ -1224,25 +1227,17 @@ func (c *CheCluster) IsCheFlavor() bool {
 	return defaults.GetCheFlavor() == constants.CheFlavor
 }
 
-// IsEmbeddedOpenVSXRegistryConfigured returns true if the Open VSX Registry is configured to be embedded.
-// Returns false when the managed OpenVSX operand is enabled or when an external OpenVSX URL is set.
-func (c *CheCluster) IsEmbeddedOpenVSXRegistryConfigured() bool {
-	if c.IsOpenVSXOperandEnabled() {
-		return false
-	}
-	if c.Spec.Components.PluginRegistry.OpenVSXURL != nil {
-		return *c.Spec.Components.PluginRegistry.OpenVSXURL == ""
-	}
-	return defaults.GetPluginRegistryOpenVSXURL() == ""
-}
-
 func (c *CheCluster) IsInternalPluginRegistryDisabled() bool {
-	return c.Spec.Components.PluginRegistry.DisableInternalRegistry || !c.IsEmbeddedOpenVSXRegistryConfigured()
+	return c.Spec.Components.PluginRegistry.DisableInternalRegistry ||
+		c.IsExternalOpenVSXRegistryConfigured() || c.IsInternalOpenVSXRegistryEnabled()
 }
 
-// IsOpenVSXOperandEnabled returns true if the OpenVSX operand is enabled.
-func (c *CheCluster) IsOpenVSXOperandEnabled() bool {
-	return c.Spec.Components.OpenVSX.Enable
+func (c *CheCluster) IsExternalOpenVSXRegistryConfigured() bool {
+	return ptr.Deref(c.Spec.Components.PluginRegistry.OpenVSXURL, defaults.GetPluginRegistryOpenVSXURL()) != ""
+}
+
+func (c *CheCluster) IsInternalOpenVSXRegistryEnabled() bool {
+	return ptr.Deref(c.Spec.Components.OpenVSXRegistry.Enabled, false)
 }
 
 // IsCheBeingInstalled returns true if the Che version is not set in the status.

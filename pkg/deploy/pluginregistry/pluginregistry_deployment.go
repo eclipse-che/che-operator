@@ -42,7 +42,7 @@ func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(ctx *chetypes
 		},
 	}
 
-	if ctx.CheCluster.IsEmbeddedOpenVSXRegistryConfigured() {
+	if !ctx.CheCluster.IsExternalOpenVSXRegistryConfigured() {
 		resources.Requests[corev1.ResourceMemory] = resource.MustParse(constants.DefaultPluginRegistryMemoryRequestEmbeddedOpenVSXRegistry)
 		resources.Limits[corev1.ResourceMemory] = resource.MustParse(constants.DefaultPluginRegistryMemoryLimitEmbeddedOpenVSXRegistry)
 	}
@@ -56,7 +56,7 @@ func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(ctx *chetypes
 		resources,
 		probePath)
 
-	if ctx.CheCluster.IsEmbeddedOpenVSXRegistryConfigured() {
+	if !ctx.CheCluster.IsExternalOpenVSXRegistryConfigured() {
 		// Add time to start embedded VSX registry
 		deployment.Spec.Template.Spec.Containers[0].LivenessProbe.InitialDelaySeconds = 300
 		deployment.Spec.Template.Spec.Containers[0].LivenessProbe.FailureThreshold = 30

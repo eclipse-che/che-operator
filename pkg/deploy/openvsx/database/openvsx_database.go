@@ -48,7 +48,7 @@ func NewOpenVSXDatabaseReconciler() *OpenVSXDatabaseReconciler {
 }
 
 func (p *OpenVSXDatabaseReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if !ctx.CheCluster.IsOpenVSXOperandEnabled() {
+	if !ctx.CheCluster.IsInternalOpenVSXRegistryEnabled() {
 		ns := ctx.CheCluster.Namespace
 		cw := ctx.ClusterAPI.ClientWrapper
 		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: constants.OpenVSXDatabaseName, Namespace: ns}, &appsv1.Deployment{})
@@ -168,13 +168,13 @@ func validateSecretKeys(secret *corev1.Secret) (bool, error) {
 }
 
 func isUserProvidedSecret(ctx *chetypes.DeployContext) bool {
-	return ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXDatabase != nil &&
-		ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXDatabase.OpenVSXSecret != ""
+	return ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database != nil &&
+		ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database.CredentialsSecretName != ""
 }
 
 func GetCredentialsSecretName(ctx *chetypes.DeployContext) string {
 	if isUserProvidedSecret(ctx) {
-		return ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXDatabase.OpenVSXSecret
+		return ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database.CredentialsSecretName
 	}
 	return constants.OpenVSXDatabaseCredentialsSecret
 }
@@ -190,10 +190,10 @@ func (p *OpenVSXDatabaseReconciler) syncService(ctx *chetypes.DeployContext) (bo
 
 func (p *OpenVSXDatabaseReconciler) syncPVC(ctx *chetypes.DeployContext) (bool, error) {
 	claimSize := constants.DefaultOpenVSXDatabaseClaimSize
-	if ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXDatabase != nil &&
-		ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXDatabase.Storage != nil &&
-		ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXDatabase.Storage.ClaimSize != "" {
-		claimSize = ctx.CheCluster.Spec.Components.OpenVSX.OpenVSXDatabase.Storage.ClaimSize
+	if ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database != nil &&
+		ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database.Storage != nil &&
+		ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database.Storage.ClaimSize != "" {
+		claimSize = ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database.Storage.ClaimSize
 	}
 
 	desiredSize := resource.MustParse(claimSize)
