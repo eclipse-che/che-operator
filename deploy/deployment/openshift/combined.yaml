@@ -17240,7 +17240,7 @@ spec:
                                 type: array
                             type: object
                           pvc:
-                            description: PVC settings for extension storage.
+                            description: PVC settings for storing extensions.
                             properties:
                               claimSize:
                                 description: Persistent Volume Claim size. To update

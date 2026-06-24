@@ -141,7 +141,7 @@ func (r *CheClusterValidator) ensureSingletonCheCluster() error {
 }
 
 func (r *CheClusterValidator) validate(checluster *CheCluster) error {
-	if err := r.validateOpenVSX(checluster); err != nil {
+	if err := r.validateOpenVSXRegistry(checluster); err != nil {
 		return err
 	}
 
@@ -276,21 +276,25 @@ func (r *CheClusterValidator) ensureScmLabelsAndAnnotations(secret *corev1.Secre
 	return nil
 }
 
-func (r *CheClusterValidator) validateOpenVSX(checluster *CheCluster) error {
+func (r *CheClusterValidator) validateOpenVSXRegistry(checluster *CheCluster) error {
 	if checluster.Spec.Components.OpenVSXRegistry.Database != nil &&
 		checluster.Spec.Components.OpenVSXRegistry.Database.Storage != nil &&
 		checluster.Spec.Components.OpenVSXRegistry.Database.Storage.ClaimSize != "" {
+
 		if _, err := resource.ParseQuantity(checluster.Spec.Components.OpenVSXRegistry.Database.Storage.ClaimSize); err != nil {
-			return fmt.Errorf("invalid spec.components.openVSX.database.pvc.claimSize: %v", err)
+			return fmt.Errorf("invalid value for OpenVSX registry storage claim size: %w", err)
 		}
 	}
+
 	if checluster.Spec.Components.OpenVSXRegistry.Server != nil &&
 		checluster.Spec.Components.OpenVSXRegistry.Server.Storage != nil &&
 		checluster.Spec.Components.OpenVSXRegistry.Server.Storage.ClaimSize != "" {
+
 		if _, err := resource.ParseQuantity(checluster.Spec.Components.OpenVSXRegistry.Server.Storage.ClaimSize); err != nil {
-			return fmt.Errorf("invalid spec.components.openVSX.server.pvc.claimSize: %v", err)
+			return fmt.Errorf("invalid value for OpenVSX registry database claim size: %w", err)
 		}
 	}
+
 	return nil
 }
 

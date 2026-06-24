@@ -189,7 +189,7 @@ func (p *OpenVSXDatabaseReconciler) syncService(ctx *chetypes.DeployContext) (bo
 }
 
 func (p *OpenVSXDatabaseReconciler) syncPVC(ctx *chetypes.DeployContext) (bool, error) {
-	claimSize := constants.DefaultOpenVSXDatabaseClaimSize
+	claimSize := constants.OpenVSXDatabaseClaimSize
 	if ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database != nil &&
 		ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database.Storage != nil &&
 		ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database.Storage.ClaimSize != "" {

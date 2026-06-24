@@ -46,10 +46,10 @@ func TestGetDeploymentSpec(t *testing.T) {
 	testCases := []testCase{
 		{
 			name:          "Test default resource limits",
-			memoryLimit:   constants.DefaultOpenVSXDatabaseMemoryLimit,
-			memoryRequest: constants.DefaultOpenVSXDatabaseMemoryRequest,
+			memoryLimit:   constants.OpenVSXDatabaseMemoryLimit,
+			memoryRequest: constants.OpenVSXDatabaseMemoryRequest,
 			cpuLimit:      "0",
-			cpuRequest:    constants.DefaultOpenVSXDatabaseCpuRequest,
+			cpuRequest:    constants.OpenVSXDatabaseCpuRequest,
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",

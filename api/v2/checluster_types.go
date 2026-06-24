@@ -480,7 +480,7 @@ type OpenVSXServer struct {
 	// Deployment override options.
 	// +optional
 	Deployment *Deployment `json:"deployment,omitempty"`
-	// PVC settings for extension storage.
+	// PVC settings for storing extensions.
 	// +optional
 	Storage *PVC `json:"pvc,omitempty"`
 }

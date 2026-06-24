@@ -100,12 +100,12 @@ func (p *OpenVSXDatabaseReconciler) getDeploymentSpec(ctx *chetypes.DeployContex
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse(constants.DefaultOpenVSXDatabaseMemoryRequest),
-									corev1.ResourceCPU:    resource.MustParse(constants.DefaultOpenVSXDatabaseCpuRequest),
+									corev1.ResourceMemory: resource.MustParse(constants.OpenVSXDatabaseMemoryRequest),
+									corev1.ResourceCPU:    resource.MustParse(constants.OpenVSXDatabaseCpuRequest),
 								},
 								Limits: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse(constants.DefaultOpenVSXDatabaseMemoryLimit),
-									corev1.ResourceCPU:    resource.MustParse(constants.DefaultOpenVSXDatabaseCpuLimit),
+									corev1.ResourceMemory: resource.MustParse(constants.OpenVSXDatabaseMemoryLimit),
+									corev1.ResourceCPU:    resource.MustParse(constants.OpenVSXDatabaseCpuLimit),
 								},
 							},
 							ReadinessProbe: &corev1.Probe{

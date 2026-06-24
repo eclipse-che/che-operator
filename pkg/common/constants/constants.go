@@ -37,18 +37,20 @@ const (
 	DefaultPluginRegistryCpuRequest                           = "100m"
 
 	// OpenVSXRegistry Server
-	DefaultOpenVSXServerMemoryLimit   = "2Gi"
-	DefaultOpenVSXServerMemoryRequest = "512Mi"
-	DefaultOpenVSXServerCpuLimit      = "1"
-	DefaultOpenVSXServerCpuRequest    = "100m"
-	DefaultOpenVSXServerClaimSize     = "3Gi"
+	OpenVSXServerMemoryLimit       = "2Gi"
+	OpenVSXServerMemoryRequest     = "512Mi"
+	OpenVSXServerCpuLimit          = "1"
+	OpenVSXServerCpuRequest        = "100m"
+	OpenVSXServerClaimSize         = "3Gi"
+	OpenVSXServerCredentialsSecret = "openvsx-server-credentials"
 
 	// OpenVSXRegistry Database
-	DefaultOpenVSXDatabaseMemoryLimit   = "1024Mi"
-	DefaultOpenVSXDatabaseMemoryRequest = "256Mi"
-	DefaultOpenVSXDatabaseCpuLimit      = "1"
-	DefaultOpenVSXDatabaseCpuRequest    = "100m"
-	DefaultOpenVSXDatabaseClaimSize     = "1Gi"
+	OpenVSXDatabaseMemoryLimit       = "1024Mi"
+	OpenVSXDatabaseMemoryRequest     = "256Mi"
+	OpenVSXDatabaseCpuLimit          = "1"
+	OpenVSXDatabaseCpuRequest        = "100m"
+	OpenVSXDatabaseClaimSize         = "1Gi"
+	OpenVSXDatabaseCredentialsSecret = "openvsx-database-credentials"
 
 	// Server
 	DefaultServerMemoryLimit        = "1024Mi"
@@ -141,7 +143,6 @@ const (
 	PluginRegistryName                 = "plugin-registry"
 	OpenVSXServerName                  = "openvsx-server"
 	OpenVSXDatabaseName                = "openvsx-database"
-	OpenVSXDatabaseCredentialsSecret   = "openvsx-database-credentials"
 	GatewayContainerName               = "gateway"
 	GatewayConfigSideCarContainerName  = "configbump"
 	GatewayAuthenticationContainerName = "oauth-proxy"

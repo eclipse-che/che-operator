@@ -123,12 +123,12 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse(constants.DefaultOpenVSXServerMemoryRequest),
-									corev1.ResourceCPU:    resource.MustParse(constants.DefaultOpenVSXServerCpuRequest),
+									corev1.ResourceMemory: resource.MustParse(constants.OpenVSXServerMemoryRequest),
+									corev1.ResourceCPU:    resource.MustParse(constants.OpenVSXServerCpuRequest),
 								},
 								Limits: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse(constants.DefaultOpenVSXServerMemoryLimit),
-									corev1.ResourceCPU:    resource.MustParse(constants.DefaultOpenVSXServerCpuLimit),
+									corev1.ResourceMemory: resource.MustParse(constants.OpenVSXServerMemoryLimit),
+									corev1.ResourceCPU:    resource.MustParse(constants.OpenVSXServerCpuLimit),
 								},
 							},
 							ReadinessProbe: &corev1.Probe{

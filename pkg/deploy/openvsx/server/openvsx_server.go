@@ -164,7 +164,7 @@ func (r *OpenVSXServerReconciler) getConfigMapRevision(ctx *chetypes.DeployConte
 }
 
 func (r *OpenVSXServerReconciler) syncPVC(ctx *chetypes.DeployContext) (bool, error) {
-	claimSize := constants.DefaultOpenVSXServerClaimSize
+	claimSize := constants.OpenVSXServerClaimSize
 	if ctx.CheCluster.Spec.Components.OpenVSXRegistry.Server != nil &&
 		ctx.CheCluster.Spec.Components.OpenVSXRegistry.Server.Storage != nil &&
 		ctx.CheCluster.Spec.Components.OpenVSXRegistry.Server.Storage.ClaimSize != "" {
