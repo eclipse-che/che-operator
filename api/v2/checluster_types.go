@@ -445,7 +445,7 @@ type PluginRegistry struct {
 	ExternalPluginRegistries []ExternalPluginRegistry `json:"externalPluginRegistries,omitempty"`
 	// OpenVSX external registry URL.
 	// When omitted, the default value from the `CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL`
-	// environment variable is used. This field is ignored when the internal enVSX registry is enabled.
+	// environment variable is used. This field is ignored when the internal OpenVSX registry is enabled.
 	// +optional
 	OpenVSXURL *string `json:"openVSXURL,omitempty"`
 }
