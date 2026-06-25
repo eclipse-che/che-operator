@@ -44,7 +44,7 @@ import (
 	identityprovider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
 	"github.com/eclipse-che/che-operator/pkg/deploy/migration"
 	openvsx "github.com/eclipse-che/che-operator/pkg/deploy/openvsx"
-	openvsxdb "github.com/eclipse-che/che-operator/pkg/deploy/openvsx/database"
+	openvsxdatabase "github.com/eclipse-che/che-operator/pkg/deploy/openvsx/database"
 	openvsxserver "github.com/eclipse-che/che-operator/pkg/deploy/openvsx/server"
 	"github.com/eclipse-che/che-operator/pkg/deploy/pluginregistry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/postgres"
@@ -120,7 +120,8 @@ func NewReconciler(
 	}
 	reconcilerManager.AddReconciler(devfileregistry.NewDevfileRegistryReconciler())
 	reconcilerManager.AddReconciler(pluginregistry.NewPluginRegistryReconciler())
-	reconcilerManager.AddReconciler(openvsxdb.NewOpenVSXDatabaseReconciler())
+	reconcilerManager.AddReconciler(openvsx.NewOpenVSXSecretReconciler())
+	reconcilerManager.AddReconciler(openvsxdatabase.NewOpenVSXDatabaseReconciler())
 	reconcilerManager.AddReconciler(openvsxserver.NewOpenVSXServerReconciler())
 	reconcilerManager.AddReconciler(openvsx.NewOpenVSXExposeReconciler())
 	reconcilerManager.AddReconciler(editorsdefinitions.NewEditorsDefinitionsReconciler())

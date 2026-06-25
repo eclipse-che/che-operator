@@ -1124,6 +1124,11 @@ func (in *OpenVSXRegistry) DeepCopyInto(out *OpenVSXRegistry) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.CredentialsSecretName != nil {
+		in, out := &in.CredentialsSecretName, &out.CredentialsSecretName
+		*out = new(string)
+		**out = **in
+	}
 	if in.Server != nil {
 		in, out := &in.Server, &out.Server
 		*out = new(OpenVSXServer)

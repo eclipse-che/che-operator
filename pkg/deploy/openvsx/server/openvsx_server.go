@@ -54,8 +54,8 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 	if !ctx.CheCluster.IsInternalOpenVSXRegistryEnabled() {
 		ns := ctx.CheCluster.Namespace
 		cw := ctx.ClusterAPI.ClientWrapper
-		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: constants.OpenVSXServerName, Namespace: ns}, &appsv1.Deployment{})
-		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: constants.OpenVSXServerName, Namespace: ns}, &corev1.Service{})
+		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: ns}, &appsv1.Deployment{})
+		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: ns}, &corev1.Service{})
 		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: ns}, &corev1.ConfigMap{})
 		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: userSetupJobName, Namespace: ns}, &batchv1.Job{})
 		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: extensionPublishJobName, Namespace: ns}, &batchv1.Job{})
@@ -109,10 +109,10 @@ func (r *OpenVSXServerReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 func (r *OpenVSXServerReconciler) syncService(ctx *chetypes.DeployContext) (bool, error) {
 	return deploy.SyncServiceToCluster(
 		ctx,
-		constants.OpenVSXServerName,
+		constants.OpenVSXServerComponentName,
 		[]string{"http"},
 		[]int32{8080},
-		constants.OpenVSXServerName)
+		constants.OpenVSXServerComponentName)
 }
 
 func (r *OpenVSXServerReconciler) syncConfigMap(ctx *chetypes.DeployContext) (bool, error) {
@@ -138,7 +138,7 @@ func (r *OpenVSXServerReconciler) syncConfigMap(ctx *chetypes.DeployContext) (bo
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      configMapName,
 			Namespace: ctx.CheCluster.Namespace,
-			Labels:    deploy.GetLabels(constants.OpenVSXServerName),
+			Labels:    deploy.GetLabels(constants.OpenVSXServerComponentName),
 		},
 		Data: map[string]string{
 			"application.yml": applicationConfig,
@@ -188,7 +188,7 @@ func (r *OpenVSXServerReconciler) syncPVC(ctx *chetypes.DeployContext) (bool, er
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      serverPVCName,
 				Namespace: ctx.CheCluster.Namespace,
-				Labels:    deploy.GetLabels(constants.OpenVSXServerName),
+				Labels:    deploy.GetLabels(constants.OpenVSXServerComponentName),
 			},
 			Spec: corev1.PersistentVolumeClaimSpec{
 				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
@@ -240,7 +240,7 @@ func (r *OpenVSXServerReconciler) syncUserSetupJob(ctx *chetypes.DeployContext) 
 
 	image := defaults.GetOpenVSXDatabaseImage(ctx.CheCluster)
 	pullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(image))
-	labels := deploy.GetLabels(constants.OpenVSXServerName)
+	labels := deploy.GetLabels(constants.OpenVSXServerComponentName)
 	backoffLimit := int32(3)
 	parallelism := int32(1)
 	completions := int32(1)
@@ -252,11 +252,11 @@ func (r *OpenVSXServerReconciler) syncUserSetupJob(ctx *chetypes.DeployContext) 
 	dbEnvVars := []corev1.EnvVar{
 		{
 			Name:  "PGHOST",
-			Value: constants.OpenVSXDatabaseName,
+			Value: constants.OpenVSXDatabaseComponentName,
 		},
-		envFromSecret("PGDATABASE", secretName, "db-name"),
-		envFromSecret("PGUSER", secretName, "db-user"),
-		envFromSecret("PGPASSWORD", secretName, "db-password"),
+		envFromSecret("PGDATABASE", secretName, "database-name"),
+		envFromSecret("PGUSER", secretName, "database-user"),
+		envFromSecret("PGPASSWORD", secretName, "database-password"),
 	}
 
 	job := &batchv1.Job{
@@ -364,7 +364,7 @@ func (r *OpenVSXServerReconciler) syncExtensionsConfigMap(ctx *chetypes.DeployCo
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      extensionsConfigMapName,
 			Namespace: ctx.CheCluster.Namespace,
-			Labels:    deploy.GetLabels(constants.OpenVSXServerName),
+			Labels:    deploy.GetLabels(constants.OpenVSXServerComponentName),
 		},
 		Data: map[string]string{
 			"extensions.txt": "",
@@ -417,7 +417,7 @@ func (r *OpenVSXServerReconciler) syncExtensionPublishJob(ctx *chetypes.DeployCo
 
 	image := defaults.GetOpenVSXImage(ctx.CheCluster)
 	pullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(image))
-	labels := deploy.GetLabels(constants.OpenVSXServerName)
+	labels := deploy.GetLabels(constants.OpenVSXServerComponentName)
 	backoffLimit := int32(3)
 	parallelism := int32(1)
 	completions := int32(1)

@@ -46,7 +46,7 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 
 	image := defaults.GetOpenVSXImage(ctx.CheCluster)
 	pullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(image))
-	labels, labelSelector := deploy.GetLabelsAndSelector(constants.OpenVSXServerName)
+	labels, labelSelector := deploy.GetLabelsAndSelector(constants.OpenVSXServerComponentName)
 	terminationGracePeriodSeconds := int64(30)
 	secretName := database.GetCredentialsSecretName(ctx)
 
@@ -56,7 +56,7 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.OpenVSXServerName,
+			Name:      constants.OpenVSXServerComponentName,
 			Namespace: ctx.CheCluster.Namespace,
 			Labels:    labels,
 		},
@@ -76,7 +76,7 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
 					Containers: []corev1.Container{
 						{
-							Name:            constants.OpenVSXServerName,
+							Name:            constants.OpenVSXServerComponentName,
 							Image:           image,
 							ImagePullPolicy: pullPolicy,
 							Ports: []corev1.ContainerPort{
@@ -96,7 +96,7 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
 											LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
-											Key:                  "db-user",
+											Key:                  "database-user",
 										},
 									},
 								},
@@ -105,7 +105,7 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
 											LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
-											Key:                  "db-password",
+											Key:                  "database-password",
 										},
 									},
 								},

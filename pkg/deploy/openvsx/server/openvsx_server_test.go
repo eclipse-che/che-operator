@@ -48,8 +48,8 @@ func TestReconcileCreatesResources(t *testing.T) {
 	reconciler := NewOpenVSXServerReconciler()
 	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
 
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerName, Namespace: "eclipse-che"}, &corev1.Service{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: "eclipse-che"}, &corev1.Service{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: configMapName, Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: userSetupJobName, Namespace: "eclipse-che"}, &batchv1.Job{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: extensionsConfigMapName, Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
@@ -74,7 +74,7 @@ func TestReconcileDeletesResourcesWhenDisabled(t *testing.T) {
 	reconciler := NewOpenVSXServerReconciler()
 	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
 
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 
 	ctx.CheCluster.Spec.Components.OpenVSXRegistry.Enabled = ptr.To(false)
 	err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
@@ -82,8 +82,8 @@ func TestReconcileDeletesResourcesWhenDisabled(t *testing.T) {
 
 	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
 
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerName, Namespace: "eclipse-che"}, &corev1.Service{}))
+	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
+	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: "eclipse-che"}, &corev1.Service{}))
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: configMapName, Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: userSetupJobName, Namespace: "eclipse-che"}, &batchv1.Job{}))
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: extensionsConfigMapName, Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
@@ -145,7 +145,7 @@ func TestGetDeploymentSpec(t *testing.T) {
 								Deployment: &chev2.Deployment{
 									Containers: []chev2.Container{
 										{
-											Name: constants.OpenVSXServerName,
+											Name: constants.OpenVSXServerComponentName,
 											Resources: &chev2.ResourceRequirements{
 												Requests: &chev2.ResourceList{
 													Memory: &memoryRequest,
@@ -219,8 +219,8 @@ func TestDeploymentSpecEnvVars(t *testing.T) {
 		}
 	}
 
-	assert.Equal(t, "db-user", secretEnvMap["DB_USERNAME"])
-	assert.Equal(t, "db-password", secretEnvMap["DB_PASSWORD"])
+	assert.Equal(t, "database-user", secretEnvMap["DB_USERNAME"])
+	assert.Equal(t, "database-password", secretEnvMap["DB_PASSWORD"])
 	assert.Equal(t, "publisher-token", secretEnvMap["OPENVSX_USER_PAT"])
 	assert.Equal(t, "admin-token", secretEnvMap["OPENVSX_ADMIN_PAT"])
 }

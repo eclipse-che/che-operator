@@ -75,6 +75,23 @@ func (k K8sClientWrapper) Sync(
 	}
 }
 
+func (k K8sClientWrapper) CreateIfNotExists(
+	ctx context.Context,
+	obj client.Object,
+	opts ...client.CreateOption,
+) error {
+	defer func() {
+		// ensure GVK is set (for original object) when function returns
+		_ = k.ensureGVK(obj)
+	}()
+
+	if err := k.ensureGVK(obj); err != nil {
+		return err
+	}
+
+	return k.doCreate(ctx, obj, true, opts...)
+}
+
 func (k K8sClientWrapper) Create(
 	ctx context.Context,
 	obj client.Object,
@@ -208,7 +225,6 @@ func (k K8sClientWrapper) doCreate(
 		return nil
 	} else if errors.IsAlreadyExists(err) {
 		if ignoreIfAlreadyExists {
-			logger.Info("Object already exists, ignoring", "namespace", obj.GetNamespace(), "kind", GetObjectType(obj), "name", obj.GetName())
 			return nil
 		} else {
 			return err

@@ -214,25 +214,25 @@ func (r *CheClusterValidator) validateOAuthSecret(secretName string, scmProvider
 
 func (r *CheClusterValidator) validateAzureDevOpsSecretDataKeys(secret *corev1.Secret) error {
 	keys2validate := []string{constants.GitHubOAuthConfigClientIdFileName, constants.GitHubOAuthConfigClientSecretFileName}
-	return r.validateOAuthSecretDataKeys(secret, keys2validate)
+	return r.validateSecretDataKeys(secret, keys2validate)
 }
 
 func (r *CheClusterValidator) validateGitHubOAuthSecretDataKeys(secret *corev1.Secret) error {
 	keys2validate := []string{constants.GitHubOAuthConfigClientIdFileName, constants.GitHubOAuthConfigClientSecretFileName}
-	return r.validateOAuthSecretDataKeys(secret, keys2validate)
+	return r.validateSecretDataKeys(secret, keys2validate)
 }
 
 func (r *CheClusterValidator) validateGitLabOAuthSecretDataKeys(secret *corev1.Secret) error {
 	keys2validate := []string{constants.GitLabOAuthConfigClientIdFileName, constants.GitLabOAuthConfigClientSecretFileName}
-	return r.validateOAuthSecretDataKeys(secret, keys2validate)
+	return r.validateSecretDataKeys(secret, keys2validate)
 }
 
 func (r *CheClusterValidator) validateBitBucketOAuthSecretDataKeys(secret *corev1.Secret) error {
 	oauth1Keys2validate := []string{constants.BitBucketOAuthConfigPrivateKeyFileName, constants.BitBucketOAuthConfigConsumerKeyFileName}
-	errOauth1Keys := r.validateOAuthSecretDataKeys(secret, oauth1Keys2validate)
+	errOauth1Keys := r.validateSecretDataKeys(secret, oauth1Keys2validate)
 
 	oauth2Keys2validate := []string{constants.BitBucketOAuthConfigClientIdFileName, constants.BitBucketOAuthConfigClientSecretFileName}
-	errOauth2Keys := r.validateOAuthSecretDataKeys(secret, oauth2Keys2validate)
+	errOauth2Keys := r.validateSecretDataKeys(secret, oauth2Keys2validate)
 
 	if errOauth1Keys != nil && errOauth2Keys != nil {
 		return fmt.Errorf("secret must contain either [%s] or [%s] keys", strings.Join(oauth1Keys2validate, ", "), strings.Join(oauth2Keys2validate, ", "))
@@ -282,7 +282,7 @@ func (r *CheClusterValidator) validateOpenVSXRegistry(checluster *CheCluster) er
 		checluster.Spec.Components.OpenVSXRegistry.Database.Storage.ClaimSize != "" {
 
 		if _, err := resource.ParseQuantity(checluster.Spec.Components.OpenVSXRegistry.Database.Storage.ClaimSize); err != nil {
-			return fmt.Errorf("invalid value for OpenVSX registry storage claim size: %w", err)
+			return fmt.Errorf("invalid value for OpenVSX database PVC claim size: %w", err)
 		}
 	}
 
@@ -291,17 +291,47 @@ func (r *CheClusterValidator) validateOpenVSXRegistry(checluster *CheCluster) er
 		checluster.Spec.Components.OpenVSXRegistry.Server.Storage.ClaimSize != "" {
 
 		if _, err := resource.ParseQuantity(checluster.Spec.Components.OpenVSXRegistry.Server.Storage.ClaimSize); err != nil {
-			return fmt.Errorf("invalid value for OpenVSX registry database claim size: %w", err)
+			return fmt.Errorf("invalid value for OpenVSX server PVC claim size: %w", err)
+		}
+	}
+
+	if checluster.Spec.Components.OpenVSXRegistry.CredentialsSecretName != nil {
+		credentialsSecretName := *checluster.Spec.Components.OpenVSXRegistry.CredentialsSecretName
+
+		k8sHelper := k8shelper.New()
+		secret, err := k8sHelper.
+			GetClientset().
+			CoreV1().
+			Secrets(checluster.Namespace).
+			Get(context.TODO(), credentialsSecretName, metav1.GetOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return fmt.Errorf("credentials secret %s not found", credentialsSecretName)
+			}
+
+			return fmt.Errorf("failed to get OpenVSX database credentials secret: %w", err)
+		}
+
+		if r.validateSecretDataKeys(secret, []string{
+			"database-user",
+			"database-password",
+			"database-name",
+			"openvsx-publisher-name",
+			"openvsx-publisher-token",
+			"openvsx-admin-name",
+			"openvsx-admin-token",
+		}) != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-func (r *CheClusterValidator) validateOAuthSecretDataKeys(secret *corev1.Secret, keys []string) error {
+func (r *CheClusterValidator) validateSecretDataKeys(secret *corev1.Secret, keys []string) error {
 	for _, key := range keys {
-		if len(secret.Data[key]) == 0 {
-			return fmt.Errorf("secret '%s' must contain [%s] keys", secret.Name, strings.Join(keys, ", "))
+		if _, ok := secret.Data[key]; !ok {
+			return fmt.Errorf("mandatory keys %s not found in secret %s", strings.Join(keys, ", "), secret.Name)
 		}
 	}
 

@@ -108,7 +108,7 @@ func (r *OpenVSXExposeReconciler) getIngressSpec(ctx *chetypes.DeployContext, ho
 
 	serverBackend := networking.IngressBackend{
 		Service: &networking.IngressServiceBackend{
-			Name: constants.OpenVSXServerName,
+			Name: constants.OpenVSXServerComponentName,
 			Port: networking.ServiceBackendPort{
 				Number: 8080,
 			},

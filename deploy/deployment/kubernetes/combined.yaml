@@ -12105,20 +12105,26 @@ spec:
                   openVSXRegistry:
                     description: OpenVSX registry configuration.
                     properties:
+                      credentialsSecretName:
+                        description: "The name of the Kubernetes Secret that contains
+                          credentials for the OpenVSX registry database and server.\nThe
+                          Secret must contain the following keys:\n  - `database-user`\t\t\t\t:
+                          PostgreSQL username.\n  - `database-password`\t\t\t: PostgreSQL
+                          password.\n  - `database-name`\t\t\t\t: PostgreSQL database
+                          name.\n  - `openvsx-publisher-name`\t\t: Login name of the
+                          OpenVSX publisher account used to publish extensions.\n
+                          \ - `openvsx-publisher-token`\t: Personal access token for
+                          the OpenVSX publisher account.\n  - `openvsx-admin-name`\t\t\t:
+                          Login name of the OpenVSX admin account.\n  - `openvsx-admin-token`\t\t:
+                          Personal access token for the OpenVSX admin account.\nAll
+                          keys are required when using a custom Secret. If no Secret
+                          name is provided,\nthe operator creates one named `openvsx-database-credentials`
+                          with randomly generated values.\nThe secret must have the
+                          `app.kubernetes.io/part-of=che.eclipse.org` label."
+                        type: string
                       database:
                         description: OpenVSX registry database configuration.
                         properties:
-                          credentialsSecretName:
-                            description: "The name of the Kubernetes Secret that contains
-                              credentials for the OpenVSX registry database.\nThe
-                              Secret must contain the following keys:\n  - `db-user`\t:
-                              PostgreSQL username.\n  - `db-password`: PostgreSQL
-                              password.\n  - `db-name`\t: PostgreSQL database name.\nAll
-                              keys are required when using a custom Secret. If no
-                              Secret name is provided,\nthe operator creates one named
-                              `openvsx-database-credentials` with randomly generated
-                              values."
-                            type: string
                           deployment:
                             description: Deployment override options.
                             properties:
@@ -14688,19 +14694,6 @@ spec:
                       server:
                         description: OpenVSX registry server configuration.
                         properties:
-                          credentialsSecretName:
-                            description: "The name of the Kubernetes Secret that contains
-                              credentials for the OpenVSX registry server.\nThe Secret
-                              must contain the following keys:\n  - `publisher-name`\t:
-                              Login name of the OpenVSX publisher account used to
-                              publish extensions.\n  - `publisher-token`: Personal
-                              access token for the publisher account.\n  - `admin-name`\t\t:
-                              Login name of the OpenVSX admin account.\n  - `admin-token`\t:
-                              Personal access token for the admin account.\nAll keys
-                              are required when using a custom Secret. If no Secret
-                              name is provided,\nthe operator creates one named `openvsx-server-credentials`
-                              with randomly generated values."
-                            type: string
                           deployment:
                             description: Deployment override options.
                             properties:

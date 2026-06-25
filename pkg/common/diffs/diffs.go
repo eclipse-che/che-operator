@@ -14,6 +14,7 @@ package diffs
 
 import (
 	"maps"
+	"reflect"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -48,6 +49,13 @@ var ConfigMapEnsureLabels = cmp.Options{
 	cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
 	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
 		return maps.Equal(x.Labels, y.Labels)
+	}),
+}
+
+var Service = cmp.Options{
+	cmpopts.IgnoreFields(corev1.Service{}, "TypeMeta", "ObjectMeta", "Status"),
+	cmp.Comparer(func(x, y corev1.ServiceSpec) bool {
+		return maps.Equal(x.Selector, y.Selector) && reflect.DeepEqual(x.Ports, y.Ports)
 	}),
 }
 

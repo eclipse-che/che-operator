@@ -456,6 +456,20 @@ type OpenVSXRegistry struct {
 	// Enables internal OpenVSX registry.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
+	// The name of the Kubernetes Secret that contains credentials for the OpenVSX registry database and server.
+	// The Secret must contain the following keys:
+	//   - `database-user`				: PostgreSQL username.
+	//   - `database-password`			: PostgreSQL password.
+	//   - `database-name`				: PostgreSQL database name.
+	//   - `openvsx-publisher-name`		: Login name of the OpenVSX publisher account used to publish extensions.
+	//   - `openvsx-publisher-token`	: Personal access token for the OpenVSX publisher account.
+	//   - `openvsx-admin-name`			: Login name of the OpenVSX admin account.
+	//   - `openvsx-admin-token`		: Personal access token for the OpenVSX admin account.
+	// All keys are required when using a custom Secret. If no Secret name is provided,
+	// the operator creates one named `openvsx-database-credentials` with randomly generated values.
+	// The secret must have the `app.kubernetes.io/part-of=che.eclipse.org` label.
+	// +optional
+	CredentialsSecretName *string `json:"credentialsSecretName,omitempty"`
 	// OpenVSX registry server configuration.
 	// +optional
 	Server *OpenVSXServer `json:"server,omitempty"`
@@ -467,16 +481,6 @@ type OpenVSXRegistry struct {
 // OpenVSX registry server configuration.
 // +k8s:openapi-gen=true
 type OpenVSXServer struct {
-	// The name of the Kubernetes Secret that contains credentials for the OpenVSX registry server.
-	// The Secret must contain the following keys:
-	//   - `publisher-name`	: Login name of the OpenVSX publisher account used to publish extensions.
-	//   - `publisher-token`: Personal access token for the publisher account.
-	//   - `admin-name`		: Login name of the OpenVSX admin account.
-	//   - `admin-token`	: Personal access token for the admin account.
-	// All keys are required when using a custom Secret. If no Secret name is provided,
-	// the operator creates one named `openvsx-server-credentials` with randomly generated values.
-	// +optional
-	CredentialsSecretName string `json:"credentialsSecretName,omitempty"`
 	// Deployment override options.
 	// +optional
 	Deployment *Deployment `json:"deployment,omitempty"`
@@ -488,15 +492,6 @@ type OpenVSXServer struct {
 // OpenVSX registry database configuration.
 // +k8s:openapi-gen=true
 type OpenVSXDatabase struct {
-	// The name of the Kubernetes Secret that contains credentials for the OpenVSX registry database.
-	// The Secret must contain the following keys:
-	//   - `db-user`	: PostgreSQL username.
-	//   - `db-password`: PostgreSQL password.
-	//   - `db-name`	: PostgreSQL database name.
-	// All keys are required when using a custom Secret. If no Secret name is provided,
-	// the operator creates one named `openvsx-database-credentials` with randomly generated values.
-	// +optional
-	CredentialsSecretName string `json:"credentialsSecretName,omitempty"`
 	// Deployment override options.
 	// +optional
 	Deployment *Deployment `json:"deployment,omitempty"`

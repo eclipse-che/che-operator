@@ -13,25 +13,35 @@
 package database
 
 import (
-	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy/openvsx"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/ptr"
 )
 
-func (p *OpenVSXDatabaseReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
+func (p *OpenVSXDatabaseReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
+	spec, err := getDeploymentSpec(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	return deploy.SyncDeploymentSpecToCluster(ctx, spec, deploy.DefaultDeploymentDiffOpts)
+}
+
+func getDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
 	image := defaults.GetOpenVSXDatabaseImage(ctx.CheCluster)
-	pullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(image))
-	labels, labelSelector := deploy.GetLabelsAndSelector(constants.OpenVSXDatabaseName)
-	terminationGracePeriodSeconds := int64(30)
-	secretName := GetCredentialsSecretName(ctx)
+	imagePullPolicy := utils.GetPullPolicyFromDockerImage(image)
+
+	labels := deploy.GetLabels(constants.OpenVSXDatabaseComponentName)
+	credentialsSecretName := openvsx.GetCredentialsSecretName(ctx)
 
 	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -39,13 +49,13 @@ func (p *OpenVSXDatabaseReconciler) getDeploymentSpec(ctx *chetypes.DeployContex
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.OpenVSXDatabaseName,
+			Name:      constants.OpenVSXDatabaseComponentName,
 			Namespace: ctx.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: labelSelector,
+				MatchLabels: labels,
 			},
 			Strategy: appsv1.DeploymentStrategy{
 				Type: appsv1.RecreateDeploymentStrategyType,
@@ -55,47 +65,16 @@ func (p *OpenVSXDatabaseReconciler) getDeploymentSpec(ctx *chetypes.DeployContex
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					RestartPolicy:                 corev1.RestartPolicyAlways,
-					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
 					Containers: []corev1.Container{
 						{
-							Name:            constants.OpenVSXDatabaseName,
+							Name:            constants.OpenVSXDatabaseComponentName,
 							Image:           image,
-							ImagePullPolicy: pullPolicy,
+							ImagePullPolicy: corev1.PullPolicy(imagePullPolicy),
 							Ports: []corev1.ContainerPort{
 								{
-									Name:          "tcp-postgresql",
-									ContainerPort: postgresPort,
+									Name:          constants.OpenVSXDatabaseComponentName,
+									ContainerPort: constants.OpenVSXDatabaseServicePort,
 									Protocol:      corev1.ProtocolTCP,
-								},
-							},
-							Env: []corev1.EnvVar{
-								{
-									Name: "POSTGRESQL_USER",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
-											Key:                  "db-user",
-										},
-									},
-								},
-								{
-									Name: "POSTGRESQL_PASSWORD",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
-											Key:                  "db-password",
-										},
-									},
-								},
-								{
-									Name: "POSTGRESQL_DATABASE",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
-											Key:                  "db-name",
-										},
-									},
 								},
 							},
 							Resources: corev1.ResourceRequirements{
@@ -108,59 +87,99 @@ func (p *OpenVSXDatabaseReconciler) getDeploymentSpec(ctx *chetypes.DeployContex
 									corev1.ResourceCPU:    resource.MustParse(constants.OpenVSXDatabaseCpuLimit),
 								},
 							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      constants.OpenVSXDatabaseComponentName,
+									MountPath: "/var/lib/pgsql/data",
+								},
+							},
 							ReadinessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
-									TCPSocket: &corev1.TCPSocketAction{
-										Port: intstr.FromInt32(postgresPort),
+									Exec: &corev1.ExecAction{
+										Command: []string{
+											"/bin/sh",
+											"-i",
+											"-c",
+											"psql -h 127.0.0.1 -U $POSTGRESQL_USER -q -d $POSTGRESQL_DATABASE -c 'SELECT 1'",
+										},
 									},
 								},
-								InitialDelaySeconds: 10,
+								InitialDelaySeconds: 15,
+								FailureThreshold:    10,
+								SuccessThreshold:    1,
 								PeriodSeconds:       10,
 								TimeoutSeconds:      5,
-								FailureThreshold:    3,
 							},
 							LivenessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
 									TCPSocket: &corev1.TCPSocketAction{
-										Port: intstr.FromInt32(postgresPort),
+										Port: intstr.FromInt32(constants.OpenVSXDatabaseServicePort),
 									},
 								},
 								InitialDelaySeconds: 30,
-								PeriodSeconds:       20,
+								FailureThreshold:    10,
+								SuccessThreshold:    1,
+								PeriodSeconds:       10,
 								TimeoutSeconds:      5,
-								FailureThreshold:    3,
 							},
-							VolumeMounts: []corev1.VolumeMount{
+							Env: []corev1.EnvVar{
 								{
-									Name:      pvcName,
-									MountPath: "/var/lib/pgsql/data",
+									Name: "POSTGRESQL_USER",
+									ValueFrom: &corev1.EnvVarSource{
+										SecretKeyRef: &corev1.SecretKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{Name: credentialsSecretName},
+											Key:                  "database-user",
+										},
+									},
+								},
+								{
+									Name: "POSTGRESQL_PASSWORD",
+									ValueFrom: &corev1.EnvVarSource{
+										SecretKeyRef: &corev1.SecretKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{Name: credentialsSecretName},
+											Key:                  "database-password",
+										},
+									},
+								},
+								{
+									Name: "POSTGRESQL_DATABASE",
+									ValueFrom: &corev1.EnvVarSource{
+										SecretKeyRef: &corev1.SecretKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{Name: credentialsSecretName},
+											Key:                  "database-name",
+										},
+									},
 								},
 							},
 						},
 					},
 					Volumes: []corev1.Volume{
 						{
-							Name: pvcName,
+							Name: constants.OpenVSXDatabaseComponentName,
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: pvcName,
+									ClaimName: constants.OpenVSXDatabaseComponentName,
 								},
 							},
 						},
 					},
+					RestartPolicy:                 corev1.RestartPolicyAlways,
+					TerminationGracePeriodSeconds: ptr.To(int64(30)),
 				},
 			},
 		},
 	}
 
-	deploy.EnsurePodSecurityStandards(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
+	// `26` is a default user and group id in the container file
+	kubernetesUserId := int64(26)
+	kubernetesGroupId := int64(26)
 
-	var overrideDeployment *chev2.Deployment
+	deploy.EnsurePodSecurityStandards(deployment, kubernetesUserId, kubernetesGroupId)
+
 	if ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database != nil {
-		overrideDeployment = ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database.Deployment
-	}
-	if err := deploy.OverrideDeployment(ctx, deployment, overrideDeployment); err != nil {
-		return nil, err
+		if err := deploy.OverrideDeployment(ctx, deployment, ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database.Deployment); err != nil {
+			return nil, err
+		}
 	}
 
 	return deployment, nil
