@@ -21,6 +21,7 @@ import (
 	securityv1 "github.com/openshift/api/security/v1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	corev1 "k8s.io/api/core/v1"
+	networking "k8s.io/api/networking/v1"
 	rbac "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -57,6 +58,13 @@ var Service = cmp.Options{
 	cmp.Comparer(func(x, y corev1.ServiceSpec) bool {
 		return maps.Equal(x.Selector, y.Selector) && reflect.DeepEqual(x.Ports, y.Ports)
 	}),
+}
+
+func Ingress(labels []string, annotations []string) cmp.Options {
+	return cmp.Options{
+		cmpopts.IgnoreFields(networking.Ingress{}, "TypeMeta", "Status"),
+		objectMetaComparator(labels, annotations),
+	}
 }
 
 // ConfigMap respects existed labels and annotations

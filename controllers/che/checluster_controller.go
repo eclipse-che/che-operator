@@ -123,7 +123,6 @@ func NewReconciler(
 	reconcilerManager.AddReconciler(openvsx.NewOpenVSXSecretReconciler())
 	reconcilerManager.AddReconciler(openvsxdatabase.NewOpenVSXDatabaseReconciler())
 	reconcilerManager.AddReconciler(openvsxserver.NewOpenVSXServerReconciler())
-	reconcilerManager.AddReconciler(openvsx.NewOpenVSXExposeReconciler())
 	reconcilerManager.AddReconciler(editorsdefinitions.NewEditorsDefinitionsReconciler())
 	reconcilerManager.AddReconciler(devworkspace.NewDwoNamespaceReconciler())
 	reconcilerManager.AddReconciler(dashboard.NewDashboardReconciler())

@@ -97,7 +97,7 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      constants.OpenVSXServerComponentName + "config",
+									Name:      constants.OpenVSXServerComponentName + "-config",
 									MountPath: "/home/openvsx/server/config",
 									ReadOnly:  true,
 								},
@@ -151,7 +151,7 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 					},
 					Volumes: []corev1.Volume{
 						{
-							Name: constants.OpenVSXServerComponentName + "config",
+							Name: constants.OpenVSXServerComponentName + "-config",
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{

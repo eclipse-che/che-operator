@@ -17,8 +17,6 @@ import (
 	"testing"
 
 	testclient "github.com/eclipse-che/che-operator/pkg/common/test/test-client"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,7 +24,7 @@ import (
 )
 
 func TestCreateIfNotExists(t *testing.T) {
-	cmExpected := &corev1.ConfigMap{
+	cm := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
 			APIVersion: "v1",
@@ -43,19 +41,14 @@ func TestCreateIfNotExists(t *testing.T) {
 	fakeClient, _, scheme := testclient.GetTestClients()
 	cli := NewK8sClient(fakeClient, scheme)
 
-	err := cli.CreateIfNotExists(context.TODO(), cmExpected)
+	err := cli.CreateIfNotExists(context.TODO(), cm)
 
 	assert.NoError(t, err)
-	assert.Equal(t, "ConfigMap", cmExpected.Kind)
-	assert.Equal(t, "v1", cmExpected.APIVersion)
 
-	cmActual := &corev1.ConfigMap{}
-	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, cmActual)
-
+	cm = &corev1.ConfigMap{}
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, cm)
 	assert.NoError(t, err)
-	cmp.Diff(cmActual, cmExpected, cmp.Options{
-		cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
-	})
+	assert.Equal(t, cm.Data["key"], "value")
 }
 
 func TestCreateIfNotExistsAlreadyExistedObject(t *testing.T) {
@@ -85,10 +78,16 @@ func TestCreateIfNotExistsAlreadyExistedObject(t *testing.T) {
 			Name:      "test",
 			Namespace: "eclipse-che",
 		},
+		Data: map[string]string{
+			"key": "new-value",
+		},
 	}
-	err := cli.CreateIfNotExists(context.TODO(), cm)
 
+	err := cli.CreateIfNotExists(context.TODO(), cm)
 	assert.NoError(t, err)
-	assert.Equal(t, "ConfigMap", cm.Kind)
-	assert.Equal(t, "v1", cm.APIVersion)
+
+	cm = &corev1.ConfigMap{}
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, cm)
+	assert.NoError(t, err)
+	assert.Equal(t, cm.Data["key"], "value")
 }

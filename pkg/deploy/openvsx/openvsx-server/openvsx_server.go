@@ -64,6 +64,8 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: extensionPublishJobName, Namespace: ns}, &batchv1.Job{})
 		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: extensionsConfigMapName, Namespace: ns}, &corev1.ConfigMap{})
 		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: serverPVCName, Namespace: ns}, &corev1.PersistentVolumeClaim{})
+		// TODO ingress
+		// TODO Openvsxurl
 		return reconcile.Result{}, true, nil
 	}
 
@@ -88,6 +90,16 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 			err = fmt.Errorf("failed to sync Deployment %w", err)
 		}
 		return reconcile.Result{}, false, err
+	}
+
+	err = r.syncIngress(ctx)
+	if err != nil {
+		return reconcile.Result{}, false, fmt.Errorf("failed to sync Ingress: %w", err)
+	}
+
+	err = r.syncOpenVSXURLStatus(ctx)
+	if err != nil {
+		return reconcile.Result{}, false, fmt.Errorf("failed to sync OpenVSXURL status: %w", err)
 	}
 
 	done, err = r.syncExtensionsConfigMap(ctx)
