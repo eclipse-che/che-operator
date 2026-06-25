@@ -14,6 +14,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -44,16 +45,19 @@ func (p *OpenVSXDatabaseReconciler) Reconcile(ctx *chetypes.DeployContext) (reco
 
 	err := p.syncService(ctx)
 	if err != nil {
-		return reconcile.Result{}, false, err
+		return reconcile.Result{}, false, fmt.Errorf("failed to sync service: %w", err)
 	}
 
 	err = p.syncPVC(ctx)
 	if err != nil {
-		return reconcile.Result{}, false, err
+		return reconcile.Result{}, false, fmt.Errorf("failed to sync pvc: %w", err)
 	}
 
 	done, err := p.syncDeployment(ctx)
 	if !done {
+		if err != nil {
+			err = fmt.Errorf("failed to sync deployment: %w", err)
+		}
 		return reconcile.Result{}, false, err
 	}
 
@@ -65,31 +69,23 @@ func (p *OpenVSXDatabaseReconciler) Finalize(_ *chetypes.DeployContext) bool {
 }
 
 func (p *OpenVSXDatabaseReconciler) deleteResources(ctx *chetypes.DeployContext) {
+	objectKey := types.NamespacedName{
+		Name:      constants.OpenVSXDatabaseComponentName,
+		Namespace: ctx.CheCluster.Namespace,
+	}
 	cw := ctx.ClusterAPI.ClientWrapper
 
-	err := cw.DeleteByKeyIgnoreNotFound(
-		context.TODO(),
-		types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: ctx.CheCluster.Namespace},
-		&appsv1.Deployment{},
-	)
+	err := cw.DeleteByKeyIgnoreNotFound(context.TODO(), objectKey, &appsv1.Deployment{})
 	if err != nil {
 		logger.Error(err, "Failed to delete Deployment", "Name", ctx.CheCluster.Name)
 	}
 
-	err = cw.DeleteByKeyIgnoreNotFound(
-		context.TODO(),
-		types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: ctx.CheCluster.Namespace},
-		&corev1.Service{},
-	)
+	err = cw.DeleteByKeyIgnoreNotFound(context.TODO(), objectKey, &corev1.Service{})
 	if err != nil {
 		logger.Error(err, "Failed to delete Service", "Name", ctx.CheCluster.Name)
 	}
 
-	err = cw.DeleteByKeyIgnoreNotFound(
-		context.TODO(),
-		types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: ctx.CheCluster.Namespace},
-		&corev1.PersistentVolumeClaim{},
-	)
+	err = cw.DeleteByKeyIgnoreNotFound(context.TODO(), objectKey, &corev1.PersistentVolumeClaim{})
 	if err != nil {
 		logger.Error(err, "Failed to delete PVC", "Name", ctx.CheCluster.Name)
 	}

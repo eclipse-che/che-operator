@@ -13,6 +13,8 @@
 package database
 
 import (
+	"fmt"
+
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -30,7 +32,7 @@ import (
 func (p *OpenVSXDatabaseReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
 	spec, err := getDeploymentSpec(ctx)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("unable to get deployment spec: %w", err)
 	}
 
 	return deploy.SyncDeploymentSpecToCluster(ctx, spec, deploy.DefaultDeploymentDiffOpts)
@@ -178,7 +180,7 @@ func getDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) 
 
 	if ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database != nil {
 		if err := deploy.OverrideDeployment(ctx, deployment, ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database.Deployment); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to override deployment: %w", err)
 		}
 	}
 

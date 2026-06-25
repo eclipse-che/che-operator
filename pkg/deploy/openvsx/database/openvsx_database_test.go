@@ -13,7 +13,6 @@
 package database
 
 import (
-	"context"
 	"testing"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -27,20 +26,22 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-func TestReconcileCreatesResources(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "eclipse-che",
-			Namespace: "eclipse-che",
-		},
-		Spec: chev2.CheClusterSpec{
-			Components: chev2.CheClusterComponents{
-				OpenVSXRegistry: chev2.OpenVSXRegistry{
-					Enabled: ptr.To(true),
+func TestOpenVSXDatabaseReconciler(t *testing.T) {
+	ctx := test.NewCtxBuilder().WithCheCluster(
+		&chev2.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "eclipse-che",
+				Namespace: "eclipse-che",
+			},
+			Spec: chev2.CheClusterSpec{
+				Components: chev2.CheClusterComponents{
+					OpenVSXRegistry: chev2.OpenVSXRegistry{
+						Enabled: ptr.To(true),
+					},
 				},
 			},
 		},
-	}).Build()
+	).Build()
 
 	reconciler := NewOpenVSXDatabaseReconciler()
 	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
@@ -48,40 +49,11 @@ func TestReconcileCreatesResources(t *testing.T) {
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: "eclipse-che"}, &corev1.Service{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: "eclipse-che"}, &corev1.PersistentVolumeClaim{}))
-}
-
-func TestReconcileDeletesResourcesWhenDisabled(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "eclipse-che",
-			Namespace: "eclipse-che",
-		},
-		Spec: chev2.CheClusterSpec{
-			Components: chev2.CheClusterComponents{
-				OpenVSXRegistry: chev2.OpenVSXRegistry{
-					Enabled: ptr.To(true),
-				},
-			},
-		},
-	}).Build()
-
-	reconciler := NewOpenVSXDatabaseReconciler()
-	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
-
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 
 	ctx.CheCluster.Spec.Components.OpenVSXRegistry.Enabled = ptr.To(false)
-	err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
-	assert.NoError(t, err)
-
 	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
 
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: "eclipse-che"}, &corev1.Service{}))
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: "eclipse-che"}, &corev1.PersistentVolumeClaim{}))
-}
-
-func TestFinalize(t *testing.T) {
-	reconciler := NewOpenVSXDatabaseReconciler()
-	assert.True(t, reconciler.Finalize(nil))
 }

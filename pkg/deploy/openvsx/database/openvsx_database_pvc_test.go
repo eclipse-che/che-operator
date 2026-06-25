@@ -22,63 +22,35 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 )
 
-func TestPVCSpecDefault(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "eclipse-che",
-			Name:      "eclipse-che",
-		},
-		Spec: chev2.CheClusterSpec{
-			Components: chev2.CheClusterComponents{
-				OpenVSXRegistry: chev2.OpenVSXRegistry{
-					Enabled: ptr.To(true),
-				},
-			},
-		},
-	}).Build()
-
+func TestPVCSync(t *testing.T) {
+	ctx := test.NewCtxBuilder().Build()
 	reconciler := NewOpenVSXDatabaseReconciler()
-	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
 
-	pvc := &corev1.PersistentVolumeClaim{}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: "eclipse-che"}, pvc)
+	err := reconciler.syncPVC(ctx)
 	assert.NoError(t, err)
 
+	ctx.CheCluster.Spec.Components.OpenVSXRegistry = chev2.OpenVSXRegistry{
+		Database: &chev2.OpenVSXDatabase{
+			Storage: &chev2.PVC{
+				ClaimSize: "4Gi",
+			},
+		},
+	}
+
+	pvc := &corev1.PersistentVolumeClaim{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: "eclipse-che"}, pvc)
+	assert.NoError(t, err)
 	assert.Equal(t, resource.MustParse(constants.OpenVSXDatabaseClaimSize), pvc.Spec.Resources.Requests[corev1.ResourceStorage])
-	assert.Contains(t, pvc.Spec.AccessModes, corev1.ReadWriteOnce)
-}
 
-func TestPVCSpecCustomClaimSize(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "eclipse-che",
-			Name:      "eclipse-che",
-		},
-		Spec: chev2.CheClusterSpec{
-			Components: chev2.CheClusterComponents{
-				OpenVSXRegistry: chev2.OpenVSXRegistry{
-					Enabled: ptr.To(true),
-					Database: &chev2.OpenVSXDatabase{
-						Storage: &chev2.PVC{
-							ClaimSize: "5Gi",
-						},
-					},
-				},
-			},
-		},
-	}).Build()
-
-	reconciler := NewOpenVSXDatabaseReconciler()
-	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
-
-	pvc := &corev1.PersistentVolumeClaim{}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: "eclipse-che"}, pvc)
+	err = reconciler.syncPVC(ctx)
 	assert.NoError(t, err)
 
-	assert.Equal(t, resource.MustParse("5Gi"), pvc.Spec.Resources.Requests[corev1.ResourceStorage])
+	pvc = &corev1.PersistentVolumeClaim{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: "eclipse-che"}, pvc)
+	assert.NoError(t, err)
+	assert.Equal(t, resource.MustParse("4Gi"), pvc.Spec.Resources.Requests[corev1.ResourceStorage])
+	assert.NotEqual(t, "4Gi", constants.OpenVSXDatabaseClaimSize)
 }

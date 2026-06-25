@@ -295,36 +295,6 @@ func (r *CheClusterValidator) validateOpenVSXRegistry(checluster *CheCluster) er
 		}
 	}
 
-	if checluster.Spec.Components.OpenVSXRegistry.CredentialsSecretName != nil {
-		credentialsSecretName := *checluster.Spec.Components.OpenVSXRegistry.CredentialsSecretName
-
-		k8sHelper := k8shelper.New()
-		secret, err := k8sHelper.
-			GetClientset().
-			CoreV1().
-			Secrets(checluster.Namespace).
-			Get(context.TODO(), credentialsSecretName, metav1.GetOptions{})
-		if err != nil {
-			if errors.IsNotFound(err) {
-				return fmt.Errorf("credentials secret %s not found", credentialsSecretName)
-			}
-
-			return fmt.Errorf("failed to get OpenVSX database credentials secret: %w", err)
-		}
-
-		if r.validateSecretDataKeys(secret, []string{
-			"database-user",
-			"database-password",
-			"database-name",
-			"openvsx-publisher-name",
-			"openvsx-publisher-token",
-			"openvsx-admin-name",
-			"openvsx-admin-token",
-		}) != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 

@@ -12113,7 +12113,7 @@ spec:
                           Login name of the OpenVSX admin account.\n  - `openvsx-admin-token`\t\t:
                           Personal access token for the OpenVSX admin account.\nAll
                           keys are required when using a custom Secret. If no Secret
-                          name is provided,\nthe operator creates one named `openvsx-database-credentials`
+                          name is provided,\nthe operator creates one named `openvsx-credentials`
                           with randomly generated values.\nThe secret must have the
                           `app.kubernetes.io/part-of=che.eclipse.org` label."
                         type: string

@@ -74,10 +74,9 @@ func (p *OpenVSXDatabaseReconciler) syncPVC(ctx *chetypes.DeployContext) error {
 		},
 	}
 
-	if err := controllerutil.SetControllerReference(ctx.CheCluster, pvc, ctx.ClusterAPI.Scheme); err != nil {
+	if err = controllerutil.SetControllerReference(ctx.CheCluster, pvc, ctx.ClusterAPI.Scheme); err != nil {
 		return err
 	}
 
 	return ctx.ClusterAPI.ClientWrapper.CreateIfNotExists(context.TODO(), pvc)
-
 }

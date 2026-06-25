@@ -466,7 +466,7 @@ type OpenVSXRegistry struct {
 	//   - `openvsx-admin-name`			: Login name of the OpenVSX admin account.
 	//   - `openvsx-admin-token`		: Personal access token for the OpenVSX admin account.
 	// All keys are required when using a custom Secret. If no Secret name is provided,
-	// the operator creates one named `openvsx-database-credentials` with randomly generated values.
+	// the operator creates one named `openvsx-credentials` with randomly generated values.
 	// The secret must have the `app.kubernetes.io/part-of=che.eclipse.org` label.
 	// +optional
 	CredentialsSecretName *string `json:"credentialsSecretName,omitempty"`
