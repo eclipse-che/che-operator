@@ -27,7 +27,7 @@ import (
 
 func (r *OpenVSXServerReconciler) syncPVC(ctx *chetypes.DeployContext) error {
 	claimSize := constants.OpenVSXServerClaimSize
-	
+
 	if ctx.CheCluster.Spec.Components.OpenVSXRegistry.Server != nil &&
 		ctx.CheCluster.Spec.Components.OpenVSXRegistry.Server.Storage != nil &&
 		ctx.CheCluster.Spec.Components.OpenVSXRegistry.Server.Storage.ClaimSize != "" {
