@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package database
+package openvsx_database
 
 import (
 	"fmt"
@@ -32,7 +32,7 @@ import (
 func (p *OpenVSXDatabaseReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
 	spec, err := getDeploymentSpec(ctx)
 	if err != nil {
-		return false, fmt.Errorf("unable to get deployment spec: %w", err)
+		return false, fmt.Errorf("failed to get deployment spec: %w", err)
 	}
 
 	return deploy.SyncDeploymentSpecToCluster(ctx, spec, deploy.DefaultDeploymentDiffOpts)

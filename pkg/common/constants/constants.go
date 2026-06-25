@@ -46,6 +46,7 @@ const (
 	OpenVSXServerCpuLimit      = "1"
 	OpenVSXServerCpuRequest    = "100m"
 	OpenVSXServerClaimSize     = "3Gi"
+	OpenVSXServerServicePort   = int32(8080)
 
 	// OpenVSXRegistry Database
 	OpenVSXDatabaseComponentName = "openvsx-database"

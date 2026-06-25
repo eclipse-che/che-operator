@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package database
+package openvsx_database
 
 import (
 	"context"
@@ -32,6 +32,11 @@ func TestPVCSync(t *testing.T) {
 	err := reconciler.syncPVC(ctx)
 	assert.NoError(t, err)
 
+	pvc := &corev1.PersistentVolumeClaim{}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: "eclipse-che"}, pvc)
+	assert.NoError(t, err)
+	assert.Equal(t, resource.MustParse(constants.OpenVSXDatabaseClaimSize), pvc.Spec.Resources.Requests[corev1.ResourceStorage])
+
 	ctx.CheCluster.Spec.Components.OpenVSXRegistry = chev2.OpenVSXRegistry{
 		Database: &chev2.OpenVSXDatabase{
 			Storage: &chev2.PVC{
@@ -39,11 +44,6 @@ func TestPVCSync(t *testing.T) {
 			},
 		},
 	}
-
-	pvc := &corev1.PersistentVolumeClaim{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: "eclipse-che"}, pvc)
-	assert.NoError(t, err)
-	assert.Equal(t, resource.MustParse(constants.OpenVSXDatabaseClaimSize), pvc.Spec.Resources.Requests[corev1.ResourceStorage])
 
 	err = reconciler.syncPVC(ctx)
 	assert.NoError(t, err)

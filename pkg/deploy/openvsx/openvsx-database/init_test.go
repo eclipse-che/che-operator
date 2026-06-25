@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package database
+package openvsx_database
 
 import (
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"

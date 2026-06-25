@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package server
+package openvsx_server
 
 import (
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"

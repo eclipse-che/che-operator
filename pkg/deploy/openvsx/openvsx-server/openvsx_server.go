@@ -10,10 +10,11 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package server
+package openvsx_server
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
@@ -23,13 +24,12 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/deploy/openvsx/database"
+	openvsx_database "github.com/eclipse-che/che-operator/pkg/deploy/openvsx/openvsx-database"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -74,9 +74,9 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 		return reconcile.Result{}, false, err
 	}
 
-	done, err = r.syncPVC(ctx)
-	if !done {
-		return reconcile.Result{}, false, err
+	err = r.syncPVC(ctx)
+	if err != nil {
+		return reconcile.Result{}, false, fmt.Errorf("failed to sync pvc: %w", err)
 	}
 
 	done, err = r.syncDeployment(ctx)
@@ -163,66 +163,6 @@ func (r *OpenVSXServerReconciler) getConfigMapRevision(ctx *chetypes.DeployConte
 	return cm.ResourceVersion, nil
 }
 
-func (r *OpenVSXServerReconciler) syncPVC(ctx *chetypes.DeployContext) (bool, error) {
-	claimSize := constants.OpenVSXServerClaimSize
-	if ctx.CheCluster.Spec.Components.OpenVSXRegistry.Server != nil &&
-		ctx.CheCluster.Spec.Components.OpenVSXRegistry.Server.Storage != nil &&
-		ctx.CheCluster.Spec.Components.OpenVSXRegistry.Server.Storage.ClaimSize != "" {
-		claimSize = ctx.CheCluster.Spec.Components.OpenVSXRegistry.Server.Storage.ClaimSize
-	}
-
-	desiredSize := resource.MustParse(claimSize)
-
-	existing := &corev1.PersistentVolumeClaim{}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{
-		Name:      serverPVCName,
-		Namespace: ctx.CheCluster.Namespace,
-	}, existing)
-
-	if errors.IsNotFound(err) {
-		pvc := &corev1.PersistentVolumeClaim{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "PersistentVolumeClaim",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      serverPVCName,
-				Namespace: ctx.CheCluster.Namespace,
-				Labels:    deploy.GetLabels(constants.OpenVSXServerComponentName),
-			},
-			Spec: corev1.PersistentVolumeClaimSpec{
-				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-				Resources: corev1.VolumeResourceRequirements{
-					Requests: corev1.ResourceList{
-						corev1.ResourceStorage: desiredSize,
-					},
-				},
-			},
-		}
-		return deploy.Sync(ctx, pvc, deploy.DefaultDeploymentDiffOpts)
-	}
-	if err != nil {
-		return false, err
-	}
-
-	currentSize := existing.Spec.Resources.Requests[corev1.ResourceStorage]
-	if desiredSize.Cmp(currentSize) > 0 {
-		existing.Spec.Resources.Requests[corev1.ResourceStorage] = desiredSize
-		return false, ctx.ClusterAPI.Client.Update(context.TODO(), existing)
-	}
-
-	return true, nil
-}
-
-func (r *OpenVSXServerReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
-	spec, err := r.getDeploymentSpec(ctx)
-	if err != nil {
-		return false, err
-	}
-
-	return deploy.SyncDeploymentSpecToCluster(ctx, spec, deploy.DefaultDeploymentDiffOpts)
-}
-
 func (r *OpenVSXServerReconciler) syncUserSetupJob(ctx *chetypes.DeployContext) (bool, error) {
 	existing := &batchv1.Job{}
 	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{
@@ -247,7 +187,7 @@ func (r *OpenVSXServerReconciler) syncUserSetupJob(ctx *chetypes.DeployContext) 
 	terminationGracePeriodSeconds := int64(30)
 	runAsNonRoot := true
 
-	secretName := database.GetCredentialsSecretName(ctx)
+	secretName := openvsx_database.GetCredentialsSecretName(ctx)
 
 	dbEnvVars := []corev1.EnvVar{
 		{
@@ -424,7 +364,7 @@ func (r *OpenVSXServerReconciler) syncExtensionPublishJob(ctx *chetypes.DeployCo
 	terminationGracePeriodSeconds := int64(30)
 	runAsNonRoot := true
 
-	secretName := database.GetCredentialsSecretName(ctx)
+	secretName := openvsx_database.GetCredentialsSecretName(ctx)
 
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
