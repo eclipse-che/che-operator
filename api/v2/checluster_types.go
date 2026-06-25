@@ -1224,15 +1224,19 @@ func (c *CheCluster) IsCheFlavor() bool {
 
 func (c *CheCluster) IsInternalPluginRegistryDisabled() bool {
 	return c.Spec.Components.PluginRegistry.DisableInternalRegistry ||
-		c.IsExternalOpenVSXRegistryConfigured() || c.IsInternalOpenVSXRegistryEnabled()
+		c.IsExternalOpenVSXRegistryEnabled() || c.IsInternalOpenVSXRegistryEnabled()
 }
 
-func (c *CheCluster) IsExternalOpenVSXRegistryConfigured() bool {
+func (c *CheCluster) IsExternalOpenVSXRegistryEnabled() bool {
 	return ptr.Deref(c.Spec.Components.PluginRegistry.OpenVSXURL, defaults.GetPluginRegistryOpenVSXURL()) != ""
 }
 
 func (c *CheCluster) IsInternalOpenVSXRegistryEnabled() bool {
 	return ptr.Deref(c.Spec.Components.OpenVSXRegistry.Enabled, false)
+}
+
+func (c *CheCluster) IsInternalPluginRegistryWithOpenVSXEnabled() bool {
+	return !c.Spec.Components.PluginRegistry.DisableInternalRegistry && !c.IsExternalOpenVSXRegistryEnabled()
 }
 
 // IsCheBeingInstalled returns true if the Che version is not set in the status.
