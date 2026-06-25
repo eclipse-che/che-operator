@@ -41,6 +41,18 @@ func IndexEnv(name string, envs []corev1.EnvVar) int {
 	return -1
 }
 
+func EnvVarFromSecret(envName, secretName, secretKey string) corev1.EnvVar {
+	return corev1.EnvVar{
+		Name: envName,
+		ValueFrom: &corev1.EnvVarSource{
+			SecretKeyRef: &corev1.SecretKeySelector{
+				LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
+				Key:                  secretKey,
+			},
+		},
+	}
+}
+
 func GetGetArchitectureDependentEnvsByRegExp(regExp string) []corev1.EnvVar {
 	return doGetEnvsByRegExp(regExp, true)
 }

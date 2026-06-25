@@ -125,33 +125,9 @@ func getDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) 
 								TimeoutSeconds:      5,
 							},
 							Env: []corev1.EnvVar{
-								{
-									Name: "POSTGRESQL_USER",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: credentialsSecretName},
-											Key:                  "database-user",
-										},
-									},
-								},
-								{
-									Name: "POSTGRESQL_PASSWORD",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: credentialsSecretName},
-											Key:                  "database-password",
-										},
-									},
-								},
-								{
-									Name: "POSTGRESQL_DATABASE",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: credentialsSecretName},
-											Key:                  "database-name",
-										},
-									},
-								},
+								utils.EnvVarFromSecret("POSTGRESQL_USER", credentialsSecretName, "database-user"),
+								utils.EnvVarFromSecret("POSTGRESQL_PASSWORD", credentialsSecretName, "database-password"),
+								utils.EnvVarFromSecret("POSTGRESQL_DATABASE", credentialsSecretName, "database-name"),
 							},
 						},
 					},

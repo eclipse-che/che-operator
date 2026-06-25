@@ -14,6 +14,8 @@ package openvsx_server
 
 import (
 	"context"
+
+	_ "embed"
 	"fmt"
 	"strings"
 
@@ -24,7 +26,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	openvsx_database "github.com/eclipse-che/che-operator/pkg/deploy/openvsx/openvsx-database"
+	"github.com/eclipse-che/che-operator/pkg/deploy/openvsx"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -39,15 +41,16 @@ type OpenVSXServerReconciler struct {
 	reconciler.Reconcilable
 }
 
+//go:embed application.yml
+var applicationConfig string
+
 func NewOpenVSXServerReconciler() *OpenVSXServerReconciler {
 	return &OpenVSXServerReconciler{}
 }
 
 const (
-	userSetupJobName        = "openvsx-user-setup"
 	extensionsConfigMapName = "openvsx-extensions"
 	extensionPublishJobName = "openvsx-extension-publish"
-	serverPVCName           = "openvsx-server-data"
 )
 
 func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
@@ -64,28 +67,26 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 		return reconcile.Result{}, true, nil
 	}
 
-	done, err := r.syncService(ctx)
-	if !done {
-		return reconcile.Result{}, false, err
+	err := r.syncService(ctx)
+	if err != nil {
+		return reconcile.Result{}, false, fmt.Errorf("failed to sync Service %w", err)
 	}
 
-	done, err = r.syncConfigMap(ctx)
-	if !done {
-		return reconcile.Result{}, false, err
+	err = r.syncConfigMap(ctx)
+	if err != nil {
+		return reconcile.Result{}, false, fmt.Errorf("failed to sync ConfigMap %w", err)
 	}
 
 	err = r.syncPVC(ctx)
 	if err != nil {
-		return reconcile.Result{}, false, fmt.Errorf("failed to sync pvc: %w", err)
+		return reconcile.Result{}, false, fmt.Errorf("failed to sync PVC: %w", err)
 	}
 
-	done, err = r.syncDeployment(ctx)
+	done, err := r.syncDeployment(ctx)
 	if !done {
-		return reconcile.Result{}, false, err
-	}
-
-	done, err = r.syncUserSetupJob(ctx)
-	if !done {
+		if err != nil {
+			err = fmt.Errorf("failed to sync Deployment %w", err)
+		}
 		return reconcile.Result{}, false, err
 	}
 
@@ -104,181 +105,6 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 
 func (r *OpenVSXServerReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	return true
-}
-
-func (r *OpenVSXServerReconciler) syncService(ctx *chetypes.DeployContext) (bool, error) {
-	return deploy.SyncServiceToCluster(
-		ctx,
-		constants.OpenVSXServerComponentName,
-		[]string{"http"},
-		[]int32{8080},
-		constants.OpenVSXServerComponentName)
-}
-
-func (r *OpenVSXServerReconciler) syncConfigMap(ctx *chetypes.DeployContext) (bool, error) {
-	existing := &corev1.ConfigMap{}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{
-		Name:      configMapName,
-		Namespace: ctx.CheCluster.Namespace,
-	}, existing)
-
-	if err == nil {
-		return true, nil
-	}
-
-	if !errors.IsNotFound(err) {
-		return false, err
-	}
-
-	cm := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      configMapName,
-			Namespace: ctx.CheCluster.Namespace,
-			Labels:    deploy.GetLabels(constants.OpenVSXServerComponentName),
-		},
-		Data: map[string]string{
-			"application.yml": applicationConfig,
-		},
-	}
-
-	return deploy.Sync(ctx, cm, diffs.ConfigMapEnsureLabels)
-}
-
-func (r *OpenVSXServerReconciler) getConfigMapRevision(ctx *chetypes.DeployContext) (string, error) {
-	cm := &corev1.ConfigMap{}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{
-		Name:      configMapName,
-		Namespace: ctx.CheCluster.Namespace,
-	}, cm)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return "", nil
-		}
-		return "", err
-	}
-	return cm.ResourceVersion, nil
-}
-
-func (r *OpenVSXServerReconciler) syncUserSetupJob(ctx *chetypes.DeployContext) (bool, error) {
-	existing := &batchv1.Job{}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{
-		Name:      userSetupJobName,
-		Namespace: ctx.CheCluster.Namespace,
-	}, existing)
-
-	if err == nil {
-		return true, nil
-	}
-
-	if !errors.IsNotFound(err) {
-		return false, err
-	}
-
-	image := defaults.GetOpenVSXDatabaseImage(ctx.CheCluster)
-	pullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(image))
-	labels := deploy.GetLabels(constants.OpenVSXServerComponentName)
-	backoffLimit := int32(3)
-	parallelism := int32(1)
-	completions := int32(1)
-	terminationGracePeriodSeconds := int64(30)
-	runAsNonRoot := true
-
-	secretName := openvsx_database.GetCredentialsSecretName(ctx)
-
-	dbEnvVars := []corev1.EnvVar{
-		{
-			Name:  "PGHOST",
-			Value: constants.OpenVSXDatabaseComponentName,
-		},
-		envFromSecret("PGDATABASE", secretName, "database-name"),
-		envFromSecret("PGUSER", secretName, "database-user"),
-		envFromSecret("PGPASSWORD", secretName, "database-password"),
-	}
-
-	job := &batchv1.Job{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Job",
-			APIVersion: batchv1.SchemeGroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      userSetupJobName,
-			Namespace: ctx.CheCluster.Namespace,
-			Labels:    labels,
-		},
-		Spec: batchv1.JobSpec{
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
-				},
-				Spec: corev1.PodSpec{
-					RestartPolicy:                 corev1.RestartPolicyNever,
-					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
-					SecurityContext: &corev1.PodSecurityContext{
-						RunAsNonRoot: &runAsNonRoot,
-					},
-					InitContainers: []corev1.Container{
-						{
-							Name:            "wait-for-schema",
-							Image:           image,
-							ImagePullPolicy: pullPolicy,
-							Env:             dbEnvVars,
-							Command: []string{"sh", "-c",
-								`until psql -c "SELECT 1 FROM user_data LIMIT 0" 2>/dev/null; do echo "Waiting for Flyway migrations..."; sleep 5; done`,
-							},
-						},
-					},
-					Containers: []corev1.Container{
-						{
-							Name:            userSetupJobName,
-							Image:           image,
-							ImagePullPolicy: pullPolicy,
-							Env: append(dbEnvVars,
-								envFromSecret("OPENVSX_USER_NAME", secretName, "publisher-name"),
-								envFromSecret("OPENVSX_USER_PAT", secretName, "publisher-token"),
-								envFromSecret("OPENVSX_ADMIN_NAME", secretName, "admin-name"),
-								envFromSecret("OPENVSX_ADMIN_PAT", secretName, "admin-token"),
-							),
-							Command: []string{"sh", "-c", `
-psql \
-  -v user_name="$OPENVSX_USER_NAME" \
-  -v user_pat="$OPENVSX_USER_PAT" \
-  -v admin_name="$OPENVSX_ADMIN_NAME" \
-  -v admin_pat="$OPENVSX_ADMIN_PAT" \
-  <<'EOSQL'
-INSERT INTO user_data (id, login_name, role)
-  VALUES (1001, :'user_name', 'privileged')
-  ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO personal_access_token
-  (id, user_data, value, active, created_timestamp, accessed_timestamp, description, notified)
-  VALUES (1001, 1001, :'user_pat', true, current_timestamp, current_timestamp, 'extensions publisher', false)
-  ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO user_data (id, login_name, role)
-  VALUES (1002, :'admin_name', 'admin')
-  ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO personal_access_token
-  (id, user_data, value, active, created_timestamp, accessed_timestamp, description, notified)
-  VALUES (1002, 1002, :'admin_pat', true, current_timestamp, current_timestamp, 'Admin API Token', false)
-  ON CONFLICT (id) DO NOTHING;
-EOSQL`,
-							},
-						},
-					},
-				},
-			},
-			Parallelism:  &parallelism,
-			BackoffLimit: &backoffLimit,
-			Completions:  &completions,
-		},
-	}
-
-	return deploy.Sync(ctx, job, deploy.JobDiffOpts)
 }
 
 func (r *OpenVSXServerReconciler) syncExtensionsConfigMap(ctx *chetypes.DeployContext) (bool, error) {
@@ -364,7 +190,7 @@ func (r *OpenVSXServerReconciler) syncExtensionPublishJob(ctx *chetypes.DeployCo
 	terminationGracePeriodSeconds := int64(30)
 	runAsNonRoot := true
 
-	secretName := openvsx_database.GetCredentialsSecretName(ctx)
+	secretName := openvsx.GetCredentialsSecretName(ctx)
 
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
@@ -453,16 +279,4 @@ func (r *OpenVSXServerReconciler) syncExtensionPublishJob(ctx *chetypes.DeployCo
 	}
 
 	return deploy.Sync(ctx, job, deploy.JobDiffOpts)
-}
-
-func envFromSecret(envName, secretName, key string) corev1.EnvVar {
-	return corev1.EnvVar{
-		Name: envName,
-		ValueFrom: &corev1.EnvVarSource{
-			SecretKeyRef: &corev1.SecretKeySelector{
-				LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
-				Key:                  key,
-			},
-		},
-	}
 }

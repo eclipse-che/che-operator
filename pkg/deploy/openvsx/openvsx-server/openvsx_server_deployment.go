@@ -22,16 +22,13 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/openvsx"
-	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/ptr"
 )
-
-//go:embed application.yml
-var applicationConfig string
 
 func (r *OpenVSXServerReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
 	spec, err := r.getDeploymentSpec(ctx)
@@ -43,7 +40,7 @@ func (r *OpenVSXServerReconciler) syncDeployment(ctx *chetypes.DeployContext) (b
 }
 
 func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
-	cmRevision, err := r.getConfigMapRevision(ctx)
+	configRevision, err := r.getConfigRevision(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -100,113 +97,80 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      "config",
+									Name:      constants.OpenVSXServerComponentName + "config",
 									MountPath: "/home/openvsx/server/config",
 									ReadOnly:  true,
 								},
 								{
-									Name:      "ca-certs",
-									MountPath: "/public-certs",
-									ReadOnly:  true,
-								},
-								{
-									Name:      "extensions-data",
-									MountPath: "/tmp/extensions",
-								},
-							},
-							Env: []corev1.EnvVar{
-								{
-									Name:  "CM_REVISION",
-									Value: cmRevision,
-								},
-								{
-									Name: "DB_USERNAME",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
-											Key:                  "database-user",
-										},
-									},
-								},
-								{
-									Name: "DB_PASSWORD",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
-											Key:                  "database-password",
-										},
-									},
-								},
-								envFromSecret("PGDATABASE", secretName, "db-name"),
-								envFromSecret("OPENVSX_USER_PAT", secretName, "publisher-token"),
-								envFromSecret("OPENVSX_ADMIN_PAT", secretName, "admin-token"),
-								{ // TODO
-									Name:  "OVSX_REGISTRY_URL",
-									Value: ctx.CheCluster.Status.OpenVSXURL,
-								},
-								{
-									Name:  "NODE_EXTRA_CA_CERTS",
-									Value: "/public-certs/tls-ca-bundle.pem",
+									Name:      constants.OpenVSXServerComponentName,
+									MountPath: "/openvsx/extensions", // defined in application.yaml
 								},
 							},
 							ReadinessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path: "/actuator/health",
-										Port: intstr.FromInt32(serverPort),
+										Port: intstr.FromInt32(constants.OpenVSXServerServicePort),
 									},
 								},
 								InitialDelaySeconds: 15,
+								FailureThreshold:    10,
+								SuccessThreshold:    1,
 								PeriodSeconds:       10,
 								TimeoutSeconds:      5,
-								FailureThreshold:    3,
 							},
 							LivenessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path: "/actuator/health",
-										Port: intstr.FromInt32(serverPort),
+										Port: intstr.FromInt32(constants.OpenVSXServerServicePort),
 									},
 								},
-								InitialDelaySeconds: 60,
-								PeriodSeconds:       20,
+								InitialDelaySeconds: 30,
+								FailureThreshold:    10,
+								SuccessThreshold:    1,
+								PeriodSeconds:       10,
 								TimeoutSeconds:      5,
-								FailureThreshold:    3,
+							},
+							Env: []corev1.EnvVar{
+								{
+									Name:  "OVSX_REGISTRY_URL",
+									Value: getServiceURL(ctx),
+								},
+								{
+									Name:  "CONFIG_REVISION",
+									Value: configRevision,
+								},
+								utils.EnvVarFromSecret("DB_USERNAME", credentialsSecretName, "database-user"),
+								utils.EnvVarFromSecret("DB_PASSWORD", credentialsSecretName, "database-password"),
+								utils.EnvVarFromSecret("PGDATABASE", credentialsSecretName, "database-name"),
+								utils.EnvVarFromSecret("OPENVSX_USER_PAT", credentialsSecretName, "openvsx-publisher-token"),
+								utils.EnvVarFromSecret("OPENVSX_ADMIN_PAT", credentialsSecretName, "openvsx-admin-token"),
 							},
 						},
 					},
 					Volumes: []corev1.Volume{
 						{
-							Name: "config",
+							Name: constants.OpenVSXServerComponentName + "config",
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
-										Name: configMapName,
+										Name: constants.OpenVSXServerComponentName,
 									},
 								},
 							},
 						},
 						{
-							Name: "ca-certs",
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: tls.CheMergedCABundleCertsCMName,
-									},
-								},
-							},
-						},
-						{
-							Name: "extensions-data",
+							Name: constants.OpenVSXServerComponentName,
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: serverPVCName,
+									ClaimName: constants.OpenVSXServerComponentName,
 								},
 							},
 						},
 					},
 					RestartPolicy:                 corev1.RestartPolicyAlways,
-					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
+					TerminationGracePeriodSeconds: ptr.To(int64(30)),
 				},
 			},
 		},

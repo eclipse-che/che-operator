@@ -90,4 +90,4 @@ ovsx:
     version: 'v1.0.0'
   storage:
     local:
-      directory: /tmp/extensions
+      directory: /openvsx/extensions
