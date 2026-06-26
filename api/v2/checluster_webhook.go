@@ -295,13 +295,43 @@ func (r *CheClusterValidator) validateOpenVSXRegistry(checluster *CheCluster) er
 		}
 	}
 
+	if checluster.Spec.Components.OpenVSXRegistry.CredentialsSecretName != nil {
+		credentialsSecretName := *checluster.Spec.Components.OpenVSXRegistry.CredentialsSecretName
+
+		k8sHelper := k8shelper.New()
+		secret, err := k8sHelper.
+			GetClientset().
+			CoreV1().
+			Secrets(checluster.Namespace).
+			Get(context.TODO(), credentialsSecretName, metav1.GetOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return fmt.Errorf("credentials secret %s not found", credentialsSecretName)
+			}
+
+			return fmt.Errorf("failed to get OpenVSX registry credentials secret: %w", err)
+		}
+
+		if err := r.validateSecretDataKeys(secret, []string{
+			"database-user",
+			"database-password",
+			"database-name",
+			"openvsx-publisher-name",
+			"openvsx-publisher-token",
+			"openvsx-admin-name",
+			"openvsx-admin-token",
+		}); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
 func (r *CheClusterValidator) validateSecretDataKeys(secret *corev1.Secret, keys []string) error {
 	for _, key := range keys {
 		if _, ok := secret.Data[key]; !ok {
-			return fmt.Errorf("mandatory keys %s not found in secret %s", strings.Join(keys, ", "), secret.Name)
+			return fmt.Errorf("mandatory keys [%s] not found in secret %s", strings.Join(keys, ", "), secret.Name)
 		}
 	}
 

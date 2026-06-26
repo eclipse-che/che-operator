@@ -137,6 +137,9 @@ func TestValidateOpenVSXClaimSize(t *testing.T) {
 					Database: &OpenVSXDatabase{
 						Storage: &PVC{ClaimSize: "5Gi"},
 					},
+					Server: &OpenVSXServer{
+						Storage: &PVC{ClaimSize: "4Gi"},
+					},
 				},
 			},
 		},
@@ -146,7 +149,30 @@ func TestValidateOpenVSXClaimSize(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestValidateOpenVSXClaimSizeInvalid(t *testing.T) {
+func TestValidateOpenVSXServerClaimSizeInvalid(t *testing.T) {
+	cheClusterValidator := CheClusterValidator{}
+
+	checluster := &CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+		Spec: CheClusterSpec{
+			Components: CheClusterComponents{
+				OpenVSXRegistry: OpenVSXRegistry{
+					Server: &OpenVSXServer{
+						Storage: &PVC{ClaimSize: "A"},
+					},
+				},
+			},
+		},
+	}
+
+	err := cheClusterValidator.validate(checluster)
+	assert.Error(t, err)
+}
+
+func TestValidateOpenVSXSDatabaseClaimSizeInvalid(t *testing.T) {
 	cheClusterValidator := CheClusterValidator{}
 
 	checluster := &CheCluster{
@@ -158,7 +184,7 @@ func TestValidateOpenVSXClaimSizeInvalid(t *testing.T) {
 			Components: CheClusterComponents{
 				OpenVSXRegistry: OpenVSXRegistry{
 					Database: &OpenVSXDatabase{
-						Storage: &PVC{ClaimSize: "invalid"},
+						Storage: &PVC{ClaimSize: "B"},
 					},
 				},
 			},
@@ -166,6 +192,82 @@ func TestValidateOpenVSXClaimSizeInvalid(t *testing.T) {
 	}
 
 	err := cheClusterValidator.validate(checluster)
+	assert.Error(t, err)
+}
+
+func TestValidateOpenVSXCredentialsSecret(t *testing.T) {
+	k8sHelper := k8shelper.New()
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
+			Name:      "openvsx-credentials",
+		},
+		Data: map[string][]byte{
+			"database-user":           []byte("user"),
+			"database-password":       []byte("password"),
+			"database-name":           []byte("openvsx"),
+			"openvsx-publisher-name":  []byte("pub"),
+			"openvsx-publisher-token": []byte("pub-token"),
+			"openvsx-admin-name":      []byte("admin"),
+			"openvsx-admin-token":     []byte("admin-token"),
+		},
+	}
+	_, err := k8sHelper.GetClientset().CoreV1().Secrets("eclipse-che").Create(context.TODO(), secret, metav1.CreateOptions{})
+	assert.NoError(t, err)
+
+	cheClusterValidator := CheClusterValidator{}
+	credentialsSecretName := "openvsx-credentials"
+	checluster := &CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+		Spec: CheClusterSpec{
+			Components: CheClusterComponents{
+				OpenVSXRegistry: OpenVSXRegistry{
+					CredentialsSecretName: &credentialsSecretName,
+				},
+			},
+		},
+	}
+
+	err = cheClusterValidator.validate(checluster)
+	assert.NoError(t, err)
+}
+
+func TestValidateOpenVSXCredentialsSecretMissingKeys(t *testing.T) {
+	k8sHelper := k8shelper.New()
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
+			Name:      "openvsx-credentials-incomplete",
+		},
+		Data: map[string][]byte{
+			"database-user": []byte("user"),
+		},
+	}
+	_, err := k8sHelper.GetClientset().CoreV1().Secrets("eclipse-che").Create(context.TODO(), secret, metav1.CreateOptions{})
+	assert.NoError(t, err)
+
+	cheClusterValidator := CheClusterValidator{}
+	credentialsSecretName := "openvsx-credentials-incomplete"
+	checluster := &CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+		Spec: CheClusterSpec{
+			Components: CheClusterComponents{
+				OpenVSXRegistry: OpenVSXRegistry{
+					CredentialsSecretName: &credentialsSecretName,
+				},
+			},
+		},
+	}
+
+	err = cheClusterValidator.validate(checluster)
 	assert.Error(t, err)
 }
 
@@ -204,5 +306,5 @@ func TestValidateScmSecretsShouldThrowError(t *testing.T) {
 
 	_, err = cheClusterValidator.ValidateCreate(context.TODO(), checluster)
 	assert.Error(t, err)
-	assert.Equal(t, "secret 'github-scm-secret-with-errors' must contain [id, secret] keys", err.Error())
+	assert.Equal(t, "mandatory keys [id, secret] not found in secret github-scm-secret-with-errors", err.Error())
 }
