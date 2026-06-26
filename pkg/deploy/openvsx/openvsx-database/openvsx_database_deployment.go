@@ -152,7 +152,11 @@ func getDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) 
 	kubernetesUserId := int64(26)
 	kubernetesGroupId := int64(26)
 
-	deploy.EnsurePodSecurityStandards(deployment, kubernetesUserId, kubernetesGroupId)
+	deploy.EnsurePodSecurityStandards(
+		&deployment.Spec.Template.Spec,
+		kubernetesUserId,
+		kubernetesGroupId,
+	)
 
 	if ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database != nil {
 		if err := deploy.OverrideDeployment(ctx, deployment, ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database.Deployment); err != nil {

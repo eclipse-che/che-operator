@@ -17,66 +17,47 @@ import (
 
 	_ "embed"
 	"fmt"
-	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/eclipse-che/che-operator/pkg/common/diffs"
-	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
-	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/deploy/openvsx"
-	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 type OpenVSXServerReconciler struct {
 	reconciler.Reconcilable
+	extensionsVersion string
 }
 
-//go:embed application.yml
-var applicationConfig string
+var (
+	//go:embed application.yml
+	applicationConfig string
+
+	logger = ctrl.Log.WithName(constants.OpenVSXServerComponentName)
+)
 
 func NewOpenVSXServerReconciler() *OpenVSXServerReconciler {
-	return &OpenVSXServerReconciler{}
+	return &OpenVSXServerReconciler{
+		extensionsVersion: "",
+	}
 }
-
-const (
-	extensionsConfigMapName = "openvsx-extensions"
-	extensionPublishJobName = "openvsx-extension-publish"
-)
 
 func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	if !ctx.CheCluster.IsInternalOpenVSXRegistryEnabled() {
-		ns := ctx.CheCluster.Namespace
-		cw := ctx.ClusterAPI.ClientWrapper
-		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: ns}, &appsv1.Deployment{})
-		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: ns}, &corev1.Service{})
-		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: ns}, &corev1.ConfigMap{})
-		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: userSetupJobName, Namespace: ns}, &batchv1.Job{})
-		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: extensionPublishJobName, Namespace: ns}, &batchv1.Job{})
-		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: extensionsConfigMapName, Namespace: ns}, &corev1.ConfigMap{})
-		_ = cw.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: serverPVCName, Namespace: ns}, &corev1.PersistentVolumeClaim{})
-		// TODO ingress
-		// TODO Openvsxurl
+		deleteResources(ctx)
 		return reconcile.Result{}, true, nil
 	}
 
-	err := r.syncService(ctx)
+	err := r.syncConfigMap(ctx)
 	if err != nil {
-		return reconcile.Result{}, false, fmt.Errorf("failed to sync Service %w", err)
-	}
-
-	err = r.syncConfigMap(ctx)
-	if err != nil {
-		return reconcile.Result{}, false, fmt.Errorf("failed to sync ConfigMap %w", err)
+		return reconcile.Result{}, false, fmt.Errorf("failed to sync Config %w", err)
 	}
 
 	err = r.syncPVC(ctx)
@@ -92,203 +73,95 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 		return reconcile.Result{}, false, err
 	}
 
+	err = r.syncService(ctx)
+	if err != nil {
+		return reconcile.Result{}, false, fmt.Errorf("failed to sync Service %w", err)
+	}
+
 	err = r.syncIngress(ctx)
 	if err != nil {
 		return reconcile.Result{}, false, fmt.Errorf("failed to sync Ingress: %w", err)
 	}
 
-	err = r.syncOpenVSXURLStatus(ctx)
+	err = r.syncDefaultExtensionsConfig(ctx)
 	if err != nil {
-		return reconcile.Result{}, false, fmt.Errorf("failed to sync OpenVSXURL status: %w", err)
+		return reconcile.Result{}, false, fmt.Errorf("failed to sync Extensions Config: %w", err)
 	}
 
-	done, err = r.syncExtensionsConfigMap(ctx)
-	if !done {
-		return reconcile.Result{}, false, err
-	}
-
-	done, err = r.syncExtensionPublishJob(ctx)
-	if !done {
-		return reconcile.Result{}, false, err
+	err = r.syncExtensions(ctx)
+	if err != nil {
+		return reconcile.Result{}, false, fmt.Errorf("failed to sync Extensions %w", err)
 	}
 
 	return reconcile.Result{}, true, nil
 }
 
-func (r *OpenVSXServerReconciler) Finalize(ctx *chetypes.DeployContext) bool {
-	return true
-}
+func deleteResources(ctx *chetypes.DeployContext) {
+	cw := ctx.ClusterAPI.ClientWrapper
 
-func (r *OpenVSXServerReconciler) syncExtensionsConfigMap(ctx *chetypes.DeployContext) (bool, error) {
-	existing := &corev1.ConfigMap{}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{
-		Name:      extensionsConfigMapName,
+	objKey := types.NamespacedName{
+		Name:      constants.OpenVSXServerComponentName,
 		Namespace: ctx.CheCluster.Namespace,
-	}, existing)
-
-	if err == nil {
-		return true, nil
 	}
 
-	if !errors.IsNotFound(err) {
-		return false, err
-	}
-
-	cm := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      extensionsConfigMapName,
-			Namespace: ctx.CheCluster.Namespace,
-			Labels:    deploy.GetLabels(constants.OpenVSXServerComponentName),
-		},
-		Data: map[string]string{
-			"extensions.txt": "",
-		},
-	}
-
-	return deploy.Sync(ctx, cm, diffs.ConfigMapEnsureLabels)
-}
-
-func (r *OpenVSXServerReconciler) syncExtensionPublishJob(ctx *chetypes.DeployContext) (bool, error) {
-	cm := &corev1.ConfigMap{}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{
-		Name:      extensionsConfigMapName,
-		Namespace: ctx.CheCluster.Namespace,
-	}, cm)
+	err := cw.DeleteByKeyIgnoreNotFound(context.TODO(), objKey, &networkingv1.Ingress{})
 	if err != nil {
-		return false, err
+		logger.Error(err, "failed to delete Ingress", "Name", objKey.Name)
 	}
 
-	extensionsList := strings.TrimSpace(cm.Data["extensions.txt"])
-	if extensionsList == "" {
-		_ = ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: extensionPublishJobName, Namespace: ctx.CheCluster.Namespace}, &batchv1.Job{})
-		return true, nil
+	err = cw.DeleteByKeyIgnoreNotFound(context.TODO(), objKey, &corev1.Service{})
+	if err != nil {
+		logger.Error(err, "Failed to delete Service", "Name", objKey.Name)
 	}
 
-	if ctx.CheCluster.Status.OpenVSXURL == "" {
-		return false, nil
+	err = cw.DeleteByKeyIgnoreNotFound(context.TODO(), objKey, &appsv1.Deployment{})
+	if err != nil {
+		logger.Error(err, "Failed to delete Deployment", "Name", objKey.Name)
 	}
 
-	extensionsHash := utils.ComputeHash256([]byte(extensionsList))
-
-	existing := &batchv1.Job{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{
-		Name:      extensionPublishJobName,
-		Namespace: ctx.CheCluster.Namespace,
-	}, existing)
-	if err == nil {
-		for _, env := range existing.Spec.Template.Spec.Containers[0].Env {
-			if env.Name == "EXTENSIONS_HASH" {
-				if env.Value == extensionsHash {
-					return true, nil
-				}
-				break
-			}
-		}
-		_ = ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), types.NamespacedName{Name: extensionPublishJobName, Namespace: ctx.CheCluster.Namespace}, &batchv1.Job{})
-	} else if !errors.IsNotFound(err) {
-		return false, err
+	err = cw.DeleteByKeyIgnoreNotFound(context.TODO(), objKey, &corev1.PersistentVolumeClaim{})
+	if err != nil {
+		logger.Error(err, "Failed to delete PVC", "Name", objKey.Name)
 	}
 
-	image := defaults.GetOpenVSXImage(ctx.CheCluster)
-	pullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(image))
-	labels := deploy.GetLabels(constants.OpenVSXServerComponentName)
-	backoffLimit := int32(3)
-	parallelism := int32(1)
-	completions := int32(1)
-	terminationGracePeriodSeconds := int64(30)
-	runAsNonRoot := true
+	err = cw.DeleteByKeyIgnoreNotFound(context.TODO(), objKey, &corev1.ConfigMap{})
+	if err != nil {
+		logger.Error(err, "Failed to delete ConfigMap", "Name", objKey.Name)
+	}
 
-	secretName := openvsx.GetCredentialsSecretName(ctx)
-
-	job := &batchv1.Job{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Job",
-			APIVersion: batchv1.SchemeGroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      extensionPublishJobName,
+	err = cw.DeleteByKeyIgnoreNotFound(
+		context.TODO(),
+		types.NamespacedName{
+			Name:      constants.OpenVSXServerExtensionPublishJobName,
 			Namespace: ctx.CheCluster.Namespace,
-			Labels:    labels,
 		},
-		Spec: batchv1.JobSpec{
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
-				},
-				Spec: corev1.PodSpec{
-					RestartPolicy:                 corev1.RestartPolicyNever,
-					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
-					SecurityContext: &corev1.PodSecurityContext{
-						RunAsNonRoot: &runAsNonRoot,
-					},
-					Containers: []corev1.Container{
-						{
-							Name:            extensionPublishJobName,
-							Image:           image,
-							ImagePullPolicy: pullPolicy,
-							Env: []corev1.EnvVar{
-								{
-									Name:  "OVSX_REGISTRY_URL",
-									Value: ctx.CheCluster.Status.OpenVSXURL, // TODO
-								},
-								envFromSecret("OVSX_PAT", secretName, "publisher-token"),
-								{
-									Name:  "NODE_EXTRA_CA_CERTS",
-									Value: "/public-certs/tls-ca-bundle.pem",
-								},
-								{
-									Name:  "EXTENSIONS_HASH",
-									Value: extensionsHash,
-								},
-							},
-							Command: []string{"/home/openvsx/publish-extensions.sh", "/home/openvsx/extensions/extensions.txt"},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "extensions",
-									MountPath: "/home/openvsx/extensions",
-									ReadOnly:  true,
-								},
-								{
-									Name:      "ca-certs",
-									MountPath: "/public-certs",
-									ReadOnly:  true,
-								},
-							},
-						},
-					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "extensions",
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: extensionsConfigMapName,
-									},
-								},
-							},
-						},
-						{
-							Name: "ca-certs",
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: tls.CheMergedCABundleCertsCMName,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			Parallelism:  &parallelism,
-			BackoffLimit: &backoffLimit,
-			Completions:  &completions,
-		},
+		&batchv1.Job{},
+	)
+	if err != nil {
+		logger.Error(err, "Failed to delete Job", "Name", constants.OpenVSXServerExtensionPublishJobName)
 	}
 
-	return deploy.Sync(ctx, job, deploy.JobDiffOpts)
+	err = cw.DeleteByKeyIgnoreNotFound(
+		context.TODO(),
+		types.NamespacedName{
+			Name:      constants.OpenVSXServerExtensionsConfigMapName,
+			Namespace: ctx.CheCluster.Namespace,
+		},
+		&corev1.ConfigMap{},
+	)
+	if err != nil {
+		logger.Error(err, "Failed to delete ConfigMap", "Name", constants.OpenVSXServerExtensionsConfigMapName)
+	}
+
+	if ctx.CheCluster.Status.OpenVSXURL != "" {
+		ctx.CheCluster.Status.OpenVSXURL = ""
+
+		if err = deploy.UpdateCheCRStatus(ctx, "status: OpenVSXURL", ""); err != nil {
+			logger.Error(err, "Failed to update status for OpenVSXURL")
+		}
+	}
+}
+
+func (r *OpenVSXServerReconciler) Finalize(_ *chetypes.DeployContext) bool {
+	return true
 }

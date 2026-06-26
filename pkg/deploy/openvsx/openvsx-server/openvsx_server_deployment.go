@@ -15,6 +15,7 @@ package openvsx_server
 import (
 	_ "embed"
 	"fmt"
+	"strconv"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -141,9 +142,17 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 									Name:  "CONFIG_REVISION",
 									Value: configRevision,
 								},
-								utils.EnvVarFromSecret("DB_USERNAME", credentialsSecretName, "database-user"),
-								utils.EnvVarFromSecret("DB_PASSWORD", credentialsSecretName, "database-password"),
-								utils.EnvVarFromSecret("PGDATABASE", credentialsSecretName, "database-name"),
+								{
+									Name:  "POSTGRESQL_PORT",
+									Value: strconv.FormatInt(int64(constants.OpenVSXDatabaseServicePort), 10),
+								},
+								{
+									Name:  "POSTGRESQL_SERVICE",
+									Value: constants.OpenVSXDatabaseComponentName,
+								},
+								utils.EnvVarFromSecret("POSTGRESQL_USER", credentialsSecretName, "database-user"),
+								utils.EnvVarFromSecret("POSTGRESQL_PASSWORD", credentialsSecretName, "database-password"),
+								utils.EnvVarFromSecret("POSTGRESQL_DATABASE", credentialsSecretName, "database-name"),
 								utils.EnvVarFromSecret("OPENVSX_USER_PAT", credentialsSecretName, "openvsx-publisher-token"),
 								utils.EnvVarFromSecret("OPENVSX_ADMIN_PAT", credentialsSecretName, "openvsx-admin-token"),
 							},
@@ -176,7 +185,11 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 		},
 	}
 
-	deploy.EnsurePodSecurityStandards(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
+	deploy.EnsurePodSecurityStandards(
+		&deployment.Spec.Template.Spec,
+		constants.DefaultSecurityContextRunAsUser,
+		constants.DefaultSecurityContextFsGroup,
+	)
 
 	if ctx.CheCluster.Spec.Components.OpenVSXRegistry.Server != nil {
 		if err := deploy.OverrideDeployment(ctx, deployment, ctx.CheCluster.Spec.Components.OpenVSXRegistry.Server.Deployment); err != nil {

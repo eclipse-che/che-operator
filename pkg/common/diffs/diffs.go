@@ -20,6 +20,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	securityv1 "github.com/openshift/api/security/v1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networking "k8s.io/api/networking/v1"
 	rbac "k8s.io/api/rbac/v1"
@@ -65,6 +66,16 @@ func Ingress(labels []string, annotations []string) cmp.Options {
 		cmpopts.IgnoreFields(networking.Ingress{}, "TypeMeta", "Status"),
 		objectMetaComparator(labels, annotations),
 	}
+}
+
+var Job = cmp.Options{
+	cmpopts.IgnoreFields(batchv1.Job{}, "TypeMeta", "ObjectMeta", "Status"),
+	cmpopts.IgnoreFields(batchv1.JobSpec{}, "Selector", "TTLSecondsAfterFinished"),
+	cmpopts.IgnoreFields(corev1.PodTemplateSpec{}, "ObjectMeta"),
+	cmpopts.IgnoreFields(corev1.Container{}, "TerminationMessagePath", "TerminationMessagePolicy"),
+	cmpopts.IgnoreFields(corev1.PodSpec{}, "DNSPolicy", "SchedulerName", "DeprecatedServiceAccount"),
+	cmpopts.IgnoreFields(corev1.ConfigMapVolumeSource{}, "DefaultMode"),
+	cmpopts.IgnoreFields(corev1.SecretVolumeSource{}, "DefaultMode"),
 }
 
 // ConfigMap respects existed labels and annotations

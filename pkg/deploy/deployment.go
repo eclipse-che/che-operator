@@ -331,29 +331,29 @@ func OverrideContainer(
 
 // EnsurePodSecurityStandards sets SecurityContext accordingly
 // to standards https://kubernetes.io/docs/concepts/security/pod-security-standards/#restricted
-func EnsurePodSecurityStandards(deployment *appsv1.Deployment, userId int64, groupId int64) {
-	for i := range deployment.Spec.Template.Spec.Containers {
-		if deployment.Spec.Template.Spec.Containers[i].SecurityContext == nil {
-			deployment.Spec.Template.Spec.Containers[i].SecurityContext = &corev1.SecurityContext{}
+func EnsurePodSecurityStandards(podSpec *corev1.PodSpec, userId int64, groupId int64) {
+	for i := range podSpec.Containers {
+		if podSpec.Containers[i].SecurityContext == nil {
+			podSpec.Containers[i].SecurityContext = &corev1.SecurityContext{}
 		}
 
-		deployment.Spec.Template.Spec.Containers[i].SecurityContext.AllowPrivilegeEscalation = ptr.To(false)
-		deployment.Spec.Template.Spec.Containers[i].SecurityContext.Capabilities = &corev1.Capabilities{Drop: []corev1.Capability{"ALL"}}
-		deployment.Spec.Template.Spec.Containers[i].SecurityContext.RunAsNonRoot = ptr.To(true)
+		podSpec.Containers[i].SecurityContext.AllowPrivilegeEscalation = ptr.To(false)
+		podSpec.Containers[i].SecurityContext.Capabilities = &corev1.Capabilities{Drop: []corev1.Capability{"ALL"}}
+		podSpec.Containers[i].SecurityContext.RunAsNonRoot = ptr.To(true)
 	}
 
-	if deployment.Spec.Template.Spec.SecurityContext == nil {
-		deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{}
+	if podSpec.SecurityContext == nil {
+		podSpec.SecurityContext = &corev1.PodSecurityContext{}
 	}
 
 	if !infrastructure.IsOpenShift() {
-		deployment.Spec.Template.Spec.SecurityContext.RunAsUser = ptr.To(userId)
-		deployment.Spec.Template.Spec.SecurityContext.FSGroup = ptr.To(groupId)
+		podSpec.SecurityContext.RunAsUser = ptr.To(userId)
+		podSpec.SecurityContext.FSGroup = ptr.To(groupId)
 	} else {
-		if deployment.Spec.Template.Spec.SecurityContext.SeccompProfile == nil {
-			deployment.Spec.Template.Spec.SecurityContext.SeccompProfile = &corev1.SeccompProfile{}
+		if podSpec.SecurityContext.SeccompProfile == nil {
+			podSpec.SecurityContext.SeccompProfile = &corev1.SeccompProfile{}
 		}
-		deployment.Spec.Template.Spec.SecurityContext.SeccompProfile.Type = corev1.SeccompProfileTypeRuntimeDefault
+		podSpec.SecurityContext.SeccompProfile.Type = corev1.SeccompProfileTypeRuntimeDefault
 	}
 }
 

@@ -22,9 +22,9 @@ spring:
     jcache:
       config: classpath:ehcache.xml
   datasource:
-    url: jdbc:postgresql://openvsx-database:5432/${PGDATABASE:openvsx}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://${POSTGRESQL_SERVICE}:${POSTGRESQL_PORT}/${POSTGRESQL_DATABASE}
+    username: ${POSTGRESQL_USER}
+    password: ${POSTGRESQL_PASSWORD}
   flyway:
     baseline-on-migrate: true
     baseline-version: 0.1.0

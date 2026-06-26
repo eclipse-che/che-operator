@@ -49,6 +49,10 @@ const (
 	OpenVSXServerClaimSize     = "3Gi"
 	OpenVSXServerServicePort   = int32(8080)
 
+	// OpenVSXRegistry Server extensions
+	OpenVSXServerExtensionPublishJobName    = "openvsx-server-publisher"
+	OpenVSXServerExtensionsConfigMapName    = "openvsx-server-extensions"
+
 	// OpenVSXRegistry Database
 	OpenVSXDatabaseComponentName = "openvsx-database"
 	OpenVSXDatabaseMemoryLimit   = "1024Mi"
