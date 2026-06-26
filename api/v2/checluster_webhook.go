@@ -306,21 +306,22 @@ func (r *CheClusterValidator) validateOpenVSXRegistry(checluster *CheCluster) er
 			Get(context.TODO(), credentialsSecretName, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
-				return fmt.Errorf("credentials secret %s not found", credentialsSecretName)
+				return fmt.Errorf("OpenVSX registry credentials secret %s not found", credentialsSecretName)
 			}
 
 			return fmt.Errorf("failed to get OpenVSX registry credentials secret: %w", err)
 		}
 
-		if err := r.validateSecretDataKeys(secret, []string{
-			"database-user",
-			"database-password",
-			"database-name",
-			"openvsx-publisher-name",
-			"openvsx-publisher-token",
-			"openvsx-admin-name",
-			"openvsx-admin-token",
-		}); err != nil {
+		if err := r.validateSecretDataKeys(secret,
+			[]string{
+				"database-user",
+				"database-password",
+				"database-name",
+				"openvsx-publisher-name",
+				"openvsx-publisher-token",
+				"openvsx-admin-name",
+				"openvsx-admin-token",
+			}); err != nil {
 			return err
 		}
 	}
