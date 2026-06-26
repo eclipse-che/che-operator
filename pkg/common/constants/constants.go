@@ -50,17 +50,18 @@ const (
 	OpenVSXServerServicePort   = int32(8080)
 
 	// OpenVSXRegistry Server extensions
-	OpenVSXServerExtensionPublishJobName    = "openvsx-server-publisher"
-	OpenVSXServerExtensionsConfigMapName    = "openvsx-server-extensions"
+	OpenVSXServerExtensionPublishJobName = "openvsx-server-publisher"
+	OpenVSXServerExtensionsConfigMapName = "openvsx-server-extensions"
 
 	// OpenVSXRegistry Database
-	OpenVSXDatabaseComponentName = "openvsx-database"
-	OpenVSXDatabaseMemoryLimit   = "1024Mi"
-	OpenVSXDatabaseMemoryRequest = "256Mi"
-	OpenVSXDatabaseCpuLimit      = "1"
-	OpenVSXDatabaseCpuRequest    = "100m"
-	OpenVSXDatabaseClaimSize     = "1Gi"
-	OpenVSXDatabaseServicePort   = int32(5432)
+	OpenVSXDatabaseComponentName    = "openvsx-database"
+	OpenVSXDatabaseProvisionJobName = "openvsx-database-provision"
+	OpenVSXDatabaseMemoryLimit      = "1024Mi"
+	OpenVSXDatabaseMemoryRequest    = "256Mi"
+	OpenVSXDatabaseCpuLimit         = "1"
+	OpenVSXDatabaseCpuRequest       = "100m"
+	OpenVSXDatabaseClaimSize        = "1Gi"
+	OpenVSXDatabaseServicePort      = int32(5432)
 
 	// Server
 	DefaultServerMemoryLimit        = "1024Mi"

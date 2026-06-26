@@ -17,54 +17,26 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/diffs"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/openvsx"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (r *OpenVSXDatabaseReconciler) syncUserSetupJob(ctx *chetypes.DeployContext) (bool, error) {
-	existing := &batchv1.Job{}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{
-		Name:      constants.OpenVSXDatabaseSetupJobName,
-		Namespace: ctx.CheCluster.Namespace,
-	}, existing)
-
-	if err == nil {
-		return true, nil
-	}
-
-	if !errors.IsNotFound(err) {
-		return false, err
-	}
-
+func (r *OpenVSXDatabaseReconciler) syncDatabaseProvisioned(ctx *chetypes.DeployContext) error {
 	image := defaults.GetOpenVSXDatabaseImage(ctx.CheCluster)
-	pullPolicy := utils.GetPullPolicyFromDockerImage(image)
+	imagePullPolicy := utils.GetPullPolicyFromDockerImage(image)
 
 	labels := deploy.GetLabels(constants.OpenVSXDatabaseComponentName)
 
-	//backoffLimit := int32(3)
-	//parallelism := int32(1)
-	//completions := int32(1)
-	//terminationGracePeriodSeconds := int64(30)
-	//runAsNonRoot := true
-
 	secretName := openvsx.GetCredentialsSecretName(ctx)
-
-	dbEnvVars := []corev1.EnvVar{
-		{
-			Name:  "PGHOST",
-			Value: constants.OpenVSXDatabaseComponentName,
-		},
-		envFromSecret("PGDATABASE", secretName, "database-name"),
-		envFromSecret("PGUSER", secretName, "database-user"),
-		envFromSecret("PGPASSWORD", secretName, "database-password"),
-	}
 
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
@@ -72,7 +44,7 @@ func (r *OpenVSXDatabaseReconciler) syncUserSetupJob(ctx *chetypes.DeployContext
 			APIVersion: batchv1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			//Name:      openvsx_server.userSetupJobName,
+			Name:      constants.OpenVSXDatabaseProvisionJobName,
 			Namespace: ctx.CheCluster.Namespace,
 			Labels:    labels,
 		},
@@ -82,17 +54,20 @@ func (r *OpenVSXDatabaseReconciler) syncUserSetupJob(ctx *chetypes.DeployContext
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					RestartPolicy:                 corev1.RestartPolicyNever,
-					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
-					SecurityContext: &corev1.PodSecurityContext{
-						RunAsNonRoot: &runAsNonRoot,
-					},
 					InitContainers: []corev1.Container{
 						{
-							Name:            "wait-for-schema",
+							Name:            constants.OpenVSXDatabaseProvisionJobName + "-init",
 							Image:           image,
-							ImagePullPolicy: pullPolicy,
-							Env:             dbEnvVars,
+							ImagePullPolicy: corev1.PullPolicy(imagePullPolicy),
+							Env: []corev1.EnvVar{
+								{
+									Name:  "PGHOST",
+									Value: constants.OpenVSXDatabaseComponentName,
+								},
+								utils.EnvVarFromSecret("PGDATABASE", secretName, "database-name"),
+								utils.EnvVarFromSecret("PGUSER", secretName, "database-user"),
+								utils.EnvVarFromSecret("PGPASSWORD", secretName, "database-password"),
+							},
 							Command: []string{"sh", "-c",
 								`until psql -c "SELECT 1 FROM user_data LIMIT 0" 2>/dev/null; do echo "Waiting for Flyway migrations..."; sleep 5; done`,
 							},
@@ -100,15 +75,22 @@ func (r *OpenVSXDatabaseReconciler) syncUserSetupJob(ctx *chetypes.DeployContext
 					},
 					Containers: []corev1.Container{
 						{
-							//Name:            openvsx_server.userSetupJobName,
+							Name:            constants.OpenVSXDatabaseProvisionJobName,
 							Image:           image,
-							ImagePullPolicy: pullPolicy,
-							Env: append(dbEnvVars,
-								envFromSecret("OPENVSX_USER_NAME", secretName, "publisher-name"),
-								envFromSecret("OPENVSX_USER_PAT", secretName, "publisher-token"),
-								envFromSecret("OPENVSX_ADMIN_NAME", secretName, "admin-name"),
-								envFromSecret("OPENVSX_ADMIN_PAT", secretName, "admin-token"),
-							),
+							ImagePullPolicy: corev1.PullPolicy(imagePullPolicy),
+							Env: []corev1.EnvVar{
+								{
+									Name:  "PGHOST",
+									Value: constants.OpenVSXDatabaseComponentName,
+								},
+								utils.EnvVarFromSecret("PGDATABASE", secretName, "database-name"),
+								utils.EnvVarFromSecret("PGUSER", secretName, "database-user"),
+								utils.EnvVarFromSecret("PGPASSWORD", secretName, "database-password"),
+								utils.EnvVarFromSecret("OPENVSX_USER_NAME", secretName, "openvsx-publisher-name"),
+								utils.EnvVarFromSecret("OPENVSX_USER_PAT", secretName, "openvsx-publisher-token"),
+								utils.EnvVarFromSecret("OPENVSX_ADMIN_NAME", secretName, "openvsx-admin-name"),
+								utils.EnvVarFromSecret("OPENVSX_ADMIN_PAT", secretName, "openvsx-admin-token"),
+							},
 							Command: []string{"sh", "-c", `
 psql \
   -v user_name="$OPENVSX_USER_NAME" \
@@ -137,13 +119,38 @@ EOSQL`,
 							},
 						},
 					},
+					RestartPolicy:                 corev1.RestartPolicyNever,
+					TerminationGracePeriodSeconds: ptr.To(int64(30)),
 				},
 			},
-			Parallelism:  &parallelism,
-			BackoffLimit: &backoffLimit,
-			Completions:  &completions,
+			Parallelism:             ptr.To(int32(1)),
+			BackoffLimit:            ptr.To(int32(3)),
+			Completions:             ptr.To(int32(1)),
+			TTLSecondsAfterFinished: ptr.To(int32(60)),
 		},
 	}
 
-	return deploy.Sync(ctx, job, deploy.JobDiffOpts)
+	deploy.EnsurePodSecurityStandards(
+		&job.Spec.Template.Spec,
+		constants.DefaultSecurityContextRunAsUser,
+		constants.DefaultSecurityContextFsGroup,
+	)
+
+	if err := controllerutil.SetControllerReference(ctx.CheCluster, job, ctx.ClusterAPI.Scheme); err != nil {
+		return err
+	}
+
+	err := ctx.ClusterAPI.ClientWrapper.Sync(
+		context.TODO(),
+		job,
+		&k8sclient.SyncOptions{
+			DiffOpts: diffs.Job,
+		},
+	)
+
+	if err == nil {
+		r.databaseProvisioned = true
+	}
+
+	return err
 }

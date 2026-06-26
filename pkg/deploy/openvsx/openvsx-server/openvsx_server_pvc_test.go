@@ -38,7 +38,7 @@ func TestPVCSync(t *testing.T) {
 	assert.Equal(t, resource.MustParse(constants.OpenVSXServerClaimSize), pvc.Spec.Resources.Requests[corev1.ResourceStorage])
 
 	ctx.CheCluster.Spec.Components.OpenVSXRegistry = chev2.OpenVSXRegistry{
-		Database: &chev2.OpenVSXDatabase{
+		Server: &chev2.OpenVSXServer{
 			Storage: &chev2.PVC{
 				ClaimSize: "4Gi",
 			},

@@ -119,13 +119,6 @@ func (r *OpenVSXServerReconciler) syncExtensions(ctx *chetypes.DeployContext) er
 								utils.EnvVarFromSecret("OVSX_PAT", credentialsSecret, "openvsx-publisher-token"),
 							},
 							Command: []string{"/home/openvsx/publish-extensions.sh", "/home/openvsx/extensions/extensions.list"},
-							SecurityContext: &corev1.SecurityContext{
-								RunAsNonRoot:             ptr.To(true),
-								AllowPrivilegeEscalation: ptr.To(false),
-								Capabilities: &corev1.Capabilities{
-									Drop: []corev1.Capability{"ALL"},
-								},
-							},
 						},
 					},
 					Volumes: []corev1.Volume{
@@ -144,9 +137,10 @@ func (r *OpenVSXServerReconciler) syncExtensions(ctx *chetypes.DeployContext) er
 					TerminationGracePeriodSeconds: ptr.To(int64(30)),
 				},
 			},
-			Parallelism:  ptr.To(int32(1)),
-			BackoffLimit: ptr.To(int32(3)),
-			Completions:  ptr.To(int32(1)),
+			Parallelism:             ptr.To(int32(1)),
+			BackoffLimit:            ptr.To(int32(3)),
+			Completions:             ptr.To(int32(1)),
+			TTLSecondsAfterFinished: ptr.To(int32(300)),
 		},
 	}
 
