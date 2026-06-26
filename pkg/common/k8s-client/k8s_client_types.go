@@ -63,6 +63,8 @@ type SyncOptions struct {
 	SuppressDiff bool
 	// DiffOpts can be used to customize comparison when object is not in sync
 	DiffOpts []cmp.Option
+	// DeleteOpts can be used to customize deletion when object is recreated
+	DeleteOpts []client.DeleteOption
 }
 
 func (o *SyncOptions) ApplyToList(so *SyncOptions) {
@@ -80,6 +82,10 @@ func (o *SyncOptions) ApplyToList(so *SyncOptions) {
 
 	if len(o.DiffOpts) != 0 {
 		so.DiffOpts = o.DiffOpts
+	}
+
+	if len(o.DeleteOpts) != 0 {
+		so.DeleteOpts = o.DeleteOpts
 	}
 }
 

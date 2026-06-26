@@ -74,7 +74,6 @@ func getDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) 
 							ImagePullPolicy: corev1.PullPolicy(imagePullPolicy),
 							Ports: []corev1.ContainerPort{
 								{
-									Name:          constants.OpenVSXDatabaseComponentName,
 									ContainerPort: constants.OpenVSXDatabaseServicePort,
 									Protocol:      corev1.ProtocolTCP,
 								},

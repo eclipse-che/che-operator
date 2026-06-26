@@ -22,8 +22,10 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -106,6 +108,7 @@ func (p *OpenVSXDatabaseReconciler) deleteResources(ctx *chetypes.DeployContext)
 			Namespace: ctx.CheCluster.Namespace,
 		},
 		&batchv1.Job{},
+		client.PropagationPolicy(metav1.DeletePropagationBackground),
 	)
 	if err != nil {
 		logger.Error(err, "Failed to delete Job", "Name", constants.OpenVSXDatabaseProvisionJobName)

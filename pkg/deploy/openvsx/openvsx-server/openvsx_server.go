@@ -26,8 +26,10 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -93,6 +95,11 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 		return reconcile.Result{}, false, fmt.Errorf("failed to sync Extensions %w", err)
 	}
 
+	err = r.syncOpenVSXURLStatus(ctx)
+	if err != nil {
+		return reconcile.Result{}, false, fmt.Errorf("failed to sync OpenVSXURL status: %w", err)
+	}
+
 	return reconcile.Result{}, true, nil
 }
 
@@ -136,6 +143,7 @@ func deleteResources(ctx *chetypes.DeployContext) {
 			Namespace: ctx.CheCluster.Namespace,
 		},
 		&batchv1.Job{},
+		client.PropagationPolicy(metav1.DeletePropagationBackground),
 	)
 	if err != nil {
 		logger.Error(err, "Failed to delete Job", "Name", constants.OpenVSXServerExtensionPublishJobName)

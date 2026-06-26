@@ -14,7 +14,6 @@ package openvsx_server
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -63,12 +62,4 @@ func (r *OpenVSXServerReconciler) syncService(ctx *chetypes.DeployContext) error
 		&k8sclient.SyncOptions{
 			DiffOpts: diffs.Service,
 		})
-}
-
-func getServiceURL(ctx *chetypes.DeployContext) string {
-	return fmt.Sprintf("http://%s.%s.svc:%d",
-		constants.OpenVSXServerComponentName,
-		ctx.CheCluster.Namespace,
-		constants.OpenVSXServerServicePort,
-	)
 }

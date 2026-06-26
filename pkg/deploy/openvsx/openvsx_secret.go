@@ -53,6 +53,11 @@ func (r *OpenVSXSecretReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 		return reconcile.Result{}, true, nil
 	}
 
+	err = r.syncSecret(ctx)
+	if err != nil {
+		return reconcile.Result{}, false, fmt.Errorf("failed to sync Secret %w", err)
+	}
+
 	return reconcile.Result{}, true, nil
 }
 
@@ -97,7 +102,7 @@ func HasCustomCredentialsSecret(ctx *chetypes.DeployContext) (bool, error) {
 	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
 		context.TODO(),
 		types.NamespacedName{Name: credentialsSecretName, Namespace: ctx.CheCluster.Namespace},
-		&corev1.Secret{},
+		secret,
 	)
 	if err != nil {
 		return false, fmt.Errorf("failed to get secret: %w", err)

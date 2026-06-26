@@ -25,7 +25,6 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 )
 
 func TestOpenVSXServerReconciler(t *testing.T) {
@@ -38,7 +37,7 @@ func TestOpenVSXServerReconciler(t *testing.T) {
 			Spec: chev2.CheClusterSpec{
 				Components: chev2.CheClusterComponents{
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
-						Enabled: ptr.To(true),
+						Enable: true,
 					},
 				},
 			},
@@ -57,7 +56,7 @@ func TestOpenVSXServerReconciler(t *testing.T) {
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerExtensionsConfigMapName, Namespace: ns}, &corev1.ConfigMap{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerExtensionPublishJobName, Namespace: ns}, &batchv1.Job{}))
 
-	ctx.CheCluster.Spec.Components.OpenVSXRegistry.Enabled = ptr.To(false)
+	ctx.CheCluster.Spec.Components.OpenVSXRegistry.Enable = false
 	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
 
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: ns}, &appsv1.Deployment{}))

@@ -282,6 +282,7 @@ type CheClusterComponents struct {
 	Dashboard Dashboard `json:"dashboard"`
 	// OpenVSX registry configuration.
 	// +optional
+	// +kubebuilder:default:={enable: false}
 	OpenVSXRegistry OpenVSXRegistry `json:"openVSXRegistry"`
 	// Kubernetes Image Puller configuration.
 	// +optional
@@ -455,7 +456,8 @@ type PluginRegistry struct {
 type OpenVSXRegistry struct {
 	// Enables internal OpenVSX registry.
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	// +kubebuilder:default:=false
+	Enable bool `json:"enable,omitempty"`
 	// The name of the Kubernetes Secret that contains credentials for the OpenVSX registry database and server.
 	// The Secret must contain the following keys:
 	//   - `database-user`				: PostgreSQL username.
@@ -1232,7 +1234,7 @@ func (c *CheCluster) IsExternalOpenVSXRegistryEnabled() bool {
 }
 
 func (c *CheCluster) IsInternalOpenVSXRegistryEnabled() bool {
-	return ptr.Deref(c.Spec.Components.OpenVSXRegistry.Enabled, false)
+	return c.Spec.Components.OpenVSXRegistry.Enable
 }
 
 func (c *CheCluster) IsInternalPluginRegistryWithOpenVSXEnabled() bool {

@@ -257,7 +257,7 @@ func (k K8sClientWrapper) doSync(
 		}
 
 		if k.isRecreate(actual.GetObjectKind().GroupVersionKind().Kind) {
-			if err := k.doDeleteIgnoreIfNotFound(ctx, actual); err != nil {
+			if err := k.doDeleteIgnoreIfNotFound(ctx, actual, syncOptions.DeleteOpts...); err != nil {
 				return err
 			}
 
@@ -303,7 +303,7 @@ func (k K8sClientWrapper) doSync(
 
 // isRecreate returns true, if object should be deleted/created instead of being updated.
 func (k K8sClientWrapper) isRecreate(kind string) bool {
-	return kind == "Service" || kind == "Ingress" || kind == "Route"
+	return kind == "Service" || kind == "Ingress" || kind == "Route" || kind == "Job"
 }
 
 func (k K8sClientWrapper) ensureGVK(obj client.Object) error {

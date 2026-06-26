@@ -23,7 +23,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 )
 
 func TestOpenVSXDatabaseReconciler(t *testing.T) {
@@ -36,7 +35,7 @@ func TestOpenVSXDatabaseReconciler(t *testing.T) {
 			Spec: chev2.CheClusterSpec{
 				Components: chev2.CheClusterComponents{
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
-						Enabled: ptr.To(true),
+						Enable: true,
 					},
 				},
 			},
@@ -50,7 +49,7 @@ func TestOpenVSXDatabaseReconciler(t *testing.T) {
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: "eclipse-che"}, &corev1.Service{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: "eclipse-che"}, &corev1.PersistentVolumeClaim{}))
 
-	ctx.CheCluster.Spec.Components.OpenVSXRegistry.Enabled = ptr.To(false)
+	ctx.CheCluster.Spec.Components.OpenVSXRegistry.Enable = false
 	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
 
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))

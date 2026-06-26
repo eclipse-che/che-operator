@@ -15,6 +15,7 @@ package dashboard
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -122,10 +123,15 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployCon
 	envVars = append(envVars, utils.GetEnvsByRegExp("^CHE_DEFAULT_SPEC.*")...)
 
 	if ctx.CheCluster.IsInternalOpenVSXRegistryEnabled() {
+		envVars = slices.DeleteFunc(envVars, func(envVar corev1.EnvVar) bool {
+			return envVar.Name == "CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL"
+		})
+
 		envVars = append(envVars,
 			corev1.EnvVar{
 				Name:  "CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL",
-				Value: ctx.CheCluster.Status.OpenVSXURL}, //TODO
+				Value: ctx.CheCluster.Status.OpenVSXURL, // only public url
+			},
 		)
 	}
 

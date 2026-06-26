@@ -81,7 +81,6 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 							ImagePullPolicy: corev1.PullPolicy(imagePullPolicy),
 							Ports: []corev1.ContainerPort{
 								{
-									Name:          constants.OpenVSXServerComponentName,
 									ContainerPort: constants.OpenVSXServerServicePort,
 									Protocol:      corev1.ProtocolTCP,
 								},
@@ -136,7 +135,7 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 							Env: []corev1.EnvVar{
 								{
 									Name:  "OVSX_REGISTRY_URL",
-									Value: getServiceURL(ctx),
+									Value: openvsx.GetOpenVSXServerServiceURL(ctx),
 								},
 								{
 									Name:  "CONFIG_REVISION",

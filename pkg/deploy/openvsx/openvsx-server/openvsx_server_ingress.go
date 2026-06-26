@@ -46,7 +46,9 @@ func (r *OpenVSXServerReconciler) syncIngress(ctx *chetypes.DeployContext) error
 		annotations["route.openshift.io/termination"] = "edge"
 	}
 
-	if ctx.CheCluster.Spec.Networking.IngressClassName != "" {
+	ingressClassName := ctx.CheCluster.Spec.Networking.IngressClassName
+	if ingressClassName == "" {
+		ingressClassName = annotations["kubernetes.io/ingress.class"]
 		delete(annotations, "kubernetes.io/ingress.class")
 	}
 
@@ -77,6 +79,7 @@ func (r *OpenVSXServerReconciler) syncIngress(ctx *chetypes.DeployContext) error
 			Annotations: annotations,
 		},
 		Spec: networkingv1.IngressSpec{
+			IngressClassName: ptr.To(ingressClassName),
 			TLS: []networkingv1.IngressTLS{
 				{
 					Hosts: []string{host},

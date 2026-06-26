@@ -12103,6 +12103,8 @@ spec:
                         type: boolean
                     type: object
                   openVSXRegistry:
+                    default:
+                      enable: false
                     description: OpenVSX registry configuration.
                     properties:
                       credentialsSecretName:
@@ -14688,7 +14690,8 @@ spec:
                                 type: string
                             type: object
                         type: object
-                      enabled:
+                      enable:
+                        default: false
                         description: Enables internal OpenVSX registry.
                         type: boolean
                       server:

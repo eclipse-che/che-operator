@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -44,7 +45,7 @@ func (r *OpenVSXServerReconciler) syncDefaultExtensionsConfig(ctx *chetypes.Depl
 			Labels:    deploy.GetLabels(constants.OpenVSXServerComponentName),
 		},
 		Data: map[string]string{
-			"extentions.list": "",
+			"extensions.list": "",
 		},
 	}
 
@@ -110,7 +111,7 @@ func (r *OpenVSXServerReconciler) syncExtensions(ctx *chetypes.DeployContext) er
 							Env: []corev1.EnvVar{
 								{
 									Name:  "OVSX_REGISTRY_URL",
-									Value: getServiceURL(ctx),
+									Value: openvsx.GetOpenVSXServerServiceURL(ctx),
 								},
 								{
 									Name:  "EXTENSIONS_VERSION",
@@ -158,7 +159,8 @@ func (r *OpenVSXServerReconciler) syncExtensions(ctx *chetypes.DeployContext) er
 		context.TODO(),
 		job,
 		&k8sclient.SyncOptions{
-			DiffOpts: diffs.Job,
+			DiffOpts:   diffs.Job,
+			DeleteOpts: []client.DeleteOption{client.PropagationPolicy(metav1.DeletePropagationForeground)},
 		},
 	)
 	if err == nil {
