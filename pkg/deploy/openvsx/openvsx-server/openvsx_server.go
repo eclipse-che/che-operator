@@ -109,7 +109,7 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 			err = fmt.Errorf("failed to sync Extensions %w", err)
 			return reconcile.Result{}, false, err
 		}
-		
+
 		r.extensionsVersion = extensionsVersion
 	}
 
