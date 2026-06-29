@@ -64,7 +64,7 @@ var Service = cmp.Options{
 func Ingress(labels []string, annotations []string) cmp.Options {
 	return cmp.Options{
 		cmpopts.IgnoreFields(networking.Ingress{}, "TypeMeta", "Status"),
-		objectMetaComparator(labels, annotations),
+		cmpMetadata(labels, annotations),
 	}
 }
 

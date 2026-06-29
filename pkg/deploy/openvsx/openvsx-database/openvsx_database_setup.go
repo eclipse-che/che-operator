@@ -139,10 +139,5 @@ EOSQL`,
 		return err
 	}
 
-	err := ctx.ClusterAPI.ClientWrapper.CreateIfNotExists(context.TODO(), job)
-	if err == nil {
-		r.databaseProvisioned = true
-	}
-
-	return err
+	return ctx.ClusterAPI.ClientWrapper.CreateIfNotExists(context.TODO(), job)
 }

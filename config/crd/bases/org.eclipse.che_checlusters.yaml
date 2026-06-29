@@ -14671,7 +14671,9 @@ spec:
                         type: object
                       enable:
                         default: false
-                        description: Enables internal OpenVSX registry.
+                        description: |-
+                          Enables internal OpenVSX registry.
+                          When set to false, the OpenVSX registry resources are deleted, including the database PVC.
                         type: boolean
                       server:
                         description: OpenVSX registry server configuration.

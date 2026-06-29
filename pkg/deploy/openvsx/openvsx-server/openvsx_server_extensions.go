@@ -18,8 +18,6 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/eclipse-che/che-operator/pkg/common/diffs"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -29,7 +27,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -52,7 +49,7 @@ func (r *OpenVSXServerReconciler) syncDefaultExtensionsConfig(ctx *chetypes.Depl
 	return ctx.ClusterAPI.ClientWrapper.CreateIfNotExists(context.TODO(), cm)
 }
 
-func (r *OpenVSXServerReconciler) syncExtensions(ctx *chetypes.DeployContext) error {
+func (r *OpenVSXServerReconciler) getExtensionsVersion(ctx *chetypes.DeployContext) (string, error) {
 	cm := &corev1.ConfigMap{}
 	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
 		context.TODO(),
@@ -63,16 +60,16 @@ func (r *OpenVSXServerReconciler) syncExtensions(ctx *chetypes.DeployContext) er
 		cm,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to get ConfigMap: %w", err)
+		return "", fmt.Errorf("failed to get ConfigMap: %w", err)
 	}
 	if !exists {
-		return nil
+		return "", nil
 	}
 
-	if r.extensionsVersion == cm.ResourceVersion {
-		return nil
-	}
+	return cm.ResourceVersion, nil
+}
 
+func (r *OpenVSXServerReconciler) syncExtensions(ctx *chetypes.DeployContext) error {
 	image := defaults.GetOpenVSXImage(ctx.CheCluster)
 	imagePullPolicy := utils.GetPullPolicyFromDockerImage(image)
 
@@ -113,10 +110,6 @@ func (r *OpenVSXServerReconciler) syncExtensions(ctx *chetypes.DeployContext) er
 									Name:  "OVSX_REGISTRY_URL",
 									Value: openvsx.GetOpenVSXServerServiceURL(ctx),
 								},
-								{
-									Name:  "EXTENSIONS_VERSION",
-									Value: cm.ResourceVersion,
-								},
 								utils.EnvVarFromSecret("OVSX_PAT", credentialsSecret, "openvsx-publisher-token"),
 							},
 							Command: []string{"/home/openvsx/publish-extensions.sh", "/home/openvsx/extensions/extensions.list"},
@@ -156,17 +149,5 @@ func (r *OpenVSXServerReconciler) syncExtensions(ctx *chetypes.DeployContext) er
 		return err
 	}
 
-	err = ctx.ClusterAPI.ClientWrapper.Sync(
-		context.TODO(),
-		job,
-		&k8sclient.SyncOptions{
-			DiffOpts:   diffs.Job,
-			DeleteOpts: []client.DeleteOption{client.PropagationPolicy(metav1.DeletePropagationForeground)},
-		},
-	)
-	if err == nil {
-		r.extensionsVersion = cm.ResourceVersion
-	}
-
-	return err
+	return ctx.ClusterAPI.ClientWrapper.CreateIfNotExists(context.TODO(), job)
 }

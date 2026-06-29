@@ -19,6 +19,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
+	"github.com/eclipse-che/che-operator/pkg/deploy/openvsx"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -69,10 +70,18 @@ func (p *OpenVSXDatabaseReconciler) Reconcile(ctx *chetypes.DeployContext) (reco
 	}
 
 	if !p.databaseProvisioned {
+		result, done, err := openvsx.EnsurePreviousNotExists(ctx, constants.OpenVSXDatabaseProvisionJobName)
+		if !done {
+			return result, done, err
+		}
+
 		err = p.syncDatabaseProvisioned(ctx)
 		if err != nil {
-			return reconcile.Result{}, false, fmt.Errorf("failed to provision database: %w", err)
+			err = fmt.Errorf("failed to provision database: %w", err)
+			return reconcile.Result{}, false, err
 		}
+
+		p.databaseProvisioned = true
 	}
 
 	return reconcile.Result{}, true, nil
