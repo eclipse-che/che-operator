@@ -21,6 +21,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 func (r *OpenVSXServerReconciler) syncConfigMap(ctx *chetypes.DeployContext) error {
@@ -37,6 +38,10 @@ func (r *OpenVSXServerReconciler) syncConfigMap(ctx *chetypes.DeployContext) err
 		Data: map[string]string{
 			"application.yml": applicationConfig,
 		},
+	}
+
+	if err := controllerutil.SetControllerReference(ctx.CheCluster, cm, ctx.ClusterAPI.Scheme); err != nil {
+		return err
 	}
 
 	return ctx.ClusterAPI.ClientWrapper.CreateIfNotExists(context.TODO(), cm)

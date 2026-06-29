@@ -36,7 +36,7 @@ const (
 	DefaultPluginRegistryCpuLimit                             = "500m"
 	DefaultPluginRegistryCpuRequest                           = "100m"
 
-	// OpenVSXRegsitry Common
+	// OpenVSXRegistry Common
 	OpenVSXCredentialsSecret = "openvsx-credentials"
 
 	// OpenVSXRegistry Server

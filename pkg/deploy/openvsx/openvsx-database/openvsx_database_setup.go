@@ -125,6 +125,7 @@ EOSQL`,
 			BackoffLimit:            ptr.To(int32(3)),
 			Completions:             ptr.To(int32(1)),
 			TTLSecondsAfterFinished: ptr.To(int32(60)),
+			ActiveDeadlineSeconds:   ptr.To(int64(300)),
 		},
 	}
 

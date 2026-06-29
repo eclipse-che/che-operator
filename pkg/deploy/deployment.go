@@ -342,6 +342,16 @@ func EnsurePodSecurityStandards(podSpec *corev1.PodSpec, userId int64, groupId i
 		podSpec.Containers[i].SecurityContext.RunAsNonRoot = ptr.To(true)
 	}
 
+	for i := range podSpec.InitContainers {
+		if podSpec.InitContainers[i].SecurityContext == nil {
+			podSpec.InitContainers[i].SecurityContext = &corev1.SecurityContext{}
+		}
+
+		podSpec.InitContainers[i].SecurityContext.AllowPrivilegeEscalation = ptr.To(false)
+		podSpec.InitContainers[i].SecurityContext.Capabilities = &corev1.Capabilities{Drop: []corev1.Capability{"ALL"}}
+		podSpec.InitContainers[i].SecurityContext.RunAsNonRoot = ptr.To(true)
+	}
+
 	if podSpec.SecurityContext == nil {
 		podSpec.SecurityContext = &corev1.PodSecurityContext{}
 	}

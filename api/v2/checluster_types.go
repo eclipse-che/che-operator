@@ -455,6 +455,7 @@ type PluginRegistry struct {
 // +k8s:openapi-gen=true
 type OpenVSXRegistry struct {
 	// Enables internal OpenVSX registry.
+	// When set to false, the OpenVSX registry resources are deleted, including the database PVC.
 	// +optional
 	// +kubebuilder:default:=false
 	Enable bool `json:"enable,omitempty"`

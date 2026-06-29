@@ -27,6 +27,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 func (r *OpenVSXServerReconciler) syncIngress(ctx *chetypes.DeployContext) error {
@@ -104,6 +105,10 @@ func (r *OpenVSXServerReconciler) syncIngress(ctx *chetypes.DeployContext) error
 
 	labelKeys := slices.Collect(maps.Keys(labels))
 	annotationKeys := slices.Collect(maps.Keys(annotations))
+
+	if err := controllerutil.SetControllerReference(ctx.CheCluster, ingress, ctx.ClusterAPI.Scheme); err != nil {
+		return err
+	}
 
 	return ctx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),

@@ -35,6 +35,9 @@ import (
 
 type OpenVSXServerReconciler struct {
 	reconciler.Reconcilable
+
+	// extensionsVersion tracks the last synced ConfigMap version to avoid unnecessary Job churn.
+	// Resets on operator restart, which is safe - the Job is idempotent.
 	extensionsVersion string
 }
 

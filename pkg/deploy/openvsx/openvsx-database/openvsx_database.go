@@ -32,6 +32,9 @@ import (
 
 type OpenVSXDatabaseReconciler struct {
 	reconciler.Reconcilable
+
+	// databaseProvisioned prevents recreating the setup Job on every reconcile.
+	// Resets on operator restart, which is safe - the Job uses ON CONFLICT DO NOTHING.
 	databaseProvisioned bool
 }
 
