@@ -1,11 +1,11 @@
 module github.com/eclipse-che/che-operator
 
-go 1.25.7
+go 1.26.0
 
 require (
 	github.com/che-incubator/kubernetes-image-puller-operator v0.0.0-20250214104625-65e5ec32f521
 	github.com/devfile/api/v2 v2.3.1-alpha.0.20250521155908-5c3d7b99d252
-	github.com/devfile/devworkspace-operator v0.41.0
+	github.com/devfile/devworkspace-operator v0.42.0
 	github.com/go-logr/logr v1.4.3
 	github.com/google/go-cmp v0.7.0
 	github.com/openshift/api v0.0.0-20260325070019-86893981287e
