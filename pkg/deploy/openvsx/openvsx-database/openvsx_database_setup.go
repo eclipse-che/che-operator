@@ -17,18 +17,21 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/openvsx"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (r *OpenVSXDatabaseReconciler) syncDatabaseProvisioned(ctx *chetypes.DeployContext) error {
+func (r *OpenVSXDatabaseReconciler) syncDatabaseProvisioned(ctx *chetypes.DeployContext) (bool, error) {
 	image := defaults.GetOpenVSXDatabaseImage(ctx.CheCluster)
 	imagePullPolicy := utils.GetPullPolicyFromDockerImage(image)
 
@@ -136,8 +139,19 @@ EOSQL`,
 	)
 
 	if err := controllerutil.SetControllerReference(ctx.CheCluster, job, ctx.ClusterAPI.Scheme); err != nil {
-		return err
+		return false, err
 	}
 
-	return ctx.ClusterAPI.ClientWrapper.CreateIfNotExists(context.TODO(), job)
+	err := ctx.ClusterAPI.ClientWrapper.Sync(
+		context.TODO(),
+		job,
+		&k8sclient.SyncOptions{
+			DeleteOpts: []client.DeleteOption{client.PropagationPolicy(metav1.DeletePropagationBackground)},
+		},
+	)
+	if errors.IsAlreadyExists(err) {
+		return false, nil
+	}
+
+	return err == nil, err
 }

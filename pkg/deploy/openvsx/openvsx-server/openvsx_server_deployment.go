@@ -109,12 +109,13 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 							ReadinessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
-										Path: "/actuator/health",
-										Port: intstr.FromInt32(constants.OpenVSXServerServicePort),
+										Path:   "/actuator/health",
+										Port:   intstr.FromInt32(constants.OpenVSXServerServicePort),
+										Scheme: corev1.URISchemeHTTP,
 									},
 								},
-								InitialDelaySeconds: 15,
-								FailureThreshold:    10,
+								InitialDelaySeconds: 60,
+								FailureThreshold:    3,
 								SuccessThreshold:    1,
 								PeriodSeconds:       10,
 								TimeoutSeconds:      5,
@@ -122,15 +123,28 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 							LivenessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
-										Path: "/actuator/health",
-										Port: intstr.FromInt32(constants.OpenVSXServerServicePort),
+										Path:   "/actuator/health",
+										Port:   intstr.FromInt32(constants.OpenVSXServerServicePort),
+										Scheme: corev1.URISchemeHTTP,
 									},
 								},
-								InitialDelaySeconds: 30,
-								FailureThreshold:    10,
-								SuccessThreshold:    1,
-								PeriodSeconds:       10,
-								TimeoutSeconds:      5,
+								FailureThreshold: 6,
+								PeriodSeconds:    10,
+								TimeoutSeconds:   5,
+								SuccessThreshold: 1,
+							},
+							StartupProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path:   "/actuator/health",
+										Port:   intstr.FromInt32(constants.OpenVSXServerServicePort),
+										Scheme: corev1.URISchemeHTTP,
+									},
+								},
+								FailureThreshold: 30,
+								PeriodSeconds:    10,
+								TimeoutSeconds:   5,
+								SuccessThreshold: 1,
 							},
 							Env: []corev1.EnvVar{
 								{

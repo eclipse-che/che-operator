@@ -331,7 +331,7 @@ func (r *CheClusterValidator) validateOpenVSXRegistry(checluster *CheCluster) er
 
 func (r *CheClusterValidator) validateSecretDataKeys(secret *corev1.Secret, keys []string) error {
 	for _, key := range keys {
-		if _, ok := secret.Data[key]; !ok {
+		if value, ok := secret.Data[key]; !ok || len(value) == 0 {
 			return fmt.Errorf("mandatory keys [%s] not found in secret %s", strings.Join(keys, ", "), secret.Name)
 		}
 	}

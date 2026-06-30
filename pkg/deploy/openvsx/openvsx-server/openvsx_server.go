@@ -22,7 +22,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/deploy/openvsx"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -99,14 +98,11 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 		return reconcile.Result{}, false, fmt.Errorf("failed to get Extensions Version: %w", err)
 	}
 	if extensionsVersion != r.extensionsVersion {
-		result, done, err := openvsx.EnsurePreviousNotExists(ctx, constants.OpenVSXServerExtensionPublishJobName)
+		done, err = r.syncExtensions(ctx)
 		if !done {
-			return result, done, err
-		}
-
-		err = r.syncExtensions(ctx)
-		if err != nil {
-			err = fmt.Errorf("failed to sync Extensions %w", err)
+			if err != nil {
+				err = fmt.Errorf("failed to sync Extensions %w", err)
+			}
 			return reconcile.Result{}, false, err
 		}
 
