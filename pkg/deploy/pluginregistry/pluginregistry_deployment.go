@@ -42,7 +42,7 @@ func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(ctx *chetypes
 		},
 	}
 
-	if ctx.CheCluster.IsEmbeddedOpenVSXRegistryConfigured() {
+	if ctx.CheCluster.IsInternalPluginRegistryWithOpenVSXEnabled() {
 		resources.Requests[corev1.ResourceMemory] = resource.MustParse(constants.DefaultPluginRegistryMemoryRequestEmbeddedOpenVSXRegistry)
 		resources.Limits[corev1.ResourceMemory] = resource.MustParse(constants.DefaultPluginRegistryMemoryLimitEmbeddedOpenVSXRegistry)
 	}
@@ -56,13 +56,18 @@ func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(ctx *chetypes
 		resources,
 		probePath)
 
-	if ctx.CheCluster.IsEmbeddedOpenVSXRegistryConfigured() {
+	if ctx.CheCluster.IsInternalPluginRegistryWithOpenVSXEnabled() {
 		// Add time to start embedded VSX registry
 		deployment.Spec.Template.Spec.Containers[0].LivenessProbe.InitialDelaySeconds = 300
 		deployment.Spec.Template.Spec.Containers[0].LivenessProbe.FailureThreshold = 30
 	}
 
-	deploy.EnsurePodSecurityStandards(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
+	deploy.EnsurePodSecurityStandards(
+		&deployment.Spec.Template.Spec,
+		constants.DefaultSecurityContextRunAsUser,
+		constants.DefaultSecurityContextFsGroup,
+	)
+
 	if err := deploy.OverrideDeployment(ctx, deployment, ctx.CheCluster.Spec.Components.PluginRegistry.Deployment); err != nil {
 		return nil, err
 	}

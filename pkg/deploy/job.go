@@ -25,7 +25,7 @@ import (
 )
 
 var (
-	jobDiffOpts = cmp.Options{
+	JobDiffOpts = cmp.Options{
 		cmpopts.IgnoreFields(batchv1.Job{}, "TypeMeta", "ObjectMeta", "Status"),
 		cmpopts.IgnoreFields(batchv1.JobSpec{}, "Selector", "TTLSecondsAfterFinished"),
 		cmpopts.IgnoreFields(corev1.PodTemplateSpec{}, "ObjectMeta"),
@@ -54,7 +54,7 @@ func SyncJobToCluster(
 	env map[string]string) (bool, error) {
 
 	jobSpec := getJobSpec(deployContext, name, component, image, serviceAccountName, env)
-	return Sync(deployContext, jobSpec, jobDiffOpts)
+	return Sync(deployContext, jobSpec, JobDiffOpts)
 }
 
 // GetSpecJob creates new job configuration by given parameters.

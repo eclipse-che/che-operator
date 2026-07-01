@@ -15,6 +15,7 @@ package dashboard
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -35,7 +36,6 @@ import (
 const (
 	CHE_SELF_SIGNED_MOUNT_PATH  = "/public-certs/che-self-signed"
 	CHE_CUSTOM_CERTS_MOUNT_PATH = "/public-certs/custom"
-	ConsoleLinksResourceName    = "consolelinks"
 )
 
 func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
@@ -121,6 +121,19 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployCon
 
 	// Mount CheCluster default values
 	envVars = append(envVars, utils.GetEnvsByRegExp("^CHE_DEFAULT_SPEC.*")...)
+
+	if ctx.CheCluster.IsInternalOpenVSXRegistryEnabled() {
+		envVars = slices.DeleteFunc(envVars, func(envVar corev1.EnvVar) bool {
+			return envVar.Name == "CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL"
+		})
+
+		envVars = append(envVars,
+			corev1.EnvVar{
+				Name:  "CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL",
+				Value: ctx.CheCluster.Status.OpenVSXURL, // only public url
+			},
+		)
+	}
 
 	if infrastructure.IsOpenShift() {
 		envVars = append(envVars,
@@ -224,7 +237,12 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployCon
 		},
 	}
 
-	deploy.EnsurePodSecurityStandards(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
+	deploy.EnsurePodSecurityStandards(
+		&deployment.Spec.Template.Spec,
+		constants.DefaultSecurityContextRunAsUser,
+		constants.DefaultSecurityContextFsGroup,
+	)
+
 	if err := deploy.OverrideDeployment(ctx, deployment, ctx.CheCluster.Spec.Components.Dashboard.Deployment); err != nil {
 		return nil, err
 	}

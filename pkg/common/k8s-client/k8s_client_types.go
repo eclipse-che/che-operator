@@ -29,6 +29,9 @@ type K8sClient interface {
 	// Create creates object.
 	// Returns nil if object is created otherwise returns error.
 	Create(ctx context.Context, blueprint client.Object, opts ...client.CreateOption) error
+	// CreateIfNotExists creates object if not exists.
+	// Returns nil if object is created or exists otherwise returns error.
+	CreateIfNotExists(ctx context.Context, blueprint client.Object, opts ...client.CreateOption) error
 	// GetIgnoreNotFound gets object.
 	// Returns true if object exists otherwise returns false.
 	// Returns nil if object is retrieved or not found otherwise returns error.
@@ -60,6 +63,8 @@ type SyncOptions struct {
 	SuppressDiff bool
 	// DiffOpts can be used to customize comparison when object is not in sync
 	DiffOpts []cmp.Option
+	// DeleteOpts can be used to customize deletion when object is recreated
+	DeleteOpts []client.DeleteOption
 }
 
 func (o *SyncOptions) ApplyToList(so *SyncOptions) {
@@ -77,6 +82,10 @@ func (o *SyncOptions) ApplyToList(so *SyncOptions) {
 
 	if len(o.DiffOpts) != 0 {
 		so.DiffOpts = o.DiffOpts
+	}
+
+	if len(o.DeleteOpts) != 0 {
+		so.DeleteOpts = o.DeleteOpts
 	}
 }
 
