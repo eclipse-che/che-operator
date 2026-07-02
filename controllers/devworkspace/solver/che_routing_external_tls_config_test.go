@@ -13,6 +13,7 @@
 package solver
 
 import (
+	"context"
 	"testing"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -21,6 +22,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 )
 
@@ -57,7 +60,7 @@ func TestExternalTLSConfigForIngresses(t *testing.T) {
 		},
 	}
 
-	_, _, objs := getSpecObjectsForManager(t, mgr, subdomainDevWorkspaceRouting(), userProfileSecret("username"),
+	cli, _, objs := getSpecObjectsForManager(t, mgr, subdomainDevWorkspaceRouting(), userProfileSecret("username"),
 		&corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "tlsSecret",
@@ -70,6 +73,11 @@ func TestExternalTLSConfigForIngresses(t *testing.T) {
 		})
 
 	assert.Equal(t, 3, len(objs.Ingresses))
+
+	// shared workspace endpoint TLS secret must NOT be created when external TLS is enabled
+	tlsSecret := &corev1.Secret{}
+	err := cli.Get(context.TODO(), types.NamespacedName{Name: "wsid-endpoints", Namespace: "ws"}, tlsSecret)
+	assert.True(t, errors.IsNotFound(err), "shared workspace endpoint TLS secret should not be created when externalTLSConfig is enabled")
 
 	// secure endpoint with custom TLS secret
 	ingress := objs.Ingresses[0]
