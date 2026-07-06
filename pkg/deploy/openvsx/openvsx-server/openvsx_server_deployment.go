@@ -109,7 +109,7 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 							ReadinessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
-										Path:   "/actuator/health",
+										Path:   "/" + constants.OpenVSXServerGatewayPath + "/actuator/health",
 										Port:   intstr.FromInt32(constants.OpenVSXServerServicePort),
 										Scheme: corev1.URISchemeHTTP,
 									},
@@ -123,7 +123,7 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 							LivenessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
-										Path:   "/actuator/health",
+										Path:   "/" + constants.OpenVSXServerGatewayPath + "/actuator/health",
 										Port:   intstr.FromInt32(constants.OpenVSXServerServicePort),
 										Scheme: corev1.URISchemeHTTP,
 									},
@@ -136,7 +136,7 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 							StartupProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
-										Path:   "/actuator/health",
+										Path:   "/" + constants.OpenVSXServerGatewayPath + "/actuator/health",
 										Port:   intstr.FromInt32(constants.OpenVSXServerServicePort),
 										Scheme: corev1.URISchemeHTTP,
 									},

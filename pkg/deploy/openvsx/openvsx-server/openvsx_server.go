@@ -22,6 +22,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -83,10 +84,16 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 		return reconcile.Result{}, false, fmt.Errorf("failed to sync Service %w", err)
 	}
 
-	err = r.syncIngress(ctx)
-	if err != nil {
-		return reconcile.Result{}, false, fmt.Errorf("failed to sync Ingress: %w", err)
+	_, done, err = r.exposeEndpoint(ctx)
+	if !done {
+		if err != nil {
+			err = fmt.Errorf("failed to expose endpoint: %w", err)
+		}
+		return reconcile.Result{}, false, err
 	}
+
+	// Clean up legacy Ingress from prior versions that used a dedicated hostname.
+	deploy.DeleteNamespacedObject(ctx, constants.OpenVSXServerComponentName, &networkingv1.Ingress{})
 
 	err = r.syncDefaultExtensionsConfig(ctx)
 	if err != nil {
@@ -125,7 +132,18 @@ func deleteResources(ctx *chetypes.DeployContext) {
 		Namespace: ctx.CheCluster.Namespace,
 	}
 
-	err := cw.DeleteByKeyIgnoreNotFound(context.TODO(), objKey, &networkingv1.Ingress{})
+	// Delete gateway ConfigMap
+	gatewayConfigKey := types.NamespacedName{
+		Name:      gateway.GatewayConfigMapNamePrefix + constants.OpenVSXServerComponentName,
+		Namespace: ctx.CheCluster.Namespace,
+	}
+	err := cw.DeleteByKeyIgnoreNotFound(context.TODO(), gatewayConfigKey, &corev1.ConfigMap{})
+	if err != nil {
+		logger.Error(err, "failed to delete gateway ConfigMap", "Name", gatewayConfigKey.Name)
+	}
+
+	// Clean up legacy Ingress from prior versions
+	err = cw.DeleteByKeyIgnoreNotFound(context.TODO(), objKey, &networkingv1.Ingress{})
 	if err != nil {
 		logger.Error(err, "failed to delete Ingress", "Name", objKey.Name)
 	}
