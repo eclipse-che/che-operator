@@ -70,7 +70,7 @@ func (e *RouteExposer) initFrom(ctx context.Context, cl client.Client, cluster *
 	e.baseDomain = cluster.Status.WorkspaceBaseDomain
 	e.devWorkspaceID = routing.Spec.DevWorkspaceId
 
-	if cluster.Spec.Networking.TlsSecretName != "" {
+	if cluster.Spec.Networking.TlsSecretName != "" && !cluster.IsDevEnvironmentExternalTLSConfigEnabled() {
 		secret := &corev1.Secret{}
 		err := cl.Get(ctx, client.ObjectKey{Name: cluster.Spec.Networking.TlsSecretName, Namespace: cluster.Namespace}, secret)
 		if err != nil {
@@ -88,7 +88,7 @@ func (e *IngressExposer) initFrom(ctx context.Context, cl client.Client, cluster
 	e.baseDomain = cluster.Status.WorkspaceBaseDomain
 	e.devWorkspaceID = routing.Spec.DevWorkspaceId
 
-	if cluster.Spec.Networking.TlsSecretName != "" {
+	if cluster.Spec.Networking.TlsSecretName != "" && !cluster.IsDevEnvironmentExternalTLSConfigEnabled() {
 		tlsSecretName := routing.Spec.DevWorkspaceId + "-endpoints"
 		e.tlsSecretName = tlsSecretName
 
