@@ -52,6 +52,10 @@ const (
 	// OpenVSXRegistry Server extensions
 	OpenVSXServerExtensionPublishJobName = "openvsx-server-publisher"
 	OpenVSXServerExtensionsConfigMapName = "openvsx-server-extensions"
+	OpenVSXServerPublisherMemoryLimit    = "512Mi"
+	OpenVSXServerPublisherMemoryRequest  = "128Mi"
+	OpenVSXServerPublisherCpuLimit       = "500m"
+	OpenVSXServerPublisherCpuRequest     = "100m"
 
 	// OpenVSXRegistry Database
 	OpenVSXDatabaseComponentName    = "openvsx-database"
