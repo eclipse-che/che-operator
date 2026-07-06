@@ -26,7 +26,6 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -111,16 +110,6 @@ func (r *OpenVSXServerReconciler) syncExtensions(ctx *chetypes.DeployContext) (b
 									Name:      "extensions",
 									MountPath: "/home/openvsx/extensions",
 									ReadOnly:  true,
-								},
-							},
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse(constants.OpenVSXServerPublisherMemoryRequest),
-									corev1.ResourceCPU:    resource.MustParse(constants.OpenVSXServerPublisherCpuRequest),
-								},
-								Limits: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse(constants.OpenVSXServerPublisherMemoryLimit),
-									corev1.ResourceCPU:    resource.MustParse(constants.OpenVSXServerPublisherCpuLimit),
 								},
 							},
 							Env: []corev1.EnvVar{

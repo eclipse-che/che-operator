@@ -58,6 +58,7 @@ func NewOpenVSXServerReconciler() *OpenVSXServerReconciler {
 func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	if !ctx.CheCluster.IsInternalOpenVSXRegistryEnabled() {
 		deleteResources(ctx)
+		r.extensionsVersion = ""
 		return reconcile.Result{}, true, nil
 	}
 
