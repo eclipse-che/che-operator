@@ -80,7 +80,7 @@ func (r *OpenVSXServerReconciler) syncExtensions(ctx *chetypes.DeployContext) (b
 	image := defaults.GetOpenVSXImage(ctx.CheCluster)
 	imagePullPolicy := utils.GetPullPolicyFromDockerImage(image)
 
-	labels := deploy.GetLabels(constants.OpenVSXServerComponentName)
+	labels := deploy.GetLabels(constants.OpenVSXServerExtensionPublishJobName)
 
 	credentialsSecret := openvsx.GetCredentialsSecretName(ctx)
 

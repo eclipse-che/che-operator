@@ -21,6 +21,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	appsv1 "k8s.io/api/apps/v1"
@@ -96,9 +97,18 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 	// Clean up legacy Ingress from prior versions that used a dedicated hostname.
 	deploy.DeleteNamespacedObject(ctx, constants.OpenVSXServerComponentName, &networkingv1.Ingress{})
 
+	err = r.syncOpenVSXURLStatus(ctx)
+	if err != nil {
+		return reconcile.Result{}, false, fmt.Errorf("failed to sync OpenVSXURL status: %w", err)
+	}
+
 	err = r.syncDefaultExtensionsConfig(ctx)
 	if err != nil {
 		return reconcile.Result{}, false, fmt.Errorf("failed to sync Extensions Config: %w", err)
+	}
+
+	if !r.isServerReady(ctx) {
+		return reconcile.Result{}, false, nil
 	}
 
 	extensionsVersion, err := r.getExtensionsVersion(ctx)
@@ -115,11 +125,6 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 		}
 
 		r.extensionsVersion = extensionsVersion
-	}
-
-	err = r.syncOpenVSXURLStatus(ctx)
-	if err != nil {
-		return reconcile.Result{}, false, fmt.Errorf("failed to sync OpenVSXURL status: %w", err)
 	}
 
 	return reconcile.Result{}, true, nil
@@ -201,6 +206,19 @@ func deleteResources(ctx *chetypes.DeployContext) {
 			logger.Error(err, "Failed to update status for OpenVSXURL")
 		}
 	}
+}
+
+func (r *OpenVSXServerReconciler) isServerReady(ctx *chetypes.DeployContext) bool {
+	if test.IsTestMode() {
+		return true
+	}
+
+	actual := &appsv1.Deployment{}
+	exists, err := deploy.GetNamespacedObject(ctx, constants.OpenVSXServerComponentName, actual)
+	if !exists || err != nil {
+		return false
+	}
+	return actual.Status.AvailableReplicas > 0 && actual.Status.UnavailableReplicas == 0
 }
 
 func (r *OpenVSXServerReconciler) Finalize(_ *chetypes.DeployContext) bool {
