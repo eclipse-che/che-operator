@@ -95,7 +95,9 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 	}
 
 	// Clean up legacy Ingress from prior versions that used a dedicated hostname.
-	deploy.DeleteNamespacedObject(ctx, constants.OpenVSXServerComponentName, &networkingv1.Ingress{})
+	if err := deploy.DeleteNamespacedObject(ctx, constants.OpenVSXServerComponentName, &networkingv1.Ingress{}); err != nil {
+		logger.Error(err, "failed to delete legacy Ingress", "Name", constants.OpenVSXServerComponentName)
+	}
 
 	err = r.syncOpenVSXURLStatus(ctx)
 	if err != nil {
