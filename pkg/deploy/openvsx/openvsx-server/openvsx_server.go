@@ -27,7 +27,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -94,11 +93,6 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 		return reconcile.Result{}, false, err
 	}
 
-	// Clean up legacy Ingress from prior versions that used a dedicated hostname.
-	if _, err := deploy.DeleteNamespacedObject(ctx, constants.OpenVSXServerComponentName, &networkingv1.Ingress{}); err != nil {
-		logger.Error(err, "failed to delete legacy Ingress", "Name", constants.OpenVSXServerComponentName)
-	}
-
 	err = r.syncOpenVSXURLStatus(ctx)
 	if err != nil {
 		return reconcile.Result{}, false, fmt.Errorf("failed to sync OpenVSXURL status: %w", err)
@@ -148,12 +142,6 @@ func deleteResources(ctx *chetypes.DeployContext) {
 	err := cw.DeleteByKeyIgnoreNotFound(context.TODO(), gatewayConfigKey, &corev1.ConfigMap{})
 	if err != nil {
 		logger.Error(err, "failed to delete gateway ConfigMap", "Name", gatewayConfigKey.Name)
-	}
-
-	// Clean up legacy Ingress from prior versions
-	err = cw.DeleteByKeyIgnoreNotFound(context.TODO(), objKey, &networkingv1.Ingress{})
-	if err != nil {
-		logger.Error(err, "failed to delete Ingress", "Name", objKey.Name)
 	}
 
 	err = cw.DeleteByKeyIgnoreNotFound(context.TODO(), objKey, &corev1.Service{})
