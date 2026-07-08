@@ -41,7 +41,7 @@ const (
 
 	// OpenVSXRegistry Server
 	OpenVSXServerComponentName = "openvsx-server"
-	OpenVSXServerHostPrefix    = "openvsx-"
+	OpenVSXServerGatewayPath   = "openvsx"
 	OpenVSXServerMemoryLimit   = "2Gi"
 	OpenVSXServerMemoryRequest = "512Mi"
 	OpenVSXServerCpuLimit      = "1"

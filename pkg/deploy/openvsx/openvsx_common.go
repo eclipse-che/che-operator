@@ -20,9 +20,10 @@ import (
 )
 
 func GetOpenVSXServerServiceURL(ctx *chetypes.DeployContext) string {
-	return fmt.Sprintf("http://%s.%s.svc:%d",
+	return fmt.Sprintf("http://%s.%s.svc:%d/%s",
 		constants.OpenVSXServerComponentName,
 		ctx.CheCluster.Namespace,
 		constants.OpenVSXServerServicePort,
+		constants.OpenVSXServerGatewayPath,
 	)
 }

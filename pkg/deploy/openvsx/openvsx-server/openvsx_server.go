@@ -21,11 +21,12 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -57,6 +58,7 @@ func NewOpenVSXServerReconciler() *OpenVSXServerReconciler {
 func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	if !ctx.CheCluster.IsInternalOpenVSXRegistryEnabled() {
 		deleteResources(ctx)
+		r.extensionsVersion = ""
 		return reconcile.Result{}, true, nil
 	}
 
@@ -83,14 +85,26 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 		return reconcile.Result{}, false, fmt.Errorf("failed to sync Service %w", err)
 	}
 
-	err = r.syncIngress(ctx)
+	_, done, err = r.exposeEndpoint(ctx)
+	if !done {
+		if err != nil {
+			err = fmt.Errorf("failed to expose endpoint: %w", err)
+		}
+		return reconcile.Result{}, false, err
+	}
+
+	err = r.syncOpenVSXURLStatus(ctx)
 	if err != nil {
-		return reconcile.Result{}, false, fmt.Errorf("failed to sync Ingress: %w", err)
+		return reconcile.Result{}, false, fmt.Errorf("failed to sync OpenVSXURL status: %w", err)
 	}
 
 	err = r.syncDefaultExtensionsConfig(ctx)
 	if err != nil {
 		return reconcile.Result{}, false, fmt.Errorf("failed to sync Extensions Config: %w", err)
+	}
+
+	if !r.isServerReady(ctx) {
+		return reconcile.Result{}, false, nil
 	}
 
 	extensionsVersion, err := r.getExtensionsVersion(ctx)
@@ -109,11 +123,6 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 		r.extensionsVersion = extensionsVersion
 	}
 
-	err = r.syncOpenVSXURLStatus(ctx)
-	if err != nil {
-		return reconcile.Result{}, false, fmt.Errorf("failed to sync OpenVSXURL status: %w", err)
-	}
-
 	return reconcile.Result{}, true, nil
 }
 
@@ -125,9 +134,14 @@ func deleteResources(ctx *chetypes.DeployContext) {
 		Namespace: ctx.CheCluster.Namespace,
 	}
 
-	err := cw.DeleteByKeyIgnoreNotFound(context.TODO(), objKey, &networkingv1.Ingress{})
+	// Delete gateway ConfigMap
+	gatewayConfigKey := types.NamespacedName{
+		Name:      gateway.GatewayConfigMapNamePrefix + constants.OpenVSXServerComponentName,
+		Namespace: ctx.CheCluster.Namespace,
+	}
+	err := cw.DeleteByKeyIgnoreNotFound(context.TODO(), gatewayConfigKey, &corev1.ConfigMap{})
 	if err != nil {
-		logger.Error(err, "failed to delete Ingress", "Name", objKey.Name)
+		logger.Error(err, "failed to delete gateway ConfigMap", "Name", gatewayConfigKey.Name)
 	}
 
 	err = cw.DeleteByKeyIgnoreNotFound(context.TODO(), objKey, &corev1.Service{})
@@ -182,6 +196,19 @@ func deleteResources(ctx *chetypes.DeployContext) {
 			logger.Error(err, "Failed to update status for OpenVSXURL")
 		}
 	}
+}
+
+func (r *OpenVSXServerReconciler) isServerReady(ctx *chetypes.DeployContext) bool {
+	if test.IsTestMode() {
+		return true
+	}
+
+	actual := &appsv1.Deployment{}
+	exists, err := deploy.GetNamespacedObject(ctx, constants.OpenVSXServerComponentName, actual)
+	if !exists || err != nil {
+		return false
+	}
+	return actual.Status.AvailableReplicas > 0 && actual.Status.UnavailableReplicas == 0
 }
 
 func (r *OpenVSXServerReconciler) Finalize(_ *chetypes.DeployContext) bool {

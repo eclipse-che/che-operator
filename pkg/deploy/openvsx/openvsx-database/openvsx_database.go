@@ -47,6 +47,7 @@ func NewOpenVSXDatabaseReconciler() *OpenVSXDatabaseReconciler {
 func (p *OpenVSXDatabaseReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	if !ctx.CheCluster.IsInternalOpenVSXRegistryEnabled() {
 		p.deleteResources(ctx)
+		p.databaseProvisioned = false
 		return reconcile.Result{}, true, nil
 	}
 
