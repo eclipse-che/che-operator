@@ -35,7 +35,7 @@ func (r *OpenVSXDatabaseReconciler) syncDatabaseProvisioned(ctx *chetypes.Deploy
 	image := defaults.GetOpenVSXDatabaseImage(ctx.CheCluster)
 	imagePullPolicy := utils.GetPullPolicyFromDockerImage(image)
 
-	labels := deploy.GetLabels(constants.OpenVSXDatabaseComponentName)
+	labels := deploy.GetLabels(constants.OpenVSXDatabaseProvisionJobName)
 
 	secretName := openvsx.GetCredentialsSecretName(ctx)
 
