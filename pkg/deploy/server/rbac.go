@@ -280,6 +280,11 @@ func (s *CheServerReconciler) getUserCommonPolicies() []rbacv1.PolicyRule {
 			Resources: []string{"projects"},
 			Verbs:     []string{"get"},
 		},
+		{
+			APIGroups: []string{"image.openshift.io"},
+			Resources: []string{"imagestreams"},
+			Verbs:     []string{"get", "list"},
+		},
 	}
 
 	if infrastructure.IsOpenShift() {
