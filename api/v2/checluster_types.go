@@ -280,6 +280,10 @@ type CheClusterComponents struct {
 	// Configuration settings related to the dashboard used by the Che installation.
 	// +optional
 	Dashboard Dashboard `json:"dashboard"`
+	// OpenVSX registry configuration.
+	// +optional
+	// +kubebuilder:default:={enable: false}
+	OpenVSXRegistry OpenVSXRegistry `json:"openVSXRegistry"`
 	// Kubernetes Image Puller configuration.
 	// +optional
 	ImagePuller ImagePuller `json:"imagePuller"`
@@ -437,12 +441,66 @@ type PluginRegistry struct {
 	// Disables internal plug-in registry.
 	// +optional
 	DisableInternalRegistry bool `json:"disableInternalRegistry,omitempty"`
-	// External plugin registries.
+	// Deprecated external plugin registries list.
 	// +optional
 	ExternalPluginRegistries []ExternalPluginRegistry `json:"externalPluginRegistries,omitempty"`
-	// Open VSX registry URL. If omitted an embedded instance will be used.
+	// OpenVSX external registry URL.
+	// When omitted, the default value from the `CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL`
+	// environment variable is used. This field is ignored when the internal OpenVSX registry is enabled.
 	// +optional
 	OpenVSXURL *string `json:"openVSXURL,omitempty"`
+}
+
+// Configuration settings for the internal OpenVSX registry used by the Che installation.
+// +k8s:openapi-gen=true
+type OpenVSXRegistry struct {
+	// Enables internal OpenVSX registry.
+	// When set to false, the OpenVSX registry resources are deleted, including the database PVC.
+	// +optional
+	// +kubebuilder:default:=false
+	Enable bool `json:"enable,omitempty"`
+	// The name of the Kubernetes Secret that contains credentials for the OpenVSX registry database and server.
+	// The Secret must contain the following keys:
+	//   - `database-user`				: PostgreSQL username.
+	//   - `database-password`			: PostgreSQL password.
+	//   - `database-name`				: PostgreSQL database name.
+	//   - `openvsx-publisher-name`		: Login name of the OpenVSX publisher account used to publish extensions.
+	//   - `openvsx-publisher-token`	: Personal access token for the OpenVSX publisher account.
+	//   - `openvsx-admin-name`			: Login name of the OpenVSX admin account.
+	//   - `openvsx-admin-token`		: Personal access token for the OpenVSX admin account.
+	// All keys are required when using a custom Secret. If no Secret name is provided,
+	// the operator creates one named `openvsx-credentials` with randomly generated values.
+	// The secret must have the `app.kubernetes.io/part-of=che.eclipse.org` label.
+	// +optional
+	CredentialsSecretName *string `json:"credentialsSecretName,omitempty"`
+	// OpenVSX registry server configuration.
+	// +optional
+	Server *OpenVSXServer `json:"server,omitempty"`
+	// OpenVSX registry database configuration.
+	// +optional
+	Database *OpenVSXDatabase `json:"database,omitempty"`
+}
+
+// OpenVSX registry server configuration.
+// +k8s:openapi-gen=true
+type OpenVSXServer struct {
+	// Deployment override options.
+	// +optional
+	Deployment *Deployment `json:"deployment,omitempty"`
+	// PVC settings for storing extensions.
+	// +optional
+	Storage *PVC `json:"pvc,omitempty"`
+}
+
+// OpenVSX registry database configuration.
+// +k8s:openapi-gen=true
+type OpenVSXDatabase struct {
+	// Deployment override options.
+	// +optional
+	Deployment *Deployment `json:"deployment,omitempty"`
+	// PVC settings for PostgreSQL data.
+	// +optional
+	Storage *PVC `json:"pvc,omitempty"`
 }
 
 // Configuration settings related to the devfile registry used by the Che installation.
@@ -1034,6 +1092,12 @@ type CheClusterStatus struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Plugin registry URL"
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors="urn:alm:descriptor:org.w3:link"
 	PluginRegistryURL string `json:"pluginRegistryURL"`
+	// The public URL of the internal OpenVSX registry.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="OpenVSX registry URL"
+	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors="urn:alm:descriptor:org.w3:link"
+	OpenVSXURL string `json:"openVSXURL,omitempty"`
 	// A human readable message indicating details about why the Che deployment is in the current phase.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
@@ -1161,17 +1225,21 @@ func (c *CheCluster) IsCheFlavor() bool {
 	return defaults.GetCheFlavor() == constants.CheFlavor
 }
 
-// IsEmbeddedOpenVSXRegistryConfigured returns true if the Open VSX Registry is configured to be embedded
-// only if only the `Spec.Components.PluginRegistry.OpenVSXURL` is empty.
-func (c *CheCluster) IsEmbeddedOpenVSXRegistryConfigured() bool {
-	if c.Spec.Components.PluginRegistry.OpenVSXURL != nil {
-		return *c.Spec.Components.PluginRegistry.OpenVSXURL == ""
-	}
-	return defaults.GetPluginRegistryOpenVSXURL() == ""
+func (c *CheCluster) IsInternalPluginRegistryDisabled() bool {
+	return c.Spec.Components.PluginRegistry.DisableInternalRegistry ||
+		c.IsExternalOpenVSXRegistryEnabled() || c.IsInternalOpenVSXRegistryEnabled()
 }
 
-func (c *CheCluster) IsInternalPluginRegistryDisabled() bool {
-	return c.Spec.Components.PluginRegistry.DisableInternalRegistry || !c.IsEmbeddedOpenVSXRegistryConfigured()
+func (c *CheCluster) IsExternalOpenVSXRegistryEnabled() bool {
+	return ptr.Deref(c.Spec.Components.PluginRegistry.OpenVSXURL, defaults.GetPluginRegistryOpenVSXURL()) != ""
+}
+
+func (c *CheCluster) IsInternalOpenVSXRegistryEnabled() bool {
+	return c.Spec.Components.OpenVSXRegistry.Enable
+}
+
+func (c *CheCluster) IsInternalPluginRegistryWithOpenVSXEnabled() bool {
+	return !c.Spec.Components.PluginRegistry.DisableInternalRegistry && !c.IsExternalOpenVSXRegistryEnabled()
 }
 
 // IsCheBeingInstalled returns true if the Che version is not set in the status.

@@ -147,6 +147,24 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 		config := configmap.Data["oauth-proxy.cfg"]
 		assert.Contains(t, config, "/healthz$")
 	})
+
+	t.Run("skip openvsx", func(t *testing.T) {
+		ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+			Spec: chev2.CheClusterSpec{
+				Components: chev2.CheClusterComponents{
+					PluginRegistry: chev2.PluginRegistry{
+						DisableInternalRegistry: true,
+					},
+					OpenVSXRegistry: chev2.OpenVSXRegistry{
+						Enable: true,
+					},
+				}},
+		}).Build()
+
+		configmap := getGatewayOauthProxyConfigSpec(ctx, "blabol")
+		config := configmap.Data["oauth-proxy.cfg"]
+		assert.Contains(t, config, "^/openvsx")
+	})
 }
 
 func TestTokenValidityCheckOnOpenShiftNativeUser(t *testing.T) {

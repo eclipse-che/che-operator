@@ -23,12 +23,21 @@ init() {
   RED='\033[0;31m'
   NC='\033[0m'
   BOLD='\033[1m'
+
+  if command -v docker &> /dev/null; then
+    CONTAINER_ENGINE="docker"
+  elif command -v podman &> /dev/null; then
+    CONTAINER_ENGINE="podman"
+  else
+    printf "%bNeither docker nor podman found in PATH%b\n" "${RED}" "${NC}"
+    exit 1
+  fi
 }
 
 # Build image
 build() {
   printf "%bBuilding image %b${IMAGE_NAME}${NC}..." "${BOLD}" "${BLUE}"
-  if docker build -t ${IMAGE_NAME} > docker-build-log 2>&1  -<<EOF
+  if ${CONTAINER_ENGINE} build -t ${IMAGE_NAME} > docker-build-log 2>&1  -<<EOF
   FROM docker.io/golang:1.25-bookworm
   RUN apt update && apt install python3-pip skopeo jq rsync unzip -y && \
     pip install --break-system-packages yq && \
@@ -58,7 +67,7 @@ fi
 
 run() {
   printf "%bRunning%b $*\n" "${BOLD}" "${NC}"
-  if docker run --rm -it -v "${GIT_ROOT_DIRECTORY}":/che-operator ${IMAGE_NAME} "$@"
+  if ${CONTAINER_ENGINE} run --rm -it -v "${GIT_ROOT_DIRECTORY}":/che-operator ${IMAGE_NAME} "$@"
   then
     printf "Script execution %b[OK]%b\n" "${GREEN}" "${NC}"
   else

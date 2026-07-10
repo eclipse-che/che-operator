@@ -466,7 +466,12 @@ func getGatewayDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, 
 		},
 	}
 
-	deploy.EnsurePodSecurityStandards(deployment, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
+	deploy.EnsurePodSecurityStandards(
+		&deployment.Spec.Template.Spec,
+		constants.DefaultSecurityContextRunAsUser,
+		constants.DefaultSecurityContextFsGroup,
+	)
+
 	if err := deploy.OverrideDeployment(ctx, deployment, ctx.CheCluster.Spec.Networking.Auth.Gateway.Deployment); err != nil {
 		return nil, err
 	}

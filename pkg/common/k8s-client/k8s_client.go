@@ -75,6 +75,23 @@ func (k K8sClientWrapper) Sync(
 	}
 }
 
+func (k K8sClientWrapper) CreateIfNotExists(
+	ctx context.Context,
+	obj client.Object,
+	opts ...client.CreateOption,
+) error {
+	defer func() {
+		// ensure GVK is set (for original object) when function returns
+		_ = k.ensureGVK(obj)
+	}()
+
+	if err := k.ensureGVK(obj); err != nil {
+		return err
+	}
+
+	return k.doCreate(ctx, obj, true, opts...)
+}
+
 func (k K8sClientWrapper) Create(
 	ctx context.Context,
 	obj client.Object,
@@ -208,7 +225,6 @@ func (k K8sClientWrapper) doCreate(
 		return nil
 	} else if errors.IsAlreadyExists(err) {
 		if ignoreIfAlreadyExists {
-			logger.Info("Object already exists, ignoring", "namespace", obj.GetNamespace(), "kind", GetObjectType(obj), "name", obj.GetName())
 			return nil
 		} else {
 			return err
@@ -241,7 +257,7 @@ func (k K8sClientWrapper) doSync(
 		}
 
 		if k.isRecreate(actual.GetObjectKind().GroupVersionKind().Kind) {
-			if err := k.doDeleteIgnoreIfNotFound(ctx, actual); err != nil {
+			if err := k.doDeleteIgnoreIfNotFound(ctx, actual, syncOptions.DeleteOpts...); err != nil {
 				return err
 			}
 
@@ -287,7 +303,7 @@ func (k K8sClientWrapper) doSync(
 
 // isRecreate returns true, if object should be deleted/created instead of being updated.
 func (k K8sClientWrapper) isRecreate(kind string) bool {
-	return kind == "Service" || kind == "Ingress" || kind == "Route"
+	return kind == "Service" || kind == "Ingress" || kind == "Route" || kind == "Job"
 }
 
 func (k K8sClientWrapper) ensureGVK(obj client.Object) error {
