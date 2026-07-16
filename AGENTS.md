@@ -74,6 +74,12 @@ at the first `done=false`. Registration order in `controllers/che/checluster_con
 - `Proxy`, `Authentication` — resolved configuration
 - `IsSelfSignedCertificate`, `CheHost`, `DwoNamespace`
 
+### Kubernetes Client Usage
+
+Use the `K8sClient` wrapper (`pkg/common/k8s-client/`) for all Kubernetes operations. Access it via `DeployContext.ClusterAPI.ClientWrapper` (cached) or `DeployContext.ClusterAPI.NonCachingClientWrapper` (non-caching, for cluster-scoped or cross-namespace objects). Key methods: `Sync`, `Create`, `CreateIfNotExists`, `GetIgnoreNotFound`, `DeleteByKeyIgnoreNotFound`, `List`.
+
+**Do NOT use** the legacy functions from `pkg/deploy/sync.go` (`deploy.Sync`, `deploy.Get*`, `deploy.Delete*`, `deploy.CreateIgnoreIfExists`, etc.) — that file is deprecated.
+
 ### Component Packages (`pkg/deploy/`)
 
 Each Che component has its own package under `pkg/deploy/` (e.g., `dashboard/`, `gateway/`, `postgres/`, `identity-provider/`, `server/`). Each package typically contains:
@@ -113,6 +119,12 @@ build/scripts/olm/test-catalog-from-sources.sh
 # Minikube
 build/scripts/minikube-tests/test-operator-from-sources.sh
 ```
+
+## Code Style
+
+- Add an empty line after logical blocks of code (e.g., after `if` blocks, loops, variable declaration groups) to improve readability.
+- Wrap errors with context using `fmt.Errorf` instead of passing them through directly. For example, use `return fmt.Errorf("failed to sync deployment: %w", err)` instead of `return err`.
+- After modifying `api/v2/checluster_types.go`, run `make update-dev-resources` to regenerate CRDs, DeepCopy methods, and related manifests. On macOS, use `build/scripts/docker-run.sh make update-dev-resources` instead.
 
 ## Red Hat Compliance and Responsible AI Rules
 
