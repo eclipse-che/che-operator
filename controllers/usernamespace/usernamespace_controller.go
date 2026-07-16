@@ -278,7 +278,7 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
-	if err = r.reconcileUserClusterRoles(info.Username, req.Name, checluster.Namespace); err != nil {
+	if err = r.reconcileUserClusterRoles(ctx, deployContext, checluster, info.Username, req.Name); err != nil {
 		logrus.Errorf("Failed to reconcile user ClusterRole bindings in namespace '%s': %v", req.Name, err)
 		return ctrl.Result{}, err
 	}
@@ -598,16 +598,38 @@ func (r *CheUserNamespaceReconciler) reconcileSCCPrivileges(
 
 
 func (r *CheUserNamespaceReconciler) reconcileUserClusterRoles(
+	ctx context.Context,
+	deployContext *chetypes.DeployContext,
+	checluster *chev2.CheCluster,
 	username string,
 	targetNs string,
-	cheClusterNs string,
 ) error {
 	if username == "" {
 		return nil
 	}
 
-	// TODO(T5): call userroles.IsUserAuthorized() here
+	authorized, err := userroles.IsUserAuthorized(ctx, deployContext.ClusterAPI, checluster.Spec.Networking.Auth.AdvancedAuthorization, username)
+	if err != nil {
+		return err
+	}
+
+	cheClusterNs := checluster.Namespace
 	clusterRoleNames := userroles.GetDefaultUserClusterRoles(cheClusterNs)
+
+	if !authorized {
+		for _, clusterRoleName := range clusterRoleNames {
+			bindingName := fmt.Sprintf("%s-user-binding", clusterRoleName)
+			if err := r.clientWrapper.DeleteByKeyIgnoreNotFound(
+				ctx,
+				types.NamespacedName{Name: bindingName, Namespace: targetNs},
+				&rbacv1.RoleBinding{},
+			); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
 	for _, clusterRoleName := range clusterRoleNames {
 		bindingName := fmt.Sprintf("%s-user-binding", clusterRoleName)
 		rb := &rbacv1.RoleBinding{
