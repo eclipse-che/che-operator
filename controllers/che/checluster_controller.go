@@ -51,6 +51,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy/rbac"
 	"github.com/eclipse-che/che-operator/pkg/deploy/server"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
+	"github.com/eclipse-che/che-operator/pkg/deploy/userroles"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/go-logr/logr"
@@ -109,6 +110,7 @@ func NewReconciler(
 	reconcilerManager.AddReconciler(tls.NewTlsSecretReconciler())
 	reconcilerManager.AddReconciler(devworkspace.NewDevWorkspaceConfigReconciler())
 	reconcilerManager.AddReconciler(rbac.NewGatewayPermissionsReconciler())
+	reconcilerManager.AddReconciler(userroles.NewUserRolesReconciler())
 
 	// we have to expose che endpoint independently of syncing other server
 	// resources since che host is used for dashboard deployment and che config map
