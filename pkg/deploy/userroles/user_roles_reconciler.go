@@ -85,15 +85,21 @@ func (ur *UserRolesReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 		fmt.Sprintf(userDWPermissionsTemplateName, namespace),
 	}
 
+	done := true
+
 	for _, name := range names {
-		if done, err := deploy.Delete(ctx, types.NamespacedName{Name: name}, &rbacv1.ClusterRoleBinding{}); !done {
+		if _, err := deploy.Delete(ctx, types.NamespacedName{Name: name}, &rbacv1.ClusterRoleBinding{}); err != nil {
+			done = false
 			logrus.Errorf("Error deleting ClusterRoleBinding '%s': %v", name, err)
-			return false
 		}
-		if done, err := deploy.Delete(ctx, types.NamespacedName{Name: name}, &rbacv1.ClusterRole{}); !done {
+		if _, err := deploy.Delete(ctx, types.NamespacedName{Name: name}, &rbacv1.ClusterRole{}); err != nil {
+			done = false
 			logrus.Errorf("Error deleting ClusterRole '%s': %v", name, err)
-			return false
 		}
+	}
+
+	if !done {
+		return false
 	}
 
 	if err := deploy.DeleteFinalizer(ctx, userRolesFinalizerName); err != nil {
