@@ -103,6 +103,7 @@ func NewReconciler(
 	if !test.IsTestMode() {
 		reconcilerManager.AddReconciler(migration.NewMigrator())
 		reconcilerManager.AddReconciler(migration.NewCheClusterDefaultsCleaner())
+		reconcilerManager.AddReconciler(migration.NewUserRolesMigrator())
 		reconcilerManager.AddReconciler(NewCheClusterValidator())
 	}
 
