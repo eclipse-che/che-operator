@@ -113,6 +113,11 @@ func TestFinalizeDeletesClusterRoles(t *testing.T) {
 	// ClusterRoleBindings should be gone
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: commonName}, &rbacv1.ClusterRoleBinding{}))
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dwName}, &rbacv1.ClusterRoleBinding{}))
+
+	// Finalizer must be removed from CheCluster
+	for _, f := range ctx.CheCluster.Finalizers {
+		assert.NotEqual(t, userRolesFinalizerName, f, "expected finalizer %q to be removed after Finalize()", userRolesFinalizerName)
+	}
 }
 
 // TestGetDefaultUserClusterRoles verifies that helper returns the two expected role names.
