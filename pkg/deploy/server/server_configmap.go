@@ -30,6 +30,7 @@ import (
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy/userroles"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -246,7 +247,7 @@ func (s *CheServerReconciler) updateAdvancedAuthorizationEnv(ctx *chetypes.Deplo
 func (s *CheServerReconciler) updateUserClusterRoleEnv(ctx *chetypes.DeployContext, cheEnv map[string]string) {
 	userClusterRolesSet := map[string]bool{}
 
-	for _, role := range s.getDefaultUserClusterRoles(ctx) {
+	for _, role := range userroles.GetDefaultUserClusterRoles(ctx.CheCluster.Namespace) {
 		userClusterRolesSet[role] = true
 	}
 

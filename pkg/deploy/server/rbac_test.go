@@ -14,7 +14,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -62,25 +61,11 @@ func TestSyncPermissions(t *testing.T) {
 			assert.True(t, done)
 			assert.Nil(t, err)
 
-			names := []string{
-				fmt.Sprintf(userCommonPermissionsTemplateName, ctx.CheCluster.Namespace),
-				fmt.Sprintf(cheSASpecificPermissionsTemplateName, ctx.CheCluster.Namespace),
-				fmt.Sprintf(userDevWorkspacePermissionsTemplateName, ctx.CheCluster.Namespace),
-			}
-
-			for _, name := range names {
-				assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: name}, &rbac.ClusterRole{}))
-				assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: name}, &rbac.ClusterRoleBinding{}))
-			}
 			assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test-role"}, &rbac.ClusterRoleBinding{}))
 
 			done = reconciler.deletePermissions(ctx)
 			assert.True(t, done)
 
-			for _, name := range names {
-				assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: name}, &rbac.ClusterRole{}))
-				assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: name}, &rbac.ClusterRoleBinding{}))
-			}
 			assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test-role"}, &rbac.ClusterRoleBinding{}))
 		})
 	}
