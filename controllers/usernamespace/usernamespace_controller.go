@@ -22,6 +22,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	containercapabilties "github.com/eclipse-che/che-operator/pkg/deploy/container-capabilities"
+	"github.com/eclipse-che/che-operator/pkg/deploy/userroles"
 	"k8s.io/utils/ptr"
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
@@ -274,6 +275,11 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		checluster.IsContainerRunCapabilitiesEnabled(),
 	); err != nil {
 		logrus.Errorf("Failed to reconcile the SCC privileges in namespace '%s': %v", req.Name, err)
+		return ctrl.Result{}, err
+	}
+
+	if err = r.reconcileUserClusterRoles(info.Username, req.Name, checluster.Namespace); err != nil {
+		logrus.Errorf("Failed to reconcile user ClusterRole bindings in namespace '%s': %v", req.Name, err)
 		return ctrl.Result{}, err
 	}
 
@@ -588,6 +594,55 @@ func (r *CheUserNamespaceReconciler) reconcileSCCPrivileges(
 		rb,
 		&k8sclient.SyncOptions{DiffOpts: diffs.RoleBinding},
 	)
+}
+
+
+func (r *CheUserNamespaceReconciler) reconcileUserClusterRoles(
+	username string,
+	targetNs string,
+	cheClusterNs string,
+) error {
+	if username == "" {
+		return nil
+	}
+
+	// TODO(T5): call userroles.IsUserAuthorized() here
+	clusterRoleNames := userroles.GetDefaultUserClusterRoles(cheClusterNs)
+	for _, clusterRoleName := range clusterRoleNames {
+		bindingName := fmt.Sprintf("%s-user-binding", clusterRoleName)
+		rb := &rbacv1.RoleBinding{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "RoleBinding",
+				APIVersion: rbacv1.SchemeGroupVersion.String(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      bindingName,
+				Namespace: targetNs,
+				Labels:    map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg},
+			},
+			RoleRef: rbacv1.RoleRef{
+				Name:     clusterRoleName,
+				Kind:     "ClusterRole",
+				APIGroup: "rbac.authorization.k8s.io",
+			},
+			Subjects: []rbacv1.Subject{
+				{
+					Kind:     rbacv1.UserKind,
+					APIGroup: "rbac.authorization.k8s.io",
+					Name:     username,
+				},
+			},
+		}
+		if err := r.clientWrapper.Sync(
+			context.TODO(),
+			rb,
+			&k8sclient.SyncOptions{DiffOpts: diffs.RoleBinding},
+		); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func prefixedName(name string) string {
