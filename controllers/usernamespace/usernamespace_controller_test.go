@@ -623,3 +623,176 @@ func TestWatchRulesForConfigMapsInOtherNamespaces(t *testing.T) {
 	assert.Contains(t, reconciles, reconcile.Request{NamespacedName: types.NamespacedName{Name: "ns2"}})
 	assert.Contains(t, reconciles, reconcile.Request{NamespacedName: types.NamespacedName{Name: "eclipse-che"}})
 }
+
+// TestUserClusterRolesAllowedUser verifies that a user listed in AllowUsers gets
+// RoleBindings for every default ClusterRole when AllowUsers is configured.
+func TestUserClusterRolesAllowedUser(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "user-ns",
+			Labels: map[string]string{
+				namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid-allowed",
+			},
+			Annotations: map[string]string{
+				namespacecache.CheUsernameAnnotation: "allowed-user",
+			},
+		},
+	}
+
+	cheCluster := &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Domain: "root-domain",
+				Auth: chev2.Auth{
+					AdvancedAuthorization: &chev2.AdvancedAuthorization{
+						AllowUsers: []string{"allowed-user", "another-user"},
+					},
+				},
+			},
+			DevEnvironments: chev2.CheClusterDevEnvironments{
+				DisableContainerBuildCapabilities: ptr.To(true),
+			},
+		},
+		Status: chev2.CheClusterStatus{
+			CheURL: "https://che-host",
+		},
+	}
+
+	_, cl, r := setup(infrastructure.Kubernetes, ns, cheCluster)
+
+	ctx := context.TODO()
+	_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: types.NamespacedName{Name: ns.GetName()}})
+	assert.NoError(t, err)
+
+	// Verify RoleBindings were created for the allowed user.
+	rbList := &rbacv1.RoleBindingList{}
+	assert.NoError(t, cl.List(ctx, rbList, client.InNamespace("user-ns")))
+
+	assert.GreaterOrEqual(t, len(rbList.Items), 2, "Expected at least 2 RoleBindings for the allowed user")
+
+	for _, rb := range rbList.Items {
+		if rb.RoleRef.Kind == "ClusterRole" {
+			assert.Equal(t, "allowed-user", rb.Subjects[0].Name, "RoleBinding subject must be the allowed user")
+			assert.Equal(t, rbacv1.UserKind, rb.Subjects[0].Kind)
+		}
+	}
+}
+
+// TestUserClusterRolesNoAuthzConfig verifies that when AdvancedAuthorization is nil
+// (open access), every user gets RoleBindings for all default ClusterRoles.
+func TestUserClusterRolesNoAuthzConfig(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "open-ns",
+			Labels: map[string]string{
+				namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid-open",
+			},
+			Annotations: map[string]string{
+				namespacecache.CheUsernameAnnotation: "any-user",
+			},
+		},
+	}
+
+	cheCluster := &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Domain: "root-domain",
+			},
+			DevEnvironments: chev2.CheClusterDevEnvironments{
+				DisableContainerBuildCapabilities: ptr.To(true),
+			},
+		},
+		Status: chev2.CheClusterStatus{
+			CheURL: "https://che-host",
+		},
+	}
+
+	_, cl, r := setup(infrastructure.Kubernetes, ns, cheCluster)
+
+	ctx := context.TODO()
+	_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: types.NamespacedName{Name: ns.GetName()}})
+	assert.NoError(t, err)
+
+	rbList := &rbacv1.RoleBindingList{}
+	assert.NoError(t, cl.List(ctx, rbList, client.InNamespace("open-ns")))
+
+	assert.GreaterOrEqual(t, len(rbList.Items), 2, "Expected at least 2 RoleBindings with open access policy")
+
+	for _, rb := range rbList.Items {
+		if rb.RoleRef.Kind == "ClusterRole" {
+			assert.Equal(t, "any-user", rb.Subjects[0].Name, "Subject must be the namespace owner")
+		}
+	}
+}
+
+// TestUserClusterRolesDenyUsers verifies that a user listed in DenyUsers has any
+// existing RoleBindings removed and no new bindings are created.
+func TestUserClusterRolesDenyUsers(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "denied-ns",
+			Labels: map[string]string{
+				namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid-denied",
+			},
+			Annotations: map[string]string{
+				namespacecache.CheUsernameAnnotation: "denied-user",
+			},
+		},
+	}
+
+	cheCluster := &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Domain: "root-domain",
+				Auth: chev2.Auth{
+					AdvancedAuthorization: &chev2.AdvancedAuthorization{
+						DenyUsers: []string{"denied-user"},
+					},
+				},
+			},
+			DevEnvironments: chev2.CheClusterDevEnvironments{
+				DisableContainerBuildCapabilities: ptr.To(true),
+			},
+		},
+		Status: chev2.CheClusterStatus{
+			CheURL: "https://che-host",
+		},
+	}
+
+	_, cl, r := setup(infrastructure.Kubernetes, ns, cheCluster)
+
+	ctx := context.TODO()
+	_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: types.NamespacedName{Name: ns.GetName()}})
+	assert.NoError(t, err)
+
+	// Denied user must not have any ClusterRole RoleBindings.
+	rbList := &rbacv1.RoleBindingList{}
+	assert.NoError(t, cl.List(ctx, rbList, client.InNamespace("denied-ns")))
+
+	for _, rb := range rbList.Items {
+		if rb.RoleRef.Kind == "ClusterRole" {
+			for _, subject := range rb.Subjects {
+				assert.NotEqual(t, "denied-user", subject.Name,
+					"Denied user must not be bound to any ClusterRole, but found binding %s", rb.Name)
+			}
+		}
+	}
+}
