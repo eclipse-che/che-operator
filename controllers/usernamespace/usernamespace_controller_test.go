@@ -20,11 +20,13 @@ import (
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	containerbuild "github.com/eclipse-che/che-operator/pkg/deploy/container-capabilities"
 	"k8s.io/utils/ptr"
 
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 
+	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
@@ -622,4 +624,140 @@ func TestWatchRulesForConfigMapsInOtherNamespaces(t *testing.T) {
 	assert.Contains(t, reconciles, reconcile.Request{NamespacedName: types.NamespacedName{Name: "ns1"}})
 	assert.Contains(t, reconciles, reconcile.Request{NamespacedName: types.NamespacedName{Name: "ns2"}})
 	assert.Contains(t, reconciles, reconcile.Request{NamespacedName: types.NamespacedName{Name: "eclipse-che"}})
+}
+
+func TestNetworkPoliciesCreatedWhenEnabled(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "user-ns",
+			Labels: map[string]string{
+				namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid",
+			},
+		},
+	}
+
+	project := &projectv1.Project{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "user-ns",
+			Labels: map[string]string{
+				namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid",
+			},
+		},
+	}
+
+	proxy := &configv1.Proxy{
+		ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
+	}
+
+	scheme, cl, r := setup(infrastructure.OpenShiftV4, ns, project, proxy)
+	ctx := context.TODO()
+	setupCheCluster(t, ctx, cl, scheme, "eclipse-che", "che")
+
+	cheCluster := &chev2.CheCluster{}
+	assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che", Namespace: "eclipse-che"}, cheCluster))
+	cheCluster.Spec.Networking.NetworkPolicies = &chev2.NetworkPolicies{Enabled: true}
+	assert.NoError(t, cl.Update(ctx, cheCluster))
+
+	_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: types.NamespacedName{Name: "user-ns"}})
+	assert.NoError(t, err)
+
+	policyNames := []string{
+		"allow-from-" + defaults.GetCheFlavor(),
+		"allow-from-same-namespace",
+		"allow-from-openshift-operators",
+		"allow-from-openshift-monitoring",
+		"allow-from-openshift-ingress",
+	}
+	for _, name := range policyNames {
+		np := &networkingv1.NetworkPolicy{}
+		err := cl.Get(ctx, client.ObjectKey{Name: name, Namespace: "user-ns"}, np)
+		assert.NoError(t, err, "NetworkPolicy %s should exist", name)
+		assert.Equal(t, constants.CheEclipseOrg, np.Labels[constants.KubernetesPartOfLabelKey])
+	}
+
+	np := &networkingv1.NetworkPolicy{}
+	assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "allow-from-" + defaults.GetCheFlavor(), Namespace: "user-ns"}, np))
+	assert.Equal(t,
+		"eclipse-che",
+		np.Spec.Ingress[0].From[0].NamespaceSelector.MatchLabels["kubernetes.io/metadata.name"],
+	)
+}
+
+func TestNetworkPoliciesNotCreatedWhenDisabled(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "user-ns",
+			Labels: map[string]string{
+				namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid",
+			},
+		},
+	}
+
+	scheme, cl, r := setup(infrastructure.Kubernetes, ns)
+	ctx := context.TODO()
+	setupCheCluster(t, ctx, cl, scheme, "eclipse-che", "che")
+
+	_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: types.NamespacedName{Name: "user-ns"}})
+	assert.NoError(t, err)
+
+	npList := &networkingv1.NetworkPolicyList{}
+	assert.NoError(t, cl.List(ctx, npList, client.InNamespace("user-ns")))
+	assert.Equal(t, 0, len(npList.Items), "No NetworkPolicies should be created when disabled")
+}
+
+func TestNetworkPoliciesDeletedWhenToggleOff(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "user-ns",
+			Labels: map[string]string{
+				namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid",
+			},
+		},
+	}
+
+	project := &projectv1.Project{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "user-ns",
+			Labels: map[string]string{
+				namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid",
+			},
+		},
+	}
+
+	proxy := &configv1.Proxy{
+		ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
+	}
+
+	scheme, cl, r := setup(infrastructure.OpenShiftV4, ns, project, proxy)
+	ctx := context.TODO()
+	setupCheCluster(t, ctx, cl, scheme, "eclipse-che", "che")
+
+	cheCluster := &chev2.CheCluster{}
+	assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che", Namespace: "eclipse-che"}, cheCluster))
+	cheCluster.Spec.Networking.NetworkPolicies = &chev2.NetworkPolicies{Enabled: true}
+	assert.NoError(t, cl.Update(ctx, cheCluster))
+
+	_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: types.NamespacedName{Name: "user-ns"}})
+	assert.NoError(t, err)
+
+	npList := &networkingv1.NetworkPolicyList{}
+	assert.NoError(t, cl.List(ctx, npList, client.InNamespace("user-ns")))
+	assert.Equal(t, 5, len(npList.Items), "5 NetworkPolicies should exist when enabled")
+
+	assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che", Namespace: "eclipse-che"}, cheCluster))
+	cheCluster.Spec.Networking.NetworkPolicies.Enabled = false
+	assert.NoError(t, cl.Update(ctx, cheCluster))
+
+	_, err = r.Reconcile(ctx, reconcile.Request{NamespacedName: types.NamespacedName{Name: "user-ns"}})
+	assert.NoError(t, err)
+
+	npList = &networkingv1.NetworkPolicyList{}
+	assert.NoError(t, cl.List(ctx, npList, client.InNamespace("user-ns")))
+	assert.Equal(t, 0, len(npList.Items), "All NetworkPolicies should be deleted when disabled")
 }

@@ -64,7 +64,7 @@ type CheClusterSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=4
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Networking"
-	// +kubebuilder:default:={auth: {gateway: {configLabels: {app: che, component: che-gateway-config}}}}
+	// +kubebuilder:default:={auth: {gateway: {configLabels: {app: che, component: che-gateway-config}}}, networkPolicies: {enabled: false}}
 	Networking CheClusterSpecNetworking `json:"networking"`
 	// Configuration of an alternative registry that stores Che images.
 	// +optional
@@ -329,6 +329,20 @@ type CheClusterSpecNetworking struct {
 	// +optional
 	// +kubebuilder:default:={gateway: {configLabels: {app: che, component: che-gateway-config}}}
 	Auth Auth `json:"auth"`
+	// NetworkPolicies configures NetworkPolicy resources for Che operand namespaces.
+	// +optional
+	NetworkPolicies *NetworkPolicies `json:"networkPolicies,omitempty"`
+}
+
+// NetworkPolicies configuration settings.
+// +k8s:openapi-gen=true
+type NetworkPolicies struct {
+	// Enabled controls whether the operator creates NetworkPolicy resources
+	// in user workspace namespaces and the Che namespace.
+	// When disabled, no NetworkPolicy resources are managed by the operator.
+	// +optional
+	// +kubebuilder:default:=false
+	Enabled bool `json:"enabled"`
 }
 
 type DevEnvironmentNetworking struct {
@@ -1258,4 +1272,9 @@ func (c *CheCluster) IsDevEnvironmentExternalTLSConfigEnabled() bool {
 	return c.Spec.DevEnvironments.Networking != nil &&
 		c.Spec.DevEnvironments.Networking.ExternalTLSConfig != nil &&
 		*c.Spec.DevEnvironments.Networking.ExternalTLSConfig.Enabled
+}
+
+func (c *CheCluster) IsNetworkPoliciesEnabled() bool {
+	return c.Spec.Networking.NetworkPolicies != nil &&
+		c.Spec.Networking.NetworkPolicies.Enabled
 }

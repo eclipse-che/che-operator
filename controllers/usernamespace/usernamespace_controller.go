@@ -21,6 +21,7 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
+	operatordefaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	containercapabilties "github.com/eclipse-che/che-operator/pkg/deploy/container-capabilities"
 	"k8s.io/utils/ptr"
 
@@ -42,6 +43,7 @@ import (
 	projectv1 "github.com/openshift/api/project/v1"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -275,6 +277,10 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	); err != nil {
 		logrus.Errorf("Failed to reconcile the SCC privileges in namespace '%s': %v", req.Name, err)
 		return ctrl.Result{}, err
+	}
+
+	if err = r.reconcileNetworkPolicies(req.Name, checluster); err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to reconcile network policies in namespace %s: %w", req.Name, err)
 	}
 
 	return ctrl.Result{}, nil
@@ -588,6 +594,198 @@ func (r *CheUserNamespaceReconciler) reconcileSCCPrivileges(
 		rb,
 		&k8sclient.SyncOptions{DiffOpts: diffs.RoleBinding},
 	)
+}
+
+func (r *CheUserNamespaceReconciler) reconcileNetworkPolicies(
+	targetNs string,
+	checluster *chev2.CheCluster,
+) error {
+	policies := r.getNetworkPolicies(targetNs, checluster)
+
+	if !checluster.IsNetworkPoliciesEnabled() {
+		for _, policy := range policies {
+			if err := r.clientWrapper.DeleteByKeyIgnoreNotFound(
+				context.TODO(),
+				types.NamespacedName{Name: policy.Name, Namespace: targetNs},
+				&networkingv1.NetworkPolicy{},
+			); err != nil {
+				return fmt.Errorf("failed to delete network policy %s/%s: %w", targetNs, policy.Name, err)
+			}
+		}
+
+		return nil
+	}
+
+	for _, policy := range policies {
+		if err := r.clientWrapper.Sync(
+			context.TODO(),
+			&policy,
+			&k8sclient.SyncOptions{DiffOpts: diffs.NetworkPolicy},
+		); err != nil {
+			return fmt.Errorf("failed to sync network policy %s/%s: %w", targetNs, policy.Name, err)
+		}
+	}
+
+	return nil
+}
+
+func (r *CheUserNamespaceReconciler) getNetworkPolicies(
+	targetNs string,
+	checluster *chev2.CheCluster,
+) []networkingv1.NetworkPolicy {
+	var networkPolicies []networkingv1.NetworkPolicy
+
+	allowFromEclipseCheNetworkPolicy := networkingv1.NetworkPolicy{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "NetworkPolicy",
+			APIVersion: networkingv1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "allow-from-" + operatordefaults.GetCheFlavor(),
+			Namespace: targetNs,
+			Labels:    map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg},
+		},
+		Spec: networkingv1.NetworkPolicySpec{
+			PodSelector: metav1.LabelSelector{},
+			Ingress: []networkingv1.NetworkPolicyIngressRule{
+				{
+					From: []networkingv1.NetworkPolicyPeer{
+						{
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"kubernetes.io/metadata.name": checluster.Namespace,
+								},
+							},
+						},
+					},
+				},
+			},
+			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
+		},
+	}
+
+	allowFromSameNamespaceNetworkPolicy := networkingv1.NetworkPolicy{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "NetworkPolicy",
+			APIVersion: networkingv1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "allow-from-same-namespace",
+			Namespace: targetNs,
+			Labels:    map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg},
+		},
+		Spec: networkingv1.NetworkPolicySpec{
+			PodSelector: metav1.LabelSelector{},
+			Ingress: []networkingv1.NetworkPolicyIngressRule{
+				{
+					From: []networkingv1.NetworkPolicyPeer{
+						{
+							PodSelector: &metav1.LabelSelector{},
+						},
+					},
+				},
+			},
+			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
+		},
+	}
+
+	networkPolicies = append(networkPolicies, allowFromEclipseCheNetworkPolicy)
+	networkPolicies = append(networkPolicies, allowFromSameNamespaceNetworkPolicy)
+
+	if infrastructure.IsOpenShift() {
+		allowFromOpenShiftMonitoringNetworkPolicy := networkingv1.NetworkPolicy{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "NetworkPolicy",
+				APIVersion: networkingv1.SchemeGroupVersion.String(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "allow-from-openshift-monitoring",
+				Namespace: targetNs,
+				Labels:    map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg},
+			},
+			Spec: networkingv1.NetworkPolicySpec{
+				PodSelector: metav1.LabelSelector{},
+				Ingress: []networkingv1.NetworkPolicyIngressRule{
+					{
+						From: []networkingv1.NetworkPolicyPeer{
+							{
+								NamespaceSelector: &metav1.LabelSelector{
+									MatchLabels: map[string]string{
+										"network.openshift.io/policy-group": "monitoring",
+									},
+								},
+							},
+						},
+					},
+				},
+				PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
+			},
+		}
+
+		allowFromOpenShiftOperatorsNetworkPolicy := networkingv1.NetworkPolicy{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "NetworkPolicy",
+				APIVersion: networkingv1.SchemeGroupVersion.String(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "allow-from-openshift-operators",
+				Namespace: targetNs,
+				Labels:    map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg},
+			},
+			Spec: networkingv1.NetworkPolicySpec{
+				PodSelector: metav1.LabelSelector{},
+				Ingress: []networkingv1.NetworkPolicyIngressRule{
+					{
+						From: []networkingv1.NetworkPolicyPeer{
+							{
+								NamespaceSelector: &metav1.LabelSelector{
+									MatchLabels: map[string]string{
+										"kubernetes.io/metadata.name": "openshift-operators",
+									},
+								},
+							},
+						},
+					},
+				},
+				PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
+			},
+		}
+
+		allowFromOpenShiftIngressNetworkPolicy := networkingv1.NetworkPolicy{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "NetworkPolicy",
+				APIVersion: networkingv1.SchemeGroupVersion.String(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "allow-from-openshift-ingress",
+				Namespace: targetNs,
+				Labels:    map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg},
+			},
+			Spec: networkingv1.NetworkPolicySpec{
+				PodSelector: metav1.LabelSelector{},
+				Ingress: []networkingv1.NetworkPolicyIngressRule{
+					{
+						From: []networkingv1.NetworkPolicyPeer{
+							{
+								NamespaceSelector: &metav1.LabelSelector{
+									MatchLabels: map[string]string{
+										"network.openshift.io/policy-group": "ingress",
+									},
+								},
+							},
+						},
+					},
+				},
+				PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
+			},
+		}
+
+		networkPolicies = append(networkPolicies, allowFromOpenShiftMonitoringNetworkPolicy)
+		networkPolicies = append(networkPolicies, allowFromOpenShiftOperatorsNetworkPolicy)
+		networkPolicies = append(networkPolicies, allowFromOpenShiftIngressNetworkPolicy)
+	}
+
+	return networkPolicies
 }
 
 func prefixedName(name string) string {

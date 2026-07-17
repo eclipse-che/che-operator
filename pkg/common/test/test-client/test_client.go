@@ -111,6 +111,7 @@ func getScheme() *runtime.Scheme {
 	scheme.AddKnownTypes(appsv1.SchemeGroupVersion, &appsv1.Deployment{}, &appsv1.DeploymentList{})
 	scheme.AddKnownTypes(chev2.GroupVersion, &chev2.CheCluster{}, &chev2.CheClusterList{})
 	scheme.AddKnownTypes(networkingv1.SchemeGroupVersion, &networkingv1.Ingress{}, &networkingv1.IngressList{})
+	scheme.AddKnownTypes(networkingv1.SchemeGroupVersion, &networkingv1.NetworkPolicy{}, &networkingv1.NetworkPolicyList{})
 	scheme.AddKnownTypes(batchv1.SchemeGroupVersion, &batchv1.Job{}, &batchv1.JobList{})
 	scheme.AddKnownTypes(projectv1.GroupVersion, &projectv1.Project{}, &projectv1.ProjectList{})
 	scheme.AddKnownTypes(monitoringv1.SchemeGroupVersion, &monitoringv1.ServiceMonitor{}, &monitoringv1.ServiceMonitorList{})

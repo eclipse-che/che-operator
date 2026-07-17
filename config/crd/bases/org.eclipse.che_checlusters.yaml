@@ -25115,6 +25115,8 @@ spec:
                       configLabels:
                         app: che
                         component: che-gateway-config
+                  networkPolicies:
+                    enabled: false
                 description: Networking, Che authentication, and TLS configuration.
                 properties:
                   annotations:
@@ -27841,6 +27843,18 @@ spec:
                       type: string
                     description: Defines labels which will be set for an Ingress (a
                       route for OpenShift platform).
+                    type: object
+                  networkPolicies:
+                    description: NetworkPolicies configures NetworkPolicy resources
+                      for Che operand namespaces.
+                    properties:
+                      enabled:
+                        default: false
+                        description: |-
+                          Enabled controls whether the operator creates NetworkPolicy resources
+                          in user workspace namespaces and the Che namespace.
+                          When disabled, no NetworkPolicy resources are managed by the operator.
+                        type: boolean
                     type: object
                   tlsSecretName:
                     description: |-

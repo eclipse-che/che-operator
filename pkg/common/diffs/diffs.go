@@ -75,6 +75,10 @@ func ConfigMap(labelKeys []string, annotationKeys []string) cmp.Options {
 	}
 }
 
+var NetworkPolicy = cmp.Options{
+	cmpopts.IgnoreFields(networking.NetworkPolicy{}, "TypeMeta", "ObjectMeta"),
+}
+
 var ServiceMonitor = cmp.Options{
 	cmpopts.IgnoreFields(monitoringv1.ServiceMonitor{}, "TypeMeta", "ObjectMeta"),
 }
