@@ -35,7 +35,8 @@ const (
 )
 
 func (s *CheServerReconciler) syncNetworkPolicies(ctx *chetypes.DeployContext) (bool, error) {
-	isNetworkPolicyEnabled := ctx.CheCluster.Spec.Networking.NetworkPolicies != nil && ctx.CheCluster.Spec.Networking.NetworkPolicies.Enabled
+	isNetworkPolicyEnabled := ctx.CheCluster.Spec.Networking.NetworkPolicies != nil &&
+		ctx.CheCluster.Spec.Networking.NetworkPolicies.Enabled
 
 	if !isNetworkPolicyEnabled {
 		selector := labels.SelectorFromSet(
@@ -47,7 +48,7 @@ func (s *CheServerReconciler) syncNetworkPolicies(ctx *chetypes.DeployContext) (
 		)
 
 		// Delete by labels in order not to delete accidentally admin created ones with the same names
-		err := ctx.ClusterAPI.Client.DeleteAllOf(
+		err := ctx.ClusterAPI.ClientWrapper.DeleteAllOf(
 			context.TODO(),
 			&networkingv1.NetworkPolicy{},
 			&client.DeleteAllOfOptions{

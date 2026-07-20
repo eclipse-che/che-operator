@@ -344,11 +344,11 @@ type DevEnvironmentNetworking struct {
 	// NetworkPolicies configures NetworkPolicy resources for user namespace.
 	// When enabled, the following Ingress-type policies are created:
 	//   - allow-from-eclipse-che: allows traffic from the Che namespace.
+	//   - allow-from-operators: allows traffic from the operators namespace.
 	//   - allow-from-same-namespace: allows traffic between pods in the same namespace.
 	// On OpenShift, these additional policies are also created:
 	//   - allow-from-openshift-monitoring: allows traffic from the monitoring namespace.
 	//   - allow-from-openshift-ingress: allows traffic from the ingress namespace.
-	//   - allow-from-openshift-operators: allows traffic from the operators namespace.
 	// +optional
 	NetworkPolicies *NetworkPolicies `json:"networkPolicies,omitempty"`
 }

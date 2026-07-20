@@ -615,7 +615,7 @@ func (r *CheUserNamespaceReconciler) reconcileNetworkPolicies(
 		)
 
 		// Delete by labels in order not to delete accidentally admin created ones with the same names
-		err := r.client.DeleteAllOf(
+		err := r.clientWrapper.DeleteAllOf(
 			context.TODO(),
 			&networkingv1.NetworkPolicy{},
 			&client.DeleteAllOfOptions{
@@ -647,7 +647,12 @@ func (r *CheUserNamespaceReconciler) reconcileNetworkPolicies(
 func (r *CheUserNamespaceReconciler) getNetworkPolicies(
 	targetNs string,
 	checluster *chev2.CheCluster,
-) []networkingv1.NetworkPolicy {
+) ([]networkingv1.NetworkPolicy, error) {
+	operatorNamespace, err := infrastructure.GetOperatorNamespace()
+	if err != nil {
+		return nil, fmt.Errorf("could not get operator namespace: %w", err)
+	}
+
 	var networkPolicies []networkingv1.NetworkPolicy
 
 	allowFromEclipseCheNetworkPolicy := networkingv1.NetworkPolicy{
@@ -704,6 +709,35 @@ func (r *CheUserNamespaceReconciler) getNetworkPolicies(
 		},
 	}
 
+	allowFromOpenShiftOperatorsNetworkPolicy := networkingv1.NetworkPolicy{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "NetworkPolicy",
+			APIVersion: networkingv1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "allow-from-operators",
+			Namespace: targetNs,
+			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
+		},
+		Spec: networkingv1.NetworkPolicySpec{
+			PodSelector: metav1.LabelSelector{},
+			Ingress: []networkingv1.NetworkPolicyIngressRule{
+				{
+					From: []networkingv1.NetworkPolicyPeer{
+						{
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"kubernetes.io/metadata.name": operatorNamespace,
+								},
+							},
+						},
+					},
+				},
+			},
+			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
+		},
+	}
+
 	networkPolicies = append(networkPolicies, allowFromEclipseCheNetworkPolicy)
 	networkPolicies = append(networkPolicies, allowFromSameNamespaceNetworkPolicy)
 
@@ -727,35 +761,6 @@ func (r *CheUserNamespaceReconciler) getNetworkPolicies(
 								NamespaceSelector: &metav1.LabelSelector{
 									MatchLabels: map[string]string{
 										"network.openshift.io/policy-group": "monitoring",
-									},
-								},
-							},
-						},
-					},
-				},
-				PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
-			},
-		}
-
-		allowFromOpenShiftOperatorsNetworkPolicy := networkingv1.NetworkPolicy{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "NetworkPolicy",
-				APIVersion: networkingv1.SchemeGroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "allow-from-openshift-operators",
-				Namespace: targetNs,
-				Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
-			},
-			Spec: networkingv1.NetworkPolicySpec{
-				PodSelector: metav1.LabelSelector{},
-				Ingress: []networkingv1.NetworkPolicyIngressRule{
-					{
-						From: []networkingv1.NetworkPolicyPeer{
-							{
-								NamespaceSelector: &metav1.LabelSelector{
-									MatchLabels: map[string]string{
-										"kubernetes.io/metadata.name": "openshift-operators",
 									},
 								},
 							},
@@ -800,7 +805,7 @@ func (r *CheUserNamespaceReconciler) getNetworkPolicies(
 		networkPolicies = append(networkPolicies, allowFromOpenShiftIngressNetworkPolicy)
 	}
 
-	return networkPolicies
+	return networkPolicies, nil
 }
 
 func prefixedName(name string) string {

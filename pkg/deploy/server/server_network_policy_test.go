@@ -13,6 +13,7 @@
 package server
 
 import (
+	"context"
 	"testing"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -49,7 +50,7 @@ func TestSyncNetworkPoliciesCreatesWhenEnabled(t *testing.T) {
 		Name:      allowFromWorkspacesNamespacesPolicy,
 		Namespace: "eclipse-che",
 	}
-	err = ctx.ClusterAPI.Client.Get(nil, key, np)
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), key, np)
 	assert.NoError(t, err)
 	assert.Equal(t, constants.CheEclipseOrg, np.Labels[constants.KubernetesPartOfLabelKey])
 	assert.Equal(t, defaults.GetCheFlavor(), np.Labels[constants.KubernetesComponentLabelKey])
