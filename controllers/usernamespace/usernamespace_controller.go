@@ -24,7 +24,6 @@ import (
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	containercapabilties "github.com/eclipse-che/che-operator/pkg/deploy/container-capabilities"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/utils/ptr"
 
 	devworkspacedefaults "github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
@@ -104,7 +103,7 @@ func (r *CheUserNamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&corev1.Secret{}, r.watchRulesForSecrets(ctx)).
 		Watches(&corev1.ConfigMap{}, r.watchRulesForConfigMaps(ctx)).
 		Watches(&chev2.CheCluster{}, r.triggerAllNamespaces()).
-		Watches(&networkingv1.NetworkPolicy{}, r.watchRules(ctx))
+		Watches(&networkingv1.NetworkPolicy{}, r.watchRulesForNetworkPolicies(ctx))
 
 	// Use controller.TypedOptions to allow to configure 2 controllers for same object being reconciled
 	return bld.WithOptions(
@@ -139,7 +138,7 @@ func (r *CheUserNamespaceReconciler) commonRules(ctx context.Context, namesInChe
 	}
 }
 
-func (r *CheUserNamespaceReconciler) watchRules(ctx context.Context) handler.EventHandler {
+func (r *CheUserNamespaceReconciler) watchRulesForNetworkPolicies(ctx context.Context) handler.EventHandler {
 	return handler.EnqueueRequestsFromMapFunc(
 		func(context context.Context, obj client.Object) []reconcile.Request {
 			workspaceInfo, _ := r.namespaceCache.GetNamespaceInfo(ctx, obj.GetNamespace())
@@ -624,37 +623,43 @@ func (r *CheUserNamespaceReconciler) reconcileNetworkPolicies(
 	targetNs string,
 	checluster *chev2.CheCluster,
 ) error {
+	policies, err := r.getNetworkPolicies(targetNs, checluster)
+	if err != nil {
+		return fmt.Errorf("could not prepare list of network policy objects: %w", err)
+	}
+
 	isNetworkPolicyEnabled := checluster.Spec.DevEnvironments.Networking != nil &&
 		checluster.Spec.DevEnvironments.Networking.NetworkPolicies != nil &&
 		checluster.Spec.DevEnvironments.Networking.NetworkPolicies.Enabled
 
 	if !isNetworkPolicyEnabled {
-		selector := labels.SelectorFromSet(
-			labels.Set{
-				constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
-				constants.KubernetesComponentLabelKey: defaults.GetCheFlavor(),
-				constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel(),
-			},
-		)
+		for _, policy := range policies {
+			networkPolicy := &networkingv1.NetworkPolicy{}
+			exists, err := r.clientWrapper.GetIgnoreNotFound(
+				context.TODO(),
+				types.NamespacedName{
+					Name:      policy.GetName(),
+					Namespace: targetNs,
+				},
+				networkPolicy,
+			)
+			if err != nil {
+				return fmt.Errorf("failed to get NetworkPolicy %s/%s: %w", policy.GetName(), targetNs, err)
+			}
+			if !exists {
+				continue
+			}
 
-		// Delete by labels in order not to delete accidentally admin created ones with the same names
-		err := r.clientWrapper.DeleteAllOf(
-			context.TODO(),
-			&networkingv1.NetworkPolicy{},
-			&client.DeleteAllOfOptions{
-				ListOptions: client.ListOptions{Namespace: targetNs, LabelSelector: selector},
-			},
-		)
-		if err != nil {
-			return fmt.Errorf("could not delete network policy object: %w", err)
+			// Ensures that NetworkPolicy was created by operator
+			if deploy.IsPartOfEclipseCheAndManagedByOperator(networkPolicy.GetLabels(), defaults.GetCheFlavor()) {
+				err = r.clientWrapper.DeleteIgnoreNotFound(context.TODO(), networkPolicy)
+				if err != nil {
+					return fmt.Errorf("failed to delete NetworkPolicy %s/%s: %w", policy.GetName(), targetNs, err)
+				}
+			}
 		}
 
 		return nil
-	}
-
-	policies, err := r.getNetworkPolicies(targetNs, checluster)
-	if err != nil {
-		return fmt.Errorf("could not prepare list of network policy objects: %w", err)
 	}
 
 	for _, policy := range policies {
@@ -764,10 +769,12 @@ func (r *CheUserNamespaceReconciler) getNetworkPolicies(
 		},
 	}
 
-	networkPolicies = append(networkPolicies, allowFromEclipseCheNetworkPolicy)
-	networkPolicies = append(networkPolicies, allowFromSameNamespaceNetworkPolicy)
-	networkPolicies = append(networkPolicies, allowFromOpenShiftOperatorsNetworkPolicy)
-
+	networkPolicies = append(
+		networkPolicies,
+		allowFromEclipseCheNetworkPolicy,
+		allowFromSameNamespaceNetworkPolicy,
+		allowFromOpenShiftOperatorsNetworkPolicy,
+	)
 
 	if infrastructure.IsOpenShift() {
 		allowFromOpenShiftMonitoringNetworkPolicy := networkingv1.NetworkPolicy{
@@ -828,8 +835,11 @@ func (r *CheUserNamespaceReconciler) getNetworkPolicies(
 			},
 		}
 
-		networkPolicies = append(networkPolicies, allowFromOpenShiftMonitoringNetworkPolicy)
-		networkPolicies = append(networkPolicies, allowFromOpenShiftIngressNetworkPolicy)
+		networkPolicies = append(
+			networkPolicies,
+			allowFromOpenShiftMonitoringNetworkPolicy,
+			allowFromOpenShiftIngressNetworkPolicy,
+		)
 	}
 
 	return networkPolicies, nil

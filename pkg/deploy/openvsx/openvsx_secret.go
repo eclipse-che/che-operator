@@ -108,7 +108,7 @@ func HasCustomCredentialsSecret(ctx *chetypes.DeployContext) (bool, error) {
 		return false, fmt.Errorf("failed to get secret: %w", err)
 	}
 	if exists {
-		return !deploy.IsPartOfEclipseCheResourceAndManagedByOperator(secret.Labels), nil
+		return !deploy.IsPartOfEclipseCheAndManagedByOperator(secret.Labels, constants.OpenVSXDatabaseComponentName), nil
 	}
 
 	return false, nil

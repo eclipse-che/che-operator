@@ -25,8 +25,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -39,24 +38,28 @@ func (s *CheServerReconciler) syncNetworkPolicies(ctx *chetypes.DeployContext) (
 		ctx.CheCluster.Spec.Networking.NetworkPolicies.Enabled
 
 	if !isNetworkPolicyEnabled {
-		selector := labels.SelectorFromSet(
-			labels.Set{
-				constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
-				constants.KubernetesComponentLabelKey: defaults.GetCheFlavor(),
-				constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel(),
-			},
-		)
-
-		// Delete by labels in order not to delete accidentally admin created ones with the same names
-		err := ctx.ClusterAPI.ClientWrapper.DeleteAllOf(
+		networkPolicy := &networkingv1.NetworkPolicy{}
+		exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
 			context.TODO(),
-			&networkingv1.NetworkPolicy{},
-			&client.DeleteAllOfOptions{
-				ListOptions: client.ListOptions{Namespace: ctx.CheCluster.Namespace, LabelSelector: selector},
+			types.NamespacedName{
+				Name:      allowFromWorkspacesNamespacesPolicy,
+				Namespace: ctx.CheCluster.Namespace,
 			},
+			networkPolicy,
 		)
 		if err != nil {
-			return false, fmt.Errorf("could not delete network policy object: %w", err)
+			return false, fmt.Errorf("failed to get NetworkPolicy %s/%s: %w", allowFromWorkspacesNamespacesPolicy, ctx.CheCluster.Namespace, err)
+		}
+		if !exists {
+			return true, nil
+		}
+
+		// Ensures that NetworkPolicy was created by operator
+		if deploy.IsPartOfEclipseCheAndManagedByOperator(networkPolicy.GetLabels(), defaults.GetCheFlavor()) {
+			err = ctx.ClusterAPI.ClientWrapper.DeleteIgnoreNotFound(context.TODO(), networkPolicy)
+			if err != nil {
+				return false, fmt.Errorf("failed to delete NetworkPolicy %s/%s: %w", allowFromWorkspacesNamespacesPolicy, ctx.CheCluster.Namespace, err)
+			}
 		}
 
 		return true, nil
