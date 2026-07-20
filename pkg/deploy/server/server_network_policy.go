@@ -25,7 +25,8 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/labels"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -34,13 +35,27 @@ const (
 )
 
 func (s *CheServerReconciler) syncNetworkPolicies(ctx *chetypes.DeployContext) (bool, error) {
-	if !ctx.CheCluster.IsNetworkPoliciesEnabled() {
-		if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+	isNetworkPolicyEnabled := ctx.CheCluster.Spec.Networking.NetworkPolicies != nil && ctx.CheCluster.Spec.Networking.NetworkPolicies.Enabled
+
+	if !isNetworkPolicyEnabled {
+		selector := labels.SelectorFromSet(
+			labels.Set{
+				constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+				constants.KubernetesComponentLabelKey: defaults.GetCheFlavor(),
+				constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel(),
+			},
+		)
+
+		// Delete by labels in order not to delete accidentally admin created ones with the same names
+		err := ctx.ClusterAPI.Client.DeleteAllOf(
 			context.TODO(),
-			types.NamespacedName{Name: allowFromWorkspacesNamespacesPolicy, Namespace: ctx.CheCluster.Namespace},
 			&networkingv1.NetworkPolicy{},
-		); err != nil {
-			return false, fmt.Errorf("failed to delete network policy %s/%s: %w", ctx.CheCluster.Namespace, allowFromWorkspacesNamespacesPolicy, err)
+			&client.DeleteAllOfOptions{
+				ListOptions: client.ListOptions{Namespace: ctx.CheCluster.Namespace, LabelSelector: selector},
+			},
+		)
+		if err != nil {
+			return false, fmt.Errorf("could not delete network policy object: %w", err)
 		}
 
 		return true, nil

@@ -20,11 +20,14 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
-	operatordefaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	containercapabilties "github.com/eclipse-che/che-operator/pkg/deploy/container-capabilities"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/utils/ptr"
 
+	devworkspacedefaults "github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
@@ -37,8 +40,6 @@ import (
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/controllers/che"
-	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
-	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	projectv1 "github.com/openshift/api/project/v1"
 	"github.com/sirupsen/logrus"
@@ -319,7 +320,7 @@ func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      targetCertName,
 			Namespace: targetNs,
-			Labels: defaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
+			Labels: devworkspacedefaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
 				dwconstants.DevWorkspaceMountLabel:       "true",
 				dwconstants.DevWorkspaceWatchSecretLabel: "true",
 			}),
@@ -381,7 +382,7 @@ func (r *CheUserNamespaceReconciler) reconcileUserSettings(
 	annotations := map[string]string{
 		dwconstants.DevWorkspaceMountAsAnnotation: "env",
 	}
-	labels := defaults.AddStandardLabelsForComponent(checluster,
+	labels := devworkspacedefaults.AddStandardLabelsForComponent(checluster,
 		userSettingsComponentLabelValue,
 		map[string]string{
 			dwconstants.DevWorkspaceMountLabel:          "true",
@@ -479,7 +480,7 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      targetName,
 			Namespace: targetNs,
-			Labels: defaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
+			Labels: devworkspacedefaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
 				dwconstants.DevWorkspaceGitTLSLabel:         "true",
 				dwconstants.DevWorkspaceMountLabel:          "true",
 				dwconstants.DevWorkspaceWatchConfigMapLabel: "true",
@@ -600,21 +601,35 @@ func (r *CheUserNamespaceReconciler) reconcileNetworkPolicies(
 	targetNs string,
 	checluster *chev2.CheCluster,
 ) error {
-	policies := r.getNetworkPolicies(targetNs, checluster)
+	isNetworkPolicyEnabled := checluster.Spec.DevEnvironments.Networking != nil &&
+		checluster.Spec.DevEnvironments.Networking.NetworkPolicies != nil &&
+		checluster.Spec.DevEnvironments.Networking.NetworkPolicies.Enabled
 
-	if !checluster.IsNetworkPoliciesEnabled() {
-		for _, policy := range policies {
-			if err := r.clientWrapper.DeleteByKeyIgnoreNotFound(
-				context.TODO(),
-				types.NamespacedName{Name: policy.Name, Namespace: targetNs},
-				&networkingv1.NetworkPolicy{},
-			); err != nil {
-				return fmt.Errorf("failed to delete network policy %s/%s: %w", targetNs, policy.Name, err)
-			}
+	if !isNetworkPolicyEnabled {
+		selector := labels.SelectorFromSet(
+			labels.Set{
+				constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+				constants.KubernetesComponentLabelKey: defaults.GetCheFlavor(),
+				constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel(),
+			},
+		)
+
+		// Delete by labels in order not to delete accidentally admin created ones with the same names
+		err := r.client.DeleteAllOf(
+			context.TODO(),
+			&networkingv1.NetworkPolicy{},
+			&client.DeleteAllOfOptions{
+				ListOptions: client.ListOptions{Namespace: targetNs, LabelSelector: selector},
+			},
+		)
+		if err != nil {
+			return fmt.Errorf("could not delete network policy object: %w", err)
 		}
 
 		return nil
 	}
+
+	policies := r.getNetworkPolicies(targetNs, checluster)
 
 	for _, policy := range policies {
 		if err := r.clientWrapper.Sync(
@@ -641,9 +656,9 @@ func (r *CheUserNamespaceReconciler) getNetworkPolicies(
 			APIVersion: networkingv1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "allow-from-" + operatordefaults.GetCheFlavor(),
+			Name:      "allow-from-" + defaults.GetCheFlavor(),
 			Namespace: targetNs,
-			Labels:    map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg},
+			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
 		Spec: networkingv1.NetworkPolicySpec{
 			PodSelector: metav1.LabelSelector{},
@@ -672,7 +687,7 @@ func (r *CheUserNamespaceReconciler) getNetworkPolicies(
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "allow-from-same-namespace",
 			Namespace: targetNs,
-			Labels:    map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg},
+			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
 		Spec: networkingv1.NetworkPolicySpec{
 			PodSelector: metav1.LabelSelector{},
@@ -701,7 +716,7 @@ func (r *CheUserNamespaceReconciler) getNetworkPolicies(
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "allow-from-openshift-monitoring",
 				Namespace: targetNs,
-				Labels:    map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg},
+				Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 			},
 			Spec: networkingv1.NetworkPolicySpec{
 				PodSelector: metav1.LabelSelector{},
@@ -730,7 +745,7 @@ func (r *CheUserNamespaceReconciler) getNetworkPolicies(
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "allow-from-openshift-operators",
 				Namespace: targetNs,
-				Labels:    map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg},
+				Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 			},
 			Spec: networkingv1.NetworkPolicySpec{
 				PodSelector: metav1.LabelSelector{},
@@ -759,7 +774,7 @@ func (r *CheUserNamespaceReconciler) getNetworkPolicies(
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "allow-from-openshift-ingress",
 				Namespace: targetNs,
-				Labels:    map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg},
+				Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 			},
 			Spec: networkingv1.NetworkPolicySpec{
 				PodSelector: metav1.LabelSelector{},

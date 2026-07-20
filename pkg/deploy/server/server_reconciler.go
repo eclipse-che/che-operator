@@ -13,7 +13,6 @@
 package server
 
 import (
-	"fmt"
 	"time"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -67,7 +66,7 @@ func (s *CheServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 	}
 
 	if done, err := s.syncNetworkPolicies(ctx); !done {
-		return reconcile.Result{}, false, fmt.Errorf("failed to sync network policies: %w", err)
+		return reconcile.Result{}, false, err
 	}
 
 	done, err = s.syncDeployment(ctx)

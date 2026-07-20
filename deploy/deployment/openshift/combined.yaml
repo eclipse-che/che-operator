@@ -23844,6 +23844,22 @@ spec:
                               when external TLS is enabled.
                             type: object
                         type: object
+                      networkPolicies:
+                        description: |-
+                          NetworkPolicies configures NetworkPolicy resources for user namespace.
+                          When enabled, the following Ingress-type policies are created:
+                            - allow-from-eclipse-che: allows traffic from the Che namespace.
+                            - allow-from-same-namespace: allows traffic between pods in the same namespace.
+                          On OpenShift, these additional policies are also created:
+                            - allow-from-openshift-monitoring: allows traffic from the monitoring namespace.
+                            - allow-from-openshift-ingress: allows traffic from the ingress namespace.
+                            - allow-from-openshift-operators: allows traffic from the operators namespace.
+                        properties:
+                          enabled:
+                            description: Enabled controls whether the operator creates
+                              NetworkPolicy resources.
+                            type: boolean
+                        type: object
                     type: object
                   nodeSelector:
                     additionalProperties:
@@ -25136,8 +25152,6 @@ spec:
                       configLabels:
                         app: che
                         component: che-gateway-config
-                  networkPolicies:
-                    enabled: false
                 description: Networking, Che authentication, and TLS configuration.
                 properties:
                   annotations:
@@ -27866,15 +27880,15 @@ spec:
                       route for OpenShift platform).
                     type: object
                   networkPolicies:
-                    description: NetworkPolicies configures NetworkPolicy resources
-                      for Che operand namespaces.
+                    description: |-
+                      NetworkPolicies configures NetworkPolicy resources for Che namespace.
+                      When enabled, the following Ingress-type policy is created:
+                        - allow-from-workspaces-namespaces: allows traffic from user workspace namespaces
+                          (namespaces labeled app.kubernetes.io/component=workspaces-namespace).
                     properties:
                       enabled:
-                        default: false
-                        description: |-
-                          Enabled controls whether the operator creates NetworkPolicy resources
-                          in user workspace namespaces and the Che namespace.
-                          When disabled, no NetworkPolicy resources are managed by the operator.
+                        description: Enabled controls whether the operator creates
+                          NetworkPolicy resources.
                         type: boolean
                     type: object
                   tlsSecretName:

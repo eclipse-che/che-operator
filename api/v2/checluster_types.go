@@ -64,7 +64,7 @@ type CheClusterSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=4
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Networking"
-	// +kubebuilder:default:={auth: {gateway: {configLabels: {app: che, component: che-gateway-config}}}, networkPolicies: {enabled: false}}
+	// +kubebuilder:default:={auth: {gateway: {configLabels: {app: che, component: che-gateway-config}}}}
 	Networking CheClusterSpecNetworking `json:"networking"`
 	// Configuration of an alternative registry that stores Che images.
 	// +optional
@@ -329,7 +329,26 @@ type CheClusterSpecNetworking struct {
 	// +optional
 	// +kubebuilder:default:={gateway: {configLabels: {app: che, component: che-gateway-config}}}
 	Auth Auth `json:"auth"`
-	// NetworkPolicies configures NetworkPolicy resources for Che operand namespaces.
+	// NetworkPolicies configures NetworkPolicy resources for Che namespace.
+	// When enabled, the following Ingress-type policy is created:
+	//   - allow-from-workspaces-namespaces: allows traffic from user workspace namespaces
+	//     (namespaces labeled app.kubernetes.io/component=workspaces-namespace).
+	// +optional
+	NetworkPolicies *NetworkPolicies `json:"networkPolicies,omitempty"`
+}
+
+type DevEnvironmentNetworking struct {
+	// External TLS configuration.
+	// +optional
+	ExternalTLSConfig *ExternalTLSConfig `json:"externalTLSConfig,omitempty"`
+	// NetworkPolicies configures NetworkPolicy resources for user namespace.
+	// When enabled, the following Ingress-type policies are created:
+	//   - allow-from-eclipse-che: allows traffic from the Che namespace.
+	//   - allow-from-same-namespace: allows traffic between pods in the same namespace.
+	// On OpenShift, these additional policies are also created:
+	//   - allow-from-openshift-monitoring: allows traffic from the monitoring namespace.
+	//   - allow-from-openshift-ingress: allows traffic from the ingress namespace.
+	//   - allow-from-openshift-operators: allows traffic from the operators namespace.
 	// +optional
 	NetworkPolicies *NetworkPolicies `json:"networkPolicies,omitempty"`
 }
@@ -337,18 +356,9 @@ type CheClusterSpecNetworking struct {
 // NetworkPolicies configuration settings.
 // +k8s:openapi-gen=true
 type NetworkPolicies struct {
-	// Enabled controls whether the operator creates NetworkPolicy resources
-	// in user workspace namespaces and the Che namespace.
-	// When disabled, no NetworkPolicy resources are managed by the operator.
+	// Enabled controls whether the operator creates NetworkPolicy resources.
 	// +optional
-	// +kubebuilder:default:=false
 	Enabled bool `json:"enabled"`
-}
-
-type DevEnvironmentNetworking struct {
-	// External TLS configuration.
-	// +optional
-	ExternalTLSConfig *ExternalTLSConfig `json:"externalTLSConfig,omitempty"`
 }
 
 type ExternalTLSConfig struct {
@@ -1272,9 +1282,4 @@ func (c *CheCluster) IsDevEnvironmentExternalTLSConfigEnabled() bool {
 	return c.Spec.DevEnvironments.Networking != nil &&
 		c.Spec.DevEnvironments.Networking.ExternalTLSConfig != nil &&
 		*c.Spec.DevEnvironments.Networking.ExternalTLSConfig.Enabled
-}
-
-func (c *CheCluster) IsNetworkPoliciesEnabled() bool {
-	return c.Spec.Networking.NetworkPolicies != nil &&
-		c.Spec.Networking.NetworkPolicies.Enabled
 }
