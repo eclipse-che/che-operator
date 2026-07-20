@@ -24,6 +24,6 @@ spec:
       externalDevfileRegistries:
         - url: 'https://registry.devfile.io'
   devEnvironments: {}
-  networking: {}
+  networking: {tlsSecretName: che-tls}
   containerRegistry: {}
   gitServices: {}
