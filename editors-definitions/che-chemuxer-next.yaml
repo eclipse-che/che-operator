@@ -48,7 +48,7 @@ commands:
       commandLine: >-
         STATIC_DIR=/chemuxer-vol/dist/client
         HOST=0.0.0.0
-        nohup /chemuxer-vol/node /chemuxer-vol/dist/server/server.js
+        nohup node /chemuxer-vol/dist/server/server.js
         > /chemuxer-vol/chemuxer.log 2>&1 &
 events:
   preStart:
@@ -62,11 +62,7 @@ components:
       command:
         - sh
         - -c
-        - |
-          cp -r /app/dist /chemuxer-vol/ &&
-          cp -r /app/node_modules /chemuxer-vol/ &&
-          cp $(which node) /chemuxer-vol/node &&
-          chmod +x /chemuxer-vol/node
+        - cp -r /app/dist /chemuxer-vol/ && cp -r /app/node_modules /chemuxer-vol/
       volumeMounts:
         - name: chemuxer-volume
           path: /chemuxer-vol
