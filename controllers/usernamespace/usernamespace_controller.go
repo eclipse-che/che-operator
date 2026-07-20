@@ -144,7 +144,7 @@ func (r *CheUserNamespaceReconciler) watchRules(ctx context.Context) handler.Eve
 		func(context context.Context, obj client.Object) []reconcile.Request {
 			workspaceInfo, _ := r.namespaceCache.GetNamespaceInfo(ctx, obj.GetNamespace())
 
-			if workspaceInfo == nil &&
+			if workspaceInfo != nil &&
 				workspaceInfo.IsWorkspaceNamespace &&
 				obj.GetLabels()[constants.KubernetesComponentLabelKey] == defaults.GetCheFlavor() {
 
@@ -766,6 +766,8 @@ func (r *CheUserNamespaceReconciler) getNetworkPolicies(
 
 	networkPolicies = append(networkPolicies, allowFromEclipseCheNetworkPolicy)
 	networkPolicies = append(networkPolicies, allowFromSameNamespaceNetworkPolicy)
+	networkPolicies = append(networkPolicies, allowFromOpenShiftOperatorsNetworkPolicy)
+
 
 	if infrastructure.IsOpenShift() {
 		allowFromOpenShiftMonitoringNetworkPolicy := networkingv1.NetworkPolicy{
@@ -827,7 +829,6 @@ func (r *CheUserNamespaceReconciler) getNetworkPolicies(
 		}
 
 		networkPolicies = append(networkPolicies, allowFromOpenShiftMonitoringNetworkPolicy)
-		networkPolicies = append(networkPolicies, allowFromOpenShiftOperatorsNetworkPolicy)
 		networkPolicies = append(networkPolicies, allowFromOpenShiftIngressNetworkPolicy)
 	}
 
