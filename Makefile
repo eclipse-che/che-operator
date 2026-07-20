@@ -212,6 +212,8 @@ update-helmcharts: ## Update Helm Charts based on deployment resources
 		yq -riY '.spec.networking.auth.oAuthSecret = "{{ .Values.networking.auth.oAuthSecret }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
 		yq -riY '.spec.networking.auth.oAuthClientName = "{{ .Values.networking.auth.oAuthClientName }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
 		yq -riY '.spec.networking.auth.identityProviderURL = "{{ .Values.networking.auth.identityProviderURL }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+
+		make license $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
 	fi
 
 	echo "[INFO] HelmCharts updated $${HELM_DIR}"
