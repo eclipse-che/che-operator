@@ -1,0 +1,106 @@
+#
+# Copyright (c) 2026 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Red Hat, Inc. - initial API and implementation
+#
+
+schemaVersion: 2.3.0
+metadata:
+  name: che-chemuxer
+  displayName: Chemuxer
+  description: Web-based terminal multiplexer for Eclipse Che
+  tags:
+    - terminal
+    - multiplexer
+  attributes:
+    arch:
+      - x86_64
+      - arm64
+    publisher: che-incubator
+    version: next
+    title: Chemuxer - Terminal Multiplexer for Eclipse Che
+    repository: https://github.com/che-incubator/chemuxer
+    firstPublicationDate: '2026-07-20'
+    iconMediatype: image/svg+xml
+    iconData: |
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+        <rect width="64" height="64" rx="14" fill="#1e1e2e"/>
+        <text x="4" y="46" font-family="monospace" font-weight="bold" font-size="32" fill="#89b4fa">c</text>
+        <text x="23" y="46" font-family="monospace" font-weight="bold" font-size="32" fill="#cdd6f4">h</text>
+        <rect x="43" y="22" width="15" height="26" rx="2" fill="#cdd6f4" opacity="0.7">
+          <animate attributeName="opacity" values="0.7;0;0.7" dur="1.2s" repeatCount="indefinite"/>
+        </rect>
+      </svg>
+
+commands:
+  - id: init-chemuxer-command
+    apply:
+      component: chemuxer-injector
+  - id: start-chemuxer-command
+    exec:
+      component: chemuxer-runtime
+      commandLine: >-
+        STATIC_DIR=/chemuxer-vol/dist/client
+        HOST=0.0.0.0
+        nohup /chemuxer-vol/node /chemuxer-vol/dist/server/server.js
+        > /chemuxer-vol/chemuxer.log 2>&1 &
+events:
+  preStart:
+    - init-chemuxer-command
+  postStart:
+    - start-chemuxer-command
+components:
+  - name: chemuxer-injector
+    container:
+      image: quay.io/che-incubator/chemuxer:next
+      command:
+        - sh
+        - -c
+        - |
+          cp -r /app/dist /chemuxer-vol/ &&
+          cp -r /app/node_modules /chemuxer-vol/ &&
+          cp $(which node) /chemuxer-vol/node &&
+          chmod +x /chemuxer-vol/node
+      volumeMounts:
+        - name: chemuxer-volume
+          path: /chemuxer-vol
+      memoryLimit: 128Mi
+      memoryRequest: 32Mi
+      cpuLimit: 500m
+      cpuRequest: 30m
+  - name: chemuxer-runtime
+    attributes:
+      app.kubernetes.io/component: chemuxer-runtime
+      app.kubernetes.io/part-of: chemuxer.eclipse.org
+      controller.devfile.io/container-contribution: true
+    container:
+      image: quay.io/che-incubator/chemuxer:next
+      memoryLimit: 512Mi
+      memoryRequest: 128Mi
+      cpuLimit: 500m
+      cpuRequest: 30m
+      volumeMounts:
+        - name: chemuxer-volume
+          path: /chemuxer-vol
+      endpoints:
+        - name: chemuxer
+          targetPort: 7681
+          exposure: public
+          protocol: https
+          attributes:
+            type: main
+            cookiesAuthEnabled: true
+            discoverable: false
+            urlRewriteSupported: true
+            secure: true
+  - name: chemuxer-volume
+    volume: {}
+
+attributes:
+  version: null
