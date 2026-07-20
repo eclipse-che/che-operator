@@ -657,7 +657,9 @@ func TestNetworkPoliciesCreatedWhenEnabled(t *testing.T) {
 
 	cheCluster := &chev2.CheCluster{}
 	assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che", Namespace: "eclipse-che"}, cheCluster))
-	cheCluster.Spec.Networking.NetworkPolicies = &chev2.NetworkPolicies{Enabled: true}
+	cheCluster.Spec.DevEnvironments.Networking = &chev2.DevEnvironmentNetworking{
+		NetworkPolicies: &chev2.NetworkPolicies{Enabled: true},
+	}
 	assert.NoError(t, cl.Update(ctx, cheCluster))
 
 	_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: types.NamespacedName{Name: "user-ns"}})
@@ -740,7 +742,9 @@ func TestNetworkPoliciesDeletedWhenToggleOff(t *testing.T) {
 
 	cheCluster := &chev2.CheCluster{}
 	assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che", Namespace: "eclipse-che"}, cheCluster))
-	cheCluster.Spec.Networking.NetworkPolicies = &chev2.NetworkPolicies{Enabled: true}
+	cheCluster.Spec.DevEnvironments.Networking = &chev2.DevEnvironmentNetworking{
+		NetworkPolicies: &chev2.NetworkPolicies{Enabled: true},
+	}
 	assert.NoError(t, cl.Update(ctx, cheCluster))
 
 	_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: types.NamespacedName{Name: "user-ns"}})
@@ -751,7 +755,7 @@ func TestNetworkPoliciesDeletedWhenToggleOff(t *testing.T) {
 	assert.Equal(t, 5, len(npList.Items), "5 NetworkPolicies should exist when enabled")
 
 	assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che", Namespace: "eclipse-che"}, cheCluster))
-	cheCluster.Spec.Networking.NetworkPolicies.Enabled = false
+	cheCluster.Spec.DevEnvironments.Networking.NetworkPolicies.Enabled = false
 	assert.NoError(t, cl.Update(ctx, cheCluster))
 
 	_, err = r.Reconcile(ctx, reconcile.Request{NamespacedName: types.NamespacedName{Name: "user-ns"}})
