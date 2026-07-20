@@ -22,8 +22,6 @@ import (
 
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -70,7 +68,6 @@ func TestSyncSecrets(t *testing.T) {
 				userNamespace: {
 					IsWorkspaceNamespace: true,
 					Username:             "user",
-					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
 				},
 			},
 			Lock: sync.Mutex{},
@@ -246,7 +243,6 @@ func TestSyncSecretShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 				userNamespace: {
 					IsWorkspaceNamespace: true,
 					Username:             "user",
-					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
 				},
 			},
 			Lock: sync.Mutex{},
@@ -353,7 +349,6 @@ func TestSyncSecretShouldRespectDWOLabels(t *testing.T) {
 				userNamespace: {
 					IsWorkspaceNamespace: true,
 					Username:             "user",
-					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
 				},
 			},
 			Lock: sync.Mutex{},
@@ -452,7 +447,6 @@ func TestSyncSecretShouldRemoveSomeLabels(t *testing.T) {
 				userNamespace: {
 					IsWorkspaceNamespace: true,
 					Username:             "user",
-					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
 				},
 			},
 			Lock: sync.Mutex{},

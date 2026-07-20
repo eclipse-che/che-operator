@@ -19,8 +19,6 @@ import (
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
 
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	templatev1 "github.com/openshift/api/template/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -90,7 +88,6 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 				userNamespace: {
 					IsWorkspaceNamespace: true,
 					Username:             "user",
-					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
 				},
 			},
 			Lock: sync.Mutex{},
@@ -283,7 +280,6 @@ func TestSyncUnstructuredShouldRetainIfAnnotationSetTrue(t *testing.T) {
 				userNamespace: {
 					IsWorkspaceNamespace: true,
 					Username:             "user",
-					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
 				},
 			},
 			Lock: sync.Mutex{},
@@ -368,7 +364,6 @@ func TestSyncUnstructuredShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 				userNamespace: {
 					IsWorkspaceNamespace: true,
 					Username:             "user",
-					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
 				},
 			},
 			Lock: sync.Mutex{},
@@ -451,7 +446,6 @@ func TestSyncUnstructuredShouldNotRetainIfAnnotationIsNotSet(t *testing.T) {
 				userNamespace: {
 					IsWorkspaceNamespace: true,
 					Username:             "user",
-					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
 				},
 			},
 			Lock: sync.Mutex{},

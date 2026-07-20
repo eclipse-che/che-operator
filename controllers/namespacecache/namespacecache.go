@@ -16,24 +16,13 @@ import (
 	"context"
 	"sync"
 
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	projectv1 "github.com/openshift/api/project/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-)
-
-const (
-	WorkspaceNamespaceOwnerUidLabel string = "che.eclipse.org/workspace-namespace-owner-uid"
-	CheNameLabel                    string = "che.eclipse.org/che-name"
-	CheNamespaceLabel               string = "che.eclipse.org/che-namespace"
-	ChePartOfLabel                  string = "app.kubernetes.io/part-of"
-	ChePartOfLabelValue             string = "che.eclipse.org"
-	CheComponentLabel               string = "app.kubernetes.io/component"
-	CheComponentLabelValue          string = "workspaces-namespace"
-	CheUsernameAnnotation           string = "che.eclipse.org/username"
 )
 
 type NamespaceCache struct {
@@ -45,7 +34,6 @@ type NamespaceCache struct {
 type NamespaceInfo struct {
 	IsWorkspaceNamespace bool
 	Username             string
-	CheCluster           *types.NamespacedName
 }
 
 func NewNamespaceCache(client client.Client) *NamespaceCache {
@@ -130,20 +118,14 @@ func (c *NamespaceCache) examineNamespaceUnsafe(ctx context.Context, ns string) 
 
 	// ownerUid is the legacy label that we used to use. Let's not break the existing workspace namespaces and still
 	// recognize it
-	ownerUid := labels[WorkspaceNamespaceOwnerUidLabel]
-	cheName := labels[CheNameLabel]
-	cheNamespace := labels[CheNamespaceLabel]
-	partOfLabel := labels[ChePartOfLabel]
-	componentLabel := labels[CheComponentLabel]
-	username := annotations[CheUsernameAnnotation]
+	ownerUid := labels[constants.WorkspaceNamespaceOwnerUidLabelKey]
+	partOfLabel := labels[constants.KubernetesPartOfLabelKey]
+	componentLabel := labels[constants.KubernetesComponentLabelKey]
+	username := annotations[constants.CheEclipseOrgUsername]
 
 	ret := NamespaceInfo{
-		IsWorkspaceNamespace: ownerUid != "" || (partOfLabel == ChePartOfLabelValue && componentLabel == CheComponentLabelValue),
+		IsWorkspaceNamespace: ownerUid != "" || (partOfLabel == constants.CheEclipseOrg && componentLabel == constants.WorkspacesNamespaceComponentName),
 		Username:             username,
-		CheCluster: &types.NamespacedName{
-			Name:      cheName,
-			Namespace: cheNamespace,
-		},
 	}
 
 	c.KnownNamespaces[ns] = ret

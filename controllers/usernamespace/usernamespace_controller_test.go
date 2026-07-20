@@ -300,7 +300,7 @@ func TestCreatesDataInNamespace(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "ns",
 				Labels: map[string]string{
-					namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid",
+					constants.WorkspaceNamespaceOwnerUidLabelKey: "uid",
 				},
 			},
 		})
@@ -312,7 +312,7 @@ func TestCreatesDataInNamespace(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "prj",
 					Labels: map[string]string{
-						namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid",
+						constants.WorkspaceNamespaceOwnerUidLabelKey: "uid",
 					},
 				},
 			},
@@ -320,7 +320,7 @@ func TestCreatesDataInNamespace(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "prj",
 					Labels: map[string]string{
-						namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid",
+						constants.WorkspaceNamespaceOwnerUidLabelKey: "uid",
 					},
 				},
 			}, &configv1.Proxy{
@@ -344,10 +344,10 @@ func TestUpdateSccClusterRoleBinding(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "ns1",
 			Labels: map[string]string{
-				namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid_1",
+				constants.WorkspaceNamespaceOwnerUidLabelKey: "uid_1",
 			},
 			Annotations: map[string]string{
-				namespacecache.CheUsernameAnnotation: "user_1",
+				constants.CheEclipseOrgUsername: "user_1",
 			},
 		},
 	}
@@ -356,10 +356,10 @@ func TestUpdateSccClusterRoleBinding(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "ns1",
 			Labels: map[string]string{
-				namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid_1",
+				constants.WorkspaceNamespaceOwnerUidLabelKey: "uid_1",
 			},
 			Annotations: map[string]string{
-				namespacecache.CheUsernameAnnotation: "user_1",
+				constants.CheEclipseOrgUsername: "user_1",
 			},
 		},
 	}
@@ -419,7 +419,7 @@ func TestWatchRulesForSecretsInSameNamespace(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "ns",
 			Labels: map[string]string{
-				namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid",
+				constants.WorkspaceNamespaceOwnerUidLabelKey: "uid",
 			},
 		},
 	}, secret)
@@ -451,7 +451,7 @@ func TestWatchRulesForConfigMapsInSameNamespace(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "ns",
 			Labels: map[string]string{
-				namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid",
+				constants.WorkspaceNamespaceOwnerUidLabelKey: "uid",
 			},
 		},
 	}, cm)
@@ -491,7 +491,7 @@ func TestWatchRulesForSecretsInOtherNamespaces(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "ns1",
 				Labels: map[string]string{
-					namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid1",
+					constants.WorkspaceNamespaceOwnerUidLabelKey: "uid1",
 				},
 			},
 		},
@@ -503,7 +503,7 @@ func TestWatchRulesForSecretsInOtherNamespaces(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "ns2",
 				Labels: map[string]string{
-					namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid2",
+					constants.WorkspaceNamespaceOwnerUidLabelKey: "uid2",
 				},
 			},
 		},
@@ -568,7 +568,7 @@ func TestWatchRulesForConfigMapsInOtherNamespaces(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "ns1",
 				Labels: map[string]string{
-					namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid1",
+					constants.WorkspaceNamespaceOwnerUidLabelKey: "uid1",
 				},
 			},
 		},
@@ -580,7 +580,7 @@ func TestWatchRulesForConfigMapsInOtherNamespaces(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "ns2",
 				Labels: map[string]string{
-					namespacecache.WorkspaceNamespaceOwnerUidLabel: "uid2",
+					constants.WorkspaceNamespaceOwnerUidLabelKey: "uid2",
 				},
 			},
 		},

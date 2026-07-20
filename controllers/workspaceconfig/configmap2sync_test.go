@@ -77,7 +77,6 @@ func TestSyncConfigMap(t *testing.T) {
 				userNamespace: {
 					IsWorkspaceNamespace: true,
 					Username:             "user",
-					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
 				},
 			},
 			Lock: sync.Mutex{},
@@ -243,7 +242,6 @@ func TestSyncConfigMapShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 				userNamespace: {
 					IsWorkspaceNamespace: true,
 					Username:             "user",
-					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
 				},
 			},
 			Lock: sync.Mutex{},
@@ -360,7 +358,6 @@ func TestSyncConfigMapShouldRespectDWOLabels(t *testing.T) {
 				userNamespace: {
 					IsWorkspaceNamespace: true,
 					Username:             "user",
-					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
 				},
 			},
 			Lock: sync.Mutex{},
@@ -458,7 +455,6 @@ func TestSyncConfigMapShouldRemoveSomeLabels(t *testing.T) {
 				userNamespace: {
 					IsWorkspaceNamespace: true,
 					Username:             "user",
-					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
 				},
 			},
 			Lock: sync.Mutex{},
@@ -509,7 +505,6 @@ func TestSyncConfigMapShouldRetainIfAnnotationSetTrue(t *testing.T) {
 				userNamespace: {
 					IsWorkspaceNamespace: true,
 					Username:             "user",
-					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
 				},
 			},
 			Lock: sync.Mutex{},
@@ -571,7 +566,6 @@ func TestSyncConfigMapShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 				userNamespace: {
 					IsWorkspaceNamespace: true,
 					Username:             "user",
-					CheCluster:           &types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"},
 				},
 			},
 			Lock: sync.Mutex{},
