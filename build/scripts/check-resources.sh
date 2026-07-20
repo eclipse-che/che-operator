@@ -26,7 +26,7 @@ make update-dev-resources INCREMENT_BUNDLE_VERSION=false
 
 if [[ $(git diff --name-only | wc -l) != 0 ]]; then
   # Print difference
-  git --no-pager diff
+  git --no-pager diff --ignore-blank-lines
 
   echo "[ERROR] Resources are not up to date."
   echo "[ERROR] Run 'make update-dev-resources' to update them."

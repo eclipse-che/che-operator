@@ -24,6 +24,12 @@ spec:
       externalDevfileRegistries:
         - url: 'https://registry.devfile.io'
   devEnvironments: {}
-  networking: {tlsSecretName: che-tls}
+  networking:
+    tlsSecretName: che-tls
+    domain: '{{ .Values.networking.domain }}'
+    auth:
+      oAuthSecret: '{{ .Values.networking.auth.oAuthSecret }}'
+      oAuthClientName: '{{ .Values.networking.auth.oAuthClientName }}'
+      identityProviderURL: '{{ .Values.networking.auth.identityProviderURL }}'
   containerRegistry: {}
   gitServices: {}

@@ -206,12 +206,13 @@ update-helmcharts: ## Update Helm Charts based on deployment resources
 
 		rm -rf $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
 	else
-#		yq -riY '.spec.networking = null' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+		yq -riY '.spec.networking = null' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
 		yq -riY '.spec.networking.tlsSecretName = "che-tls"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
-#		yq -riY '.spec.networking.domain = "{{ .Values.networking.domain }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
-#		yq -riY '.spec.networking.auth.oAuthSecret = "{{ .Values.networking.auth.oAuthSecret }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
-#		yq -riY '.spec.networking.auth.oAuthClientName = "{{ .Values.networking.auth.oAuthClientName }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
-#		yq -riY '.spec.networking.auth.identityProviderURL = "{{ .Values.networking.auth.identityProviderURL }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+		yq -riY '.spec.networking.domain = "{{ .Values.networking.domain }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+		yq -riY '.spec.networking.auth.oAuthSecret = "{{ .Values.networking.auth.oAuthSecret }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+		yq -riY '.spec.networking.auth.oAuthClientName = "{{ .Values.networking.auth.oAuthClientName }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+		yq -riY '.spec.networking.auth.identityProviderURL = "{{ .Values.networking.auth.identityProviderURL }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+
 		make license $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
 	fi
 
