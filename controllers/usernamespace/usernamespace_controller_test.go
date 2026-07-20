@@ -668,7 +668,7 @@ func TestNetworkPoliciesCreatedWhenEnabled(t *testing.T) {
 	policyNames := []string{
 		"allow-from-" + defaults.GetCheFlavor(),
 		"allow-from-same-namespace",
-		"allow-from-openshift-operators",
+		"allow-from-operators",
 		"allow-from-openshift-monitoring",
 		"allow-from-openshift-ingress",
 	}

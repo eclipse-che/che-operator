@@ -103,7 +103,8 @@ func (r *CheUserNamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(obj).
 		Watches(&corev1.Secret{}, r.watchRulesForSecrets(ctx)).
 		Watches(&corev1.ConfigMap{}, r.watchRulesForConfigMaps(ctx)).
-		Watches(&chev2.CheCluster{}, r.triggerAllNamespaces())
+		Watches(&chev2.CheCluster{}, r.triggerAllNamespaces()).
+		Watches(&networkingv1.NetworkPolicy{}, r.watchRules(ctx))
 
 	// Use controller.TypedOptions to allow to configure 2 controllers for same object being reconciled
 	return bld.WithOptions(
@@ -136,6 +137,28 @@ func (r *CheUserNamespaceReconciler) commonRules(ctx context.Context, namesInChe
 			Namespaces: func(o metav1.Object) []string { return r.namespaceCache.GetAllKnownNamespaces() },
 		},
 	}
+}
+
+func (r *CheUserNamespaceReconciler) watchRules(ctx context.Context) handler.EventHandler {
+	return handler.EnqueueRequestsFromMapFunc(
+		func(context context.Context, obj client.Object) []reconcile.Request {
+			workspaceInfo, _ := r.namespaceCache.GetNamespaceInfo(ctx, obj.GetNamespace())
+
+			if workspaceInfo == nil &&
+				workspaceInfo.IsWorkspaceNamespace &&
+				obj.GetLabels()[constants.KubernetesComponentLabelKey] == defaults.GetCheFlavor() {
+
+				return []reconcile.Request{
+					{
+						NamespacedName: types.NamespacedName{
+							Name: obj.GetNamespace(),
+						},
+					},
+				}
+			}
+
+			return []reconcile.Request{}
+		})
 }
 
 func (r *CheUserNamespaceReconciler) watchRulesForConfigMaps(ctx context.Context) handler.EventHandler {
@@ -629,7 +652,10 @@ func (r *CheUserNamespaceReconciler) reconcileNetworkPolicies(
 		return nil
 	}
 
-	policies := r.getNetworkPolicies(targetNs, checluster)
+	policies, err := r.getNetworkPolicies(targetNs, checluster)
+	if err != nil {
+		return fmt.Errorf("could not prepare list of network policy objects: %w", err)
+	}
 
 	for _, policy := range policies {
 		if err := r.clientWrapper.Sync(

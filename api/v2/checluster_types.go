@@ -343,7 +343,7 @@ type DevEnvironmentNetworking struct {
 	ExternalTLSConfig *ExternalTLSConfig `json:"externalTLSConfig,omitempty"`
 	// NetworkPolicies configures NetworkPolicy resources for user namespace.
 	// When enabled, the following Ingress-type policies are created:
-	//   - allow-from-eclipse-che: allows traffic from the Che namespace.
+	//   - allow-from-<flavor>: allows traffic from the Che namespace.
 	//   - allow-from-operators: allows traffic from the operators namespace.
 	//   - allow-from-same-namespace: allows traffic between pods in the same namespace.
 	// On OpenShift, these additional policies are also created:
