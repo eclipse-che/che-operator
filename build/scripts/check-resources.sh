@@ -19,15 +19,21 @@ set -e
 
 OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")
 
-pushd "${OPERATOR_REPO}"
+pushd "${OPERATOR_REPO}" > /dev/null
 
 # Update resources
 make update-dev-resources INCREMENT_BUNDLE_VERSION=false
 
-if [[ $(git diff --name-only | wc -l) != 0 ]]; then
-  # Print difference
-  git --no-pager diff --ignore-blank-lines
+DIFF=0
 
+git diff --name-only | while read -r f; do
+    if [[ $(git --no-pager diff --ignore-blank-lines -- "$f" | wc -l) -gt 0 ]]; then
+      DIFF=1
+      echo "$f"
+    fi
+done
+
+if [[ $DIFF == 1 ]]; then
   echo "[ERROR] Resources are not up to date."
   echo "[ERROR] Run 'make update-dev-resources' to update them."
   exit 1
@@ -35,5 +41,5 @@ else
   echo "[INFO] Done."
 fi
 
-popd
+popd > /dev/null
 
