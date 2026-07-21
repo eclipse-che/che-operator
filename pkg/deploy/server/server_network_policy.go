@@ -33,10 +33,7 @@ const (
 )
 
 func (s *CheServerReconciler) syncNetworkPolicies(ctx *chetypes.DeployContext) (bool, error) {
-	isNetworkPolicyEnabled := ctx.CheCluster.Spec.Networking.NetworkPolicies != nil &&
-		ctx.CheCluster.Spec.Networking.NetworkPolicies.Enabled
-
-	if !isNetworkPolicyEnabled {
+	if !ctx.CheCluster.IsNetworkPoliciesEnabled() {
 		networkPolicy := &networkingv1.NetworkPolicy{}
 		exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
 			context.TODO(),

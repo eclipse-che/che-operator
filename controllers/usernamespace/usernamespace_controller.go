@@ -24,6 +24,7 @@ import (
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	containercapabilties "github.com/eclipse-che/che-operator/pkg/deploy/container-capabilities"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/utils/ptr"
 
 	devworkspacedefaults "github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
@@ -138,9 +139,9 @@ func (r *CheUserNamespaceReconciler) commonRules(ctx context.Context, namesInChe
 	}
 }
 
-func (r *CheUserNamespaceReconciler) watchRulesForNetworkPolicies(ctx context.Context) handler.EventHandler {
+func (r *CheUserNamespaceReconciler) watchRulesForNetworkPolicies(_ context.Context) handler.EventHandler {
 	return handler.EnqueueRequestsFromMapFunc(
-		func(context context.Context, obj client.Object) []reconcile.Request {
+		func(ctx context.Context, obj client.Object) []reconcile.Request {
 			workspaceInfo, _ := r.namespaceCache.GetNamespaceInfo(ctx, obj.GetNamespace())
 
 			if workspaceInfo != nil &&
@@ -630,29 +631,26 @@ func (r *CheUserNamespaceReconciler) reconcileNetworkPolicies(
 	}
 
 	if !checluster.IsNetworkPoliciesEnabled() {
-		for _, policy := range policies {
-			networkPolicy := &networkingv1.NetworkPolicy{}
-			exists, err := r.clientWrapper.GetIgnoreNotFound(
-				ctx,
-				types.NamespacedName{
-					Name:      policy.GetName(),
-					Namespace: targetNs,
-				},
-				networkPolicy,
-			)
-			if err != nil {
-				return fmt.Errorf("failed to get NetworkPolicy %s/%s: %w", policy.GetName(), targetNs, err)
-			}
-			if !exists {
+		networkPolicyList := &networkingv1.NetworkPolicyList{}
+
+		items, err := r.clientWrapper.List(ctx, networkPolicyList,
+			&client.ListOptions{
+				Namespace:     targetNs,
+				LabelSelector: labels.SelectorFromSet(deploy.GetLabels(defaults.GetCheFlavor())),
+			})
+		if err != nil {
+			return fmt.Errorf("could not list NetworkPolicy objects in namespace %s: %w", targetNs, err)
+		}
+
+		for _, item := range items {
+			networkPolicy, ok := item.(*networkingv1.NetworkPolicy)
+			if !ok {
 				continue
 			}
 
-			// Check all labels to ensures that NetworkPolicy was created by operator.
-			if deploy.HasDefaultComponentLabels(networkPolicy.GetLabels(), defaults.GetCheFlavor()) {
-				err = r.clientWrapper.DeleteIgnoreNotFound(ctx, networkPolicy)
-				if err != nil {
-					return fmt.Errorf("failed to delete NetworkPolicy %s/%s: %w", policy.GetName(), targetNs, err)
-				}
+			err = r.clientWrapper.DeleteIgnoreNotFound(ctx, networkPolicy)
+			if err != nil {
+				return fmt.Errorf("failed to delete NetworkPolicy %s/%s: %w", networkPolicy.GetName(), targetNs, err)
 			}
 		}
 
