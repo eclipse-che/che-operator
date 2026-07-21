@@ -17,6 +17,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
@@ -84,7 +85,7 @@ func TestExamineUpdatesCache(t *testing.T) {
 		assert.NoError(t, cl.Get(context.TODO(), client.ObjectKey{Name: nsName}, ns))
 
 		ns.(metav1.Object).SetLabels(map[string]string{
-			WorkspaceNamespaceOwnerUidLabel: "uid",
+			constants.WorkspaceNamespaceOwnerUidLabelKey: "uid",
 		})
 
 		assert.NoError(t, cl.Update(context.TODO(), ns))
@@ -95,8 +96,8 @@ func TestExamineUpdatesCache(t *testing.T) {
 		assert.True(t, nsi.IsWorkspaceNamespace, "namespace should be found as managed using the legacy user UID label")
 
 		ns.(metav1.Object).SetLabels(map[string]string{
-			ChePartOfLabel:    ChePartOfLabelValue,
-			CheComponentLabel: CheComponentLabelValue,
+			constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+			constants.KubernetesComponentLabelKey: constants.WorkspacesNamespaceComponentName,
 		})
 
 		assert.NoError(t, cl.Update(context.TODO(), ns))

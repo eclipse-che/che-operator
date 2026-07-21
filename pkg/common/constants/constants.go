@@ -116,11 +116,12 @@ const (
 	BitbucketOAuth                             = "bitbucket"
 
 	// Labels
-	KubernetesComponentLabelKey = "app.kubernetes.io/component"
-	KubernetesPartOfLabelKey    = "app.kubernetes.io/part-of"
-	KubernetesManagedByLabelKey = "app.kubernetes.io/managed-by"
-	KubernetesInstanceLabelKey  = "app.kubernetes.io/instance"
-	KubernetesNameLabelKey      = "app.kubernetes.io/name"
+	KubernetesComponentLabelKey        = "app.kubernetes.io/component"
+	KubernetesPartOfLabelKey           = "app.kubernetes.io/part-of"
+	KubernetesManagedByLabelKey        = "app.kubernetes.io/managed-by"
+	KubernetesInstanceLabelKey         = "app.kubernetes.io/instance"
+	KubernetesNameLabelKey             = "app.kubernetes.io/name"
+	WorkspaceNamespaceOwnerUidLabelKey = "che.eclipse.org/workspace-namespace-owner-uid"
 
 	// Annotations
 	CheEclipseOrgMountPath                          = "che.eclipse.org/mount-path"
@@ -133,6 +134,7 @@ const (
 	CheEclipseOrgScmGitHubDisableSubdomainIsolation = "che.eclipse.org/scm-github-disable-subdomain-isolation"
 	OpenShiftIOOwningComponent                      = "openshift.io/owning-component"
 	ConfigOpenShiftIOInjectTrustedCaBundle          = "config.openshift.io/inject-trusted-cabundle"
+	CheEclipseOrgUsername                           = "che.eclipse.org/username"
 
 	// DevEnvironments
 	PerUserPVCStorageStrategy           = "per-user"
@@ -160,6 +162,7 @@ const (
 	EditorDefinitionComponentName      = "editor-definition"
 	CheCABundle                        = "ca-bundle"
 	MetricsComponentName               = "metrics"
+	WorkspacesNamespaceComponentName   = "workspaces-namespace"
 
 	// common
 	CheFlavor             = "che"
