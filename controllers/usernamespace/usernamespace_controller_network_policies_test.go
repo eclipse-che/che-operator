@@ -41,11 +41,9 @@ func TestNetworkPoliciesCreatedWhenEnabledOnOpenShift(t *testing.T) {
 			Namespace: "eclipse-che",
 		},
 		Spec: chev2.CheClusterSpec{
-			DevEnvironments: chev2.CheClusterDevEnvironments{
-				Networking: &chev2.DevEnvironmentNetworking{
-					NetworkPolicies: &chev2.NetworkPolicies{
-						Enabled: true,
-					},
+			Networking: chev2.CheClusterSpecNetworking{
+				NetworkPolicies: &chev2.NetworkPolicies{
+					Enabled: true,
 				},
 			},
 		},
@@ -106,11 +104,9 @@ func TestNetworkPoliciesCreatedWhenEnabledOnKubernetes(t *testing.T) {
 			Namespace: "eclipse-che",
 		},
 		Spec: chev2.CheClusterSpec{
-			DevEnvironments: chev2.CheClusterDevEnvironments{
-				Networking: &chev2.DevEnvironmentNetworking{
-					NetworkPolicies: &chev2.NetworkPolicies{
-						Enabled: true,
-					},
+			Networking: chev2.CheClusterSpecNetworking{
+				NetworkPolicies: &chev2.NetworkPolicies{
+					Enabled: true,
 				},
 			},
 		},
@@ -158,11 +154,9 @@ func TestNetworkPoliciesDeletedWhenDisabled(t *testing.T) {
 			Namespace: "eclipse-che",
 		},
 		Spec: chev2.CheClusterSpec{
-			DevEnvironments: chev2.CheClusterDevEnvironments{
-				Networking: &chev2.DevEnvironmentNetworking{
-					NetworkPolicies: &chev2.NetworkPolicies{
-						Enabled: false,
-					},
+			Networking: chev2.CheClusterSpecNetworking{
+				NetworkPolicies: &chev2.NetworkPolicies{
+					Enabled: false,
 				},
 			},
 		},

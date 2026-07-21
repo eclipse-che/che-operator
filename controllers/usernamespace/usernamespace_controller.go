@@ -191,7 +191,7 @@ func (r *CheUserNamespaceReconciler) triggerAllNamespaces() handler.EventHandler
 	return handler.EnqueueRequestsFromMapFunc(
 		handler.MapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
 			nss := r.namespaceCache.GetAllKnownNamespaces()
-			ret := make([]reconcile.Request, len(nss))
+			ret := make([]reconcile.Request, 0, len(nss))
 
 			for _, ns := range nss {
 				ret = append(ret, reconcile.Request{
@@ -629,11 +629,7 @@ func (r *CheUserNamespaceReconciler) reconcileNetworkPolicies(
 		return fmt.Errorf("could not prepare list of network policy objects: %w", err)
 	}
 
-	isNetworkPolicyEnabled := checluster.Spec.DevEnvironments.Networking != nil &&
-		checluster.Spec.DevEnvironments.Networking.NetworkPolicies != nil &&
-		checluster.Spec.DevEnvironments.Networking.NetworkPolicies.Enabled
-
-	if !isNetworkPolicyEnabled {
+	if !checluster.IsNetworkPoliciesEnabled() {
 		for _, policy := range policies {
 			networkPolicy := &networkingv1.NetworkPolicy{}
 			exists, err := r.clientWrapper.GetIgnoreNotFound(
@@ -741,7 +737,7 @@ func (r *CheUserNamespaceReconciler) getNetworkPolicies(
 		},
 	}
 
-	allowFromOpenShiftOperatorsNetworkPolicy := networkingv1.NetworkPolicy{
+	allowFromOperatorsNetworkPolicy := networkingv1.NetworkPolicy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "NetworkPolicy",
 			APIVersion: networkingv1.SchemeGroupVersion.String(),
@@ -774,7 +770,7 @@ func (r *CheUserNamespaceReconciler) getNetworkPolicies(
 		networkPolicies,
 		allowFromEclipseCheNetworkPolicy,
 		allowFromSameNamespaceNetworkPolicy,
-		allowFromOpenShiftOperatorsNetworkPolicy,
+		allowFromOperatorsNetworkPolicy,
 	)
 
 	if infrastructure.IsOpenShift() {

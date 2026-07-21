@@ -329,10 +329,21 @@ type CheClusterSpecNetworking struct {
 	// +optional
 	// +kubebuilder:default:={gateway: {configLabels: {app: che, component: che-gateway-config}}}
 	Auth Auth `json:"auth"`
-	// NetworkPolicies configures NetworkPolicy resources for Che namespace.
-	// When enabled, the following Ingress-type policy is created:
+	// NetworkPolicies configures NetworkPolicy resources for the Che namespace
+	// and user workspace namespaces.
+	// When enabled, the following Ingress-only policies are created:
+	// In the Che namespace:
 	//   - allow-from-workspaces-namespaces: allows traffic from user workspace namespaces
 	//     (namespaces labeled app.kubernetes.io/component=workspaces-namespace).
+	// In each user workspace namespace:
+	//   - allow-from-<flavor>: allows traffic from the Che namespace.
+	//   - allow-from-operators: allows traffic from the operators namespace.
+	//   - allow-from-same-namespace: allows traffic between pods in the same namespace.
+	// On OpenShift, these additional policies are also created in each user workspace namespace:
+	//   - allow-from-openshift-monitoring: allows traffic from the monitoring namespace.
+	//   - allow-from-openshift-ingress: allows traffic from the ingress namespace.
+	// All policies are Ingress-only. Egress policies are not managed by the operator
+	// and must be layered separately by the administrator if needed.
 	// +optional
 	NetworkPolicies *NetworkPolicies `json:"networkPolicies,omitempty"`
 }
@@ -341,16 +352,6 @@ type DevEnvironmentNetworking struct {
 	// External TLS configuration.
 	// +optional
 	ExternalTLSConfig *ExternalTLSConfig `json:"externalTLSConfig,omitempty"`
-	// NetworkPolicies configures NetworkPolicy resources for user namespace.
-	// When enabled, the following Ingress-type policies are created:
-	//   - allow-from-<flavor>: allows traffic from the Che namespace.
-	//   - allow-from-operators: allows traffic from the operators namespace.
-	//   - allow-from-same-namespace: allows traffic between pods in the same namespace.
-	// On OpenShift, these additional policies are also created:
-	//   - allow-from-openshift-monitoring: allows traffic from the monitoring namespace.
-	//   - allow-from-openshift-ingress: allows traffic from the ingress namespace.
-	// +optional
-	NetworkPolicies *NetworkPolicies `json:"networkPolicies,omitempty"`
 }
 
 // NetworkPolicies configuration settings.
@@ -1282,4 +1283,8 @@ func (c *CheCluster) IsDevEnvironmentExternalTLSConfigEnabled() bool {
 	return c.Spec.DevEnvironments.Networking != nil &&
 		c.Spec.DevEnvironments.Networking.ExternalTLSConfig != nil &&
 		*c.Spec.DevEnvironments.Networking.ExternalTLSConfig.Enabled
+}
+
+func (c *CheCluster) IsNetworkPoliciesEnabled() bool {
+	return c.Spec.Networking.NetworkPolicies != nil && c.Spec.Networking.NetworkPolicies.Enabled
 }

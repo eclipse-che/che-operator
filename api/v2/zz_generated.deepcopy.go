@@ -19,7 +19,7 @@ package v2
 import (
 	"github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	"github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -816,11 +816,6 @@ func (in *DevEnvironmentNetworking) DeepCopyInto(out *DevEnvironmentNetworking) 
 		in, out := &in.ExternalTLSConfig, &out.ExternalTLSConfig
 		*out = new(ExternalTLSConfig)
 		(*in).DeepCopyInto(*out)
-	}
-	if in.NetworkPolicies != nil {
-		in, out := &in.NetworkPolicies, &out.NetworkPolicies
-		*out = new(NetworkPolicies)
-		**out = **in
 	}
 }
 
