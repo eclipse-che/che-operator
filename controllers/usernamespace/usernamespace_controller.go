@@ -652,7 +652,7 @@ func (r *CheUserNamespaceReconciler) reconcileNetworkPolicies(
 			}
 
 			// Check all labels to ensures that NetworkPolicy was created by operator.
-			if deploy.HasDefaultLabelsForComponent(networkPolicy.GetLabels(), defaults.GetCheFlavor()) {
+			if deploy.HasDefaultComponentLabels(networkPolicy.GetLabels(), defaults.GetCheFlavor()) {
 				err = r.clientWrapper.DeleteIgnoreNotFound(ctx, networkPolicy)
 				if err != nil {
 					return fmt.Errorf("failed to delete NetworkPolicy %s/%s: %w", policy.GetName(), targetNs, err)

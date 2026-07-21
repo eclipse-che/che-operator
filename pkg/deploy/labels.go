@@ -75,7 +75,7 @@ func IsPartOfEclipseCheResourceAndManagedByOperator(labels map[string]string) bo
 	return labels[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg && labels[constants.KubernetesManagedByLabelKey] == GetManagedByLabel()
 }
 
-func HasDefaultLabelsForComponent(labels map[string]string, component string) bool {
+func HasDefaultComponentLabels(labels map[string]string, component string) bool {
 	for key, value := range GetLabels(component) {
 		if labels[key] != value {
 			return false
