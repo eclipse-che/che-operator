@@ -650,7 +650,7 @@ func (r *CheUserNamespaceReconciler) reconcileNetworkPolicies(
 
 			err = r.clientWrapper.DeleteIgnoreNotFound(ctx, networkPolicy)
 			if err != nil {
-				return fmt.Errorf("failed to delete NetworkPolicy %s/%s: %w", networkPolicy.GetName(), targetNs, err)
+				return fmt.Errorf("failed to delete NetworkPolicy %s/%s: %w", targetNs, networkPolicy.GetName(), err)
 			}
 		}
 

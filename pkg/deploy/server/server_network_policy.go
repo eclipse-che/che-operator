@@ -51,7 +51,7 @@ func (s *CheServerReconciler) syncNetworkPolicies(ctx *chetypes.DeployContext) (
 		}
 
 		// Check all labels to ensures that NetworkPolicy was created by operator.
-		if deploy.HasDefaultComponentLabels(networkPolicy.GetLabels(), defaults.GetCheFlavor()) {
+		if deploy.IsOperatorManagedComponent(networkPolicy.GetLabels(), defaults.GetCheFlavor()) {
 			err = ctx.ClusterAPI.ClientWrapper.DeleteIgnoreNotFound(context.TODO(), networkPolicy)
 			if err != nil {
 				return false, fmt.Errorf("failed to delete NetworkPolicy %s/%s: %w", allowFromWorkspacesNamespacesPolicy, ctx.CheCluster.Namespace, err)

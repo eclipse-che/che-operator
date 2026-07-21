@@ -71,16 +71,8 @@ func GetLabelsAndAnnotations(obj client.Object) ([]string, []string) {
 	return slices.Collect(maps.Keys(obj.GetLabels())), slices.Collect(maps.Keys(obj.GetAnnotations()))
 }
 
-func IsPartOfEclipseCheResourceAndManagedByOperator(labels map[string]string) bool {
-	return labels[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg && labels[constants.KubernetesManagedByLabelKey] == GetManagedByLabel()
-}
-
-func HasDefaultComponentLabels(labels map[string]string, component string) bool {
-	for key, value := range GetLabels(component) {
-		if labels[key] != value {
-			return false
-		}
-	}
-
-	return true
+func IsOperatorManagedComponent(labels map[string]string, component string) bool {
+	return labels[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg &&
+		labels[constants.KubernetesManagedByLabelKey] == GetManagedByLabel() &&
+		labels[constants.KubernetesComponentLabelKey] == component
 }

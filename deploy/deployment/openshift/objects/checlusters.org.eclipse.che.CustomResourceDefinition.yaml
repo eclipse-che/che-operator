@@ -27873,13 +27873,6 @@ spec:
                       On OpenShift, these additional policies are also created in each user workspace namespace:
                         - allow-from-openshift-monitoring: allows traffic from the monitoring namespace.
                         - allow-from-openshift-ingress: allows traffic from the ingress namespace.
-                      IMPORTANT: These are allow rules only. On Kubernetes, all ingress traffic is permitted
-                      by default when no NetworkPolicy selects a pod. For these allow rules to provide actual
-                      network segmentation, a default-deny-ingress NetworkPolicy must be present in each
-                      namespace.
-                      Without a default-deny policy, enabling this feature has no isolation effect.
-                      All policies are Ingress-only. Egress policies are not managed by the operator
-                      and must be layered separately by the administrator if needed.
                     properties:
                       enabled:
                         description: Enabled controls whether the operator creates
