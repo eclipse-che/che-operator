@@ -54,8 +54,8 @@ func (s *CheServerReconciler) syncNetworkPolicies(ctx *chetypes.DeployContext) (
 			return true, nil
 		}
 
-		// Ensures that NetworkPolicy was created by operator
-		if deploy.IsPartOfEclipseCheAndManagedByOperator(networkPolicy.GetLabels(), defaults.GetCheFlavor()) {
+		// Check all labels to ensures that NetworkPolicy was created by operator.
+		if deploy.HasDefaultLabelsForComponent(networkPolicy.GetLabels(), defaults.GetCheFlavor()) {
 			err = ctx.ClusterAPI.ClientWrapper.DeleteIgnoreNotFound(context.TODO(), networkPolicy)
 			if err != nil {
 				return false, fmt.Errorf("failed to delete NetworkPolicy %s/%s: %w", allowFromWorkspacesNamespacesPolicy, ctx.CheCluster.Namespace, err)

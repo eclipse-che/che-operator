@@ -302,7 +302,7 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
-	if err = r.reconcileNetworkPolicies(req.Name, checluster); err != nil {
+	if err = r.reconcileNetworkPolicies(ctx, req.Name, checluster); err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile network policies in namespace %s: %w", req.Name, err)
 	}
 
@@ -620,6 +620,7 @@ func (r *CheUserNamespaceReconciler) reconcileSCCPrivileges(
 }
 
 func (r *CheUserNamespaceReconciler) reconcileNetworkPolicies(
+	ctx context.Context,
 	targetNs string,
 	checluster *chev2.CheCluster,
 ) error {
@@ -636,7 +637,7 @@ func (r *CheUserNamespaceReconciler) reconcileNetworkPolicies(
 		for _, policy := range policies {
 			networkPolicy := &networkingv1.NetworkPolicy{}
 			exists, err := r.clientWrapper.GetIgnoreNotFound(
-				context.TODO(),
+				ctx,
 				types.NamespacedName{
 					Name:      policy.GetName(),
 					Namespace: targetNs,
@@ -650,9 +651,9 @@ func (r *CheUserNamespaceReconciler) reconcileNetworkPolicies(
 				continue
 			}
 
-			// Ensures that NetworkPolicy was created by operator
-			if deploy.IsPartOfEclipseCheAndManagedByOperator(networkPolicy.GetLabels(), defaults.GetCheFlavor()) {
-				err = r.clientWrapper.DeleteIgnoreNotFound(context.TODO(), networkPolicy)
+			// Check all labels to ensures that NetworkPolicy was created by operator.
+			if deploy.HasDefaultLabelsForComponent(networkPolicy.GetLabels(), defaults.GetCheFlavor()) {
+				err = r.clientWrapper.DeleteIgnoreNotFound(ctx, networkPolicy)
 				if err != nil {
 					return fmt.Errorf("failed to delete NetworkPolicy %s/%s: %w", policy.GetName(), targetNs, err)
 				}
@@ -664,7 +665,7 @@ func (r *CheUserNamespaceReconciler) reconcileNetworkPolicies(
 
 	for _, policy := range policies {
 		if err := r.clientWrapper.Sync(
-			context.TODO(),
+			ctx,
 			&policy,
 			&k8sclient.SyncOptions{DiffOpts: diffs.NetworkPolicy},
 		); err != nil {

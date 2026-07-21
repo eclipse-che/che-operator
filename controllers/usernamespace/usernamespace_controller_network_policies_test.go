@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-func TestNetworkPoliciesCreatedWhenEnabled(t *testing.T) {
+func TestNetworkPoliciesCreatedWhenEnabledOnOpenShift(t *testing.T) {
 	cheCluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "eclipse-che",
@@ -93,6 +93,63 @@ func TestNetworkPoliciesCreatedWhenEnabled(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, constants.CheEclipseOrg, networkPolicy.Labels[constants.KubernetesPartOfLabelKey])
 	}
+
+	networkPolicyList := &networkingv1.NetworkPolicyList{}
+	err = cl.List(context.TODO(), networkPolicyList)
+	assert.NoError(t, err)
+	assert.Len(t, networkPolicyList.Items, 5)
+}
+
+func TestNetworkPoliciesCreatedWhenEnabledOnKubernetes(t *testing.T) {
+	cheCluster := &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+		Spec: chev2.CheClusterSpec{
+			DevEnvironments: chev2.CheClusterDevEnvironments{
+				Networking: &chev2.DevEnvironmentNetworking{
+					NetworkPolicies: &chev2.NetworkPolicies{
+						Enabled: true,
+					},
+				},
+			},
+		},
+	}
+
+	userNamespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "user-project",
+			Labels: map[string]string{
+				constants.KubernetesPartOfLabelKey:             constants.CheEclipseOrg,
+				constants.KubernetesComponentLabelKey:          "workspaces-namespace",
+				namespacecache.WorkspaceNamespaceOwnerUidLabel: "some-uid",
+			},
+		},
+	}
+
+	_, cl, r := setup(infrastructure.Kubernetes, cheCluster, userNamespace)
+
+	_, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: "user-project"}})
+	assert.NoError(t, err)
+
+	policyNames := []string{
+		"allow-from-" + defaults.GetCheFlavor(),
+		"allow-from-same-namespace",
+		"allow-from-operators",
+	}
+	for _, name := range policyNames {
+		networkPolicy := &networkingv1.NetworkPolicy{}
+		err := cl.Get(context.TODO(), client.ObjectKey{Name: name, Namespace: "user-project"}, networkPolicy)
+
+		assert.NoError(t, err)
+		assert.Equal(t, constants.CheEclipseOrg, networkPolicy.Labels[constants.KubernetesPartOfLabelKey])
+	}
+
+	networkPolicyList := &networkingv1.NetworkPolicyList{}
+	err = cl.List(context.TODO(), networkPolicyList)
+	assert.NoError(t, err)
+	assert.Len(t, networkPolicyList.Items, 3)
 }
 
 func TestNetworkPoliciesDeletedWhenDisabled(t *testing.T) {
@@ -116,11 +173,7 @@ func TestNetworkPoliciesDeletedWhenDisabled(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "allow-from-" + defaults.GetCheFlavor(),
 			Namespace: "user-project",
-			Labels: map[string]string{
-				constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
-				constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel(),
-				constants.KubernetesComponentLabelKey: defaults.GetCheFlavor(),
-			},
+			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
 	}
 
@@ -128,9 +181,6 @@ func TestNetworkPoliciesDeletedWhenDisabled(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "another-allow-from-" + defaults.GetCheFlavor(),
 			Namespace: "user-project",
-			Labels: map[string]string{
-				constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
-			},
 		},
 	}
 
