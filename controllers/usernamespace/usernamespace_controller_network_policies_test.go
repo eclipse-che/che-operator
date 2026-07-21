@@ -16,7 +16,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/eclipse-che/che-operator/controllers/namespacecache"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	corev1 "k8s.io/api/core/v1"
@@ -56,9 +55,9 @@ func TestNetworkPoliciesCreatedWhenEnabledOnOpenShift(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "user-project",
 			Labels: map[string]string{
-				constants.KubernetesPartOfLabelKey:             constants.CheEclipseOrg,
-				constants.KubernetesComponentLabelKey:          "workspaces-namespace",
-				namespacecache.WorkspaceNamespaceOwnerUidLabel: "some-uid",
+				constants.KubernetesPartOfLabelKey:           constants.CheEclipseOrg,
+				constants.KubernetesComponentLabelKey:        "workspaces-namespace",
+				constants.WorkspaceNamespaceOwnerUidLabelKey: "some-uid",
 			},
 		},
 	}
@@ -67,9 +66,9 @@ func TestNetworkPoliciesCreatedWhenEnabledOnOpenShift(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "user-project",
 			Labels: map[string]string{
-				constants.KubernetesPartOfLabelKey:             constants.CheEclipseOrg,
-				constants.KubernetesComponentLabelKey:          "workspaces-namespace",
-				namespacecache.WorkspaceNamespaceOwnerUidLabel: "some-uid",
+				constants.KubernetesPartOfLabelKey:           constants.CheEclipseOrg,
+				constants.KubernetesComponentLabelKey:        "workspaces-namespace",
+				constants.WorkspaceNamespaceOwnerUidLabelKey: "some-uid",
 			},
 		},
 	}
@@ -121,9 +120,9 @@ func TestNetworkPoliciesCreatedWhenEnabledOnKubernetes(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "user-project",
 			Labels: map[string]string{
-				constants.KubernetesPartOfLabelKey:             constants.CheEclipseOrg,
-				constants.KubernetesComponentLabelKey:          "workspaces-namespace",
-				namespacecache.WorkspaceNamespaceOwnerUidLabel: "some-uid",
+				constants.KubernetesPartOfLabelKey:           constants.CheEclipseOrg,
+				constants.KubernetesComponentLabelKey:        "workspaces-namespace",
+				constants.WorkspaceNamespaceOwnerUidLabelKey: "some-uid",
 			},
 		},
 	}
@@ -188,9 +187,9 @@ func TestNetworkPoliciesDeletedWhenDisabled(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "user-project",
 			Labels: map[string]string{
-				constants.KubernetesPartOfLabelKey:             constants.CheEclipseOrg,
-				constants.KubernetesComponentLabelKey:          "workspaces-namespace",
-				namespacecache.WorkspaceNamespaceOwnerUidLabel: "some-uid",
+				constants.KubernetesPartOfLabelKey:           constants.CheEclipseOrg,
+				constants.KubernetesComponentLabelKey:        "workspaces-namespace",
+				constants.WorkspaceNamespaceOwnerUidLabelKey: "some-uid",
 			},
 		},
 	}
@@ -199,9 +198,9 @@ func TestNetworkPoliciesDeletedWhenDisabled(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "user-project",
 			Labels: map[string]string{
-				constants.KubernetesPartOfLabelKey:             constants.CheEclipseOrg,
-				constants.KubernetesComponentLabelKey:          "workspaces-namespace",
-				namespacecache.WorkspaceNamespaceOwnerUidLabel: "some-uid",
+				constants.KubernetesPartOfLabelKey:           constants.CheEclipseOrg,
+				constants.KubernetesComponentLabelKey:        "workspaces-namespace",
+				constants.WorkspaceNamespaceOwnerUidLabelKey: "some-uid",
 			},
 		},
 	}

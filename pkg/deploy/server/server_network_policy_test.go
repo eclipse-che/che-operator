@@ -17,7 +17,6 @@ import (
 	"testing"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
-	"github.com/eclipse-che/che-operator/controllers/namespacecache"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
@@ -55,7 +54,7 @@ func TestSyncNetworkPoliciesCreatesWhenEnabled(t *testing.T) {
 	assert.Equal(t, constants.CheEclipseOrg, np.Labels[constants.KubernetesPartOfLabelKey])
 	assert.Equal(t, defaults.GetCheFlavor(), np.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t,
-		namespacecache.CheComponentLabelValue,
+		constants.WorkspacesNamespaceComponentName,
 		np.Spec.Ingress[0].From[0].NamespaceSelector.MatchLabels[constants.KubernetesComponentLabelKey],
 	)
 	assert.Equal(t, 1, len(np.OwnerReferences))

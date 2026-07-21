@@ -16,7 +16,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/eclipse-che/che-operator/controllers/namespacecache"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
@@ -83,7 +82,7 @@ func (s *CheServerReconciler) syncNetworkPolicies(ctx *chetypes.DeployContext) (
 						{
 							NamespaceSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{
-									constants.KubernetesComponentLabelKey: namespacecache.CheComponentLabelValue,
+									constants.KubernetesComponentLabelKey: constants.WorkspacesNamespaceComponentName,
 								},
 							},
 						},

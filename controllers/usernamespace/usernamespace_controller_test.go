@@ -17,7 +17,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/eclipse-che/che-operator/controllers/namespacecache"
 	containerbuild "github.com/eclipse-che/che-operator/pkg/deploy/container-capabilities"
 	"k8s.io/utils/ptr"
 
