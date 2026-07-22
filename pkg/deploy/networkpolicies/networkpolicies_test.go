@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package server
+package networkpolicies
 
 import (
 	"context"
@@ -38,26 +38,58 @@ func TestReconcileNetworkPolicies(t *testing.T) {
 		},
 	}).Build()
 
-	server := NewCheServerReconciler()
-	done, err := server.syncNetworkPolicies(ctx)
+	reconciler := NewNetworkPoliciesReconciler()
+	_, done, err := reconciler.Reconcile(ctx)
 	assert.True(t, done)
 	assert.NoError(t, err)
 
 	networkPolicy := &networkingv1.NetworkPolicy{}
-	key := types.NamespacedName{
-		Name:      allowFromWorkspacesNamespacesPolicy,
-		Namespace: "eclipse-che",
-	}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), key, networkPolicy)
+
+	err = ctx.ClusterAPI.Client.Get(
+		context.TODO(),
+		types.NamespacedName{
+			Name:      "allow-from-workspaces-namespaces",
+			Namespace: "eclipse-che",
+		},
+		networkPolicy,
+	)
+	assert.NoError(t, err)
+
+	err = ctx.ClusterAPI.Client.Get(
+		context.TODO(),
+		types.NamespacedName{
+			Name:      "allow-from-same-namespace",
+			Namespace: "eclipse-che",
+		},
+		networkPolicy,
+	)
 	assert.NoError(t, err)
 
 	ctx.CheCluster.Spec.Networking.NetworkPolicies.Enabled = false
 
-	done, err = server.syncNetworkPolicies(ctx)
+	_, done, err = reconciler.Reconcile(ctx)
 	assert.True(t, done)
 	assert.NoError(t, err)
 
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), key, networkPolicy)
+	err = ctx.ClusterAPI.Client.Get(
+		context.TODO(),
+		types.NamespacedName{
+			Name:      "allow-from-workspaces-namespaces",
+			Namespace: "eclipse-che",
+		},
+		networkPolicy,
+	)
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
+
+	err = ctx.ClusterAPI.Client.Get(
+		context.TODO(),
+		types.NamespacedName{
+			Name:      "allow-from-same-namespace",
+			Namespace: "eclipse-che",
+		},
+		networkPolicy,
+	)
 	assert.Error(t, err)
 	assert.True(t, errors.IsNotFound(err))
 }

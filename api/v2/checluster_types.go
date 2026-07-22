@@ -333,6 +333,7 @@ type CheClusterSpecNetworking struct {
 	// and user workspace namespaces.
 	// When enabled, the following Ingress-only allow policies are created:
 	// In the Che namespace:
+	//   - allow-from-same-namespace: allows traffic between pods in the same namespace.
 	//   - allow-from-workspaces-namespaces: allows traffic from user workspace namespaces
 	//     (namespaces labeled app.kubernetes.io/component=workspaces-namespace).
 	// In each user workspace namespace:

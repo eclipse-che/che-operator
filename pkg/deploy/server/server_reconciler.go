@@ -65,10 +65,6 @@ func (s *CheServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
-	if done, err := s.syncNetworkPolicies(ctx); !done {
-		return reconcile.Result{}, false, err
-	}
-
 	done, err = s.syncDeployment(ctx)
 	if !done {
 		return reconcile.Result{}, false, err
