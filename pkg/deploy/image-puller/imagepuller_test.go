@@ -52,10 +52,9 @@ func TestImagePullerConfiguration(t *testing.T) {
 			}),
 			testCaseFilePath: "image-puller-resources-test/imagepuller_testcase_1.json",
 			expectedImagePuller: InitImagePuller(chev1alpha1.KubernetesImagePullerSpec{
-				DeploymentName:   defaultDeploymentName,
-				ConfigMapName:    defaultConfigMapName,
-				ImagePullerImage: defaultImagePullerImage,
-				Images:           "image-1-0=image_1;image-2-1=image_2;",
+				DeploymentName: defaultDeploymentName,
+				ConfigMapName:  defaultConfigMapName,
+				Images:         "image-1-0=image_1;image-2-1=image_2;",
 			}),
 		},
 		{
@@ -84,16 +83,14 @@ func TestImagePullerConfiguration(t *testing.T) {
 			testCaseFilePath: "image-puller-resources-test/imagepuller_testcase_2.json",
 			initObjects: []client.Object{
 				InitImagePuller(chev1alpha1.KubernetesImagePullerSpec{
-					DeploymentName:   defaultDeploymentName,
-					ConfigMapName:    defaultConfigMapName,
-					ImagePullerImage: defaultImagePullerImage,
+					DeploymentName: defaultDeploymentName,
+					ConfigMapName:  defaultConfigMapName,
 				}),
 			},
 			expectedImagePuller: InitImagePuller(chev1alpha1.KubernetesImagePullerSpec{
-				DeploymentName:   defaultDeploymentName,
-				ConfigMapName:    defaultConfigMapName,
-				ImagePullerImage: defaultImagePullerImage,
-				Images:           "image-1-0=image_1;image-2-1=image_2;image-3-2=image_3;",
+				DeploymentName: defaultDeploymentName,
+				ConfigMapName:  defaultConfigMapName,
+				Images:         "image-1-0=image_1;image-2-1=image_2;image-3-2=image_3;",
 			}),
 		},
 		{
@@ -109,9 +106,8 @@ func TestImagePullerConfiguration(t *testing.T) {
 			testCaseFilePath: "image-puller-resources-test/imagepuller_testcase_1.json",
 			initObjects: []client.Object{
 				InitImagePuller(chev1alpha1.KubernetesImagePullerSpec{
-					DeploymentName:   defaultDeploymentName,
-					ConfigMapName:    defaultConfigMapName,
-					ImagePullerImage: defaultImagePullerImage,
+					DeploymentName: defaultDeploymentName,
+					ConfigMapName:  defaultConfigMapName,
 				}),
 			},
 			expectedImagePuller: InitImagePuller(chev1alpha1.KubernetesImagePullerSpec{
@@ -129,9 +125,8 @@ func TestImagePullerConfiguration(t *testing.T) {
 			testCaseFilePath: "image-puller-resources-test/imagepuller_testcase_1.json",
 			initObjects: []client.Object{
 				InitImagePuller(chev1alpha1.KubernetesImagePullerSpec{
-					DeploymentName:   defaultDeploymentName,
-					ConfigMapName:    defaultConfigMapName,
-					ImagePullerImage: defaultImagePullerImage,
+					DeploymentName: defaultDeploymentName,
+					ConfigMapName:  defaultConfigMapName,
 				}),
 			},
 		},
