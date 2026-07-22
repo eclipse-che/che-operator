@@ -148,7 +148,7 @@ func (r *ContainerCapabilitiesReconciler) sync(ctx *chetypes.DeployContext, cc C
 
 	scc := &securityv1.SecurityContextConstraints{}
 	if exists, err := ctx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(context.TODO(), sccKey, scc); exists {
-		if deploy.IsPartOfEclipseCheResourceAndManagedByOperator(scc.Labels) {
+		if deploy.IsOperatorManagedComponent(scc.Labels, defaults.GetCheFlavor()) {
 			// SCC exists and created by operator (custom SCC won't be updated).
 			// Remove priority, see details https://issues.redhat.com/browse/CRW-389
 			scc.Priority = nil

@@ -1,55 +1,23 @@
 # AGENTS.md
 
-This file provides guidance to AI coding agents when working with code in this repository.
+This file provides architectural context for AI coding agents working in this repository.
+Actionable rules (build commands, code style, K8s client usage, compliance) live in `.claude/rules/`.
 
 ## Project Overview
 
-Eclipse Che Operator — a Kubernetes/OpenShift operator built with Operator SDK and controller-runtime that manages 
-the lifecycle of Eclipse Che installations. It watches `CheCluster` custom resources and reconciles all Che components 
+Eclipse Che Operator — a Kubernetes/OpenShift operator built with Operator SDK and controller-runtime that manages
+the lifecycle of Eclipse Che installations. It watches `CheCluster` custom resources and reconciles all Che components
 (dashboard, gateway, devfile registry, Che server, etc.).
 
 Go module: `github.com/eclipse-che/che-operator`
-
-## Build & Test Commands
-
-```bash
-# Build operator binary
-make build
-
-# Run all unit tests
-make test
-
-# Run a single test file or package
-MOCK_API=true go test -mod=vendor ./controllers/che/... -run TestSpecificName -v
-
-# Run tests for a specific package
-MOCK_API=true go test -mod=vendor ./pkg/deploy/gateway/...
-
-# Format code (uses goimports if available, falls back to go fmt)
-make fmt
-
-# Run go vet
-make vet
-
-# Run static code analyzers
-make lint
-
-# Regenerate CRDs, DeepCopy methods, and related manifests
-build/scripts/docker-run.sh make update-dev-resources
-
-# Build operator Docker image
-make docker-build IMG=<image>
-```
 
 ## Architecture
 
 ### CRD & API Versions
 
 - **v2** (`api/v2/`) — current storage version. `CheClusterSpec` has top-level sections: `DevEnvironments`, `Components`, `GitServices`, `Networking`, `ContainerRegistry`.
-- **v1** (`api/v1/`) — deprecated
+- **v1** (`api/v1/`) — deprecated, exists only for conversion compatibility.
 - Webhooks (validation, defaulting, conversion) live in `api/v2/checluster_webhook.go`.
-
-After modifying `api/v2/checluster_types.go`, run `build/scripts/docker-run.sh make update-dev-resources`.
 
 ### Controller Structure
 
@@ -62,23 +30,17 @@ After modifying `api/v2/checluster_types.go`, run `build/scripts/docker-run.sh m
 
 ### Reconciliation Pipeline
 
-`CheClusterReconciler` uses a `ReconcilerManager` (`pkg/common/reconciler/`) that runs a chain of 
-`Reconcilable` implementations **in order**. Each reconciler returns `(result, done, err)` — the chain stops 
-at the first `done=false`. Registration order in `controllers/che/checluster_controller.go` defines the execution order:
+`CheClusterReconciler` uses a `ReconcilerManager` (`pkg/common/reconciler/`) that runs a chain of
+`Reconcilable` implementations **in order**. Each reconciler returns `(result, done, err)` — the chain stops
+at the first `done=false`. Registration order in `controllers/che/checluster_controller.go` defines the execution order.
 
 ### DeployContext
 
 `DeployContext` (`pkg/common/chetypes/types.go`) is the central context object passed to every reconciler. It carries:
 - `CheCluster` — the CR being reconciled
-- `ClusterAPI` — cached and non-cached k8s clients, discovery client
+- `ClusterAPI` — cached and non-cached k8s clients, discovery client, `ClientWrapper` / `NonCachingClientWrapper`
 - `Proxy`, `Authentication` — resolved configuration
 - `IsSelfSignedCertificate`, `CheHost`, `DwoNamespace`
-
-### Kubernetes Client Usage
-
-Use the `K8sClient` wrapper (`pkg/common/k8s-client/`) for all Kubernetes operations. Access it via `DeployContext.ClusterAPI.ClientWrapper` (cached) or `DeployContext.ClusterAPI.NonCachingClientWrapper` (non-caching, for cluster-scoped or cross-namespace objects). Key methods: `Sync`, `Create`, `CreateIfNotExists`, `GetIgnoreNotFound`, `DeleteByKeyIgnoreNotFound`, `List`.
-
-**Do NOT use** the legacy functions from `pkg/deploy/sync.go` (`deploy.Sync`, `deploy.Get*`, `deploy.Delete*`, `deploy.CreateIgnoreIfExists`, etc.) — that file is deprecated.
 
 ### Component Packages (`pkg/deploy/`)
 
@@ -89,12 +51,12 @@ Each Che component has its own package under `pkg/deploy/` (e.g., `dashboard/`, 
 
 ### Platform Detection
 
-`pkg/common/infrastructure/` detects Kubernetes vs OpenShift and feature availability (OAuth, image puller, service monitors). 
+`pkg/common/infrastructure/` detects Kubernetes vs OpenShift and feature availability (OAuth, image puller, service monitors).
 Some reconcilers are conditionally registered based on platform (e.g., `ConsoleLink` and `ContainerCapabilities` are OpenShift-only).
 
 ### Operator Defaults
 
-`pkg/common/operator-defaults/` reads default container images and configuration from environment variables. 
+`pkg/common/operator-defaults/` reads default container images and configuration from environment variables.
 Resource limit/request defaults live in `pkg/common/constants/`.
 
 ### Testing
@@ -119,13 +81,3 @@ build/scripts/olm/test-catalog-from-sources.sh
 # Minikube
 build/scripts/minikube-tests/test-operator-from-sources.sh
 ```
-
-## Code Style
-
-- Add an empty line after logical blocks of code (e.g., after `if` blocks, loops, variable declaration groups) to improve readability.
-- Wrap errors with context using `fmt.Errorf` instead of passing them through directly. For example, use `return fmt.Errorf("failed to sync deployment: %w", err)` instead of `return err`.
-- After modifying `api/v2/checluster_types.go`, run `make update-dev-resources` to regenerate CRDs, DeepCopy methods, and related manifests. On macOS, use `build/scripts/docker-run.sh make update-dev-resources` instead.
-
-## Red Hat Compliance and Responsible AI Rules
-
-See [redhat-compliance-and-responsible-ai.md](redhat-compliance-and-responsible-ai.md) and the Cursor rules file under `.cursor/rules/`.
