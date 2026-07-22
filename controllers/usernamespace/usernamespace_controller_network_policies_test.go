@@ -20,6 +20,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/utils/ptr"
 
 	networkingv1 "k8s.io/api/networking/v1"
 
@@ -43,7 +44,7 @@ func TestNetworkPoliciesCreatedWhenEnabledOnOpenShift(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
 				NetworkPolicies: &chev2.NetworkPolicies{
-					Enabled: true,
+					Enabled: ptr.To(true),
 				},
 			},
 		},
@@ -104,7 +105,7 @@ func TestNetworkPoliciesCreatedWhenEnabledOnKubernetes(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
 				NetworkPolicies: &chev2.NetworkPolicies{
-					Enabled: true,
+					Enabled: ptr.To(true),
 				},
 			},
 		},
@@ -154,7 +155,7 @@ func TestNetworkPoliciesDeletedWhenDisabled(t *testing.T) {
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
 				NetworkPolicies: &chev2.NetworkPolicies{
-					Enabled: false,
+					Enabled: ptr.To(false),
 				},
 			},
 		},
