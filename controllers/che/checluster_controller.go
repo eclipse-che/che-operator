@@ -43,6 +43,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	identityprovider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
 	"github.com/eclipse-che/che-operator/pkg/deploy/migration"
+	"github.com/eclipse-che/che-operator/pkg/deploy/networkpolicies"
 	"github.com/eclipse-che/che-operator/pkg/deploy/openvsx"
 	openvsxdatabase "github.com/eclipse-che/che-operator/pkg/deploy/openvsx/openvsx-database"
 	openvsxserver "github.com/eclipse-che/che-operator/pkg/deploy/openvsx/openvsx-server"
@@ -127,6 +128,7 @@ func NewReconciler(
 	reconcilerManager.AddReconciler(devworkspace.NewDwoNamespaceReconciler())
 	reconcilerManager.AddReconciler(dashboard.NewDashboardReconciler())
 	reconcilerManager.AddReconciler(gateway.NewGatewayReconciler())
+	reconcilerManager.AddReconciler(networkpolicies.NewNetworkPoliciesReconciler())
 	reconcilerManager.AddReconciler(server.NewCheServerReconciler())
 	reconcilerManager.AddReconciler(imagepuller.NewImagePuller())
 
@@ -178,6 +180,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&rbacv1.RoleBinding{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&appsv1.Deployment{}).
+		Owns(&networking.NetworkPolicy{}).
 		Watches(&corev1.ConfigMap{},
 			handler.EnqueueRequestsFromMapFunc(toTrustedBundleConfigMapRequestMapper),
 		).

@@ -27968,6 +27968,28 @@ spec:
                       description: Defines labels which will be set for an Ingress
                         (a route for OpenShift platform).
                       type: object
+                    networkPolicies:
+                      description: |-
+                        NetworkPolicies configures NetworkPolicy resources for the Che namespace
+                        and user workspace namespaces.
+                        When enabled, the following Ingress-only allow policies are created:
+                        In the Che namespace:
+                          - allow-from-same-namespace: allows traffic between pods in the same namespace.
+                          - allow-from-workspaces-namespaces: allows traffic from user workspace namespaces
+                            (namespaces labeled app.kubernetes.io/component=workspaces-namespace).
+                        In each user workspace namespace:
+                          - allow-from-<flavor>: allows traffic from the Che namespace.
+                          - allow-from-operators: allows traffic from the operators namespace.
+                          - allow-from-same-namespace: allows traffic between pods in the same namespace.
+                        On OpenShift, these additional policies are also created in each user workspace namespace:
+                          - allow-from-openshift-monitoring: allows traffic from the monitoring namespace.
+                          - allow-from-openshift-ingress: allows traffic from the ingress namespace.
+                      properties:
+                        enabled:
+                          description: Enabled controls whether the operator creates
+                            NetworkPolicy resources.
+                          type: boolean
+                      type: object
                     tlsSecretName:
                       description: |-
                         The name of the secret used to set up Ingress TLS termination.
