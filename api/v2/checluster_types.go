@@ -358,7 +358,7 @@ type DevEnvironmentNetworking struct {
 type NetworkPolicies struct {
 	// Enabled controls whether the operator creates NetworkPolicy resources.
 	// +optional
-	Enabled bool `json:"enabled"`
+	Enabled *bool `json:"enabled"`
 }
 
 type ExternalTLSConfig struct {
@@ -1285,5 +1285,5 @@ func (c *CheCluster) IsDevEnvironmentExternalTLSConfigEnabled() bool {
 }
 
 func (c *CheCluster) IsNetworkPoliciesEnabled() bool {
-	return c.Spec.Networking.NetworkPolicies != nil && c.Spec.Networking.NetworkPolicies.Enabled
+	return c.Spec.Networking.NetworkPolicies != nil && ptr.Deref(c.Spec.Networking.NetworkPolicies.Enabled, false)
 }

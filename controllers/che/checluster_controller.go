@@ -128,8 +128,8 @@ func NewReconciler(
 	reconcilerManager.AddReconciler(devworkspace.NewDwoNamespaceReconciler())
 	reconcilerManager.AddReconciler(dashboard.NewDashboardReconciler())
 	reconcilerManager.AddReconciler(gateway.NewGatewayReconciler())
-	reconcilerManager.AddReconciler(networkpolicies.NewNetworkPoliciesReconciler())
 	reconcilerManager.AddReconciler(server.NewCheServerReconciler())
+	reconcilerManager.AddReconciler(networkpolicies.NewNetworkPoliciesReconciler())
 	reconcilerManager.AddReconciler(imagepuller.NewImagePuller())
 
 	if infrastructure.IsOpenShift() {

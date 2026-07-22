@@ -660,7 +660,7 @@ func (r *CheUserNamespaceReconciler) reconcileNetworkPolicies(
 	for _, policy := range policies {
 		if err := r.clientWrapper.Sync(
 			ctx,
-			&policy,
+			policy,
 			&k8sclient.SyncOptions{DiffOpts: diffs.NetworkPolicy},
 		); err != nil {
 			return fmt.Errorf("failed to sync network policy %s/%s: %w", targetNs, policy.Name, err)
@@ -673,15 +673,15 @@ func (r *CheUserNamespaceReconciler) reconcileNetworkPolicies(
 func (r *CheUserNamespaceReconciler) getNetworkPolicies(
 	targetNs string,
 	checluster *chev2.CheCluster,
-) ([]networkingv1.NetworkPolicy, error) {
+) ([]*networkingv1.NetworkPolicy, error) {
 	operatorNamespace, err := infrastructure.GetOperatorNamespace()
 	if err != nil {
 		return nil, fmt.Errorf("could not get operator namespace: %w", err)
 	}
 
-	var networkPolicies []networkingv1.NetworkPolicy
+	var networkPolicies []*networkingv1.NetworkPolicy
 
-	allowFromEclipseCheNetworkPolicy := networkingv1.NetworkPolicy{
+	allowFromEclipseCheNetworkPolicy := &networkingv1.NetworkPolicy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "NetworkPolicy",
 			APIVersion: networkingv1.SchemeGroupVersion.String(),
@@ -710,7 +710,7 @@ func (r *CheUserNamespaceReconciler) getNetworkPolicies(
 		},
 	}
 
-	allowFromSameNamespaceNetworkPolicy := networkingv1.NetworkPolicy{
+	allowFromSameNamespaceNetworkPolicy := &networkingv1.NetworkPolicy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "NetworkPolicy",
 			APIVersion: networkingv1.SchemeGroupVersion.String(),
@@ -735,7 +735,7 @@ func (r *CheUserNamespaceReconciler) getNetworkPolicies(
 		},
 	}
 
-	allowFromOperatorsNetworkPolicy := networkingv1.NetworkPolicy{
+	allowFromOperatorsNetworkPolicy := &networkingv1.NetworkPolicy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "NetworkPolicy",
 			APIVersion: networkingv1.SchemeGroupVersion.String(),
@@ -772,7 +772,7 @@ func (r *CheUserNamespaceReconciler) getNetworkPolicies(
 	)
 
 	if infrastructure.IsOpenShift() {
-		allowFromOpenShiftMonitoringNetworkPolicy := networkingv1.NetworkPolicy{
+		allowFromOpenShiftMonitoringNetworkPolicy := &networkingv1.NetworkPolicy{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "NetworkPolicy",
 				APIVersion: networkingv1.SchemeGroupVersion.String(),
@@ -801,7 +801,7 @@ func (r *CheUserNamespaceReconciler) getNetworkPolicies(
 			},
 		}
 
-		allowFromOpenShiftIngressNetworkPolicy := networkingv1.NetworkPolicy{
+		allowFromOpenShiftIngressNetworkPolicy := &networkingv1.NetworkPolicy{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "NetworkPolicy",
 				APIVersion: networkingv1.SchemeGroupVersion.String(),

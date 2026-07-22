@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 )
 
 func TestReconcileNetworkPolicies(t *testing.T) {
@@ -33,7 +34,7 @@ func TestReconcileNetworkPolicies(t *testing.T) {
 		},
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
-				NetworkPolicies: &chev2.NetworkPolicies{Enabled: true},
+				NetworkPolicies: &chev2.NetworkPolicies{Enabled: ptr.To(true)},
 			},
 		},
 	}).Build()
@@ -65,7 +66,7 @@ func TestReconcileNetworkPolicies(t *testing.T) {
 	)
 	assert.NoError(t, err)
 
-	ctx.CheCluster.Spec.Networking.NetworkPolicies.Enabled = false
+	ctx.CheCluster.Spec.Networking.NetworkPolicies.Enabled = ptr.To(false)
 
 	_, done, err = reconciler.Reconcile(ctx)
 	assert.True(t, done)
