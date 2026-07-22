@@ -45,12 +45,10 @@ var (
 )
 
 const (
-	resourceName  = "kubernetesimagepullers"
 	finalizerName = "kubernetesimagepullers.finalizers.che.eclipse.org"
 
-	defaultConfigMapName    = "k8s-image-puller"
-	defaultDeploymentName   = "kubernetes-image-puller"
-	defaultImagePullerImage = "quay.io/eclipse/kubernetes-image-puller:next"
+	defaultConfigMapName  = "k8s-image-puller"
+	defaultDeploymentName = "kubernetes-image-puller"
 )
 
 type ImagePuller struct {
@@ -146,7 +144,6 @@ func (ip *ImagePuller) syncKubernetesImagePuller(externalImages []string, ctx *c
 	// See https://github.com/che-incubator/kubernetes-image-puller-operator/blob/main/controllers/kubernetesimagepuller_controller.go
 	imagePuller.Spec.ConfigMapName = utils.GetValue(imagePuller.Spec.ConfigMapName, defaultConfigMapName)
 	imagePuller.Spec.DeploymentName = utils.GetValue(imagePuller.Spec.DeploymentName, defaultDeploymentName)
-	imagePuller.Spec.ImagePullerImage = utils.GetValue(imagePuller.Spec.ImagePullerImage, defaultImagePullerImage)
 	if strings.TrimSpace(imagePuller.Spec.Images) == "" {
 		imagePuller.Spec.Images = convertToSpecField(externalImages)
 	}
