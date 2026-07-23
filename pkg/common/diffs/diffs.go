@@ -16,6 +16,7 @@ import (
 	"maps"
 	"reflect"
 
+	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	securityv1 "github.com/openshift/api/security/v1"
@@ -58,6 +59,11 @@ var Service = cmp.Options{
 	cmp.Comparer(func(x, y corev1.ServiceSpec) bool {
 		return maps.Equal(x.Selector, y.Selector) && reflect.DeepEqual(x.Ports, y.Ports)
 	}),
+}
+
+var KubernetesImagePullerDiffOpts = cmp.Options{
+	cmpopts.IgnoreFields(chev1alpha1.KubernetesImagePuller{}, "TypeMeta", "ObjectMeta", "Status"),
+	cmpopts.IgnoreFields(chev1alpha1.KubernetesImagePullerSpec{}, "ImagePullerImage"),
 }
 
 func Ingress(labels []string, annotations []string) cmp.Options {

@@ -13,6 +13,7 @@
 package imagepuller
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -21,16 +22,17 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
+	k8s_client "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/google/go-cmp/cmp"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
@@ -38,10 +40,7 @@ import (
 )
 
 var (
-	logger                        = ctrl.Log.WithName("image-puller")
-	kubernetesImagePullerDiffOpts = cmp.Options{
-		cmpopts.IgnoreFields(chev1alpha1.KubernetesImagePuller{}, "TypeMeta", "ObjectMeta", "Status"),
-	}
+	logger = ctrl.Log.WithName("image-puller")
 )
 
 const (
@@ -148,7 +147,18 @@ func (ip *ImagePuller) syncKubernetesImagePuller(externalImages []string, ctx *c
 		imagePuller.Spec.Images = convertToSpecField(externalImages)
 	}
 
-	return deploy.SyncForClient(ctx.ClusterAPI.NonCachingClient, ctx, imagePuller, kubernetesImagePullerDiffOpts)
+	if err := controllerutil.SetControllerReference(ctx.CheCluster, imagePuller, ctx.ClusterAPI.Scheme); err != nil {
+		return false, err
+	}
+
+	err := ctx.ClusterAPI.NonCachingClientWrapper.Sync(
+		context.TODO(),
+		imagePuller,
+		&k8s_client.SyncOptions{
+			DiffOpts: diffs.KubernetesImagePullerDiffOpts,
+		})
+
+	return err == nil, fmt.Errorf("failed to sync KubernetesImagePuller %s/%s: %w", imagePuller.GetNamespace(), imagePuller.GetName(), err)
 }
 
 func getImagePullerCustomResourceName(ctx *chetypes.DeployContext) string {
