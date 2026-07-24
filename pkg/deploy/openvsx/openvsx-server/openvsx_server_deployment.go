@@ -90,8 +90,18 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 								utils.EnvVarFromSecret("PGUSER", credentialsSecretName, "database-user"),
 								utils.EnvVarFromSecret("PGDATABASE", credentialsSecretName, "database-name"),
 							},
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceCPU:    resource.MustParse("10m"),
+									corev1.ResourceMemory: resource.MustParse("32Mi"),
+								},
+								Limits: corev1.ResourceList{
+									corev1.ResourceCPU:    resource.MustParse("100m"),
+									corev1.ResourceMemory: resource.MustParse("64Mi"),
+								},
+							},
 							Command: []string{"sh", "-c",
-								`until pg_isready -q; do echo "Waiting for database..."; sleep 2; done`,
+								`i=0; until pg_isready -q; do echo "Waiting for database... ($i s)"; sleep 2; i=$((i+2)); if [ $i -ge 120 ]; then echo "Timed out waiting for database" >&2; exit 1; fi; done`,
 							},
 						},
 					},
