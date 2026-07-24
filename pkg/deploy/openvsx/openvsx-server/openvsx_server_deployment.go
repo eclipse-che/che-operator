@@ -52,6 +52,9 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 	labels := deploy.GetLabels(constants.OpenVSXServerComponentName)
 	credentialsSecretName := openvsx.GetCredentialsSecretName(ctx)
 
+	dbImage := defaults.GetOpenVSXDatabaseImage(ctx.CheCluster)
+	dbImagePullPolicy := utils.GetPullPolicyFromDockerImage(dbImage)
+
 	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Deployment",
@@ -74,6 +77,24 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
+					InitContainers: []corev1.Container{
+						{
+							Name:            "wait-database",
+							Image:           dbImage,
+							ImagePullPolicy: corev1.PullPolicy(dbImagePullPolicy),
+							Env: []corev1.EnvVar{
+								{
+									Name:  "PGHOST",
+									Value: constants.OpenVSXDatabaseComponentName,
+								},
+								utils.EnvVarFromSecret("PGUSER", credentialsSecretName, "database-user"),
+								utils.EnvVarFromSecret("PGDATABASE", credentialsSecretName, "database-name"),
+							},
+							Command: []string{"sh", "-c",
+								`until pg_isready -q; do echo "Waiting for database..."; sleep 2; done`,
+							},
+						},
+					},
 					Containers: []corev1.Container{
 						{
 							Name:            constants.OpenVSXServerComponentName,
