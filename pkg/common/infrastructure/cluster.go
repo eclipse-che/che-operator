@@ -102,6 +102,10 @@ func SetOpenShiftOAuthEnabledForTesting(enabled bool) {
 	isOpenShiftOAuthEnabled = enabled
 }
 
+func SetOperatorNamespaceForTesting(desiredOperatorNamespace string) {
+	operatorNamespace = desiredOperatorNamespace
+}
+
 func InitializeForTesting(desiredInfrastructure Type) {
 	infrastructure = desiredInfrastructure
 

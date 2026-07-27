@@ -180,6 +180,9 @@ const (
 	DefaultContainerRunSccName             = "container-run"
 	DefaultDisableContainerRunCapabilities = true
 
+	// Networking
+	NetworkPolicyEnabled = false
+
 	// Finalizers
 	ContainerBuildFinalizer = "container-build.finalizers.che.eclipse.org"
 	ContainerRunFinalizer   = "che.eclipse.org/container-run"

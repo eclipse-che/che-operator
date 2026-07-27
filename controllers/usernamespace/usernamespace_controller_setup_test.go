@@ -146,17 +146,30 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 func setup(infraType infrastructure.Type, objs ...client.Object) (*runtime.Scheme, client.Client, *CheUserNamespaceReconciler) {
 	infrastructure.InitializeForTesting(infraType)
 
-	ctx := test.NewCtxBuilder().WithObjects(objs...).WithCheCluster(nil).Build()
+	dwPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "devworkspace-operator-manager",
+			Namespace: "devworkspace-controller",
+			Labels: map[string]string{
+				constants.KubernetesNameLabelKey:   constants.DevWorkspaceControllerName,
+				constants.KubernetesPartOfLabelKey: constants.DevWorkspaceOperatorName,
+			},
+		},
+		Spec: corev1.PodSpec{
+			ServiceAccountName: constants.DevWorkspaceServiceAccountName,
+		},
+	}
+
+	ctx := test.NewCtxBuilder().WithObjects(objs...).WithObjects(dwPod).WithCheCluster(nil).Build()
 
 	cl := ctx.ClusterAPI.Client
 	scheme := ctx.ClusterAPI.Scheme
 
 	r := &CheUserNamespaceReconciler{
-		client:                 cl,
-		nonCachedClient:        cl,
-		clientWrapper:          k8sclient.NewK8sClient(cl, scheme),
-		nonCachedClientWrapper: k8sclient.NewK8sClient(cl, scheme),
-		scheme:                 scheme,
+		client:          cl,
+		nonCachedClient: cl,
+		clientWrapper:   k8sclient.NewK8sClient(cl, scheme),
+		scheme:          scheme,
 		namespaceCache: &namespacecache.NamespaceCache{
 			Client:          cl,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{},

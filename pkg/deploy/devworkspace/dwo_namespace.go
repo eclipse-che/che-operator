@@ -16,40 +16,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-type DwoNamespaceReconciler struct {
-	reconciler.Reconcilable
-}
-
-func NewDwoNamespaceReconciler() *DwoNamespaceReconciler {
-	return &DwoNamespaceReconciler{}
-}
-
-func (r *DwoNamespaceReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	dwoNamespace, err := r.getDevWorkspaceNamespace(ctx)
-	if err != nil {
-		return reconcile.Result{}, false, err
-	}
-
-	ctx.DwoNamespace = dwoNamespace
-	return reconcile.Result{}, true, nil
-}
-
-func (r *DwoNamespaceReconciler) Finalize(ctx *chetypes.DeployContext) bool {
-	return true
-}
-
-// getDevWorkspaceNamespace returns the namespace of the DevWorkspace operator.
-// It searches for the DevWorkspace Operator Pods by its labels.
-func (r *DwoNamespaceReconciler) getDevWorkspaceNamespace(ctx *chetypes.DeployContext) (string, error) {
+func GetDevWorkspaceOperatorNamespace(clientWrapper *k8sclient.K8sClientWrapper) (string, error) {
 	selector := labels.SelectorFromSet(
 		labels.Set{
 			constants.KubernetesNameLabelKey:   constants.DevWorkspaceControllerName,
@@ -57,21 +31,30 @@ func (r *DwoNamespaceReconciler) getDevWorkspaceNamespace(ctx *chetypes.DeployCo
 		},
 	)
 
-	items, err := ctx.ClusterAPI.NonCachingClientWrapper.List(
+	items, err := clientWrapper.List(
 		context.TODO(),
 		&corev1.PodList{},
 		&client.ListOptions{LabelSelector: selector},
 	)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to list DevWorkspace operator pods: %w", err)
 	}
+
+	devWorkspaceOperatorNamespace := ""
 
 	for _, item := range items {
 		pod := item.(*corev1.Pod)
 		if pod.Spec.ServiceAccountName == constants.DevWorkspaceServiceAccountName {
-			return pod.Namespace, nil
+			if devWorkspaceOperatorNamespace != "" && devWorkspaceOperatorNamespace != pod.Namespace {
+				return "", fmt.Errorf("multiple DevWorkspace Operator pods were found across different namespaces")
+			}
+			devWorkspaceOperatorNamespace = pod.Namespace
 		}
 	}
 
-	return "", fmt.Errorf("DevWorkspace namespace not found")
+	if devWorkspaceOperatorNamespace != "" {
+		return devWorkspaceOperatorNamespace, nil
+	}
+
+	return "", fmt.Errorf("DevWorkspace operator namespace not found")
 }

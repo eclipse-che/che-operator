@@ -14,12 +14,14 @@ package che
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/deploy/metrics"
+	"github.com/eclipse-che/che-operator/pkg/deploy/networkpolicies"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -43,7 +45,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	identityprovider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
 	"github.com/eclipse-che/che-operator/pkg/deploy/migration"
-	"github.com/eclipse-che/che-operator/pkg/deploy/networkpolicies"
 	"github.com/eclipse-che/che-operator/pkg/deploy/openvsx"
 	openvsxdatabase "github.com/eclipse-che/che-operator/pkg/deploy/openvsx/openvsx-database"
 	openvsxserver "github.com/eclipse-che/che-operator/pkg/deploy/openvsx/openvsx-server"
@@ -111,6 +112,10 @@ func NewReconciler(
 	reconcilerManager.AddReconciler(devworkspace.NewDevWorkspaceConfigReconciler())
 	reconcilerManager.AddReconciler(rbac.NewGatewayPermissionsReconciler())
 
+	if infrastructure.IsOpenShift() {
+		reconcilerManager.AddReconciler(networkpolicies.NewNetworkPoliciesReconciler())
+	}
+
 	// we have to expose che endpoint independently of syncing other server
 	// resources since che host is used for dashboard deployment and che config map
 	reconcilerManager.AddReconciler(server.NewCheHostReconciler())
@@ -125,11 +130,9 @@ func NewReconciler(
 	reconcilerManager.AddReconciler(openvsxdatabase.NewOpenVSXDatabaseReconciler())
 	reconcilerManager.AddReconciler(openvsxserver.NewOpenVSXServerReconciler())
 	reconcilerManager.AddReconciler(editorsdefinitions.NewEditorsDefinitionsReconciler())
-	reconcilerManager.AddReconciler(devworkspace.NewDwoNamespaceReconciler())
 	reconcilerManager.AddReconciler(dashboard.NewDashboardReconciler())
 	reconcilerManager.AddReconciler(gateway.NewGatewayReconciler())
 	reconcilerManager.AddReconciler(server.NewCheServerReconciler())
-	reconcilerManager.AddReconciler(networkpolicies.NewNetworkPoliciesReconciler())
 	reconcilerManager.AddReconciler(imagepuller.NewImagePuller())
 
 	if infrastructure.IsOpenShift() {
@@ -246,20 +249,23 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// Resolve proxy configuration
-	proxy, err := GetProxyConfiguration(deployContext)
+	deployContext.Proxy, err = GetProxyConfiguration(deployContext)
 	if err != nil {
 		r.Log.Error(err, "Error on reading proxy configuration")
 		return ctrl.Result{}, err
 	}
-	deployContext.Proxy = proxy
 
 	// Resolve authentication configuration
-	authentication, err := ResolveAuthentication(deployContext)
+	deployContext.Authentication, err = ResolveAuthentication(deployContext)
 	if err != nil {
 		r.Log.Error(err, "Error on resolving authentication")
 		return ctrl.Result{}, err
 	}
-	deployContext.Authentication = authentication
+
+	deployContext.DwoNamespace, err = devworkspace.GetDevWorkspaceOperatorNamespace(clusterAPI.ClientWrapper)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("could not get DevWorkspaceOperator namespace: %w", err)
+	}
 
 	// Detect whether self-signed certificate is used
 	isSelfSignedCertificate, err := tls.IsSelfSignedCertificateUsed(deployContext)

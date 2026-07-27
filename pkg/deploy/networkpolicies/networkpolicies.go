@@ -19,6 +19,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
@@ -80,7 +81,10 @@ func (r *NetworkPoliciesReconciler) Finalize(_ *chetypes.DeployContext) bool {
 }
 
 func (r *NetworkPoliciesReconciler) syncNetworkPolicy(ctx *chetypes.DeployContext) error {
-	networkPolicies := r.getNetworkPolicies(ctx)
+	networkPolicies, err := r.getNetworkPolicies(ctx)
+	if err != nil {
+		return fmt.Errorf("could not get network policies: %w", err)
+	}
 
 	for _, networkPolicy := range networkPolicies {
 		if err := controllerutil.SetControllerReference(ctx.CheCluster, networkPolicy, ctx.ClusterAPI.Scheme); err != nil {
@@ -99,8 +103,13 @@ func (r *NetworkPoliciesReconciler) syncNetworkPolicy(ctx *chetypes.DeployContex
 	return nil
 }
 
-func (r *NetworkPoliciesReconciler) getNetworkPolicies(ctx *chetypes.DeployContext) []*networkingv1.NetworkPolicy {
-	allowFromSameNamespaceNetworkPolicy := &networkingv1.NetworkPolicy{
+func (r *NetworkPoliciesReconciler) getNetworkPolicies(ctx *chetypes.DeployContext) ([]*networkingv1.NetworkPolicy, error) {
+	operatorNamespace, err := infrastructure.GetOperatorNamespace()
+	if err != nil {
+		return nil, fmt.Errorf("could not get operator namespace: %w", err)
+	}
+
+	allowFromSameNamespace := &networkingv1.NetworkPolicy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "NetworkPolicy",
 			APIVersion: networkingv1.SchemeGroupVersion.String(),
@@ -111,12 +120,20 @@ func (r *NetworkPoliciesReconciler) getNetworkPolicies(ctx *chetypes.DeployConte
 			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
 		Spec: networkingv1.NetworkPolicySpec{
-			PodSelector: metav1.LabelSelector{},
+			PodSelector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
+				},
+			},
 			Ingress: []networkingv1.NetworkPolicyIngressRule{
 				{
 					From: []networkingv1.NetworkPolicyPeer{
 						{
-							PodSelector: &metav1.LabelSelector{},
+							PodSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
+								},
+							},
 						},
 					},
 				},
@@ -125,18 +142,23 @@ func (r *NetworkPoliciesReconciler) getNetworkPolicies(ctx *chetypes.DeployConte
 		},
 	}
 
-	allowFromWorkspacesNamespacesNetworkPolicy := &networkingv1.NetworkPolicy{
+	allowFromWorkspacesNamespacesToOpenVSXRegistry := &networkingv1.NetworkPolicy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "NetworkPolicy",
 			APIVersion: networkingv1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "allow-from-workspaces-namespaces",
+			Name:      "allow-from-workspaces-namespaces-to-openvsx-registry",
 			Namespace: ctx.CheCluster.Namespace,
 			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
 		Spec: networkingv1.NetworkPolicySpec{
-			PodSelector: metav1.LabelSelector{},
+			PodSelector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+					constants.KubernetesComponentLabelKey: constants.OpenVSXServerComponentName,
+				},
+			},
 			Ingress: []networkingv1.NetworkPolicyIngressRule{
 				{
 					From: []networkingv1.NetworkPolicyPeer{
@@ -154,8 +176,172 @@ func (r *NetworkPoliciesReconciler) getNetworkPolicies(ctx *chetypes.DeployConte
 		},
 	}
 
-	return []*networkingv1.NetworkPolicy{
-		allowFromSameNamespaceNetworkPolicy,
-		allowFromWorkspacesNamespacesNetworkPolicy,
+	allowFromWorkspacesNamespacesToPluginRegistry := &networkingv1.NetworkPolicy{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "NetworkPolicy",
+			APIVersion: networkingv1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "allow-from-workspaces-namespaces-to-plugin-registry",
+			Namespace: ctx.CheCluster.Namespace,
+			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
+		},
+		Spec: networkingv1.NetworkPolicySpec{
+			PodSelector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+					constants.KubernetesComponentLabelKey: constants.PluginRegistryName,
+				},
+			},
+			Ingress: []networkingv1.NetworkPolicyIngressRule{
+				{
+					From: []networkingv1.NetworkPolicyPeer{
+						{
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									constants.KubernetesComponentLabelKey: constants.WorkspacesNamespaceComponentName,
+								},
+							},
+						},
+					},
+				},
+			},
+			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
+		},
 	}
+
+	allowFromOpenShiftIngress := &networkingv1.NetworkPolicy{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "NetworkPolicy",
+			APIVersion: networkingv1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "allow-from-openshift-ingress",
+			Namespace: ctx.CheCluster.Namespace,
+			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
+		},
+		Spec: networkingv1.NetworkPolicySpec{
+			PodSelector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
+				},
+			},
+			Ingress: []networkingv1.NetworkPolicyIngressRule{
+				{
+					From: []networkingv1.NetworkPolicyPeer{
+						{
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"network.openshift.io/policy-group": "ingress",
+								},
+							},
+						},
+					},
+				},
+			},
+			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
+		},
+	}
+
+	allowFromOpenShiftMonitoring := &networkingv1.NetworkPolicy{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "NetworkPolicy",
+			APIVersion: networkingv1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "allow-from-openshift-monitoring",
+			Namespace: ctx.CheCluster.Namespace,
+			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
+		},
+		Spec: networkingv1.NetworkPolicySpec{
+			PodSelector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
+				},
+			},
+			Ingress: []networkingv1.NetworkPolicyIngressRule{
+				{
+					From: []networkingv1.NetworkPolicyPeer{
+						{
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"network.openshift.io/policy-group": "monitoring",
+								},
+							},
+						},
+					},
+				},
+			},
+			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
+		},
+	}
+
+	allowFromOperator := &networkingv1.NetworkPolicy{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "NetworkPolicy",
+			APIVersion: networkingv1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "allow-from-operator",
+			Namespace: ctx.CheCluster.Namespace,
+			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
+		},
+		Spec: networkingv1.NetworkPolicySpec{
+			PodSelector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
+				},
+			},
+			Ingress: []networkingv1.NetworkPolicyIngressRule{
+				{
+					From: []networkingv1.NetworkPolicyPeer{
+						{
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"kubernetes.io/metadata.name": operatorNamespace,
+								},
+							},
+							PodSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
+								},
+							},
+						},
+					},
+				},
+			},
+			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
+		},
+	}
+
+	allowToEverywhere := &networkingv1.NetworkPolicy{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "NetworkPolicy",
+			APIVersion: networkingv1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "allow-to-everywhere",
+			Namespace: ctx.CheCluster.Namespace,
+			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
+		},
+		Spec: networkingv1.NetworkPolicySpec{
+			PodSelector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
+				},
+			},
+			Egress:      []networkingv1.NetworkPolicyEgressRule{{}},
+			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeEgress},
+		},
+	}
+
+	return []*networkingv1.NetworkPolicy{
+		allowFromSameNamespace,
+		allowFromWorkspacesNamespacesToOpenVSXRegistry,
+		allowFromWorkspacesNamespacesToPluginRegistry,
+		allowFromOpenShiftIngress,
+		allowFromOpenShiftMonitoring,
+		allowFromOperator,
+		allowToEverywhere,
+	}, nil
 }

@@ -27858,22 +27858,28 @@ spec:
                     description: Defines labels which will be set for an Ingress (a
                       route for OpenShift platform).
                     type: object
-                  networkPolicies:
+                  networkPolicy:
                     description: |-
-                      NetworkPolicies configures NetworkPolicy resources for the Che namespace
-                      and user workspace namespaces.
-                      When enabled, the following Ingress-only allow policies are created:
+                      NetworkPolicy configures NetworkPolicy resources for the Che namespace
+                      and user workspace namespaces. For OpenShift clusters only.
+                      When enabled, the following policies are created:
                       In the Che namespace:
-                        - allow-from-same-namespace: allows traffic between pods in the same namespace.
-                        - allow-from-workspaces-namespaces: allows traffic from user workspace namespaces
-                          (namespaces labeled app.kubernetes.io/component=workspaces-namespace).
+                        - allow-from-same-namespace: allows ingress traffic between Che pods in the same namespace.
+                        - allow-from-workspaces-namespaces-to-openvsx-registry: allows ingress traffic from user workspace
+                          namespaces to the OpenVSX registry.
+                        - allow-from-workspaces-namespaces-to-plugin-registry: allows ingress traffic from user workspace
+                          namespaces to the plugin registry.
+                        - allow-from-openshift-ingress: allows ingress traffic from the OpenShift ingress namespace.
+                        - allow-from-openshift-monitoring: allows ingress traffic from the OpenShift monitoring namespace.
+                        - allow-from-operator: allows ingress traffic from the operator pod to Che components.
+                        - allow-to-everywhere: allows all egress traffic from Che pods.
                       In each user workspace namespace:
-                        - allow-from-<flavor>: allows traffic from the Che namespace.
-                        - allow-from-operators: allows traffic from the operators namespace.
-                        - allow-from-same-namespace: allows traffic between pods in the same namespace.
-                      On OpenShift, these additional policies are also created in each user workspace namespace:
-                        - allow-from-openshift-monitoring: allows traffic from the monitoring namespace.
-                        - allow-from-openshift-ingress: allows traffic from the ingress namespace.
+                        - allow-from-<che-namespace>: allows ingress traffic from the Che namespace.
+                        - allow-from-same-namespace: allows ingress traffic between pods in the same namespace.
+                        - allow-from-devworkspace-operator: allows ingress traffic from the DevWorkspace operator.
+                        - allow-from-openshift-monitoring: allows ingress traffic from the OpenShift monitoring namespace.
+                        - allow-from-openshift-ingress: allows ingress traffic from the OpenShift ingress namespace.
+                        - allow-to-everywhere: allows all egress traffic from workspace pods.
                     properties:
                       enabled:
                         description: Enabled controls whether the operator creates
