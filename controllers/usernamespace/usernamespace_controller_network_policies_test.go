@@ -21,8 +21,8 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	projectv1 "github.com/openshift/api/project/v1"
 	"github.com/stretchr/testify/assert"
-	networkingv1 "k8s.io/api/networking/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -40,52 +40,9 @@ var allUserNsNetworkPolicyNames = []string{
 	"allow-to-everywhere",
 }
 
-func buildNetworkPolicyTestObjects(
-	networkPolicyEnabled bool,
-) (*chev2.CheCluster, *corev1.Namespace, *projectv1.Project) {
-	cheCluster := &chev2.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "eclipse-che",
-			Namespace: "eclipse-che",
-		},
-		Spec: chev2.CheClusterSpec{
-			Networking: chev2.CheClusterSpecNetworking{
-				NetworkPolicy: &chev2.NetworkPolicy{
-					Enabled: ptr.To(networkPolicyEnabled),
-				},
-			},
-		},
-	}
-
-	userNamespace := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "user-project",
-			Labels: map[string]string{
-				constants.KubernetesPartOfLabelKey:           constants.CheEclipseOrg,
-				constants.KubernetesComponentLabelKey:        "workspaces-namespace",
-				constants.WorkspaceNamespaceOwnerUidLabelKey: "some-uid",
-			},
-		},
-	}
-
-	userProject := &projectv1.Project{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "user-project",
-			Labels: map[string]string{
-				constants.KubernetesPartOfLabelKey:           constants.CheEclipseOrg,
-				constants.KubernetesComponentLabelKey:        "workspaces-namespace",
-				constants.WorkspaceNamespaceOwnerUidLabelKey: "some-uid",
-			},
-		},
-	}
-
-	return cheCluster, userNamespace, userProject
-}
-
 func TestNetworkPoliciesCreatedWhenEnabledOnOpenShift(t *testing.T) {
-	cheCluster, userNamespace, userProject := buildNetworkPolicyTestObjects(true)
-
-	_, cl, r := setup(infrastructure.OpenShiftV4, cheCluster, userProject, userNamespace)
+	cheCluster, userNamespace, userProject := buildNetworkPolicyTestObjects()
+	_, cl, r := setup(infrastructure.OpenShiftV4, cheCluster, userNamespace, userProject)
 
 	_, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: "user-project"}})
 	assert.NoError(t, err)
@@ -107,9 +64,8 @@ func TestNetworkPoliciesCreatedWhenEnabledOnOpenShift(t *testing.T) {
 }
 
 func TestNetworkPoliciesDeletedWhenDisabled(t *testing.T) {
-	cheCluster, userNamespace, userProject := buildNetworkPolicyTestObjects(true)
-
-	_, cl, r := setup(infrastructure.OpenShiftV4, cheCluster, userProject, userNamespace)
+	cheCluster, userNamespace, userProject := buildNetworkPolicyTestObjects()
+	_, cl, r := setup(infrastructure.OpenShiftV4, cheCluster, userNamespace, userProject)
 
 	_, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: "user-project"}})
 	assert.NoError(t, err)
@@ -134,9 +90,8 @@ func TestNetworkPoliciesDeletedWhenDisabled(t *testing.T) {
 }
 
 func TestNetworkPoliciesIdempotent(t *testing.T) {
-	cheCluster, userNamespace, userProject := buildNetworkPolicyTestObjects(true)
-
-	_, cl, r := setup(infrastructure.OpenShiftV4, cheCluster, userProject, userNamespace)
+	cheCluster, userNamespace, userProject := buildNetworkPolicyTestObjects()
+	_, cl, r := setup(infrastructure.OpenShiftV4, cheCluster, userNamespace, userProject)
 
 	_, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: "user-project"}})
 	assert.NoError(t, err)
@@ -156,7 +111,7 @@ func TestNetworkPoliciesIdempotent(t *testing.T) {
 }
 
 func TestNetworkPoliciesDeletedOnlyOwnedPolicies(t *testing.T) {
-	cheCluster, userNamespace, userProject := buildNetworkPolicyTestObjects(true)
+	cheCluster, userNamespace, userProject := buildNetworkPolicyTestObjects()
 
 	unownedNetworkPolicy := &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
@@ -168,8 +123,8 @@ func TestNetworkPoliciesDeletedOnlyOwnedPolicies(t *testing.T) {
 	_, cl, r := setup(
 		infrastructure.OpenShiftV4,
 		cheCluster,
-		userProject,
 		userNamespace,
+		userProject,
 		unownedNetworkPolicy,
 	)
 
@@ -201,4 +156,44 @@ func TestNetworkPoliciesDeletedOnlyOwnedPolicies(t *testing.T) {
 		np,
 	)
 	assert.NoError(t, err)
+}
+
+func buildNetworkPolicyTestObjects() (*chev2.CheCluster, client.Object, client.Object) {
+	cheCluster := &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				NetworkPolicy: &chev2.NetworkPolicy{
+					Enabled: ptr.To(true),
+				},
+			},
+		},
+	}
+
+	userNamespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "user-project",
+			Labels: map[string]string{
+				constants.KubernetesPartOfLabelKey:           constants.CheEclipseOrg,
+				constants.KubernetesComponentLabelKey:        "workspaces-namespace",
+				constants.WorkspaceNamespaceOwnerUidLabelKey: "some-uid",
+			},
+		},
+	}
+
+	userProject := &projectv1.Project{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "user-project",
+			Labels: map[string]string{
+				constants.KubernetesPartOfLabelKey:           constants.CheEclipseOrg,
+				constants.KubernetesComponentLabelKey:        "workspaces-namespace",
+				constants.WorkspaceNamespaceOwnerUidLabelKey: "some-uid",
+			},
+		},
+	}
+
+	return cheCluster, userNamespace, userProject
 }
