@@ -62,8 +62,8 @@ github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/devfile/api/v2 v2.3.1-alpha.0.20250521155908-5c3d7b99d252 h1:C6DNKt+GHWe7vVD2ic73lR10UlC8egbxAY28U7A5IZA=
 github.com/devfile/api/v2 v2.3.1-alpha.0.20250521155908-5c3d7b99d252/go.mod h1:ZdlwgS98m5O+i5H+q/COJt4PAe2ZGoAq8tJ7+s0UmAU=
-github.com/devfile/devworkspace-operator v0.41.0 h1:Oc3rzy3bBYMe8hpoihLlYXsIItvegRlpFf2/uj3FlR0=
-github.com/devfile/devworkspace-operator v0.41.0/go.mod h1:8SyQtuUsznciSPKBWsgbIyNEsbvzWSiIpvd6ATefb8Q=
+github.com/devfile/devworkspace-operator v0.42.0 h1:6+ENMy3aunbRIERrasaumWxRetP8oJ3sd9VNmz8z0iw=
+github.com/devfile/devworkspace-operator v0.42.0/go.mod h1:TwZlVUb+/wwXaxJ6gadRiJKZ+JRKdniO8p+2KSZCqkI=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f h1:lO4WD4F/rVNCu3HqELle0jiPLLBs70cWOduZpkS1E78=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f/go.mod h1:cuUVRXasLTGF7a8hSLbxyZXjz+1KgoB3wDUb6vlszIc=
 github.com/distribution/distribution/v3 v3.0.0 h1:q4R8wemdRQDClzoNNStftB2ZAfqOiN6UX90KJc4HjyM=
