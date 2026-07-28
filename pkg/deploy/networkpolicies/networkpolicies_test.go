@@ -34,7 +34,7 @@ var allNetworkPolicyNames = []string{
 	"allow-from-openshift-ingress",
 	"allow-from-openshift-monitoring",
 	"allow-from-operator",
-	"allow-all-ingress",
+	"allow-all-egress",
 }
 
 func buildCtx(networkPolicyEnabled bool) *test.DeployContextBuild {

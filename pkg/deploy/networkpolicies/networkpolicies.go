@@ -285,7 +285,7 @@ func (r *NetworkPoliciesReconciler) getNetworkPolicies(ctx *chetypes.DeployConte
 			APIVersion: networkingv1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "allow-all-ingress",
+			Name:      "allow-all-egress",
 			Namespace: ctx.CheCluster.Namespace,
 			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},

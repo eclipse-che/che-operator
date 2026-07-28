@@ -832,13 +832,13 @@ func (r *CheUserNamespaceReconciler) getNetworkPolicies(
 		},
 	}
 
-	allowToEverywhere := &networkingv1.NetworkPolicy{
+	allowAllEgress := &networkingv1.NetworkPolicy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "NetworkPolicy",
 			APIVersion: networkingv1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "allow-all-ingress",
+			Name:      "allow-all-egress",
 			Namespace: targetNs,
 			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
@@ -855,7 +855,7 @@ func (r *CheUserNamespaceReconciler) getNetworkPolicies(
 		allowFromDevWorkspaceOperator,
 		allowFromOpenShiftMonitoring,
 		allowFromOpenShiftIngress,
-		allowToEverywhere,
+		allowAllEgress,
 	}, nil
 }
 
