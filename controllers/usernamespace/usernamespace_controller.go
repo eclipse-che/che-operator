@@ -838,7 +838,7 @@ func (r *CheUserNamespaceReconciler) getNetworkPolicies(
 			APIVersion: networkingv1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "allow-to-everywhere",
+			Name:      "allow-all-ingress",
 			Namespace: targetNs,
 			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},

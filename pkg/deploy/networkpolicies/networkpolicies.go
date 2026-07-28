@@ -142,55 +142,20 @@ func (r *NetworkPoliciesReconciler) getNetworkPolicies(ctx *chetypes.DeployConte
 		},
 	}
 
-	allowFromWorkspacesNamespacesToOpenVSXRegistry := &networkingv1.NetworkPolicy{
+	allowFromWorkspaces := &networkingv1.NetworkPolicy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "NetworkPolicy",
 			APIVersion: networkingv1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "allow-from-workspaces-namespaces-to-openvsx-registry",
+			Name:      "allow-from-workspaces",
 			Namespace: ctx.CheCluster.Namespace,
 			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
 		Spec: networkingv1.NetworkPolicySpec{
 			PodSelector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
-					constants.KubernetesComponentLabelKey: constants.OpenVSXServerComponentName,
-				},
-			},
-			Ingress: []networkingv1.NetworkPolicyIngressRule{
-				{
-					From: []networkingv1.NetworkPolicyPeer{
-						{
-							NamespaceSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{
-									constants.KubernetesComponentLabelKey: constants.WorkspacesNamespaceComponentName,
-								},
-							},
-						},
-					},
-				},
-			},
-			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
-		},
-	}
-
-	allowFromWorkspacesNamespacesToPluginRegistry := &networkingv1.NetworkPolicy{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "NetworkPolicy",
-			APIVersion: networkingv1.SchemeGroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "allow-from-workspaces-namespaces-to-plugin-registry",
-			Namespace: ctx.CheCluster.Namespace,
-			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
-		},
-		Spec: networkingv1.NetworkPolicySpec{
-			PodSelector: metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
-					constants.KubernetesComponentLabelKey: constants.PluginRegistryName,
+					constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
 				},
 			},
 			Ingress: []networkingv1.NetworkPolicyIngressRule{
@@ -314,13 +279,13 @@ func (r *NetworkPoliciesReconciler) getNetworkPolicies(ctx *chetypes.DeployConte
 		},
 	}
 
-	allowToEverywhere := &networkingv1.NetworkPolicy{
+	allowAllEgress := &networkingv1.NetworkPolicy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "NetworkPolicy",
 			APIVersion: networkingv1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "allow-to-everywhere",
+			Name:      "allow-all-ingress",
 			Namespace: ctx.CheCluster.Namespace,
 			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
@@ -337,11 +302,10 @@ func (r *NetworkPoliciesReconciler) getNetworkPolicies(ctx *chetypes.DeployConte
 
 	return []*networkingv1.NetworkPolicy{
 		allowFromSameNamespace,
-		allowFromWorkspacesNamespacesToOpenVSXRegistry,
-		allowFromWorkspacesNamespacesToPluginRegistry,
+		allowFromWorkspaces,
 		allowFromOpenShiftIngress,
 		allowFromOpenShiftMonitoring,
 		allowFromOperator,
-		allowToEverywhere,
+		allowAllEgress,
 	}, nil
 }

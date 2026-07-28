@@ -37,7 +37,7 @@ var allUserNsNetworkPolicyNames = []string{
 	"allow-from-devworkspace-operator",
 	"allow-from-openshift-monitoring",
 	"allow-from-openshift-ingress",
-	"allow-to-everywhere",
+	"allow-all-ingress",
 }
 
 func TestNetworkPoliciesCreatedWhenEnabledOnOpenShift(t *testing.T) {

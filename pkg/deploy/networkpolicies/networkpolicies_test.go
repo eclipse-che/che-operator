@@ -30,12 +30,11 @@ import (
 
 var allNetworkPolicyNames = []string{
 	"allow-from-same-namespace",
-	"allow-from-workspaces-namespaces-to-openvsx-registry",
-	"allow-from-workspaces-namespaces-to-plugin-registry",
+	"allow-from-workspaces",
 	"allow-from-openshift-ingress",
 	"allow-from-openshift-monitoring",
 	"allow-from-operator",
-	"allow-to-everywhere",
+	"allow-all-ingress",
 }
 
 func buildCtx(networkPolicyEnabled bool) *test.DeployContextBuild {

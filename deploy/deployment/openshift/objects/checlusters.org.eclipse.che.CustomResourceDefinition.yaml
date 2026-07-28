@@ -27872,14 +27872,14 @@ spec:
                         - allow-from-openshift-ingress: allows ingress traffic from the OpenShift ingress namespace.
                         - allow-from-openshift-monitoring: allows ingress traffic from the OpenShift monitoring namespace.
                         - allow-from-operator: allows ingress traffic from the operator pod to Che components.
-                        - allow-to-everywhere: allows all egress traffic from Che pods.
+                        - allow-all-ingress: allows all egress traffic from Che pods.
                       In each user workspace namespace:
                         - allow-from-<che-namespace>: allows ingress traffic from the Che namespace.
                         - allow-from-same-namespace: allows ingress traffic between pods in the same namespace.
                         - allow-from-devworkspace-operator: allows ingress traffic from the DevWorkspace operator.
                         - allow-from-openshift-monitoring: allows ingress traffic from the OpenShift monitoring namespace.
                         - allow-from-openshift-ingress: allows ingress traffic from the OpenShift ingress namespace.
-                        - allow-to-everywhere: allows all egress traffic from workspace pods.
+                        - allow-all-ingress: allows all egress traffic from workspace pods.
                     properties:
                       enabled:
                         description: Enabled controls whether the operator creates
