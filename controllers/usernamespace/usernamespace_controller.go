@@ -154,7 +154,11 @@ func (r *CheUserNamespaceReconciler) commonRules(ctx context.Context, namesInChe
 func (r *CheUserNamespaceReconciler) watchRulesForNetworkPolicies(_ context.Context) handler.EventHandler {
 	return handler.EnqueueRequestsFromMapFunc(
 		func(ctx context.Context, obj client.Object) []reconcile.Request {
-			workspaceInfo, _ := r.namespaceCache.GetNamespaceInfo(ctx, obj.GetNamespace())
+			workspaceInfo, err := r.namespaceCache.GetNamespaceInfo(ctx, obj.GetNamespace())
+			if err != nil {
+				logger.Error(err, "failed to get namespace info for %s", obj.GetNamespace())
+				return []reconcile.Request{}
+			}
 
 			if workspaceInfo != nil &&
 				workspaceInfo.IsWorkspaceNamespace &&

@@ -27849,13 +27849,10 @@ spec:
                       When enabled, the following policies are created:
                       In the Che namespace:
                         - allow-from-same-namespace: allows ingress traffic between Che pods in the same namespace.
-                        - allow-from-workspaces-namespaces-to-openvsx-registry: allows ingress traffic from user workspace
-                          namespaces to the OpenVSX registry.
-                        - allow-from-workspaces-namespaces-to-plugin-registry: allows ingress traffic from user workspace
-                          namespaces to the plugin registry.
+                        - allow-from-workspaces: allows ingress traffic from user workspace namespaces.
                         - allow-from-openshift-ingress: allows ingress traffic from the OpenShift ingress namespace.
                         - allow-from-openshift-monitoring: allows ingress traffic from the OpenShift monitoring namespace.
-                        - allow-from-operator: allows ingress traffic from the operator pod to Che components.
+                        - allow-from-<flavor>-operator: allows ingress traffic from the operator pod to Che components.
                         - allow-all-egress: allows all egress traffic from Che pods.
                       In each user workspace namespace:
                         - allow-from-<che-namespace>: allows ingress traffic from the Che namespace.

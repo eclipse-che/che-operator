@@ -363,7 +363,7 @@ func DeleteNetworkPolicy(ctx *chetypes.DeployContext, namespace string) error {
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("failed to list NetworkPolicy in namespace %s: %w", ctx.CheCluster.Namespace, err)
+		return fmt.Errorf("failed to list NetworkPolicy in namespace %s: %w", namespace, err)
 	}
 
 	for _, item := range items {
