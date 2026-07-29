@@ -166,10 +166,11 @@ func setup(infraType infrastructure.Type, objs ...client.Object) (*runtime.Schem
 	scheme := ctx.ClusterAPI.Scheme
 
 	r := &CheUserNamespaceReconciler{
-		client:          cl,
-		nonCachedClient: cl,
-		clientWrapper:   k8sclient.NewK8sClient(cl, scheme),
-		scheme:          scheme,
+		client:                 cl,
+		nonCachedClient:        cl,
+		clientWrapper:          k8sclient.NewK8sClient(cl, scheme),
+		nonCachedClientWrapper: k8sclient.NewK8sClient(cl, scheme),
+		scheme:                 scheme,
 		namespaceCache: &namespacecache.NamespaceCache{
 			Client:          cl,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{},

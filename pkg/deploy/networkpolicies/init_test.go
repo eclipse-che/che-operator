@@ -21,6 +21,6 @@ import (
 func init() {
 	test.EnableTestMode()
 
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 	defaults.InitializeForTesting("../../../config/manager/manager.yaml")
 }

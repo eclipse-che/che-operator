@@ -22,7 +22,6 @@ import (
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	"k8s.io/apimachinery/pkg/selection"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
@@ -338,24 +337,12 @@ func main() {
 func getCacheFunc() (cache.NewCacheFunc, error) {
 	partOfEclipseChe := labels.SelectorFromSet(map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg})
 
-	// Cache the DevWorkspace Operator pod so the cached client can be used
-	// to quickly determine its namespace (see `pkg/deploy/devworkspace/dwo_namespace.go` usage).
-	partOfEclipseCheOrDevWorkspaceRequirements, err := labels.NewRequirement(
-		constants.KubernetesPartOfLabelKey,
-		selection.In,
-		[]string{constants.CheEclipseOrg, constants.DevWorkspaceOperatorName},
-	)
-	if err != nil {
-		return nil, err
-	}
-	partOfEclipseCheOrDevWorkspace := labels.NewSelector().Add(*partOfEclipseCheOrDevWorkspaceRequirements)
-
 	selectors := map[client.Object]cache.ByObject{
 		&appsv1.Deployment{}: {
 			Label: partOfEclipseChe,
 		},
 		&corev1.Pod{}: {
-			Label: partOfEclipseCheOrDevWorkspace,
+			Label: partOfEclipseChe,
 		},
 		&batchv1.Job{}: {
 			Label: partOfEclipseChe,

@@ -13,6 +13,7 @@
 package test
 
 import (
+	"context"
 	"strings"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -76,7 +77,8 @@ func (f *DeployContextBuild) Build() *chetypes.DeployContext {
 		},
 		Proxy:          &chetypes.Proxy{},
 		Authentication: buildAuthentication(f.cheCluster),
-		DwoNamespace:   "devworkspace-controller",
+		DWONamespace:   "devworkspace-controller",
+		Context:        context.Background(),
 	}
 
 	if f.cheCluster != nil {

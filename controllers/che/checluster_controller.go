@@ -246,6 +246,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	deployContext := &chetypes.DeployContext{
 		ClusterAPI: clusterAPI,
 		CheCluster: checluster,
+		Context:    ctx,
 	}
 
 	// Resolve proxy configuration
@@ -262,18 +263,17 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
-	deployContext.DwoNamespace, err = devworkspace.GetDevWorkspaceOperatorNamespace(clusterAPI.ClientWrapper)
+	deployContext.DWONamespace, err = devworkspace.GetDevWorkspaceOperatorNamespace(clusterAPI.ClientWrapper)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("could not get DevWorkspaceOperator namespace: %w", err)
 	}
 
 	// Detect whether self-signed certificate is used
-	isSelfSignedCertificate, err := tls.IsSelfSignedCertificateUsed(deployContext)
+	deployContext.IsSelfSignedCertificate, err = tls.IsSelfSignedCertificateUsed(deployContext)
 	if err != nil {
 		r.Log.Error(err, "Failed to detect if self-signed certificate used.")
 		return ctrl.Result{}, err
 	}
-	deployContext.IsSelfSignedCertificate = isSelfSignedCertificate
 
 	if deployContext.CheCluster.DeletionTimestamp.IsZero() {
 		result, done, err := r.reconcilerManager.ReconcileAll(deployContext)

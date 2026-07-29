@@ -47,6 +47,8 @@ var (
 	operatorNamespace string
 )
 
+// GetOperatorNamespace returns the namespace where the operator is running.
+// The result is cached to avoid repeated filesystem reads.
 func GetOperatorNamespace() (string, error) {
 	if operatorNamespace == "" {
 		nsBytes, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
@@ -100,10 +102,6 @@ func IsServiceMonitorEnabled() bool {
 
 func SetOpenShiftOAuthEnabledForTesting(enabled bool) {
 	isOpenShiftOAuthEnabled = enabled
-}
-
-func SetOperatorNamespaceForTesting(desiredOperatorNamespace string) {
-	operatorNamespace = desiredOperatorNamespace
 }
 
 func InitializeForTesting(desiredInfrastructure Type) {

@@ -124,7 +124,7 @@ func (r *ContainerCapabilitiesReconciler) sync(ctx *chetypes.DeployContext, cc C
 	if err := ctx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
 		r.getDWClusterRoleBinding(
-			ctx.DwoNamespace,
+			ctx.DWONamespace,
 			cc.getDWOClusterRoleName(),
 			cc.getDWOClusterRoleBindingName(),
 		),

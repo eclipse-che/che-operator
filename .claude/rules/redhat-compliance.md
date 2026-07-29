@@ -4,3 +4,4 @@
 - When suggesting commit messages, include `Assisted-by: {AGENT_NAME}` trailer (e.g., `Assisted-by: Claude Opus 4.6`).
 - Never include credentials, tokens, or secrets in code.
 - All new Go files must include the EPL-2.0 copyright header (copy from any existing file in the repo). This does not apply to files in the `vendor/` directory.
+- When editing an existing file, update the copyright year range end to the current year (e.g., `2019-2025` → `2019-2026`).

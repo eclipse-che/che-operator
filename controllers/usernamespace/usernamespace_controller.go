@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -18,14 +18,14 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	containercapabilties "github.com/eclipse-che/che-operator/pkg/deploy/container-capabilities"
-	"github.com/eclipse-che/che-operator/pkg/deploy/devworkspace"
-	"k8s.io/apimachinery/pkg/labels"
+	"github.com/eclipse-che/che-operator/pkg/deploy/networkpolicies"
 	"k8s.io/utils/ptr"
 
 	devworkspacedefaults "github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
@@ -64,12 +64,20 @@ const (
 	podTolerationsAnnotation = "controller.devfile.io/pod-tolerations"
 )
 
+var (
+	logger = ctrl.Log.WithName("usernamespace")
+)
+
 type CheUserNamespaceReconciler struct {
-	scheme          *runtime.Scheme
-	client          client.Client
-	nonCachedClient client.Client
-	clientWrapper   *k8sclient.K8sClientWrapper
-	namespaceCache  *namespacecache.NamespaceCache
+	scheme                 *runtime.Scheme
+	client                 client.Client
+	nonCachedClient        client.Client
+	clientWrapper          *k8sclient.K8sClientWrapper
+	nonCachedClientWrapper *k8sclient.K8sClientWrapper
+	namespaceCache         *namespacecache.NamespaceCache
+
+	dwoNamespace   string
+	dwoNamespaceMu sync.RWMutex
 }
 
 var _ reconcile.Reconciler = (*CheUserNamespaceReconciler)(nil)
@@ -81,11 +89,12 @@ func NewCheUserNamespaceReconciler(
 	namespaceCache *namespacecache.NamespaceCache) *CheUserNamespaceReconciler {
 
 	return &CheUserNamespaceReconciler{
-		scheme:          scheme,
-		client:          client,
-		nonCachedClient: noncachedClient,
-		clientWrapper:   k8sclient.NewK8sClient(client, scheme),
-		namespaceCache:  namespaceCache,
+		scheme:                 scheme,
+		client:                 client,
+		nonCachedClient:        noncachedClient,
+		clientWrapper:          k8sclient.NewK8sClient(client, scheme),
+		nonCachedClientWrapper: k8sclient.NewK8sClient(noncachedClient, scheme),
+		namespaceCache:         namespaceCache,
 	}
 }
 
@@ -100,6 +109,10 @@ func (r *CheUserNamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	ctx := context.Background()
 	bld := ctrl.NewControllerManagedBy(mgr).
 		For(obj).
+		// The DWO namespace is cached to avoid a cluster-wide pod list on every reconcile.
+		// This watch invalidates the cache when the DWO service account is (re)created,
+		// so the allow-from-devworkspace-operator network policy stays up to date.
+		Watches(&corev1.ServiceAccount{}, r.watchRuleForDevWorkspaceServiceAccount()).
 		Watches(&corev1.Secret{}, r.watchRulesForSecrets(ctx)).
 		Watches(&corev1.ConfigMap{}, r.watchRulesForConfigMaps(ctx)).
 		Watches(&chev2.CheCluster{}, r.triggerAllNamespaces()).
@@ -179,7 +192,7 @@ func (r *CheUserNamespaceReconciler) hasNameAndIsCollocatedWithCheCluster(ctx co
 }
 
 func isLabeledAsUserSettings(obj metav1.Object) bool {
-	return obj.GetLabels()["app.kubernetes.io/component"] == userSettingsComponentLabelValue
+	return obj.GetLabels()[constants.KubernetesComponentLabelKey] == userSettingsComponentLabelValue
 }
 
 func (r *CheUserNamespaceReconciler) isInManagedNamespace(ctx context.Context, obj metav1.Object) bool {
@@ -244,6 +257,8 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			ClientWrapper:    r.clientWrapper,
 			Scheme:           r.scheme,
 		},
+		Context:      ctx,
+		DWONamespace: r.getDWONamespace(),
 	}
 
 	// Deprecated [CRW-6792].
@@ -304,7 +319,7 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	if infrastructure.IsOpenShift() {
-		if err = r.reconcileNetworkPolicies(ctx, req.Name, deployContext); err != nil {
+		if err = r.reconcileNetworkPolicies(deployContext, req.Name); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to reconcile network policies in namespace %s: %w", req.Name, err)
 		}
 	}
@@ -622,241 +637,22 @@ func (r *CheUserNamespaceReconciler) reconcileSCCPrivileges(
 	)
 }
 
-func (r *CheUserNamespaceReconciler) reconcileNetworkPolicies(
-	ctx context.Context,
-	targetNs string,
-	deployContext *chetypes.DeployContext,
-) error {
-	policies, err := r.getNetworkPolicies(targetNs, deployContext)
-	if err != nil {
-		return fmt.Errorf("could not prepare list of network policy objects: %w", err)
-	}
-
+func (r *CheUserNamespaceReconciler) reconcileNetworkPolicies(deployContext *chetypes.DeployContext, targetNs string) error {
 	if !deployContext.CheCluster.IsNetworkPoliciesEnabled() {
-		networkPolicyList := &networkingv1.NetworkPolicyList{}
-
-		items, err := r.clientWrapper.List(ctx, networkPolicyList,
-			&client.ListOptions{
-				Namespace:     targetNs,
-				LabelSelector: labels.SelectorFromSet(deploy.GetLabels(defaults.GetCheFlavor())),
-			})
+		err := networkpolicies.DeleteNetworkPolicy(deployContext, targetNs)
 		if err != nil {
-			return fmt.Errorf("could not list NetworkPolicy objects in namespace %s: %w", targetNs, err)
+			err = fmt.Errorf("failed to delete NetworkPolicy in namespace %s: %w", targetNs, err)
 		}
 
-		for _, item := range items {
-			networkPolicy, ok := item.(*networkingv1.NetworkPolicy)
-			if !ok {
-				continue
-			}
-
-			err = r.clientWrapper.DeleteIgnoreNotFound(ctx, networkPolicy)
-			if err != nil {
-				return fmt.Errorf("failed to delete NetworkPolicy %s/%s: %w", targetNs, networkPolicy.GetName(), err)
-			}
-		}
-
-		return nil
+		return err
 	}
 
-	for _, policy := range policies {
-		if err := r.clientWrapper.Sync(
-			ctx,
-			policy,
-			&k8sclient.SyncOptions{DiffOpts: diffs.NetworkPolicy},
-		); err != nil {
-			return fmt.Errorf("failed to sync network policy %s/%s: %w", targetNs, policy.Name, err)
-		}
+	err := networkpolicies.SyncNetworkPolicy(deployContext, targetNs)
+	if err != nil {
+		return fmt.Errorf("failed to sync NetworkPolicy in namespace %s: %w", targetNs, err)
 	}
 
 	return nil
-}
-
-func (r *CheUserNamespaceReconciler) getNetworkPolicies(
-	targetNs string,
-	deployContext *chetypes.DeployContext,
-) ([]*networkingv1.NetworkPolicy, error) {
-	devWorkspaceOperatorNamespace, err := devworkspace.GetDevWorkspaceOperatorNamespace(deployContext.ClusterAPI.ClientWrapper)
-	if err != nil {
-		return nil, fmt.Errorf("could not get DevWorkspaceOperator namespace: %w", err)
-	}
-
-	allowFromEclipseChe := &networkingv1.NetworkPolicy{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "NetworkPolicy",
-			APIVersion: networkingv1.SchemeGroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "allow-from-" + deployContext.CheCluster.Namespace,
-			Namespace: targetNs,
-			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
-		},
-		Spec: networkingv1.NetworkPolicySpec{
-			PodSelector: metav1.LabelSelector{},
-			Ingress: []networkingv1.NetworkPolicyIngressRule{
-				{
-					From: []networkingv1.NetworkPolicyPeer{
-						{
-							NamespaceSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{
-									"kubernetes.io/metadata.name": deployContext.CheCluster.Namespace,
-								},
-							},
-							PodSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{
-									constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
-								},
-							},
-						},
-					},
-				},
-			},
-			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
-		},
-	}
-
-	allowFromSameNamespace := &networkingv1.NetworkPolicy{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "NetworkPolicy",
-			APIVersion: networkingv1.SchemeGroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "allow-from-same-namespace",
-			Namespace: targetNs,
-			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
-		},
-		Spec: networkingv1.NetworkPolicySpec{
-			PodSelector: metav1.LabelSelector{},
-			Ingress: []networkingv1.NetworkPolicyIngressRule{
-				{
-					From: []networkingv1.NetworkPolicyPeer{
-						{
-							PodSelector: &metav1.LabelSelector{},
-						},
-					},
-				},
-			},
-			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
-		},
-	}
-
-	allowFromDevWorkspaceOperator := &networkingv1.NetworkPolicy{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "NetworkPolicy",
-			APIVersion: networkingv1.SchemeGroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "allow-from-devworkspace-operator",
-			Namespace: targetNs,
-			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
-		},
-		Spec: networkingv1.NetworkPolicySpec{
-			PodSelector: metav1.LabelSelector{},
-			Ingress: []networkingv1.NetworkPolicyIngressRule{
-				{
-					From: []networkingv1.NetworkPolicyPeer{
-						{
-							NamespaceSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{
-									"kubernetes.io/metadata.name": devWorkspaceOperatorNamespace,
-								},
-							},
-							PodSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{
-									constants.KubernetesPartOfLabelKey: constants.DevWorkspaceOperatorName,
-								},
-							},
-						},
-					},
-				},
-			},
-			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
-		},
-	}
-
-	allowFromOpenShiftMonitoring := &networkingv1.NetworkPolicy{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "NetworkPolicy",
-			APIVersion: networkingv1.SchemeGroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "allow-from-openshift-monitoring",
-			Namespace: targetNs,
-			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
-		},
-		Spec: networkingv1.NetworkPolicySpec{
-			PodSelector: metav1.LabelSelector{},
-			Ingress: []networkingv1.NetworkPolicyIngressRule{
-				{
-					From: []networkingv1.NetworkPolicyPeer{
-						{
-							NamespaceSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{
-									"network.openshift.io/policy-group": "monitoring",
-								},
-							},
-						},
-					},
-				},
-			},
-			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
-		},
-	}
-
-	allowFromOpenShiftIngress := &networkingv1.NetworkPolicy{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "NetworkPolicy",
-			APIVersion: networkingv1.SchemeGroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "allow-from-openshift-ingress",
-			Namespace: targetNs,
-			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
-		},
-		Spec: networkingv1.NetworkPolicySpec{
-			PodSelector: metav1.LabelSelector{},
-			Ingress: []networkingv1.NetworkPolicyIngressRule{
-				{
-					From: []networkingv1.NetworkPolicyPeer{
-						{
-							NamespaceSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{
-									"network.openshift.io/policy-group": "ingress",
-								},
-							},
-						},
-					},
-				},
-			},
-			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
-		},
-	}
-
-	allowAllEgress := &networkingv1.NetworkPolicy{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "NetworkPolicy",
-			APIVersion: networkingv1.SchemeGroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "allow-all-egress",
-			Namespace: targetNs,
-			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
-		},
-		Spec: networkingv1.NetworkPolicySpec{
-			PodSelector: metav1.LabelSelector{},
-			Egress:      []networkingv1.NetworkPolicyEgressRule{{}},
-			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeEgress},
-		},
-	}
-
-	return []*networkingv1.NetworkPolicy{
-		allowFromEclipseChe,
-		allowFromSameNamespace,
-		allowFromDevWorkspaceOperator,
-		allowFromOpenShiftMonitoring,
-		allowFromOpenShiftIngress,
-		allowAllEgress,
-	}, nil
 }
 
 func prefixedName(name string) string {
