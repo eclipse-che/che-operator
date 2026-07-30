@@ -42,7 +42,7 @@ import (
 func TestSkipsUnlabeledNamespaces(t *testing.T) {
 	test := func(t *testing.T, infraType infrastructure.Type, namespace metav1.Object) {
 		ctx := context.TODO()
-		scheme, cl, r := setup(infraType, namespace.(client.Object))
+		_, cl, r := setup(infraType, namespace.(client.Object))
 		setupCheCluster(t, ctx, cl, "che", "che")
 
 		if _, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}}); err != nil {
@@ -101,7 +101,7 @@ func TestCreatesDataInNamespace(t *testing.T) {
 	test := func(t *testing.T, infraType infrastructure.Type, namespace client.Object, objs ...client.Object) {
 		ctx := context.TODO()
 		allObjs := append(objs, namespace)
-		scheme, cl, r := setup(infraType, allObjs...)
+		_, cl, r := setup(infraType, allObjs...)
 		setupCheCluster(t, ctx, cl, "eclipse-che", "che")
 
 		res, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}})
