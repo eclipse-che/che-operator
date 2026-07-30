@@ -263,12 +263,12 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
-	deployContext.DWONamespace, err = devworkspace.GetDevWorkspaceOperatorNamespace(clusterAPI.ClientWrapper)
+	deployContext.DWONamespace, err = devworkspace.GetDevWorkspaceOperatorNamespace(ctx, clusterAPI.ClientWrapper)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("could not get DevWorkspaceOperator namespace: %w", err)
+		return ctrl.Result{}, fmt.Errorf("failed to get DevWorkspaceOperator namespace: %w", err)
 	}
 	if deployContext.DWONamespace == "" {
-		r.Log.Error(nil, "DevWorkspaceOperator namespace not found.")
+		r.Log.Info("DevWorkspaceOperator namespace not found, requeuing.")
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 

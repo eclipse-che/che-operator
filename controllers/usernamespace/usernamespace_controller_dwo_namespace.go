@@ -52,12 +52,6 @@ func (r *CheUserNamespaceReconciler) watchRuleForDevWorkspacePod() handler.Event
 				return
 			}
 
-			// DWO is present in a different namespace.
-			// No action is required for now; wait for the delete event.
-			if currentNamespace != "" {
-				return
-			}
-
 			r.setDWONamespace(newNamespace)
 
 			for _, namespace := range r.namespaceCache.GetAllKnownNamespaces() {
@@ -85,21 +79,10 @@ func (r *CheUserNamespaceReconciler) watchRuleForDevWorkspacePod() handler.Event
 
 			currentDWONamespace := r.getDWONamespace()
 
-			// Do nothing, old DWO pod vanished
-			if currentDWONamespace != pod.GetNamespace() {
-				return
-			}
-
 			// Find the new DWO namespace
-			newDWONamespace, err := devworkspace.GetDevWorkspaceOperatorNamespace(r.clientWrapper)
+			newDWONamespace, err := devworkspace.GetDevWorkspaceOperatorNamespace(ctx, r.clientWrapper)
 			if err != nil {
 				logger.Error(err, "Failed to get DevWorkspaceOperator namespace")
-				return
-			}
-
-			// No DWO is currently present in the cluster.
-			// Wait for it to be redeployed, as it will likely reappear in the same namespace.
-			if newDWONamespace == "" {
 				return
 			}
 

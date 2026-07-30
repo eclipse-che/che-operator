@@ -23,7 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func GetDevWorkspaceOperatorNamespace(clientWrapper *k8sclient.K8sClientWrapper) (string, error) {
+func GetDevWorkspaceOperatorNamespace(context context.Context, clientWrapper *k8sclient.K8sClientWrapper) (string, error) {
 	selector := labels.SelectorFromSet(
 		labels.Set{
 			constants.KubernetesNameLabelKey:   constants.DevWorkspaceControllerName,
@@ -32,7 +32,7 @@ func GetDevWorkspaceOperatorNamespace(clientWrapper *k8sclient.K8sClientWrapper)
 	)
 
 	items, err := clientWrapper.List(
-		context.TODO(),
+		context,
 		&corev1.PodList{},
 		&client.ListOptions{LabelSelector: selector},
 	)
@@ -43,7 +43,11 @@ func GetDevWorkspaceOperatorNamespace(clientWrapper *k8sclient.K8sClientWrapper)
 	devWorkspaceOperatorNamespace := ""
 
 	for _, item := range items {
-		pod := item.(*corev1.Pod)
+		pod, ok := item.(*corev1.Pod)
+		if !ok {
+			continue
+		}
+
 		if pod.Spec.ServiceAccountName == constants.DevWorkspaceServiceAccountName {
 			if devWorkspaceOperatorNamespace != "" && devWorkspaceOperatorNamespace != pod.Namespace {
 				return "", fmt.Errorf("multiple DevWorkspace Operator pods were found across different namespaces")
@@ -52,9 +56,5 @@ func GetDevWorkspaceOperatorNamespace(clientWrapper *k8sclient.K8sClientWrapper)
 		}
 	}
 
-	if devWorkspaceOperatorNamespace != "" {
-		return devWorkspaceOperatorNamespace, nil
-	}
-
-	return "", nil
+	return devWorkspaceOperatorNamespace, nil
 }
