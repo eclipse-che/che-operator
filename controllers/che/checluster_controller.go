@@ -263,7 +263,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
-	deployContext.DWONamespace, err = devworkspace.GetDevWorkspaceOperatorNamespace(clusterAPI.NonCachingClientWrapper)
+	deployContext.DWONamespace, err = devworkspace.GetDevWorkspaceOperatorNamespace(clusterAPI.ClientWrapper)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("could not get DevWorkspaceOperator namespace: %w", err)
 	}

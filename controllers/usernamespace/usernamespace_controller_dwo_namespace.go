@@ -16,6 +16,7 @@ import (
 	"context"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/devworkspace"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -25,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-func (r *CheUserNamespaceReconciler) watchRuleForDevWorkspaceServiceAccount() handler.EventHandler {
+func (r *CheUserNamespaceReconciler) watchRuleForDevWorkspacePod() handler.EventHandler {
 	// Handle the create event to discover the DevWorkspace Operator namespace.
 	// Log an error if multiple DevWorkspace Operators are found running in different namespaces, as this indicates an invalid deployment.
 	return handler.Funcs{
@@ -34,34 +35,27 @@ func (r *CheUserNamespaceReconciler) watchRuleForDevWorkspaceServiceAccount() ha
 			evt event.CreateEvent,
 			q workqueue.TypedRateLimitingInterface[reconcile.Request],
 		) {
-			if evt.Object.GetName() != constants.DevWorkspaceServiceAccountName {
+			pod, ok := evt.Object.(*corev1.Pod)
+			if !ok {
 				return
 			}
 
-			newNamespace := evt.Object.GetNamespace()
+			if !deploy.IsDevWorkspaceComponent(pod.GetLabels()) ||
+				pod.Spec.ServiceAccountName != constants.DevWorkspaceServiceAccountName {
+				return
+			}
+
+			newNamespace := pod.GetNamespace()
 			currentNamespace := r.getDWONamespace()
 
 			if currentNamespace == newNamespace {
 				return
 			}
 
+			// DWO is present in a different namespace.
+			// No action is required for now; wait for the delete event.
 			if currentNamespace != "" {
-				exists, err := r.nonCachedClientWrapper.GetIgnoreNotFound(
-					ctx,
-					types.NamespacedName{
-						Name:      constants.DevWorkspaceServiceAccountName,
-						Namespace: currentNamespace,
-					},
-					&corev1.ServiceAccount{})
-				if err != nil {
-					logger.Error(err, "Failed to get ServiceAccount", "Namespace", newNamespace, "Name", constants.DevWorkspaceServiceAccountName)
-					return
-				}
-
-				if exists {
-					logger.Error(nil, "Multiple DevWorkspace Operators were found across different namespaces")
-					return
-				}
+				return
 			}
 
 			r.setDWONamespace(newNamespace)
@@ -79,26 +73,41 @@ func (r *CheUserNamespaceReconciler) watchRuleForDevWorkspaceServiceAccount() ha
 			evt event.DeleteEvent,
 			q workqueue.TypedRateLimitingInterface[reconcile.Request],
 		) {
-			if evt.Object.GetName() != constants.DevWorkspaceServiceAccountName {
+			pod, ok := evt.Object.(*corev1.Pod)
+			if !ok {
 				return
 			}
 
-			if r.getDWONamespace() != evt.Object.GetNamespace() {
+			if !deploy.IsDevWorkspaceComponent(pod.GetLabels()) ||
+				pod.Spec.ServiceAccountName != constants.DevWorkspaceServiceAccountName {
 				return
 			}
 
-			existedNamespace, err := devworkspace.GetDevWorkspaceOperatorNamespace(r.nonCachedClientWrapper)
+			currentDWONamespace := r.getDWONamespace()
+
+			// Do nothing, old DWO pod vanished
+			if currentDWONamespace != pod.GetNamespace() {
+				return
+			}
+
+			// Find the new DWO namespace
+			newDWONamespace, err := devworkspace.GetDevWorkspaceOperatorNamespace(r.clientWrapper)
 			if err != nil {
 				logger.Error(err, "Failed to get DevWorkspaceOperator namespace")
 				return
 			}
 
-			if existedNamespace == "" {
-				r.clearDWONamespace()
+			// No DWO is currently present in the cluster.
+			// Wait for it to be redeployed, as it will likely reappear in the same namespace.
+			if newDWONamespace == "" {
 				return
 			}
 
-			r.setDWONamespace(existedNamespace)
+			if currentDWONamespace == newDWONamespace {
+				return
+			}
+
+			r.setDWONamespace(newDWONamespace)
 
 			for _, namespace := range r.namespaceCache.GetAllKnownNamespaces() {
 				q.Add(reconcile.Request{
@@ -107,13 +116,6 @@ func (r *CheUserNamespaceReconciler) watchRuleForDevWorkspaceServiceAccount() ha
 			}
 		},
 	}
-}
-
-func (r *CheUserNamespaceReconciler) clearDWONamespace() {
-	r.dwoNamespaceMu.Lock()
-	defer r.dwoNamespaceMu.Unlock()
-
-	r.dwoNamespace = ""
 }
 
 func (r *CheUserNamespaceReconciler) setDWONamespace(dwoNamespace string) {

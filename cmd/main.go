@@ -52,6 +52,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -337,12 +338,21 @@ func main() {
 func getCacheFunc() (cache.NewCacheFunc, error) {
 	partOfEclipseChe := labels.SelectorFromSet(map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg})
 
+	partOfCheOrDWO, err := labels.NewRequirement(
+		constants.KubernetesPartOfLabelKey,
+		selection.In,
+		[]string{constants.CheEclipseOrg, constants.DevWorkspaceOperatorName},
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	selectors := map[client.Object]cache.ByObject{
 		&appsv1.Deployment{}: {
 			Label: partOfEclipseChe,
 		},
 		&corev1.Pod{}: {
-			Label: partOfEclipseChe,
+			Label: labels.NewSelector().Add(*partOfCheOrDWO),
 		},
 		&batchv1.Job{}: {
 			Label: partOfEclipseChe,

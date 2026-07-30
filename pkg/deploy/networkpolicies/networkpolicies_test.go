@@ -450,7 +450,7 @@ func TestAllowAllEgressSpecForCheClusterNamespace(t *testing.T) {
 func TestAllowAllEgressSpecForWorkspaceNamespace(t *testing.T) {
 	ctx := test.NewCtxBuilder().Build()
 
-	policy := findPolicy(t, ctx, ctx.CheCluster.Namespace, "allow-all-egress")
+	policy := findPolicy(t, ctx, "user-ns", "allow-all-egress")
 
 	assert.Equal(t, []networkingv1.PolicyType{networkingv1.PolicyTypeEgress}, policy.Spec.PolicyTypes)
 	assert.Empty(t, policy.Spec.Ingress)

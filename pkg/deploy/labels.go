@@ -76,3 +76,8 @@ func IsOperatorManagedComponent(labels map[string]string, component string) bool
 		labels[constants.KubernetesManagedByLabelKey] == GetManagedByLabel() &&
 		labels[constants.KubernetesComponentLabelKey] == component
 }
+
+func IsDevWorkspaceComponent(labels map[string]string) bool {
+	return labels[constants.KubernetesPartOfLabelKey] == constants.DevWorkspaceOperatorName &&
+		labels[constants.KubernetesNameLabelKey] == constants.DevWorkspaceControllerName
+}

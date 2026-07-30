@@ -92,12 +92,12 @@ func GetNetworkPolicies(ctx *chetypes.DeployContext, namespace string) ([]*netwo
 			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
 		Spec: networkingv1.NetworkPolicySpec{
-			PodSelector: podSelector,
+			PodSelector: *podSelector.DeepCopy(),
 			Ingress: []networkingv1.NetworkPolicyIngressRule{
 				{
 					From: []networkingv1.NetworkPolicyPeer{
 						{
-							PodSelector: &podSelector,
+							PodSelector: podSelector.DeepCopy(),
 						},
 					},
 				},
@@ -117,7 +117,7 @@ func GetNetworkPolicies(ctx *chetypes.DeployContext, namespace string) ([]*netwo
 			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
 		Spec: networkingv1.NetworkPolicySpec{
-			PodSelector: podSelector,
+			PodSelector: *podSelector.DeepCopy(),
 			Ingress: []networkingv1.NetworkPolicyIngressRule{
 				{
 					From: []networkingv1.NetworkPolicyPeer{
@@ -146,7 +146,7 @@ func GetNetworkPolicies(ctx *chetypes.DeployContext, namespace string) ([]*netwo
 			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
 		Spec: networkingv1.NetworkPolicySpec{
-			PodSelector: podSelector,
+			PodSelector: *podSelector.DeepCopy(),
 			Ingress: []networkingv1.NetworkPolicyIngressRule{
 				{
 					From: []networkingv1.NetworkPolicyPeer{
@@ -175,7 +175,7 @@ func GetNetworkPolicies(ctx *chetypes.DeployContext, namespace string) ([]*netwo
 			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
 		Spec: networkingv1.NetworkPolicySpec{
-			PodSelector: podSelector,
+			PodSelector: *podSelector.DeepCopy(),
 			Ingress: []networkingv1.NetworkPolicyIngressRule{
 				{
 					From: []networkingv1.NetworkPolicyPeer{
@@ -204,7 +204,7 @@ func GetNetworkPolicies(ctx *chetypes.DeployContext, namespace string) ([]*netwo
 			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
 		Spec: networkingv1.NetworkPolicySpec{
-			PodSelector: podSelector,
+			PodSelector: *podSelector.DeepCopy(),
 			Ingress: []networkingv1.NetworkPolicyIngressRule{
 				{
 					From: []networkingv1.NetworkPolicyPeer{
@@ -238,7 +238,7 @@ func GetNetworkPolicies(ctx *chetypes.DeployContext, namespace string) ([]*netwo
 			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
 		Spec: networkingv1.NetworkPolicySpec{
-			PodSelector: podSelector,
+			PodSelector: *podSelector.DeepCopy(),
 			Ingress: []networkingv1.NetworkPolicyIngressRule{
 				{
 					From: []networkingv1.NetworkPolicyPeer{
@@ -272,7 +272,7 @@ func GetNetworkPolicies(ctx *chetypes.DeployContext, namespace string) ([]*netwo
 			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
 		Spec: networkingv1.NetworkPolicySpec{
-			PodSelector: podSelector,
+			PodSelector: *podSelector.DeepCopy(),
 			Ingress: []networkingv1.NetworkPolicyIngressRule{
 				{
 					From: []networkingv1.NetworkPolicyPeer{
@@ -306,7 +306,7 @@ func GetNetworkPolicies(ctx *chetypes.DeployContext, namespace string) ([]*netwo
 			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
 		Spec: networkingv1.NetworkPolicySpec{
-			PodSelector: podSelector,
+			PodSelector: *podSelector.DeepCopy(),
 			Egress:      []networkingv1.NetworkPolicyEgressRule{{}},
 			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeEgress},
 		},

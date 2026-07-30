@@ -110,9 +110,9 @@ func (r *CheUserNamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	bld := ctrl.NewControllerManagedBy(mgr).
 		For(obj).
 		// The DWO namespace is cached to avoid a cluster-wide pod list on every reconcile.
-		// This watch invalidates the cache when the DWO service account is (re)created,
+		// This watch invalidates the cache when the DWO pod is (re)created,
 		// so the allow-from-devworkspace-operator network policy stays up to date.
-		Watches(&corev1.ServiceAccount{}, r.watchRuleForDevWorkspaceServiceAccount()).
+		Watches(&corev1.Pod{}, r.watchRuleForDevWorkspacePod()).
 		Watches(&corev1.Secret{}, r.watchRulesForSecrets(ctx)).
 		Watches(&corev1.ConfigMap{}, r.watchRulesForConfigMaps(ctx)).
 		Watches(&chev2.CheCluster{}, r.triggerAllNamespaces()).
