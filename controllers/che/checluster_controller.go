@@ -267,6 +267,10 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("could not get DevWorkspaceOperator namespace: %w", err)
 	}
+	if deployContext.DWONamespace == "" {
+		r.Log.Error(nil, "DevWorkspaceOperator namespace not found.")
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	}
 
 	// Detect whether self-signed certificate is used
 	deployContext.IsSelfSignedCertificate, err = tls.IsSelfSignedCertificateUsed(deployContext)

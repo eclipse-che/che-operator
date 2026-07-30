@@ -156,13 +156,13 @@ func (r *CheUserNamespaceReconciler) watchRulesForNetworkPolicies(_ context.Cont
 		func(ctx context.Context, obj client.Object) []reconcile.Request {
 			workspaceInfo, err := r.namespaceCache.GetNamespaceInfo(ctx, obj.GetNamespace())
 			if err != nil {
-				logger.Error(err, "failed to get namespace info for %s", obj.GetNamespace())
+				logger.Error(err, "failed to get namespace info", "Namespace", obj.GetNamespace())
 				return []reconcile.Request{}
 			}
 
 			if workspaceInfo != nil &&
 				workspaceInfo.IsWorkspaceNamespace &&
-				obj.GetLabels()[constants.KubernetesComponentLabelKey] == defaults.GetCheFlavor() {
+				deploy.IsOperatorManagedComponent(obj.GetLabels(), defaults.GetCheFlavor()) {
 
 				return []reconcile.Request{
 					{

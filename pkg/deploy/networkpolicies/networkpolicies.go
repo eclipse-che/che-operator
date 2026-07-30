@@ -261,38 +261,42 @@ func GetNetworkPolicies(ctx *chetypes.DeployContext, namespace string) ([]*netwo
 		},
 	}
 
-	allowFromDevWorkspaceOperator := &networkingv1.NetworkPolicy{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "NetworkPolicy",
-			APIVersion: networkingv1.SchemeGroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "allow-from-devworkspace-operator",
-			Namespace: namespace,
-			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
-		},
-		Spec: networkingv1.NetworkPolicySpec{
-			PodSelector: *podSelector.DeepCopy(),
-			Ingress: []networkingv1.NetworkPolicyIngressRule{
-				{
-					From: []networkingv1.NetworkPolicyPeer{
-						{
-							NamespaceSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{
-									"kubernetes.io/metadata.name": ctx.DWONamespace,
+	var allowFromDevWorkspaceOperator *networkingv1.NetworkPolicy
+
+	if ctx.DWONamespace != "" {
+		allowFromDevWorkspaceOperator = &networkingv1.NetworkPolicy{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "NetworkPolicy",
+				APIVersion: networkingv1.SchemeGroupVersion.String(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "allow-from-devworkspace-operator",
+				Namespace: namespace,
+				Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
+			},
+			Spec: networkingv1.NetworkPolicySpec{
+				PodSelector: *podSelector.DeepCopy(),
+				Ingress: []networkingv1.NetworkPolicyIngressRule{
+					{
+						From: []networkingv1.NetworkPolicyPeer{
+							{
+								NamespaceSelector: &metav1.LabelSelector{
+									MatchLabels: map[string]string{
+										"kubernetes.io/metadata.name": ctx.DWONamespace,
+									},
 								},
-							},
-							PodSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{
-									constants.KubernetesPartOfLabelKey: constants.DevWorkspaceOperatorName,
+								PodSelector: &metav1.LabelSelector{
+									MatchLabels: map[string]string{
+										constants.KubernetesPartOfLabelKey: constants.DevWorkspaceOperatorName,
+									},
 								},
 							},
 						},
 					},
 				},
+				PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
 			},
-			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
-		},
+		}
 	}
 
 	allowAllEgress := &networkingv1.NetworkPolicy{
@@ -320,7 +324,10 @@ func GetNetworkPolicies(ctx *chetypes.DeployContext, namespace string) ([]*netwo
 	}
 
 	if isWorkspaceNetworkPolicies {
-		networkPolicies = append(networkPolicies, allowFromChe, allowFromDevWorkspaceOperator)
+		networkPolicies = append(networkPolicies, allowFromChe)
+		if allowFromDevWorkspaceOperator != nil {
+			networkPolicies = append(networkPolicies, allowFromDevWorkspaceOperator)
+		}
 	} else {
 		networkPolicies = append(networkPolicies, allowFromWorkspaces, allowFromCheOperator)
 	}
