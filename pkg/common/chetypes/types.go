@@ -13,6 +13,8 @@
 package chetypes
 
 import (
+	"context"
+
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -27,7 +29,8 @@ type DeployContext struct {
 	Authentication          *Authentication
 	IsSelfSignedCertificate bool
 	CheHost                 string
-	DwoNamespace            string
+	DWONamespace            string
+	Context                 context.Context
 }
 
 type ClusterAPI struct {

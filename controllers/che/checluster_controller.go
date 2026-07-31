@@ -14,12 +14,14 @@ package che
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/deploy/metrics"
+	"github.com/eclipse-che/che-operator/pkg/deploy/networkpolicies"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -110,6 +112,10 @@ func NewReconciler(
 	reconcilerManager.AddReconciler(devworkspace.NewDevWorkspaceConfigReconciler())
 	reconcilerManager.AddReconciler(rbac.NewGatewayPermissionsReconciler())
 
+	if infrastructure.IsOpenShift() {
+		reconcilerManager.AddReconciler(networkpolicies.NewNetworkPoliciesReconciler())
+	}
+
 	// we have to expose che endpoint independently of syncing other server
 	// resources since che host is used for dashboard deployment and che config map
 	reconcilerManager.AddReconciler(server.NewCheHostReconciler())
@@ -124,7 +130,6 @@ func NewReconciler(
 	reconcilerManager.AddReconciler(openvsxdatabase.NewOpenVSXDatabaseReconciler())
 	reconcilerManager.AddReconciler(openvsxserver.NewOpenVSXServerReconciler())
 	reconcilerManager.AddReconciler(editorsdefinitions.NewEditorsDefinitionsReconciler())
-	reconcilerManager.AddReconciler(devworkspace.NewDwoNamespaceReconciler())
 	reconcilerManager.AddReconciler(dashboard.NewDashboardReconciler())
 	reconcilerManager.AddReconciler(gateway.NewGatewayReconciler())
 	reconcilerManager.AddReconciler(server.NewCheServerReconciler())
@@ -178,6 +183,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&rbacv1.RoleBinding{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&appsv1.Deployment{}).
+		Owns(&networking.NetworkPolicy{}).
 		Watches(&corev1.ConfigMap{},
 			handler.EnqueueRequestsFromMapFunc(toTrustedBundleConfigMapRequestMapper),
 		).
@@ -240,31 +246,38 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	deployContext := &chetypes.DeployContext{
 		ClusterAPI: clusterAPI,
 		CheCluster: checluster,
+		Context:    ctx,
 	}
 
 	// Resolve proxy configuration
-	proxy, err := GetProxyConfiguration(deployContext)
+	deployContext.Proxy, err = GetProxyConfiguration(deployContext)
 	if err != nil {
 		r.Log.Error(err, "Error on reading proxy configuration")
 		return ctrl.Result{}, err
 	}
-	deployContext.Proxy = proxy
 
 	// Resolve authentication configuration
-	authentication, err := ResolveAuthentication(deployContext)
+	deployContext.Authentication, err = ResolveAuthentication(deployContext)
 	if err != nil {
 		r.Log.Error(err, "Error on resolving authentication")
 		return ctrl.Result{}, err
 	}
-	deployContext.Authentication = authentication
+
+	deployContext.DWONamespace, err = devworkspace.GetDevWorkspaceOperatorNamespace(ctx, clusterAPI.ClientWrapper)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to get DevWorkspaceOperator namespace: %w", err)
+	}
+	if deployContext.DWONamespace == "" {
+		r.Log.Info("DevWorkspaceOperator namespace not found, requeuing.")
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	}
 
 	// Detect whether self-signed certificate is used
-	isSelfSignedCertificate, err := tls.IsSelfSignedCertificateUsed(deployContext)
+	deployContext.IsSelfSignedCertificate, err = tls.IsSelfSignedCertificateUsed(deployContext)
 	if err != nil {
 		r.Log.Error(err, "Failed to detect if self-signed certificate used.")
 		return ctrl.Result{}, err
 	}
-	deployContext.IsSelfSignedCertificate = isSelfSignedCertificate
 
 	if deployContext.CheCluster.DeletionTimestamp.IsZero() {
 		result, done, err := r.reconcilerManager.ReconcileAll(deployContext)

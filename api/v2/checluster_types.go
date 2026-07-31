@@ -329,12 +329,39 @@ type CheClusterSpecNetworking struct {
 	// +optional
 	// +kubebuilder:default:={gateway: {configLabels: {app: che, component: che-gateway-config}}}
 	Auth Auth `json:"auth"`
+	// NetworkPolicy configures NetworkPolicy resources for the Che namespace
+	// and user workspace namespaces. For OpenShift clusters only.
+	// When enabled, the following policies are created:
+	// In the Che namespace:
+	//   - allow-from-same-namespace: allows ingress traffic between Che pods in the same namespace.
+	//   - allow-from-workspaces: allows ingress traffic from user workspace namespaces.
+	//   - allow-from-openshift-ingress: allows ingress traffic from the OpenShift ingress namespace.
+	//   - allow-from-openshift-monitoring: allows ingress traffic from the OpenShift monitoring namespace.
+	//   - allow-from-<flavor>-operator: allows ingress traffic from the operator pod to Che components.
+	//   - allow-all-egress: allows all egress traffic from Che pods.
+	// In each user workspace namespace:
+	//   - allow-from-<che-namespace>: allows ingress traffic from the Che namespace.
+	//   - allow-from-same-namespace: allows ingress traffic between pods in the same namespace.
+	//   - allow-from-devworkspace-operator: allows ingress traffic from the DevWorkspace operator.
+	//   - allow-from-openshift-monitoring: allows ingress traffic from the OpenShift monitoring namespace.
+	//   - allow-from-openshift-ingress: allows ingress traffic from the OpenShift ingress namespace.
+	//   - allow-all-egress: allows all egress traffic from workspace pods.
+	// +optional
+	NetworkPolicy *NetworkPolicy `json:"networkPolicy,omitempty"`
 }
 
 type DevEnvironmentNetworking struct {
 	// External TLS configuration.
 	// +optional
 	ExternalTLSConfig *ExternalTLSConfig `json:"externalTLSConfig,omitempty"`
+}
+
+// NetworkPolicy configuration settings.
+// +k8s:openapi-gen=true
+type NetworkPolicy struct {
+	// Enabled controls whether the operator creates NetworkPolicy resources.
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 type ExternalTLSConfig struct {
@@ -1258,4 +1285,9 @@ func (c *CheCluster) IsDevEnvironmentExternalTLSConfigEnabled() bool {
 	return c.Spec.DevEnvironments.Networking != nil &&
 		c.Spec.DevEnvironments.Networking.ExternalTLSConfig != nil &&
 		*c.Spec.DevEnvironments.Networking.ExternalTLSConfig.Enabled
+}
+
+func (c *CheCluster) IsNetworkPoliciesEnabled() bool {
+	return c.Spec.Networking.NetworkPolicy != nil &&
+		ptr.Deref(c.Spec.Networking.NetworkPolicy.Enabled, constants.NetworkPolicyEnabled)
 }

@@ -202,7 +202,7 @@ func TestShouldNotSyncSCCIfAlreadyExists(t *testing.T) {
 	}
 
 	ctx := test.NewCtxBuilder().WithObjects(dwPod, sccBuild, sccRun).Build()
-	ctx.DwoNamespace = "devworkspace-controller"
+	ctx.DWONamespace = "devworkspace-controller"
 
 	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = ptr.To(false)
 	ctx.CheCluster.Spec.DevEnvironments.ContainerBuildConfiguration = &chev2.ContainerBuildConfiguration{OpenShiftSecurityContextConstraint: "scc-build"}

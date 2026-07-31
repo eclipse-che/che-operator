@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -18,12 +18,17 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	containercapabilties "github.com/eclipse-che/che-operator/pkg/deploy/container-capabilities"
+	"github.com/eclipse-che/che-operator/pkg/deploy/networkpolicies"
 	"k8s.io/utils/ptr"
 
+	devworkspacedefaults "github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
@@ -36,12 +41,11 @@ import (
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/controllers/che"
-	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
-	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	projectv1 "github.com/openshift/api/project/v1"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -60,6 +64,10 @@ const (
 	podTolerationsAnnotation = "controller.devfile.io/pod-tolerations"
 )
 
+var (
+	logger = ctrl.Log.WithName("usernamespace")
+)
+
 type CheUserNamespaceReconciler struct {
 	scheme                 *runtime.Scheme
 	client                 client.Client
@@ -67,6 +75,9 @@ type CheUserNamespaceReconciler struct {
 	clientWrapper          *k8sclient.K8sClientWrapper
 	nonCachedClientWrapper *k8sclient.K8sClientWrapper
 	namespaceCache         *namespacecache.NamespaceCache
+
+	dwoNamespace   string
+	dwoNamespaceMu sync.RWMutex
 }
 
 var _ reconcile.Reconciler = (*CheUserNamespaceReconciler)(nil)
@@ -98,9 +109,14 @@ func (r *CheUserNamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	ctx := context.Background()
 	bld := ctrl.NewControllerManagedBy(mgr).
 		For(obj).
+		// The DWO namespace is cached to avoid a cluster-wide pod list on every reconcile.
+		// This watch invalidates the cache when the DWO pod is (re)created,
+		// so the allow-from-devworkspace-operator network policy stays up to date.
+		Watches(&corev1.Pod{}, r.watchRuleForDevWorkspacePod()).
 		Watches(&corev1.Secret{}, r.watchRulesForSecrets(ctx)).
 		Watches(&corev1.ConfigMap{}, r.watchRulesForConfigMaps(ctx)).
-		Watches(&chev2.CheCluster{}, r.triggerAllNamespaces())
+		Watches(&chev2.CheCluster{}, r.triggerAllNamespaces()).
+		Watches(&networkingv1.NetworkPolicy{}, r.watchRulesForNetworkPolicies(ctx))
 
 	// Use controller.TypedOptions to allow to configure 2 controllers for same object being reconciled
 	return bld.WithOptions(
@@ -135,6 +151,32 @@ func (r *CheUserNamespaceReconciler) commonRules(ctx context.Context, namesInChe
 	}
 }
 
+func (r *CheUserNamespaceReconciler) watchRulesForNetworkPolicies(_ context.Context) handler.EventHandler {
+	return handler.EnqueueRequestsFromMapFunc(
+		func(ctx context.Context, obj client.Object) []reconcile.Request {
+			workspaceInfo, err := r.namespaceCache.GetNamespaceInfo(ctx, obj.GetNamespace())
+			if err != nil {
+				logger.Error(err, "failed to get namespace info", "Namespace", obj.GetNamespace())
+				return []reconcile.Request{}
+			}
+
+			if workspaceInfo != nil &&
+				workspaceInfo.IsWorkspaceNamespace &&
+				deploy.IsOperatorManagedComponent(obj.GetLabels(), defaults.GetCheFlavor()) {
+
+				return []reconcile.Request{
+					{
+						NamespacedName: types.NamespacedName{
+							Name: obj.GetNamespace(),
+						},
+					},
+				}
+			}
+
+			return []reconcile.Request{}
+		})
+}
+
 func (r *CheUserNamespaceReconciler) watchRulesForConfigMaps(ctx context.Context) handler.EventHandler {
 	rules := r.commonRules(ctx, tls.CheMergedCABundleCertsCMName)
 	return handler.EnqueueRequestsFromMapFunc(
@@ -154,7 +196,7 @@ func (r *CheUserNamespaceReconciler) hasNameAndIsCollocatedWithCheCluster(ctx co
 }
 
 func isLabeledAsUserSettings(obj metav1.Object) bool {
-	return obj.GetLabels()["app.kubernetes.io/component"] == userSettingsComponentLabelValue
+	return obj.GetLabels()[constants.KubernetesComponentLabelKey] == userSettingsComponentLabelValue
 }
 
 func (r *CheUserNamespaceReconciler) isInManagedNamespace(ctx context.Context, obj metav1.Object) bool {
@@ -166,7 +208,7 @@ func (r *CheUserNamespaceReconciler) triggerAllNamespaces() handler.EventHandler
 	return handler.EnqueueRequestsFromMapFunc(
 		handler.MapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
 			nss := r.namespaceCache.GetAllKnownNamespaces()
-			ret := make([]reconcile.Request, len(nss))
+			ret := make([]reconcile.Request, 0, len(nss))
 
 			for _, ns := range nss {
 				ret = append(ret, reconcile.Request{
@@ -216,8 +258,11 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		ClusterAPI: chetypes.ClusterAPI{
 			Client:           r.client,
 			NonCachingClient: r.nonCachedClient,
+			ClientWrapper:    r.clientWrapper,
 			Scheme:           r.scheme,
 		},
+		Context:      ctx,
+		DWONamespace: r.getDWONamespace(),
 	}
 
 	// Deprecated [CRW-6792].
@@ -277,6 +322,12 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
+	if infrastructure.IsOpenShift() {
+		if err = r.reconcileNetworkPolicies(deployContext, req.Name); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to reconcile network policies in namespace %s: %w", req.Name, err)
+		}
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -313,7 +364,7 @@ func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      targetCertName,
 			Namespace: targetNs,
-			Labels: defaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
+			Labels: devworkspacedefaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
 				dwconstants.DevWorkspaceMountLabel:       "true",
 				dwconstants.DevWorkspaceWatchSecretLabel: "true",
 			}),
@@ -375,7 +426,7 @@ func (r *CheUserNamespaceReconciler) reconcileUserSettings(
 	annotations := map[string]string{
 		dwconstants.DevWorkspaceMountAsAnnotation: "env",
 	}
-	labels := defaults.AddStandardLabelsForComponent(checluster,
+	labels := devworkspacedefaults.AddStandardLabelsForComponent(checluster,
 		userSettingsComponentLabelValue,
 		map[string]string{
 			dwconstants.DevWorkspaceMountLabel:          "true",
@@ -473,7 +524,7 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      targetName,
 			Namespace: targetNs,
-			Labels: defaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
+			Labels: devworkspacedefaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
 				dwconstants.DevWorkspaceGitTLSLabel:         "true",
 				dwconstants.DevWorkspaceMountLabel:          "true",
 				dwconstants.DevWorkspaceWatchConfigMapLabel: "true",
@@ -588,6 +639,24 @@ func (r *CheUserNamespaceReconciler) reconcileSCCPrivileges(
 		rb,
 		&k8sclient.SyncOptions{DiffOpts: diffs.RoleBinding},
 	)
+}
+
+func (r *CheUserNamespaceReconciler) reconcileNetworkPolicies(deployContext *chetypes.DeployContext, targetNs string) error {
+	if !deployContext.CheCluster.IsNetworkPoliciesEnabled() {
+		err := networkpolicies.DeleteNetworkPolicy(deployContext, targetNs)
+		if err != nil {
+			err = fmt.Errorf("failed to delete NetworkPolicy in namespace %s: %w", targetNs, err)
+		}
+
+		return err
+	}
+
+	err := networkpolicies.SyncNetworkPolicy(deployContext, targetNs)
+	if err != nil {
+		return fmt.Errorf("failed to sync NetworkPolicy in namespace %s: %w", targetNs, err)
+	}
+
+	return nil
 }
 
 func prefixedName(name string) string {

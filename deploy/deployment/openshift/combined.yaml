@@ -27863,6 +27863,31 @@ spec:
                     description: Defines labels which will be set for an Ingress (a
                       route for OpenShift platform).
                     type: object
+                  networkPolicy:
+                    description: |-
+                      NetworkPolicy configures NetworkPolicy resources for the Che namespace
+                      and user workspace namespaces. For OpenShift clusters only.
+                      When enabled, the following policies are created:
+                      In the Che namespace:
+                        - allow-from-same-namespace: allows ingress traffic between Che pods in the same namespace.
+                        - allow-from-workspaces: allows ingress traffic from user workspace namespaces.
+                        - allow-from-openshift-ingress: allows ingress traffic from the OpenShift ingress namespace.
+                        - allow-from-openshift-monitoring: allows ingress traffic from the OpenShift monitoring namespace.
+                        - allow-from-<flavor>-operator: allows ingress traffic from the operator pod to Che components.
+                        - allow-all-egress: allows all egress traffic from Che pods.
+                      In each user workspace namespace:
+                        - allow-from-<che-namespace>: allows ingress traffic from the Che namespace.
+                        - allow-from-same-namespace: allows ingress traffic between pods in the same namespace.
+                        - allow-from-devworkspace-operator: allows ingress traffic from the DevWorkspace operator.
+                        - allow-from-openshift-monitoring: allows ingress traffic from the OpenShift monitoring namespace.
+                        - allow-from-openshift-ingress: allows ingress traffic from the OpenShift ingress namespace.
+                        - allow-all-egress: allows all egress traffic from workspace pods.
+                    properties:
+                      enabled:
+                        description: Enabled controls whether the operator creates
+                          NetworkPolicy resources.
+                        type: boolean
+                    type: object
                   tlsSecretName:
                     description: |-
                       The name of the secret used to set up Ingress TLS termination.

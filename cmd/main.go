@@ -52,6 +52,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -335,73 +336,79 @@ func main() {
 
 // watch k8s objects with labels `app.kubernetes.io/part-of=che.eclipse.org`
 func getCacheFunc() (cache.NewCacheFunc, error) {
-	partOfCheObjectSelector, err := labels.Parse(fmt.Sprintf("%s=%s", constants.KubernetesPartOfLabelKey, constants.CheEclipseOrg))
+	partOfEclipseChe := labels.SelectorFromSet(map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg})
+
+	partOfCheOrDWO, err := labels.NewRequirement(
+		constants.KubernetesPartOfLabelKey,
+		selection.In,
+		[]string{constants.CheEclipseOrg, constants.DevWorkspaceOperatorName},
+	)
 	if err != nil {
 		return nil, err
 	}
 
 	selectors := map[client.Object]cache.ByObject{
 		&appsv1.Deployment{}: {
-			Label: partOfCheObjectSelector,
+			Label: partOfEclipseChe,
 		},
 		&corev1.Pod{}: {
-			Label: partOfCheObjectSelector,
+			Label: labels.NewSelector().Add(*partOfCheOrDWO),
 		},
 		&batchv1.Job{}: {
-			Label: partOfCheObjectSelector,
+			Label: partOfEclipseChe,
 		},
 		&corev1.Service{}: {
-			Label: partOfCheObjectSelector,
+			Label: partOfEclipseChe,
 		},
 		&networkingv1.Ingress{}: {
-			Label: partOfCheObjectSelector,
+			Label: partOfEclipseChe,
 		},
 		&networkingv1.NetworkPolicy{}: {
-			Label: partOfCheObjectSelector,
+			Label: partOfEclipseChe,
 		},
 		&corev1.ConfigMap{}: {
-			Label: partOfCheObjectSelector,
+			Label: partOfEclipseChe,
 		},
 		&corev1.Secret{}: {
-			Label: partOfCheObjectSelector,
+			Label: partOfEclipseChe,
 		},
 		&corev1.ServiceAccount{}: {
-			Label: partOfCheObjectSelector,
+			Label: partOfEclipseChe,
 		},
 		&rbacv1.Role{}: {
-			Label: partOfCheObjectSelector,
+			Label: partOfEclipseChe,
 		},
 		&rbacv1.RoleBinding{}: {
-			Label: partOfCheObjectSelector,
+			Label: partOfEclipseChe,
 		},
 		&rbacv1.ClusterRole{}: {
-			Label: partOfCheObjectSelector,
+			Label: partOfEclipseChe,
 		},
 		&rbacv1.ClusterRoleBinding{}: {
-			Label: partOfCheObjectSelector,
+			Label: partOfEclipseChe,
 		},
 		&corev1.PersistentVolumeClaim{}: {
-			Label: partOfCheObjectSelector,
+			Label: partOfEclipseChe,
 		},
 		&corev1.LimitRange{}: {
-			Label: partOfCheObjectSelector,
+			Label: partOfEclipseChe,
 		},
 		&corev1.ResourceQuota{}: {
-			Label: partOfCheObjectSelector,
+			Label: partOfEclipseChe,
 		},
 	}
 
 	if infrastructure.IsOpenShift() {
-		selectors[&routev1.Route{}] = cache.ByObject{Label: partOfCheObjectSelector}
-		selectors[&templatev1.Template{}] = cache.ByObject{Label: partOfCheObjectSelector}
+		selectors[&routev1.Route{}] = cache.ByObject{Label: partOfEclipseChe}
+		selectors[&templatev1.Template{}] = cache.ByObject{Label: partOfEclipseChe}
 	}
 
 	if infrastructure.IsServiceMonitorEnabled() {
-		selectors[&monitoringv1.ServiceMonitor{}] = cache.ByObject{Label: partOfCheObjectSelector}
+		selectors[&monitoringv1.ServiceMonitor{}] = cache.ByObject{Label: partOfEclipseChe}
 	}
 
 	if infrastructure.IsOpenShiftOAuthEnabled() {
-		selectors[&oauthv1.OAuthClient{}] = cache.ByObject{Label: partOfCheObjectSelector}
+		selectors[&oauthv1.OAuthClient{}] = cache.ByObject{Label: partOfEclipseChe}
 	}
 
 	return func(config *rest.Config, opts cache.Options) (cache.Cache, error) {

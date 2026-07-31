@@ -95,7 +95,7 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployCon
 			Value: ctx.CheCluster.Name},
 		corev1.EnvVar{
 			Name:  "DWO_NAMESPACE",
-			Value: ctx.DwoNamespace,
+			Value: ctx.DWONamespace,
 		},
 	)
 
