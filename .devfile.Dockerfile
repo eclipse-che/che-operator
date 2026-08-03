@@ -1,6 +1,6 @@
 FROM quay.io/devfile/universal-developer-image:ubi8-latest
 
-ENV GO_VERSION=1.25.7
+ENV GO_VERSION=1.26.5
 RUN cd /tmp && wget https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz && \
         mkdir $HOME/go${GO_VERSION} && \
         tar -xvzf go${GO_VERSION}.linux-amd64.tar.gz -C $HOME/go${GO_VERSION} --strip-components 1 && \

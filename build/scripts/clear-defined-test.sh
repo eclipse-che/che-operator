@@ -76,88 +76,117 @@ allowed_licenses=(
 
 # replaces to have a correct link for clearlydefined.io api request
 declare -A replaced_modules=(
-  # https://github.com/open-telemetry/opentelemetry-go-contrib/commit/bc53d2b4eb4de79471bc54f64a5c3dcefa8720d7#
-  ["go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.60.0"]="github.com/open-telemetry/opentelemetry-go-contrib v1.35.0"
-  # https://github.com/open-telemetry/opentelemetry-go-contrib/commit/bc53d2b4eb4de79471bc54f64a5c3dcefa8720d7#
-  ["go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.60.0"]="github.com/open-telemetry/opentelemetry-go-contrib v1.35.0"
-  # https://github.com/open-telemetry/opentelemetry-go-contrib/commit/a89d958e7a2575cf539ffca09657cfd90821d6e4
-  ["go.opentelemetry.io/contrib/bridges/prometheus v0.65.0"]="github.com/open-telemetry/opentelemetry-go-contrib v1.40.0"
-  # https://github.com/open-telemetry/opentelemetry-go-contrib/commit/a89d958e7a2575cf539ffca09657cfd90821d6e4
-  ["go.opentelemetry.io/contrib/exporters/autoexport v0.65.0"]="github.com/open-telemetry/opentelemetry-go-contrib v1.40.0"
-  # https://github.com/open-telemetry/opentelemetry-go-contrib/commit/a89d958e7a2575cf539ffca09657cfd90821d6e4
-  ["go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.65.0"]="github.com/open-telemetry/opentelemetry-go-contrib v1.40.0"
-  # https://github.com/open-telemetry/opentelemetry-go-contrib/commit/a89d958e7a2575cf539ffca09657cfd90821d6e4
-  ["go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.65.0"]="github.com/open-telemetry/opentelemetry-go-contrib v1.40.0"
-  # https://github.com/open-telemetry/opentelemetry-go/commit/a3a5317c5caed1656fb5b301b66dfeb3c4c944e0
-  ["go.opentelemetry.io/otel/exporters/prometheus v0.62.0"]="github.com/open-telemetry/opentelemetry-go v1.40.0"
-  # https://github.com/census-instrumentation/opencensus-go/commits/v0.23.0/
-  ["go.opencensus.io v0.23.0"]="census-instrumentation/opencensus-go 49838f207d61097fc0ebb8aeef306913388376ca"
-  # https://github.com/census-instrumentation/opencensus-go/commits/v0.24.0/
+  # https://github.com/census-instrumentation/opencensus-go/commit/b1a01ee95db0e690d91d7193d037447816fae4c5
   ["go.opencensus.io v0.24.0"]="census-instrumentation/opencensus-go b1a01ee95db0e690d91d7193d037447816fae4c5"
-  # https://github.com/sean-/seed/tree/e2103e2c35297fb7e17febb81e49b312087a2372
-  ["github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529"]="sean-/seed e2103e2c35297fb7e17febb81e49b312087a2372"
-  # https://github.com/decred/dcrd/commit/5444fa50b93dbcbd6a08c75da3eccc32490fb2b2
-  ["github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.0-20210816181553-5444fa50b93d"]="decred/dcrd 5444fa50b93dbcbd6a08c75da3eccc32490fb2b2"
+  # https://github.com/go-git/go-git/commit/3c3be601aa6c0fd0d536c0d1e4f898b4c60e65fe
+  ["github.com/go-git/go-git/v5 v5.19.1"]="github.com/go-git/go-git 3c3be601aa6c0fd0d536c0d1e4f898b4c60e65fe"
+  # https://github.com/grpc-ecosystem/grpc-health-probe/commit/4c1166871b61363793f1c29a00de3046f1505a01
+  ["github.com/grpc-ecosystem/grpc-health-probe v0.4.45"]="github.com/grpc-ecosystem/grpc-health-probe 4c1166871b61363793f1c29a00de3046f1505a01"
+  # https://github.com/miekg/pkcs11/commit/b7c7893ab1a71197aabf7c9c9ff069644f1714c3
+  ["github.com/miekg/pkcs11 v1.1.2"]="github.com/miekg/pkcs11 b7c7893ab1a71197aabf7c9c9ff069644f1714c3"
+  # https://github.com/operator-framework/operator-registry/commit/4bf3823b24386a1061188b2907d2a62d5e63d167
+  ["github.com/operator-framework/operator-registry v1.64.0"]="github.com/operator-framework/operator-registry 4bf3823b24386a1061188b2907d2a62d5e63d167"
+  # https://github.com/redis/go-redis/commit/0a836fb24c808795dfa561ddfdba613e6b4961ea
+  ["github.com/redis/go-redis/extra/rediscmd/v9 v9.17.3"]="github.com/redis/go-redis/extra/rediscmd/v9 0a836fb24c808795dfa561ddfdba613e6b4961ea"
+  ["github.com/redis/go-redis/extra/redisotel/v9 v9.17.3"]="github.com/redis/go-redis/extra/rediscmd/v9 0a836fb24c808795dfa561ddfdba613e6b4961ea"
+  # https://github.com/open-telemetry/opentelemetry-go-contrib/commit/a89d958e7a2575cf539ffca09657cfd90821d6e4
+  ["go.opentelemetry.io/contrib/bridges/prometheus v0.65.0"]="open-telemetry/opentelemetry-go-contrib a89d958e7a2575cf539ffca09657cfd90821d6e4"
+  ["go.opentelemetry.io/contrib/exporters/autoexport v0.65.0"]="open-telemetry/opentelemetry-go-contrib a89d958e7a2575cf539ffca09657cfd90821d6e4"
+  ["go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.65.0"]="open-telemetry/opentelemetry-go-contrib a89d958e7a2575cf539ffca09657cfd90821d6e4"
+  ["go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.65.0"]="open-telemetry/opentelemetry-go-contrib a89d958e7a2575cf539ffca09657cfd90821d6e4"
+  # https://github.com/open-telemetry/opentelemetry-go/commit/a3a5317c5caed1656fb5b301b66dfeb3c4c944e0
+  ["go.opentelemetry.io/otel/exporters/prometheus v0.62.0"]="open-telemetry/opentelemetry-go a3a5317c5caed1656fb5b301b66dfeb3c4c944e0"
 )
 
 # replaces to have a correct link for clearlydefined.io api request
 declare -A replaced_paths=(
-  ["go.starlark.net"]="github.com/google/starlark-go"
-  ["gotest.tools"]="github.com/gotestyourself/gotest.tools"
-  ["gioui.org"]="github.com/gioui/gio"
+  ["github.com/go-git/go-git"]="go-git/go-git"
+  ["github.com/grpc-ecosystem/grpc-health-probe"]="grpc-ecosystem/grpc-health-probe"
+  ["github.com/miekg/pkcs11"]="miekg/pkcs11"
+  ["github.com/operator-framework/operator-registry"]="operator-framework/operator-registry"
+  ["github.com/redis/go-redis/extra/rediscmd/v9"]="redis/go-redis"
+  ["github.com/redis/go-redis/extra/redisotel/v9"]="redis/go-redis"
 )
 
 # replaces to have a correct link for clearlydefined.io api request
 declare -A replaced_api_suffix=(
+  ["go-git/go-git"]="git/github"
+  ["grpc-ecosystem/grpc-health-probe"]="git/github"
+  ["miekg/pkcs11"]="git/github"
+  ["operator-framework/operator-registry"]="git/github"
+  ["redis/go-redis"]="git/github"
+  ["redis/go-redis"]="git/github"
+  ["open-telemetry/opentelemetry-go-contrib"]="git/github"
+  ["open-telemetry/opentelemetry-go"]="git/github"
   ["census-instrumentation/opencensus-go"]="git/github"
-  ["sean-/seed"]="git/github"
-  ["decred/dcrd"]="git/github"
 )
 
 # Exceptions for dependencies that are not yet harvested in clearlydefined.io
 # License must be checked manually
 # https://clearlydefined.io/harvest
 declare -A ignored_paths=(
+  ["github.com/che-incubator/kubernetes-image-puller-operator"]="Harvesting is in progress"
   ["github.com/devfile/devworkspace-operator"]="Harvesting is in progress"
+  ["go.podman.io/common"]="Harvesting is in progress"
+  ["go.podman.io/image/v5"]="Harvesting is in progress"
+  ["go.podman.io/storage"]="Harvesting is in progress"
+  ["github.com/go-logr/logr"]="Harvesting is in progress"
   ["github.com/go-openapi/testify/enable/yaml/v2"]="Harvesting is in progress"
-  ["github.com/grpc-ecosystem/grpc-health-probe"]="Harvesting is in progress"
-  ["github.com/miekg/pkcs11"]="Harvesting is in progress"
+  ["github.com/google/pprof"]="Harvesting is in progress"
+  ["github.com/onsi/ginkgo/v2"]="Harvesting is in progress"
+  ["github.com/onsi/gomega"]="Harvesting is in progress"
   ["github.com/openshift/api"]="Harvesting is in progress"
   ["github.com/openshift/library-go"]="Harvesting is in progress"
   ["github.com/operator-framework/api"]="Harvesting is in progress"
   ["github.com/operator-framework/operator-lifecycle-manager"]="Harvesting is in progress"
-  ["github.com/operator-framework/operator-registry"]="Harvesting is in progress"
-  ["github.com/redis/go-redis/extra/rediscmd/v9"]="Harvesting is in progress"
-  ["github.com/redis/go-redis/extra/redisotel/v9"]="Harvesting is in progress"
   ["github.com/sigstore/fulcio"]="Harvesting is in progress"
-  ["github.com/open-telemetry/opentelemetry-go-contrib"]="Harvesting is in progress"
-  ["github.com/open-telemetry/opentelemetry-go"]="Harvesting is in progress"
-  ["go.podman.io/common"]="Harvesting is in progress"
-  ["go.podman.io/image/v5"]="Harvesting is in progress"
-  ["go.podman.io/storage"]="Harvesting is in progress"
-  ["golang.org/x/crypto"]="Harvesting is in progress"
-  ["golang.org/x/tools/go/packages/packagestest"]="Harvesting is in progress"
-  ["google.golang.org/genproto"]="Harvesting is in progress"
+  ["go.etcd.io/etcd/pkg/v3"]="Harvesting is in progress"
+  ["go.etcd.io/etcd/server/v3"]="Harvesting is in progress"
+  ["sigs.k8s.io/controller-tools"]="Harvesting is in progress"
+  ["sigs.k8s.io/controller-runtime"]="Harvesting is in progress"
+  ["k8s.io/kube-aggregator"]="Harvesting is in progress"
+  ["k8s.io/kms"]="Harvesting is in progress"
+  ["k8s.io/api"]="Harvesting is in progress"
   ["k8s.io/apiextensions-apiserver"]="Harvesting is in progress"
+  ["k8s.io/apimachinery"]="Harvesting is in progress"
   ["k8s.io/apiserver"]="Harvesting is in progress"
+  ["k8s.io/client-go"]="Harvesting is in progress"
   ["k8s.io/code-generator"]="Harvesting is in progress"
   ["k8s.io/component-base"]="Harvesting is in progress"
-  ["k8s.io/kms"]="Harvesting is in progress"
-  ["k8s.io/kube-aggregator"]="Harvesting is in progress"
+  ["k8s.io/streaming"]="Harvesting is in progress"
   ["k8s.io/kube-openapi"]="Harvesting is in progress"
-  ["sigs.k8s.io/controller-tools"]="Harvesting is in progress"
-  ["github.com/prometheus-operator/prometheus-operator"]="Harvesting is in progress"
+  ["golang.org/x/crypto"]="Harvesting is in progress"
+  ["golang.org/x/mod"]="Harvesting is in progress"
+  ["golang.org/x/net"]="Harvesting is in progress"
+  ["golang.org/x/sync"]="Harvesting is in progress"
+  ["golang.org/x/sys"]="Harvesting is in progress"
+  ["golang.org/x/tools"]="Harvesting is in progress"
+  ["golang.org/x/term"]="Harvesting is in progress"
+  ["golang.org/x/text"]="Harvesting is in progress"
+  ["golang.org/x/tools/go/packages/packagestest"]="Harvesting is in progress"
+  ["google.golang.org/genproto"]="Harvesting is in progress"
+  ["google.golang.org/protobuf"]="Harvesting is in progress"
 )
 
 declare -A ignored_paths_licenses=(
+  # https://github.com/che-incubator/kubernetes-image-puller-operator?tab=EPL-2.0-1-ov-file
+  ["github.com/che-incubator/kubernetes-image-puller-operator"]="EPL-2.0"
   # https://github.com/devfile/devworkspace-operator?tab=Apache-2.0-1-ov-file#readme
   ["github.com/devfile/devworkspace-operator"]="Apache-2.0"
+  # https://github.com/containers/container-libs/?tab=readme-ov-file#license
+  ["go.podman.io/common"]="Apache-2.0"
+  ["go.podman.io/image/v5"]="Apache-2.0"
+  ["go.podman.io/storage"]="Apache-2.0"
+  # https://github.com/go-logr/logr?tab=Apache-2.0-1-ov-file
+  ["github.com/go-logr/logr"]="Apache-2.0"
   # https://github.com/go-openapi/testify?tab=Apache-2.0-1-ov-file#readme
   ["github.com/go-openapi/testify/enable/yaml/v2"]="Apache-2.0"
-  # https://github.com/grpc-ecosystem/grpc-health-probe?tab=Apache-2.0-1-ov-file#readme
-  ["github.com/grpc-ecosystem/grpc-health-probe"]="Apache-2.0"
-  # https://github.com/miekg/pkcs11?tab=BSD-3-Clause-1-ov-file#readme
-  ["github.com/miekg/pkcs11"]="BSD-3-Clause"
+  # https://github.com/google/pprof?tab=Apache-2.0-1-ov-file
+  ["github.com/google/pprof"]="Apache-2.0"
+  # https://github.com/onsi/ginkgo?tab=MIT-1-ov-file
+  ["github.com/onsi/ginkgo/v2"]="MIT"
+  # https://github.com/onsi/gomega?tab=MIT-1-ov-file
+  ["github.com/onsi/gomega"]="MIT"
   # https://github.com/openshift/api?tab=Apache-2.0-1-ov-file#readme
   ["github.com/openshift/api"]="Apache-2.0"
   # https://github.com/openshift/library-go?tab=Apache-2.0-1-ov-file#readme
@@ -166,46 +195,59 @@ declare -A ignored_paths_licenses=(
   ["github.com/operator-framework/api"]="Apache-2.0"
   # https://github.com/operator-framework/operator-lifecycle-manager/?tab=Apache-2.0-1-ov-file#readme
   ["github.com/operator-framework/operator-lifecycle-manager"]="Apache-2.0"
-  # https://github.com/operator-framework/operator-registry/?tab=Apache-2.0-1-ov-file#readme
-  ["github.com/operator-framework/operator-registry"]="Apache-2.0"
-  # https://github.com/redis/go-redis?tab=BSD-2-Clause-1-ov-file#readme
-  ["github.com/redis/go-redis/extra/rediscmd/v9"]="BSD-2-Clause"
-  # https://github.com/redis/go-redis?tab=BSD-2-Clause-1-ov-file#readme
-  ["github.com/redis/go-redis/extra/redisotel/v9"]="BSD-2-Clause"
   # https://github.com/sigstore/fulcio/tree/v1.8.5?tab=License-1-ov-file
   ["github.com/sigstore/fulcio"]="BSD-2-Clause"
-  # https://github.com/open-telemetry/opentelemetry-go-contrib?tab=Apache-2.0-1-ov-file
-  ["github.com/open-telemetry/opentelemetry-go-contrib"]="Apache-2.0"
-  # https://github.com/open-telemetry/opentelemetry-go?tab=Apache-2.0-1-ov-file
-  ["github.com/open-telemetry/opentelemetry-go"]="Apache-2.0"
-  # https://github.com/containers/container-libs/?tab=readme-ov-file#license
-  ["go.podman.io/common"]="Apache-2.0"
-  ["go.podman.io/image/v5"]="Apache-2.0"
-  ["go.podman.io/storage"]="Apache-2.0"
-  # https://github.com/golang/crypto?tab=BSD-3-Clause-1-ov-file
-  ["golang.org/x/crypto"]="BSD-3-Clause"
-  # https://github.com/golang/tools/tree/go/packages/packagestest/v0.1.1-deprecated?tab=License-1-ov-file
-  ["golang.org/x/tools/go/packages/packagestest"]="BSD-3-Clause"
-  # https://github.com/googleapis/go-genproto?tab=Apache-2.0-1-ov-file
-  ["google.golang.org/genproto"]="Apache-2.0"
+  # https://github.com/etcd-io/etcd?tab=Apache-2.0-1-ov-file
+  ["go.etcd.io/etcd/pkg/v3"]="Apache-2.0"
+  ["go.etcd.io/etcd/server/v3"]="Apache-2.0"
+  # https://github.com/kubernetes-sigs/controller-tools?tab=Apache-2.0-1-ov-file
+  ["sigs.k8s.io/controller-tools"]="Apache-2.0"
+  # https://github.com/kubernetes-sigs/controller-runtime?tab=Apache-2.0-1-ov-file
+  ["sigs.k8s.io/controller-runtime"]="Apache-2.0"
+  # https://github.com/kubernetes/streaming?tab=Apache-2.0-1-ov-file
+  ["sigs.k8s.io/streaming"]="Apache-2.0"
+  # https://github.com/kubernetes/kube-aggregator?tab=Apache-2.0-1-ov-file
+  ["k8s.io/kube-aggregator"]="Apache-2.0"
+  # https://github.com/kubernetes/kms?tab=Apache-2.0-1-ov-file
+  ["k8s.io/kms"]="Apache-2.0"
+  # https://github.com/kubernetes/api?tab=Apache-2.0-1-ov-file
+  ["k8s.io/api"]="Apache-2.0"
   # https://github.com/kubernetes/apiextensions-apiserver?tab=Apache-2.0-1-ov-file
   ["k8s.io/apiextensions-apiserver"]="Apache-2.0"
+  # https://github.com/kubernetes/apimachinery?tab=Apache-2.0-1-ov-file
+  ["k8s.io/apimachinery"]="Apache-2.0"
   # https://github.com/kubernetes/apiserver?tab=Apache-2.0-1-ov-file
   ["k8s.io/apiserver"]="Apache-2.0"
+  # https://github.com/kubernetes/client-go"?tab=Apache-2.0-1-ov-file
+  ["k8s.io/client-go"]="Apache-2.0"
   # https://github.com/kubernetes/code-generator?tab=Apache-2.0-1-ov-file
   ["k8s.io/code-generator"]="Apache-2.0"
   # https://github.com/kubernetes/component-base?tab=Apache-2.0-1-ov-file
   ["k8s.io/component-base"]="Apache-2.0"
-  # https://github.com/kubernetes/kms?tab=Apache-2.0-1-ov-file
-  ["k8s.io/kms"]="Apache-2.0"
-  # https://github.com/kubernetes/kube-aggregator?tab=Apache-2.0-1-ov-file
-  ["k8s.io/kube-aggregator"]="Apache-2.0"
   # https://github.com/kubernetes/kube-openapi?tab=Apache-2.0-1-ov-file
   ["k8s.io/kube-openapi"]="Apache-2.0"
-  # https://github.com/kubernetes-sigs/controller-tools?tab=Apache-2.0-1-ov-file
-  ["sigs.k8s.io/controller-tools"]="Apache-2.0"
-  # https://github.com/prometheus-operator/prometheus-operator?tab=Apache-2.0-1-ov-file
-  ["github.com/prometheus-operator/prometheus-operator"]="Apache-2.0"
+  # https://github.com/golang/crypto?tab=BSD-3-Clause-1-ov-file
+  ["golang.org/x/crypto"]="BSD-3-Clause"
+  # https://github.com/golang/mod?tab=BSD-3-Clause-1-ov-file
+  ["golang.org/x/mod"]="BSD-3-Clause"
+  # https://github.com/golang/net?tab=BSD-3-Clause-1-ov-file
+  ["golang.org/x/net"]="BSD-3-Clause"
+  # https://github.com/golang/sync?tab=BSD-3-Clause-1-ov-file
+  ["golang.org/x/sync"]="BSD-3-Clause"
+  # https://github.com/golang/sys?tab=BSD-3-Clause-1-ov-file
+  ["golang.org/x/sys"]="BSD-3-Clause"
+  # https://github.com/golang/tools?tab=BSD-3-Clause-1-ov-file
+  ["golang.org/x/tools"]="BSD-3-Clause"
+  # https://github.com/golang/text?tab=BSD-3-Clause-1-ov-file
+  ["golang.org/x/text"]="BSD-3-Clause"
+  # https://github.com/golang/term?tab=BSD-3-Clause-1-ov-file
+  ["golang.org/x/term"]="BSD-3-Clause"
+  # https://github.com/golang/tools/tree/go/packages/packagestest/v0.1.1-deprecated?tab=License-1-ov-file
+  ["golang.org/x/tools/go/packages/packagestest"]="BSD-3-Clause"
+  # https://github.com/googleapis/go-genproto?tab=Apache-2.0-1-ov-file
+  ["google.golang.org/genproto"]="Apache-2.0"
+  # https://github.com/googleapis/go-genproto?tab=Apache-2.0-1-ov-file
+  ["google.golang.org/protobuf"]="Apache-2.0"
 )
 
 declare -A declared_licenses=(
@@ -213,23 +255,40 @@ declare -A declared_licenses=(
   ["github.com/Microsoft/hcsshim"]="MIT"
 )
 
+ERRORS_FILE=$(mktemp)
+trap 'rm -f "$ERRORS_FILE"' EXIT
+
 retryUrl() {
-    url=$1
+  local url="$1"
+  local max_retries="${2:-5}" # Default: 5 attempts
+  local sleep_time=1          # Delay between retries in seconds
 
-    body=""
-    max_retries=1
-    for ((i=1; i<=max_retries; i++)); do
-      response=$(curl -s -w "HTTPSTATUS:%{http_code}" "$url")
-      body=$(echo "$response" | sed -e 's/HTTPSTATUS\:.*//g')
-      status=$(echo "$response" | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
-      if [[ "$status" == "200" ]] || [[ "$status" == "404" ]]; then
-        break
-      else
-        sleep 5s
-      fi
-    done
+  local response status body
 
-    echo "$body"
+  for ((i = 1; i <= max_retries; i++)); do
+    # Append HTTP code on a new line at the end of the output
+    response=$(curl -s --max-time 5 -w "\n%{http_code}" "$url")
+
+    # Extract status code from the last line
+    status=$(tail -n1 <<< "$response")
+
+    # Extract response body (all lines except the last one)
+    body=$(sed '$d' <<< "$response")
+
+    # Break ONLY on 200 OK (404 will fall through and trigger a retry)
+    if [[ "$status" == "200" || "$status" == "404" ]]; then
+      break
+    fi
+
+    body="TIMEOUT"
+
+    # Wait before retrying (skip delay on the final attempt)
+    (( i < max_retries )) && sleep "$sleep_time"
+
+    timeout=$((timeout * 2))
+  done
+
+  printf '%s' "$body"
 }
 
 go list -m -mod=mod all | while read -r module; do
@@ -237,11 +296,6 @@ go list -m -mod=mod all | while read -r module; do
     if [[ "$module" == "github.com/eclipse-che/che-operator" ]]; then
         continue
     fi
-
-    if [[ ! "$module" =~ "k8s.io" ]]; then
-        continue
-    fi
-
 
     # respect the replace directive in go.mod file
     if [[ "${module}" == *"=>"* ]]; then
@@ -281,8 +335,15 @@ go list -m -mod=mod all | while read -r module; do
 
     score=""
     body=$(retryUrl "$url")
-    if [[ ! -z "$body" ]]; then
-      score=$(echo "$body" | jq -r '.scores.effective')
+    if [[ $body == "TIMEOUT" ]]; then
+      printf "%-7s %-70s %-25s %-10s %s\n" "[TIMEOUT]" "$orig_module" "N/A" "N/A" "$url" >> "$ERRORS_FILE"
+      continue
+    elif [[ ! -z "$body" ]]; then
+      set -e
+      if ! score=$(echo "$body" | jq -e -r '.scores.effective' 2>/dev/null); then
+        score=""
+      fi
+      set +e
     fi
 
     # try a shorter path if the first one returns null
@@ -301,14 +362,21 @@ go list -m -mod=mod all | while read -r module; do
         # get the score again
         score=""
         body=$(retryUrl "$url")
-        if [[ ! -z "$body" ]]; then
-          score=$(echo "$body" | jq -r '.scores.effective')
+        if [[ $body == "TIMEOUT" ]]; then
+          printf "%-7s %-70s %-25s %-10s %s\n" "[TIMEOUT]" "$orig_module" "N/A" "N/A" "$url" >> "$ERRORS_FILE"
+          continue
+        elif [[ ! -z "$body" ]]; then
+          set -e
+          if ! score=$(echo "$body" | jq -e -r '.scores.effective' 2>/dev/null); then
+            score=""
+          fi
+          set +e
         fi
     done
 
-    if [[ $score == "N/A" ]]; then
-      printf "%-7s %-70s %-25s %-10s %s\n" "[ERROR]" "$orig_module" "N/A" "N/A" "$orig_url"
-      exit 1
+    if [[ $score == "N/A" || $score == "" ]]; then
+      printf "%-7s %-70s %-25s %-10s %s\n" "[ERROR]" "$orig_module" "N/A" "N/A" "$orig_url" >> "$ERRORS_FILE"
+      continue
     fi
 
     if [[ -v declared_licenses["$path"] ]]; then
@@ -333,14 +401,14 @@ go list -m -mod=mod all | while read -r module; do
     fi
 
     if [[ $license_approved == "false" ]]; then
-      printf "%-7s %-70s %-25s %-10s %s\n" "[ERROR]" "$orig_module" "$license" "$score" "$url"
-      exit 1
+      printf "%-7s %-70s %-25s %-10s %s\n" "[ERROR]" "$orig_module" "$license" "$score" "$url" >> "$ERRORS_FILE"
+      continue
     fi
 
     # analyze the score
     if  (( score < 65 )); then
-      printf "%-7s %-70s %-25s %-10s %s\n" "[ERROR]" "$orig_module" "$license" "$score" "$url"
-      exit 1
+      printf "%-7s %-70s %-25s %-10s %s\n" "[ERROR]" "$orig_module" "$license" "$score" "$url" >> "$ERRORS_FILE"
+      continue
     fi
 
     result="[OK]"
@@ -351,5 +419,11 @@ go list -m -mod=mod all | while read -r module; do
 
     sleep 0.1s
 done
+
+if [[ -s "$ERRORS_FILE" ]]; then
+  echo "==================================================="
+  cat "$ERRORS_FILE"
+  exit 1
+fi
 
 echo "[INFO] All dependencies are defined correctly."

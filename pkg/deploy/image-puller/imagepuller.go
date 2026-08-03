@@ -76,7 +76,7 @@ func (ip *ImagePuller) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result,
 	}
 
 	if ctx.CheCluster.Spec.Components.ImagePuller.Enable {
-		if !infrastructure.IsKubernetesImagePullerEnabled() {
+		if !infrastructure.IsKubernetesImagePullerEnabled(ctx.ClusterAPI.DiscoveryClient) {
 			errMsg := "kubernetes Image Puller is not installed, in order to enable the property admin should install the operator first"
 			return reconcile.Result{}, false, errors.New(errMsg)
 		}
@@ -106,7 +106,7 @@ func (ip *ImagePuller) uninstallImagePuller(ctx *chetypes.DeployContext) (bool, 
 		return false, err
 	}
 
-	if infrastructure.IsKubernetesImagePullerEnabled() {
+	if infrastructure.IsKubernetesImagePullerEnabled(ctx.ClusterAPI.DiscoveryClient) {
 		if done, err := deploy.DeleteByKeyWithClient(
 			ctx.ClusterAPI.NonCachingClient,
 			types.NamespacedName{

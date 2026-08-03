@@ -18,11 +18,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func (r *KubernetesImagePuller) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	mgr.GetWebhookServer().Register("/validate-che-eclipse-org-v1alpha1-kubernetesimagepuller", &webhook.Admission{Handler: &validationHandler{k8sClient: mgr.GetClient()}})
+	mgr.GetWebhookServer().Register("/validate-che-eclipse-org-v1alpha1-kubernetesimagepuller", &admission.Webhook{Handler: &validationHandler{k8sClient: mgr.GetClient()}})
 	return nil
 }
 
@@ -32,15 +32,15 @@ type validationHandler struct {
 	k8sClient client.Client
 }
 
-func (v *validationHandler) Handle(ctx context.Context, req webhook.AdmissionRequest) webhook.AdmissionResponse {
+func (v *validationHandler) Handle(ctx context.Context, req admission.Request) admission.Response {
 	imagePullers := &KubernetesImagePullerList{}
 	err := v.k8sClient.List(ctx, imagePullers, &client.ListOptions{Namespace: req.Namespace})
 	if err != nil {
-		return webhook.Denied(err.Error())
+		return admission.Denied(err.Error())
 	}
 
 	if len(imagePullers.Items) > 0 {
-		return webhook.Denied("only one KubernetesImagePuller is allowed per namespace")
+		return admission.Denied("only one KubernetesImagePuller is allowed per namespace")
 	}
-	return webhook.Allowed("there are no KubernetesImagePuller resources in this namespace")
+	return admission.Allowed("there are no KubernetesImagePuller resources in this namespace")
 }

@@ -13,8 +13,9 @@
 package v1alpha1
 
 import (
-	corev1 "k8s.io/api/core/v1"
+	"github.com/che-incubator/kubernetes-image-puller-operator/pkg/defaults"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -46,6 +47,8 @@ type KubernetesImagePullerSpec struct {
 	ImagePullSecrets string `json:"imagePullSecrets,omitempty"`
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Affinity"
 	Affinity string `json:"affinity,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Tolerations"
+	Tolerations string `json:"tolerations,omitempty"`
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="ImagePull name"
 	ImagePullerImage string `json:"imagePullerImage,omitempty"`
 }
@@ -81,17 +84,18 @@ type KubernetesImagePullerList struct {
 	Items           []KubernetesImagePuller `json:"items"`
 }
 
-func init() {
-	SchemeBuilder.Register(&KubernetesImagePuller{}, &KubernetesImagePullerList{})
-}
-
-type KubernetesImagePullerConfig struct {
-	configMap *corev1.ConfigMap
-}
-
-func (config *KubernetesImagePullerConfig) WithDaemonsetName(name string) *KubernetesImagePullerConfig {
-	config.configMap.Data["DAEMONSET_NAME"] = name
-	return &KubernetesImagePullerConfig{
-		configMap: config.configMap,
+func (k *KubernetesImagePuller) GetImagePullerImage() string {
+	if k.Spec.ImagePullerImage != "" {
+		return k.Spec.ImagePullerImage
 	}
+	return defaults.ImagePullerImage
+}
+
+func addKnownTypes(s *runtime.Scheme) error {
+	s.AddKnownTypes(GroupVersion,
+		&KubernetesImagePuller{},
+		&KubernetesImagePullerList{},
+	)
+	metav1.AddToGroupVersion(s, GroupVersion)
+	return nil
 }

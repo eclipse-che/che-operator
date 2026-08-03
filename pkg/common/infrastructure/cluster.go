@@ -20,6 +20,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
@@ -39,12 +40,13 @@ const (
 var (
 	infrastructure = Unknown
 
-	isOpenShiftOAuthEnabled        bool
-	isLeaderElectionEnabled        bool
-	isKubernetesImagePullerEnabled bool
-	isServiceMonitorEnabled        bool
+	isOpenShiftOAuthEnabled bool
+	isLeaderElectionEnabled bool
+	isServiceMonitorEnabled bool
 
 	operatorNamespace string
+
+	logger = ctrl.Log.WithName("infrastructure")
 )
 
 // GetOperatorNamespace returns the namespace where the operator is running.
@@ -90,9 +92,14 @@ func IsLeaderElectionEnabled() bool {
 	return isLeaderElectionEnabled
 }
 
-func IsKubernetesImagePullerEnabled() bool {
-	initializeIfNeeded()
-	return isKubernetesImagePullerEnabled
+func IsKubernetesImagePullerEnabled(discovery discovery.DiscoveryInterface) bool {
+	_, apiResources, err := discovery.ServerGroupsAndResources()
+	if err != nil {
+		logger.Error(err, "Failed to get API resources list")
+		return false
+	}
+
+	return hasAPIResource(apiResources, KubernetesImagePullerResources)
 }
 
 func IsServiceMonitorEnabled() bool {
@@ -115,7 +122,6 @@ func InitializeForTesting(desiredInfrastructure Type) {
 		operatorNamespace = "eclipse-che"
 	}
 
-	isKubernetesImagePullerEnabled = true
 	isLeaderElectionEnabled = true
 	isServiceMonitorEnabled = true
 }
@@ -149,7 +155,6 @@ func initializeIfNeeded() {
 	}
 
 	isLeaderElectionEnabled = hasAPIResource(apiResources, LeasesResources)
-	isKubernetesImagePullerEnabled = hasAPIResource(apiResources, KubernetesImagePullerResources)
 	isServiceMonitorEnabled = hasAPIResource(apiResources, ServiceMonitorResources)
 }
 
