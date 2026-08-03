@@ -1178,10 +1178,6 @@ type CheClusterList struct {
 	Items           []CheCluster `json:"items"`
 }
 
-func init() {
-	SchemeBuilder.Register(&CheCluster{}, &CheClusterList{})
-}
-
 func (c *CheCluster) IsAirGapMode() bool {
 	return c.Spec.ContainerRegistry.Hostname != "" || c.Spec.ContainerRegistry.Organization != ""
 }
