@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -124,12 +124,17 @@ func TestCreatesDataInNamespace(t *testing.T) {
 		assert.Equal(t, userSettings.Data["EDITOR_DOWNLOAD_URL_CHE_INCUBATOR_CHE_IDEA_LATEST"], "url_latest")
 		assert.Equal(t, userSettings.Data["EDITOR_DOWNLOAD_URL_CHE_INCUBATOR_CHE_IDEA_NEXT"], "url_next")
 
-		if infraType == infrastructure.Kubernetes {
-			assert.Equal(t, 4, len(userSettings.Data), "Expecting 2 elements in the user settings")
-		} else {
+		assert.Equal(t, "true", userSettings.Data["CLI_ACTIVITY_TRACKER_ENABLED"], "Unexpected CLI Activity Tracker enabled setting")
+		assert.Equal(t, "30", userSettings.Data["CLI_ACTIVITY_TRACKER_CHECK_PERIOD"], "Unexpected CLI Activity Tracker check period")
+		assert.Equal(t, "900", userSettings.Data["CLI_ACTIVITY_TRACKER_ACTIVITY_WINDOW"], "Unexpected CLI Activity Tracker activity window")
+		assert.Equal(t, "300", userSettings.Data["CLI_ACTIVITY_TRACKER_GRACE_PERIOD"], "Unexpected CLI Activity Tracker grace period")
+		_, hasMaxProcessAge := userSettings.Data["CLI_ACTIVITY_TRACKER_MAX_PROCESS_AGE"]
+		assert.False(t, hasMaxProcessAge, "CLI_ACTIVITY_TRACKER_MAX_PROCESS_AGE should not be set when not configured (nil)")
+		assert.Equal(t, "true", userSettings.Data["CLI_ACTIVITY_TRACKER_VERBOSE"], "Unexpected CLI Activity Tracker verbose setting")
+
+		if infraType != infrastructure.Kubernetes {
 			assert.Equal(t, userSettings.Data["NO_PROXY"], ".svc")
 			assert.Equal(t, userSettings.Data["no_proxy"], ".svc")
-			assert.Equal(t, 6, len(userSettings.Data), "Expecting 2 elements in the user settings")
 		}
 
 		cert := corev1.Secret{}
@@ -197,6 +202,92 @@ func TestCreatesDataInNamespace(t *testing.T) {
 				},
 			})
 	})
+}
+
+func TestOptionalFeaturesOmitEnvVars(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
+	testCases := []struct {
+		name               string
+		cliActivityTracker *chev2.CliActivityTrackerConfig
+	}{
+		{
+			name:               "cliActivityTracker nil",
+			cliActivityTracker: nil,
+		},
+		{
+			name: "cliActivityTracker enabled explicitly false with timing fields set",
+			cliActivityTracker: &chev2.CliActivityTrackerConfig{
+				Enabled:                 ptr.To(false),
+				SecondsOfCheckPeriod:    ptr.To(int32(30)),
+				SecondsOfActivityWindow: ptr.To(int32(900)),
+				SecondsOfGracePeriod:    ptr.To(int32(300)),
+				SecondsOfMaxProcessAge:  ptr.To(int32(21600)),
+				Verbose:                 ptr.To(true),
+			},
+		},
+		{
+			name: "cliActivityTracker enabled nil with timing fields set",
+			cliActivityTracker: &chev2.CliActivityTrackerConfig{
+				SecondsOfCheckPeriod:    ptr.To(int32(30)),
+				SecondsOfActivityWindow: ptr.To(int32(900)),
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.TODO()
+			namespace := &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "ns-" + tc.name,
+					Labels: map[string]string{
+						constants.WorkspaceNamespaceOwnerUidLabelKey: "uid",
+					},
+				},
+			}
+			scheme, cl, r := setup(infrastructure.Kubernetes, namespace)
+
+			cheNamespace := &corev1.Namespace{}
+			cheNamespace.SetName("eclipse-che")
+			assert.NoError(t, cl.Create(ctx, cheNamespace))
+
+			cheCluster := chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "che",
+					Namespace: "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						SecondsOfInactivityBeforeIdling: ptr.To(int32(1800)),
+						SecondsOfRunBeforeIdling:        ptr.To(int32(-1)),
+						CliActivityTracker:              tc.cliActivityTracker,
+					},
+				},
+			}
+			assert.NoError(t, cl.Create(ctx, &cheCluster))
+
+			_ = scheme
+			_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}})
+			assert.NoError(t, err, "Reconciliation should have succeeded")
+
+			userSettings := corev1.ConfigMap{}
+			assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-user-settings", Namespace: namespace.GetName()}, &userSettings))
+
+			_, hasEnabled := userSettings.Data["CLI_ACTIVITY_TRACKER_ENABLED"]
+			assert.False(t, hasEnabled, "CLI_ACTIVITY_TRACKER_ENABLED should not be set when tracker is not enabled")
+			_, hasCheckPeriod := userSettings.Data["CLI_ACTIVITY_TRACKER_CHECK_PERIOD"]
+			assert.False(t, hasCheckPeriod, "CLI_ACTIVITY_TRACKER_CHECK_PERIOD should not be set when tracker is not enabled")
+			_, hasActivityWindow := userSettings.Data["CLI_ACTIVITY_TRACKER_ACTIVITY_WINDOW"]
+			assert.False(t, hasActivityWindow, "CLI_ACTIVITY_TRACKER_ACTIVITY_WINDOW should not be set when tracker is not enabled")
+			_, hasGracePeriod := userSettings.Data["CLI_ACTIVITY_TRACKER_GRACE_PERIOD"]
+			assert.False(t, hasGracePeriod, "CLI_ACTIVITY_TRACKER_GRACE_PERIOD should not be set when tracker is not enabled")
+			_, hasMaxProcessAge := userSettings.Data["CLI_ACTIVITY_TRACKER_MAX_PROCESS_AGE"]
+			assert.False(t, hasMaxProcessAge, "CLI_ACTIVITY_TRACKER_MAX_PROCESS_AGE should not be set when tracker is not enabled")
+			_, hasVerbose := userSettings.Data["CLI_ACTIVITY_TRACKER_VERBOSE"]
+			assert.False(t, hasVerbose, "CLI_ACTIVITY_TRACKER_VERBOSE should not be set when tracker is not enabled")
+		})
+	}
 }
 
 func TestUpdateSccClusterRoleBinding(t *testing.T) {

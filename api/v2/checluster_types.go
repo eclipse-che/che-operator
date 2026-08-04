@@ -259,6 +259,10 @@ type CheClusterDevEnvironments struct {
 	// Typical uses cases include injecting organization tools/configs, initializing persistent home, etc.
 	// +optional
 	InitContainers []corev1.Container `json:"initContainers,omitempty"`
+
+	// CLI Activity Tracker configuration for preventing workspace idling during active CLI processes.
+	// +optional
+	CliActivityTracker *CliActivityTrackerConfig `json:"cliActivityTracker,omitempty"`
 }
 
 // Che components configuration.
@@ -688,6 +692,56 @@ type WorkspaceSecurityConfig struct {
 	// and `devEnvironments.disableContainerRunCapabilities` are set to `true`.
 	// +optional
 	ContainerSecurityContext *corev1.SecurityContext `json:"containerSecurityContext,omitempty"`
+}
+
+// CliActivityTrackerConfig defines CLI Activity Tracker configuration for preventing workspace idling
+// during active CLI processes. These settings are propagated as environment variables
+// to workspace containers. When omitted, the CLI Activity Tracker calculates defaults
+// dynamically based on the workspace idle timeout.
+type CliActivityTrackerConfig struct {
+	// Enables CLI Activity Tracker to monitor running CLI processes and prevent workspace idling.
+	// When omitted, the CLI Activity Tracker determines the default behavior.
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// How often (in seconds) to scan for active CLI processes.
+	// When omitted, the CLI Activity Tracker calculates a default
+	// based on the workspace idle timeout (e.g. 60s for a 1800s idle timeout).
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:ExclusiveMinimum=true
+	SecondsOfCheckPeriod *int32 `json:"secondsOfCheckPeriod,omitempty"`
+
+	// How long (in seconds) to wait for input from interactive processes
+	// before considering them idle.
+	// When omitted, the CLI Activity Tracker calculates a default
+	// based on the workspace idle timeout (e.g. 1500s for a 1800s idle timeout).
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:ExclusiveMinimum=true
+	SecondsOfActivityWindow *int32 `json:"secondsOfActivityWindow,omitempty"`
+
+	// All processes unconditionally prevent idling when younger than this (in seconds).
+	// When omitted, the CLI Activity Tracker calculates a default
+	// based on the workspace idle timeout (e.g. 300s for a 1800s idle timeout).
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:ExclusiveMinimum=true
+	SecondsOfGracePeriod *int32 `json:"secondsOfGracePeriod,omitempty"`
+
+	// Safety limit (in seconds). Processes older than this stop preventing idling.
+	// When omitted, the CLI Activity Tracker uses its built-in default (e.g. 6h).
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:ExclusiveMinimum=true
+	SecondsOfMaxProcessAge *int32 `json:"secondsOfMaxProcessAge,omitempty"`
+
+	// Enables verbose logging of CLI Activity Tracker activity-detection details
+	// (which process was detected, why it does or doesn't prevent idling), promoting
+	// them from Debug to Info level without requiring debug logging for the whole
+	// container. When omitted, the CLI Activity Tracker determines the default behavior.
+	// +optional
+	Verbose *bool `json:"verbose,omitempty"`
 }
 
 // Authentication settings.
