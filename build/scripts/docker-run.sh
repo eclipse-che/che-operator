@@ -38,7 +38,7 @@ init() {
 build() {
   printf "%bBuilding image %b${IMAGE_NAME}${NC}..." "${BOLD}" "${BLUE}"
   if ${CONTAINER_ENGINE} build -t ${IMAGE_NAME} > docker-build-log 2>&1  -<<EOF
-  FROM docker.io/golang:1.25-bookworm
+  FROM docker.io/golang:1.26-bookworm
   RUN apt update && apt install python3-pip skopeo jq rsync unzip -y && \
     pip install --break-system-packages yq && \
     curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
