@@ -86,7 +86,7 @@ metadata:
     categories: Developer Tools
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:next
-    createdAt: "2026-07-30T08:51:48Z"
+    createdAt: "2026-08-04T09:39:09Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
     features.operators.openshift.io/cnf: "false"
@@ -108,7 +108,7 @@ metadata:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.arm64: supported
     operatorframework.io/os.linux: supported
-  name: eclipse-che.v7.121.0-1053.next
+  name: eclipse-che.v7.121.0-1055.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1173,7 +1173,7 @@ spec:
       name: openvsx
     - image: quay.io/sclorg/postgresql-16-c9s:20260319
       name: openvsx-postgres
-  version: 7.121.0-1053.next
+  version: 7.121.0-1055.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1
@@ -1207,6 +1207,29 @@ spec:
       targetPort: 9443
       type: MutatingAdmissionWebhook
       webhookPath: /mutate-org-eclipse-che-v2-checluster
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: che-operator
+      failurePolicy: Fail
+      generateName: vauthorization.kb.io
+      objectSelector:
+        matchLabels:
+          app.kubernetes.io/component: advanced-authorization
+          app.kubernetes.io/part-of: che.eclipse.org
+      rules:
+        - apiGroups:
+            - ""
+          apiVersions:
+            - v1
+          operations:
+            - CREATE
+          resources:
+            - configmaps
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-advanced-authorization
     - admissionReviewVersions:
         - v1
       containerPort: 443

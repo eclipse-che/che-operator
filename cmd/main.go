@@ -23,6 +23,7 @@ import (
 	userv1 "github.com/openshift/api/user/v1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
 	workspaceconfig "github.com/eclipse-che/che-operator/controllers/workspaceconfig"
@@ -44,6 +45,7 @@ import (
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/signal"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/deploy/authorization"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -310,10 +312,20 @@ func main() {
 	sigHandler := signal.SetupSignalHandler(terminationPeriod)
 
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
-		if err = chev2.SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "CheCluster")
-			os.Exit(1)
-		}
+		mgr.GetWebhookServer().Register(
+			"/mutate-org-eclipse-che-v2-checluster",
+			admission.WithDefaulter(mgr.GetScheme(), &chev2.CheClusterDefaulter{}),
+		)
+
+		mgr.GetWebhookServer().Register(
+			"/validate-org-eclipse-che-v2-checluster",
+			admission.WithValidator(mgr.GetScheme(), &chev2.CheClusterValidator{}),
+		)
+
+		mgr.GetWebhookServer().Register(
+			"/validate-advanced-authorization",
+			&webhook.Admission{Handler: authorization.NewAuthorizationWebhook(mgr.GetClient())},
+		)
 	}
 
 	// +kubebuilder:scaffold:builder

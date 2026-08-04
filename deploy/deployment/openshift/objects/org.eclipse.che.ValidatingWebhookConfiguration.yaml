@@ -42,3 +42,26 @@ webhooks:
     resources:
     - checlusters
   sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: che-operator-service
+      namespace: eclipse-che
+      path: /validate-advanced-authorization
+  failurePolicy: Fail
+  name: vauthorization.kb.io
+  objectSelector:
+    matchLabels:
+      app.kubernetes.io/component: advanced-authorization
+      app.kubernetes.io/part-of: che.eclipse.org
+  rules:
+  - apiGroups:
+    - ""
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    resources:
+    - configmaps
+  sideEffects: None

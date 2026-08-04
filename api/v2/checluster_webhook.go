@@ -39,13 +39,6 @@ var (
 	webhookLogger = ctrl.Log.WithName("webhook")
 )
 
-func SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr, &CheCluster{}).
-		WithDefaulter(&CheClusterDefaulter{}).
-		WithValidator(&CheClusterValidator{}).
-		Complete()
-}
-
 // Keep empty line after annotation
 // +kubebuilder:webhook:path=/mutate-org-eclipse-che-v2-checluster,mutating=true,failurePolicy=fail,sideEffects=None,groups=org.eclipse.che,resources=checlusters,verbs=create;update,versions=v2,name=mchecluster.kb.io,admissionReviewVersions=v1
 

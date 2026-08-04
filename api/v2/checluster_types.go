@@ -735,7 +735,6 @@ type Auth struct {
 	// and is not in the `denyUsers` list nor a member of a group in the `denyGroups` list.
 	// If `allowUsers` and `allowGroups` are empty, then all users are allowed to access Che.
 	// If `denyUsers` and `denyGroups` are empty, then no users are denied access to Che.
-	// Note: group-based authorization (`allowGroups` and `denyGroups`) is currently supported on OpenShift only.
 	// +optional
 	AdvancedAuthorization *AdvancedAuthorization `json:"advancedAuthorization,omitempty"`
 }
