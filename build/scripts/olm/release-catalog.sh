@@ -83,7 +83,7 @@ build () {
           CHANNEL="${CHANNEL}" \
           BUNDLE_IMG="${BUNDLE_IMAGE}" \
           IMAGE_TOOL="${IMAGE_TOOL}" \
-          ARCHS="linux/arm64,linux/amd64"
+          ARCHS="linux/arm64,linux/amd64,linux/s390x,linux/ppc64le"
     else
       make bundle-build bundle-push \
           CHANNEL="${CHANNEL}" \
@@ -116,7 +116,7 @@ build () {
       CHANNEL="${CHANNEL}" \
       CATALOG_IMG="${CATALOG_IMAGE}" \
       IMAGE_TOOL="${IMAGE_TOOL}" \
-      ARCHS="linux/arm64,linux/amd64"
+      ARCHS="linux/arm64,linux/amd64,linux/s390x,linux/ppc64le"
     else
       make catalog-build catalog-push \
         CHANNEL="${CHANNEL}" \

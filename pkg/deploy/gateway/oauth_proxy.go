@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -13,6 +13,7 @@
 package gateway
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -31,6 +32,9 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 func getGatewayOauthProxyConfigSpec(ctx *chetypes.DeployContext, cookieSecret string) corev1.ConfigMap {
@@ -175,6 +179,52 @@ func oauthScopeConfig(instance *chev2.CheCluster) string {
 	return ""
 }
 
+// resolveOpenShiftOAuthProxyImage returns the oauth-proxy image from the cluster's own release
+// payload via the openshift/oauth-proxy ImageStream, which is maintained by the Cluster Version
+// Operator and always carries an architecture-native, digest-pinned reference. Returns an empty
+// string when the ImageStream is unavailable so the caller can fall back to the operator default.
+func resolveOpenShiftOAuthProxyImage(ctx *chetypes.DeployContext) string {
+	imageStream := &unstructured.Unstructured{}
+	imageStream.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "image.openshift.io",
+		Version: "v1",
+		Kind:    "ImageStream",
+	})
+
+	if err := ctx.ClusterAPI.NonCachingClient.Get(
+		context.TODO(),
+		types.NamespacedName{Name: "oauth-proxy", Namespace: "openshift"},
+		imageStream,
+	); err != nil {
+		logrus.Warnf("Failed to resolve oauth-proxy image from cluster release payload, using default: %v", err)
+		return ""
+	}
+
+	tags, _, _ := unstructured.NestedSlice(imageStream.Object, "status", "tags")
+	for _, tag := range tags {
+		tagMap, ok := tag.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		items, _, _ := unstructured.NestedSlice(tagMap, "items")
+		if len(items) == 0 {
+			continue
+		}
+		firstItem, ok := items[0].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		ref, _, _ := unstructured.NestedString(firstItem, "dockerImageReference")
+		if ref != "" {
+			logrus.Infof("Resolved oauth-proxy image from cluster release payload: %s", ref)
+			return ref
+		}
+	}
+
+	logrus.Warn("openshift/oauth-proxy ImageStream found but contains no image reference, using default")
+	return ""
+}
+
 func getOauthProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
 	// append env var with ConfigMap revision to restore pod automatically when config has been changed
 	cm := &corev1.ConfigMap{}
@@ -184,7 +234,12 @@ func getOauthProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
 	var image, probePath string
 	var args = []string{"--config=/etc/oauth-proxy/oauth-proxy.cfg"}
 	if infrastructure.IsOpenShiftOAuthEnabled() {
-		image = defaults.GetGatewayOpenShiftAuthenticationSidecarImage(ctx.CheCluster)
+		// Prefer the architecture-native image from the cluster's release payload;
+		// fall back to RELATED_IMAGE_gateway_authentication_sidecar when unavailable.
+		image = resolveOpenShiftOAuthProxyImage(ctx)
+		if image == "" {
+			image = defaults.GetGatewayOpenShiftAuthenticationSidecarImage(ctx.CheCluster)
+		}
 		probePath = "/oauth/healthz"
 	} else {
 		image = defaults.GetGatewayKubernetesAuthenticationSidecarImage(ctx.CheCluster)
