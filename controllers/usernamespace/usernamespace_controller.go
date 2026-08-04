@@ -453,6 +453,34 @@ func (r *CheUserNamespaceReconciler) reconcileUserSettings(
 		data["SECONDS_OF_DW_RUN_BEFORE_IDLING"] = strconv.FormatInt(int64(*checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling), 10)
 	}
 
+	// CLI Activity Tracker configuration
+	if checluster.Spec.DevEnvironments.CliActivityTracker != nil {
+		cw := checluster.Spec.DevEnvironments.CliActivityTracker
+		if cw.Enabled != nil && *cw.Enabled {
+			data["CLI_ACTIVITY_TRACKER_ENABLED"] = "true"
+
+			if cw.SecondsOfCheckPeriod != nil {
+				data["CLI_ACTIVITY_TRACKER_CHECK_PERIOD"] = strconv.FormatInt(int64(*cw.SecondsOfCheckPeriod), 10)
+			}
+
+			if cw.SecondsOfActivityWindow != nil {
+				data["CLI_ACTIVITY_TRACKER_ACTIVITY_WINDOW"] = strconv.FormatInt(int64(*cw.SecondsOfActivityWindow), 10)
+			}
+
+			if cw.SecondsOfGracePeriod != nil {
+				data["CLI_ACTIVITY_TRACKER_GRACE_PERIOD"] = strconv.FormatInt(int64(*cw.SecondsOfGracePeriod), 10)
+			}
+
+			if cw.SecondsOfMaxProcessAge != nil {
+				data["CLI_ACTIVITY_TRACKER_MAX_PROCESS_AGE"] = strconv.FormatInt(int64(*cw.SecondsOfMaxProcessAge), 10)
+			}
+
+			if cw.Verbose != nil {
+				data["CLI_ACTIVITY_TRACKER_VERBOSE"] = strconv.FormatBool(*cw.Verbose)
+			}
+		}
+	}
+
 	// proxy settings
 	if proxyConfig, err := che.GetProxyConfiguration(deployContext); err != nil {
 		return err

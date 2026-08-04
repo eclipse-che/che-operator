@@ -19831,6 +19831,59 @@ spec:
                           type: string
                         type: array
                     type: object
+                  cliActivityTracker:
+                    description: CLI Activity Tracker configuration for preventing
+                      workspace idling during active CLI processes.
+                    properties:
+                      enabled:
+                        description: |-
+                          Enables CLI Activity Tracker to monitor running CLI processes and prevent workspace idling.
+                          When omitted, the CLI Activity Tracker determines the default behavior.
+                        type: boolean
+                      secondsOfActivityWindow:
+                        description: |-
+                          How long (in seconds) to wait for input from interactive processes
+                          before considering them idle.
+                          When omitted, the CLI Activity Tracker calculates a default
+                          based on the workspace idle timeout (e.g. 1500s for a 1800s idle timeout).
+                        exclusiveMinimum: true
+                        format: int32
+                        minimum: 0
+                        type: integer
+                      secondsOfCheckPeriod:
+                        description: |-
+                          How often (in seconds) to scan for active CLI processes.
+                          When omitted, the CLI Activity Tracker calculates a default
+                          based on the workspace idle timeout (e.g. 60s for a 1800s idle timeout).
+                        exclusiveMinimum: true
+                        format: int32
+                        minimum: 0
+                        type: integer
+                      secondsOfGracePeriod:
+                        description: |-
+                          All processes unconditionally prevent idling when younger than this (in seconds).
+                          When omitted, the CLI Activity Tracker calculates a default
+                          based on the workspace idle timeout (e.g. 300s for a 1800s idle timeout).
+                        exclusiveMinimum: true
+                        format: int32
+                        minimum: 0
+                        type: integer
+                      secondsOfMaxProcessAge:
+                        description: |-
+                          Safety limit (in seconds). Processes older than this stop preventing idling.
+                          When omitted, the CLI Activity Tracker uses its built-in default (e.g. 6h).
+                        exclusiveMinimum: true
+                        format: int32
+                        minimum: 0
+                        type: integer
+                      verbose:
+                        description: |-
+                          Enables verbose logging of CLI Activity Tracker activity-detection details
+                          (which process was detected, why it does or doesn't prevent idling), promoting
+                          them from Debug to Info level without requiring debug logging for the whole
+                          container. When omitted, the CLI Activity Tracker determines the default behavior.
+                        type: boolean
+                    type: object
                   containerBuildConfiguration:
                     description: Container build configuration.
                     properties:

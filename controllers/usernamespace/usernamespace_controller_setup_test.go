@@ -73,6 +73,14 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, cheNam
 				},
 				SecondsOfInactivityBeforeIdling: ptr.To(int32(1800)),
 				SecondsOfRunBeforeIdling:        ptr.To(int32(-1)),
+				CliActivityTracker: &chev2.CliActivityTrackerConfig{
+					Enabled:                 ptr.To(true),
+					SecondsOfCheckPeriod:    ptr.To(int32(30)),
+					SecondsOfActivityWindow: ptr.To(int32(900)),
+					SecondsOfGracePeriod:    ptr.To(int32(300)),
+					// SecondsOfMaxProcessAge intentionally omitted (nil) to test that no env var is created
+					Verbose: ptr.To(true),
+				},
 				EditorsDownloadUrls: []chev2.EditorDownloadUrl{
 					{
 						Editor: "che-incubator/che-idea/latest",
