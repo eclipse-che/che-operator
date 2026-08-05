@@ -15,7 +15,7 @@ spring:
     name: openvsx-server
   autoconfigure:
     exclude:
-      - org.springframework.boot.actuate.autoconfigure.tracing.zipkin.ZipkinAutoConfiguration
+      - org.springframework.boot.zipkin.autoconfigure.ZipkinAutoConfiguration
   profiles:
     include: ovsx
   cache:
@@ -41,7 +41,7 @@ spring:
     jdbc:
       initialize-schema: never
   thymeleaf:
-    enabled: false
+    check-template-location: false
 
 server:
   port: 8080
@@ -63,19 +63,18 @@ management:
         include:
           - health
 
-org:
-  jobrunr:
-    job-scheduler:
-      enabled: true
-    background-job-server:
-      enabled: true
-      worker-count: 2
-    dashboard:
-      enabled: false
-    database:
-      type: sql
-    miscellaneous:
-      allow-anonymous-data-usage: false
+jobrunr:
+  job-scheduler:
+    enabled: true
+  background-job-server:
+    enabled: true
+    worker-count: 2
+  dashboard:
+    enabled: false
+  database:
+    type: sql
+  miscellaneous:
+    allow-anonymous-data-usage: false
 
 bucket4j:
   enabled: false
@@ -90,7 +89,7 @@ ovsx:
   integrity:
     key-pair: create
   registry:
-    version: 'v1.0.1'
+    version: 'v1.1.0'
   storage:
     local:
       directory: /openvsx/extensions
