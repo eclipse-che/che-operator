@@ -9,7 +9,6 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 #
-
 schema: olm.channel
 package: eclipse-che
 name: stable
@@ -145,3 +144,5 @@ entries:
     replaces: eclipse-che.v7.118.0
   - name: eclipse-che.v7.120.0
     replaces: eclipse-che.v7.119.0
+  - name: eclipse-che.v7.121.0
+    replaces: eclipse-che.v7.120.0
