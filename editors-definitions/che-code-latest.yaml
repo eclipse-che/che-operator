@@ -9,7 +9,6 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 #
-
 schemaVersion: 2.3.0
 metadata:
   name: che-code
@@ -86,7 +85,7 @@ events:
 components:
   - name: che-code-injector
     container:
-      image: quay.io/che-incubator/che-code:latest
+      image: quay.io/che-incubator/che-code:7.121.0
       command:
         - /entrypoint-init-container.sh
       volumeMounts:
