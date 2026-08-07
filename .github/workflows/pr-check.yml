@@ -110,5 +110,17 @@ jobs:
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check if go.mod changed
+        id: go-mod-check
+        run: |
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q '^go\.mod$'; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "go.mod has not changed, skipping dependencies validation."
+          fi
       - name: Check dependencies
+        if: steps.go-mod-check.outputs.changed == 'true'
         run: build/scripts/clear-defined-test.sh
