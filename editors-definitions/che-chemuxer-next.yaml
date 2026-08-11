@@ -46,10 +46,11 @@ commands:
     exec:
       component: chemuxer-runtime
       commandLine: >-
+        bash -c 'source $HOME/.nvm/nvm.sh &&
         STATIC_DIR=/chemuxer-vol/dist/client
         HOST=0.0.0.0
         nohup node /chemuxer-vol/dist/server/server.js
-        > /chemuxer-vol/chemuxer.log 2>&1 &
+        > /chemuxer-vol/chemuxer.log 2>&1 &'
 events:
   preStart:
     - init-chemuxer-command
