@@ -12,7 +12,7 @@ require (
 	github.com/operator-framework/api v0.41.0
 	github.com/operator-framework/operator-lifecycle-manager v0.41.0
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.86.2
-	github.com/sirupsen/logrus v1.9.4
+	github.com/sirupsen/logrus v1.10.0
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.28.0
 	golang.org/x/net v0.57.0
