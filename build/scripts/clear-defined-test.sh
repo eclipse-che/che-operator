@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2019-2025 Red Hat, Inc.
+# Copyright (c) 2019-2026 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -12,6 +12,12 @@
 #
 
 set -e
+
+# Number of iterations to retry undefined/failed dependencies.
+max_iterations="${CLEAR_DEFINED_ITERATIONS:-10}"
+
+retry_modules=()
+readarray -t modules < <(go list -m -mod=mod all)
 
 # https://www.eclipse.org/legal/licenses/#approved
 allowed_licenses=(
@@ -90,7 +96,6 @@ declare -A replaced_modules=(
   ["github.com/redis/go-redis/extra/rediscmd/v9 v9.17.3"]="github.com/redis/go-redis/extra/rediscmd/v9 0a836fb24c808795dfa561ddfdba613e6b4961ea"
   ["github.com/redis/go-redis/extra/redisotel/v9 v9.17.3"]="github.com/redis/go-redis/extra/rediscmd/v9 0a836fb24c808795dfa561ddfdba613e6b4961ea"
   # https://github.com/open-telemetry/opentelemetry-go-contrib/commit/a89d958e7a2575cf539ffca09657cfd90821d6e4
-  ["go.opentelemetry.io/contrib/bridges/prometheus v0.65.0"]="open-telemetry/opentelemetry-go-contrib a89d958e7a2575cf539ffca09657cfd90821d6e4"
   ["go.opentelemetry.io/contrib/exporters/autoexport v0.65.0"]="open-telemetry/opentelemetry-go-contrib a89d958e7a2575cf539ffca09657cfd90821d6e4"
   ["go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.65.0"]="open-telemetry/opentelemetry-go-contrib a89d958e7a2575cf539ffca09657cfd90821d6e4"
   ["go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.65.0"]="open-telemetry/opentelemetry-go-contrib a89d958e7a2575cf539ffca09657cfd90821d6e4"
@@ -132,7 +137,6 @@ declare -A ignored_paths=(
   ["go.podman.io/storage"]="Harvesting is in progress"
   ["github.com/go-openapi/testify/enable/yaml/v2"]="Harvesting is in progress"
   ["github.com/google/pprof"]="Harvesting is in progress"
-  ["github.com/onsi/ginkgo/v2"]="Harvesting is in progress"
   ["github.com/onsi/gomega"]="Harvesting is in progress"
   ["github.com/openshift/api"]="Harvesting is in progress"
   ["github.com/openshift/library-go"]="Harvesting is in progress"
@@ -142,16 +146,23 @@ declare -A ignored_paths=(
   ["go.etcd.io/etcd/pkg/v3"]="Harvesting is in progress"
   ["go.etcd.io/etcd/server/v3"]="Harvesting is in progress"
   ["sigs.k8s.io/controller-tools"]="Harvesting is in progress"
+  ["sigs.k8s.io/agent-sandbox"]="Harvesting is in progress"
   ["k8s.io/kube-aggregator"]="Harvesting is in progress"
   ["k8s.io/kms"]="Harvesting is in progress"
-  ["k8s.io/apimachinery"]="Harvesting is in progress"
   ["k8s.io/client-go"]="Harvesting is in progress"
   ["k8s.io/code-generator"]="Harvesting is in progress"
   ["k8s.io/component-base"]="Harvesting is in progress"
   ["k8s.io/streaming"]="Harvesting is in progress"
+  ["k8s.io/apiserver"]="Harvesting is in progress"
+  ["k8s.io/apiextensions-apiserver"]="Harvesting is in progress"
   ["golang.org/x/crypto"]="Harvesting is in progress"
   ["golang.org/x/tools/go/packages/packagestest"]="Harvesting is in progress"
   ["google.golang.org/genproto"]="Harvesting is in progress"
+  ["github.com/fsnotify/fsnotify"]="Harvesting is in progress"
+  ["google.golang.org/grpc"]="Harvesting is in progress"
+  ["github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp"]="Harvesting is in progress"
+  ["go.opentelemetry.io/contrib/bridges/prometheus"]="Harvesting is in progress"
+  ["go.opentelemetry.io/proto/otlp"]="Harvesting is in progress"
 )
 
 declare -A ignored_paths_licenses=(
@@ -190,8 +201,10 @@ declare -A ignored_paths_licenses=(
   ["sigs.k8s.io/controller-tools"]="Apache-2.0"
   # https://github.com/kubernetes-sigs/controller-runtime?tab=Apache-2.0-1-ov-file
   ["sigs.k8s.io/controller-runtime"]="Apache-2.0"
+  # https://github.com/kubernetes-sigs/agent-sandbox?tab=Apache-2.0-1-ov-file
+  ["sigs.k8s.io/agent-sandbox"]="Apache-2.0"
   # https://github.com/kubernetes/streaming?tab=Apache-2.0-1-ov-file
-  ["sigs.k8s.io/streaming"]="Apache-2.0"
+  ["k8s.io/streaming"]="Apache-2.0"
   # https://github.com/kubernetes/kube-aggregator?tab=Apache-2.0-1-ov-file
   ["k8s.io/kube-aggregator"]="Apache-2.0"
   # https://github.com/kubernetes/kms?tab=Apache-2.0-1-ov-file
@@ -234,6 +247,16 @@ declare -A ignored_paths_licenses=(
   ["google.golang.org/genproto"]="Apache-2.0"
   # https://github.com/googleapis/go-genproto?tab=Apache-2.0-1-ov-file
   ["google.golang.org/protobuf"]="Apache-2.0"
+  # https://github.com/fsnotify/fsnotify?tab=BSD-3-Clause-1-ov-file
+  ["github.com/fsnotify/fsnotify"]="BSD-3-Clause"
+  # https://github.com/grpc/grpc-go?tab=Apache-2.0-1-ov-file
+  ["google.golang.org/grpc"]="Apache-2.0"
+  # https://github.com/GoogleCloudPlatform/opentelemetry-operations-go?tab=Apache-2.0-1-ov-file
+  ["github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp"]="Apache-2.0"
+  # https://github.com/open-telemetry/opentelemetry-go-contrib?tab=Apache-2.0-1-ov-file
+  ["go.opentelemetry.io/contrib/bridges/prometheus v0.70.0"]="Apache-2.0"
+  # https://github.com/open-telemetry/opentelemetry-proto-go?tab=Apache-2.0-1-ov-file
+  ["go.opentelemetry.io/proto/otlp v1.11.0"]="Apache-2.0"
 )
 
 declare -A declared_licenses=(
@@ -277,134 +300,165 @@ retryUrl() {
   printf '%s' "$body"
 }
 
-go list -m -mod=mod all | while read -r module; do
-    # ignore the first dependency which is the current module
-    if [[ "$module" == "github.com/eclipse-che/che-operator" ]]; then
-        continue
-    fi
+# Records a failed module so it can be retried in the next iteration.
+# On the last iteration the formatted error line is also written to the
+# errors file so it is reported and causes a non-zero exit.
+recordError() {
+  local result="$1"
+  local module="$2"
+  local license="$3"
+  local score="$4"
+  local url="$5"
 
-    # respect the replace directive in go.mod file
-    if [[ "${module}" == *"=>"* ]]; then
-        module="${module#*=> }"
-    fi
+  retry_modules+=("$module")
 
-    orig_module="$module"
-    if [[ -v replaced_modules["$orig_module"] ]]; then
-      module=${replaced_modules[$orig_module]}
-    fi
+  if (( i == max_iterations )); then
+    printf "%-7s %-70s %-25s %-10s %s\n" "$result" "$module" "$license" "$score" "$url" >> "$ERRORS_FILE"
+  fi
+}
 
-    path=$(echo "$module" | awk '{print $1}')
+for ((i = 1; i <= max_iterations; i++)); do
+  echo "[INFO] >>>>>>>>>>>>>>>>>>>>>>> Iteration $i <<<<<<<<<<<<<<<<<<<<<<<"
 
-    if [[ -v ignored_paths["$path"] ]]; then
-      license="${ignored_paths_licenses["$path"]}"
-      reason="${ignored_paths["$path"]}"
-
-      printf "%-7s %-70s %-25s %-10s %s\n" "[WARN]" "$orig_module" "$license" "N/A" "$reason"
-
-      continue
-    fi
-
-    path=$(echo "$module" | awk '{print $1}')
-    if [[ -v replaced_paths["$path"] ]]; then
-      path=${replaced_paths[$path]}
-    fi
-
-    version=$(echo "$module" | awk '{print $2}')
-
-    api_suffix="go/golang"
-    if [[ -v replaced_api_suffix["$path"] ]]; then
-      api_suffix=${replaced_api_suffix[$path]}
-    fi
-
-    orig_url="https://api.clearlydefined.io/definitions/${api_suffix}/${path}/${version}"
-    url=$orig_url
-
-    score=""
-    body=$(retryUrl "$url")
-    if [[ $body == "TIMEOUT" ]]; then
-      printf "%-7s %-70s %-25s %-10s %s\n" "[TIMEOUT]" "$orig_module" "N/A" "N/A" "$url" >> "$ERRORS_FILE"
-      continue
-    elif [[ ! -z "$body" ]]; then
-      set -e
-      if ! score=$(echo "$body" | jq -e -r '.scores.effective' 2>/dev/null); then
-        score=""
-      fi
-      set +e
-    fi
-
-    # try a shorter path if the first one returns null
-    while [[ "$score" == "" ]] || [[ "$score" == "null" ]] || [[ "$score" == "35" ]]; do
-        # remove the last part of the path
-        path="${path%/*}"
-        old_url=$url
-        url="https://api.clearlydefined.io/definitions/go/golang/${path}/${version}"
-
-        # if the path is the same as the old one, break to avoid infinite loop
-        if [[ "$url" == "$old_url" ]]; then
-            score="N/A"
-            break
-        fi
-
-        # get the score again
-        score=""
-        body=$(retryUrl "$url")
-        if [[ $body == "TIMEOUT" ]]; then
-          printf "%-7s %-70s %-25s %-10s %s\n" "[TIMEOUT]" "$orig_module" "N/A" "N/A" "$url" >> "$ERRORS_FILE"
+  for module in "${modules[@]}"; do
+      # ignore the first dependency which is the current module
+      if [[ "$module" == "github.com/eclipse-che/che-operator" ]]; then
           continue
-        elif [[ ! -z "$body" ]]; then
-          set -e
-          if ! score=$(echo "$body" | jq -e -r '.scores.effective' 2>/dev/null); then
-            score=""
-          fi
-          set +e
+      fi
+
+      # respect the replace directive in go.mod file
+      if [[ "${module}" == *"=>"* ]]; then
+          module="${module#*=> }"
+      fi
+
+      orig_module="$module"
+      if [[ -v replaced_modules["$orig_module"] ]]; then
+        module=${replaced_modules[$orig_module]}
+      fi
+
+      path=$(echo "$module" | awk '{print $1}')
+
+      if [[ -v ignored_paths["$path"] ]]; then
+        license="${ignored_paths_licenses["$path"]}"
+        reason="${ignored_paths["$path"]}"
+
+        printf "%-7s %-70s %-25s %-10s %s\n" "[WARN]" "$orig_module" "$license" "N/A" "$reason"
+
+        continue
+      fi
+
+      path=$(echo "$module" | awk '{print $1}')
+      if [[ -v replaced_paths["$path"] ]]; then
+        path=${replaced_paths[$path]}
+      fi
+
+      version=$(echo "$module" | awk '{print $2}')
+
+      api_suffix="go/golang"
+      if [[ -v replaced_api_suffix["$path"] ]]; then
+        api_suffix=${replaced_api_suffix[$path]}
+      fi
+
+      orig_url="https://api.clearlydefined.io/definitions/${api_suffix}/${path}/${version}"
+      url=$orig_url
+
+      score=""
+      body=$(retryUrl "$url")
+      if [[ $body == "TIMEOUT" ]]; then
+        recordError "[TIMEOUT]" "$orig_module" "N/A" "N/A" "$url"
+        continue
+      elif [[ ! -z "$body" ]]; then
+        set -e
+        if ! score=$(echo "$body" | jq -e -r '.scores.effective' 2>/dev/null); then
+          score=""
         fi
-    done
+        set +e
+      fi
 
-    if [[ $score == "N/A" || $score == "" ]]; then
-      printf "%-7s %-70s %-25s %-10s %s\n" "[ERROR]" "$orig_module" "N/A" "N/A" "$orig_url" >> "$ERRORS_FILE"
-      continue
-    fi
+      # try a shorter path if the first one returns null
+      while [[ "$score" == "" ]] || [[ "$score" == "null" ]] || [[ "$score" == "35" ]]; do
+          # remove the last part of the path
+          path="${path%/*}"
+          old_url=$url
+          url="https://api.clearlydefined.io/definitions/go/golang/${path}/${version}"
 
-    if [[ -v declared_licenses["$path"] ]]; then
-      license="${declared_licenses["$path"]}"
-      license_approved=true
-    else
-      # analyze the license
-      license=$(curl -s "$url" | jq -r '.licensed.declared')
-      license="${license%% AND*}"
-
-      # Handle OR licenses - split and check each one
-      IFS=' OR ' read -ra license_parts <<< "$license"
-      license_approved=false
-      for license_part in "${license_parts[@]}"; do
-        for allowed_license in "${allowed_licenses[@]}"; do
-          if [[ "${allowed_license^^}" == "${license_part^^}" ]]; then
-            license_approved=true
-            break 2
+          # if the path is the same as the old one, break to avoid infinite loop
+          if [[ "$url" == "$old_url" ]]; then
+              score="N/A"
+              break
           fi
-        done
+
+          # get the score again
+          score=""
+          body=$(retryUrl "$url")
+          if [[ $body == "TIMEOUT" ]]; then
+            recordError "[TIMEOUT]" "$orig_module" "N/A" "N/A" "$url"
+            continue
+          elif [[ ! -z "$body" ]]; then
+            set -e
+            if ! score=$(echo "$body" | jq -e -r '.scores.effective' 2>/dev/null); then
+              score=""
+            fi
+            set +e
+          fi
       done
-    fi
 
-    if [[ $license_approved == "false" ]]; then
-      printf "%-7s %-70s %-25s %-10s %s\n" "[ERROR]" "$orig_module" "$license" "$score" "$url" >> "$ERRORS_FILE"
-      continue
-    fi
+      if [[ $score == "N/A" || $score == "" ]]; then
+        recordError "[ERROR]" "$orig_module" "N/A" "N/A" "$orig_url"
+        continue
+      fi
 
-    # analyze the score
-    if  (( score < 65 )); then
-      printf "%-7s %-70s %-25s %-10s %s\n" "[ERROR]" "$orig_module" "$license" "$score" "$url" >> "$ERRORS_FILE"
-      continue
-    fi
+      if [[ -v declared_licenses["$path"] ]]; then
+        license="${declared_licenses["$path"]}"
+        license_approved=true
+      else
+        # analyze the license
+        license=$(curl -s "$url" | jq -r '.licensed.declared')
+        license="${license%% AND*}"
 
-    result="[OK]"
-    if  (( score < 75 )); then
-      result="[WARN]"
-    fi
-    printf "%-7s %-70s %-25s %-10s %s\n" "$result" "$orig_module" "$license" "$score" "$url"
+        # Handle OR licenses - split and check each one
+        IFS=' OR ' read -ra license_parts <<< "$license"
+        license_approved=false
+        for license_part in "${license_parts[@]}"; do
+          for allowed_license in "${allowed_licenses[@]}"; do
+            if [[ "${allowed_license^^}" == "${license_part^^}" ]]; then
+              license_approved=true
+              break 2
+            fi
+          done
+        done
+      fi
 
-    sleep 0.1s
+      if [[ $license_approved == "false" ]]; then
+        recordError "[ERROR]" "$orig_module" "$license" "$score" "$url"
+        continue
+      fi
+
+      # analyze the score
+      if  (( score < 65 )); then
+        recordError "[ERROR]" "$orig_module" "$license" "$score" "$url"
+        continue
+      fi
+
+      result="[OK]"
+      if  (( score < 75 )); then
+        result="[WARN]"
+      fi
+      printf "%-7s %-70s %-25s %-10s %s\n" "$result" "$orig_module" "$license" "$score" "$url"
+
+      sleep 0.1s
+  done
+
+  # no failures left, nothing to retry
+  if [[ ${#retry_modules[@]} -eq 0 ]]; then
+    break
+  fi
+
+  # retry only the failed modules in the next iteration
+  modules=("${retry_modules[@]}")
+  retry_modules=()
 done
+
 
 if [[ -s "$ERRORS_FILE" ]]; then
   echo "==================================================="

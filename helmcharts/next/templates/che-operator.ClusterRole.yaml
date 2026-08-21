@@ -243,6 +243,18 @@ rules:
   - update
   - list
 - apiGroups:
+  - agents.x-k8s.io
+  resources:
+  - sandboxes
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
   - config.openshift.io
   resourceNames:
   - cluster

@@ -21,12 +21,14 @@ else
 	K8S_CLI := oc
 endif
 
-# Detect image tool
+# Detect image tool: prefer docker, fall back to podman
 ifeq ($(IMAGE_TOOL),)
-ifneq (,$(shell which docker))
+ifneq (,$(shell command -v docker 2>/dev/null))
 	IMAGE_TOOL := docker
-else
+else ifneq (,$(shell command -v podman 2>/dev/null))
 	IMAGE_TOOL := podman
+else
+	$(warning Neither docker nor podman found in PATH; set IMAGE_TOOL=<tool> to run image-related targets)
 endif
 endif
 

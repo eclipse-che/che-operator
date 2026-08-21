@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -25,6 +25,7 @@ import (
 	networking "k8s.io/api/networking/v1"
 	rbac "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	sandboxv1beta1 "sigs.k8s.io/agent-sandbox/api/v1beta1"
 )
 
 var Role = cmp.Options{
@@ -87,6 +88,10 @@ var NetworkPolicy = cmp.Options{
 
 var ServiceMonitor = cmp.Options{
 	cmpopts.IgnoreFields(monitoringv1.ServiceMonitor{}, "TypeMeta", "ObjectMeta"),
+}
+
+var Sandbox = cmp.Options{
+	cmpopts.IgnoreFields(sandboxv1beta1.Sandbox{}, "TypeMeta", "ObjectMeta", "Status"),
 }
 
 func cmpMetadata(labels []string, annotations []string) cmp.Option {

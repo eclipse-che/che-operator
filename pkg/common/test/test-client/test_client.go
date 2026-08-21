@@ -35,6 +35,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	sandboxv1beta1 "sigs.k8s.io/agent-sandbox/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -80,6 +81,12 @@ func GetTestClients(initObjs ...client.Object) (client.Client, *fakeDiscovery.Fa
 				},
 			},
 		},
+		{
+			GroupVersion: "agents.x-k8s.io/v1beta1",
+			APIResources: []metav1.APIResource{
+				{Name: "sandboxes"},
+			},
+		},
 	}
 
 	return fakeClient, discoveryClient, scheme
@@ -115,6 +122,7 @@ func getScheme() *runtime.Scheme {
 	scheme.AddKnownTypes(batchv1.SchemeGroupVersion, &batchv1.Job{}, &batchv1.JobList{})
 	scheme.AddKnownTypes(projectv1.GroupVersion, &projectv1.Project{}, &projectv1.ProjectList{})
 	scheme.AddKnownTypes(monitoringv1.SchemeGroupVersion, &monitoringv1.ServiceMonitor{}, &monitoringv1.ServiceMonitorList{})
+	scheme.AddKnownTypes(sandboxv1beta1.GroupVersion, &sandboxv1beta1.Sandbox{}, &sandboxv1beta1.SandboxList{})
 
 	return scheme
 }

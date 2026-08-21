@@ -71,6 +71,9 @@ type CheClusterSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=5
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Container registry"
 	ContainerRegistry CheClusterContainerRegistry `json:"containerRegistry"`
+	// AI agent runtime sandbox configuration.
+	// +optional
+	AgentRuntimes *AgentRuntimes `json:"agentRuntimes,omitempty"`
 }
 
 // Development environment configuration.
@@ -291,6 +294,27 @@ type CheClusterComponents struct {
 	// +optional
 	// +kubebuilder:default:={enable: true}
 	Metrics ServerMetrics `json:"metrics"`
+}
+
+// AgentRuntimes configures a managed AI agent runtime sandbox
+// via the agent-sandbox operator (agents.x-k8s.io).
+type AgentRuntimes struct {
+	// Enables a managed agent runtime sandbox. Requires the agent-sandbox
+	// operator to be installed in the cluster. When disabled, the managed
+	// Sandbox custom resource is deleted.
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// Namespace where the managed Sandbox custom resource is created.
+	// hanging this value after creation orphans the Sandbox in the previous namespace;
+	// disable the feature before changing it so the old Sandbox is cleaned up first.
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
+	// runtimeClassName applied to the managed sandbox pod.
+	// +optional
+	RuntimeClassName string `json:"runtimeClassName,omitempty"`
+	// Container image for the managed agent runtime sandbox pod.
+	// +optional
+	Image string `json:"image,omitempty"`
 }
 
 // Configuration settings related to the networking used by the Che installation.
@@ -1286,4 +1310,8 @@ func (c *CheCluster) IsDevEnvironmentExternalTLSConfigEnabled() bool {
 func (c *CheCluster) IsNetworkPoliciesEnabled() bool {
 	return c.Spec.Networking.NetworkPolicy != nil &&
 		ptr.Deref(c.Spec.Networking.NetworkPolicy.Enabled, constants.NetworkPolicyEnabled)
+}
+
+func (c *CheCluster) IsAgentRuntimesEnabled() bool {
+	return c.Spec.AgentRuntimes != nil && ptr.Deref(c.Spec.AgentRuntimes.Enabled, constants.AgentRuntimesEnabled)
 }

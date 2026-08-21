@@ -4379,6 +4379,29 @@ spec:
             spec:
               description: Desired configuration of Eclipse Che installation.
               properties:
+                agentRuntimes:
+                  description: AI agent runtime sandbox configuration.
+                  properties:
+                    enabled:
+                      description: |-
+                        Enables a managed agent runtime sandbox. Requires the agent-sandbox
+                        operator to be installed in the cluster. When disabled, the managed
+                        Sandbox custom resource is deleted.
+                      type: boolean
+                    namespace:
+                      description: |-
+                        Namespace where the managed Sandbox custom resource is created.
+                        hanging this value after creation orphans the Sandbox in the previous namespace;
+                        disable the feature before changing it so the old Sandbox is cleaned up first.
+                      type: string
+                    runtimeClassName:
+                      description: runtimeClassName applied to the managed sandbox
+                        pod.
+                      type: string
+                  required:
+                    - namespace
+                    - runtimeClassName
+                  type: object
                 components:
                   default:
                     cheServer:

@@ -34,6 +34,7 @@ const (
 	LeasesResources                = "leases"
 	OAuthClientsResources          = "oauthclients"
 	KubernetesImagePullerResources = "kubernetesimagepullers"
+	AgentSandboxResources          = "sandboxes"
 	ServiceMonitorResources        = "servicemonitors"
 )
 
@@ -100,6 +101,16 @@ func IsKubernetesImagePullerEnabled(discovery discovery.DiscoveryInterface) bool
 	}
 
 	return hasAPIResource(apiResources, KubernetesImagePullerResources)
+}
+
+func IsAgentSandboxEnabled(discovery discovery.DiscoveryInterface) bool {
+	_, apiResources, err := discovery.ServerGroupsAndResources()
+	if err != nil {
+		logger.Error(err, "Failed to get API resources list")
+		return false
+	}
+
+	return hasAPIResource(apiResources, AgentSandboxResources)
 }
 
 func IsServiceMonitorEnabled() bool {

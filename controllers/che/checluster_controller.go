@@ -31,6 +31,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy/devworkspace"
 	imagepuller "github.com/eclipse-che/che-operator/pkg/deploy/image-puller"
 
+	agentruntime "github.com/eclipse-che/che-operator/pkg/deploy/agent-runtime"
 	editorsdefinitions "github.com/eclipse-che/che-operator/pkg/deploy/editors-definitions"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
@@ -134,6 +135,7 @@ func NewReconciler(
 	reconcilerManager.AddReconciler(gateway.NewGatewayReconciler())
 	reconcilerManager.AddReconciler(server.NewCheServerReconciler())
 	reconcilerManager.AddReconciler(imagepuller.NewImagePuller())
+	reconcilerManager.AddReconciler(agentruntime.NewAgentRuntimesReconciler())
 
 	if infrastructure.IsOpenShift() {
 		reconcilerManager.AddReconciler(containerbuild.NewContainerCapabilitiesReconciler())

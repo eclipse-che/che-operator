@@ -183,6 +183,10 @@ const (
 	// Networking
 	NetworkPolicyEnabled = false
 
+	// AgentRuntimes
+	AgentRuntimesComponentName = "agent-runtimes"
+	AgentRuntimesEnabled       = false
+
 	// Finalizers
 	ContainerBuildFinalizer = "container-build.finalizers.che.eclipse.org"
 	ContainerRunFinalizer   = "che.eclipse.org/container-run"
