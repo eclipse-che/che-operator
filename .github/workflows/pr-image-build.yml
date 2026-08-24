@@ -18,7 +18,6 @@ permissions:
 jobs:
   image-build-amd64:
     runs-on: ubuntu-24.04
-    if: ${{ github.event.pull_request.base.ref == 'main' && github.event.pull_request.user.login != 'dependabot[bot]' }}
     env:
       IMAGE_VERSION: pr-${{ github.event.pull_request.number }}-amd64
       ORGANIZATION: quay.io/eclipse
