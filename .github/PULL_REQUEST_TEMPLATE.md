@@ -25,22 +25,14 @@ che-operator Development Guide: https://github.com/eclipse-che/che-operator/#dev
  
 #### OpenShift
 ```bash
-./build/scripts/olm/test-catalog-from-sources.sh
+oc create namespace devworkspace-controller
+oc apply --server-side -f https://raw.githubusercontent.com/devfile/devworkspace-operator/refs/heads/main/deploy/deployment/openshift/combined.yaml
+
+OPERATOR_IMAGE=<...>
+sed 's|quay.io/eclipse/che-operator:next|'${OPERATOR_IMAGE}'|g' deploy/deployment/openshift/combined.yaml | oc apply --server-side -f  -
+oc apply --server-side -f deploy/deployment/openshift/org_v2_checluster.yaml
+oc wait checluster eclipse-che -n eclipse-che --for=jsonpath='.status.chePhase'=Active   --timeout=120s
 ```
-
-or
-
-```bash
-build/scripts/docker-run.sh /bin/bash -c "
-  oc login \
-    --token=<...> \
-    --server=<...> \
-    --insecure-skip-tls-verify=true && \
-  build/scripts/olm/test-catalog-from-sources.sh
-"
-```
-
-2. 
 
 #### on Minikube
 
