@@ -12,6 +12,8 @@
 
 name: PR check
 on: pull_request
+permissions:
+  contents: read
 jobs:
   unit-tests:
     runs-on: ubuntu-24.04
@@ -126,6 +128,9 @@ jobs:
         run: build/scripts/clear-defined-test.sh
   docker-build:
     needs: unit-tests
+    permissions:
+      contents: read
+      issues: write
     runs-on: ubuntu-24.04
     if: ${{ github.base_ref == 'main' && github.event.pull_request.user.login != 'dependabot[bot]' }}
     env:
@@ -163,16 +168,4 @@ jobs:
           script: |
             const { issue: { number: issue_number }, repo: { owner, repo } } = context;
             const operatorImage = "${{ env.ORGANIZATION }}/che-operator:${{ env.IMAGE_VERSION }}";
-            const patchCommand = `kubectl set image deployment/che-operator che-operator="${operatorImage}" -n eclipse-che`;
-            const text = `
-            Docker image **${operatorImage}** is available (linux/amd64, linux/arm64, linux/s390x)
-            <details>
-            <summary>kubectl patch command</summary>
-
-            \`\`\`bash
-            ${patchCommand}
-            \`\`\`
-
-            </details>
-            `;
-            github.rest.issues.createComment({ issue_number, owner, repo, body: text });
+            github.rest.issues.createComment({ issue_number, owner, repo, body: `New operator image available: ${operatorImage}` });
