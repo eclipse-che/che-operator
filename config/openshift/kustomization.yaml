@@ -20,4 +20,5 @@ resources:
 patchesStrategicMerge:
   - patches/cainjection_in_checlusters.yaml
   - patches/cainjection_in_webhook.yaml
+  - patches/deployment_cert_patch.yaml
   - patches/service_cert_patch.yaml
