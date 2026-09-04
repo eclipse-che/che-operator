@@ -73,6 +73,16 @@ func BuildServerTLSOptions(ctx context.Context, cfg *rest.Config, scheme *k8srun
 			log.Info("TLS profile contains ciphers unsupported by Go", "unsupported", unsupported)
 		}
 		serverTLS.TLSOpts = []func(*tls.Config){tlsConfigFn}
+
+		log.Info(
+			"Applying cluster TLS profile to metrics and webhook servers",
+			"minTLSVersion", profile.MinTLSVersion,
+			"ciphers", profile.Ciphers,
+		)
+	} else {
+		log.Info("TLS adherence policy does not require strict compliance, using Go default TLS configuration",
+			"adherencePolicy", adherence,
+		)
 	}
 
 	return serverTLS
