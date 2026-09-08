@@ -101,7 +101,7 @@ components:
 # component that prepares the volume with the JetBrains IDE server for running over Toolbox
   - name: editor-injector
     container:
-      image: quay.io/che-incubator/che-idea-dev-server:latest
+      image: quay.io/azatsary/che-idea-dev-server:tbx
       command: ['/entrypoint-init-container.sh', 'idea', 'che-incubator/che-idea-server/latest', 'toolbox']
       volumeMounts:
         - name: idea-server
