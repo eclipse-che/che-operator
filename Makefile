@@ -12,28 +12,28 @@
 #
 
 ifeq (,$(shell which kubectl)$(shell which oc))
-	$(error oc or kubectl is required to proceed)
+$(error oc or kubectl is required to proceed)
 endif
 
 ifneq (,$(shell which kubectl))
-	K8S_CLI := kubectl
+K8S_CLI := kubectl
 else
-	K8S_CLI := oc
+K8S_CLI := oc
 endif
 
 # Detect image tool: prefer docker, fall back to podman
 ifeq ($(IMAGE_TOOL),)
 ifneq (,$(shell command -v docker 2>/dev/null))
-	IMAGE_TOOL := docker
+IMAGE_TOOL := docker
 else ifneq (,$(shell command -v podman 2>/dev/null))
-	IMAGE_TOOL := podman
+IMAGE_TOOL := podman
 else
-	$(warning Neither docker nor podman found in PATH; set IMAGE_TOOL=<tool> to run image-related targets)
+$(warning Neither docker nor podman found in PATH; set IMAGE_TOOL=<tool> to run image-related targets)
 endif
 endif
 
 ifndef VERBOSE
-	MAKEFLAGS += --silent
+MAKEFLAGS += --silent
 endif
 
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
@@ -70,9 +70,9 @@ DEV_HEADER_REWRITE_TRAEFIK_PLUGIN="main"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
-	GOBIN=$(shell go env GOPATH)/bin
+GOBIN=$(shell go env GOPATH)/bin
 else
-	GOBIN=$(shell go env GOBIN)
+GOBIN=$(shell go env GOBIN)
 endif
 
 # Setting SHELL to bash allows bash commands to be executed by recipes.
