@@ -13,6 +13,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 	"time"
@@ -69,6 +70,7 @@ import (
 	templatev1 "github.com/openshift/api/template/v1"
 
 	checontroller "github.com/eclipse-che/che-operator/controllers/che"
+	"github.com/eclipse-che/che-operator/pkg/tlssetup"
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -216,6 +218,8 @@ func main() {
 
 	config := ctrl.GetConfigOrDie()
 
+	serverTLS := tlssetup.BuildServerTLSOptions(context.Background(), config, scheme, setupLog)
+
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
 	if err != nil {
 		setupLog.Error(err, "failed to create discovery client")
@@ -240,9 +244,15 @@ func main() {
 	}
 
 	mgr, err := ctrl.NewManager(config, ctrl.Options{
-		Scheme:                        scheme,
-		Metrics:                       server.Options{BindAddress: metricsAddr},
-		WebhookServer:                 webhook.NewServer(webhook.Options{Port: 9443}),
+		Scheme: scheme,
+		Metrics: server.Options{
+			BindAddress: metricsAddr,
+			TLSOpts:     serverTLS.TLSOpts,
+		},
+		WebhookServer: webhook.NewServer(webhook.Options{
+			Port:    9443,
+			TLSOpts: serverTLS.TLSOpts,
+		}),
 		HealthProbeBindAddress:        probeAddr,
 		LeaderElection:                enableLeaderElection,
 		LeaderElectionID:              "e79b08a4.org.eclipse.che",
@@ -309,6 +319,14 @@ func main() {
 	}
 	sigHandler := signal.SetupSignalHandler(terminationPeriod)
 
+	ctx, cancelCtx := context.WithCancel(sigHandler)
+	defer cancelCtx()
+
+	if err := tlssetup.RegisterSecurityProfileWatcher(mgr, serverTLS, cancelCtx, setupLog); err != nil {
+		setupLog.Error(err, "unable to set up TLS security profile watcher")
+		os.Exit(1)
+	}
+
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
 		if err = chev2.SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "CheCluster")
@@ -328,7 +346,7 @@ func main() {
 
 	// Start the Cmd
 	setupLog.Info("starting manager")
-	if err := mgr.Start(sigHandler); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
