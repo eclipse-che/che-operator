@@ -18,14 +18,12 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
-
 	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/kubernetes/fake"
-
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 type K8sHelper struct {
@@ -37,62 +35,6 @@ type K8sHelper struct {
 var (
 	k8sHelper *K8sHelper
 )
-
-func GetInstance() *K8sHelper {
-	return k8sHelper
-}
-
-func isInitialized() bool {
-	return k8sHelper != nil
-}
-
-func (k *K8sHelper) GetClientSet() kubernetes.Interface {
-	if !isInitialized() {
-		panic("Kubernetes helper is not initialized")
-	}
-
-	return k.clientSet
-}
-
-func (k *K8sHelper) GetClient() client.Client {
-	if !isInitialized() {
-		panic("Kubernetes helper is not initialized")
-	}
-
-	return k.client
-}
-
-func (k *K8sHelper) GetDiscoveryClient() discovery.DiscoveryInterface {
-	if !isInitialized() {
-		panic("Kubernetes helper is not initialized")
-	}
-
-	return k.discoveryClient
-}
-
-func (k *K8sHelper) GetPodsByComponent(name string, ns string) []string {
-	names := []string{}
-	api := k.clientSet.CoreV1()
-	listOptions := metav1.ListOptions{
-		LabelSelector: "component=" + name,
-	}
-	podList, _ := api.Pods(ns).List(context.TODO(), listOptions)
-	for _, pod := range podList.Items {
-		names = append(names, pod.Name)
-	}
-
-	return names
-}
-
-func InitializeForTesting() {
-	clientSet := fake.NewSimpleClientset()
-
-	k8sHelper = &K8sHelper{
-		clientSet:       clientSet,
-		client:          fakeclient.NewClientBuilder().Build(),
-		discoveryClient: clientSet.Discovery(),
-	}
-}
 
 func Initialize() error {
 	cfg, err := config.GetConfig()
@@ -117,4 +59,52 @@ func Initialize() error {
 	}
 
 	return nil
+}
+
+func InitializeForTesting() {
+	clientSet := fake.NewSimpleClientset()
+
+	k8sHelper = &K8sHelper{
+		clientSet:       clientSet,
+		client:          fakeclient.NewClientBuilder().Build(),
+		discoveryClient: clientSet.Discovery(),
+	}
+}
+
+func GetInstance() *K8sHelper {
+	if !isInitialized() {
+		panic("Kubernetes helper is not initialized")
+	}
+
+	return k8sHelper
+}
+
+func (k *K8sHelper) GetClientSet() kubernetes.Interface {
+	return k.clientSet
+}
+
+func (k *K8sHelper) GetClient() client.Client {
+	return k.client
+}
+
+func (k *K8sHelper) GetDiscoveryClient() discovery.DiscoveryInterface {
+	return k.discoveryClient
+}
+
+func (k *K8sHelper) GetPodsByComponent(name string, ns string) []string {
+	names := []string{}
+	api := k.clientSet.CoreV1()
+	listOptions := metav1.ListOptions{
+		LabelSelector: "component=" + name,
+	}
+	podList, _ := api.Pods(ns).List(context.TODO(), listOptions)
+	for _, pod := range podList.Items {
+		names = append(names, pod.Name)
+	}
+
+	return names
+}
+
+func isInitialized() bool {
+	return k8sHelper != nil
 }
