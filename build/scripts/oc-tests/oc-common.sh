@@ -80,8 +80,8 @@ discoverEclipseCheBundles() {
   --image=docker.io/fullstorydev/grpcurl:v1.7.0 \
   --  -plaintext "${REGISTRY_IP}:${CATALOG_PORT}" api.Registry.ListBundles | head -n -1)
 
-  local LATEST_BUNDLE=$(echo "${BUNDLES}" | jq -s '.' | jq ". | map(. | select(.channelName == \"${CHANNEL}\"))" | yq -r '. |=sort_by(.csvName) | .[length - 1]')
-  local PREVIOUS_BUNDLE=$(echo "${BUNDLES}" | jq -s '.' | jq ". | map(. | select(.channelName == \"${CHANNEL}\"))" | yq -r '. |=sort_by(.csvName) | .[length - 2]')
+  local LATEST_BUNDLE=$(echo "${BUNDLES}" | jq -s 'map(select(.channelName == "'${CHANNEL}'")) | sort_by(.csvName | sub("^eclipse-che\\.v"; "") | split(".") | map(tonumber)) | .[-1]')
+  local PREVIOUS_BUNDLE=$(echo "${BUNDLES}" | jq -s 'map(select(.channelName == "'${CHANNEL}'")) | sort_by(.csvName | sub("^eclipse-che\\.v"; "") | split(".") | map(tonumber)) | .[-2]')
 
   export LATEST_CSV_NAME=$(echo "${LATEST_BUNDLE}" | yq -r ".csvName")
   export PREVIOUS_CSV_NAME=$(echo "${PREVIOUS_BUNDLE}" | yq -r ".csvName")
