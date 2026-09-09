@@ -124,7 +124,7 @@ func (r *CheClusterValidator) ValidateDelete(_ context.Context, _ *CheCluster) (
 }
 
 func (r *CheClusterValidator) ensureSingletonCheCluster() error {
-	client := k8shelper.New().GetClient()
+	client := k8shelper.GetInstance().GetClient()
 	utilruntime.Must(AddToScheme(client.Scheme()))
 
 	che := &CheClusterList{}
@@ -177,8 +177,8 @@ func (r *CheClusterValidator) validateOAuthSecret(secretName string, scmProvider
 		return nil
 	}
 
-	k8sHelper := k8shelper.New()
-	secret, err := k8sHelper.GetClientset().CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+	k8sHelper := k8shelper.GetInstance()
+	secret, err := k8sHelper.GetClientSet().CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return fmt.Errorf("secret '%s' not found", secretName)
@@ -264,9 +264,9 @@ func (r *CheClusterValidator) ensureScmLabelsAndAnnotations(secret *corev1.Secre
 	}
 
 	patchData, _ := json.Marshal(patch)
-	k8sHelper := k8shelper.New()
+	k8sHelper := k8shelper.GetInstance()
 	if _, err := k8sHelper.
-		GetClientset().
+		GetClientSet().
 		CoreV1().
 		Secrets(secret.Namespace).
 		Patch(context.TODO(), secret.Name, types.MergePatchType, patchData, metav1.PatchOptions{}); err != nil {
@@ -298,9 +298,9 @@ func (r *CheClusterValidator) validateOpenVSXRegistry(checluster *CheCluster) er
 	if checluster.Spec.Components.OpenVSXRegistry.CredentialsSecretName != nil {
 		credentialsSecretName := *checluster.Spec.Components.OpenVSXRegistry.CredentialsSecretName
 
-		k8sHelper := k8shelper.New()
+		k8sHelper := k8shelper.GetInstance()
 		secret, err := k8sHelper.
-			GetClientset().
+			GetClientSet().
 			CoreV1().
 			Secrets(checluster.Namespace).
 			Get(context.TODO(), credentialsSecretName, metav1.GetOptions{})

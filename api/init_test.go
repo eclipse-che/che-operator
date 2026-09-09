@@ -14,6 +14,7 @@ package org
 
 import (
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
+	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 )
@@ -21,6 +22,7 @@ import (
 func init() {
 	test.EnableTestMode()
 
+	k8shelper.InitializeForTesting()
 	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 	defaults.InitializeForTesting("../config/manager/manager.yaml")
 }

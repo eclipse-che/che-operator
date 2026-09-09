@@ -1285,10 +1285,10 @@ func TestOverrideContainerCpuLimit(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			k8sHelper := k8shelper.New()
+			k8sHelper := k8shelper.GetInstance()
 
 			if testCase.limitRange != nil {
-				_, err := k8sHelper.GetClientset().CoreV1().LimitRanges("eclipse-che").Create(context.TODO(), testCase.limitRange, metav1.CreateOptions{})
+				_, err := k8sHelper.GetClientSet().CoreV1().LimitRanges("eclipse-che").Create(context.TODO(), testCase.limitRange, metav1.CreateOptions{})
 				assert.NoError(t, err)
 			}
 
@@ -1303,7 +1303,7 @@ func TestOverrideContainerCpuLimit(t *testing.T) {
 
 			defer func() {
 				if testCase.limitRange != nil {
-					err := k8sHelper.GetClientset().CoreV1().LimitRanges("eclipse-che").Delete(context.TODO(), testCase.limitRange.Name, metav1.DeleteOptions{})
+					err := k8sHelper.GetClientSet().CoreV1().LimitRanges("eclipse-che").Delete(context.TODO(), testCase.limitRange.Name, metav1.DeleteOptions{})
 					assert.NoError(t, err)
 				}
 			}()

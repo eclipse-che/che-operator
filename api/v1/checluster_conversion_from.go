@@ -424,9 +424,9 @@ func (dst *CheCluster) convertFrom_Storage(src *chev2.CheCluster) error {
 
 // Finds TrustStore ConfigMap.
 func findTrustStoreConfigMap(namespace string) (string, error) {
-	k8sHelper := k8shelper.New()
+	k8sHelper := k8shelper.GetInstance()
 
-	_, err := k8sHelper.GetClientset().CoreV1().ConfigMaps(namespace).Get(context.TODO(), constants.DefaultCaBundleCertsCMName, metav1.GetOptions{})
+	_, err := k8sHelper.GetClientSet().CoreV1().ConfigMaps(namespace).Get(context.TODO(), constants.DefaultCaBundleCertsCMName, metav1.GetOptions{})
 	if err == nil {
 		// TrustStore ConfigMap with a default name exists
 		return constants.DefaultCaBundleCertsCMName, nil
