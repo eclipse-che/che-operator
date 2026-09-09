@@ -494,7 +494,7 @@ func isCheCASecretValid(cheCASelfSignedCertificateSecret *corev1.Secret) bool {
 }
 
 func deleteJob(ctx *chetypes.DeployContext, job *batchv1.Job) {
-	k8sHelper := k8shelper.New()
+	k8sHelper := k8shelper.GetInstance()
 	names := k8sHelper.GetPodsByComponent(CheTLSJobComponentName, ctx.CheCluster.Namespace)
 	for _, podName := range names {
 		pod := &corev1.Pod{}

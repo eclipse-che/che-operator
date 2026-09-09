@@ -19,6 +19,7 @@ import (
 
 	dwInfra "github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
+	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -205,6 +206,11 @@ func getWatchNamespace() (string, error) {
 func main() {
 	if err := dwInfra.Initialize(); err != nil {
 		setupLog.Error(err, "Failed to initialize infrastructure")
+		os.Exit(1)
+	}
+
+	if err := k8shelper.Initialize(); err != nil {
+		setupLog.Error(err, "Failed to initialize Kubernetes helper")
 		os.Exit(1)
 	}
 

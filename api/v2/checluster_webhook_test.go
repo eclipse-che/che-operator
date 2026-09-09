@@ -24,7 +24,7 @@ import (
 )
 
 func TestValidateScmSecrets(t *testing.T) {
-	k8sHelper := k8shelper.New()
+	k8sHelper := k8shelper.GetInstance()
 
 	githubSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -36,7 +36,7 @@ func TestValidateScmSecrets(t *testing.T) {
 			"secret": []byte("secret"),
 		},
 	}
-	_, err := k8sHelper.GetClientset().CoreV1().Secrets("eclipse-che").Create(context.TODO(), githubSecret, metav1.CreateOptions{})
+	_, err := k8sHelper.GetClientSet().CoreV1().Secrets("eclipse-che").Create(context.TODO(), githubSecret, metav1.CreateOptions{})
 	assert.Nil(t, err)
 
 	gitlabSecret := &corev1.Secret{
@@ -52,7 +52,7 @@ func TestValidateScmSecrets(t *testing.T) {
 			"secret": []byte("secret"),
 		},
 	}
-	_, err = k8sHelper.GetClientset().CoreV1().Secrets("eclipse-che").Create(context.TODO(), gitlabSecret, metav1.CreateOptions{})
+	_, err = k8sHelper.GetClientSet().CoreV1().Secrets("eclipse-che").Create(context.TODO(), gitlabSecret, metav1.CreateOptions{})
 	assert.Nil(t, err)
 
 	bitbucketSecret := &corev1.Secret{
@@ -65,7 +65,7 @@ func TestValidateScmSecrets(t *testing.T) {
 			"consumer.key": []byte("secret"),
 		},
 	}
-	_, err = k8sHelper.GetClientset().CoreV1().Secrets("eclipse-che").Create(context.TODO(), bitbucketSecret, metav1.CreateOptions{})
+	_, err = k8sHelper.GetClientSet().CoreV1().Secrets("eclipse-che").Create(context.TODO(), bitbucketSecret, metav1.CreateOptions{})
 	assert.Nil(t, err)
 
 	checluster := &CheCluster{
@@ -101,21 +101,21 @@ func TestValidateScmSecrets(t *testing.T) {
 	_, err = cheClusterValidator.ValidateCreate(context.TODO(), checluster)
 	assert.Nil(t, err)
 
-	githubSecret, err = k8sHelper.GetClientset().CoreV1().Secrets("eclipse-che").Get(context.TODO(), "github-scm-secret", metav1.GetOptions{})
+	githubSecret, err = k8sHelper.GetClientSet().CoreV1().Secrets("eclipse-che").Get(context.TODO(), "github-scm-secret", metav1.GetOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, "github", githubSecret.Annotations[constants.CheEclipseOrgOAuthScmServer])
 	assert.Equal(t, "github-endpoint", githubSecret.Annotations[constants.CheEclipseOrgScmServerEndpoint])
 	assert.Equal(t, constants.OAuthScmConfiguration, githubSecret.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.CheEclipseOrg, githubSecret.Labels[constants.KubernetesPartOfLabelKey])
 
-	gitlabSecret, err = k8sHelper.GetClientset().CoreV1().Secrets("eclipse-che").Get(context.TODO(), "gitlab-scm-secret", metav1.GetOptions{})
+	gitlabSecret, err = k8sHelper.GetClientSet().CoreV1().Secrets("eclipse-che").Get(context.TODO(), "gitlab-scm-secret", metav1.GetOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, "gitlab", gitlabSecret.Annotations[constants.CheEclipseOrgOAuthScmServer])
 	assert.Equal(t, "gitlab-endpoint-secret", gitlabSecret.Annotations[constants.CheEclipseOrgScmServerEndpoint])
 	assert.Equal(t, constants.OAuthScmConfiguration, gitlabSecret.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.CheEclipseOrg, gitlabSecret.Labels[constants.KubernetesPartOfLabelKey])
 
-	bitbucketSecret, err = k8sHelper.GetClientset().CoreV1().Secrets("eclipse-che").Get(context.TODO(), "bitbucket-scm-secret", metav1.GetOptions{})
+	bitbucketSecret, err = k8sHelper.GetClientSet().CoreV1().Secrets("eclipse-che").Get(context.TODO(), "bitbucket-scm-secret", metav1.GetOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, "bitbucket", bitbucketSecret.Annotations[constants.CheEclipseOrgOAuthScmServer])
 	assert.Empty(t, bitbucketSecret.Annotations[constants.CheEclipseOrgScmServerEndpoint])
@@ -196,7 +196,7 @@ func TestValidateOpenVSXSDatabaseClaimSizeInvalid(t *testing.T) {
 }
 
 func TestValidateOpenVSXCredentialsSecret(t *testing.T) {
-	k8sHelper := k8shelper.New()
+	k8sHelper := k8shelper.GetInstance()
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -213,7 +213,7 @@ func TestValidateOpenVSXCredentialsSecret(t *testing.T) {
 			"openvsx-admin-token":     []byte("admin-token"),
 		},
 	}
-	_, err := k8sHelper.GetClientset().CoreV1().Secrets("eclipse-che").Create(context.TODO(), secret, metav1.CreateOptions{})
+	_, err := k8sHelper.GetClientSet().CoreV1().Secrets("eclipse-che").Create(context.TODO(), secret, metav1.CreateOptions{})
 	assert.NoError(t, err)
 
 	cheClusterValidator := CheClusterValidator{}
@@ -237,7 +237,7 @@ func TestValidateOpenVSXCredentialsSecret(t *testing.T) {
 }
 
 func TestValidateOpenVSXCredentialsSecretMissingKeys(t *testing.T) {
-	k8sHelper := k8shelper.New()
+	k8sHelper := k8shelper.GetInstance()
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -248,7 +248,7 @@ func TestValidateOpenVSXCredentialsSecretMissingKeys(t *testing.T) {
 			"database-user": []byte("user"),
 		},
 	}
-	_, err := k8sHelper.GetClientset().CoreV1().Secrets("eclipse-che").Create(context.TODO(), secret, metav1.CreateOptions{})
+	_, err := k8sHelper.GetClientSet().CoreV1().Secrets("eclipse-che").Create(context.TODO(), secret, metav1.CreateOptions{})
 	assert.NoError(t, err)
 
 	cheClusterValidator := CheClusterValidator{}
@@ -300,8 +300,8 @@ func TestValidateScmSecretsShouldThrowError(t *testing.T) {
 		},
 	}
 
-	k8sHelper := k8shelper.New()
-	_, err = k8sHelper.GetClientset().CoreV1().Secrets("eclipse-che").Create(context.TODO(), githubSecret, metav1.CreateOptions{})
+	k8sHelper := k8shelper.GetInstance()
+	_, err = k8sHelper.GetClientSet().CoreV1().Secrets("eclipse-che").Create(context.TODO(), githubSecret, metav1.CreateOptions{})
 	assert.Nil(t, err)
 
 	_, err = cheClusterValidator.ValidateCreate(context.TODO(), checluster)

@@ -14,52 +14,86 @@ package k8shelper
 
 import (
 	"context"
-	"os"
+	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	"k8s.io/client-go/kubernetes/fake"
-
-	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 type K8sHelper struct {
-	clientset kubernetes.Interface
-	client    client.Client
+	client          client.Client
+	clientSet       kubernetes.Interface
+	discoveryClient discovery.DiscoveryInterface
 }
 
 var (
 	k8sHelper *K8sHelper
 )
 
-func New() *K8sHelper {
-	if k8sHelper != nil {
-		return k8sHelper
+func Initialize() error {
+	cfg, err := config.GetConfig()
+	if err != nil {
+		return fmt.Errorf("failed to get Kubernetes config: %w", err)
 	}
 
-	if isTestMode() {
-		return initializeForTesting()
+	clientSet, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to get Kubernetes client: %w", err)
 	}
 
-	return initialize()
+	client, err := client.New(cfg, client.Options{Scheme: runtime.NewScheme()})
+	if err != nil {
+		return fmt.Errorf("failed to get Kubernetes client: %w", err)
+	}
+
+	k8sHelper = &K8sHelper{
+		client:          client,
+		clientSet:       clientSet,
+		discoveryClient: clientSet.Discovery(),
+	}
+
+	return nil
 }
 
-func (cl *K8sHelper) GetClientset() kubernetes.Interface {
-	return cl.clientset
+func InitializeForTesting() {
+	clientSet := fake.NewSimpleClientset()
+
+	k8sHelper = &K8sHelper{
+		clientSet:       clientSet,
+		client:          fakeclient.NewClientBuilder().Build(),
+		discoveryClient: clientSet.Discovery(),
+	}
 }
 
-func (cl *K8sHelper) GetClient() client.Client {
-	return cl.client
+func GetInstance() *K8sHelper {
+	if !isInitialized() {
+		panic("Kubernetes helper is not initialized")
+	}
+
+	return k8sHelper
 }
 
-func (cl *K8sHelper) GetPodsByComponent(name string, ns string) []string {
+func (k *K8sHelper) GetClientSet() kubernetes.Interface {
+	return k.clientSet
+}
+
+func (k *K8sHelper) GetClient() client.Client {
+	return k.client
+}
+
+func (k *K8sHelper) GetDiscoveryClient() discovery.DiscoveryInterface {
+	return k.discoveryClient
+}
+
+func (k *K8sHelper) GetPodsByComponent(name string, ns string) []string {
 	names := []string{}
-	api := cl.clientset.CoreV1()
+	api := k.clientSet.CoreV1()
 	listOptions := metav1.ListOptions{
 		LabelSelector: "component=" + name,
 	}
@@ -71,38 +105,6 @@ func (cl *K8sHelper) GetPodsByComponent(name string, ns string) []string {
 	return names
 }
 
-func initializeForTesting() *K8sHelper {
-	k8sHelper = &K8sHelper{
-		clientset: fake.NewSimpleClientset(),
-		client:    fakeclient.NewClientBuilder().Build(),
-	}
-
-	return k8sHelper
-}
-
-func initialize() *K8sHelper {
-	cfg, err := config.GetConfig()
-	if err != nil {
-		logrus.Fatalf("Failed to initialized Kubernetes client: %v", err)
-	}
-
-	clientSet, err := kubernetes.NewForConfig(cfg)
-	if err != nil {
-		logrus.Fatalf("Failed to initialized Kubernetes client: %v", err)
-	}
-
-	client, err := client.New(cfg, client.Options{Scheme: runtime.NewScheme()})
-	if err != nil {
-		logrus.Fatalf("Failed to initialized Kubernetes client: %v", err)
-	}
-
-	k8sHelper = &K8sHelper{
-		clientset: clientSet,
-		client:    client,
-	}
-
-	return k8sHelper
-}
-func isTestMode() bool {
-	return len(os.Getenv("MOCK_API")) != 0
+func isInitialized() bool {
+	return k8sHelper != nil
 }
