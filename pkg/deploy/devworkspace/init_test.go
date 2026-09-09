@@ -14,9 +14,9 @@ package devworkspace
 
 import (
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
+	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
-	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
 )
 
 func init() {
