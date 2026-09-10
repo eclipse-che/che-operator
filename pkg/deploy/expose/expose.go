@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -21,7 +21,6 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"github.com/sirupsen/logrus"
@@ -59,7 +58,7 @@ func ExposeWithHostPath(
 		})
 	} else {
 		return exposeWithGateway(deployContext, gatewayConfig, component, path, func() {
-			if _, err := deploy.DeleteNamespacedObject(deployContext, component, &routev1.Route{}); !test.IsTestMode() && err != nil {
+			if _, err := deploy.DeleteNamespacedObject(deployContext, component, &routev1.Route{}); err != nil {
 				logrus.Error(err)
 			}
 		})

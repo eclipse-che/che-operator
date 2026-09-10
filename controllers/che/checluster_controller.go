@@ -35,7 +35,6 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
-	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/consolelink"
@@ -101,12 +100,9 @@ func NewReconciler(
 	reconcilerManager := reconciler.NewReconcilerManager()
 
 	// order does matter
-	if !test.IsTestMode() {
-		reconcilerManager.AddReconciler(migration.NewMigrator())
-		reconcilerManager.AddReconciler(migration.NewCheClusterDefaultsCleaner())
-		reconcilerManager.AddReconciler(NewCheClusterValidator())
-	}
-
+	reconcilerManager.AddReconciler(migration.NewMigrator())
+	reconcilerManager.AddReconciler(migration.NewCheClusterDefaultsCleaner())
+	reconcilerManager.AddReconciler(NewCheClusterValidator())
 	reconcilerManager.AddReconciler(tls.NewCertificatesReconciler())
 	reconcilerManager.AddReconciler(tls.NewTlsSecretReconciler())
 	reconcilerManager.AddReconciler(devworkspace.NewDevWorkspaceConfigReconciler())

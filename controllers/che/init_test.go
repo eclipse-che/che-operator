@@ -15,12 +15,9 @@ package che
 import (
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
-	"github.com/eclipse-che/che-operator/pkg/common/test"
 )
 
 func init() {
-	test.EnableTestMode()
-
 	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 	defaults.InitializeForTesting("../../config/manager/manager.yaml")
 }

@@ -21,7 +21,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
-	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	appsv1 "k8s.io/api/apps/v1"
@@ -199,10 +198,6 @@ func deleteResources(ctx *chetypes.DeployContext) {
 }
 
 func (r *OpenVSXServerReconciler) isServerReady(ctx *chetypes.DeployContext) bool {
-	if test.IsTestMode() {
-		return true
-	}
-
 	actual := &appsv1.Deployment{}
 	exists, err := deploy.GetNamespacedObject(ctx, constants.OpenVSXServerComponentName, actual)
 	if !exists || err != nil {

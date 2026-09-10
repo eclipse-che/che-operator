@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -17,7 +17,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
-	stderrors "errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -28,7 +27,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
-	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -70,10 +68,6 @@ func IsSelfSignedCASecretExists(ctx *chetypes.DeployContext) (bool, error) {
 
 // IsSelfSignedCertificateUsed detects whether endpoints are/should be secured by self-signed certificate.
 func IsSelfSignedCertificateUsed(ctx *chetypes.DeployContext) (bool, error) {
-	if test.IsTestMode() {
-		return true, nil
-	}
-
 	cheCASecretExist, err := IsSelfSignedCASecretExists(ctx)
 	if err != nil {
 		return false, err
@@ -124,10 +118,6 @@ func IsSelfSignedCertificateUsed(ctx *chetypes.DeployContext) (bool, error) {
 
 // GetTLSCrtChain retrieves TLS certificates chain from a test route/ingress.
 func GetTLSCrtChain(ctx *chetypes.DeployContext) ([]*x509.Certificate, error) {
-	if test.IsTestMode() {
-		return nil, stderrors.New("not allowed for tests")
-	}
-
 	var requestURL string
 	if infrastructure.IsOpenShift() {
 		// Create test route to get certificates chain.
@@ -264,10 +254,6 @@ func doRequestForTLSCrtChain(ctx *chetypes.DeployContext, requestURL string, ski
 func GetTLSCrtBytes(ctx *chetypes.DeployContext) (certificates []byte, err error) {
 	peerCertificates, err := GetTLSCrtChain(ctx)
 	if err != nil {
-		if test.IsTestMode() {
-			fakeCrt := make([]byte, 5)
-			return fakeCrt, nil
-		}
 		return nil, err
 	}
 

@@ -64,7 +64,7 @@ func TestIngressSpec(t *testing.T) {
 						"app.kubernetes.io/name":       defaults.GetCheFlavor(),
 					},
 					Annotations: map[string]string{
-						"che.eclipse.org/managed-annotations-digest": "0000",
+						"che.eclipse.org/managed-annotations-digest": "7dTH4hkUFmioq8ugAMo99LOlOHlq5w9QoWgXbs7m3ko=",
 						"annotation-key": "annotation-value",
 					},
 				},
@@ -102,7 +102,7 @@ func TestIngressSpec(t *testing.T) {
 			},
 		},
 		{
-			name: "Test case #1",
+			name: "Test case #2",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -129,7 +129,7 @@ func TestIngressSpec(t *testing.T) {
 						"app.kubernetes.io/name":       defaults.GetCheFlavor(),
 					},
 					Annotations: map[string]string{
-						"che.eclipse.org/managed-annotations-digest": "0000",
+						"che.eclipse.org/managed-annotations-digest": "7P4Xe8qd4GtPtbgdXd6dj5GO_SNjB6iHOnizmMR_W-0=",
 						"annotation-key": "annotation-value",
 					},
 				},

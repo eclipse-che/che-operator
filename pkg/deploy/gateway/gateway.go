@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -28,7 +28,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
-	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 
@@ -331,15 +330,11 @@ func generateRandomCookieSecret() []byte {
 func getGatewayHeaderRewritePluginConfigSpec(instance *chev2.CheCluster) (*corev1.ConfigMap, error) {
 	headerRewrite, err := os.ReadFile("/tmp/header-rewrite-traefik-plugin/headerRewrite.go")
 	if err != nil {
-		if !test.IsTestMode() {
-			return nil, err
-		}
+		return nil, err
 	}
 	pluginMeta, err := os.ReadFile("/tmp/header-rewrite-traefik-plugin/.traefik.yml")
 	if err != nil {
-		if !test.IsTestMode() {
-			return nil, err
-		}
+		return nil, err
 	}
 
 	return &corev1.ConfigMap{

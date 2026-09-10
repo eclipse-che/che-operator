@@ -298,7 +298,7 @@ lint: ## Run static code analyzers
 
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
 test: download-gateway-resources ## Run tests.
-	export MOCK_API=true; go test -mod=vendor ./... -coverprofile cover.out
+	go test -mod=vendor ./... -coverprofile cover.out
 
 update-go-dependencies:  ## Update golang dependencies
 	go mod tidy

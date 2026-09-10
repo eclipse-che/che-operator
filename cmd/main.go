@@ -44,7 +44,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/signal"
-	"github.com/eclipse-che/che-operator/pkg/common/test"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -307,11 +306,9 @@ func main() {
 	}
 
 	terminationPeriod := int64(20)
-	if !test.IsTestMode() {
-		namespace, err := infrastructure.GetOperatorNamespace()
-		if err == nil {
-			terminationPeriod = signal.GetTerminationGracePeriodSeconds(mgr.GetAPIReader(), namespace)
-		}
+	namespace, err := infrastructure.GetOperatorNamespace()
+	if err == nil {
+		terminationPeriod = signal.GetTerminationGracePeriodSeconds(mgr.GetAPIReader(), namespace)
 	}
 	sigHandler := signal.SetupSignalHandler(terminationPeriod)
 

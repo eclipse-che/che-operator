@@ -13,13 +13,16 @@
 package openvsx_server
 
 import (
+	"context"
 	"strings"
 	"testing"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"github.com/eclipse-che/che-operator/pkg/deploy/openvsx"
 	"github.com/stretchr/testify/assert"
@@ -28,6 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 func TestOpenVSXServerReconciler(t *testing.T) {
@@ -48,7 +52,19 @@ func TestOpenVSXServerReconciler(t *testing.T) {
 	).Build()
 
 	reconciler := NewOpenVSXServerReconciler()
-	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
+	test.EnsureReconcile(t, ctx, func(ctx *chetypes.DeployContext) (result reconcile.Result, done bool, err error) {
+		result, done, err = reconciler.Reconcile(ctx)
+		if !done && err == nil {
+			// Update deployment status to simulate it being ready
+			deployment := &appsv1.Deployment{}
+			if exists, _ := deploy.GetNamespacedObject(ctx, constants.OpenVSXServerComponentName, deployment); exists {
+				deployment.Status.AvailableReplicas = 1
+				deployment.Status.UnavailableReplicas = 0
+				_ = ctx.ClusterAPI.Client.Status().Update(context.TODO(), deployment)
+			}
+		}
+		return result, done, err
+	})
 
 	ns := "eclipse-che"
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: ns}, &appsv1.Deployment{}))

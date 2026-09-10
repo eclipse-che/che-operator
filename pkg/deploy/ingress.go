@@ -20,7 +20,6 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -120,11 +119,7 @@ func GetIngressSpec(
 		for _, k := range annotationsKeys {
 			data += k + ":" + annotations[k] + ","
 		}
-		if test.IsTestMode() {
-			annotations[constants.CheEclipseOrgManagedAnnotationsDigest] = "0000"
-		} else {
-			annotations[constants.CheEclipseOrgManagedAnnotationsDigest] = utils.ComputeHash256([]byte(data))
-		}
+		annotations[constants.CheEclipseOrgManagedAnnotationsDigest] = utils.ComputeHash256([]byte(data))
 	}
 
 	ingressClassName := deployContext.CheCluster.Spec.Networking.IngressClassName
