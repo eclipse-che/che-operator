@@ -99,6 +99,7 @@ declare -A replaced_modules=(
   ["go.opentelemetry.io/contrib/exporters/autoexport v0.65.0"]="open-telemetry/opentelemetry-go-contrib a89d958e7a2575cf539ffca09657cfd90821d6e4"
   ["go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.65.0"]="open-telemetry/opentelemetry-go-contrib a89d958e7a2575cf539ffca09657cfd90821d6e4"
   ["go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.65.0"]="open-telemetry/opentelemetry-go-contrib a89d958e7a2575cf539ffca09657cfd90821d6e4"
+  ["go.opentelemetry.io/contrib/bridges/prometheus v0.65.0"]="open-telemetry/opentelemetry-go-contrib a89d958e7a2575cf539ffca09657cfd90821d6e4"
   # https://github.com/open-telemetry/opentelemetry-go/commit/a3a5317c5caed1656fb5b301b66dfeb3c4c944e0
   ["go.opentelemetry.io/otel/exporters/prometheus v0.62.0"]="open-telemetry/opentelemetry-go a3a5317c5caed1656fb5b301b66dfeb3c4c944e0"
   # https://github.com/open-telemetry/opentelemetry-go/commit/93a693edeed0e07ce5ebd1dfe67af42d1e2055d8

@@ -60,15 +60,11 @@ func GetTestClients(initObjs ...client.Object) (client.Client, *fakeDiscovery.Fa
 	discoveryClient, _ := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
 	discoveryClient.Resources = []*metav1.APIResourceList{
 		{
-			APIResources: []metav1.APIResource{
-				{Name: "consolelinks"},
-			},
-		},
-		{
 			GroupVersion: "che.eclipse.org/v1alpha1",
 			APIResources: []metav1.APIResource{
 				{
-					Name: "kubernetesimagepullers",
+					Group: "che.eclipse.org",
+					Kind:  "KubernetesImagePuller",
 				},
 			},
 		},
@@ -76,7 +72,8 @@ func GetTestClients(initObjs ...client.Object) (client.Client, *fakeDiscovery.Fa
 			GroupVersion: "monitoring.coreos.com/v1",
 			APIResources: []metav1.APIResource{
 				{
-					Name: "servicemonitors",
+					Group: "monitoring.coreos.com",
+					Kind:  "ServiceMonitor",
 				},
 			},
 		},
