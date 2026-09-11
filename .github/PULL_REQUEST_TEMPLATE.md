@@ -30,6 +30,7 @@ oc apply --server-side -f https://raw.githubusercontent.com/devfile/devworkspace
 
 OPERATOR_IMAGE=<...>
 sed 's|quay.io/eclipse/che-operator:next|'${OPERATOR_IMAGE}'|g' deploy/deployment/openshift/combined.yaml | oc apply --server-side -f  -
+oc wait --for=condition=Ready pod -l app.kubernetes.io/component=che-operator -n eclipse-che --timeout=60s
 oc apply --server-side -f deploy/deployment/openshift/org_v2_checluster.yaml
 oc wait checluster eclipse-che -n eclipse-che --for=jsonpath='.status.chePhase'=Active   --timeout=120s
 ```

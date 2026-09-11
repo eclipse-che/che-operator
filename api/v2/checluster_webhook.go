@@ -145,6 +145,10 @@ func (r *CheClusterValidator) validate(checluster *CheCluster) error {
 		return err
 	}
 
+	if err := r.validateAgentSandbox(checluster); err != nil {
+		return err
+	}
+
 	for _, github := range checluster.Spec.GitServices.GitHub {
 		if err := r.validateOAuthSecret(github.SecretName, "github", github.Endpoint, github.DisableSubdomainIsolation, checluster.Namespace); err != nil {
 			return err
@@ -334,6 +338,18 @@ func (r *CheClusterValidator) validateSecretDataKeys(secret *corev1.Secret, keys
 		if value, ok := secret.Data[key]; !ok || len(value) == 0 {
 			return fmt.Errorf("mandatory keys [%s] not found in secret %s", strings.Join(keys, ", "), secret.Name)
 		}
+	}
+
+	return nil
+}
+
+func (r *CheClusterValidator) validateAgentSandbox(cheCluster *CheCluster) error {
+	discoveryClient := k8shelper.GetInstance().GetDiscoveryClient()
+
+	if cheCluster.IsAgentSandboxEnabled() &&
+		!infrastructure.IsAgentSandboxEnabled(discoveryClient) {
+
+		return fmt.Errorf("AgentSandbox integration cannot be enabled because the agents.x-k8s.io API group is not available in the cluster")
 	}
 
 	return nil

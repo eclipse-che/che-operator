@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -30,11 +31,6 @@ const (
 	Unknown Type = iota
 	Kubernetes
 	OpenShiftV4
-
-	LeasesResources                = "leases"
-	OAuthClientsResources          = "oauthclients"
-	KubernetesImagePullerResources = "kubernetesimagepullers"
-	ServiceMonitorResources        = "servicemonitors"
 )
 
 var (
@@ -45,6 +41,12 @@ var (
 	isServiceMonitorEnabled bool
 
 	operatorNamespace string
+
+	agentSandbox          = schema.GroupKind{Group: "agents.x-k8s.io", Kind: "Sandbox"}
+	serviceMonitor        = schema.GroupKind{Group: "monitoring.coreos.com", Kind: "ServiceMonitor"}
+	kubernetesImagePuller = schema.GroupKind{Group: "che.eclipse.org", Kind: "KubernetesImagePuller"}
+	oAuthClient           = schema.GroupKind{Group: "oauth.openshift.io", Kind: "OAuthClient"}
+	leaseCoordination     = schema.GroupKind{Group: "coordination.k8s.io", Kind: "Lease"}
 
 	logger = ctrl.Log.WithName("infrastructure")
 )
@@ -99,7 +101,17 @@ func IsKubernetesImagePullerEnabled(discovery discovery.DiscoveryInterface) bool
 		return false
 	}
 
-	return hasAPIResource(apiResources, KubernetesImagePullerResources)
+	return hasAPIResource(apiResources, kubernetesImagePuller)
+}
+
+func IsAgentSandboxEnabled(discovery discovery.DiscoveryInterface) bool {
+	_, apiResources, err := discovery.ServerGroupsAndResources()
+	if err != nil {
+		logger.Error(err, "Failed to get API resources list")
+		return false
+	}
+
+	return hasAPIResource(apiResources, agentSandbox)
 }
 
 func IsServiceMonitorEnabled() bool {
@@ -148,14 +160,14 @@ func initializeIfNeeded() {
 
 	if hasAPIGroup(apiGroups, "config.openshift.io") {
 		infrastructure = OpenShiftV4
-		isOpenShiftOAuthEnabled = hasAPIResource(apiResources, OAuthClientsResources)
+		isOpenShiftOAuthEnabled = hasAPIResource(apiResources, oAuthClient)
 	} else {
 		infrastructure = Kubernetes
 		isOpenShiftOAuthEnabled = false
 	}
 
-	isLeaderElectionEnabled = hasAPIResource(apiResources, LeasesResources)
-	isServiceMonitorEnabled = hasAPIResource(apiResources, ServiceMonitorResources)
+	isLeaderElectionEnabled = hasAPIResource(apiResources, leaseCoordination)
+	isServiceMonitorEnabled = hasAPIResource(apiResources, serviceMonitor)
 }
 
 func hasAPIGroup(source []*metav1.APIGroup, apiName string) bool {
@@ -164,10 +176,34 @@ func hasAPIGroup(source []*metav1.APIGroup, apiName string) bool {
 	})
 }
 
-func hasAPIResource(resources []*metav1.APIResourceList, resourceName string) bool {
-	for _, resource := range resources {
-		for _, r := range resource.APIResources {
-			if r.Name == resourceName {
+// hasAPIResource checks if a resource with the given Group and Kind exists in the cluster.
+// Handles both aggregated discovery (K8s 1.27+) and legacy discovery modes:
+// - Aggregated discovery: apiResource.Group is explicitly populated
+// - Legacy discovery: apiResource.Group is empty; group must be parsed from APIResourceList.GroupVersion
+func hasAPIResource(apiResourcesLists []*metav1.APIResourceList, gk schema.GroupKind) bool {
+	for _, apiResourcesList := range apiResourcesLists {
+		// Parse the group from the list's GroupVersion field for legacy discovery mode.
+		// This is needed because APIResource.Group may be empty in legacy discovery,
+		// with the docs stating: "Empty implies the group of the containing resource list."
+		apiResourcesListGroup := ""
+		if apiResourcesList.GroupVersion != "" {
+			gv, err := schema.ParseGroupVersion(apiResourcesList.GroupVersion)
+			if err != nil {
+				logger.Error(err, "Failed to parse GroupVersion", "GroupVersion", apiResourcesList.GroupVersion)
+				continue
+			}
+			apiResourcesListGroup = gv.Group
+		}
+
+		for _, apiResource := range apiResourcesList.APIResources {
+			// Use apiResource.Group if explicitly set (aggregated discovery),
+			// otherwise fall back to the list's group (legacy discovery)
+			apiResourceGroup := apiResource.Group
+			if apiResourceGroup == "" {
+				apiResourceGroup = apiResourcesListGroup
+			}
+
+			if apiResource.Kind == gk.Kind && apiResourceGroup == gk.Group {
 				return true
 			}
 		}
