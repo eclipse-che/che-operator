@@ -10,11 +10,11 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package tlssetup
+package tls
 
 import (
 	"context"
-	"crypto/tls"
+	cryptotls "crypto/tls"
 
 	"github.com/go-logr/logr"
 	configv1 "github.com/openshift/api/config/v1"
@@ -29,7 +29,7 @@ import (
 
 // ServerTLS holds TLS options and initial profile/policy for watcher
 type ServerTLS struct {
-	TLSOpts                   []func(*tls.Config)
+	TLSOpts                   []func(*cryptotls.Config)
 	InitialTLSProfileSpec     configv1.TLSProfileSpec
 	InitialTLSAdherencePolicy configv1.TLSAdherencePolicy
 	profileFetched            bool
@@ -72,7 +72,8 @@ func BuildServerTLSOptions(ctx context.Context, cfg *rest.Config, scheme *k8srun
 		if len(unsupported) > 0 {
 			log.Info("TLS profile contains ciphers unsupported by Go", "unsupported", unsupported)
 		}
-		serverTLS.TLSOpts = []func(*tls.Config){tlsConfigFn}
+
+		serverTLS.TLSOpts = []func(*cryptotls.Config){tlsConfigFn}
 
 		log.Info(
 			"Applying cluster TLS profile to metrics and webhook servers",
