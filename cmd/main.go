@@ -70,7 +70,7 @@ import (
 	templatev1 "github.com/openshift/api/template/v1"
 
 	checontroller "github.com/eclipse-che/che-operator/controllers/che"
-	"github.com/eclipse-che/che-operator/pkg/tlssetup"
+	tls "github.com/eclipse-che/che-operator/pkg/deploy/tls"
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -223,7 +223,7 @@ func main() {
 
 	config := ctrl.GetConfigOrDie()
 
-	serverTLS := tlssetup.BuildServerTLSOptions(context.Background(), config, scheme, setupLog)
+	serverTLS := tls.BuildServerTLSOptions(context.Background(), config, scheme, setupLog)
 
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
 	if err != nil {
@@ -325,7 +325,7 @@ func main() {
 	ctx, cancelCtx := context.WithCancel(sigHandler)
 	defer cancelCtx()
 
-	if err := tlssetup.RegisterSecurityProfileWatcher(mgr, serverTLS, cancelCtx, setupLog); err != nil {
+	if err := tls.RegisterSecurityProfileWatcher(mgr, serverTLS, cancelCtx, setupLog); err != nil {
 		setupLog.Error(err, "unable to set up TLS security profile watcher")
 		os.Exit(1)
 	}
