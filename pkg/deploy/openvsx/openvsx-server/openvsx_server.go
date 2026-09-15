@@ -122,6 +122,11 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 		r.extensionsVersion = extensionsVersion
 	}
 
+	err = r.syncExtensionUpdateCronJob(ctx)
+	if err != nil {
+		return reconcile.Result{}, false, fmt.Errorf("failed to sync extension update CronJob: %w", err)
+	}
+
 	return reconcile.Result{}, true, nil
 }
 
@@ -186,6 +191,19 @@ func deleteResources(ctx *chetypes.DeployContext) {
 	)
 	if err != nil {
 		logger.Error(err, "Failed to delete ConfigMap", "Name", constants.OpenVSXServerExtensionsConfigMapName)
+	}
+
+	err = cw.DeleteByKeyIgnoreNotFound(
+		context.TODO(),
+		types.NamespacedName{
+			Name:      constants.OpenVSXServerExtensionUpdateCronJobName,
+			Namespace: ctx.CheCluster.Namespace,
+		},
+		&batchv1.CronJob{},
+		client.PropagationPolicy(metav1.DeletePropagationBackground),
+	)
+	if err != nil {
+		logger.Error(err, "Failed to delete CronJob", "Name", constants.OpenVSXServerExtensionUpdateCronJobName)
 	}
 
 	if ctx.CheCluster.Status.OpenVSXURL != "" {
