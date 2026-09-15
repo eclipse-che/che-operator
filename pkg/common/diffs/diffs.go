@@ -21,6 +21,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	securityv1 "github.com/openshift/api/security/v1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networking "k8s.io/api/networking/v1"
 	rbac "k8s.io/api/rbac/v1"
@@ -87,6 +88,10 @@ var NetworkPolicy = cmp.Options{
 
 var ServiceMonitor = cmp.Options{
 	cmpopts.IgnoreFields(monitoringv1.ServiceMonitor{}, "TypeMeta", "ObjectMeta"),
+}
+
+var CronJob = cmp.Options{
+	cmpopts.IgnoreFields(batchv1.CronJob{}, "TypeMeta", "ObjectMeta", "Status"),
 }
 
 func cmpMetadata(labels []string, annotations []string) cmp.Option {
