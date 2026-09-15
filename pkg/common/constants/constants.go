@@ -50,8 +50,10 @@ const (
 	OpenVSXServerServicePort   = int32(8080)
 
 	// OpenVSXRegistry Server extensions
-	OpenVSXServerExtensionPublishJobName = "openvsx-server-publisher"
-	OpenVSXServerExtensionsConfigMapName = "openvsx-server-extensions"
+	OpenVSXServerExtensionPublishJobName    = "openvsx-server-publisher"
+	OpenVSXServerExtensionsConfigMapName    = "openvsx-server-extensions"
+	OpenVSXServerExtensionUpdateCronJobName = "openvsx-server-extension-update"
+	DefaultExtensionAutoUpdateSchedule      = "0 0 * * 0"
 
 	// OpenVSXRegistry Database
 	OpenVSXDatabaseComponentName    = "openvsx-database"
