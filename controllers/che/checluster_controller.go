@@ -57,6 +57,7 @@ import (
 	"github.com/go-logr/logr"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networking "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -179,6 +180,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&rbacv1.RoleBinding{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&appsv1.Deployment{}).
+		Owns(&batchv1.CronJob{}).
 		Owns(&networking.NetworkPolicy{}).
 		Watches(&corev1.ConfigMap{},
 			handler.EnqueueRequestsFromMapFunc(toTrustedBundleConfigMapRequestMapper),
