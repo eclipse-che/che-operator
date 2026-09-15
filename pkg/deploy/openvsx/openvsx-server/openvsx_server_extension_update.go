@@ -152,7 +152,7 @@ func (r *OpenVSXServerReconciler) getExtensionUpdateCronJobSpec(ctx *chetypes.De
 					BackoffLimit:            ptr.To(int32(3)),
 					Completions:             ptr.To(int32(1)),
 					TTLSecondsAfterFinished: ptr.To(int32(300)),
-					ActiveDeadlineSeconds:   ptr.To(int64(600)),
+					ActiveDeadlineSeconds:   ptr.To(int64(1800)),
 				},
 			},
 		},
