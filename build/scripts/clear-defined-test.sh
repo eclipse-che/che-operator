@@ -144,6 +144,11 @@ declare -A ignored_paths=(
   ["google.golang.org/grpc"]="Harvesting is in progress"
   ["golang.org/x/tools/go/packages/packagestest"]="Harvesting is in progress"
   ["go.opentelemetry.io/otel/metric/x"]="Harvesting is in progress"
+  ["k8s.io/kube-aggregator"]="Harvesting is in progress"
+  ["github.com/openshift/library-go"]="Harvesting is in progress"
+  ["github.com/openshift/controller-runtime-common"]="Harvesting is in progress"
+  ["github.com/openshift/client-go"]="Harvesting is in progress"
+  ["github.com/coreos/go-oidc"]="Harvesting is in progress"
 )
 
 declare -A ignored_paths_licenses=(
@@ -169,6 +174,16 @@ declare -A ignored_paths_licenses=(
   ["golang.org/x/tools/go/packages/packagestest"]="BSD-3-Clause"
   # https://github.com/open-telemetry/opentelemetry-go?tab=Apache-2.0-1-ov-file
   ["go.opentelemetry.io/otel/metric/x"]="Apache-2.0"
+  # https://github.com/kubernetes/kube-aggregator?tab=Apache-2.0-1-ov-file
+  ["k8s.io/kube-aggregator"]="Apache-2.0"
+  # https://github.com/openshift/library-go?tab=Apache-2.0-1-ov-file
+  ["github.com/openshift/library-go"]="Apache-2.0"
+  # https://github.com/openshift/controller-runtime-common?tab=Apache-2.0-1-ov-file
+  ["github.com/openshift/controller-runtime-common"]="Apache-2.0"
+  # https://github.com/openshift/client-go?tab=Apache-2.0-1-ov-file
+  ["github.com/openshift/client-go"]="Apache-2.0"
+  # https://github.com/coreos/go-oidc?tab=Apache-2.0-1-ov-file
+  ["github.com/coreos/go-oidc"]="Apache-2.0"
 )
 
 declare -A declared_licenses=(
