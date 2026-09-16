@@ -161,12 +161,11 @@ func TestResolveOpenShiftOAuthProxyImage_InternalRegistry(t *testing.T) {
 	assert.Equal(t, expectedImage, resolved)
 }
 
-// TestResolveOpenShiftOAuthProxyImage_SourceFallback verifies that the source image reference
-// is used as a fallback when the internal registry base path is not available.
-func TestResolveOpenShiftOAuthProxyImage_SourceFallback(t *testing.T) {
+// TestResolveOpenShiftOAuthProxyImage_NoInternalRegistry verifies that an empty string is
+// returned when the internal registry path is absent, to avoid returning a public image
+// that would fail to pull in disconnected environments.
+func TestResolveOpenShiftOAuthProxyImage_NoInternalRegistry(t *testing.T) {
 	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
-
-	expectedImage := "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:503de130e594b7864ab9b63b910d313b4e17cdd09ddd59323729fa221ba1b39c"
 
 	imageStream := &unstructured.Unstructured{}
 	imageStream.SetGroupVersionKind(schema.GroupVersionKind{
@@ -181,7 +180,7 @@ func TestResolveOpenShiftOAuthProxyImage_SourceFallback(t *testing.T) {
 			"tag": "v4.4",
 			"items": []interface{}{
 				map[string]interface{}{
-					"dockerImageReference": expectedImage,
+					"dockerImageReference": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:503de130e594b7864ab9b63b910d313b4e17cdd09ddd59323729fa221ba1b39c",
 				},
 			},
 		},
@@ -190,7 +189,7 @@ func TestResolveOpenShiftOAuthProxyImage_SourceFallback(t *testing.T) {
 	ctx := test.NewCtxBuilder().WithObjects(imageStream).Build()
 
 	resolved := resolveOpenShiftOAuthProxyImage(ctx)
-	assert.Equal(t, expectedImage, resolved)
+	assert.Equal(t, "", resolved)
 }
 
 // TestResolveOpenShiftOAuthProxyImage_ImageStreamAbsent verifies that an empty string

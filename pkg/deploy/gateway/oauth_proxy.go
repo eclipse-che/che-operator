@@ -215,15 +215,11 @@ func resolveOpenShiftOAuthProxyImage(ctx *chetypes.DeployContext) string {
 		if !ok {
 			continue
 		}
-		// Use internal registry reference to support disconnected environments.
+		// Use internal registry reference — works in both connected and disconnected environments.
+		// Do not fall back to dockerImageReference (public image) as it breaks disconnected clusters.
 		digest, _, _ := unstructured.NestedString(firstItem, "image")
 		if internalRegistry != "" && digest != "" {
 			ref := internalRegistry + "@" + digest
-			logrus.Infof("Resolved oauth-proxy image from cluster release payload: %s", ref)
-			return ref
-		}
-		ref, _, _ := unstructured.NestedString(firstItem, "dockerImageReference")
-		if ref != "" {
 			logrus.Infof("Resolved oauth-proxy image from cluster release payload: %s", ref)
 			return ref
 		}
