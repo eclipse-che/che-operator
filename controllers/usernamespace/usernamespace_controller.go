@@ -19,6 +19,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
@@ -26,13 +27,12 @@ import (
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	containercapabilties "github.com/eclipse-che/che-operator/pkg/deploy/container-capabilities"
 	"github.com/eclipse-che/che-operator/pkg/deploy/networkpolicies"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/utils/ptr"
 
 	devworkspacedefaults "github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-
-	rbacv1 "k8s.io/api/rbac/v1"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -320,6 +320,13 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	); err != nil {
 		logrus.Errorf("Failed to reconcile the SCC privileges in namespace '%s': %v", req.Name, err)
 		return ctrl.Result{}, err
+	}
+
+	if done, err := r.reconcileAgentSandboxRbac(info.Username, req.Name, deployContext); !done {
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{RequeueAfter: time.Second}, nil
 	}
 
 	if infrastructure.IsOpenShift() {

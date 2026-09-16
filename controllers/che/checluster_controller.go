@@ -20,6 +20,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
+	agentsandbox "github.com/eclipse-che/che-operator/pkg/deploy/agent-sandbox"
 	"github.com/eclipse-che/che-operator/pkg/deploy/metrics"
 	"github.com/eclipse-che/che-operator/pkg/deploy/networkpolicies"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -135,6 +136,8 @@ func NewReconciler(
 		reconcilerManager.AddReconciler(containerbuild.NewContainerCapabilitiesReconciler())
 		reconcilerManager.AddReconciler(consolelink.NewConsoleLinkReconciler())
 	}
+
+	reconcilerManager.AddReconciler(agentsandbox.NewAgentSandboxReconciler())
 
 	if infrastructure.IsServiceMonitorEnabled() {
 		reconcilerManager.AddReconciler(metrics.NewMetricsReconciler())

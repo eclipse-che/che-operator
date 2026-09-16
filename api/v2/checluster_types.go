@@ -71,6 +71,12 @@ type CheClusterSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=5
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Container registry"
 	ContainerRegistry CheClusterContainerRegistry `json:"containerRegistry"`
+	// AgentSandbox configures integration with the Kubernetes Agent Sandbox project
+	// (https://github.com/kubernetes-sigs/agent-sandbox), which provides secure,
+	// isolated runtime environments for AI agents. Requires the agents.x-k8s.io
+	// API group to be available in the cluster.
+	// +optional
+	AgentSandbox *AgentSandbox `json:"agentSandbox,omitempty"`
 }
 
 // Development environment configuration.
@@ -295,6 +301,14 @@ type CheClusterComponents struct {
 	// +optional
 	// +kubebuilder:default:={enable: true}
 	Metrics ServerMetrics `json:"metrics"`
+}
+
+// AgentSandbox configuration for AI agent runtime environments.
+// +k8s:openapi-gen=true
+type AgentSandbox struct {
+	// Enables AgentSandbox integration.
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // Configuration settings related to the networking used by the Che installation.
@@ -1340,4 +1354,8 @@ func (c *CheCluster) IsDevEnvironmentExternalTLSConfigEnabled() bool {
 func (c *CheCluster) IsNetworkPoliciesEnabled() bool {
 	return c.Spec.Networking.NetworkPolicy != nil &&
 		ptr.Deref(c.Spec.Networking.NetworkPolicy.Enabled, constants.NetworkPolicyEnabled)
+}
+
+func (c *CheCluster) IsAgentSandboxEnabled() bool {
+	return c.Spec.AgentSandbox != nil && ptr.Deref(c.Spec.AgentSandbox.Enabled, constants.AgentSandboxEnabled)
 }

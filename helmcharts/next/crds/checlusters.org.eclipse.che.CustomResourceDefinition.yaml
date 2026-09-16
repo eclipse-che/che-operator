@@ -4361,6 +4361,17 @@ spec:
           spec:
             description: Desired configuration of Eclipse Che installation.
             properties:
+              agentSandbox:
+                description: |-
+                  AgentSandbox configures integration with the Kubernetes Agent Sandbox project
+                  (https://github.com/kubernetes-sigs/agent-sandbox), which provides secure,
+                  isolated runtime environments for AI agents. Requires the agents.x-k8s.io
+                  API group to be available in the cluster.
+                properties:
+                  enabled:
+                    description: Enables AgentSandbox integration.
+                    type: boolean
+                type: object
               components:
                 default:
                   cheServer:

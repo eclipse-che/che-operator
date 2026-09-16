@@ -183,6 +183,10 @@ const (
 	// Networking
 	NetworkPolicyEnabled = false
 
+	// AgentSandbox
+	AgentSandboxEnabled       = false
+	AgentSandboxComponentName = "agent-sandbox"
+
 	// Finalizers
 	ContainerBuildFinalizer = "container-build.finalizers.che.eclipse.org"
 	ContainerRunFinalizer   = "che.eclipse.org/container-run"
