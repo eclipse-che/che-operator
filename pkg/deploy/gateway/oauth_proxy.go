@@ -179,10 +179,8 @@ func oauthScopeConfig(instance *chev2.CheCluster) string {
 	return ""
 }
 
-// resolveOpenShiftOAuthProxyImage returns the oauth-proxy image from the cluster's own release
-// payload via the openshift/oauth-proxy ImageStream, which is maintained by the Cluster Version
-// Operator and always carries an architecture-native, digest-pinned reference. Returns an empty
-// string when the ImageStream is unavailable so the caller can fall back to the operator default.
+// resolveOpenShiftOAuthProxyImage resolves the oauth-proxy image from the cluster's own
+// openshift/oauth-proxy ImageStream. Returns empty string when unavailable.
 func resolveOpenShiftOAuthProxyImage(ctx *chetypes.DeployContext) string {
 	imageStream := &unstructured.Unstructured{}
 	imageStream.SetGroupVersionKind(schema.GroupVersionKind{
@@ -200,6 +198,9 @@ func resolveOpenShiftOAuthProxyImage(ctx *chetypes.DeployContext) string {
 		return ""
 	}
 
+	// Use the internal registry path — accessible in all OCP clusters including disconnected ones.
+	internalRegistry, _, _ := unstructured.NestedString(imageStream.Object, "status", "dockerImageRepository")
+
 	tags, _, _ := unstructured.NestedSlice(imageStream.Object, "status", "tags")
 	for _, tag := range tags {
 		tagMap, ok := tag.(map[string]interface{})
@@ -213,6 +214,13 @@ func resolveOpenShiftOAuthProxyImage(ctx *chetypes.DeployContext) string {
 		firstItem, ok := items[0].(map[string]interface{})
 		if !ok {
 			continue
+		}
+		// Use internal registry reference to support disconnected environments.
+		digest, _, _ := unstructured.NestedString(firstItem, "image")
+		if internalRegistry != "" && digest != "" {
+			ref := internalRegistry + "@" + digest
+			logrus.Infof("Resolved oauth-proxy image from cluster release payload: %s", ref)
+			return ref
 		}
 		ref, _, _ := unstructured.NestedString(firstItem, "dockerImageReference")
 		if ref != "" {
@@ -234,9 +242,10 @@ func getOauthProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
 	var image, probePath string
 	var args = []string{"--config=/etc/oauth-proxy/oauth-proxy.cfg"}
 	if infrastructure.IsOpenShiftOAuthEnabled() {
-		// Prefer the architecture-native image from the cluster's release payload;
-		// fall back to RELATED_IMAGE_gateway_authentication_sidecar when unavailable.
-		image = resolveOpenShiftOAuthProxyImage(ctx)
+		// Guarded to upstream Che only; downstream manages its own oauth-proxy image.
+		if defaults.GetCheFlavor() == "che" {
+			image = resolveOpenShiftOAuthProxyImage(ctx)
+		}
 		if image == "" {
 			image = defaults.GetGatewayOpenShiftAuthenticationSidecarImage(ctx.CheCluster)
 		}

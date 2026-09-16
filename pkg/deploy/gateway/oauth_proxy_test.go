@@ -125,10 +125,45 @@ func TestAccessTokenDefinedForKubernetesOauthProxyConfig(t *testing.T) {
 	assert.NotContains(t, config, "pass_authorization_header = true")
 }
 
-// TestResolveOpenShiftOAuthProxyImage_ImageStreamPresent verifies that when the
-// openshift/oauth-proxy ImageStream is present the architecture-native digest-pinned
-// image from the cluster's release payload is returned.
-func TestResolveOpenShiftOAuthProxyImage_ImageStreamPresent(t *testing.T) {
+// TestResolveOpenShiftOAuthProxyImage_InternalRegistry verifies that the internal registry
+// reference is preferred — this works in both connected and disconnected OCP environments.
+func TestResolveOpenShiftOAuthProxyImage_InternalRegistry(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+
+	internalRegistryBase := "image-registry.openshift-image-registry.svc:5000/openshift/oauth-proxy"
+	digest := "sha256:503de130e594b7864ab9b63b910d313b4e17cdd09ddd59323729fa221ba1b39c"
+	expectedImage := internalRegistryBase + "@" + digest
+
+	imageStream := &unstructured.Unstructured{}
+	imageStream.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "image.openshift.io",
+		Version: "v1",
+		Kind:    "ImageStream",
+	})
+	imageStream.SetName("oauth-proxy")
+	imageStream.SetNamespace("openshift")
+	_ = unstructured.SetNestedField(imageStream.Object, internalRegistryBase, "status", "dockerImageRepository")
+	_ = unstructured.SetNestedSlice(imageStream.Object, []interface{}{
+		map[string]interface{}{
+			"tag": "v4.4",
+			"items": []interface{}{
+				map[string]interface{}{
+					"image":                digest,
+					"dockerImageReference": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@" + digest,
+				},
+			},
+		},
+	}, "status", "tags")
+
+	ctx := test.NewCtxBuilder().WithObjects(imageStream).Build()
+
+	resolved := resolveOpenShiftOAuthProxyImage(ctx)
+	assert.Equal(t, expectedImage, resolved)
+}
+
+// TestResolveOpenShiftOAuthProxyImage_SourceFallback verifies that the source image reference
+// is used as a fallback when the internal registry base path is not available.
+func TestResolveOpenShiftOAuthProxyImage_SourceFallback(t *testing.T) {
 	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 
 	expectedImage := "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:503de130e594b7864ab9b63b910d313b4e17cdd09ddd59323729fa221ba1b39c"
