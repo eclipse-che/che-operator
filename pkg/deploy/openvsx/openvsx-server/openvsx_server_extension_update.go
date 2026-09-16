@@ -74,6 +74,14 @@ func (r *OpenVSXServerReconciler) getExtensionUpdateCronJobSpec(ctx *chetypes.De
 			Name:  "OVSX_REGISTRY_URL",
 			Value: openvsx.GetOpenVSXServerServiceURL(ctx),
 		},
+		{
+			Name:  "OVSX_FORWARDED_HOST",
+			Value: ctx.CheHost,
+		},
+		{
+			Name:  "OVSX_FORWARDED_PROTO",
+			Value: "https",
+		},
 		utils.EnvVarFromSecret("OVSX_PAT", credentialsSecret, "openvsx-publisher-token"),
 	}
 

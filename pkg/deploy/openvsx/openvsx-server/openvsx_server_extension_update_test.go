@@ -166,6 +166,9 @@ func TestExtensionAutoUpdateCronJobSpec(t *testing.T) {
 					},
 				},
 			},
+			Status: chev2.CheClusterStatus{
+				CheURL: "https://eclipse-che.apps.example.com",
+			},
 		},
 	).Build()
 
@@ -189,6 +192,8 @@ func TestExtensionAutoUpdateCronJobSpec(t *testing.T) {
 	assert.Equal(t, openvsx.GetOpenVSXServerServiceURL(ctx), envMap["OVSX_REGISTRY_URL"])
 	assert.Equal(t, engineVersion, envMap["VSCODE_ENGINE_VERSION"])
 	assert.Equal(t, "redhat/java,redhat/vscode-xml", envMap["EXCLUDE_EXTENSIONS"])
+	assert.Equal(t, "eclipse-che.apps.example.com", envMap["OVSX_FORWARDED_HOST"])
+	assert.Equal(t, "https", envMap["OVSX_FORWARDED_PROTO"])
 }
 
 func TestExtensionAutoUpdateCronJobNoExcludeExtensions(t *testing.T) {
