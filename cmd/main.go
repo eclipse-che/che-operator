@@ -223,7 +223,9 @@ func main() {
 
 	config := ctrl.GetConfigOrDie()
 
-	serverTLS := tls.BuildServerTLSOptions(context.Background(), config, scheme, setupLog)
+	tlsCtx, cancelTLSFetch := context.WithTimeout(context.Background(), 30*time.Second)
+	serverTLS := tls.BuildServerTLSOptions(tlsCtx, config, scheme, setupLog)
+	cancelTLSFetch()
 
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
 	if err != nil {
