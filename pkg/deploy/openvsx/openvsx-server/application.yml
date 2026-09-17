@@ -89,7 +89,7 @@ ovsx:
   integrity:
     key-pair: create
   registry:
-    version: 'v1.1.1'
+    version: 'v1.2.0'
   storage:
     local:
       directory: /openvsx/extensions
