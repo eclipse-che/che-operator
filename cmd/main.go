@@ -70,7 +70,7 @@ import (
 	templatev1 "github.com/openshift/api/template/v1"
 
 	checontroller "github.com/eclipse-che/che-operator/controllers/che"
-	tls "github.com/eclipse-che/che-operator/pkg/deploy/tls"
+	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"

@@ -80,8 +80,8 @@ func BuildServerTLSOptions(ctx context.Context, cfg *rest.Config, scheme *k8srun
 		log.Info(
 			"Applying cluster TLS profile to the webhook server",
 			"minTLSVersion", profile.MinTLSVersion,
-			"ciphers", profile.Ciphers,
 		)
+		log.V(1).Info("TLS cipher list from cluster profile", "ciphers", profile.Ciphers)
 	} else {
 		log.Info("TLS adherence policy does not require strict compliance, using Go default TLS configuration",
 			"adherencePolicy", adherence,
@@ -95,6 +95,7 @@ func BuildServerTLSOptions(ctx context.Context, cfg *rest.Config, scheme *k8srun
 // Only registers when profile was successfully fetched.
 func RegisterSecurityProfileWatcher(mgr manager.Manager, serverTLS ServerTLS, onCancel context.CancelFunc, log logr.Logger) error {
 	if !serverTLS.profileFetched {
+		log.Info("Skipping TLS security profile watcher registration, profile was not fetched")
 		return nil
 	}
 
