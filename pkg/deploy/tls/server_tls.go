@@ -102,12 +102,16 @@ func RegisterSecurityProfileWatcher(mgr manager.Manager, serverTLS ServerTLS, on
 		Client:                    mgr.GetClient(),
 		InitialTLSProfileSpec:     serverTLS.InitialTLSProfileSpec,
 		InitialTLSAdherencePolicy: serverTLS.InitialTLSAdherencePolicy,
-		OnProfileChange: func(_ context.Context, old, new configv1.TLSProfileSpec) {
-			log.Info("TLS security profile changed, restarting operator")
+		OnProfileChange: func(_ context.Context, _, newSpec configv1.TLSProfileSpec) {
+			if !shouldHonorClusterTLSProfile(serverTLS.InitialTLSAdherencePolicy) {
+				log.V(1).Info("Cluster TLS profile changed but adherence policy is not strict, not restarting")
+				return
+			}
+			log.Info("TLS security profile changed, restarting operator", "minTLSVersion", newSpec.MinTLSVersion)
 			onCancel()
 		},
-		OnAdherencePolicyChange: func(_ context.Context, old, new configv1.TLSAdherencePolicy) {
-			log.Info("TLS adherence policy changed, restarting operator")
+		OnAdherencePolicyChange: func(_ context.Context, _, newPolicy configv1.TLSAdherencePolicy) {
+			log.Info("TLS adherence policy changed, restarting operator", "adherencePolicy", newPolicy)
 			onCancel()
 		},
 	}
