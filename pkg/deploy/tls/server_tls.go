@@ -52,6 +52,11 @@ func BuildServerTLSOptions(ctx context.Context, cfg *rest.Config, scheme *k8srun
 		return ServerTLS{}, fmt.Errorf("failed to create client for TLS profile fetch: %w", err)
 	}
 
+	return buildServerTLSOptions(ctx, cl, log)
+}
+
+func buildServerTLSOptions(ctx context.Context, cl client.Client, log logr.Logger) (ServerTLS, error) {
+
 	apiServer := &configv1.APIServer{}
 	if err := cl.Get(ctx, client.ObjectKey{Name: tlspkg.APIServerName}, apiServer); err != nil {
 		log.Error(err, "failed to read APIServer/cluster, using Go defaults")
