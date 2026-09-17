@@ -78,7 +78,7 @@ func BuildServerTLSOptions(ctx context.Context, cfg *rest.Config, scheme *k8srun
 		serverTLS.TLSOpts = []func(*cryptotls.Config){tlsConfigFn}
 
 		log.Info(
-			"Applying cluster TLS profile to metrics and webhook servers",
+			"Applying cluster TLS profile to the webhook server",
 			"minTLSVersion", profile.MinTLSVersion,
 			"ciphers", profile.Ciphers,
 		)
