@@ -15,6 +15,7 @@ package tls
 import (
 	"context"
 	cryptotls "crypto/tls"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	configv1 "github.com/openshift/api/config/v1"
@@ -37,28 +38,27 @@ type ServerTLS struct {
 
 // BuildServerTLSOptions fetches TLS profile and adherence policy from cluster.
 // Returns TLS config functions when adherence policy requires strict compliance.
-// Falls back to empty TLSOpts on non-OpenShift, RBAC failures, or legacy adherence policy.
-func BuildServerTLSOptions(ctx context.Context, cfg *rest.Config, scheme *k8sruntime.Scheme, log logr.Logger) ServerTLS {
+// Returns empty ServerTLS on non-OpenShift clusters. Returns an error on OpenShift
+// when the profile or adherence policy cannot be fetched.
+func BuildServerTLSOptions(ctx context.Context, cfg *rest.Config, scheme *k8sruntime.Scheme, log logr.Logger) (ServerTLS, error) {
 	if !infrastructure.IsOpenShift() {
-		return ServerTLS{}
+		return ServerTLS{}, nil
 	}
 
 	cl, err := client.New(cfg, client.Options{Scheme: scheme})
 	if err != nil {
-		log.Error(err, "failed to create client for TLS profile fetch")
-		return ServerTLS{}
+		return ServerTLS{}, fmt.Errorf("failed to create client for TLS profile fetch: %w", err)
 	}
 
 	apiServer := &configv1.APIServer{}
 	if err := cl.Get(ctx, client.ObjectKey{Name: tlspkg.APIServerName}, apiServer); err != nil {
 		log.Error(err, "failed to read APIServer/cluster, using Go defaults")
-		return ServerTLS{}
+		return ServerTLS{}, fmt.Errorf("failed to read APIServer/cluster, using Go defaults")
 	}
 
 	profile, err := tlspkg.GetTLSProfileSpec(apiServer.Spec.TLSSecurityProfile)
 	if err != nil {
-		log.Error(err, "failed to resolve TLS profile, using Go defaults")
-		return ServerTLS{}
+		return ServerTLS{}, fmt.Errorf("failed to fetch TLS adherence policy: %w", err)
 	}
 
 	adherence := apiServer.Spec.TLSAdherence
@@ -93,7 +93,7 @@ func BuildServerTLSOptions(ctx context.Context, cfg *rest.Config, scheme *k8srun
 		)
 	}
 
-	return serverTLS
+	return serverTLS, nil
 }
 
 // RegisterSecurityProfileWatcher sets up watcher to restart operator when profile/policy changes.
