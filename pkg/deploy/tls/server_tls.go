@@ -49,17 +49,19 @@ func BuildServerTLSOptions(ctx context.Context, cfg *rest.Config, scheme *k8srun
 		return ServerTLS{}
 	}
 
-	profile, err := tlspkg.FetchAPIServerTLSProfile(ctx, cl)
-	if err != nil {
-		log.Error(err, "failed to fetch TLS profile, using Go defaults")
+	apiServer := &configv1.APIServer{}
+	if err := cl.Get(ctx, client.ObjectKey{Name: tlspkg.APIServerName}, apiServer); err != nil {
+		log.Error(err, "failed to read APIServer/cluster, using Go defaults")
 		return ServerTLS{}
 	}
 
-	adherence, err := tlspkg.FetchAPIServerTLSAdherencePolicy(ctx, cl)
+	profile, err := tlspkg.GetTLSProfileSpec(apiServer.Spec.TLSSecurityProfile)
 	if err != nil {
-		log.Error(err, "failed to fetch TLS adherence policy, using Go defaults")
+		log.Error(err, "failed to resolve TLS profile, using Go defaults")
 		return ServerTLS{}
 	}
+
+	adherence := apiServer.Spec.TLSAdherence
 
 	serverTLS := ServerTLS{
 		InitialTLSProfileSpec:     profile,
