@@ -22,6 +22,7 @@ import (
 	"github.com/go-logr/logr"
 	configv1 "github.com/openshift/api/config/v1"
 	tlspkg "github.com/openshift/controller-runtime-common/pkg/tls"
+	libgocrypto "github.com/openshift/library-go/pkg/crypto"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -76,7 +77,7 @@ func buildServerTLSOptions(ctx context.Context, cl client.Client, log logr.Logge
 		profileFetched:            true,
 	}
 
-	if shouldHonorClusterTLSProfile(adherence) {
+	if libgocrypto.ShouldHonorClusterTLSProfile(adherence) {
 		tlsConfigFn, unsupported := tlspkg.NewTLSConfigFromProfile(profile)
 		if len(unsupported) > 0 {
 			log.Info("TLS profile contains ciphers unsupported by Go", "unsupported", unsupported)
@@ -120,7 +121,7 @@ func RegisterSecurityProfileWatcher(mgr manager.Manager, serverTLS ServerTLS, lo
 		InitialTLSProfileSpec:     serverTLS.InitialTLSProfileSpec,
 		InitialTLSAdherencePolicy: serverTLS.InitialTLSAdherencePolicy,
 		OnProfileChange: func(_ context.Context, _, newSpec configv1.TLSProfileSpec) {
-			if !shouldHonorClusterTLSProfile(serverTLS.InitialTLSAdherencePolicy) {
+			if !libgocrypto.ShouldHonorClusterTLSProfile(serverTLS.InitialTLSAdherencePolicy) {
 				log.V(1).Info("Cluster TLS profile changed but adherence policy is not strict, not restarting")
 				return
 			}
@@ -134,15 +135,4 @@ func RegisterSecurityProfileWatcher(mgr manager.Manager, serverTLS ServerTLS, lo
 	}
 
 	return watcher.SetupWithManager(mgr)
-}
-
-// shouldHonorClusterTLSProfile returns true when tlsAdherence requires strict adherence.
-// Unknown values return true for forward compatibility.
-func shouldHonorClusterTLSProfile(adherence configv1.TLSAdherencePolicy) bool {
-	switch adherence {
-	case configv1.TLSAdherencePolicyNoOpinion, configv1.TLSAdherencePolicyLegacyAdheringComponentsOnly:
-		return false
-	default:
-		return true
-	}
 }

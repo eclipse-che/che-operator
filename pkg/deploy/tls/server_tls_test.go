@@ -25,22 +25,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 )
 
-func TestShouldHonorClusterTLSProfile_EmptyString(t *testing.T) {
-	assert.False(t, shouldHonorClusterTLSProfile(configv1.TLSAdherencePolicyNoOpinion))
-}
-
-func TestShouldHonorClusterTLSProfile_LegacyAdheringComponentsOnly(t *testing.T) {
-	assert.False(t, shouldHonorClusterTLSProfile(configv1.TLSAdherencePolicyLegacyAdheringComponentsOnly))
-}
-
-func TestShouldHonorClusterTLSProfile_StrictAllComponents(t *testing.T) {
-	assert.True(t, shouldHonorClusterTLSProfile(configv1.TLSAdherencePolicyStrictAllComponents))
-}
-
-func TestShouldHonorClusterTLSProfile_UnknownValue(t *testing.T) {
-	assert.True(t, shouldHonorClusterTLSProfile(configv1.TLSAdherencePolicy("SomeFutureValue")))
-}
-
 func TestBuildServerTLSOptions_APIServerAbsent(t *testing.T) {
 	ctx := test.NewCtxBuilder().Build()
 	log := ctrl.Log.WithName("test")
@@ -48,7 +32,7 @@ func TestBuildServerTLSOptions_APIServerAbsent(t *testing.T) {
 	_, err := buildServerTLSOptions(context.Background(), ctx.ClusterAPI.Client, log)
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to fetch TLS profile")
+	assert.Contains(t, err.Error(), "failed to read APIServer/cluster")
 }
 
 func TestBuildServerTLSOptions_StrictWithModernProfile(t *testing.T) {
