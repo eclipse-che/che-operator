@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networking "k8s.io/api/networking/v1"
 	rbac "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -92,6 +93,13 @@ var ServiceMonitor = cmp.Options{
 
 var CronJob = cmp.Options{
 	cmpopts.IgnoreFields(batchv1.CronJob{}, "TypeMeta", "ObjectMeta", "Status"),
+	cmpopts.IgnoreFields(corev1.Container{}, "TerminationMessagePath", "TerminationMessagePolicy"),
+	cmpopts.IgnoreFields(corev1.PodSpec{}, "DNSPolicy", "SchedulerName", "DeprecatedServiceAccount"),
+	cmpopts.IgnoreFields(corev1.ConfigMapVolumeSource{}, "DefaultMode"),
+	cmpopts.IgnoreFields(corev1.SecretVolumeSource{}, "DefaultMode"),
+	cmp.Comparer(func(x, y resource.Quantity) bool {
+		return x.Cmp(y) == 0
+	}),
 }
 
 func cmpMetadata(labels []string, annotations []string) cmp.Option {

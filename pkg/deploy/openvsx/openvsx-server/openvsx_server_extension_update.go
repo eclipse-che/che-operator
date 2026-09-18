@@ -36,7 +36,7 @@ import (
 
 func (r *OpenVSXServerReconciler) syncExtensionUpdateCronJob(ctx *chetypes.DeployContext) error {
 	if !ctx.CheCluster.IsExtensionAutoUpdateEnabled() {
-		return r.deleteExtensionUpdateCronJob(ctx)
+		return deleteExtensionUpdateCronJob(ctx)
 	}
 
 	cronJob, err := r.getExtensionUpdateCronJobSpec(ctx)
@@ -156,11 +156,10 @@ func (r *OpenVSXServerReconciler) getExtensionUpdateCronJobSpec(ctx *chetypes.De
 							TerminationGracePeriodSeconds: ptr.To(int64(30)),
 						},
 					},
-					Parallelism:             ptr.To(int32(1)),
-					BackoffLimit:            ptr.To(int32(3)),
-					Completions:             ptr.To(int32(1)),
-					TTLSecondsAfterFinished: ptr.To(int32(300)),
-					ActiveDeadlineSeconds:   ptr.To(int64(1800)),
+					Parallelism:           ptr.To(int32(1)),
+					BackoffLimit:          ptr.To(int32(3)),
+					Completions:           ptr.To(int32(1)),
+					ActiveDeadlineSeconds: ptr.To(int64(1800)),
 				},
 			},
 		},
@@ -175,7 +174,7 @@ func (r *OpenVSXServerReconciler) getExtensionUpdateCronJobSpec(ctx *chetypes.De
 	return cronJob, nil
 }
 
-func (r *OpenVSXServerReconciler) deleteExtensionUpdateCronJob(ctx *chetypes.DeployContext) error {
+func deleteExtensionUpdateCronJob(ctx *chetypes.DeployContext) error {
 	return ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
 		context.TODO(),
 		types.NamespacedName{

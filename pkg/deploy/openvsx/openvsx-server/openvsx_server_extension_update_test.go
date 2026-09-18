@@ -26,6 +26,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -182,11 +183,11 @@ func TestExtensionAutoUpdateCronJobSpec(t *testing.T) {
 	assert.Equal(t, batchv1.ForbidConcurrent, cronJob.Spec.ConcurrencyPolicy)
 	assert.Equal(t, defaults.GetOpenVSXImage(ctx.CheCluster), cronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image)
 
+	container := cronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0]
+
 	envMap := make(map[string]string)
-	for _, e := range cronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Env {
-		if e.Value != "" {
-			envMap[e.Name] = e.Value
-		}
+	for _, e := range container.Env {
+		envMap[e.Name] = e.Value
 	}
 
 	assert.Equal(t, openvsx.GetOpenVSXServerServiceURL(ctx), envMap["OVSX_REGISTRY_URL"])
@@ -194,6 +195,14 @@ func TestExtensionAutoUpdateCronJobSpec(t *testing.T) {
 	assert.Equal(t, "redhat/java,redhat/vscode-xml", envMap["EXCLUDE_EXTENSIONS"])
 	assert.Equal(t, "eclipse-che.apps.example.com", envMap["OVSX_FORWARDED_HOST"])
 	assert.Equal(t, "https", envMap["OVSX_FORWARDED_PROTO"])
+
+	patEnv := findEnvVar(container.Env, "OVSX_PAT")
+	if assert.NotNil(t, patEnv, "OVSX_PAT env var should be present") {
+		assert.NotNil(t, patEnv.ValueFrom)
+		assert.NotNil(t, patEnv.ValueFrom.SecretKeyRef)
+		assert.Equal(t, openvsx.GetCredentialsSecretName(ctx), patEnv.ValueFrom.SecretKeyRef.Name)
+		assert.Equal(t, "openvsx-publisher-token", patEnv.ValueFrom.SecretKeyRef.Key)
+	}
 }
 
 func TestExtensionAutoUpdateCronJobNoExcludeExtensions(t *testing.T) {
@@ -223,9 +232,8 @@ func TestExtensionAutoUpdateCronJobNoExcludeExtensions(t *testing.T) {
 	}
 
 	container := cronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0]
-	for _, e := range container.Env {
-		assert.NotEqual(t, "EXCLUDE_EXTENSIONS", e.Name, "EXCLUDE_EXTENSIONS should not be set when excludeExtensions is empty")
-	}
+	envNames := envVarNames(container.Env)
+	assert.NotContains(t, envNames, "EXCLUDE_EXTENSIONS", "EXCLUDE_EXTENSIONS should not be set when excludeExtensions is empty")
 }
 
 func TestExtensionAutoUpdateCronJobDefaultSchedule(t *testing.T) {
@@ -284,9 +292,8 @@ func TestExtensionAutoUpdateCronJobNoEngineVersion(t *testing.T) {
 	}
 
 	container := cronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0]
-	for _, e := range container.Env {
-		assert.NotEqual(t, "VSCODE_ENGINE_VERSION", e.Name, "VSCODE_ENGINE_VERSION should not be set when vsCodeEngineVersion is omitted")
-	}
+	envNames := envVarNames(container.Env)
+	assert.NotContains(t, envNames, "VSCODE_ENGINE_VERSION", "VSCODE_ENGINE_VERSION should not be set when vsCodeEngineVersion is omitted")
 }
 
 func TestExtensionAutoUpdateCronJobCleanedUpWhenRegistryDisabled(t *testing.T) {
@@ -326,4 +333,21 @@ func TestExtensionAutoUpdateCronJobCleanedUpWhenRegistryDisabled(t *testing.T) {
 		test.IsObjectExists(ctx.ClusterAPI.Client, cronJobKey, &batchv1.CronJob{}),
 		"CronJob should be deleted when OpenVSX registry is disabled",
 	)
+}
+
+func findEnvVar(envVars []corev1.EnvVar, name string) *corev1.EnvVar {
+	for i := range envVars {
+		if envVars[i].Name == name {
+			return &envVars[i]
+		}
+	}
+	return nil
+}
+
+func envVarNames(envVars []corev1.EnvVar) []string {
+	names := make([]string, len(envVars))
+	for i, e := range envVars {
+		names[i] = e.Name
+	}
+	return names
 }
