@@ -239,7 +239,7 @@ func getOauthProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
 	var args = []string{"--config=/etc/oauth-proxy/oauth-proxy.cfg"}
 	if infrastructure.IsOpenShiftOAuthEnabled() {
 		// Guarded to upstream Che only; downstream manages its own oauth-proxy image.
-		if defaults.GetCheFlavor() == "che" {
+		if ctx.CheCluster.IsCheFlavor() && ctx.CheCluster.IsOAuthProxyImageResolvedFromImageStream() {
 			image = resolveOpenShiftOAuthProxyImage(ctx)
 		}
 		if image == "" {
