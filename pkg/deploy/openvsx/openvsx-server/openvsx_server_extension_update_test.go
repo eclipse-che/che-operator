@@ -21,7 +21,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/openvsx"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
@@ -39,8 +38,14 @@ func reconcileWithReadyDeployment(
 	return func(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 		result, done, err := reconciler.Reconcile(ctx)
 		if !done && err == nil {
+			deploymentKey := types.NamespacedName{
+				Name:      constants.OpenVSXServerComponentName,
+				Namespace: ctx.CheCluster.Namespace,
+			}
+
 			deployment := &appsv1.Deployment{}
-			if exists, _ := deploy.GetNamespacedObject(ctx, constants.OpenVSXServerComponentName, deployment); exists {
+			exists, _ := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(context.TODO(), deploymentKey, deployment)
+			if exists {
 				deployment.Status.AvailableReplicas = 1
 				deployment.Status.UnavailableReplicas = 0
 				_ = ctx.ClusterAPI.Client.Status().Update(context.TODO(), deployment)
@@ -48,6 +53,13 @@ func reconcileWithReadyDeployment(
 		}
 
 		return result, done, err
+	}
+}
+
+func cronJobKey(ctx *chetypes.DeployContext) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      constants.OpenVSXServerExtensionUpdateCronJobName,
+		Namespace: ctx.CheCluster.Namespace,
 	}
 }
 
@@ -74,9 +86,8 @@ func TestExtensionAutoUpdateCronJobCreated(t *testing.T) {
 	reconciler := NewOpenVSXServerReconciler()
 	test.EnsureReconcile(t, ctx, reconcileWithReadyDeployment(reconciler))
 
-	ns := "eclipse-che"
 	assert.True(t,
-		test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerExtensionUpdateCronJobName, Namespace: ns}, &batchv1.CronJob{}),
+		test.IsObjectExists(ctx.ClusterAPI.Client, cronJobKey(ctx), &batchv1.CronJob{}),
 		"CronJob should be created when auto-update is enabled",
 	)
 }
@@ -101,9 +112,8 @@ func TestExtensionAutoUpdateCronJobNotCreatedWhenDisabled(t *testing.T) {
 	reconciler := NewOpenVSXServerReconciler()
 	test.EnsureReconcile(t, ctx, reconcileWithReadyDeployment(reconciler))
 
-	ns := "eclipse-che"
 	assert.False(t,
-		test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerExtensionUpdateCronJobName, Namespace: ns}, &batchv1.CronJob{}),
+		test.IsObjectExists(ctx.ClusterAPI.Client, cronJobKey(ctx), &batchv1.CronJob{}),
 		"CronJob should not be created when auto-update is not configured",
 	)
 }
@@ -131,14 +141,13 @@ func TestExtensionAutoUpdateCronJobCleanedUpOnDisable(t *testing.T) {
 	reconciler := NewOpenVSXServerReconciler()
 	test.EnsureReconcile(t, ctx, reconcileWithReadyDeployment(reconciler))
 
-	ns := "eclipse-che"
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerExtensionUpdateCronJobName, Namespace: ns}, &batchv1.CronJob{}))
+	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, cronJobKey(ctx), &batchv1.CronJob{}))
 
 	ctx.CheCluster.Spec.Components.OpenVSXRegistry.ExtensionAutoUpdate.Enable = false
 	test.EnsureReconcile(t, ctx, reconcileWithReadyDeployment(reconciler))
 
 	assert.False(t,
-		test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerExtensionUpdateCronJobName, Namespace: ns}, &batchv1.CronJob{}),
+		test.IsObjectExists(ctx.ClusterAPI.Client, cronJobKey(ctx), &batchv1.CronJob{}),
 		"CronJob should be deleted when auto-update is disabled",
 	)
 }
@@ -181,9 +190,9 @@ func TestExtensionAutoUpdateCronJobSpec(t *testing.T) {
 
 	assert.Equal(t, customSchedule, cronJob.Spec.Schedule)
 	assert.Equal(t, batchv1.ForbidConcurrent, cronJob.Spec.ConcurrencyPolicy)
-	assert.Equal(t, defaults.GetOpenVSXImage(ctx.CheCluster), cronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image)
 
 	container := cronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0]
+	assert.Equal(t, defaults.GetOpenVSXImage(ctx.CheCluster), container.Image)
 
 	envMap := make(map[string]string)
 	for _, e := range container.Env {
@@ -233,7 +242,11 @@ func TestExtensionAutoUpdateCronJobNoExcludeExtensions(t *testing.T) {
 
 	container := cronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0]
 	envNames := envVarNames(container.Env)
-	assert.NotContains(t, envNames, "EXCLUDE_EXTENSIONS", "EXCLUDE_EXTENSIONS should not be set when excludeExtensions is empty")
+	assert.NotContains(t,
+		envNames,
+		"EXCLUDE_EXTENSIONS",
+		"EXCLUDE_EXTENSIONS should not be set when excludeExtensions is empty",
+	)
 }
 
 func TestExtensionAutoUpdateCronJobDefaultSchedule(t *testing.T) {
@@ -293,7 +306,11 @@ func TestExtensionAutoUpdateCronJobNoEngineVersion(t *testing.T) {
 
 	container := cronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0]
 	envNames := envVarNames(container.Env)
-	assert.NotContains(t, envNames, "VSCODE_ENGINE_VERSION", "VSCODE_ENGINE_VERSION should not be set when vsCodeEngineVersion is omitted")
+	assert.NotContains(t,
+		envNames,
+		"VSCODE_ENGINE_VERSION",
+		"VSCODE_ENGINE_VERSION should not be set when vsCodeEngineVersion is omitted",
+	)
 }
 
 func TestExtensionAutoUpdateCronJobCleanedUpWhenRegistryDisabled(t *testing.T) {
@@ -319,18 +336,16 @@ func TestExtensionAutoUpdateCronJobCleanedUpWhenRegistryDisabled(t *testing.T) {
 	reconciler := NewOpenVSXServerReconciler()
 	test.EnsureReconcile(t, ctx, reconcileWithReadyDeployment(reconciler))
 
-	ns := "eclipse-che"
-	cronJobKey := types.NamespacedName{Name: constants.OpenVSXServerExtensionUpdateCronJobName, Namespace: ns}
-
 	cronJob := &batchv1.CronJob{}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), cronJobKey, cronJob)
-	assert.NoError(t, err, "CronJob should exist")
+	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(context.TODO(), cronJobKey(ctx), cronJob)
+	assert.NoError(t, err)
+	assert.True(t, exists, "CronJob should exist")
 
 	ctx.CheCluster.Spec.Components.OpenVSXRegistry.Enable = false
 	test.EnsureReconcile(t, ctx, reconcileWithReadyDeployment(reconciler))
 
 	assert.False(t,
-		test.IsObjectExists(ctx.ClusterAPI.Client, cronJobKey, &batchv1.CronJob{}),
+		test.IsObjectExists(ctx.ClusterAPI.Client, cronJobKey(ctx), &batchv1.CronJob{}),
 		"CronJob should be deleted when OpenVSX registry is disabled",
 	)
 }

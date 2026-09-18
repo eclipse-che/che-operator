@@ -45,14 +45,18 @@ func (r *OpenVSXServerReconciler) syncExtensionUpdateCronJob(ctx *chetypes.Deplo
 	}
 
 	if err := controllerutil.SetControllerReference(ctx.CheCluster, cronJob, ctx.ClusterAPI.Scheme); err != nil {
-		return err
+		return fmt.Errorf("failed to set controller reference on CronJob %s/%s: %w", cronJob.Namespace, cronJob.Name, err)
 	}
 
-	return ctx.ClusterAPI.ClientWrapper.Sync(
+	if err := ctx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
 		cronJob,
 		&k8sclient.SyncOptions{DiffOpts: diffs.CronJob},
-	)
+	); err != nil {
+		return fmt.Errorf("failed to sync CronJob %s/%s: %w", cronJob.Namespace, cronJob.Name, err)
+	}
+
+	return nil
 }
 
 func (r *OpenVSXServerReconciler) getExtensionUpdateCronJobSpec(ctx *chetypes.DeployContext) (*batchv1.CronJob, error) {
@@ -175,13 +179,19 @@ func (r *OpenVSXServerReconciler) getExtensionUpdateCronJobSpec(ctx *chetypes.De
 }
 
 func deleteExtensionUpdateCronJob(ctx *chetypes.DeployContext) error {
-	return ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+	cronJobKey := types.NamespacedName{
+		Name:      constants.OpenVSXServerExtensionUpdateCronJobName,
+		Namespace: ctx.CheCluster.Namespace,
+	}
+
+	if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
 		context.TODO(),
-		types.NamespacedName{
-			Name:      constants.OpenVSXServerExtensionUpdateCronJobName,
-			Namespace: ctx.CheCluster.Namespace,
-		},
+		cronJobKey,
 		&batchv1.CronJob{},
 		client.PropagationPolicy(metav1.DeletePropagationBackground),
-	)
+	); err != nil {
+		return fmt.Errorf("failed to delete CronJob %s/%s: %w", cronJobKey.Namespace, cronJobKey.Name, err)
+	}
+
+	return nil
 }
