@@ -75,7 +75,7 @@ func TestExtensionAutoUpdateCronJobCreated(t *testing.T) {
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
 						Enable: true,
 						ExtensionAutoUpdate: &chev2.ExtensionAutoUpdate{
-							Enable: true,
+							Enabled: true,
 						},
 					},
 				},
@@ -130,7 +130,7 @@ func TestExtensionAutoUpdateCronJobCleanedUpOnDisable(t *testing.T) {
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
 						Enable: true,
 						ExtensionAutoUpdate: &chev2.ExtensionAutoUpdate{
-							Enable: true,
+							Enabled: true,
 						},
 					},
 				},
@@ -143,7 +143,7 @@ func TestExtensionAutoUpdateCronJobCleanedUpOnDisable(t *testing.T) {
 
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, cronJobKey(ctx), &batchv1.CronJob{}))
 
-	ctx.CheCluster.Spec.Components.OpenVSXRegistry.ExtensionAutoUpdate.Enable = false
+	ctx.CheCluster.Spec.Components.OpenVSXRegistry.ExtensionAutoUpdate.Enabled = false
 	test.EnsureReconcile(t, ctx, reconcileWithReadyDeployment(reconciler))
 
 	assert.False(t,
@@ -168,7 +168,7 @@ func TestExtensionAutoUpdateCronJobSpec(t *testing.T) {
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
 						Enable: true,
 						ExtensionAutoUpdate: &chev2.ExtensionAutoUpdate{
-							Enable:              true,
+							Enabled:             true,
 							Schedule:            ptr.To(customSchedule),
 							VSCodeEngineVersion: ptr.To(engineVersion),
 							ExcludeExtensions:   excludeExtensions,
@@ -226,7 +226,7 @@ func TestExtensionAutoUpdateCronJobNoExcludeExtensions(t *testing.T) {
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
 						Enable: true,
 						ExtensionAutoUpdate: &chev2.ExtensionAutoUpdate{
-							Enable: true,
+							Enabled: true,
 						},
 					},
 				},
@@ -261,7 +261,7 @@ func TestExtensionAutoUpdateCronJobDefaultSchedule(t *testing.T) {
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
 						Enable: true,
 						ExtensionAutoUpdate: &chev2.ExtensionAutoUpdate{
-							Enable: true,
+							Enabled: true,
 						},
 					},
 				},
@@ -290,7 +290,7 @@ func TestExtensionAutoUpdateCronJobNoEngineVersion(t *testing.T) {
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
 						Enable: true,
 						ExtensionAutoUpdate: &chev2.ExtensionAutoUpdate{
-							Enable: true,
+							Enabled: true,
 						},
 					},
 				},
@@ -325,7 +325,7 @@ func TestExtensionAutoUpdateCronJobCleanedUpWhenRegistryDisabled(t *testing.T) {
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
 						Enable: true,
 						ExtensionAutoUpdate: &chev2.ExtensionAutoUpdate{
-							Enable: true,
+							Enabled: true,
 						},
 					},
 				},
