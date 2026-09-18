@@ -857,8 +857,10 @@ type OAuthProxy struct {
 	// Allows resolving the oauth-proxy image from the cluster's own `openshift/oauth-proxy` ImageStream
 	// instead of using the image shipped with the Operator. The image is referenced by the internal
 	// registry, so it works in both connected and disconnected environments.
-	// This field is specific to OpenShift with built-in OAuth.
-	// When the image cannot be resolved, the Operator falls back to the default one.
+	// This field is specific to OpenShift with built-in OAuth and upstream Che,
+	// on other flavors the setting is ignored.
+	// When the image cannot be resolved, the Operator falls back to the image shipped
+	// with the Operator, which is referenced by a mutable tag rather than by digest.
 	// Enabled by default.
 	// +optional
 	ResolveImageFromImageStream *bool `json:"resolveImageFromImageStream,omitempty"`
@@ -1364,7 +1366,7 @@ func (c *CheCluster) IsNetworkPoliciesEnabled() bool {
 		ptr.Deref(c.Spec.Networking.NetworkPolicy.Enabled, constants.NetworkPolicyEnabled)
 }
 
-func (c *CheCluster) IsOAuthProxyImageResolvedFromImageStream() bool {
+func (c *CheCluster) IsOAuthProxyImageResolutionFromImageStreamEnabled() bool {
 	if c.Spec.Networking.Auth.Gateway.OAuthProxy == nil {
 		return constants.DefaultOAuthProxyResolveImageFromImageStream
 	}
