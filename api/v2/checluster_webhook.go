@@ -299,17 +299,6 @@ func (r *CheClusterValidator) validateOpenVSXRegistry(checluster *CheCluster) er
 		}
 	}
 
-	if checluster.Spec.Components.OpenVSXRegistry.ExtensionAutoUpdate != nil {
-		autoUpdate := checluster.Spec.Components.OpenVSXRegistry.ExtensionAutoUpdate
-
-		if autoUpdate.Schedule != nil && *autoUpdate.Schedule != "" {
-			fields := strings.Fields(*autoUpdate.Schedule)
-			if len(fields) != 5 {
-				return fmt.Errorf("invalid cron schedule for extension auto-update: must have exactly 5 fields (minute hour day month weekday)")
-			}
-		}
-	}
-
 	if checluster.Spec.Components.OpenVSXRegistry.CredentialsSecretName != nil {
 		credentialsSecretName := *checluster.Spec.Components.OpenVSXRegistry.CredentialsSecretName
 
