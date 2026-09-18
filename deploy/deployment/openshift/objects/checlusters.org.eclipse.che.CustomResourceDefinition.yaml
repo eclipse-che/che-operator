@@ -12110,7 +12110,7 @@ spec:
                     default:
                       enable: false
                       extensionAutoUpdate:
-                        enable: false
+                        enabled: false
                         schedule: 0 0 * * 0
                     description: OpenVSX registry configuration.
                     properties:
@@ -14703,12 +14703,12 @@ spec:
                         type: boolean
                       extensionAutoUpdate:
                         default:
-                          enable: false
+                          enabled: false
                           schedule: 0 0 * * 0
                         description: Configuration for periodic auto-update of extensions
                           from the upstream open-vsx.org registry.
                         properties:
-                          enable:
+                          enabled:
                             default: false
                             description: Enables the extension auto-update CronJob.
                             type: boolean

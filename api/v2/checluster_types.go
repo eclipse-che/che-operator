@@ -292,7 +292,7 @@ type CheClusterComponents struct {
 	Dashboard Dashboard `json:"dashboard"`
 	// OpenVSX registry configuration.
 	// +optional
-	// +kubebuilder:default:={enable: false, extensionAutoUpdate: {enable: false, schedule: "0 0 * * 0"}}
+	// +kubebuilder:default:={enable: false, extensionAutoUpdate: {enabled: false, schedule: "0 0 * * 0"}}
 	OpenVSXRegistry OpenVSXRegistry `json:"openVSXRegistry"`
 	// Kubernetes Image Puller configuration.
 	// +optional
@@ -526,7 +526,7 @@ type OpenVSXRegistry struct {
 	Database *OpenVSXDatabase `json:"database,omitempty"`
 	// Configuration for periodic auto-update of extensions from the upstream open-vsx.org registry.
 	// +optional
-	// +kubebuilder:default:={enable: false, schedule: "0 0 * * 0"}
+	// +kubebuilder:default:={enabled: false, schedule: "0 0 * * 0"}
 	ExtensionAutoUpdate *ExtensionAutoUpdate `json:"extensionAutoUpdate,omitempty"`
 }
 
@@ -560,7 +560,7 @@ type ExtensionAutoUpdate struct {
 	// Enables the extension auto-update CronJob.
 	// +optional
 	// +kubebuilder:default:=false
-	Enable bool `json:"enable,omitempty"`
+	Enabled bool `json:"enabled,omitempty"`
 	// Cron schedule for the auto-update job.
 	// +optional
 	// +kubebuilder:default:="0 0 * * 0"
@@ -1372,7 +1372,7 @@ func (c *CheCluster) IsInternalOpenVSXRegistryEnabled() bool {
 func (c *CheCluster) IsExtensionAutoUpdateEnabled() bool {
 	return c.IsInternalOpenVSXRegistryEnabled() &&
 		c.Spec.Components.OpenVSXRegistry.ExtensionAutoUpdate != nil &&
-		c.Spec.Components.OpenVSXRegistry.ExtensionAutoUpdate.Enable
+		c.Spec.Components.OpenVSXRegistry.ExtensionAutoUpdate.Enabled
 }
 
 func (c *CheCluster) IsInternalPluginRegistryWithOpenVSXEnabled() bool {

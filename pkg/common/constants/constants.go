@@ -53,7 +53,7 @@ const (
 	// OpenVSXRegistry Server extensions
 	OpenVSXServerExtensionPublishJobName    = "openvsx-server-publisher"
 	OpenVSXServerExtensionsConfigMapName    = "openvsx-server-extensions"
-	OpenVSXServerExtensionUpdateCronJobName = "openvsx-server-extension-update"
+	OpenVSXServerExtensionUpdateCronJobName = "openvsx-server-extensions-update"
 	DefaultExtensionAutoUpdateSchedule      = "0 0 * * 0"
 
 	// OpenVSXRegistry Database
