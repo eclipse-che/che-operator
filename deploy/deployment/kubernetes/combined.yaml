@@ -12114,6 +12114,9 @@ spec:
                   openVSXRegistry:
                     default:
                       enable: false
+                      extensionAutoUpdate:
+                        enabled: false
+                        schedule: 0 0 * * 0
                     description: OpenVSX registry configuration.
                     properties:
                       credentialsSecretName:
@@ -14703,6 +14706,36 @@ spec:
                           Enables internal OpenVSX registry.
                           When set to false, the OpenVSX registry resources are deleted, including the database PVC.
                         type: boolean
+                      extensionAutoUpdate:
+                        default:
+                          enabled: false
+                          schedule: 0 0 * * 0
+                        description: Configuration for periodic auto-update of extensions
+                          from the upstream open-vsx.org registry.
+                        properties:
+                          enabled:
+                            default: false
+                            description: Enables the extension auto-update CronJob.
+                            type: boolean
+                          excludeExtensions:
+                            description: |-
+                              List of extension IDs to exclude from auto-update.
+                              Each entry should be in the format "namespace/name" (e.g., "redhat/java", "redhat/vscode-xml").
+                              Extensions in this list will be skipped during the update check.
+                            items:
+                              type: string
+                            type: array
+                          schedule:
+                            default: 0 0 * * 0
+                            description: Cron schedule for the auto-update job.
+                            type: string
+                          vsCodeEngineVersion:
+                            description: |-
+                              VS Code engine version used to filter compatible extensions.
+                              Only extensions compatible with this engine version will be updated.
+                              When omitted, the latest non-pre-release version of each extension is used regardless of engine compatibility.
+                            type: string
+                        type: object
                       server:
                         description: OpenVSX registry server configuration.
                         properties:
@@ -28060,6 +28093,7 @@ rules:
   - batch
   resources:
   - jobs
+  - cronjobs
   verbs:
   - create
   - delete

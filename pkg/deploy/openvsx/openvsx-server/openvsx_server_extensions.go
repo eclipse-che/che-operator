@@ -117,6 +117,14 @@ func (r *OpenVSXServerReconciler) syncExtensions(ctx *chetypes.DeployContext) (b
 									Name:  "OVSX_REGISTRY_URL",
 									Value: openvsx.GetOpenVSXServerServiceURL(ctx),
 								},
+								{
+									Name:  "OVSX_FORWARDED_HOST",
+									Value: ctx.CheHost,
+								},
+								{
+									Name:  "OVSX_FORWARDED_PROTO",
+									Value: "https",
+								},
 								utils.EnvVarFromSecret("OVSX_PAT", credentialsSecret, "openvsx-publisher-token"),
 							},
 							Command: []string{"/home/openvsx/publish-extensions.sh", "/home/openvsx/extensions/extensions.list"},
@@ -142,7 +150,7 @@ func (r *OpenVSXServerReconciler) syncExtensions(ctx *chetypes.DeployContext) (b
 			BackoffLimit:            ptr.To(int32(3)),
 			Completions:             ptr.To(int32(1)),
 			TTLSecondsAfterFinished: ptr.To(int32(300)),
-			ActiveDeadlineSeconds:   ptr.To(int64(300)),
+			ActiveDeadlineSeconds:   ptr.To(int64(1800)),
 		},
 	}
 
