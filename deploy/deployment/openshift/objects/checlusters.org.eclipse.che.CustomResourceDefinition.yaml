@@ -12098,6 +12098,9 @@ spec:
                   openVSXRegistry:
                     default:
                       enable: false
+                      extensionAutoUpdate:
+                        enable: false
+                        schedule: 0 0 * * 0
                     description: OpenVSX registry configuration.
                     properties:
                       credentialsSecretName:
@@ -14688,6 +14691,9 @@ spec:
                           When set to false, the OpenVSX registry resources are deleted, including the database PVC.
                         type: boolean
                       extensionAutoUpdate:
+                        default:
+                          enable: false
+                          schedule: 0 0 * * 0
                         description: Configuration for periodic auto-update of extensions
                           from the upstream open-vsx.org registry.
                         properties:

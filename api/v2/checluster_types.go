@@ -286,7 +286,7 @@ type CheClusterComponents struct {
 	Dashboard Dashboard `json:"dashboard"`
 	// OpenVSX registry configuration.
 	// +optional
-	// +kubebuilder:default:={enable: false}
+	// +kubebuilder:default:={enable: false, extensionAutoUpdate: {enable: false, schedule: "0 0 * * 0"}}
 	OpenVSXRegistry OpenVSXRegistry `json:"openVSXRegistry"`
 	// Kubernetes Image Puller configuration.
 	// +optional
@@ -512,6 +512,7 @@ type OpenVSXRegistry struct {
 	Database *OpenVSXDatabase `json:"database,omitempty"`
 	// Configuration for periodic auto-update of extensions from the upstream open-vsx.org registry.
 	// +optional
+	// +kubebuilder:default:={enable: false, schedule: "0 0 * * 0"}
 	ExtensionAutoUpdate *ExtensionAutoUpdate `json:"extensionAutoUpdate,omitempty"`
 }
 
