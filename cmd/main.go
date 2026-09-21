@@ -326,9 +326,10 @@ func main() {
 	if err == nil {
 		terminationPeriod = signal.GetTerminationGracePeriodSeconds(mgr.GetAPIReader(), namespace)
 	}
-	ctx := signal.SetupSignalHandler(terminationPeriod)
+	ctx, onCancel := context.WithCancel(signal.SetupSignalHandler(terminationPeriod))
+	defer onCancel()
 
-	if err := tls.RegisterSecurityProfileWatcher(mgr, serverTLS, setupLog); err != nil {
+	if err := tls.RegisterSecurityProfileWatcher(mgr, serverTLS, onCancel, setupLog); err != nil {
 		setupLog.Error(err, "unable to set up TLS security profile watcher")
 		os.Exit(1)
 	}
