@@ -861,6 +861,7 @@ type OAuthProxy struct {
 	// on other flavors the setting is ignored.
 	// When the image cannot be resolved, the Operator falls back to the image shipped
 	// with the Operator, which is referenced by a mutable tag rather than by digest.
+	// An explicit image in `gateway.deployment.containers` takes precedence over this setting.
 	// Enabled by default.
 	// +optional
 	ResolveImageFromImageStream *bool `json:"resolveImageFromImageStream,omitempty"`
