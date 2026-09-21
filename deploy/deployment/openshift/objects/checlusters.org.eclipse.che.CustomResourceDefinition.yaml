@@ -14703,7 +14703,7 @@ spec:
                         type: boolean
                       extensionAutoUpdate:
                         default:
-                          enabled: false
+                          enable: false
                           schedule: 0 0 * * 0
                         description: Configuration for periodic auto-update of extensions
                           from the upstream open-vsx.org registry.

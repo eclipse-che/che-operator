@@ -526,7 +526,7 @@ type OpenVSXRegistry struct {
 	Database *OpenVSXDatabase `json:"database,omitempty"`
 	// Configuration for periodic auto-update of extensions from the upstream open-vsx.org registry.
 	// +optional
-	// +kubebuilder:default:={enabled: false, schedule: "0 0 * * 0"}
+	// +kubebuilder:default:={enable: false, schedule: "0 0 * * 0"}
 	ExtensionAutoUpdate *ExtensionAutoUpdate `json:"extensionAutoUpdate,omitempty"`
 }
 
