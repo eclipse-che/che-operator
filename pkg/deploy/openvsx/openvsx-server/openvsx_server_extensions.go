@@ -13,7 +13,6 @@
 package openvsx_server
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
@@ -53,13 +52,13 @@ func (r *OpenVSXServerReconciler) syncDefaultExtensionsConfig(ctx *chetypes.Depl
 		return err
 	}
 
-	return ctx.ClusterAPI.ClientWrapper.CreateIfNotExists(context.TODO(), cm)
+	return ctx.ClusterAPI.ClientWrapper.CreateIfNotExists(ctx.Context, cm)
 }
 
 func (r *OpenVSXServerReconciler) getExtensionsVersion(ctx *chetypes.DeployContext) (string, error) {
 	cm := &corev1.ConfigMap{}
 	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-		context.TODO(),
+		ctx.Context,
 		types.NamespacedName{
 			Name:      constants.OpenVSXServerExtensionsConfigMapName,
 			Namespace: ctx.CheCluster.Namespace,
@@ -121,10 +120,6 @@ func (r *OpenVSXServerReconciler) syncExtensions(ctx *chetypes.DeployContext) (b
 									Name:  "OVSX_FORWARDED_HOST",
 									Value: ctx.CheHost,
 								},
-								{
-									Name:  "OVSX_FORWARDED_PROTO",
-									Value: "https",
-								},
 								utils.EnvVarFromSecret("OVSX_PAT", credentialsSecret, "openvsx-publisher-token"),
 							},
 							Command: []string{"/home/openvsx/publish-extensions.sh", "/home/openvsx/extensions/extensions.list"},
@@ -165,7 +160,7 @@ func (r *OpenVSXServerReconciler) syncExtensions(ctx *chetypes.DeployContext) (b
 	}
 
 	err := ctx.ClusterAPI.ClientWrapper.Sync(
-		context.TODO(),
+		ctx.Context,
 		job,
 		&k8sclient.SyncOptions{
 			DeleteOpts: []client.DeleteOption{client.PropagationPolicy(metav1.DeletePropagationBackground)},

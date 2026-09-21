@@ -13,7 +13,6 @@
 package openvsx_server
 
 import (
-	"context"
 	"testing"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -44,11 +43,11 @@ func reconcileWithReadyDeployment(
 			}
 
 			deployment := &appsv1.Deployment{}
-			exists, _ := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(context.TODO(), deploymentKey, deployment)
+			exists, _ := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(ctx.Context, deploymentKey, deployment)
 			if exists {
 				deployment.Status.AvailableReplicas = 1
 				deployment.Status.UnavailableReplicas = 0
-				_ = ctx.ClusterAPI.Client.Status().Update(context.TODO(), deployment)
+				_ = ctx.ClusterAPI.Client.Status().Update(ctx.Context, deployment)
 			}
 		}
 
@@ -75,7 +74,7 @@ func TestExtensionAutoUpdateCronJobCreated(t *testing.T) {
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
 						Enable: true,
 						ExtensionAutoUpdate: &chev2.ExtensionAutoUpdate{
-							Enabled: true,
+							Enable: ptr.To(true),
 						},
 					},
 				},
@@ -130,7 +129,7 @@ func TestExtensionAutoUpdateCronJobCleanedUpOnDisable(t *testing.T) {
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
 						Enable: true,
 						ExtensionAutoUpdate: &chev2.ExtensionAutoUpdate{
-							Enabled: true,
+							Enable: ptr.To(true),
 						},
 					},
 				},
@@ -143,7 +142,7 @@ func TestExtensionAutoUpdateCronJobCleanedUpOnDisable(t *testing.T) {
 
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, cronJobKey(ctx), &batchv1.CronJob{}))
 
-	ctx.CheCluster.Spec.Components.OpenVSXRegistry.ExtensionAutoUpdate.Enabled = false
+	ctx.CheCluster.Spec.Components.OpenVSXRegistry.ExtensionAutoUpdate.Enable = ptr.To(false)
 	test.EnsureReconcile(t, ctx, reconcileWithReadyDeployment(reconciler))
 
 	assert.False(t,
@@ -168,10 +167,10 @@ func TestExtensionAutoUpdateCronJobSpec(t *testing.T) {
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
 						Enable: true,
 						ExtensionAutoUpdate: &chev2.ExtensionAutoUpdate{
-							Enabled:             true,
+							Enable:              ptr.To(true),
 							Schedule:            ptr.To(customSchedule),
 							VSCodeEngineVersion: ptr.To(engineVersion),
-							ExcludeExtensions:   excludeExtensions,
+							ExcludedExtensions:  excludeExtensions,
 						},
 					},
 				},
@@ -203,7 +202,6 @@ func TestExtensionAutoUpdateCronJobSpec(t *testing.T) {
 	assert.Equal(t, engineVersion, envMap["VSCODE_ENGINE_VERSION"])
 	assert.Equal(t, "redhat/java,redhat/vscode-xml", envMap["EXCLUDE_EXTENSIONS"])
 	assert.Equal(t, "eclipse-che.apps.example.com", envMap["OVSX_FORWARDED_HOST"])
-	assert.Equal(t, "https", envMap["OVSX_FORWARDED_PROTO"])
 
 	patEnv := findEnvVar(container.Env, "OVSX_PAT")
 	if assert.NotNil(t, patEnv, "OVSX_PAT env var should be present") {
@@ -214,7 +212,7 @@ func TestExtensionAutoUpdateCronJobSpec(t *testing.T) {
 	}
 }
 
-func TestExtensionAutoUpdateCronJobNoExcludeExtensions(t *testing.T) {
+func TestExtensionAutoUpdateCronJobNoExcludedExtensions(t *testing.T) {
 	ctx := test.NewCtxBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
@@ -226,7 +224,7 @@ func TestExtensionAutoUpdateCronJobNoExcludeExtensions(t *testing.T) {
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
 						Enable: true,
 						ExtensionAutoUpdate: &chev2.ExtensionAutoUpdate{
-							Enabled: true,
+							Enable: ptr.To(true),
 						},
 					},
 				},
@@ -261,7 +259,7 @@ func TestExtensionAutoUpdateCronJobDefaultSchedule(t *testing.T) {
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
 						Enable: true,
 						ExtensionAutoUpdate: &chev2.ExtensionAutoUpdate{
-							Enabled: true,
+							Enable: ptr.To(true),
 						},
 					},
 				},
@@ -290,7 +288,7 @@ func TestExtensionAutoUpdateCronJobNoEngineVersion(t *testing.T) {
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
 						Enable: true,
 						ExtensionAutoUpdate: &chev2.ExtensionAutoUpdate{
-							Enabled: true,
+							Enable: ptr.To(true),
 						},
 					},
 				},
@@ -325,7 +323,7 @@ func TestExtensionAutoUpdateCronJobCleanedUpWhenRegistryDisabled(t *testing.T) {
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
 						Enable: true,
 						ExtensionAutoUpdate: &chev2.ExtensionAutoUpdate{
-							Enabled: true,
+							Enable: ptr.To(true),
 						},
 					},
 				},
@@ -337,7 +335,7 @@ func TestExtensionAutoUpdateCronJobCleanedUpWhenRegistryDisabled(t *testing.T) {
 	test.EnsureReconcile(t, ctx, reconcileWithReadyDeployment(reconciler))
 
 	cronJob := &batchv1.CronJob{}
-	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(context.TODO(), cronJobKey(ctx), cronJob)
+	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(ctx.Context, cronJobKey(ctx), cronJob)
 	assert.NoError(t, err)
 	assert.True(t, exists, "CronJob should exist")
 

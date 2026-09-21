@@ -13,7 +13,6 @@
 package openvsx_server
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -49,7 +48,7 @@ func (r *OpenVSXServerReconciler) syncExtensionUpdateCronJob(ctx *chetypes.Deplo
 	}
 
 	if err := ctx.ClusterAPI.ClientWrapper.Sync(
-		context.TODO(),
+		ctx.Context,
 		cronJob,
 		&k8sclient.SyncOptions{DiffOpts: diffs.CronJob},
 	); err != nil {
@@ -82,10 +81,6 @@ func (r *OpenVSXServerReconciler) getExtensionUpdateCronJobSpec(ctx *chetypes.De
 			Name:  "OVSX_FORWARDED_HOST",
 			Value: ctx.CheHost,
 		},
-		{
-			Name:  "OVSX_FORWARDED_PROTO",
-			Value: "https",
-		},
 		utils.EnvVarFromSecret("OVSX_PAT", credentialsSecret, "openvsx-publisher-token"),
 	}
 
@@ -96,10 +91,10 @@ func (r *OpenVSXServerReconciler) getExtensionUpdateCronJobSpec(ctx *chetypes.De
 		})
 	}
 
-	if len(autoUpdate.ExcludeExtensions) > 0 {
+	if len(autoUpdate.ExcludedExtensions) > 0 {
 		env = append(env, corev1.EnvVar{
 			Name:  "EXCLUDE_EXTENSIONS",
-			Value: strings.Join(autoUpdate.ExcludeExtensions, ","),
+			Value: strings.Join(autoUpdate.ExcludedExtensions, ","),
 		})
 	}
 
@@ -116,6 +111,7 @@ func (r *OpenVSXServerReconciler) getExtensionUpdateCronJobSpec(ctx *chetypes.De
 		Spec: batchv1.CronJobSpec{
 			Schedule:                   schedule,
 			ConcurrencyPolicy:          batchv1.ForbidConcurrent,
+			Suspend:                    ptr.To(false),
 			SuccessfulJobsHistoryLimit: ptr.To(int32(1)),
 			FailedJobsHistoryLimit:     ptr.To(int32(3)),
 			JobTemplate: batchv1.JobTemplateSpec{
@@ -185,7 +181,7 @@ func deleteExtensionUpdateCronJob(ctx *chetypes.DeployContext) error {
 	}
 
 	if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
-		context.TODO(),
+		ctx.Context,
 		cronJobKey,
 		&batchv1.CronJob{},
 		client.PropagationPolicy(metav1.DeletePropagationBackground),
