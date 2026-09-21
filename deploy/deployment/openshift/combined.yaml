@@ -28214,6 +28214,7 @@ rules:
   - imagestreams
   verbs:
   - get
+  - list
 - apiGroups:
   - ""
   resources:
