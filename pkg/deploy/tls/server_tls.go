@@ -108,13 +108,20 @@ func buildServerTLSOptions(ctx context.Context, cl client.Client, log logr.Logge
 // Only registers when profile was successfully fetched.
 // On change, sends SIGTERM to the current process so the shutdown flows through
 // SetupSignalHandler's grace period, allowing in-flight finalizers to complete.
-func RegisterSecurityProfileWatcher(mgr manager.Manager, serverTLS ServerTLS, log logr.Logger) error {
+func RegisterSecurityProfileWatcher(mgr manager.Manager, serverTLS ServerTLS, onCancel context.CancelFunc, log logr.Logger) error {
 	if !serverTLS.profileFetched {
 		log.Info("Skipping TLS security profile watcher registration, profile was not fetched")
 		return nil
 	}
 
 	pid := os.Getpid()
+
+	terminate := func() {
+		if err := syscall.Kill(pid, syscall.SIGTERM); err != nil {
+			log.Error(err, "failed to send SIGTERM to operator process, falling back to context cancellation", "pid", pid)
+			onCancel()
+		}
+	}
 
 	watcher := &tlspkg.SecurityProfileWatcher{
 		Client:                    mgr.GetClient(),
@@ -125,12 +132,13 @@ func RegisterSecurityProfileWatcher(mgr manager.Manager, serverTLS ServerTLS, lo
 				log.V(1).Info("Cluster TLS profile changed but adherence policy is not strict, not restarting")
 				return
 			}
+
 			log.V(1).Info("TLS security profile changed, restarting operator", "minTLSVersion", newSpec.MinTLSVersion)
-			syscall.Kill(pid, syscall.SIGTERM)
+			terminate()
 		},
 		OnAdherencePolicyChange: func(_ context.Context, _, newPolicy configv1.TLSAdherencePolicy) {
 			log.V(1).Info("TLS adherence policy changed, restarting operator", "adherencePolicy", newPolicy)
-			syscall.Kill(pid, syscall.SIGTERM)
+			terminate()
 		},
 	}
 
