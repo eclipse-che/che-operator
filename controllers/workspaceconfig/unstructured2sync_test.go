@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -19,7 +19,6 @@ import (
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
 
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	templatev1 "github.com/openshift/api/template/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 
@@ -194,7 +193,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 	assert.Equal(t, "new-test", lr.Annotations["new-annotation"])
 
 	// Delete dst LimitRange
-	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.Client, objectKeyInUserNs, &corev1.LimitRange{})
+	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInUserNs, &corev1.LimitRange{})
 	assert.Nil(t, err)
 
 	// Sync Template
@@ -211,7 +210,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 	assert.Equal(t, constants.CheEclipseOrg, lr.Labels[constants.KubernetesPartOfLabelKey])
 
 	// Delete src Template
-	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.Client, objectKeyInCheNs, &templatev1.Template{})
+	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &templatev1.Template{})
 	assert.Nil(t, err)
 
 	// Sync Template
@@ -297,7 +296,7 @@ func TestSyncUnstructuredShouldRetainIfAnnotationSetTrue(t *testing.T) {
 	assert.Equal(t, "true", lr.Annotations[syncRetainOnDeleteAnnotation])
 
 	// Delete src Template
-	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.Client, objectKeyInCheNs, &templatev1.Template{})
+	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &templatev1.Template{})
 	assert.Nil(t, err)
 
 	// Sync Template
@@ -381,7 +380,7 @@ func TestSyncUnstructuredShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 	assert.Equal(t, "false", lr.Annotations[syncRetainOnDeleteAnnotation])
 
 	// Delete src Template
-	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.Client, objectKeyInCheNs, &templatev1.Template{})
+	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &templatev1.Template{})
 	assert.Nil(t, err)
 
 	// Sync Template
@@ -462,7 +461,7 @@ func TestSyncUnstructuredShouldNotRetainIfAnnotationIsNotSet(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Delete src Template
-	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.Client, objectKeyInCheNs, &templatev1.Template{})
+	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &templatev1.Template{})
 	assert.Nil(t, err)
 
 	// Sync Template

@@ -133,31 +133,6 @@ func GetObjectType(obj interface{}) string {
 	return objType
 }
 
-// DeleteIgnoreIfNotFound deletes object.
-// Returns nil if object deleted or not found otherwise returns error.
-// Return error if object cannot be deleted otherwise returns nil.
-func DeleteIgnoreIfNotFound(
-	context context.Context,
-	cli client.Client,
-	key client.ObjectKey,
-	blueprint client.Object,
-) error {
-	runtimeObj, ok := blueprint.(runtime.Object)
-	if !ok {
-		return fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObj)
-	}
-
-	actual := runtimeObj.DeepCopyObject().(client.Object)
-
-	exists, err := doGet(context, cli, key, actual)
-	if exists {
-		_, err := doDeleteIgnoreIfNotFound(context, cli, actual)
-		return err
-	}
-
-	return err
-}
-
 // doCreate creates object.
 // Return error if object cannot be created otherwise returns nil.
 func doCreate(
