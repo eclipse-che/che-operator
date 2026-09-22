@@ -575,8 +575,8 @@ type ExtensionAutoUpdate struct {
 	// +optional
 	VSCodeEngineVersion *string `json:"vsCodeEngineVersion,omitempty"`
 	// List of extensions excluded from auto-update.
-	// Each entry is an extension ID in `<namespace>/<name>` format, also known as `publisher/name`,
-	// without a version, for example `redhat/java`.
+	// Each entry is an extension ID in `<namespace>.<name>` format,
+	// for example `redhat.java`.
 	// Excluded extensions keep their currently published version.
 	// +optional
 	ExcludedExtensions []string `json:"excludedExtensions,omitempty"`

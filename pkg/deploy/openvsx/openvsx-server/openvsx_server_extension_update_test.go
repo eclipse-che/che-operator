@@ -154,7 +154,7 @@ func TestExtensionAutoUpdateCronJobCleanedUpOnDisable(t *testing.T) {
 func TestExtensionAutoUpdateCronJobSpec(t *testing.T) {
 	customSchedule := "0 */6 * * *"
 	engineVersion := "1.92.0"
-	excludeExtensions := []string{"redhat/java", "redhat/vscode-xml"}
+	excludeExtensions := []string{"redhat.java", "redhat.vscode-xml"}
 
 	ctx := test.NewCtxBuilder().WithCheCluster(
 		&chev2.CheCluster{
@@ -200,7 +200,7 @@ func TestExtensionAutoUpdateCronJobSpec(t *testing.T) {
 
 	assert.Equal(t, openvsx.GetOpenVSXServerServiceURL(ctx), envMap["OVSX_REGISTRY_URL"])
 	assert.Equal(t, engineVersion, envMap["VSCODE_ENGINE_VERSION"])
-	assert.Equal(t, "redhat/java,redhat/vscode-xml", envMap["EXCLUDE_EXTENSIONS"])
+	assert.Equal(t, "redhat.java,redhat.vscode-xml", envMap["EXCLUDE_EXTENSIONS"])
 	assert.Equal(t, "eclipse-che.apps.example.com", envMap["OVSX_FORWARDED_HOST"])
 
 	patEnv := findEnvVar(container.Env, "OVSX_PAT")
