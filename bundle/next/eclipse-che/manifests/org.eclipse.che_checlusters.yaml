@@ -27928,6 +27928,18 @@ spec:
                                   format: int32
                                   minimum: 0
                                   type: integer
+                                resolveImageFromImageStream:
+                                  description: |-
+                                    Allows resolving the oauth-proxy image from the cluster's own `openshift/oauth-proxy` ImageStream
+                                    instead of using the image shipped with the Operator. The image is referenced by the internal
+                                    registry, so it works in both connected and disconnected environments.
+                                    This field is specific to OpenShift with built-in OAuth and upstream Che,
+                                    on other flavors the setting is ignored.
+                                    When the image cannot be resolved, the Operator falls back to the image shipped
+                                    with the Operator, which is referenced by a mutable tag rather than by digest.
+                                    An explicit image in `gateway.deployment.containers` takes precedence over this setting.
+                                    Enabled by default.
+                                  type: boolean
                               type: object
                             traefik:
                               description: Configuration for Traefik within the Che

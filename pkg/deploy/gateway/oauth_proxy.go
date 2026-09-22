@@ -13,7 +13,6 @@
 package gateway
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -190,7 +189,7 @@ func resolveOpenShiftOAuthProxyImage(ctx *chetypes.DeployContext) string {
 	})
 
 	if err := ctx.ClusterAPI.NonCachingClient.Get(
-		context.TODO(),
+		ctx.Context,
 		types.NamespacedName{Name: "oauth-proxy", Namespace: "openshift"},
 		imageStream,
 	); err != nil {
@@ -239,7 +238,7 @@ func getOauthProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
 	var args = []string{"--config=/etc/oauth-proxy/oauth-proxy.cfg"}
 	if infrastructure.IsOpenShiftOAuthEnabled() {
 		// Guarded to upstream Che only; downstream manages its own oauth-proxy image.
-		if defaults.GetCheFlavor() == "che" {
+		if ctx.CheCluster.IsCheFlavor() && ctx.CheCluster.IsOAuthProxyImageResolutionFromImageStreamEnabled() {
 			image = resolveOpenShiftOAuthProxyImage(ctx)
 		}
 		if image == "" {

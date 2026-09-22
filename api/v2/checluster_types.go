@@ -854,6 +854,17 @@ type OAuthProxy struct {
 	// +kubebuilder:default:=86400
 	// +kubebuilder:validation:Minimum:=0
 	CookieExpireSeconds *int32 `json:"cookieExpireSeconds,omitempty"`
+	// Allows resolving the oauth-proxy image from the cluster's own `openshift/oauth-proxy` ImageStream
+	// instead of using the image shipped with the Operator. The image is referenced by the internal
+	// registry, so it works in both connected and disconnected environments.
+	// This field is specific to OpenShift with built-in OAuth and upstream Che,
+	// on other flavors the setting is ignored.
+	// When the image cannot be resolved, the Operator falls back to the image shipped
+	// with the Operator, which is referenced by a mutable tag rather than by digest.
+	// An explicit image in `gateway.deployment.containers` takes precedence over this setting.
+	// Enabled by default.
+	// +optional
+	ResolveImageFromImageStream *bool `json:"resolveImageFromImageStream,omitempty"`
 }
 
 // Proxy server configuration.
@@ -1354,6 +1365,17 @@ func (c *CheCluster) IsDevEnvironmentExternalTLSConfigEnabled() bool {
 func (c *CheCluster) IsNetworkPoliciesEnabled() bool {
 	return c.Spec.Networking.NetworkPolicy != nil &&
 		ptr.Deref(c.Spec.Networking.NetworkPolicy.Enabled, constants.NetworkPolicyEnabled)
+}
+
+func (c *CheCluster) IsOAuthProxyImageResolutionFromImageStreamEnabled() bool {
+	if c.Spec.Networking.Auth.Gateway.OAuthProxy == nil {
+		return constants.DefaultOAuthProxyResolveImageFromImageStream
+	}
+
+	return ptr.Deref(
+		c.Spec.Networking.Auth.Gateway.OAuthProxy.ResolveImageFromImageStream,
+		constants.DefaultOAuthProxyResolveImageFromImageStream,
+	)
 }
 
 func (c *CheCluster) IsAgentSandboxEnabled() bool {
