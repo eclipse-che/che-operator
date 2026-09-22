@@ -25,6 +25,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -85,9 +86,15 @@ func SyncDeploymentSpecToCluster(
 	}
 
 	actual := &appsv1.Deployment{}
-	exists, err := GetNamespacedObject(deployContext, deploymentSpec.Name, actual)
-	if !exists || err != nil {
-		return false, err
+	exists, err := deployContext.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		deployContext.Context,
+		types.NamespacedName{Name: deploymentSpec.Name, Namespace: deployContext.CheCluster.Namespace},
+		actual,
+	)
+	if err != nil {
+		return false, fmt.Errorf("failed to get Deployment %s/%s: %w", deployContext.CheCluster.Namespace, deploymentSpec.Name, err)
+	} else if !exists {
+		return false, nil
 	}
 
 	provisioned := actual.Status.UnavailableReplicas == 0
@@ -433,9 +440,13 @@ func MountSecrets(specDeployment *appsv1.Deployment, deployContext *chetypes.Dep
 			}
 		case "env":
 			secret := &corev1.Secret{}
-			exists, err := GetNamespacedObject(deployContext, secretObj.Name, secret)
+			exists, err := deployContext.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+				deployContext.Context,
+				types.NamespacedName{Name: secretObj.Name, Namespace: deployContext.CheCluster.Namespace},
+				secret,
+			)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to get Secret %s/%s: %w", deployContext.CheCluster.Namespace, secretObj.Name, err)
 			} else if !exists {
 				return fmt.Errorf("secret '%s' not found", secretObj.Name)
 			}
@@ -563,9 +574,13 @@ func MountConfigMaps(specDeployment *appsv1.Deployment, deployContext *chetypes.
 
 		case "env":
 			configmap := &corev1.ConfigMap{}
-			exists, err := GetNamespacedObject(deployContext, configMapObj.Name, configmap)
+			exists, err := deployContext.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+				deployContext.Context,
+				types.NamespacedName{Name: configMapObj.Name, Namespace: deployContext.CheCluster.Namespace},
+				configmap,
+			)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to get ConfigMap %s/%s: %w", deployContext.CheCluster.Namespace, configMapObj.Name, err)
 			} else if !exists {
 				return fmt.Errorf("ConfigMap '%s' not found", configMapObj.Name)
 			}
@@ -617,8 +632,15 @@ func MountConfigMaps(specDeployment *appsv1.Deployment, deployContext *chetypes.
 // setDesiredReplicas sets replicas count from the actual deployment.
 func setDesiredReplicas(deployment *appsv1.Deployment, deployCtx *chetypes.DeployContext) error {
 	actual := &appsv1.Deployment{}
-	if exists, err := GetNamespacedObject(deployCtx, deployment.Name, actual); !exists {
-		return err
+	exists, err := deployCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		deployCtx.Context,
+		types.NamespacedName{Name: deployment.Name, Namespace: deployCtx.CheCluster.Namespace},
+		actual,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to get Deployment %s/%s: %w", deployCtx.CheCluster.Namespace, deployment.Name, err)
+	} else if !exists {
+		return nil
 	}
 
 	deployment.Spec.Replicas = actual.Spec.Replicas

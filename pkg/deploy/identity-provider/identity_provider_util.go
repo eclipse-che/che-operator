@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -13,12 +13,14 @@
 package identityprovider
 
 import (
+	"fmt"
+
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	oauth "github.com/openshift/api/oauth/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 func GetOAuthClientSpec(
@@ -50,9 +52,15 @@ func GetOAuthClient(ctx *chetypes.DeployContext) (*oauth.OAuthClient, error) {
 	oAuthClientName := GetOAuthClientName(ctx)
 
 	oauthClient := &oauth.OAuthClient{}
-	exists, err := deploy.GetClusterObject(ctx, oAuthClientName, oauthClient)
-	if !exists {
-		return nil, err
+	exists, err := ctx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(
+		ctx.Context,
+		types.NamespacedName{Name: oAuthClientName},
+		oauthClient,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get OAuthClient %s: %w", oAuthClientName, err)
+	} else if !exists {
+		return nil, nil
 	}
 
 	return oauthClient, nil

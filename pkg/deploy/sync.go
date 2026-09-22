@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -66,22 +66,6 @@ func SyncForClient(cli client.Client, deployContext *chetypes.DeployContext, blu
 	}
 
 	return doUpdate(cli, deployContext, actual.(client.Object), blueprint, diffOpts...)
-}
-
-// Gets namespaced scope object by name
-// Returns true if object exists otherwise returns false.
-func GetNamespacedObject(deployContext *chetypes.DeployContext, name string, actual client.Object) (bool, error) {
-	client := deployContext.ClusterAPI.Client
-	key := types.NamespacedName{Name: name, Namespace: deployContext.CheCluster.Namespace}
-	return doGet(context.TODO(), client, key, actual)
-}
-
-// Gets cluster scope object by name
-// Returns true if object exists otherwise returns false
-func GetClusterObject(deployContext *chetypes.DeployContext, name string, actual client.Object) (bool, error) {
-	client := deployContext.ClusterAPI.NonCachingClient
-	key := types.NamespacedName{Name: name}
-	return doGet(context.TODO(), client, key, actual)
 }
 
 // CreateIgnoreIfExists creates object.

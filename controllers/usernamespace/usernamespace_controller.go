@@ -256,10 +256,11 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	deployContext := &chetypes.DeployContext{
 		CheCluster: checluster,
 		ClusterAPI: chetypes.ClusterAPI{
-			Client:           r.client,
-			NonCachingClient: r.nonCachedClient,
-			ClientWrapper:    r.clientWrapper,
-			Scheme:           r.scheme,
+			Client:                  r.client,
+			NonCachingClient:        r.nonCachedClient,
+			ClientWrapper:           r.clientWrapper,
+			NonCachingClientWrapper: r.nonCachedClientWrapper,
+			Scheme:                  r.scheme,
 		},
 		Context:      ctx,
 		DWONamespace: r.getDWONamespace(),
