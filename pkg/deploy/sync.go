@@ -76,23 +76,6 @@ func CreateIgnoreIfExists(deployContext *chetypes.DeployContext, blueprint clien
 	return doCreate(context.TODO(), cli, deployContext, blueprint, true)
 }
 
-func DeleteByKeyWithClient(cli client.Client, key client.ObjectKey, objectMeta client.Object) (bool, error) {
-	runtimeObject, ok := objectMeta.(runtime.Object)
-	if !ok {
-		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
-	}
-
-	actual := runtimeObject.DeepCopyObject().(client.Object)
-	exists, err := doGet(context.TODO(), cli, key, actual)
-	if !exists {
-		return true, nil
-	} else if err != nil {
-		return false, err
-	}
-
-	return doDeleteIgnoreIfNotFound(context.TODO(), cli, actual)
-}
-
 func isUpdateUsingDeleteCreate(kind string) bool {
 	return kind == "Service" || kind == "Ingress" || kind == "Route" || kind == "Job" || kind == "Secret"
 }
