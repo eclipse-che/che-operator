@@ -63,7 +63,7 @@ func (s *CheServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 		return reconcile.Result{}, false, err
 	}
 
-	if done, err := deploy.SyncServiceAccountToCluster(ctx, constants.DefaultCheServiceAccountName); !done {
+	if err := deploy.SyncServiceAccountToCluster(ctx, constants.DefaultCheServiceAccountName); err != nil {
 		return reconcile.Result{}, false, err
 	}
 

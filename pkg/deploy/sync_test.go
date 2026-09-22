@@ -16,7 +16,6 @@ import (
 	"context"
 
 	"github.com/eclipse-che/che-operator/pkg/common/test"
-	"github.com/stretchr/testify/assert"
 
 	"testing"
 
@@ -53,30 +52,6 @@ var (
 	}
 	testKey = client.ObjectKey{Name: "test-secret", Namespace: "eclipse-che"}
 )
-
-func TestCreateIgnoreIfExistsShouldReturnTrueIfObjectCreated(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
-
-	done, err := CreateIgnoreIfExists(ctx, testObj.DeepCopy())
-	assert.NoError(t, err)
-	assert.True(t, done)
-
-	actual := &corev1.Secret{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), testKey, actual)
-	assert.NoError(t, err)
-	assert.NotNil(t, actual)
-}
-
-func TestCreateIgnoreIfExistsShouldReturnTrueIfObjectExist(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
-
-	err := ctx.ClusterAPI.Client.Create(context.TODO(), testObj.DeepCopy())
-	assert.NoError(t, err)
-
-	done, err := CreateIgnoreIfExists(ctx, testObj.DeepCopy())
-	assert.NoError(t, err)
-	assert.True(t, done)
-}
 
 func TestUpdate(t *testing.T) {
 	ctx := test.NewCtxBuilder().Build()

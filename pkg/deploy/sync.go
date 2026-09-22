@@ -68,14 +68,6 @@ func SyncForClient(cli client.Client, deployContext *chetypes.DeployContext, blu
 	return doUpdate(cli, deployContext, actual.(client.Object), blueprint, diffOpts...)
 }
 
-// CreateIgnoreIfExists creates object.
-// Return true if a new object is created or object already exists, otherwise returns false.
-// Throws error if object cannot be created otherwise returns nil.
-func CreateIgnoreIfExists(deployContext *chetypes.DeployContext, blueprint client.Object) (bool, error) {
-	cli := getClientForObject(blueprint.GetNamespace(), deployContext)
-	return doCreate(context.TODO(), cli, deployContext, blueprint, true)
-}
-
 func isUpdateUsingDeleteCreate(kind string) bool {
 	return kind == "Service" || kind == "Ingress" || kind == "Route" || kind == "Job" || kind == "Secret"
 }
