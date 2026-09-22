@@ -26,6 +26,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy/openvsx"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -139,7 +140,17 @@ func (r *OpenVSXServerReconciler) getExtensionUpdateCronJobSpec(ctx *chetypes.De
 											ReadOnly:  true,
 										},
 									},
-									Env:     env,
+									Env: env,
+									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											corev1.ResourceMemory: resource.MustParse(constants.OpenVSXExtensionJobMemoryRequest),
+											corev1.ResourceCPU:    resource.MustParse(constants.OpenVSXExtensionJobCpuRequest),
+										},
+										Limits: corev1.ResourceList{
+											corev1.ResourceMemory: resource.MustParse(constants.OpenVSXExtensionJobMemoryLimit),
+											corev1.ResourceCPU:    resource.MustParse(constants.OpenVSXExtensionJobCpuLimit),
+										},
+									},
 									Command: []string{"/home/openvsx/update-extensions.sh", "/home/openvsx/extensions/extensions.list"},
 								},
 							},
