@@ -75,8 +75,9 @@ func SyncDeploymentSpecToCluster(
 	if err != nil || !done {
 		// Failed to sync (update), let's delete and create instead
 		if err != nil && strings.Contains(err.Error(), "field is immutable") {
-			if _, err := DeleteNamespacedObject(deployContext, deploymentSpec.Name, &appsv1.Deployment{}); err != nil {
-				return false, err
+			key := types.NamespacedName{Name: deploymentSpec.Name, Namespace: deployContext.CheCluster.Namespace}
+			if err := deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(deployContext.Context, key, &appsv1.Deployment{}); err != nil {
+				return false, fmt.Errorf("failed to delete Deployment %s/%s: %w", key.Namespace, key.Name, err)
 			}
 
 			// Deleted successfully, return original error

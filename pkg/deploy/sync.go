@@ -76,12 +76,6 @@ func CreateIgnoreIfExists(deployContext *chetypes.DeployContext, blueprint clien
 	return doCreate(context.TODO(), cli, deployContext, blueprint, true)
 }
 
-func DeleteNamespacedObject(deployContext *chetypes.DeployContext, name string, objectMeta client.Object) (bool, error) {
-	client := deployContext.ClusterAPI.Client
-	key := types.NamespacedName{Name: name, Namespace: deployContext.CheCluster.Namespace}
-	return DeleteByKeyWithClient(client, key, objectMeta)
-}
-
 func DeleteByKeyWithClient(cli client.Client, key client.ObjectKey, objectMeta client.Object) (bool, error) {
 	runtimeObject, ok := objectMeta.(runtime.Object)
 	if !ok {

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2024 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -22,6 +22,8 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -42,10 +44,20 @@ func NewPluginRegistryReconciler() *PluginRegistryReconciler {
 
 func (p *PluginRegistryReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	if ctx.CheCluster.IsInternalPluginRegistryDisabled() {
-		_, _ = deploy.DeleteNamespacedObject(ctx, constants.PluginRegistryName, &corev1.Service{})
-		_, _ = deploy.DeleteNamespacedObject(ctx, constants.PluginRegistryName, &corev1.ConfigMap{})
-		_, _ = deploy.DeleteNamespacedObject(ctx, gateway.GatewayConfigMapNamePrefix+constants.PluginRegistryName, &corev1.ConfigMap{})
-		_, _ = deploy.DeleteNamespacedObject(ctx, constants.PluginRegistryName, &appsv1.Deployment{})
+		objects := []struct {
+			name string
+			obj  client.Object
+		}{
+			{constants.PluginRegistryName, &corev1.Service{}},
+			{constants.PluginRegistryName, &corev1.ConfigMap{}},
+			{gateway.GatewayConfigMapNamePrefix + constants.PluginRegistryName, &corev1.ConfigMap{}},
+			{constants.PluginRegistryName, &appsv1.Deployment{}},
+		}
+
+		for _, object := range objects {
+			key := types.NamespacedName{Name: object.name, Namespace: ctx.CheCluster.Namespace}
+			_ = ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(ctx.Context, key, object.obj)
+		}
 
 		if ctx.CheCluster.Status.PluginRegistryURL != "" {
 			ctx.CheCluster.Status.PluginRegistryURL = ""
