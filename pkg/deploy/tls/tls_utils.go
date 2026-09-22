@@ -153,9 +153,13 @@ func GetTLSCrtChain(ctx *chetypes.DeployContext) ([]*x509.Certificate, error) {
 		route := &routev1.Route{}
 		for {
 			time.Sleep(time.Duration(1) * time.Second)
-			exists, err := deploy.GetNamespacedObject(ctx, routeSpec.Name, route)
+			exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+				ctx.Context,
+				types.NamespacedName{Name: routeSpec.Name, Namespace: ctx.CheCluster.Namespace},
+				route,
+			)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to get Route %s/%s: %w", ctx.CheCluster.Namespace, routeSpec.Name, err)
 			} else if exists {
 				break
 			}
@@ -193,9 +197,13 @@ func GetTLSCrtChain(ctx *chetypes.DeployContext) ([]*x509.Certificate, error) {
 		ingress := &networking.Ingress{}
 		for {
 			time.Sleep(time.Duration(1) * time.Second)
-			exists, err := deploy.GetNamespacedObject(ctx, ingressSpec.Name, ingress)
+			exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+				ctx.Context,
+				types.NamespacedName{Name: ingressSpec.Name, Namespace: ctx.CheCluster.Namespace},
+				ingress,
+			)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to get Ingress %s/%s: %w", ctx.CheCluster.Namespace, ingressSpec.Name, err)
 			} else if exists {
 				break
 			}
@@ -519,7 +527,11 @@ func GetCheCABundles(client k8sclient.Client, namespace string) ([]corev1.Config
 // GetAdditionalCACertsConfigMapVersion returns revision of merged additional CA certs config map
 func GetAdditionalCACertsConfigMapVersion(ctx *chetypes.DeployContext) string {
 	trustStoreConfigMap := &corev1.ConfigMap{}
-	exists, _ := deploy.GetNamespacedObject(ctx, CheMergedCABundleCertsCMName, trustStoreConfigMap)
+	exists, _ := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		ctx.Context,
+		types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: ctx.CheCluster.Namespace},
+		trustStoreConfigMap,
+	)
 	if exists {
 		return trustStoreConfigMap.ResourceVersion
 	}

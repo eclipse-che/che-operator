@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -148,12 +148,13 @@ func addPartOfCheLabelToConfigMap(ctx *chetypes.DeployContext, configMapName str
 // for example: addPartOfCheLabelToObject(ctx, "my-secret", &corev1.Secret{})
 func addPartOfCheLabelToObject(ctx *chetypes.DeployContext, objectName string, obj client.Object) error {
 	// Check if the object is already migrated
-	if exists, _ := deploy.GetNamespacedObject(ctx, objectName, obj); exists {
+	key := types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: objectName}
+	if exists, _ := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(ctx.Context, key, obj); exists {
 		// Default client sees the object in cache, no need in adding anything
 		return nil
 	}
 
-	err := ctx.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: objectName}, obj)
+	err := ctx.ClusterAPI.NonCachingClient.Get(ctx.Context, key, obj)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// The object doesn't exist in cluster, nothing to do

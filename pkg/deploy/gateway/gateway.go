@@ -38,6 +38,7 @@ import (
 	rbac "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -173,7 +174,11 @@ func syncAll(deployContext *chetypes.DeployContext) (bool, error) {
 
 func getGatewaySecretSpec(deployContext *chetypes.DeployContext) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
-	exists, err := deploy.GetNamespacedObject(deployContext, gatewayOauthSecretName, secret)
+	exists, err := deployContext.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		deployContext.Context,
+		types.NamespacedName{Name: gatewayOauthSecretName, Namespace: deployContext.CheCluster.Namespace},
+		secret,
+	)
 	if err == nil && exists {
 		if _, ok := secret.Data["cookie_secret"]; !ok {
 			logrus.Info("che-gateway-secret found, but does not contain `cookie_secret` value. Regenerating...")
@@ -183,7 +188,7 @@ func getGatewaySecretSpec(deployContext *chetypes.DeployContext) (*corev1.Secret
 	} else if err == nil && !exists {
 		return generateOauthSecretSpec(deployContext), nil
 	} else {
-		return nil, err
+		return nil, fmt.Errorf("failed to get Secret %s/%s: %w", deployContext.CheCluster.Namespace, gatewayOauthSecretName, err)
 	}
 }
 

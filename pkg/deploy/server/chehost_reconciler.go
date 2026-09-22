@@ -21,6 +21,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	routev1 "github.com/openshift/api/route/v1"
 	networking "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -82,7 +83,11 @@ func (s CheHostReconciler) exposeCheEndpoint(ctx *chetypes.DeployContext) (strin
 		}
 
 		ingress := &networking.Ingress{}
-		exists, err := deploy.GetNamespacedObject(ctx, getComponentName(), ingress)
+		exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+			ctx.Context,
+			types.NamespacedName{Name: getComponentName(), Namespace: ctx.CheCluster.Namespace},
+			ingress,
+		)
 		if !exists {
 			return "", false, err
 		}
@@ -102,7 +107,11 @@ func (s CheHostReconciler) exposeCheEndpoint(ctx *chetypes.DeployContext) (strin
 	}
 
 	route := &routev1.Route{}
-	exists, err := deploy.GetNamespacedObject(ctx, getComponentName(), route)
+	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		ctx.Context,
+		types.NamespacedName{Name: getComponentName(), Namespace: ctx.CheCluster.Namespace},
+		route,
+	)
 	if !exists {
 		return "", false, err
 	}

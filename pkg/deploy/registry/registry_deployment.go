@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -18,6 +18,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -32,7 +33,11 @@ func GetSpecRegistryDeployment(
 
 	// append env var with ConfigMap revision to restore pod automatically when config has been changed
 	cm := &corev1.ConfigMap{}
-	exists, _ := deploy.GetNamespacedObject(deployContext, registryType+"-registry", cm)
+	exists, _ := deployContext.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		deployContext.Context,
+		types.NamespacedName{Name: registryType + "-registry", Namespace: deployContext.CheCluster.Namespace},
+		cm,
+	)
 	configMapRevision := map[bool]string{true: cm.GetResourceVersion(), false: ""}[exists]
 	env = append(env, corev1.EnvVar{Name: "CM_REVISION", Value: configMapRevision})
 

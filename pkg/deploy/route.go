@@ -134,7 +134,11 @@ func GetRouteSpec(
 
 		if hostSuffix == "" {
 			existedRoute := &routev1.Route{}
-			exists, _ := GetNamespacedObject(deployContext, name, existedRoute)
+			exists, _ := deployContext.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+				deployContext.Context,
+				types.NamespacedName{Name: name, Namespace: deployContext.CheCluster.Namespace},
+				existedRoute,
+			)
 			if exists {
 				// Get route domain from host
 				domainEntries := strings.SplitN(existedRoute.Spec.Host, ".", 2)

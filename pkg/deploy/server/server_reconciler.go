@@ -13,6 +13,7 @@
 package server
 
 import (
+	"fmt"
 	"time"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -24,6 +25,7 @@ import (
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -52,7 +54,11 @@ func (s *CheServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 
 	// ensure configmap is created
 	// the version of the object is used in the deployment
-	exists, err := deploy.GetNamespacedObject(ctx, configMapName, &corev1.ConfigMap{})
+	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		ctx.Context,
+		types.NamespacedName{Name: configMapName, Namespace: ctx.CheCluster.Namespace},
+		&corev1.ConfigMap{},
+	)
 	if !exists {
 		return reconcile.Result{}, false, err
 	}
@@ -94,9 +100,13 @@ func (c *CheServerReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 
 func (s *CheServerReconciler) syncActiveChePhase(ctx *chetypes.DeployContext) (bool, error) {
 	cheDeployment := &appsv1.Deployment{}
-	exists, err := deploy.GetNamespacedObject(ctx, getComponentName(), cheDeployment)
+	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		ctx.Context,
+		types.NamespacedName{Name: getComponentName(), Namespace: ctx.CheCluster.Namespace},
+		cheDeployment,
+	)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to get Deployment %s/%s: %w", ctx.CheCluster.Namespace, getComponentName(), err)
 	}
 
 	if exists {

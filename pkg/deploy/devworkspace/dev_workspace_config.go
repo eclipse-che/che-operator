@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -56,7 +56,8 @@ func (d *DevWorkspaceConfigReconciler) Reconcile(ctx *chetypes.DeployContext) (r
 			Namespace: ctx.CheCluster.Namespace,
 		},
 	}
-	if _, err := deploy.GetNamespacedObject(ctx, devWorkspaceConfigName, dwoc); err != nil {
+	key := types.NamespacedName{Name: devWorkspaceConfigName, Namespace: ctx.CheCluster.Namespace}
+	if _, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(ctx.Context, key, dwoc); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
