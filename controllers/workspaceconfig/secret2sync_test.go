@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -24,7 +24,6 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -173,7 +172,7 @@ func TestSyncSecrets(t *testing.T) {
 	assert.Equal(t, "new-test", secret.Annotations["new-annotation"])
 
 	// Delete dst Secret
-	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.Client, objectKeyInUserNs, &corev1.Secret{})
+	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInUserNs, &corev1.Secret{})
 	assert.Nil(t, err)
 
 	// Sync Secret
@@ -194,7 +193,7 @@ func TestSyncSecrets(t *testing.T) {
 	assert.Equal(t, "true", secret.Labels["controller.devfile.io/mount-to-devworkspace"])
 
 	// Delete src Secret
-	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.Client, objectKeyInCheNs, &corev1.Secret{})
+	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &corev1.Secret{})
 	assert.Nil(t, err)
 
 	// Sync Secret
