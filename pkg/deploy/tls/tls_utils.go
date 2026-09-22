@@ -343,13 +343,11 @@ func K8sHandleCheTLSSecrets(ctx *chetypes.DeployContext) (reconcile.Result, erro
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 
-		done, err := SyncTLSRoleToCluster(ctx)
-		if !done {
+		if err := SyncTLSRoleToCluster(ctx); err != nil {
 			return reconcile.Result{}, err
 		}
 
-		done, err = deploy.SyncRoleBindingToCluster(ctx, CheTLSJobRoleBindingName, CheTLSJobServiceAccountName, CheTLSJobRoleName, "Role")
-		if !done {
+		if err := deploy.SyncRoleBindingToCluster(ctx, CheTLSJobRoleBindingName, CheTLSJobServiceAccountName, CheTLSJobRoleName, "Role"); err != nil {
 			return reconcile.Result{}, err
 		}
 
@@ -372,7 +370,7 @@ func K8sHandleCheTLSSecrets(ctx *chetypes.DeployContext) (reconcile.Result, erro
 			"LABELS":                         labels,
 		}
 
-		_, err = deploy.SyncJobToCluster(ctx, CheTLSJobName, CheTLSJobComponentName, cheTLSSecretsCreationJobImage, CheTLSJobServiceAccountName, jobEnvVars)
+		err = deploy.SyncJobToCluster(ctx, CheTLSJobName, CheTLSJobComponentName, cheTLSSecretsCreationJobImage, CheTLSJobServiceAccountName, jobEnvVars)
 		if err != nil {
 			logrus.Error(err)
 		}
@@ -549,9 +547,7 @@ func CreateTLSSecret(ctx *chetypes.DeployContext, name string) (err error) {
 			return err
 		}
 
-		// TODO
-		_, err = deploy.SyncSecretToCluster(ctx, name, ctx.CheCluster.Namespace, map[string][]byte{"ca.crt": crtBytes})
-		if err != nil {
+		if err := deploy.SyncSecretToCluster(ctx, name, ctx.CheCluster.Namespace, map[string][]byte{"ca.crt": crtBytes}); err != nil {
 			return err
 		}
 	}
@@ -559,7 +555,7 @@ func CreateTLSSecret(ctx *chetypes.DeployContext, name string) (err error) {
 	return nil
 }
 
-func SyncTLSRoleToCluster(ctx *chetypes.DeployContext) (bool, error) {
+func SyncTLSRoleToCluster(ctx *chetypes.DeployContext) error {
 	tlsPolicyRule := []rbac.PolicyRule{
 		{
 			APIGroups: []string{

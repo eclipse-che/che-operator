@@ -52,13 +52,12 @@ func (d *DashboardReconciler) getComponentName(ctx *chetypes.DeployContext) stri
 
 func (d *DashboardReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	// Create a new dashboard service
-	done, err := deploy.SyncServiceToCluster(ctx, d.getComponentName(ctx), []string{"http"}, []int32{8080}, d.getComponentName(ctx))
-	if !done {
+	if err := deploy.SyncServiceToCluster(ctx, d.getComponentName(ctx), []string{"http"}, []int32{8080}, d.getComponentName(ctx)); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
 	// Expose dashboard service with route or ingress
-	_, done, err = expose.ExposeWithHostPath(ctx, d.getComponentName(ctx), ctx.CheHost,
+	_, done, err := expose.ExposeWithHostPath(ctx, d.getComponentName(ctx), ctx.CheHost,
 		exposePath,
 		d.createGatewayConfig(ctx),
 	)
@@ -71,18 +70,15 @@ func (d *DashboardReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 		return reconcile.Result{}, false, err
 	}
 
-	done, err = deploy.SyncClusterRoleToCluster(ctx, d.getClusterRoleName(ctx), GetPrivilegedPoliciesRulesForKubernetes())
-	if !done {
+	if err := deploy.SyncClusterRoleToCluster(ctx, d.getClusterRoleName(ctx), GetPrivilegedPoliciesRulesForKubernetes()); err != nil {
 		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
-	done, err = deploy.SyncClusterRoleBindingToCluster(ctx, d.getClusterRoleBindingName(ctx), DashboardSA, d.getClusterRoleName(ctx))
-	if !done {
+	if err := deploy.SyncClusterRoleBindingToCluster(ctx, d.getClusterRoleBindingName(ctx), DashboardSA, d.getClusterRoleName(ctx)); err != nil {
 		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
-	err = deploy.AppendFinalizer(ctx, ClusterPermissionsDashboardFinalizer)
-	if err != nil {
+	if err := deploy.AppendFinalizer(ctx, ClusterPermissionsDashboardFinalizer); err != nil {
 		return reconcile.Result{}, false, err
 	}
 

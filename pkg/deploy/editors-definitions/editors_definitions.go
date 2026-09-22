@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2024 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -19,12 +19,14 @@ import (
 	"regexp"
 
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
@@ -53,8 +55,7 @@ func NewEditorsDefinitionsReconciler() *EditorsDefinitionsReconciler {
 }
 
 func (p *EditorsDefinitionsReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	done, err := p.syncEditors(ctx)
-	if !done {
+	if err := p.syncEditors(ctx); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
@@ -65,18 +66,13 @@ func (p *EditorsDefinitionsReconciler) Finalize(ctx *chetypes.DeployContext) boo
 	return true
 }
 
-func (p *EditorsDefinitionsReconciler) syncEditors(ctx *chetypes.DeployContext) (bool, error) {
+func (p *EditorsDefinitionsReconciler) syncEditors(ctx *chetypes.DeployContext) error {
 	editorDefinitions, err := readEditorDefinitions()
 	if err != nil {
-		return false, err
+		return fmt.Errorf("failed to read editors definitions: %w", err)
 	}
 
-	done, err := syncEditorDefinitions(ctx, editorDefinitions)
-	if !done {
-		return false, err
-	}
-
-	return true, nil
+	return syncEditorDefinitions(ctx, editorDefinitions)
 }
 
 func readEditorDefinitions() (map[string][]byte, error) {
@@ -143,7 +139,7 @@ func updateEditorDefinitionImages(devfile map[string]interface{}) {
 	}
 }
 
-func syncEditorDefinitions(ctx *chetypes.DeployContext, editorDefinitions map[string][]byte) (bool, error) {
+func syncEditorDefinitions(ctx *chetypes.DeployContext, editorDefinitions map[string][]byte) error {
 	cm := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
@@ -162,5 +158,17 @@ func syncEditorDefinitions(ctx *chetypes.DeployContext, editorDefinitions map[st
 		cm.Data[fileName] = string(content)
 	}
 
-	return deploy.Sync(ctx, cm, diffs.ConfigMapEnsureLabels)
+	if err := controllerutil.SetControllerReference(ctx.CheCluster, cm, ctx.ClusterAPI.Scheme); err != nil {
+		return fmt.Errorf("failed to set owner reference for ConfigMap %s/%s: %w", cm.Namespace, cm.Name, err)
+	}
+
+	if err := ctx.ClusterAPI.ClientWrapper.Sync(
+		ctx.Context,
+		cm,
+		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
+	); err != nil {
+		return fmt.Errorf("failed to sync ConfigMap %s/%s: %w", cm.Namespace, cm.Name, err)
+	}
+
+	return nil
 }

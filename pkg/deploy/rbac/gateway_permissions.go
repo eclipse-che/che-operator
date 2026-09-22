@@ -41,11 +41,11 @@ func NewGatewayPermissionsReconciler() *GatewayPermissionsReconciler {
 
 func (gp *GatewayPermissionsReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	name := gp.gatewayPermissionsName(ctx.CheCluster)
-	if done, err := deploy.SyncClusterRoleToCluster(ctx, name, gp.getGatewayClusterRoleRules()); !done {
+	if err := deploy.SyncClusterRoleToCluster(ctx, name, gp.getGatewayClusterRoleRules()); err != nil {
 		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
-	if done, err := deploy.SyncClusterRoleBindingToCluster(ctx, name, gateway.GatewayServiceName, name); !done {
+	if err := deploy.SyncClusterRoleBindingToCluster(ctx, name, gateway.GatewayServiceName, name); err != nil {
 		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 

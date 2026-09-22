@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -49,8 +50,7 @@ func NewConsoleLinkReconciler() *ConsoleLinkReconciler {
 }
 
 func (c *ConsoleLinkReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	done, err := c.syncConsoleLink(ctx)
-	if !done {
+	if err := c.syncConsoleLink(ctx); err != nil {
 		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
@@ -75,13 +75,24 @@ func (c *ConsoleLinkReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	return true
 }
 
-func (c *ConsoleLinkReconciler) syncConsoleLink(ctx *chetypes.DeployContext) (bool, error) {
+func (c *ConsoleLinkReconciler) syncConsoleLink(ctx *chetypes.DeployContext) error {
 	if err := deploy.AppendFinalizer(ctx, ConsoleLinkFinalizerName); err != nil {
-		return false, err
+		return fmt.Errorf("failed to append finalizer %s: %w", ConsoleLinkFinalizerName, err)
 	}
 
 	consoleLinkSpec := c.getConsoleLinkSpec(ctx)
-	return deploy.Sync(ctx, consoleLinkSpec, consoleLinkDiffOpts)
+
+	// ConsoleLink is a cluster scoped object, so it can't have an owner reference
+	// and must be synced with the non-caching client
+	if err := ctx.ClusterAPI.NonCachingClientWrapper.Sync(
+		ctx.Context,
+		consoleLinkSpec,
+		&k8sclient.SyncOptions{DiffOpts: consoleLinkDiffOpts},
+	); err != nil {
+		return fmt.Errorf("failed to sync ConsoleLink %s: %w", consoleLinkSpec.Name, err)
+	}
+
+	return nil
 }
 
 func (c *ConsoleLinkReconciler) getConsoleLinkSpec(ctx *chetypes.DeployContext) *consolev1.ConsoleLink {

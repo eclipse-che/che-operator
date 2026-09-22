@@ -43,11 +43,11 @@ func (s *CheServerReconciler) syncPermissions(ctx *chetypes.DeployContext) (bool
 	}
 
 	for name, policy := range policies {
-		if done, err := deploy.SyncClusterRoleToCluster(ctx, name, policy); !done {
+		if err := deploy.SyncClusterRoleToCluster(ctx, name, policy); err != nil {
 			return false, err
 		}
 
-		if done, err := deploy.SyncClusterRoleBindingToCluster(ctx, name, constants.DefaultCheServiceAccountName, name); !done {
+		if err := deploy.SyncClusterRoleBindingToCluster(ctx, name, constants.DefaultCheServiceAccountName, name); err != nil {
 			return false, err
 		}
 	}
@@ -55,7 +55,7 @@ func (s *CheServerReconciler) syncPermissions(ctx *chetypes.DeployContext) (bool
 	for _, cheClusterRole := range ctx.CheCluster.Spec.Components.CheServer.ClusterRoles {
 		cheClusterRole := strings.TrimSpace(cheClusterRole)
 		if cheClusterRole != "" {
-			if done, err := deploy.SyncClusterRoleBindingToCluster(ctx, cheClusterRole, constants.DefaultCheServiceAccountName, cheClusterRole); !done {
+			if err := deploy.SyncClusterRoleBindingToCluster(ctx, cheClusterRole, constants.DefaultCheServiceAccountName, cheClusterRole); err != nil {
 				return false, err
 			}
 

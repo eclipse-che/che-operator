@@ -13,6 +13,7 @@
 package expose
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
@@ -21,11 +22,12 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	networking "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 var (
@@ -81,14 +83,19 @@ func exposeWithGateway(deployContext *chetypes.DeployContext,
 
 	cfg, err := gateway.GetConfigmapForGatewayConfig(deployContext, component, gatewayConfig)
 	if err != nil {
-		return "", false, err
+		return "", false, fmt.Errorf("failed to get gateway ConfigMap for component %s: %w", component, err)
 	}
-	done, err = deploy.Sync(deployContext, cfg, diffs.ConfigMapEnsureLabels)
-	if !done {
-		if err != nil {
-			logger.Error(err, "Failed to sync gateway ConfigMap", "namespace", cfg.Namespace, "name", cfg.Name)
-		}
-		return "", false, err
+
+	if err := controllerutil.SetControllerReference(deployContext.CheCluster, cfg, deployContext.ClusterAPI.Scheme); err != nil {
+		return "", false, fmt.Errorf("failed to set owner reference for ConfigMap %s/%s: %w", cfg.Namespace, cfg.Name, err)
+	}
+
+	if err := deployContext.ClusterAPI.ClientWrapper.Sync(
+		deployContext.Context,
+		cfg,
+		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
+	); err != nil {
+		return "", false, fmt.Errorf("failed to sync ConfigMap %s/%s: %w", cfg.Namespace, cfg.Name, err)
 	}
 
 	cleanUpRouting()
@@ -96,5 +103,5 @@ func exposeWithGateway(deployContext *chetypes.DeployContext,
 	if path == "" {
 		path = "/" + component
 	}
-	return deployContext.CheHost + path, true, err
+	return deployContext.CheHost + path, true, nil
 }

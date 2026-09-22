@@ -50,8 +50,7 @@ func TestSyncService(t *testing.T) {
 	}).Build()
 
 	server := NewCheHostReconciler()
-	done, err := server.syncCheService(ctx)
-	assert.True(t, done)
+	err := server.syncCheService(ctx)
 	assert.Nil(t, err)
 
 	service := &corev1.Service{}
