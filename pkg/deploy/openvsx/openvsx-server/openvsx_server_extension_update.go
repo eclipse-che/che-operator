@@ -60,6 +60,9 @@ func (r *OpenVSXServerReconciler) syncExtensionUpdateCronJob(ctx *chetypes.Deplo
 
 func (r *OpenVSXServerReconciler) getExtensionUpdateCronJobSpec(ctx *chetypes.DeployContext) (*batchv1.CronJob, error) {
 	autoUpdate := ctx.CheCluster.Spec.Components.OpenVSXRegistry.ExtensionAutoUpdate
+	if autoUpdate == nil {
+		return nil, fmt.Errorf("failed to get extension update CronJob spec: ExtensionAutoUpdate is nil")
+	}
 
 	schedule := constants.DefaultExtensionAutoUpdateSchedule
 	if autoUpdate.Schedule != nil && *autoUpdate.Schedule != "" {
