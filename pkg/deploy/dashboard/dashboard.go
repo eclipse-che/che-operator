@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -103,12 +103,20 @@ func (d *DashboardReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 
 func (d *DashboardReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	done := true
-	if _, err := deploy.Delete(ctx, types.NamespacedName{Name: d.getClusterRoleName(ctx)}, &rbacv1.ClusterRole{}); err != nil {
+	if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+		ctx.Context,
+		types.NamespacedName{Name: d.getClusterRoleName(ctx)},
+		&rbacv1.ClusterRole{},
+	); err != nil {
 		done = false
 		logrus.Errorf("Failed to delete ClusterRole %s, cause: %v", d.getClusterRoleName(ctx), err)
 	}
 
-	if _, err := deploy.Delete(ctx, types.NamespacedName{Name: d.getClusterRoleBindingName(ctx)}, &rbacv1.ClusterRoleBinding{}); err != nil {
+	if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+		ctx.Context,
+		types.NamespacedName{Name: d.getClusterRoleBindingName(ctx)},
+		&rbacv1.ClusterRoleBinding{},
+	); err != nil {
 		done = false
 		logrus.Errorf("Failed to delete ClusterRoleBinding %s, cause: %v", d.getClusterRoleBindingName(ctx), err)
 	}

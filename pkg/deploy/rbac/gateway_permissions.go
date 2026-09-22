@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -13,6 +13,7 @@
 package rbac
 
 import (
+	"fmt"
 	"time"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -65,12 +66,20 @@ func (gp *GatewayPermissionsReconciler) Finalize(ctx *chetypes.DeployContext) bo
 
 func (gp *GatewayPermissionsReconciler) deleteGatewayPermissions(deployContext *chetypes.DeployContext) (bool, error) {
 	name := gp.gatewayPermissionsName(deployContext.CheCluster)
-	if done, err := deploy.Delete(deployContext, types.NamespacedName{Name: name}, &rbacv1.ClusterRoleBinding{}); !done {
-		return false, err
+	if err := deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+		deployContext.Context,
+		types.NamespacedName{Name: name},
+		&rbacv1.ClusterRoleBinding{},
+	); err != nil {
+		return false, fmt.Errorf("failed to delete ClusterRoleBinding %s: %w", name, err)
 	}
 
-	if done, err := deploy.Delete(deployContext, types.NamespacedName{Name: name}, &rbacv1.ClusterRole{}); !done {
-		return false, err
+	if err := deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+		deployContext.Context,
+		types.NamespacedName{Name: name},
+		&rbacv1.ClusterRole{},
+	); err != nil {
+		return false, fmt.Errorf("failed to delete ClusterRole %s: %w", name, err)
 	}
 
 	if err := deploy.DeleteFinalizer(deployContext, CheGatewayClusterPermissionsFinalizerName); err != nil {
