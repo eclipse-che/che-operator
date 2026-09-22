@@ -180,7 +180,7 @@ func syncAll(deployContext *chetypes.DeployContext) (bool, error) {
 
 // syncGatewayObject syncs the given object into the CheCluster namespace.
 func syncGatewayObject(deployContext *chetypes.DeployContext, obj client.Object, diffOpts ...cmp.Option) error {
-	kind := obj.GetObjectKind().GroupVersionKind().Kind
+	kind := k8sclient.GetObjectType(obj)
 
 	if err := controllerutil.SetControllerReference(deployContext.CheCluster, obj, deployContext.ClusterAPI.Scheme); err != nil {
 		return fmt.Errorf("failed to set owner reference for %s %s/%s: %w", kind, obj.GetNamespace(), obj.GetName(), err)

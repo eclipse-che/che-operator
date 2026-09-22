@@ -132,7 +132,7 @@ func (s *CheServerReconciler) deletePermissions(ctx *chetypes.DeployContext) boo
 
 			// Removes any legacy CRB https://github.com/eclipse/che/issues/19506
 			legacyName := ctx.CheCluster.Namespace + "-" + constants.DefaultCheServiceAccountName + "-" + name
-			if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+			if err := ctx.ClusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(
 				ctx.Context,
 				types.NamespacedName{Name: legacyName},
 				&rbacv1.ClusterRoleBinding{},

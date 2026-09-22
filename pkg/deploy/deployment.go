@@ -108,7 +108,7 @@ func SyncDeploymentSpecToCluster(
 		return false, nil
 	}
 
-	provisioned := actual.Status.UnavailableReplicas == 0
+	provisioned := actual.Status.ObservedGeneration >= actual.Generation && actual.Status.UnavailableReplicas == 0
 	if actual.Spec.Strategy.Type == appsv1.RollingUpdateDeploymentStrategyType && !provisioned {
 		logrus.Infof("Deployment %s is in the rolling update state.", deploymentSpec.Name)
 	}

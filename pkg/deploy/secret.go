@@ -38,13 +38,12 @@ var SecretDiffOpts = cmp.Options{
 func SyncSecretToCluster(
 	deployContext *chetypes.DeployContext,
 	name string,
-	namespace string,
 	data map[string][]byte) error {
 
-	secretSpec := GetSecretSpec(name, namespace, data)
+	secretSpec := GetSecretSpec(name, deployContext.CheCluster.Namespace, data)
 
 	if err := controllerutil.SetControllerReference(deployContext.CheCluster, secretSpec, deployContext.ClusterAPI.Scheme); err != nil {
-		return fmt.Errorf("failed to set owner reference for Secret %s/%s: %w", namespace, name, err)
+		return fmt.Errorf("failed to set owner reference for Secret %s/%s: %w", secretSpec.Namespace, name, err)
 	}
 
 	if err := deployContext.ClusterAPI.ClientWrapper.Sync(
@@ -52,7 +51,7 @@ func SyncSecretToCluster(
 		secretSpec,
 		&k8sclient.SyncOptions{DiffOpts: SecretDiffOpts},
 	); err != nil {
-		return fmt.Errorf("failed to sync Secret %s/%s: %w", namespace, name, err)
+		return fmt.Errorf("failed to sync Secret %s/%s: %w", secretSpec.Namespace, name, err)
 	}
 
 	return nil

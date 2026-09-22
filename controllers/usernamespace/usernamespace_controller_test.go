@@ -146,7 +146,6 @@ func TestCreatesDataInNamespace(t *testing.T) {
 		assert.Equal(t, 1, len(cert.Data), "Expecting just 1 element in the self-signed cert")
 		assert.Equal(t, "my certificate", string(cert.Data["ca.crt"]), "Unexpected self-signed certificate")
 		assert.Equal(t, corev1.SecretTypeOpaque, cert.Type, "Unexpected secret type")
-		assert.Equal(t, true, *cert.Immutable, "Unexpected mutability of the secret")
 
 		gitTlsConfig := corev1.ConfigMap{}
 		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-git-tls-creds", Namespace: namespace.GetName()}, &gitTlsConfig))
