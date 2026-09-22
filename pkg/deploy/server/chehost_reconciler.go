@@ -34,15 +34,16 @@ func NewCheHostReconciler() *CheHostReconciler {
 }
 
 func (s *CheHostReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	done, err := s.syncCheService(ctx)
+	if err := s.syncCheService(ctx); err != nil {
+		return reconcile.Result{}, false, err
+	}
+
+	cheHost, done, err := s.exposeCheEndpoint(ctx)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
 
-	ctx.CheHost, done, err = s.exposeCheEndpoint(ctx)
-	if !done {
-		return reconcile.Result{}, false, err
-	}
+	ctx.CheHost = cheHost
 
 	return reconcile.Result{}, true, nil
 }
@@ -51,7 +52,7 @@ func (s *CheHostReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	return true
 }
 
-func (s *CheHostReconciler) syncCheService(ctx *chetypes.DeployContext) (bool, error) {
+func (s *CheHostReconciler) syncCheService(ctx *chetypes.DeployContext) error {
 	portName := []string{"http"}
 	portNumber := []int32{constants.DefaultServerPort}
 
@@ -66,19 +67,18 @@ func (s *CheHostReconciler) syncCheService(ctx *chetypes.DeployContext) (bool, e
 	}
 
 	spec := deploy.GetServiceSpec(ctx, deploy.CheServiceName, portName, portNumber, getComponentName())
-	return deploy.Sync(ctx, spec, deploy.ServiceDefaultDiffOpts)
+	return deploy.SyncServiceSpecToCluster(ctx, spec)
 }
 
 func (s CheHostReconciler) exposeCheEndpoint(ctx *chetypes.DeployContext) (string, bool, error) {
 	if !infrastructure.IsOpenShift() {
-		_, done, err := deploy.SyncIngressToCluster(
+		if _, err := deploy.SyncIngressToCluster(
 			ctx,
 			getComponentName(),
 			"",
 			gateway.GatewayServiceName,
 			constants.DefaultServerPort,
-			getComponentName())
-		if !done {
+			getComponentName()); err != nil {
 			return "", false, err
 		}
 
@@ -95,14 +95,13 @@ func (s CheHostReconciler) exposeCheEndpoint(ctx *chetypes.DeployContext) (strin
 		return ingress.Spec.Rules[0].Host, true, nil
 	}
 
-	done, err := deploy.SyncRouteToCluster(
+	if err := deploy.SyncRouteToCluster(
 		ctx,
 		getComponentName(),
 		"/",
 		gateway.GatewayServiceName,
 		constants.DefaultServerPort,
-		getComponentName())
-	if !done {
+		getComponentName()); err != nil {
 		return "", false, err
 	}
 

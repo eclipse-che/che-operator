@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -24,20 +24,20 @@ import (
 func TestSyncClusterRoleBindingToCluster(t *testing.T) {
 	ctx := test.NewCtxBuilder().Build()
 
-	done, err := SyncClusterRoleBindingToCluster(ctx, "test", "sa", "clusterrole-1")
-	if !done || err != nil {
+	err := SyncClusterRoleBindingToCluster(ctx, "test", "sa", "clusterrole-1")
+	if err != nil {
 		t.Fatalf("Failed to sync crb: %v", err)
 	}
 
 	// sync a new cluster role binding
-	_, err = SyncClusterRoleBindingToCluster(ctx, "test", "sa", "clusterrole-2")
+	err = SyncClusterRoleBindingToCluster(ctx, "test", "sa", "clusterrole-2")
 	if err != nil {
 		t.Fatalf("Failed to sync crb: %v", err)
 	}
 
 	// sync twice to be sure update done correctly
-	done, err = SyncClusterRoleBindingToCluster(ctx, "test", "sa", "clusterrole-2")
-	if !done || err != nil {
+	err = SyncClusterRoleBindingToCluster(ctx, "test", "sa", "clusterrole-2")
+	if err != nil {
 		t.Fatalf("Failed to sync crb: %v", err)
 	}
 

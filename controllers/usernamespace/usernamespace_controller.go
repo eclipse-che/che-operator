@@ -391,8 +391,15 @@ func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context
 		Immutable: cheCert.Immutable,
 	}
 
-	_, err := deploy.Sync(deployContext, targetCert, deploy.SecretDiffOpts)
-	return err
+	if err := r.nonCachedClientWrapper.Sync(
+		ctx,
+		targetCert,
+		&k8sclient.SyncOptions{DiffOpts: deploy.SecretDiffOpts},
+	); err != nil {
+		return fmt.Errorf("failed to sync Secret %s/%s: %w", targetCert.Namespace, targetCert.Name, err)
+	}
+
+	return nil
 }
 
 func (r *CheUserNamespaceReconciler) reconcileTrustedCerts(ctx context.Context, deployContext *chetypes.DeployContext, targetNs string, checluster *chev2.CheCluster) error {
@@ -523,8 +530,15 @@ func (r *CheUserNamespaceReconciler) reconcileUserSettings(
 		Data: data,
 	}
 
-	_, err := deploy.Sync(deployContext, cm, diffs.ConfigMapEnsureLabels)
-	return err
+	if err := r.nonCachedClientWrapper.Sync(
+		deployContext.Context,
+		cm,
+		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
+	); err != nil {
+		return fmt.Errorf("failed to sync ConfigMap %s/%s: %w", cm.Namespace, cm.Name, err)
+	}
+
+	return nil
 }
 
 func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Context, targetNs string, checluster *chev2.CheCluster, deployContext *chetypes.DeployContext) error {
@@ -580,8 +594,15 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 		target.Data["host"] = gitCert.Data[constants.GitSelfSignedCertsConfigMapGitHostKey]
 	}
 
-	_, err := deploy.Sync(deployContext, &target, diffs.ConfigMapEnsureLabels)
-	return err
+	if err := r.nonCachedClientWrapper.Sync(
+		ctx,
+		&target,
+		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
+	); err != nil {
+		return fmt.Errorf("failed to sync ConfigMap %s/%s: %w", target.Namespace, target.Name, err)
+	}
+
+	return nil
 }
 
 func (r *CheUserNamespaceReconciler) reconcileNodeSelectorAndTolerations(ctx context.Context, targetNs string, checluster *chev2.CheCluster, deployContext *chetypes.DeployContext) error {
@@ -726,6 +747,6 @@ func deleteLegacyObject(name string, objectMeta client.Object, targetNs string, 
 		return err
 	}
 
-	logrus.Infof("Deleted legacy workspace object: %s name: %s, namespace: %s", deploy.GetObjectType(objectMeta), legacyPrefixedName, targetNs)
+	logrus.Infof("Deleted legacy workspace object: %s name: %s, namespace: %s", k8sclient.GetObjectType(objectMeta), legacyPrefixedName, targetNs)
 	return nil
 }

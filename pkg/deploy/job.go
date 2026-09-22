@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -13,15 +13,18 @@
 package deploy
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 var (
@@ -51,10 +54,23 @@ func SyncJobToCluster(
 	component string,
 	image string,
 	serviceAccountName string,
-	env map[string]string) (bool, error) {
+	env map[string]string) error {
 
 	jobSpec := getJobSpec(deployContext, name, component, image, serviceAccountName, env)
-	return Sync(deployContext, jobSpec, JobDiffOpts)
+
+	if err := controllerutil.SetControllerReference(deployContext.CheCluster, jobSpec, deployContext.ClusterAPI.Scheme); err != nil {
+		return fmt.Errorf("failed to set owner reference for Job %s/%s: %w", jobSpec.Namespace, jobSpec.Name, err)
+	}
+
+	if err := deployContext.ClusterAPI.ClientWrapper.Sync(
+		deployContext.Context,
+		jobSpec,
+		&k8sclient.SyncOptions{DiffOpts: JobDiffOpts},
+	); err != nil {
+		return fmt.Errorf("failed to sync Job %s/%s: %w", jobSpec.Namespace, jobSpec.Name, err)
+	}
+
+	return nil
 }
 
 // GetSpecJob creates new job configuration by given parameters.

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -149,14 +149,14 @@ func TestGetSecrets(t *testing.T) {
 func TestSyncSecretToCluster(t *testing.T) {
 	ctx := test.NewCtxBuilder().Build()
 
-	done, err := SyncSecretToCluster(ctx, "test", "eclipse-che", map[string][]byte{"A": []byte("AAAA")})
-	if !done || err != nil {
+	err := SyncSecretToCluster(ctx, "test", "eclipse-che", map[string][]byte{"A": []byte("AAAA")})
+	if err != nil {
 		t.Fatalf("Failed to sync secret: %v", err)
 	}
 
 	// sync another secret
-	done, err = SyncSecretToCluster(ctx, "test", "eclipse-che", map[string][]byte{"B": []byte("BBBB")})
-	if !done || err != nil {
+	err = SyncSecretToCluster(ctx, "test", "eclipse-che", map[string][]byte{"B": []byte("BBBB")})
+	if err != nil {
 		t.Fatalf("Failed to sync secret: %v", err)
 	}
 

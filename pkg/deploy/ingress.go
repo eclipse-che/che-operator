@@ -13,6 +13,7 @@
 package deploy
 
 import (
+	"fmt"
 	"reflect"
 	"sort"
 
@@ -20,11 +21,13 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	networking "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 var IngressDiffOpts = cmp.Options{
@@ -53,11 +56,23 @@ func SyncIngressToCluster(
 	path string,
 	serviceName string,
 	servicePort int32,
-	component string) (endpointUrl string, done bool, err error) {
+	component string) (endpointUrl string, err error) {
 
 	ingressUrl, ingressSpec := GetIngressSpec(deployContext, name, path, serviceName, servicePort, component)
-	sync, err := Sync(deployContext, ingressSpec, IngressDiffOpts)
-	return ingressUrl, sync, err
+
+	if err := controllerutil.SetControllerReference(deployContext.CheCluster, ingressSpec, deployContext.ClusterAPI.Scheme); err != nil {
+		return "", fmt.Errorf("failed to set owner reference for Ingress %s/%s: %w", ingressSpec.Namespace, ingressSpec.Name, err)
+	}
+
+	if err := deployContext.ClusterAPI.ClientWrapper.Sync(
+		deployContext.Context,
+		ingressSpec,
+		&k8sclient.SyncOptions{DiffOpts: IngressDiffOpts},
+	); err != nil {
+		return "", fmt.Errorf("failed to sync Ingress %s/%s: %w", ingressSpec.Namespace, ingressSpec.Name, err)
+	}
+
+	return ingressUrl, nil
 }
 
 // GetIngressSpec returns expected ingress config for given parameters

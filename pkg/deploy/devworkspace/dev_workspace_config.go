@@ -26,7 +26,6 @@ import (
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -34,6 +33,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -75,10 +75,14 @@ func (d *DevWorkspaceConfigReconciler) Reconcile(ctx *chetypes.DeployContext) (r
 		return reconcile.Result{}, false, err
 	}
 
-	done, err := deploy.Sync(ctx, dwoc)
-	if !done || err != nil {
+	if err := controllerutil.SetControllerReference(ctx.CheCluster, dwoc, ctx.ClusterAPI.Scheme); err != nil {
 		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
+
+	if err := ctx.ClusterAPI.ClientWrapper.Sync(ctx.Context, dwoc); err != nil {
+		return reconcile.Result{RequeueAfter: time.Second}, false, err
+	}
+
 	return reconcile.Result{}, true, nil
 }
 

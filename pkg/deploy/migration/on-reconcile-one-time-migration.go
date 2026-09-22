@@ -20,10 +20,10 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
@@ -271,5 +271,5 @@ func getFailedToCreateSelectorErrorMessage() string {
 
 func getObjectMigratedMessage(obj client.Object) string {
 	return fmt.Sprintf("Added '%s=%s' label to %s object of %s kind",
-		constants.KubernetesPartOfLabelKey, constants.CheEclipseOrg, obj.GetName(), deploy.GetObjectType(obj))
+		constants.KubernetesPartOfLabelKey, constants.CheEclipseOrg, obj.GetName(), k8sclient.GetObjectType(obj))
 }

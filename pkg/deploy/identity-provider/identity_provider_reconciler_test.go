@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -123,8 +123,7 @@ func TestSyncOAuthClientShouldSyncTokenTimeout(t *testing.T) {
 	}
 
 	ctx := test.NewCtxBuilder().WithCheCluster(checluster).Build()
-	done, err := syncOAuthClient(ctx)
-	assert.True(t, done)
+	err := syncOAuthClient(ctx)
 	assert.Nil(t, err)
 
 	oauthClient, err := GetOAuthClient(ctx)
@@ -214,7 +213,7 @@ func TestSyncOAuthClient(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
 			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
-			_, err := syncOAuthClient(ctx)
+			err := syncOAuthClient(ctx)
 			assert.Nil(t, err)
 
 			oauthClient, err := GetOAuthClient(ctx)
@@ -315,7 +314,7 @@ func TestSyncExistedOAuthClient(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
 			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(oauthClient1).WithObjects(oauthClient2).Build()
-			_, err := syncOAuthClient(ctx)
+			err := syncOAuthClient(ctx)
 			assert.Nil(t, err)
 
 			oauthClient, err := GetOAuthClient(ctx)

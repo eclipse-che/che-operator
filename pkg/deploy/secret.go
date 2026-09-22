@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -14,10 +14,13 @@ package deploy
 
 import (
 	"context"
+	"fmt"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -31,15 +34,28 @@ var SecretDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(corev1.Secret{}, "TypeMeta", "ObjectMeta"),
 }
 
-// SyncSecret applies secret into cluster or external namespace
+// SyncSecretToCluster applies secret into cluster or external namespace
 func SyncSecretToCluster(
 	deployContext *chetypes.DeployContext,
 	name string,
 	namespace string,
-	data map[string][]byte) (bool, error) {
+	data map[string][]byte) error {
 
 	secretSpec := GetSecretSpec(name, namespace, data)
-	return Sync(deployContext, secretSpec, SecretDiffOpts)
+
+	if err := controllerutil.SetControllerReference(deployContext.CheCluster, secretSpec, deployContext.ClusterAPI.Scheme); err != nil {
+		return fmt.Errorf("failed to set owner reference for Secret %s/%s: %w", namespace, name, err)
+	}
+
+	if err := deployContext.ClusterAPI.ClientWrapper.Sync(
+		deployContext.Context,
+		secretSpec,
+		&k8sclient.SyncOptions{DiffOpts: SecretDiffOpts},
+	); err != nil {
+		return fmt.Errorf("failed to sync Secret %s/%s: %w", namespace, name, err)
+	}
+
+	return nil
 }
 
 // Get all secrets by labels and annotations
