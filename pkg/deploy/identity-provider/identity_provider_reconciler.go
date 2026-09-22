@@ -111,7 +111,7 @@ func syncOAuthClient(ctx *chetypes.DeployContext) error {
 	if err := ctx.ClusterAPI.ClientWrapper.Sync(
 		ctx.Context,
 		oauthClientSpec,
-		&k8sclient.SyncOptions{DiffOpts: oAuthClientDiffOpts},
+		&k8sclient.SyncOptions{DiffOpts: oAuthClientDiffOpts, SuppressDiff: true},
 	); err != nil {
 		return fmt.Errorf("failed to sync OAuthClient %s: %w", oauthClientSpec.Name, err)
 	}
