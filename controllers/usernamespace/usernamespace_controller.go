@@ -346,8 +346,11 @@ func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context
 	targetCertName := prefixedName("server-cert")
 
 	delSecret := func() error {
-		_, err := deploy.Delete(deployContext, client.ObjectKey{Name: targetCertName, Namespace: targetNs}, &corev1.Secret{})
-		return err
+		return r.nonCachedClientWrapper.DeleteByKeyIgnoreNotFound(
+			ctx,
+			client.ObjectKey{Name: targetCertName, Namespace: targetNs},
+			&corev1.Secret{},
+		)
 	}
 
 	cheCert := &corev1.Secret{}
@@ -401,9 +404,8 @@ func (r *CheUserNamespaceReconciler) reconcileTrustedCerts(ctx context.Context, 
 	// and avoid mounting the same certificates under different paths.
 	// See cerificates#syncCheCABundleCerts
 	trustedCACertsCMKey := client.ObjectKey{Name: prefixedName("trusted-ca-certs"), Namespace: targetNs}
-	_, err := deploy.Delete(deployContext, trustedCACertsCMKey, &corev1.ConfigMap{})
 
-	return err
+	return r.nonCachedClientWrapper.DeleteByKeyIgnoreNotFound(ctx, trustedCACertsCMKey, &corev1.ConfigMap{})
 }
 
 func (r *CheUserNamespaceReconciler) reconcileUserSettings(
@@ -420,12 +422,12 @@ func (r *CheUserNamespaceReconciler) reconcileUserSettings(
 
 	// delete previously created CMs
 	for _, name := range cm2Delete {
-		if _, err := deploy.Delete(
-			deployContext,
+		if err := r.nonCachedClientWrapper.DeleteByKeyIgnoreNotFound(
+			deployContext.Context,
 			client.ObjectKey{Name: name, Namespace: targetNs},
 			&corev1.ConfigMap{},
 		); err != nil {
-			return err
+			return fmt.Errorf("failed to delete ConfigMap %s/%s: %w", targetNs, name, err)
 		}
 	}
 
@@ -531,8 +533,11 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 	}
 	targetName := prefixedName("git-tls-creds")
 	delConfigMap := func() error {
-		_, err := deploy.Delete(deployContext, client.ObjectKey{Name: targetName, Namespace: targetNs}, &corev1.ConfigMap{})
-		return err
+		return r.nonCachedClientWrapper.DeleteByKeyIgnoreNotFound(
+			ctx,
+			client.ObjectKey{Name: targetName, Namespace: targetNs},
+			&corev1.ConfigMap{},
+		)
 	}
 
 	if checluster.Spec.DevEnvironments.TrustedCerts == nil || checluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName == "" {

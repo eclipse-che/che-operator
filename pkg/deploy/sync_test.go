@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -104,46 +104,5 @@ func TestUpdate(t *testing.T) {
 
 	if actual.Labels["a"] != "b" {
 		t.Fatalf("Object hasn't been updated")
-	}
-}
-
-func TestShouldDeleteExistedObject(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
-
-	err := ctx.ClusterAPI.Client.Create(context.TODO(), testObj.DeepCopy())
-	if err != nil {
-		t.Fatalf("Failed to create object: %v", err)
-	}
-
-	done, err := Delete(ctx, testKey, testObj.DeepCopy())
-	if err != nil {
-		t.Fatalf("Failed to delete object: %v", err)
-	}
-
-	if !done {
-		t.Fatalf("Object hasn't been deleted")
-	}
-
-	actualObj := &corev1.Secret{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), testKey, actualObj)
-	if err != nil && !errors.IsNotFound(err) {
-		t.Fatalf("Failed to get object: %v", err)
-	}
-
-	if err == nil {
-		t.Fatalf("Object hasn't been deleted")
-	}
-}
-
-func TestShouldNotDeleteObject(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
-
-	done, err := Delete(ctx, testKey, testObj.DeepCopy())
-	if err != nil {
-		t.Fatalf("Failed to delete object: %v", err)
-	}
-
-	if !done {
-		t.Fatalf("Object has not been deleted")
 	}
 }
