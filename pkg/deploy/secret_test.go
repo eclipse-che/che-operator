@@ -149,13 +149,13 @@ func TestGetSecrets(t *testing.T) {
 func TestSyncSecretToCluster(t *testing.T) {
 	ctx := test.NewCtxBuilder().Build()
 
-	err := SyncSecretToCluster(ctx, "test", "eclipse-che", map[string][]byte{"A": []byte("AAAA")})
+	err := SyncSecretToCluster(ctx, "test", map[string][]byte{"A": []byte("AAAA")})
 	if err != nil {
 		t.Fatalf("Failed to sync secret: %v", err)
 	}
 
 	// sync another secret
-	err = SyncSecretToCluster(ctx, "test", "eclipse-che", map[string][]byte{"B": []byte("BBBB")})
+	err = SyncSecretToCluster(ctx, "test", map[string][]byte{"B": []byte("BBBB")})
 	if err != nil {
 		t.Fatalf("Failed to sync secret: %v", err)
 	}

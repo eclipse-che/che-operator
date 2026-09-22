@@ -547,7 +547,7 @@ func CreateTLSSecret(ctx *chetypes.DeployContext, name string) (err error) {
 			return err
 		}
 
-		if err := deploy.SyncSecretToCluster(ctx, name, ctx.CheCluster.Namespace, map[string][]byte{"ca.crt": crtBytes}); err != nil {
+		if err := deploy.SyncSecretToCluster(ctx, name, map[string][]byte{"ca.crt": crtBytes}); err != nil {
 			return err
 		}
 	}
