@@ -108,7 +108,7 @@ func syncOAuthClient(ctx *chetypes.DeployContext) error {
 		ctx.CheCluster.Spec.Networking.Auth.OAuthAccessTokenInactivityTimeoutSeconds,
 		ctx.CheCluster.Spec.Networking.Auth.OAuthAccessTokenMaxAgeSeconds)
 
-	if err := ctx.ClusterAPI.ClientWrapper.Sync(
+	if err := ctx.ClusterAPI.NonCachingClientWrapper.Sync(
 		ctx.Context,
 		oauthClientSpec,
 		&k8sclient.SyncOptions{DiffOpts: oAuthClientDiffOpts, SuppressDiff: true},
