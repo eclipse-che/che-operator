@@ -23,8 +23,13 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
-	"github.com/sirupsen/logrus"
 	networking "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
+)
+
+var (
+	logger = ctrl.Log.WithName("expose")
 )
 
 // Expose exposes the specified component according to the configured exposure strategy rules
@@ -50,16 +55,19 @@ func ExposeWithHostPath(
 		path = "/" + path
 	}
 
+	key := types.NamespacedName{Name: component, Namespace: deployContext.CheCluster.Namespace}
+	clientWrapper := deployContext.ClusterAPI.ClientWrapper
+
 	if !infrastructure.IsOpenShift() {
 		return exposeWithGateway(deployContext, gatewayConfig, component, path, func() {
-			if _, err = deploy.DeleteNamespacedObject(deployContext, component, &networking.Ingress{}); err != nil {
-				logrus.Error(err)
+			if err := clientWrapper.DeleteByKeyIgnoreNotFound(deployContext.Context, key, &networking.Ingress{}); err != nil {
+				logger.Error(err, "Failed to delete Ingress", "namespace", key.Namespace, "name", key.Name)
 			}
 		})
 	} else {
 		return exposeWithGateway(deployContext, gatewayConfig, component, path, func() {
-			if _, err := deploy.DeleteNamespacedObject(deployContext, component, &routev1.Route{}); err != nil {
-				logrus.Error(err)
+			if err := clientWrapper.DeleteByKeyIgnoreNotFound(deployContext.Context, key, &routev1.Route{}); err != nil {
+				logger.Error(err, "Failed to delete Route", "namespace", key.Namespace, "name", key.Name)
 			}
 		})
 	}
@@ -78,7 +86,7 @@ func exposeWithGateway(deployContext *chetypes.DeployContext,
 	done, err = deploy.Sync(deployContext, cfg, diffs.ConfigMapEnsureLabels)
 	if !done {
 		if err != nil {
-			logrus.Error(err)
+			logger.Error(err, "Failed to sync gateway ConfigMap", "namespace", cfg.Namespace, "name", cfg.Name)
 		}
 		return "", false, err
 	}
