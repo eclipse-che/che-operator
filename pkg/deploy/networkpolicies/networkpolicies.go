@@ -22,7 +22,7 @@ import (
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
-	labels2 "github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -89,7 +89,7 @@ func GetNetworkPolicies(ctx *chetypes.DeployContext, namespace string) ([]*netwo
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "allow-from-same-namespace",
 			Namespace: namespace,
-			Labels:    labels2.GetLabels(defaults.GetCheFlavor()),
+			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
 		Spec: networkingv1.NetworkPolicySpec{
 			PodSelector: *podSelector.DeepCopy(),
@@ -114,7 +114,7 @@ func GetNetworkPolicies(ctx *chetypes.DeployContext, namespace string) ([]*netwo
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "allow-from-openshift-ingress",
 			Namespace: namespace,
-			Labels:    labels2.GetLabels(defaults.GetCheFlavor()),
+			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
 		Spec: networkingv1.NetworkPolicySpec{
 			PodSelector: *podSelector.DeepCopy(),
@@ -143,7 +143,7 @@ func GetNetworkPolicies(ctx *chetypes.DeployContext, namespace string) ([]*netwo
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "allow-from-openshift-monitoring",
 			Namespace: namespace,
-			Labels:    labels2.GetLabels(defaults.GetCheFlavor()),
+			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
 		Spec: networkingv1.NetworkPolicySpec{
 			PodSelector: *podSelector.DeepCopy(),
@@ -172,7 +172,7 @@ func GetNetworkPolicies(ctx *chetypes.DeployContext, namespace string) ([]*netwo
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "allow-from-workspaces",
 			Namespace: namespace,
-			Labels:    labels2.GetLabels(defaults.GetCheFlavor()),
+			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
 		Spec: networkingv1.NetworkPolicySpec{
 			PodSelector: *podSelector.DeepCopy(),
@@ -201,7 +201,7 @@ func GetNetworkPolicies(ctx *chetypes.DeployContext, namespace string) ([]*netwo
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "allow-from-" + ctx.CheCluster.Namespace,
 			Namespace: namespace,
-			Labels:    labels2.GetLabels(defaults.GetCheFlavor()),
+			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
 		Spec: networkingv1.NetworkPolicySpec{
 			PodSelector: *podSelector.DeepCopy(),
@@ -235,7 +235,7 @@ func GetNetworkPolicies(ctx *chetypes.DeployContext, namespace string) ([]*netwo
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("allow-from-%s-operator", defaults.GetCheFlavor()),
 			Namespace: namespace,
-			Labels:    labels2.GetLabels(defaults.GetCheFlavor()),
+			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
 		Spec: networkingv1.NetworkPolicySpec{
 			PodSelector: *podSelector.DeepCopy(),
@@ -272,7 +272,7 @@ func GetNetworkPolicies(ctx *chetypes.DeployContext, namespace string) ([]*netwo
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "allow-from-devworkspace-operator",
 				Namespace: namespace,
-				Labels:    labels2.GetLabels(defaults.GetCheFlavor()),
+				Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 			},
 			Spec: networkingv1.NetworkPolicySpec{
 				PodSelector: *podSelector.DeepCopy(),
@@ -307,7 +307,7 @@ func GetNetworkPolicies(ctx *chetypes.DeployContext, namespace string) ([]*netwo
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "allow-all-egress",
 			Namespace: namespace,
-			Labels:    labels2.GetLabels(defaults.GetCheFlavor()),
+			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
 		Spec: networkingv1.NetworkPolicySpec{
 			PodSelector: *podSelector.DeepCopy(),
@@ -366,7 +366,7 @@ func DeleteNetworkPolicy(ctx *chetypes.DeployContext, namespace string) error {
 		&networkingv1.NetworkPolicyList{},
 		&client.ListOptions{
 			Namespace:     namespace,
-			LabelSelector: labels.SelectorFromSet(labels2.GetLabels(defaults.GetCheFlavor())),
+			LabelSelector: labels.SelectorFromSet(deploy.GetLabels(defaults.GetCheFlavor())),
 		},
 	)
 	if err != nil {
