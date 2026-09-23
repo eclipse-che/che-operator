@@ -34,13 +34,13 @@ type ServerTLS struct {
 	TLSOpts                   []func(*cryptotls.Config)
 	InitialTLSProfileSpec     configv1.TLSProfileSpec
 	InitialTLSAdherencePolicy configv1.TLSAdherencePolicy
-	profileFetched            bool
 }
 
 // BuildServerTLSOptions fetches TLS profile and adherence policy from cluster.
 // Returns TLS config functions when adherence policy requires strict compliance.
-// Returns empty ServerTLS on non-OpenShift clusters. Returns an error on OpenShift
-// when the profile or adherence policy cannot be fetched.
+// Falls back to the library-go default TLS profile on transient API server errors
+// or when adherence policy does not require strict compliance.
+// Returns empty ServerTLS on non-OpenShift clusters.
 func BuildServerTLSOptions(ctx context.Context, cfg *rest.Config, scheme *k8sruntime.Scheme, log logr.Logger) (ServerTLS, error) {
 	if !infrastructure.IsOpenShift() {
 		return ServerTLS{}, nil
@@ -55,24 +55,22 @@ func BuildServerTLSOptions(ctx context.Context, cfg *rest.Config, scheme *k8srun
 }
 
 func buildServerTLSOptions(ctx context.Context, cl client.Client, log logr.Logger) (ServerTLS, error) {
+	var profile configv1.TLSProfileSpec
+	var adherence configv1.TLSAdherencePolicy
 
 	apiServer := &configv1.APIServer{}
 	if err := cl.Get(ctx, client.ObjectKey{Name: tlspkg.APIServerName}, apiServer); err != nil {
-		log.Error(err, "failed to read APIServer/cluster, using Go defaults")
-		return ServerTLS{}, fmt.Errorf("failed to read APIServer/cluster, using Go defaults")
+		log.Error(err, "failed to read APIServer/cluster, falling back to library-go default TLS profile")
+	} else if p, err := tlspkg.GetTLSProfileSpec(apiServer.Spec.TLSSecurityProfile); err != nil {
+		log.Error(err, "failed to resolve TLS profile spec, falling back to library-go default TLS profile")
+	} else {
+		profile = p
+		adherence = apiServer.Spec.TLSAdherence
 	}
-
-	profile, err := tlspkg.GetTLSProfileSpec(apiServer.Spec.TLSSecurityProfile)
-	if err != nil {
-		return ServerTLS{}, fmt.Errorf("failed to fetch TLS adherence policy: %w", err)
-	}
-
-	adherence := apiServer.Spec.TLSAdherence
 
 	serverTLS := ServerTLS{
 		InitialTLSProfileSpec:     profile,
 		InitialTLSAdherencePolicy: adherence,
-		profileFetched:            true,
 	}
 
 	if libgocrypto.ShouldHonorClusterTLSProfile(adherence) {
@@ -82,7 +80,7 @@ func buildServerTLSOptions(ctx context.Context, cl client.Client, log logr.Logge
 		}
 
 		if len(profile.Ciphers) > 0 && len(unsupported) == len(profile.Ciphers) {
-			log.Error(nil, "no ciphers from the cluster TLS profile are supported by Go; server will use Go defaults, which may not satisfy tlsAdherence",
+			log.Error(nil, "no ciphers from the cluster TLS profile are supported by Go; server will use library-go defaults, which may not satisfy tlsAdherence",
 				"profileCiphers", profile.Ciphers)
 		}
 
@@ -94,7 +92,16 @@ func buildServerTLSOptions(ctx context.Context, cl client.Client, log logr.Logge
 		)
 		log.V(1).Info("TLS cipher list from cluster profile", "ciphers", profile.Ciphers)
 	} else {
-		log.Info("TLS adherence policy does not require strict compliance, using Go default TLS configuration",
+		defaultProfile := *configv1.TLSProfiles[libgocrypto.DefaultTLSProfileType]
+		defaultTLSConfigFn, unsupported := tlspkg.NewTLSConfigFromProfile(defaultProfile)
+		if len(unsupported) > 0 {
+			log.Info("Default TLS profile contains ciphers unsupported by Go", "unsupported", unsupported)
+		}
+
+		serverTLS.TLSOpts = []func(*cryptotls.Config){defaultTLSConfigFn}
+
+		log.Info("Using library-go default TLS profile",
+			"minTLSVersion", defaultProfile.MinTLSVersion,
 			"adherencePolicy", adherence,
 		)
 	}
@@ -103,13 +110,8 @@ func buildServerTLSOptions(ctx context.Context, cl client.Client, log logr.Logge
 }
 
 // RegisterSecurityProfileWatcher sets up watcher to restart operator when profile/policy changes.
-// Only registers when profile was successfully fetched.
+// Always registers on OpenShift so that changes (or late availability) trigger a restart.
 func RegisterSecurityProfileWatcher(mgr manager.Manager, serverTLS ServerTLS, onCancel context.CancelFunc, log logr.Logger) error {
-	if !serverTLS.profileFetched {
-		log.Info("Skipping TLS security profile watcher registration, profile was not fetched")
-		return nil
-	}
-
 	watcher := &tlspkg.SecurityProfileWatcher{
 		Client:                    mgr.GetClient(),
 		InitialTLSProfileSpec:     serverTLS.InitialTLSProfileSpec,

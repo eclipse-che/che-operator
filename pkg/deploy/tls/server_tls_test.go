@@ -29,10 +29,18 @@ func TestBuildServerTLSOptions_APIServerAbsent(t *testing.T) {
 	ctx := test.NewCtxBuilder().Build()
 	log := ctrl.Log.WithName("test")
 
-	_, err := buildServerTLSOptions(context.Background(), ctx.ClusterAPI.Client, log)
+	got, err := buildServerTLSOptions(context.Background(), ctx.ClusterAPI.Client, log)
 
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to read APIServer/cluster")
+	assert.NoError(t, err)
+
+	assert.NotEmpty(t, got.TLSOpts, "should fall back to library-go default TLS profile")
+
+	cfg := &cryptotls.Config{}
+	for _, opt := range got.TLSOpts {
+		opt(cfg)
+	}
+
+	assert.Greater(t, cfg.MinVersion, uint16(0), "default profile should set a minimum TLS version")
 }
 
 func TestBuildServerTLSOptions_StrictWithModernProfile(t *testing.T) {
@@ -54,7 +62,7 @@ func TestBuildServerTLSOptions_StrictWithModernProfile(t *testing.T) {
 	got, err := buildServerTLSOptions(context.Background(), ctx.ClusterAPI.Client, log)
 
 	assert.NoError(t, err)
-	assert.True(t, got.profileFetched)
+
 	assert.NotEmpty(t, got.TLSOpts)
 
 	cfg := &cryptotls.Config{}
@@ -85,7 +93,7 @@ func TestBuildServerTLSOptions_StrictWithOldProfile(t *testing.T) {
 	got, err := buildServerTLSOptions(context.Background(), ctx.ClusterAPI.Client, log)
 
 	assert.NoError(t, err)
-	assert.True(t, got.profileFetched)
+
 	assert.NotEmpty(t, got.TLSOpts)
 
 	cfg := &cryptotls.Config{}
@@ -97,7 +105,7 @@ func TestBuildServerTLSOptions_StrictWithOldProfile(t *testing.T) {
 	assert.NotEmpty(t, cfg.CipherSuites)
 }
 
-func TestBuildServerTLSOptions_NoOpinionSkipsTLSOpts(t *testing.T) {
+func TestBuildServerTLSOptions_NoOpinionUsesDefaultProfile(t *testing.T) {
 	apiServer := &configv1.APIServer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "cluster",
@@ -113,6 +121,13 @@ func TestBuildServerTLSOptions_NoOpinionSkipsTLSOpts(t *testing.T) {
 	got, err := buildServerTLSOptions(context.Background(), ctx.ClusterAPI.Client, log)
 
 	assert.NoError(t, err)
-	assert.True(t, got.profileFetched)
-	assert.Empty(t, got.TLSOpts)
+
+	assert.NotEmpty(t, got.TLSOpts, "should apply library-go default TLS profile")
+
+	cfg := &cryptotls.Config{}
+	for _, opt := range got.TLSOpts {
+		opt(cfg)
+	}
+
+	assert.Greater(t, cfg.MinVersion, uint16(0), "default profile should set a minimum TLS version")
 }
