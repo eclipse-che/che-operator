@@ -85,6 +85,7 @@ func TestOpenVSXServerReconciler(t *testing.T) {
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: gateway.GatewayConfigMapNamePrefix + constants.OpenVSXServerComponentName, Namespace: ns}, &corev1.ConfigMap{}))
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerExtensionsConfigMapName, Namespace: ns}, &corev1.ConfigMap{}))
 	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerExtensionPublishJobName, Namespace: ns}, &batchv1.Job{}))
+	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerExtensionUpdateCronJobName, Namespace: ns}, &batchv1.CronJob{}))
 }
 
 func TestDeploymentSpecHasWaitDatabaseInitContainer(t *testing.T) {

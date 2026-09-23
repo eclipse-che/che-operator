@@ -13,7 +13,6 @@
 package openvsx_server
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
@@ -26,6 +25,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -53,13 +53,13 @@ func (r *OpenVSXServerReconciler) syncDefaultExtensionsConfig(ctx *chetypes.Depl
 		return err
 	}
 
-	return ctx.ClusterAPI.ClientWrapper.CreateIfNotExists(context.TODO(), cm)
+	return ctx.ClusterAPI.ClientWrapper.CreateIfNotExists(ctx.Context, cm)
 }
 
 func (r *OpenVSXServerReconciler) getExtensionsVersion(ctx *chetypes.DeployContext) (string, error) {
 	cm := &corev1.ConfigMap{}
 	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-		context.TODO(),
+		ctx.Context,
 		types.NamespacedName{
 			Name:      constants.OpenVSXServerExtensionsConfigMapName,
 			Namespace: ctx.CheCluster.Namespace,
@@ -117,7 +117,21 @@ func (r *OpenVSXServerReconciler) syncExtensions(ctx *chetypes.DeployContext) (b
 									Name:  "OVSX_REGISTRY_URL",
 									Value: openvsx.GetOpenVSXServerServiceURL(ctx),
 								},
+								{
+									Name:  "OVSX_FORWARDED_HOST",
+									Value: ctx.CheHost,
+								},
 								utils.EnvVarFromSecret("OVSX_PAT", credentialsSecret, "openvsx-publisher-token"),
+							},
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse(constants.OpenVSXExtensionJobMemoryRequest),
+									corev1.ResourceCPU:    resource.MustParse(constants.OpenVSXExtensionJobCpuRequest),
+								},
+								Limits: corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse(constants.OpenVSXExtensionJobMemoryLimit),
+									corev1.ResourceCPU:    resource.MustParse(constants.OpenVSXExtensionJobCpuLimit),
+								},
 							},
 							Command: []string{"/home/openvsx/publish-extensions.sh", "/home/openvsx/extensions/extensions.list"},
 						},
@@ -142,7 +156,7 @@ func (r *OpenVSXServerReconciler) syncExtensions(ctx *chetypes.DeployContext) (b
 			BackoffLimit:            ptr.To(int32(3)),
 			Completions:             ptr.To(int32(1)),
 			TTLSecondsAfterFinished: ptr.To(int32(300)),
-			ActiveDeadlineSeconds:   ptr.To(int64(300)),
+			ActiveDeadlineSeconds:   ptr.To(int64(1800)),
 		},
 	}
 
@@ -157,7 +171,7 @@ func (r *OpenVSXServerReconciler) syncExtensions(ctx *chetypes.DeployContext) (b
 	}
 
 	err := ctx.ClusterAPI.ClientWrapper.Sync(
-		context.TODO(),
+		ctx.Context,
 		job,
 		&k8sclient.SyncOptions{
 			DeleteOpts: []client.DeleteOption{client.PropagationPolicy(metav1.DeletePropagationBackground)},

@@ -13,8 +13,6 @@
 package openvsx_server
 
 import (
-	"context"
-
 	_ "embed"
 	"fmt"
 
@@ -102,6 +100,10 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 		return reconcile.Result{}, false, fmt.Errorf("failed to sync Extensions Config: %w", err)
 	}
 
+	if err = r.syncExtensionUpdateCronJob(ctx); err != nil {
+		return reconcile.Result{}, false, fmt.Errorf("failed to sync extension update CronJob: %w", err)
+	}
+
 	if !r.isServerReady(ctx) {
 		return reconcile.Result{}, false, nil
 	}
@@ -133,38 +135,13 @@ func deleteResources(ctx *chetypes.DeployContext) {
 		Namespace: ctx.CheCluster.Namespace,
 	}
 
-	// Delete gateway ConfigMap
-	gatewayConfigKey := types.NamespacedName{
-		Name:      gateway.GatewayConfigMapNamePrefix + constants.OpenVSXServerComponentName,
-		Namespace: ctx.CheCluster.Namespace,
-	}
-	err := cw.DeleteByKeyIgnoreNotFound(context.TODO(), gatewayConfigKey, &corev1.ConfigMap{})
-	if err != nil {
-		logger.Error(err, "failed to delete gateway ConfigMap", "Name", gatewayConfigKey.Name)
-	}
-
-	err = cw.DeleteByKeyIgnoreNotFound(context.TODO(), objKey, &corev1.Service{})
-	if err != nil {
-		logger.Error(err, "Failed to delete Service", "Name", objKey.Name)
-	}
-
-	err = cw.DeleteByKeyIgnoreNotFound(context.TODO(), objKey, &appsv1.Deployment{})
+	err := cw.DeleteByKeyIgnoreNotFound(ctx.Context, objKey, &appsv1.Deployment{})
 	if err != nil {
 		logger.Error(err, "Failed to delete Deployment", "Name", objKey.Name)
 	}
 
-	err = cw.DeleteByKeyIgnoreNotFound(context.TODO(), objKey, &corev1.PersistentVolumeClaim{})
-	if err != nil {
-		logger.Error(err, "Failed to delete PVC", "Name", objKey.Name)
-	}
-
-	err = cw.DeleteByKeyIgnoreNotFound(context.TODO(), objKey, &corev1.ConfigMap{})
-	if err != nil {
-		logger.Error(err, "Failed to delete ConfigMap", "Name", objKey.Name)
-	}
-
 	err = cw.DeleteByKeyIgnoreNotFound(
-		context.TODO(),
+		ctx.Context,
 		types.NamespacedName{
 			Name:      constants.OpenVSXServerExtensionPublishJobName,
 			Namespace: ctx.CheCluster.Namespace,
@@ -176,8 +153,32 @@ func deleteResources(ctx *chetypes.DeployContext) {
 		logger.Error(err, "Failed to delete Job", "Name", constants.OpenVSXServerExtensionPublishJobName)
 	}
 
+	err = deleteExtensionUpdateCronJob(ctx)
+	if err != nil {
+		logger.Error(err, "Failed to delete CronJob", "Name", constants.OpenVSXServerExtensionUpdateCronJobName)
+	}
+
+	err = cw.DeleteByKeyIgnoreNotFound(ctx.Context, objKey, &corev1.Service{})
+	if err != nil {
+		logger.Error(err, "Failed to delete Service", "Name", objKey.Name)
+	}
+
+	gatewayConfigKey := types.NamespacedName{
+		Name:      gateway.GatewayConfigMapNamePrefix + constants.OpenVSXServerComponentName,
+		Namespace: ctx.CheCluster.Namespace,
+	}
+	err = cw.DeleteByKeyIgnoreNotFound(ctx.Context, gatewayConfigKey, &corev1.ConfigMap{})
+	if err != nil {
+		logger.Error(err, "failed to delete gateway ConfigMap", "Name", gatewayConfigKey.Name)
+	}
+
+	err = cw.DeleteByKeyIgnoreNotFound(ctx.Context, objKey, &corev1.ConfigMap{})
+	if err != nil {
+		logger.Error(err, "Failed to delete ConfigMap", "Name", objKey.Name)
+	}
+
 	err = cw.DeleteByKeyIgnoreNotFound(
-		context.TODO(),
+		ctx.Context,
 		types.NamespacedName{
 			Name:      constants.OpenVSXServerExtensionsConfigMapName,
 			Namespace: ctx.CheCluster.Namespace,
@@ -186,6 +187,11 @@ func deleteResources(ctx *chetypes.DeployContext) {
 	)
 	if err != nil {
 		logger.Error(err, "Failed to delete ConfigMap", "Name", constants.OpenVSXServerExtensionsConfigMapName)
+	}
+
+	err = cw.DeleteByKeyIgnoreNotFound(ctx.Context, objKey, &corev1.PersistentVolumeClaim{})
+	if err != nil {
+		logger.Error(err, "Failed to delete PVC", "Name", objKey.Name)
 	}
 
 	if ctx.CheCluster.Status.OpenVSXURL != "" {

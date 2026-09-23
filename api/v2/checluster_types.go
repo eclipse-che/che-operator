@@ -292,7 +292,7 @@ type CheClusterComponents struct {
 	Dashboard Dashboard `json:"dashboard"`
 	// OpenVSX registry configuration.
 	// +optional
-	// +kubebuilder:default:={enable: false}
+	// +kubebuilder:default:={enable: false, extensionAutoUpdate: {enable: false, schedule: "0 0 * * 0"}}
 	OpenVSXRegistry OpenVSXRegistry `json:"openVSXRegistry"`
 	// Kubernetes Image Puller configuration.
 	// +optional
@@ -524,6 +524,10 @@ type OpenVSXRegistry struct {
 	// OpenVSX registry database configuration.
 	// +optional
 	Database *OpenVSXDatabase `json:"database,omitempty"`
+	// Configuration for periodic auto-update of extensions from the upstream open-vsx.org registry.
+	// +optional
+	// +kubebuilder:default:={enable: false, schedule: "0 0 * * 0"}
+	ExtensionAutoUpdate *ExtensionAutoUpdate `json:"extensionAutoUpdate,omitempty"`
 }
 
 // OpenVSX registry server configuration.
@@ -546,6 +550,36 @@ type OpenVSXDatabase struct {
 	// PVC settings for PostgreSQL data.
 	// +optional
 	Storage *PVC `json:"pvc,omitempty"`
+}
+
+// Configuration for periodic auto-update of extensions from the upstream open-vsx.org registry.
+// When enabled, a CronJob periodically checks for newer versions of published extensions
+// and re-publishes them to the internal registry.
+// +k8s:openapi-gen=true
+type ExtensionAutoUpdate struct {
+	// Enables periodic automatic updates of extensions published to the internal OpenVSX registry.
+	// When set to `false`, the auto-update CronJob is deleted, including its job history.
+	// +optional
+	// +kubebuilder:default:=false
+	Enable *bool `json:"enable,omitempty"`
+	// Cron schedule, in Unix cron format, for the auto-update job.
+	// The schedule is interpreted in the kube-controller-manager time zone, which is UTC on most clusters.
+	// +optional
+	// +kubebuilder:default:="0 0 * * 0"
+	Schedule *string `json:"schedule,omitempty"`
+	// Version of the VS Code engine used to select which extension versions to publish.
+	// For each extension, the newest version whose `engines.vscode` constraint is satisfied
+	// by this value is published, for example `1.99.0`.
+	// When omitted, the latest non-pre-release version of each extension is used
+	// regardless of engine compatibility.
+	// +optional
+	VSCodeEngineVersion *string `json:"vsCodeEngineVersion,omitempty"`
+	// List of extensions excluded from auto-update.
+	// Each entry is an extension ID in `<namespace>.<name>` format,
+	// for example `redhat.java`.
+	// Excluded extensions keep their currently published version.
+	// +optional
+	ExcludedExtensions []string `json:"excludedExtensions,omitempty"`
 }
 
 // Configuration settings related to the devfile registry used by the Che installation.
@@ -1338,6 +1372,12 @@ func (c *CheCluster) IsExternalOpenVSXRegistryEnabled() bool {
 
 func (c *CheCluster) IsInternalOpenVSXRegistryEnabled() bool {
 	return c.Spec.Components.OpenVSXRegistry.Enable
+}
+
+func (c *CheCluster) IsExtensionAutoUpdateEnabled() bool {
+	return c.IsInternalOpenVSXRegistryEnabled() &&
+		c.Spec.Components.OpenVSXRegistry.ExtensionAutoUpdate != nil &&
+		ptr.Deref(c.Spec.Components.OpenVSXRegistry.ExtensionAutoUpdate.Enable, false)
 }
 
 func (c *CheCluster) IsInternalPluginRegistryWithOpenVSXEnabled() bool {

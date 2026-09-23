@@ -12114,6 +12114,9 @@ spec:
                   openVSXRegistry:
                     default:
                       enable: false
+                      extensionAutoUpdate:
+                        enable: false
+                        schedule: 0 0 * * 0
                     description: OpenVSX registry configuration.
                     properties:
                       credentialsSecretName:
@@ -14703,6 +14706,43 @@ spec:
                           Enables internal OpenVSX registry.
                           When set to false, the OpenVSX registry resources are deleted, including the database PVC.
                         type: boolean
+                      extensionAutoUpdate:
+                        default:
+                          enable: false
+                          schedule: 0 0 * * 0
+                        description: Configuration for periodic auto-update of extensions
+                          from the upstream open-vsx.org registry.
+                        properties:
+                          enable:
+                            default: false
+                            description: |-
+                              Enables periodic automatic updates of extensions published to the internal OpenVSX registry.
+                              When set to `false`, the auto-update CronJob is deleted, including its job history.
+                            type: boolean
+                          excludedExtensions:
+                            description: |-
+                              List of extensions excluded from auto-update.
+                              Each entry is an extension ID in `<namespace>.<name>` format,
+                              for example `redhat.java`.
+                              Excluded extensions keep their currently published version.
+                            items:
+                              type: string
+                            type: array
+                          schedule:
+                            default: 0 0 * * 0
+                            description: |-
+                              Cron schedule, in Unix cron format, for the auto-update job.
+                              The schedule is interpreted in the kube-controller-manager time zone, which is UTC on most clusters.
+                            type: string
+                          vsCodeEngineVersion:
+                            description: |-
+                              Version of the VS Code engine used to select which extension versions to publish.
+                              For each extension, the newest version whose `engines.vscode` constraint is satisfied
+                              by this value is published, for example `1.99.0`.
+                              When omitted, the latest non-pre-release version of each extension is used
+                              regardless of engine compatibility.
+                            type: string
+                        type: object
                       server:
                         description: OpenVSX registry server configuration.
                         properties:
@@ -28072,6 +28112,7 @@ rules:
   - batch
   resources:
   - jobs
+  - cronjobs
   verbs:
   - create
   - delete
