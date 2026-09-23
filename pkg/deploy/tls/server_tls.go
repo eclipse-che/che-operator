@@ -16,8 +16,6 @@ import (
 	"context"
 	cryptotls "crypto/tls"
 	"fmt"
-	"os"
-	"syscall"
 
 	"github.com/go-logr/logr"
 	configv1 "github.com/openshift/api/config/v1"
@@ -106,21 +104,10 @@ func buildServerTLSOptions(ctx context.Context, cl client.Client, log logr.Logge
 
 // RegisterSecurityProfileWatcher sets up watcher to restart operator when profile/policy changes.
 // Only registers when profile was successfully fetched.
-// On change, sends SIGTERM to the current process so the shutdown flows through
-// SetupSignalHandler's grace period, allowing in-flight finalizers to complete.
 func RegisterSecurityProfileWatcher(mgr manager.Manager, serverTLS ServerTLS, onCancel context.CancelFunc, log logr.Logger) error {
 	if !serverTLS.profileFetched {
 		log.Info("Skipping TLS security profile watcher registration, profile was not fetched")
 		return nil
-	}
-
-	pid := os.Getpid()
-
-	terminate := func() {
-		if err := syscall.Kill(pid, syscall.SIGTERM); err != nil {
-			log.Error(err, "failed to send SIGTERM to operator process, falling back to context cancellation", "pid", pid)
-			onCancel()
-		}
 	}
 
 	watcher := &tlspkg.SecurityProfileWatcher{
@@ -134,11 +121,11 @@ func RegisterSecurityProfileWatcher(mgr manager.Manager, serverTLS ServerTLS, on
 			}
 
 			log.V(1).Info("TLS security profile changed, restarting operator", "minTLSVersion", newSpec.MinTLSVersion)
-			terminate()
+			onCancel()
 		},
 		OnAdherencePolicyChange: func(_ context.Context, _, newPolicy configv1.TLSAdherencePolicy) {
 			log.V(1).Info("TLS adherence policy changed, restarting operator", "adherencePolicy", newPolicy)
-			terminate()
+			onCancel()
 		},
 	}
 
