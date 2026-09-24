@@ -535,7 +535,7 @@ bundle-build-and-push-multiarch: ## Build a bundle image
 	[[ -z "$(ARCHS)" ]] && { echo [ERROR] ARCHS not defined; exit 1; }
 
 	BUNDLE_PATH=$$($(MAKE) bundle-path)
-	$(IMAGE_TOOL) buildx build --push --platform $(ARCHS) -f $${BUNDLE_PATH}/bundle.Dockerfile -t $(BUNDLE_IMG) $${BUNDLE_PATH}
+	$(IMAGE_TOOL) buildx build --network=none --push --platform $(ARCHS) -f $${BUNDLE_PATH}/bundle.Dockerfile -t $(BUNDLE_IMG) $${BUNDLE_PATH}
 
 bundle-render: SHELL := /bin/bash
 bundle-render: download-opm ## Add bundle to a catalog
@@ -569,7 +569,7 @@ catalog-build-and-push-multiarch: download-opm ## Build a catalog image
 	[[ -z "$(ARCHS)" ]] && { echo [ERROR] ARCHS not defined; exit 1; }
 
 	$(OPM) validate olm-catalog/$(CHANNEL)
-	$(IMAGE_TOOL) buildx build --push --platform $(ARCHS) -f olm-catalog/index.Dockerfile -t $(CATALOG_IMG) --build-arg CHANNEL=$(CHANNEL) .
+	$(IMAGE_TOOL) buildx build --network=none --push --platform $(ARCHS) -f olm-catalog/index.Dockerfile -t $(CATALOG_IMG) --build-arg CHANNEL=$(CHANNEL) .
 
 bundle-path: SHELL := /bin/bash
 bundle-path: ## Prints path to a bundle directory for a given channel
