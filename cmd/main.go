@@ -329,9 +329,11 @@ func main() {
 	ctx, onCancel := context.WithCancel(signal.SetupSignalHandler(terminationPeriod))
 	defer onCancel()
 
-	if err := tls.RegisterSecurityProfileWatcher(mgr, serverTLS, onCancel, setupLog); err != nil {
-		setupLog.Error(err, "unable to set up TLS security profile watcher")
-		os.Exit(1)
+	if infrastructure.IsOpenShift() {
+		if err := tls.RegisterSecurityProfileWatcher(mgr, serverTLS, onCancel, setupLog); err != nil {
+			setupLog.Error(err, "unable to set up TLS security profile watcher")
+			os.Exit(1)
+		}
 	}
 
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
