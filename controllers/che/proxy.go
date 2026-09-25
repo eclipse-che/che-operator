@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -13,20 +13,26 @@
 package che
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	configv1 "github.com/openshift/api/config/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 func GetProxyConfiguration(deployContext *chetypes.DeployContext) (*chetypes.Proxy, error) {
 	if infrastructure.IsOpenShift() {
 		clusterProxy := &configv1.Proxy{}
-		exists, err := deploy.GetClusterObject(deployContext, "cluster", clusterProxy)
+		exists, err := deployContext.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(
+			deployContext.Context,
+			types.NamespacedName{Name: "cluster"},
+			clusterProxy,
+		)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get Proxy cluster: %w", err)
 		}
 
 		clusterWideProxyConf := &chetypes.Proxy{}

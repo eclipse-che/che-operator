@@ -13,12 +13,14 @@
 package deploy
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	"golang.org/x/net/http/httpproxy"
 
@@ -88,9 +90,13 @@ func ReadCheClusterProxyConfiguration(ctx *chetypes.DeployContext) (*chetypes.Pr
 
 	proxyCredentialsSecretName := utils.GetValue(ctx.CheCluster.Spec.Components.CheServer.Proxy.CredentialsSecretName, constants.DefaultProxyCredentialsSecret)
 	proxyCredentialsSecret := &corev1.Secret{}
-	exists, err := GetNamespacedObject(ctx, proxyCredentialsSecretName, proxyCredentialsSecret)
+	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		ctx.Context,
+		types.NamespacedName{Name: proxyCredentialsSecretName, Namespace: ctx.CheCluster.Namespace},
+		proxyCredentialsSecret,
+	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get Secret %s/%s: %w", ctx.CheCluster.Namespace, proxyCredentialsSecretName, err)
 	} else if exists {
 		proxyUser = string(proxyCredentialsSecret.Data["user"])
 		proxyPassword = string(proxyCredentialsSecret.Data["password"])

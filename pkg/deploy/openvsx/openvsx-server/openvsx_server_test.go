@@ -22,7 +22,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"github.com/eclipse-che/che-operator/pkg/deploy/openvsx"
 	"github.com/stretchr/testify/assert"
@@ -57,7 +56,8 @@ func TestOpenVSXServerReconciler(t *testing.T) {
 		if !done && err == nil {
 			// Update deployment status to simulate it being ready
 			deployment := &appsv1.Deployment{}
-			if exists, _ := deploy.GetNamespacedObject(ctx, constants.OpenVSXServerComponentName, deployment); exists {
+			key := types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: ctx.CheCluster.Namespace}
+			if exists, _ := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(ctx.Context, key, deployment); exists {
 				deployment.Status.AvailableReplicas = 1
 				deployment.Status.UnavailableReplicas = 0
 				_ = ctx.ClusterAPI.Client.Status().Update(context.TODO(), deployment)

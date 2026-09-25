@@ -25,12 +25,14 @@ import (
 
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -38,6 +40,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 var DefaultDeploymentDiffOpts = cmp.Options{
@@ -66,31 +69,46 @@ func SyncDeploymentSpecToCluster(
 		return false, err
 	}
 
-	if err := setDesiredReplicas(deploymentSpec, deployContext); err != nil {
-		return false, err
-	}
-
-	done, err := Sync(deployContext, deploymentSpec, deploymentDiffOpts)
-	if err != nil || !done {
-		// Failed to sync (update), let's delete and create instead
-		if err != nil && strings.Contains(err.Error(), "field is immutable") {
-			if _, err := DeleteNamespacedObject(deployContext, deploymentSpec.Name, &appsv1.Deployment{}); err != nil {
-				return false, err
-			}
-
-			// Deleted successfully, return original error
-			return false, err
-		}
-		return false, err
-	}
+	key := types.NamespacedName{Name: deploymentSpec.Name, Namespace: deployContext.CheCluster.Namespace}
 
 	actual := &appsv1.Deployment{}
-	exists, err := GetNamespacedObject(deployContext, deploymentSpec.Name, actual)
-	if !exists || err != nil {
-		return false, err
+	existed, err := deployContext.ClusterAPI.ClientWrapper.GetIgnoreNotFound(deployContext.Context, key, actual)
+	if err != nil {
+		return false, fmt.Errorf("failed to get Deployment %s/%s: %w", key.Namespace, key.Name, err)
 	}
 
-	provisioned := actual.Status.UnavailableReplicas == 0
+	if existed {
+		// keep the replicas count from the actual Deployment
+		deploymentSpec.Spec.Replicas = actual.Spec.Replicas
+	}
+
+	if err := controllerutil.SetControllerReference(deployContext.CheCluster, deploymentSpec, deployContext.ClusterAPI.Scheme); err != nil {
+		return false, fmt.Errorf("failed to set owner reference for Deployment %s/%s: %w", key.Namespace, key.Name, err)
+	}
+
+	if err := deployContext.ClusterAPI.ClientWrapper.Sync(
+		deployContext.Context,
+		deploymentSpec,
+		&k8sclient.SyncOptions{DiffOpts: deploymentDiffOpts},
+	); err != nil {
+		// Failed to sync (update), let's delete it, so it is created from scratch on the next reconcile loop
+		if strings.Contains(err.Error(), "field is immutable") {
+			if deleteErr := deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(deployContext.Context, key, &appsv1.Deployment{}); deleteErr != nil {
+				return false, fmt.Errorf("failed to delete Deployment %s/%s: %w", key.Namespace, key.Name, deleteErr)
+			}
+		}
+
+		return false, fmt.Errorf("failed to sync Deployment %s/%s: %w", key.Namespace, key.Name, err)
+	}
+
+	exists, err := deployContext.ClusterAPI.ClientWrapper.GetIgnoreNotFound(deployContext.Context, key, actual)
+	if err != nil {
+		return false, fmt.Errorf("failed to get Deployment %s/%s: %w", key.Namespace, key.Name, err)
+	} else if !exists {
+		return false, nil
+	}
+
+	provisioned := actual.Status.ObservedGeneration >= actual.Generation && actual.Status.UnavailableReplicas == 0
 	if actual.Spec.Strategy.Type == appsv1.RollingUpdateDeploymentStrategyType && !provisioned {
 		logrus.Infof("Deployment %s is in the rolling update state.", deploymentSpec.Name)
 	}
@@ -433,9 +451,13 @@ func MountSecrets(specDeployment *appsv1.Deployment, deployContext *chetypes.Dep
 			}
 		case "env":
 			secret := &corev1.Secret{}
-			exists, err := GetNamespacedObject(deployContext, secretObj.Name, secret)
+			exists, err := deployContext.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+				deployContext.Context,
+				types.NamespacedName{Name: secretObj.Name, Namespace: deployContext.CheCluster.Namespace},
+				secret,
+			)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to get Secret %s/%s: %w", deployContext.CheCluster.Namespace, secretObj.Name, err)
 			} else if !exists {
 				return fmt.Errorf("secret '%s' not found", secretObj.Name)
 			}
@@ -563,9 +585,13 @@ func MountConfigMaps(specDeployment *appsv1.Deployment, deployContext *chetypes.
 
 		case "env":
 			configmap := &corev1.ConfigMap{}
-			exists, err := GetNamespacedObject(deployContext, configMapObj.Name, configmap)
+			exists, err := deployContext.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+				deployContext.Context,
+				types.NamespacedName{Name: configMapObj.Name, Namespace: deployContext.CheCluster.Namespace},
+				configmap,
+			)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to get ConfigMap %s/%s: %w", deployContext.CheCluster.Namespace, configMapObj.Name, err)
 			} else if !exists {
 				return fmt.Errorf("ConfigMap '%s' not found", configMapObj.Name)
 			}
@@ -611,16 +637,5 @@ func MountConfigMaps(specDeployment *appsv1.Deployment, deployContext *chetypes.
 		}
 	}
 
-	return nil
-}
-
-// setDesiredReplicas sets replicas count from the actual deployment.
-func setDesiredReplicas(deployment *appsv1.Deployment, deployCtx *chetypes.DeployContext) error {
-	actual := &appsv1.Deployment{}
-	if exists, err := GetNamespacedObject(deployCtx, deployment.Name, actual); !exists {
-		return err
-	}
-
-	deployment.Spec.Replicas = actual.Spec.Replicas
 	return nil
 }

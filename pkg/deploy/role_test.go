@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -25,18 +25,18 @@ import (
 func TestSyncRoleToCluster(t *testing.T) {
 	ctx := test.NewCtxBuilder().Build()
 
-	done, err := SyncRoleToCluster(ctx, "test", []rbacv1.PolicyRule{
+	err := SyncRoleToCluster(ctx, "test", []rbacv1.PolicyRule{
 		{
 			APIGroups: []string{"test-1"},
 			Resources: []string{"test-1"},
 			Verbs:     []string{"test-1"},
 		},
 	})
-	if !done || err != nil {
+	if err != nil {
 		t.Fatalf("Failed to sync role: %v", err)
 	}
 
-	_, err = SyncRoleToCluster(ctx, "test", []rbacv1.PolicyRule{
+	err = SyncRoleToCluster(ctx, "test", []rbacv1.PolicyRule{
 		{
 			APIGroups: []string{"test-2"},
 			Resources: []string{"test-2"},

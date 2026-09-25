@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -13,13 +13,16 @@
 package deploy
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -39,14 +42,26 @@ func SyncServiceToCluster(
 	name string,
 	portName []string,
 	portNumber []int32,
-	component string) (bool, error) {
+	component string) error {
 
 	serviceSpec := GetServiceSpec(deployContext, name, portName, portNumber, component)
 	return SyncServiceSpecToCluster(deployContext, serviceSpec)
 }
 
-func SyncServiceSpecToCluster(deployContext *chetypes.DeployContext, serviceSpec *corev1.Service) (bool, error) {
-	return Sync(deployContext, serviceSpec, ServiceDefaultDiffOpts)
+func SyncServiceSpecToCluster(deployContext *chetypes.DeployContext, serviceSpec *corev1.Service) error {
+	if err := controllerutil.SetControllerReference(deployContext.CheCluster, serviceSpec, deployContext.ClusterAPI.Scheme); err != nil {
+		return fmt.Errorf("failed to set owner reference for Service %s/%s: %w", serviceSpec.Namespace, serviceSpec.Name, err)
+	}
+
+	if err := deployContext.ClusterAPI.ClientWrapper.Sync(
+		deployContext.Context,
+		serviceSpec,
+		&k8sclient.SyncOptions{DiffOpts: ServiceDefaultDiffOpts},
+	); err != nil {
+		return fmt.Errorf("failed to sync Service %s/%s: %w", serviceSpec.Namespace, serviceSpec.Name, err)
+	}
+
+	return nil
 }
 
 func GetServiceSpec(

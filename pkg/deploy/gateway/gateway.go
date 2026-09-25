@@ -27,19 +27,23 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -91,52 +95,55 @@ func SyncGatewayToCluster(deployContext *chetypes.DeployContext) (bool, error) {
 
 func syncAll(deployContext *chetypes.DeployContext) (bool, error) {
 	instance := deployContext.CheCluster
+
 	sa := getGatewayServiceAccountSpec(instance)
-	if done, err := deploy.Sync(deployContext, &sa, serviceAccountDiffOpts); !done {
-		return done, err
+	if err := syncGatewayObject(deployContext, &sa, serviceAccountDiffOpts); err != nil {
+		return false, err
 	}
 
 	role := getGatewayRoleSpec(instance)
-	if done, err := deploy.Sync(deployContext, &role, roleDiffOpts); !done {
-		return done, err
+	if err := syncGatewayObject(deployContext, &role, roleDiffOpts); err != nil {
+		return false, err
 	}
 
 	roleBinding := getGatewayRoleBindingSpec(instance)
-	if done, err := deploy.Sync(deployContext, &roleBinding, roleBindingDiffOpts); !done {
-		return done, err
+	if err := syncGatewayObject(deployContext, &roleBinding, roleBindingDiffOpts); err != nil {
+		return false, err
 	}
 
-	if oauthSecret, err := getGatewaySecretSpec(deployContext); err == nil {
-		if done, err := deploy.Sync(deployContext, oauthSecret, secretDiffOpts); !done {
-			return done, err
-		}
+	oauthSecret, err := getGatewaySecretSpec(deployContext)
+	if err != nil {
+		return false, err
+	}
 
-		oauthProxyConfig := getGatewayOauthProxyConfigSpec(deployContext, string(oauthSecret.Data["cookie_secret"]))
-		if done, err := deploy.Sync(deployContext, &oauthProxyConfig, configMapDiffOpts); !done {
-			return done, err
-		}
-	} else {
+	if err := syncGatewayObject(deployContext, oauthSecret, secretDiffOpts); err != nil {
+		return false, err
+	}
+
+	oauthProxyConfig := getGatewayOauthProxyConfigSpec(deployContext, string(oauthSecret.Data["cookie_secret"]))
+	if err := syncGatewayObject(deployContext, &oauthProxyConfig, configMapDiffOpts); err != nil {
 		return false, err
 	}
 
 	kubeRbacProxyConfig := getGatewayKubeRbacProxyConfigSpec(instance)
-	if done, err := deploy.Sync(deployContext, &kubeRbacProxyConfig, configMapDiffOpts); !done {
-		return done, err
+	if err := syncGatewayObject(deployContext, &kubeRbacProxyConfig, configMapDiffOpts); err != nil {
+		return false, err
 	}
 
 	if instance.IsAccessTokenConfigured() {
-		if headerRewritePluginConfig, err := getGatewayHeaderRewritePluginConfigSpec(instance); err == nil {
-			if done, err := deploy.Sync(deployContext, headerRewritePluginConfig, configMapDiffOpts); !done {
-				return done, err
-			}
-		} else {
+		headerRewritePluginConfig, err := getGatewayHeaderRewritePluginConfigSpec(instance)
+		if err != nil {
+			return false, err
+		}
+
+		if err := syncGatewayObject(deployContext, headerRewritePluginConfig, configMapDiffOpts); err != nil {
 			return false, err
 		}
 	}
 
 	traefikConfig := getGatewayTraefikConfigSpec(instance)
-	if done, err := deploy.Sync(deployContext, &traefikConfig, configMapDiffOpts); !done {
-		return done, err
+	if err := syncGatewayObject(deployContext, &traefikConfig, configMapDiffOpts); err != nil {
+		return false, err
 	}
 
 	fallbackConfig, err := createGatewayFallbackConfig(deployContext)
@@ -144,7 +151,7 @@ func syncAll(deployContext *chetypes.DeployContext) (bool, error) {
 		return false, err
 	}
 
-	if done, err := deploy.Sync(deployContext, fallbackConfig, configMapDiffOpts); !done {
+	if err := syncGatewayObject(deployContext, fallbackConfig, configMapDiffOpts); err != nil {
 		return false, err
 	}
 
@@ -158,22 +165,45 @@ func syncAll(deployContext *chetypes.DeployContext) (bool, error) {
 	}
 
 	service := getGatewayServiceSpec(instance)
-	if done, err := deploy.Sync(deployContext, &service, deploy.ServiceDefaultDiffOpts); !done {
-		return done, err
+	if err := syncGatewayObject(deployContext, &service, deploy.ServiceDefaultDiffOpts); err != nil {
+		return false, err
 	}
 
 	if serverConfig, cfgErr := getGatewayServerConfigSpec(deployContext); cfgErr == nil {
-		if done, err := deploy.Sync(deployContext, serverConfig, configMapDiffOpts); !done {
-			return done, err
+		if err := syncGatewayObject(deployContext, serverConfig, configMapDiffOpts); err != nil {
+			return false, err
 		}
 	}
 
 	return true, nil
 }
 
+// syncGatewayObject syncs the given object into the CheCluster namespace.
+func syncGatewayObject(deployContext *chetypes.DeployContext, obj client.Object, diffOpts ...cmp.Option) error {
+	kind := k8sclient.GetObjectType(obj)
+
+	if err := controllerutil.SetControllerReference(deployContext.CheCluster, obj, deployContext.ClusterAPI.Scheme); err != nil {
+		return fmt.Errorf("failed to set owner reference for %s %s/%s: %w", kind, obj.GetNamespace(), obj.GetName(), err)
+	}
+
+	if err := deployContext.ClusterAPI.ClientWrapper.Sync(
+		deployContext.Context,
+		obj,
+		&k8sclient.SyncOptions{DiffOpts: diffOpts},
+	); err != nil {
+		return fmt.Errorf("failed to sync %s %s/%s: %w", kind, obj.GetNamespace(), obj.GetName(), err)
+	}
+
+	return nil
+}
+
 func getGatewaySecretSpec(deployContext *chetypes.DeployContext) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
-	exists, err := deploy.GetNamespacedObject(deployContext, gatewayOauthSecretName, secret)
+	exists, err := deployContext.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		deployContext.Context,
+		types.NamespacedName{Name: gatewayOauthSecretName, Namespace: deployContext.CheCluster.Namespace},
+		secret,
+	)
 	if err == nil && exists {
 		if _, ok := secret.Data["cookie_secret"]; !ok {
 			logrus.Info("che-gateway-secret found, but does not contain `cookie_secret` value. Regenerating...")
@@ -183,7 +213,7 @@ func getGatewaySecretSpec(deployContext *chetypes.DeployContext) (*corev1.Secret
 	} else if err == nil && !exists {
 		return generateOauthSecretSpec(deployContext), nil
 	} else {
-		return nil, err
+		return nil, fmt.Errorf("failed to get Secret %s/%s: %w", deployContext.CheCluster.Namespace, gatewayOauthSecretName, err)
 	}
 }
 

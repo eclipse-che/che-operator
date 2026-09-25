@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -80,12 +80,20 @@ func TestContainerBuildReconciler(t *testing.T) {
 	assert.True(t, utils.Contains(ctx.CheCluster.Finalizers, containerBuildReconciler.containerRunCapability.getFinalizer()))
 
 	crb := &rbacv1.ClusterRoleBinding{}
-	_, err = deploy.GetClusterObject(ctx, containerBuildReconciler.containerBuildCapability.getDWOClusterRoleBindingName(), crb)
+	_, err = ctx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(
+		ctx.Context,
+		types.NamespacedName{Name: containerBuildReconciler.containerBuildCapability.getDWOClusterRoleBindingName()},
+		crb,
+	)
 	assert.NoError(t, err)
 	assert.Equal(t, "devworkspace-controller", crb.Subjects[0].Namespace)
 
 	crb = &rbacv1.ClusterRoleBinding{}
-	_, err = deploy.GetClusterObject(ctx, containerBuildReconciler.containerRunCapability.getDWOClusterRoleBindingName(), crb)
+	_, err = ctx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(
+		ctx.Context,
+		types.NamespacedName{Name: containerBuildReconciler.containerRunCapability.getDWOClusterRoleBindingName()},
+		crb,
+	)
 	assert.NoError(t, err)
 	assert.Equal(t, "devworkspace-controller", crb.Subjects[0].Namespace)
 
@@ -156,7 +164,7 @@ func TestShouldUpdateManagedSCCOnReconcile(t *testing.T) {
 
 	// Verify the SCC was updated with the new capabilities including CHOWN
 	scc := &securityv1.SecurityContextConstraints{}
-	exists, err := deploy.GetClusterObject(ctx, "scc-run", scc)
+	exists, err := ctx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(ctx.Context, types.NamespacedName{Name: "scc-run"}, scc)
 	assert.True(t, exists)
 	assert.NoError(t, err)
 	assert.Equal(t, []corev1.Capability{"SETUID", "SETGID", "CHOWN"}, scc.AllowedCapabilities)
@@ -216,13 +224,13 @@ func TestShouldNotSyncSCCIfAlreadyExists(t *testing.T) {
 	test.EnsureReconcile(t, ctx, containerBuildReconciler.Reconcile)
 
 	scc := &securityv1.SecurityContextConstraints{}
-	exists, err := deploy.GetClusterObject(ctx, "scc-build", scc)
+	exists, err := ctx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(ctx.Context, types.NamespacedName{Name: "scc-build"}, scc)
 	assert.True(t, exists)
 	assert.Nil(t, err)
 	assert.True(t, scc.Labels[deploy.GetManagedByLabel()] == "")
 
 	scc = &securityv1.SecurityContextConstraints{}
-	exists, err = deploy.GetClusterObject(ctx, "scc-run", scc)
+	exists, err = ctx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(ctx.Context, types.NamespacedName{Name: "scc-run"}, scc)
 	assert.True(t, exists)
 	assert.Nil(t, err)
 	assert.True(t, scc.Labels[deploy.GetManagedByLabel()] == "")

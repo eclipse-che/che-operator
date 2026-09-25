@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -20,10 +20,10 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
@@ -148,12 +148,13 @@ func addPartOfCheLabelToConfigMap(ctx *chetypes.DeployContext, configMapName str
 // for example: addPartOfCheLabelToObject(ctx, "my-secret", &corev1.Secret{})
 func addPartOfCheLabelToObject(ctx *chetypes.DeployContext, objectName string, obj client.Object) error {
 	// Check if the object is already migrated
-	if exists, _ := deploy.GetNamespacedObject(ctx, objectName, obj); exists {
+	key := types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: objectName}
+	if exists, _ := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(ctx.Context, key, obj); exists {
 		// Default client sees the object in cache, no need in adding anything
 		return nil
 	}
 
-	err := ctx.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: objectName}, obj)
+	err := ctx.ClusterAPI.NonCachingClient.Get(ctx.Context, key, obj)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// The object doesn't exist in cluster, nothing to do
@@ -270,5 +271,5 @@ func getFailedToCreateSelectorErrorMessage() string {
 
 func getObjectMigratedMessage(obj client.Object) string {
 	return fmt.Sprintf("Added '%s=%s' label to %s object of %s kind",
-		constants.KubernetesPartOfLabelKey, constants.CheEclipseOrg, obj.GetName(), deploy.GetObjectType(obj))
+		constants.KubernetesPartOfLabelKey, constants.CheEclipseOrg, obj.GetName(), k8sclient.GetObjectType(obj))
 }

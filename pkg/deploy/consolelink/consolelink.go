@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -17,14 +17,15 @@ import (
 	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	consolev1 "github.com/openshift/api/console/v1"
-	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -33,9 +34,12 @@ const (
 	ConsoleLinkFinalizerName = "consolelink.finalizers.che.eclipse.org"
 )
 
-var consoleLinkDiffOpts = cmp.Options{
-	cmpopts.IgnoreFields(consolev1.ConsoleLink{}, "TypeMeta", "ObjectMeta"),
-}
+var (
+	logger              = ctrl.Log.WithName("consolelink")
+	consoleLinkDiffOpts = cmp.Options{
+		cmpopts.IgnoreFields(consolev1.ConsoleLink{}, "TypeMeta", "ObjectMeta"),
+	}
+)
 
 type ConsoleLinkReconciler struct {
 	reconciler.Reconcilable
@@ -46,8 +50,7 @@ func NewConsoleLinkReconciler() *ConsoleLinkReconciler {
 }
 
 func (c *ConsoleLinkReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	done, err := c.syncConsoleLink(ctx)
-	if !done {
+	if err := c.syncConsoleLink(ctx); err != nil {
 		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
@@ -55,20 +58,41 @@ func (c *ConsoleLinkReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcil
 }
 
 func (c *ConsoleLinkReconciler) Finalize(ctx *chetypes.DeployContext) bool {
-	if err := deploy.DeleteObjectWithFinalizer(ctx, client.ObjectKey{Name: defaults.GetConsoleLinkName()}, &consolev1.ConsoleLink{}, ConsoleLinkFinalizerName); err != nil {
-		logrus.Errorf("Error deleting finalizer: %v", err)
+	if err := ctx.ClusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(
+		ctx.Context,
+		client.ObjectKey{Name: defaults.GetConsoleLinkName()},
+		&consolev1.ConsoleLink{},
+	); err != nil {
+		// failed to delete ConsoleLink, but it shouldn't prevent us from removing the finalizer
+		logger.Error(err, "Failed to delete ConsoleLink", "name", defaults.GetConsoleLinkName())
+	}
+
+	if err := deploy.DeleteFinalizer(ctx, ConsoleLinkFinalizerName); err != nil {
+		logger.Error(err, "Failed to delete finalizer", "finalizer", ConsoleLinkFinalizerName)
 		return false
 	}
+
 	return true
 }
 
-func (c *ConsoleLinkReconciler) syncConsoleLink(ctx *chetypes.DeployContext) (bool, error) {
+func (c *ConsoleLinkReconciler) syncConsoleLink(ctx *chetypes.DeployContext) error {
 	if err := deploy.AppendFinalizer(ctx, ConsoleLinkFinalizerName); err != nil {
-		return false, err
+		return fmt.Errorf("failed to append finalizer %s: %w", ConsoleLinkFinalizerName, err)
 	}
 
 	consoleLinkSpec := c.getConsoleLinkSpec(ctx)
-	return deploy.Sync(ctx, consoleLinkSpec, consoleLinkDiffOpts)
+
+	// ConsoleLink is a cluster scoped object, so it can't have an owner reference
+	// and must be synced with the non-caching client
+	if err := ctx.ClusterAPI.NonCachingClientWrapper.Sync(
+		ctx.Context,
+		consoleLinkSpec,
+		&k8sclient.SyncOptions{DiffOpts: consoleLinkDiffOpts},
+	); err != nil {
+		return fmt.Errorf("failed to sync ConsoleLink %s: %w", consoleLinkSpec.Name, err)
+	}
+
+	return nil
 }
 
 func (c *ConsoleLinkReconciler) getConsoleLinkSpec(ctx *chetypes.DeployContext) *consolev1.ConsoleLink {

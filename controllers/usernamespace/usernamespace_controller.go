@@ -256,10 +256,11 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	deployContext := &chetypes.DeployContext{
 		CheCluster: checluster,
 		ClusterAPI: chetypes.ClusterAPI{
-			Client:           r.client,
-			NonCachingClient: r.nonCachedClient,
-			ClientWrapper:    r.clientWrapper,
-			Scheme:           r.scheme,
+			Client:                  r.client,
+			NonCachingClient:        r.nonCachedClient,
+			ClientWrapper:           r.clientWrapper,
+			NonCachingClientWrapper: r.nonCachedClientWrapper,
+			Scheme:                  r.scheme,
 		},
 		Context:      ctx,
 		DWONamespace: r.getDWONamespace(),
@@ -345,8 +346,11 @@ func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context
 	targetCertName := prefixedName("server-cert")
 
 	delSecret := func() error {
-		_, err := deploy.Delete(deployContext, client.ObjectKey{Name: targetCertName, Namespace: targetNs}, &corev1.Secret{})
-		return err
+		return r.nonCachedClientWrapper.DeleteByKeyIgnoreNotFound(
+			ctx,
+			client.ObjectKey{Name: targetCertName, Namespace: targetNs},
+			&corev1.Secret{},
+		)
 	}
 
 	cheCert := &corev1.Secret{}
@@ -383,12 +387,18 @@ func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context
 		Data: map[string][]byte{
 			"ca.crt": cheCert.Data["ca.crt"],
 		},
-		Type:      cheCert.Type,
-		Immutable: cheCert.Immutable,
+		Type: cheCert.Type,
 	}
 
-	_, err := deploy.Sync(deployContext, targetCert, deploy.SecretDiffOpts)
-	return err
+	if err := r.nonCachedClientWrapper.Sync(
+		ctx,
+		targetCert,
+		&k8sclient.SyncOptions{DiffOpts: deploy.SecretDiffOpts},
+	); err != nil {
+		return fmt.Errorf("failed to sync Secret %s/%s: %w", targetCert.Namespace, targetCert.Name, err)
+	}
+
+	return nil
 }
 
 func (r *CheUserNamespaceReconciler) reconcileTrustedCerts(ctx context.Context, deployContext *chetypes.DeployContext, targetNs string, checluster *chev2.CheCluster) error {
@@ -400,9 +410,8 @@ func (r *CheUserNamespaceReconciler) reconcileTrustedCerts(ctx context.Context, 
 	// and avoid mounting the same certificates under different paths.
 	// See cerificates#syncCheCABundleCerts
 	trustedCACertsCMKey := client.ObjectKey{Name: prefixedName("trusted-ca-certs"), Namespace: targetNs}
-	_, err := deploy.Delete(deployContext, trustedCACertsCMKey, &corev1.ConfigMap{})
 
-	return err
+	return r.nonCachedClientWrapper.DeleteByKeyIgnoreNotFound(ctx, trustedCACertsCMKey, &corev1.ConfigMap{})
 }
 
 func (r *CheUserNamespaceReconciler) reconcileUserSettings(
@@ -419,12 +428,12 @@ func (r *CheUserNamespaceReconciler) reconcileUserSettings(
 
 	// delete previously created CMs
 	for _, name := range cm2Delete {
-		if _, err := deploy.Delete(
-			deployContext,
+		if err := r.nonCachedClientWrapper.DeleteByKeyIgnoreNotFound(
+			deployContext.Context,
 			client.ObjectKey{Name: name, Namespace: targetNs},
 			&corev1.ConfigMap{},
 		); err != nil {
-			return err
+			return fmt.Errorf("failed to delete ConfigMap %s/%s: %w", targetNs, name, err)
 		}
 	}
 
@@ -520,8 +529,15 @@ func (r *CheUserNamespaceReconciler) reconcileUserSettings(
 		Data: data,
 	}
 
-	_, err := deploy.Sync(deployContext, cm, diffs.ConfigMapEnsureLabels)
-	return err
+	if err := r.nonCachedClientWrapper.Sync(
+		deployContext.Context,
+		cm,
+		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
+	); err != nil {
+		return fmt.Errorf("failed to sync ConfigMap %s/%s: %w", cm.Namespace, cm.Name, err)
+	}
+
+	return nil
 }
 
 func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Context, targetNs string, checluster *chev2.CheCluster, deployContext *chetypes.DeployContext) error {
@@ -530,8 +546,11 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 	}
 	targetName := prefixedName("git-tls-creds")
 	delConfigMap := func() error {
-		_, err := deploy.Delete(deployContext, client.ObjectKey{Name: targetName, Namespace: targetNs}, &corev1.ConfigMap{})
-		return err
+		return r.nonCachedClientWrapper.DeleteByKeyIgnoreNotFound(
+			ctx,
+			client.ObjectKey{Name: targetName, Namespace: targetNs},
+			&corev1.ConfigMap{},
+		)
 	}
 
 	if checluster.Spec.DevEnvironments.TrustedCerts == nil || checluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName == "" {
@@ -574,8 +593,15 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 		target.Data["host"] = gitCert.Data[constants.GitSelfSignedCertsConfigMapGitHostKey]
 	}
 
-	_, err := deploy.Sync(deployContext, &target, diffs.ConfigMapEnsureLabels)
-	return err
+	if err := r.nonCachedClientWrapper.Sync(
+		ctx,
+		&target,
+		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
+	); err != nil {
+		return fmt.Errorf("failed to sync ConfigMap %s/%s: %w", target.Namespace, target.Name, err)
+	}
+
+	return nil
 }
 
 func (r *CheUserNamespaceReconciler) reconcileNodeSelectorAndTolerations(ctx context.Context, targetNs string, checluster *chev2.CheCluster, deployContext *chetypes.DeployContext) error {
@@ -720,6 +746,6 @@ func deleteLegacyObject(name string, objectMeta client.Object, targetNs string, 
 		return err
 	}
 
-	logrus.Infof("Deleted legacy workspace object: %s name: %s, namespace: %s", deploy.GetObjectType(objectMeta), legacyPrefixedName, targetNs)
+	logrus.Infof("Deleted legacy workspace object: %s name: %s, namespace: %s", k8sclient.GetObjectType(objectMeta), legacyPrefixedName, targetNs)
 	return nil
 }
