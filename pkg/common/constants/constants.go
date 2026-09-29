@@ -55,8 +55,8 @@ const (
 	OpenVSXServerExtensionsConfigMapName    = "openvsx-server-extensions"
 	OpenVSXServerExtensionUpdateCronJobName = "openvsx-server-extensions-update"
 	DefaultExtensionAutoUpdateSchedule      = "0 0 * * 0"
-	OpenVSXExtensionJobMemoryLimit          = "256Mi"
-	OpenVSXExtensionJobMemoryRequest        = "128Mi"
+	OpenVSXExtensionJobMemoryLimit          = "1Gi"
+	OpenVSXExtensionJobMemoryRequest        = "256Mi"
 	OpenVSXExtensionJobCpuLimit             = "500m"
 	OpenVSXExtensionJobCpuRequest           = "100m"
 
