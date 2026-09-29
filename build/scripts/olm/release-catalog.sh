@@ -19,6 +19,7 @@ init() {
   FORCE="false"
   MULTI_ARCH="false"
   IMAGE_TOOL="docker"
+  ARCH="linux/arm64,linux/amd64,linux/s390x,linux/ppc64le"
 
   unset CHANNEL
   unset CATALOG_IMAGE
@@ -32,6 +33,7 @@ init() {
       '--image-tool'|'-t') IMAGE_TOOL="$2"; shift 1;;
       '--force'|'-f') FORCE="true";;
       '--multi-arch'|'-m') MULTI_ARCH="true";;
+      '--arch'|'-a') ARCH="$2"; shift 1;;
       '--help'|'-h') usage; exit;;
     esac
     shift 1
@@ -44,6 +46,7 @@ init() {
   BUNDLE_IMAGE="${BUNDLE_IMAGE:=quay.io/eclipse/eclipse-che-olm-bundle:${BUNDLE_VERSION}}"
   CATALOG_IMAGE=${CATALOG_IMAGE:=quay.io/eclipse/eclipse-che-olm-catalog:${CHANNEL}}
 
+  echo "[INFO] ARCH          : ${ARCH}"
   echo "[INFO] Bundle name   : ${BUNDLE_NAME}"
   echo "[INFO] Bundle version: ${BUNDLE_VERSION}"
   echo "[INFO] Bundle image  : ${BUNDLE_IMAGE}"
@@ -83,7 +86,7 @@ build () {
           CHANNEL="${CHANNEL}" \
           BUNDLE_IMG="${BUNDLE_IMAGE}" \
           IMAGE_TOOL="${IMAGE_TOOL}" \
-          ARCHS="linux/arm64,linux/amd64,linux/s390x,linux/ppc64le"
+          ARCHS="${ARCH}"
     else
       make bundle-build bundle-push \
           CHANNEL="${CHANNEL}" \
@@ -116,7 +119,7 @@ build () {
       CHANNEL="${CHANNEL}" \
       CATALOG_IMG="${CATALOG_IMAGE}" \
       IMAGE_TOOL="${IMAGE_TOOL}" \
-      ARCHS="linux/arm64,linux/amd64,linux/s390x,linux/ppc64le"
+      ARCHS=${ARCH}
     else
       make catalog-build catalog-push \
         CHANNEL="${CHANNEL}" \
