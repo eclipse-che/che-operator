@@ -21,7 +21,9 @@ jobs:
     runs-on: ${{ matrix.runners }}
     steps:
     - name: Checkout source code
-      uses: actions/checkout@v4
+      uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      with:
+        persist-credentials: false
     - name: Set arch environment variable
       run: |
         if [[ ${{matrix.runners}} == 'ubuntu-24.04' ]]; then
@@ -40,7 +42,7 @@ jobs:
       run: bash <(curl -sL https://che-incubator.github.io/chectl/install.sh) --channel=next
     - name: Run tests
       run: /bin/bash build/scripts/minikube-tests/test-operator.sh
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       if: ${{ always() }}
       with:
         name: artifacts-${{env.arch}}
