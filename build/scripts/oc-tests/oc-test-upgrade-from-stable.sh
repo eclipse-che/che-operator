@@ -16,7 +16,8 @@ set -e
 export OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
 source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 
-trap "catchFinish" EXIT SIGINT
+trap "catchFinish" EXIT
+trap 'exit 130' SIGINT
 
 init() {
   unset TO_CHANNEL
@@ -50,9 +51,9 @@ usage() {
   echo -e "  $0 [--to-channel CHANNEL]"
   echo
   echo "OPTIONS:"
-  echo -e "  --to-channel CHANNEL  Channel to test the operator upgrade to."
-  echo -e "                        next    - to the next catalog"
-  echo -e "                        pr      - to the current pull request"
+  echo -e "  --to-channel CHANNEL  Channel to test the operator upgrade path to."
+  echo -e "                        next    - to the next version"
+  echo -e "                        pr      - to the the pull request version "
   echo -e "  -h, --help            Show this help message"
 }
 
@@ -86,23 +87,29 @@ installEclipseCheStableVersion() {
 }
 
 createEclipseCheCatalogSourceFromPR() {
-  PR_NUMBER=$(gh pr view --json number --jq '.number')
-
-  case "$(uname -m)" in
-    x86_64|amd64) ARCH=amd64 ;;
-    aarch64|arm64) ARCH=arm64 ;;
-    *) echo "unsupported architecture: $(uname -m)" >&2; exit 1 ;;
-  esac
+  local catalog_image=$(getCatalogImageFromPullRequest) || exit 1
 
   make create-catalogsource NAME="eclipse-che-update" \
     NAMESPACE="openshift-marketplace" \
-    IMAGE="quay.io/eclipse/eclipse-che-olm-catalog:pr-${PR_NUMBER}-${ARCH}"
+    IMAGE="${catalog_image}"
 }
 
 createEclipseCheCatalogSourceFromNext() {
   make create-catalogsource NAME="eclipse-che-update" \
     NAMESPACE="openshift-marketplace" \
     IMAGE="quay.io/eclipse/eclipse-che-olm-catalog:next"
+}
+
+updateEclipseChe() {
+    INSTALLED_CSV=$(oc get subscription eclipse-che -n openshift-operators -o jsonpath='{.status.installedCSV}')
+    oc patch subscription "eclipse-che" -n "openshift-operators" --type=merge -p '{"spec":{"channel":"next","source":"eclipse-che-update"}}'
+
+    # Wait for OLM to pick up the new catalog and advance the CSV
+    until [[ "$(oc get subscription eclipse-che -n openshift-operators -o jsonpath='{.status.installedCSV}')" != "${INSTALLED_CSV}" ]]; do
+      sleep 5
+    done
+
+    make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE="eclipse-che"
 }
 
 runTests() {
@@ -118,8 +125,7 @@ runTests() {
       ;;
   esac
 
-  oc patch subscription "eclipse-che" -n "openshift-operators" --type=merge -p '{"spec":{"channel":"next","source":"eclipse-che-update"}}'
-  make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE="eclipse-che"
+  updateEclipseChe
 }
 
 init "$@"

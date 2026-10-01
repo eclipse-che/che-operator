@@ -15,8 +15,8 @@ set -e
 
 export OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
 
-# Stop execution on any error
-trap "catchFinish" EXIT SIGINT
+trap "catchFinish" EXIT
+trap 'exit 130' SIGINT
 
 init() {
   unset CHANNEL
@@ -66,8 +66,7 @@ runTests() {
       oc create namespace devworkspace-controller --dry-run=client -o yaml | oc apply -f -
       oc apply --server-side -f https://raw.githubusercontent.com/devfile/devworkspace-operator/refs/heads/main/deploy/deployment/openshift/combined.yaml
 
-      PR_NUMBER=$(gh pr view --json number --jq '.number')
-      OPERATOR_IMAGE="quay.io/eclipse/che-operator:pr-${PR_NUMBER}-amd64"
+      OPERATOR_IMAGE=$(getOperatorImageFromPullRequest) || exit 1
 
       sed "s|quay.io/eclipse/che-operator:next|${OPERATOR_IMAGE}|g" "${OPERATOR_REPO}/deploy/deployment/openshift/combined.yaml" | oc apply --server-side -f -
       oc rollout status deployment/che-operator -n eclipse-che --timeout=300s

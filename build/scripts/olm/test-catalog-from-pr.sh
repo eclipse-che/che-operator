@@ -16,6 +16,9 @@ set -e
 OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
 source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 
+trap "catchFinish" EXIT
+trap 'exit 130' SIGINT
+
 init() {
   unset VERBOSE
 
@@ -48,15 +51,8 @@ run() {
   # Install Dev Workspace operator next version
   make install-devworkspace CHANNEL="next" VERBOSE=${VERBOSE} OPERATOR_NAMESPACE="${NAMESPACE}"
 
-  case "$(uname -m)" in
-    x86_64|amd64) ARCH=amd64 ;;
-    aarch64|arm64) ARCH=arm64 ;;
-    *) echo "unsupported architecture: $(uname -m)" >&2; exit 1 ;;
-  esac
-
-  PR_NUMBER=$(gh pr view --json number --jq '.number')
-  CATALOG_IMAGE="quay.io/eclipse/eclipse-che-olm-catalog:pr-${PR_NUMBER}-${ARCH}"
-  make create-catalogsource NAME="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" NAMESPACE="${NAMESPACE}" IMAGE="${CATALOG_IMAGE}" VERBOSE=${VERBOSE}
+  local catalog_image=$(getCatalogImageFromPullRequest) || exit 1
+  make create-catalogsource NAME="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" NAMESPACE="${NAMESPACE}" IMAGE="${catalog_image}" VERBOSE=${VERBOSE}
 
   make create-subscription \
     NAME=eclipse-che \

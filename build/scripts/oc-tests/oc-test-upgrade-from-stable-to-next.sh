@@ -21,8 +21,8 @@ set -ex
 export OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
 source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 
-#Stop execution on any error
-trap "catchFinish" EXIT SIGINT
+trap "catchFinish" EXIT
+trap 'exit 130' SIGINT
 
 # Uninstall Eclipse Che stable version operator by deleting its subscription
 deleteEclipseCheStableVersionOperator() {

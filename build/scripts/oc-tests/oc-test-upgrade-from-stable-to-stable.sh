@@ -16,8 +16,8 @@ set -ex
 export OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
 source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
 
-#Stop execution on any error
-trap "catchFinish" EXIT SIGINT
+trap "catchFinish" EXIT
+trap 'exit 130' SIGINT
 
 runTests() {
   . "${OPERATOR_REPO}/build/scripts/olm/test-update.sh" -c stable -i quay.io/eclipse/eclipse-che-olm-catalog:stable --verbose

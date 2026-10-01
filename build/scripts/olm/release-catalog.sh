@@ -119,7 +119,7 @@ build () {
       CHANNEL="${CHANNEL}" \
       CATALOG_IMG="${CATALOG_IMAGE}" \
       IMAGE_TOOL="${IMAGE_TOOL}" \
-      ARCHS=${ARCH}
+      ARCHS="${ARCH}"
     else
       make catalog-build catalog-push \
         CHANNEL="${CHANNEL}" \
