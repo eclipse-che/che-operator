@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Web IDE Pull Request Check
-        uses: redhat-actions/try-in-web-ide@v1
+        uses: redhat-actions/try-in-web-ide@6d64b671fa7f83b770c5dd1d1094559a509d2a50 # v1.5.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           add_comment: false

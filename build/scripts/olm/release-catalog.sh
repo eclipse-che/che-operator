@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2019-2023 Red Hat, Inc.
+# Copyright (c) 2019-2026 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -19,6 +19,7 @@ init() {
   FORCE="false"
   MULTI_ARCH="false"
   IMAGE_TOOL="docker"
+  ARCH="linux/arm64,linux/amd64,linux/s390x,linux/ppc64le"
 
   unset CHANNEL
   unset CATALOG_IMAGE
@@ -32,6 +33,7 @@ init() {
       '--image-tool'|'-t') IMAGE_TOOL="$2"; shift 1;;
       '--force'|'-f') FORCE="true";;
       '--multi-arch'|'-m') MULTI_ARCH="true";;
+      '--arch'|'-a') ARCH="$2"; shift 1;;
       '--help'|'-h') usage; exit;;
     esac
     shift 1
@@ -44,6 +46,7 @@ init() {
   BUNDLE_IMAGE="${BUNDLE_IMAGE:=quay.io/eclipse/eclipse-che-olm-bundle:${BUNDLE_VERSION}}"
   CATALOG_IMAGE=${CATALOG_IMAGE:=quay.io/eclipse/eclipse-che-olm-catalog:${CHANNEL}}
 
+  echo "[INFO] ARCH          : ${ARCH}"
   echo "[INFO] Bundle name   : ${BUNDLE_NAME}"
   echo "[INFO] Bundle version: ${BUNDLE_VERSION}"
   echo "[INFO] Bundle image  : ${BUNDLE_IMAGE}"
@@ -54,7 +57,7 @@ usage () {
   echo "Build and push catalog and bundle images."
   echo
 	echo "Usage:"
-	echo -e "\t$0 -i CATALOG_IMAGE -c CHANNEL [-i CATALOG_IMAGE] [-b BUNDLE_IMAGE] [-t IMAGE_TOOL] [--force] [--multi-arch]"
+	echo -e "\t$0 -i CATALOG_IMAGE -c CHANNEL [-i CATALOG_IMAGE] [-b BUNDLE_IMAGE] [-t IMAGE_TOOL] [-a arch] [--force] [--multi-arch]"
   echo
   echo "Options:"
   echo -e "\t-c,--channel             (next or stable) Olm channel to build bundle from"
@@ -63,6 +66,7 @@ usage () {
   echo -e "\t-t,--image-tool          [default: docker] Image tool"
   echo -e "\t-m,--multi-arch          [default: false] Build multi-arch images"
   echo -e "\t-f,--force               [default: false] Force to build catalog and bundle images even if bundle already exists in the catalog"
+  echo -e "\t-a, --arch               [default: linux/arm64,linux/amd64,linux/s390x,linux/ppc64le] Architectures to build"
   echo
 	echo "Example:"
 	echo -e "\t$0 -c next"
@@ -83,7 +87,7 @@ build () {
           CHANNEL="${CHANNEL}" \
           BUNDLE_IMG="${BUNDLE_IMAGE}" \
           IMAGE_TOOL="${IMAGE_TOOL}" \
-          ARCHS="linux/arm64,linux/amd64,linux/s390x,linux/ppc64le"
+          ARCHS="${ARCH}"
     else
       make bundle-build bundle-push \
           CHANNEL="${CHANNEL}" \
@@ -116,7 +120,7 @@ build () {
       CHANNEL="${CHANNEL}" \
       CATALOG_IMG="${CATALOG_IMAGE}" \
       IMAGE_TOOL="${IMAGE_TOOL}" \
-      ARCHS="linux/arm64,linux/amd64,linux/s390x,linux/ppc64le"
+      ARCHS="${ARCH}"
     else
       make catalog-build catalog-push \
         CHANNEL="${CHANNEL}" \

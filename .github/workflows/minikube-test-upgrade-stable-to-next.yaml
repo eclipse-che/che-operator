@@ -20,10 +20,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Checkout source code
-      uses: actions/checkout@v4
+      uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      with:
+        persist-credentials: false
     - name: Start minikube cluster
       id: run-minikube
-      uses: che-incubator/setup-minikube-action@next
+      uses: che-incubator/setup-minikube-action@a4b88a0ad6696f815cccb654ec11241b1c872ba1 # next
       with:
         minikube-version: v1.37.0
     - name: Install yq
@@ -34,7 +36,7 @@ jobs:
       run: /bin/bash build/scripts/minikube-tests/test-upgrade-from-stable-to-next.sh
       env:
         "GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       if: ${{ always() }}
       with:
         name: artifacts

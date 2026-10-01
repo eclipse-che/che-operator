@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2019-2023 Red Hat, Inc.
+# Copyright (c) 2019-2026 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -98,4 +98,56 @@ discoverEclipseCheBundles() {
   echo "[INFO] LATEST_CSV_NAME:           ${LATEST_CSV_NAME}"
   echo "[INFO] LATEST_VERSION:            ${LATEST_VERSION}"
   set ${xFlag}
+}
+
+getOperatorImageFromPullRequest() {
+  local arch
+  local pr_number
+  local arch_raw
+
+  arch_raw="$(uname -m)"
+
+  case "$arch_raw" in
+    x86_64|amd64)   arch="amd64" ;;
+    aarch64|arm64)  arch="arm64" ;;
+    *)
+      echo "Error: unsupported architecture: $arch_raw" >&2
+      return 1
+      ;;
+  esac
+
+  if [[ -n "${PULL_NUMBER:-}" ]]; then
+    pr_number="$PULL_NUMBER"
+  elif ! pr_number=$(gh pr view --json number --jq '.number' 2>/dev/null) || [[ -z "$pr_number" ]]; then
+    echo "Error: Failed to retrieve Pull Request number from 'gh'." >&2
+    return 1
+  fi
+
+  echo "quay.io/eclipse/che-operator:pr-${pr_number}-${arch}"
+}
+
+getCatalogImageFromPullRequest() {
+  local arch
+  local pr_number
+  local arch_raw
+
+  arch_raw="$(uname -m)"
+
+  case "$arch_raw" in
+    x86_64|amd64)   arch="amd64" ;;
+    aarch64|arm64)  arch="arm64" ;;
+    *)
+      echo "Error: unsupported architecture: $arch_raw" >&2
+      return 1
+      ;;
+  esac
+
+  if [[ -n "${PULL_NUMBER:-}" ]]; then
+    pr_number="$PULL_NUMBER"
+  elif ! pr_number=$(gh pr view --json number --jq '.number' 2>/dev/null) || [[ -z "$pr_number" ]]; then
+    echo "Error: Failed to retrieve Pull Request number from 'gh'." >&2
+    return 1
+  fi
+
+  echo "quay.io/eclipse/eclipse-che-olm-catalog:pr-${pr_number}-${arch}"
 }
