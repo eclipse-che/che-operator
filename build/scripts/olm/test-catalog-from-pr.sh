@@ -52,7 +52,7 @@ run() {
   make install-devworkspace CHANNEL="next" VERBOSE=${VERBOSE} OPERATOR_NAMESPACE="${NAMESPACE}"
 
   CATALOG_IMAGE=$(getCatalogImageFromPullRequest) || exit 1
-  make create-catalogsource NAME="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" NAMESPACE="${NAMESPACE}" IMAGE="${catalog_image}" VERBOSE=${VERBOSE}
+  make create-catalogsource NAME="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" NAMESPACE="${NAMESPACE}" IMAGE="${CATALOG_IMAGE}" VERBOSE=${VERBOSE}
 
   make create-subscription \
     NAME=eclipse-che \

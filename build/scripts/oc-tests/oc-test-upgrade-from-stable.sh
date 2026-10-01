@@ -87,7 +87,7 @@ installEclipseCheStableVersion() {
 }
 
 createEclipseCheCatalogSourceFromPR() {
-  CATALOG_IMAGE=$(getCatalogImageFromPullRequest) || 1
+  CATALOG_IMAGE=$(getCatalogImageFromPullRequest) || exit 1
 
   make create-catalogsource NAME="eclipse-che-update" \
     NAMESPACE="openshift-marketplace" \
