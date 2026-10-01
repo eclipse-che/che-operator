@@ -128,10 +128,10 @@ jobs:
           script: |
             const { issue: { number: issue_number }, repo: { owner, repo } } = context;
             const body = [
-              '### 🐳 New operator images available',
-              '- `${{ env.BASE_OPERATOR_IMAGE }}-amd64` and `${{ env.BASE_OPERATOR_IMAGE }}-arm64`',
-              '',
-              '### 📦 New catalog images available',
-              '- `${{ env.BASE_CATALOG_IMAGE }}-amd64` and `${{ env.BASE_CATALOG_IMAGE }}-arm64`',
+              '### 🐳 New images available:',
+              '- `${{ env.BASE_OPERATOR_IMAGE }}-amd64`',
+              '- `${{ env.BASE_OPERATOR_IMAGE }}-arm64`',
+              '- `${{ env.BASE_CATALOG_IMAGE }}-amd64`',
+              '- `${{ env.BASE_CATALOG_IMAGE }}-arm64`',
             ].join('\n');
             await github.rest.issues.createComment({ issue_number, owner, repo, body });
