@@ -127,7 +127,11 @@ jobs:
         with:
           script: |
             const { issue: { number: issue_number }, repo: { owner, repo } } = context;
+  
+            const marker = '<!-- image-build-comment -->';
+  
             const body = [
+              marker,
               '### 🐳 New operator images available',
               '',
               '- `${{ env.BASE_OPERATOR_IMAGE }}-amd64`',
@@ -138,4 +142,31 @@ jobs:
               '- `${{ env.BASE_CATALOG_IMAGE }}-amd64`',
               '- `${{ env.BASE_CATALOG_IMAGE }}-arm64`',
             ].join('\n');
-            await github.rest.issues.createComment({ issue_number, owner, repo, body });
+  
+            const { data: comments } = await github.rest.issues.listComments({
+              owner,
+              repo,
+              issue_number,
+              per_page: 100,
+            });
+  
+            const existingComment = comments.find(comment =>
+              comment.user?.type === 'Bot' &&
+              comment.body?.includes(marker)
+            );
+  
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existingComment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                issue_number,
+                owner,
+                repo,
+                body,
+              });
+            }

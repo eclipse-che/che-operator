@@ -112,13 +112,15 @@ getOperatorImageFromPullRequest() {
     aarch64|arm64)  arch="arm64" ;;
     *)
       echo "Error: unsupported architecture: $arch_raw" >&2
-      exit 1
+      return 1
       ;;
   esac
 
-  if ! pr_number=$(gh pr view --json number --jq '.number' 2>/dev/null) || [[ -z "$pr_number" ]]; then
+  if [[ -n "${PULL_NUMBER:-}" ]]; then
+    pr_number="$PULL_NUMBER"
+  elif ! pr_number=$(gh pr view --json number --jq '.number' 2>/dev/null) || [[ -z "$pr_number" ]]; then
     echo "Error: Failed to retrieve Pull Request number from 'gh'." >&2
-    exit 1
+    return 1
   fi
 
   echo "quay.io/eclipse/che-operator:pr-${pr_number}-${arch}"
@@ -136,13 +138,15 @@ getCatalogImageFromPullRequest() {
     aarch64|arm64)  arch="arm64" ;;
     *)
       echo "Error: unsupported architecture: $arch_raw" >&2
-      exit 1
+      return 1
       ;;
   esac
 
-  if ! pr_number=$(gh pr view --json number --jq '.number' 2>/dev/null) || [[ -z "$pr_number" ]]; then
+  if [[ -n "${PULL_NUMBER:-}" ]]; then
+    pr_number="$PULL_NUMBER"
+  elif ! pr_number=$(gh pr view --json number --jq '.number' 2>/dev/null) || [[ -z "$pr_number" ]]; then
     echo "Error: Failed to retrieve Pull Request number from 'gh'." >&2
-    exit 1
+    return 1
   fi
 
   echo "quay.io/eclipse/eclipse-che-olm-catalog:pr-${pr_number}-${arch}"

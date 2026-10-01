@@ -67,7 +67,7 @@ runTests() {
       oc create namespace devworkspace-controller --dry-run=client -o yaml | oc apply -f -
       oc apply --server-side -f https://raw.githubusercontent.com/devfile/devworkspace-operator/refs/heads/main/deploy/deployment/openshift/combined.yaml
 
-      OPERATOR_IMAGE=$(getOperatorImageFromPullRequest)
+      OPERATOR_IMAGE=$(getOperatorImageFromPullRequest) || exit 1
 
       sed "s|quay.io/eclipse/che-operator:next|${OPERATOR_IMAGE}|g" "${OPERATOR_REPO}/deploy/deployment/openshift/combined.yaml" | oc apply --server-side -f -
       oc rollout status deployment/che-operator -n eclipse-che --timeout=300s
