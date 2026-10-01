@@ -118,7 +118,7 @@ getOperatorImageFromPullRequest() {
 
   if ! pr_number=$(gh pr view --json number --jq '.number' 2>/dev/null) || [[ -z "$pr_number" ]]; then
     echo "Error: Failed to retrieve Pull Request number from 'gh'." >&2
-    exitg 1
+    exit 1
   fi
 
   echo "quay.io/eclipse/che-operator:pr-${pr_number}-${arch}"

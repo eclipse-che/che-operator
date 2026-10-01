@@ -105,12 +105,12 @@ updateEclipseChe() {
     oc patch subscription "eclipse-che" -n "openshift-operators" --type=merge -p '{"spec":{"channel":"next","source":"eclipse-che-update"}}'
 
     # Wait for OLM to pick up the new catalog and advance the CSV
-    timeout 60s bash -c '
-      until [[ "$(oc get subscription eclipse-che -n openshift-operators -o jsonpath="{.status.installedCSV}")" != "${INSTALLED_CSV}" ]]; do
+    timeout 120s bash -c '
+      until [[ "$(oc get subscription eclipse-che -n openshift-operators -o jsonpath="{.status.installedCSV}")" != "$1" ]]; do
         sleep 5
       done
-    ' || {
-      echo "Timed out waiting for installedCSV to change after 1 minute"
+    ' _ "${INSTALLED_CSV}" || {
+      echo "[ERROR] Timed out waiting for installedCSV to change from ${INSTALLED_CSV}"
       exit 1
     }
     make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE="eclipse-che"
