@@ -51,7 +51,7 @@ run() {
   # Install Dev Workspace operator next version
   make install-devworkspace CHANNEL="next" VERBOSE=${VERBOSE} OPERATOR_NAMESPACE="${NAMESPACE}"
 
-  local catalog_image=$(getCatalogImageFromPullRequest) || exit 1
+  local catalog_image=$(getCatalogImageFromPullRequest)
   make create-catalogsource NAME="${ECLIPSE_CHE_CATALOG_SOURCE_NAME}" NAMESPACE="${NAMESPACE}" IMAGE="${catalog_image}" VERBOSE=${VERBOSE}
 
   make create-subscription \
@@ -64,7 +64,10 @@ run() {
     CHANNEL=next \
     VERBOSE=${VERBOSE}
   make wait-pod-running NAMESPACE="${NAMESPACE}" SELECTOR="app.kubernetes.io/component=che-operator"
-  make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE="${NAMESPACE}" VERBOSE=${VERBOSE}
+
+  make create-namespace NAMESPACE="eclipse-che"
+  getCheClusterCRFromInstalledCSV | oc apply --server-side -n "eclipse-che" -f -
+  make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE="eclipse-che"
 }
 
 init "$@"

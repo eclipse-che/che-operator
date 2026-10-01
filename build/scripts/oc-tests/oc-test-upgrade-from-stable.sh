@@ -87,7 +87,7 @@ installEclipseCheStableVersion() {
 }
 
 createEclipseCheCatalogSourceFromPR() {
-  local catalog_image=$(getCatalogImageFromPullRequest) || exit 1
+  local catalog_image=$(getCatalogImageFromPullRequest)
 
   make create-catalogsource NAME="eclipse-che-update" \
     NAMESPACE="openshift-marketplace" \
@@ -105,10 +105,14 @@ updateEclipseChe() {
     oc patch subscription "eclipse-che" -n "openshift-operators" --type=merge -p '{"spec":{"channel":"next","source":"eclipse-che-update"}}'
 
     # Wait for OLM to pick up the new catalog and advance the CSV
-    until [[ "$(oc get subscription eclipse-che -n openshift-operators -o jsonpath='{.status.installedCSV}')" != "${INSTALLED_CSV}" ]]; do
-      sleep 5
-    done
-
+    timeout 60s bash -c '
+      until [[ "$(oc get subscription eclipse-che -n openshift-operators -o jsonpath="{.status.installedCSV}")" != "${INSTALLED_CSV}" ]]; do
+        sleep 5
+      done
+    ' || {
+      echo "Timed out waiting for installedCSV to change after 1 minute"
+      exit 1
+    }
     make wait-eclipseche-version VERSION="$(getCheVersionFromInstalledCSV)" NAMESPACE="eclipse-che"
 }
 

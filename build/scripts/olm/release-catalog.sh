@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2019-2023 Red Hat, Inc.
+# Copyright (c) 2019-2026 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -57,7 +57,7 @@ usage () {
   echo "Build and push catalog and bundle images."
   echo
 	echo "Usage:"
-	echo -e "\t$0 -i CATALOG_IMAGE -c CHANNEL [-i CATALOG_IMAGE] [-b BUNDLE_IMAGE] [-t IMAGE_TOOL] [--force] [--multi-arch]"
+	echo -e "\t$0 -i CATALOG_IMAGE -c CHANNEL [-i CATALOG_IMAGE] [-b BUNDLE_IMAGE] [-t IMAGE_TOOL] [-a arch] [--force] [--multi-arch]"
   echo
   echo "Options:"
   echo -e "\t-c,--channel             (next or stable) Olm channel to build bundle from"
@@ -66,6 +66,7 @@ usage () {
   echo -e "\t-t,--image-tool          [default: docker] Image tool"
   echo -e "\t-m,--multi-arch          [default: false] Build multi-arch images"
   echo -e "\t-f,--force               [default: false] Force to build catalog and bundle images even if bundle already exists in the catalog"
+  echo -e "\t-a, --arch               [default: linux/arm64,linux/amd64,linux/s390x,linux/ppc64le] Architectures to build"
   echo
 	echo "Example:"
 	echo -e "\t$0 -c next"

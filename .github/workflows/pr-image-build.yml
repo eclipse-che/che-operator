@@ -17,6 +17,8 @@ permissions:
   pull-requests: write
 jobs:
   build-operator:
+    concurrency:
+      group: build-operator
     runs-on: ${{ matrix.runner }}
     if: ${{ github.event.pull_request.base.ref == 'main' && github.event.pull_request.user.login != 'dependabot[bot]' }}
     strategy:
@@ -61,6 +63,7 @@ jobs:
     needs:
       - build-operator
     strategy:
+      fail-fast: false
       matrix:
         include:
           - arch: amd64
