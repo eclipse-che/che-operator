@@ -21,6 +21,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	routev1 "github.com/openshift/api/route/v1"
 	networking "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -33,15 +34,16 @@ func NewCheHostReconciler() *CheHostReconciler {
 }
 
 func (s *CheHostReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	done, err := s.syncCheService(ctx)
+	if err := s.syncCheService(ctx); err != nil {
+		return reconcile.Result{}, false, err
+	}
+
+	cheHost, done, err := s.exposeCheEndpoint(ctx)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
 
-	ctx.CheHost, done, err = s.exposeCheEndpoint(ctx)
-	if !done {
-		return reconcile.Result{}, false, err
-	}
+	ctx.CheHost = cheHost
 
 	return reconcile.Result{}, true, nil
 }
@@ -50,7 +52,7 @@ func (s *CheHostReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	return true
 }
 
-func (s *CheHostReconciler) syncCheService(ctx *chetypes.DeployContext) (bool, error) {
+func (s *CheHostReconciler) syncCheService(ctx *chetypes.DeployContext) error {
 	portName := []string{"http"}
 	portNumber := []int32{constants.DefaultServerPort}
 
@@ -65,24 +67,27 @@ func (s *CheHostReconciler) syncCheService(ctx *chetypes.DeployContext) (bool, e
 	}
 
 	spec := deploy.GetServiceSpec(ctx, deploy.CheServiceName, portName, portNumber, getComponentName())
-	return deploy.Sync(ctx, spec, deploy.ServiceDefaultDiffOpts)
+	return deploy.SyncServiceSpecToCluster(ctx, spec)
 }
 
 func (s CheHostReconciler) exposeCheEndpoint(ctx *chetypes.DeployContext) (string, bool, error) {
 	if !infrastructure.IsOpenShift() {
-		_, done, err := deploy.SyncIngressToCluster(
+		if _, err := deploy.SyncIngressToCluster(
 			ctx,
 			getComponentName(),
 			"",
 			gateway.GatewayServiceName,
 			constants.DefaultServerPort,
-			getComponentName())
-		if !done {
+			getComponentName()); err != nil {
 			return "", false, err
 		}
 
 		ingress := &networking.Ingress{}
-		exists, err := deploy.GetNamespacedObject(ctx, getComponentName(), ingress)
+		exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+			ctx.Context,
+			types.NamespacedName{Name: getComponentName(), Namespace: ctx.CheCluster.Namespace},
+			ingress,
+		)
 		if !exists {
 			return "", false, err
 		}
@@ -90,19 +95,22 @@ func (s CheHostReconciler) exposeCheEndpoint(ctx *chetypes.DeployContext) (strin
 		return ingress.Spec.Rules[0].Host, true, nil
 	}
 
-	done, err := deploy.SyncRouteToCluster(
+	if err := deploy.SyncRouteToCluster(
 		ctx,
 		getComponentName(),
 		"/",
 		gateway.GatewayServiceName,
 		constants.DefaultServerPort,
-		getComponentName())
-	if !done {
+		getComponentName()); err != nil {
 		return "", false, err
 	}
 
 	route := &routev1.Route{}
-	exists, err := deploy.GetNamespacedObject(ctx, getComponentName(), route)
+	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		ctx.Context,
+		types.NamespacedName{Name: getComponentName(), Namespace: ctx.CheCluster.Namespace},
+		route,
+	)
 	if !exists {
 		return "", false, err
 	}

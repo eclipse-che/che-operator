@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -13,8 +13,10 @@
 package identityprovider
 
 import (
+	"fmt"
 	"time"
 
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"k8s.io/apimachinery/pkg/types"
@@ -22,17 +24,22 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	oauth "github.com/openshift/api/oauth/v1"
-	"github.com/sirupsen/logrus"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const (
 	OAuthFinalizerName = "oauthclients.finalizers.che.eclipse.org"
 )
 
+var logger = ctrl.Log.WithName("identity-provider")
+
 var (
-	oAuthClientDiffOpts = cmpopts.IgnoreFields(oauth.OAuthClient{}, "TypeMeta", "ObjectMeta")
+	oAuthClientDiffOpts = cmp.Options{
+		cmpopts.IgnoreFields(oauth.OAuthClient{}, "TypeMeta", "ObjectMeta"),
+	}
 )
 
 type IdentityProviderReconciler struct {
@@ -44,8 +51,7 @@ func NewIdentityProviderReconciler() *IdentityProviderReconciler {
 }
 
 func (ip *IdentityProviderReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	done, err := syncOAuthClient(ctx)
-	if !done || err != nil {
+	if err := syncOAuthClient(ctx); err != nil {
 		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
@@ -55,27 +61,35 @@ func (ip *IdentityProviderReconciler) Reconcile(ctx *chetypes.DeployContext) (re
 func (ip *IdentityProviderReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	oauthClient, err := GetOAuthClient(ctx)
 	if err != nil {
-		logrus.Errorf("Error getting OAuthClients: %v", err)
+		logger.Error(err, "Failed to get OAuthClient")
 		return false
 	}
 
 	if oauthClient != nil {
-		if err := deploy.DeleteObjectWithFinalizer(ctx, types.NamespacedName{Name: oauthClient.Name}, &oauth.OAuthClient{}, OAuthFinalizerName); err != nil {
-			logrus.Errorf("Error deleting OAuthClient: %v", err)
-			return false
+		if err := ctx.ClusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(
+			ctx.Context,
+			types.NamespacedName{Name: oauthClient.Name},
+			&oauth.OAuthClient{},
+		); err != nil {
+			// failed to delete OAuthClient, but it shouldn't prevent us from removing the finalizer
+			logger.Error(err, "Failed to delete OAuthClient", "name", oauthClient.Name)
 		}
+	}
+
+	if err := deploy.DeleteFinalizer(ctx, OAuthFinalizerName); err != nil {
+		logger.Error(err, "Failed to delete finalizer", "finalizer", OAuthFinalizerName)
+		return false
 	}
 
 	return true
 }
 
-func syncOAuthClient(ctx *chetypes.DeployContext) (bool, error) {
+func syncOAuthClient(ctx *chetypes.DeployContext) error {
 	var oauthClientName, oauthSecret string
 
 	oauthClient, err := GetOAuthClient(ctx)
 	if err != nil {
-		logrus.Errorf("Error getting OAuthClients: %v", err)
-		return false, err
+		return fmt.Errorf("failed to get OAuthClient: %w", err)
 	}
 
 	if oauthClient != nil {
@@ -93,15 +107,18 @@ func syncOAuthClient(ctx *chetypes.DeployContext) (bool, error) {
 		redirectURIs,
 		ctx.CheCluster.Spec.Networking.Auth.OAuthAccessTokenInactivityTimeoutSeconds,
 		ctx.CheCluster.Spec.Networking.Auth.OAuthAccessTokenMaxAgeSeconds)
-	done, err := deploy.Sync(ctx, oauthClientSpec, oAuthClientDiffOpts)
-	if !done {
-		return false, err
+
+	if err := ctx.ClusterAPI.NonCachingClientWrapper.Sync(
+		ctx.Context,
+		oauthClientSpec,
+		&k8sclient.SyncOptions{DiffOpts: oAuthClientDiffOpts, SuppressDiff: true},
+	); err != nil {
+		return fmt.Errorf("failed to sync OAuthClient %s: %w", oauthClientSpec.Name, err)
 	}
 
-	err = deploy.AppendFinalizer(ctx, OAuthFinalizerName)
-	if err != nil {
-		return false, err
+	if err := deploy.AppendFinalizer(ctx, OAuthFinalizerName); err != nil {
+		return fmt.Errorf("failed to append finalizer %s: %w", OAuthFinalizerName, err)
 	}
 
-	return true, nil
+	return nil
 }

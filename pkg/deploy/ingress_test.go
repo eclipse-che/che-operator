@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -197,14 +197,12 @@ func TestSyncIngressToCluster(t *testing.T) {
 	}
 
 	deployContext := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
-	_, done, err := SyncIngressToCluster(deployContext, "test", "", "service-1", 8080, "component")
+	_, err := SyncIngressToCluster(deployContext, "test", "", "service-1", 8080, "component")
 	assert.Nil(t, err)
-	assert.True(t, done)
 
 	cheCluster.Spec.Networking.Hostname = "host-2"
-	_, done, err = SyncIngressToCluster(deployContext, "test", "", "service-2", 8080, "component")
+	_, err = SyncIngressToCluster(deployContext, "test", "", "service-2", 8080, "component")
 	assert.Nil(t, err)
-	assert.True(t, done)
 
 	actual := &networkingv1.Ingress{}
 	err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)

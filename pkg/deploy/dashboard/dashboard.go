@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -52,13 +52,12 @@ func (d *DashboardReconciler) getComponentName(ctx *chetypes.DeployContext) stri
 
 func (d *DashboardReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	// Create a new dashboard service
-	done, err := deploy.SyncServiceToCluster(ctx, d.getComponentName(ctx), []string{"http"}, []int32{8080}, d.getComponentName(ctx))
-	if !done {
+	if err := deploy.SyncServiceToCluster(ctx, d.getComponentName(ctx), []string{"http"}, []int32{8080}, d.getComponentName(ctx)); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
 	// Expose dashboard service with route or ingress
-	_, done, err = expose.ExposeWithHostPath(ctx, d.getComponentName(ctx), ctx.CheHost,
+	_, done, err := expose.ExposeWithHostPath(ctx, d.getComponentName(ctx), ctx.CheHost,
 		exposePath,
 		d.createGatewayConfig(ctx),
 	)
@@ -67,23 +66,19 @@ func (d *DashboardReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 	}
 
 	// we create dashboard SA in any case to keep a track on resources we access within it
-	done, err = deploy.SyncServiceAccountToCluster(ctx, DashboardSA)
-	if !done {
+	if err := deploy.SyncServiceAccountToCluster(ctx, DashboardSA); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
-	done, err = deploy.SyncClusterRoleToCluster(ctx, d.getClusterRoleName(ctx), GetPrivilegedPoliciesRulesForKubernetes())
-	if !done {
+	if err := deploy.SyncClusterRoleToCluster(ctx, d.getClusterRoleName(ctx), GetPrivilegedPoliciesRulesForKubernetes()); err != nil {
 		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
-	done, err = deploy.SyncClusterRoleBindingToCluster(ctx, d.getClusterRoleBindingName(ctx), DashboardSA, d.getClusterRoleName(ctx))
-	if !done {
+	if err := deploy.SyncClusterRoleBindingToCluster(ctx, d.getClusterRoleBindingName(ctx), DashboardSA, d.getClusterRoleName(ctx)); err != nil {
 		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
-	err = deploy.AppendFinalizer(ctx, ClusterPermissionsDashboardFinalizer)
-	if err != nil {
+	if err := deploy.AppendFinalizer(ctx, ClusterPermissionsDashboardFinalizer); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
@@ -103,12 +98,20 @@ func (d *DashboardReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 
 func (d *DashboardReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	done := true
-	if _, err := deploy.Delete(ctx, types.NamespacedName{Name: d.getClusterRoleName(ctx)}, &rbacv1.ClusterRole{}); err != nil {
+	if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+		ctx.Context,
+		types.NamespacedName{Name: d.getClusterRoleName(ctx)},
+		&rbacv1.ClusterRole{},
+	); err != nil {
 		done = false
 		logrus.Errorf("Failed to delete ClusterRole %s, cause: %v", d.getClusterRoleName(ctx), err)
 	}
 
-	if _, err := deploy.Delete(ctx, types.NamespacedName{Name: d.getClusterRoleBindingName(ctx)}, &rbacv1.ClusterRoleBinding{}); err != nil {
+	if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+		ctx.Context,
+		types.NamespacedName{Name: d.getClusterRoleBindingName(ctx)},
+		&rbacv1.ClusterRoleBinding{},
+	); err != nil {
 		done = false
 		logrus.Errorf("Failed to delete ClusterRoleBinding %s, cause: %v", d.getClusterRoleBindingName(ctx), err)
 	}

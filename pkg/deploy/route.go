@@ -23,6 +23,7 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -31,6 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 var routeDiffOpts = cmp.Options{
@@ -48,14 +50,26 @@ func SyncRouteToCluster(
 	path string,
 	serviceName string,
 	servicePort int32,
-	component string) (bool, error) {
+	component string) error {
 
 	routeSpec, err := GetRouteSpec(deployContext, name, path, serviceName, servicePort, component)
 	if err != nil {
-		return false, err
+		return fmt.Errorf("failed to get Route spec %s/%s: %w", deployContext.CheCluster.Namespace, name, err)
 	}
 
-	return Sync(deployContext, routeSpec, routeDiffOpts)
+	if err := controllerutil.SetControllerReference(deployContext.CheCluster, routeSpec, deployContext.ClusterAPI.Scheme); err != nil {
+		return fmt.Errorf("failed to set owner reference for Route %s/%s: %w", routeSpec.Namespace, routeSpec.Name, err)
+	}
+
+	if err := deployContext.ClusterAPI.ClientWrapper.Sync(
+		deployContext.Context,
+		routeSpec,
+		&k8sclient.SyncOptions{DiffOpts: routeDiffOpts},
+	); err != nil {
+		return fmt.Errorf("failed to sync Route %s/%s: %w", routeSpec.Namespace, routeSpec.Name, err)
+	}
+
+	return nil
 }
 
 // GetRouteSpec returns default configuration of a route in Che namespace.
@@ -134,7 +148,11 @@ func GetRouteSpec(
 
 		if hostSuffix == "" {
 			existedRoute := &routev1.Route{}
-			exists, _ := GetNamespacedObject(deployContext, name, existedRoute)
+			exists, _ := deployContext.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+				deployContext.Context,
+				types.NamespacedName{Name: name, Namespace: deployContext.CheCluster.Namespace},
+				existedRoute,
+			)
 			if exists {
 				// Get route domain from host
 				domainEntries := strings.SplitN(existedRoute.Spec.Host, ".", 2)

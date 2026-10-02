@@ -13,11 +13,15 @@
 package deploy
 
 import (
+	"fmt"
+
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	rbac "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 func SyncRoleBindingToCluster(
@@ -25,10 +29,23 @@ func SyncRoleBindingToCluster(
 	name string,
 	serviceAccountName string,
 	roleName string,
-	roleKind string) (bool, error) {
+	roleKind string) error {
 
 	rbSpec := getRoleBindingSpec(deployContext, name, serviceAccountName, roleName, roleKind)
-	return Sync(deployContext, rbSpec, diffs.RoleBinding)
+
+	if err := controllerutil.SetControllerReference(deployContext.CheCluster, rbSpec, deployContext.ClusterAPI.Scheme); err != nil {
+		return fmt.Errorf("failed to set owner reference for RoleBinding %s/%s: %w", rbSpec.Namespace, rbSpec.Name, err)
+	}
+
+	if err := deployContext.ClusterAPI.ClientWrapper.Sync(
+		deployContext.Context,
+		rbSpec,
+		&k8sclient.SyncOptions{DiffOpts: diffs.RoleBinding},
+	); err != nil {
+		return fmt.Errorf("failed to sync RoleBinding %s/%s: %w", rbSpec.Namespace, rbSpec.Name, err)
+	}
+
+	return nil
 }
 
 func getRoleBindingSpec(
