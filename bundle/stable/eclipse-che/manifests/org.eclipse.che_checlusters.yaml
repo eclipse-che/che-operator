@@ -4379,6 +4379,17 @@ spec:
             spec:
               description: Desired configuration of Eclipse Che installation.
               properties:
+                agentSandbox:
+                  description: |-
+                    AgentSandbox configures integration with the Kubernetes Agent Sandbox project
+                    (https://github.com/kubernetes-sigs/agent-sandbox), which provides secure,
+                    isolated runtime environments for AI agents. Requires the agents.x-k8s.io
+                    API group to be available in the cluster.
+                  properties:
+                    enabled:
+                      description: Enables AgentSandbox integration.
+                      type: boolean
+                  type: object
                 components:
                   default:
                     cheServer:
@@ -12149,6 +12160,9 @@ spec:
                     openVSXRegistry:
                       default:
                         enable: false
+                        extensionAutoUpdate:
+                          enable: false
+                          schedule: 0 0 * * 0
                       description: OpenVSX registry configuration.
                       properties:
                         credentialsSecretName:
@@ -14752,6 +14766,43 @@ spec:
                             Enables internal OpenVSX registry.
                             When set to false, the OpenVSX registry resources are deleted, including the database PVC.
                           type: boolean
+                        extensionAutoUpdate:
+                          default:
+                            enable: false
+                            schedule: 0 0 * * 0
+                          description: Configuration for periodic auto-update of extensions
+                            from the upstream open-vsx.org registry.
+                          properties:
+                            enable:
+                              default: false
+                              description: |-
+                                Enables periodic automatic updates of extensions published to the internal OpenVSX registry.
+                                When set to `false`, the auto-update CronJob is deleted, including its job history.
+                              type: boolean
+                            excludedExtensions:
+                              description: |-
+                                List of extensions excluded from auto-update.
+                                Each entry is an extension ID in `<namespace>.<name>` format,
+                                for example `redhat.java`.
+                                Excluded extensions keep their currently published version.
+                              items:
+                                type: string
+                              type: array
+                            schedule:
+                              default: 0 0 * * 0
+                              description: |-
+                                Cron schedule, in Unix cron format, for the auto-update job.
+                                The schedule is interpreted in the kube-controller-manager time zone, which is UTC on most clusters.
+                              type: string
+                            vsCodeEngineVersion:
+                              description: |-
+                                Version of the VS Code engine used to select which extension versions to publish.
+                                For each extension, the newest version whose `engines.vscode` constraint is satisfied
+                                by this value is published, for example `1.99.0`.
+                                When omitted, the latest non-pre-release version of each extension is used
+                                regardless of engine compatibility.
+                              type: string
+                          type: object
                         server:
                           description: OpenVSX registry server configuration.
                           properties:
@@ -27917,6 +27968,18 @@ spec:
                                   format: int32
                                   minimum: 0
                                   type: integer
+                                resolveImageFromImageStream:
+                                  description: |-
+                                    Allows resolving the oauth-proxy image from the cluster's own `openshift/oauth-proxy` ImageStream
+                                    instead of using the image shipped with the Operator. The image is referenced by the internal
+                                    registry, so it works in both connected and disconnected environments.
+                                    This field is specific to OpenShift with built-in OAuth and upstream Che,
+                                    on other flavors the setting is ignored.
+                                    When the image cannot be resolved, the Operator falls back to the image shipped
+                                    with the Operator, which is referenced by a mutable tag rather than by digest.
+                                    An explicit image in `gateway.deployment.containers` takes precedence over this setting.
+                                    Enabled by default.
+                                  type: boolean
                               type: object
                             traefik:
                               description: Configuration for Traefik within the Che

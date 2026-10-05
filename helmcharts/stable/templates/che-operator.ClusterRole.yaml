@@ -24,6 +24,7 @@ rules:
   - batch
   resources:
   - jobs
+  - cronjobs
   verbs:
   - create
   - delete
@@ -243,6 +244,18 @@ rules:
   - update
   - list
 - apiGroups:
+  - agents.x-k8s.io
+  resources:
+  - sandboxes
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
   - config.openshift.io
   resourceNames:
   - cluster
@@ -259,6 +272,21 @@ rules:
   - authentications
   verbs:
   - get
+- apiGroups:
+  - config.openshift.io
+  resourceNames:
+  - cluster
+  resources:
+  - apiservers
+  verbs:
+  - get
+- apiGroups:
+  - config.openshift.io
+  resources:
+  - apiservers
+  verbs:
+  - list
+  - watch
 - apiGroups:
   - ""
   resources:
