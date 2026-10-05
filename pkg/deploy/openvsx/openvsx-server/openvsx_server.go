@@ -205,7 +205,11 @@ func deleteResources(ctx *chetypes.DeployContext) {
 
 func (r *OpenVSXServerReconciler) isServerReady(ctx *chetypes.DeployContext) bool {
 	actual := &appsv1.Deployment{}
-	exists, err := deploy.GetNamespacedObject(ctx, constants.OpenVSXServerComponentName, actual)
+	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		ctx.Context,
+		types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: ctx.CheCluster.Namespace},
+		actual,
+	)
 	if !exists || err != nil {
 		return false
 	}

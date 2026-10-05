@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2024 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -107,14 +107,18 @@ func (ip *ImagePuller) uninstallImagePuller(ctx *chetypes.DeployContext) (bool, 
 	}
 
 	if infrastructure.IsKubernetesImagePullerEnabled(ctx.ClusterAPI.DiscoveryClient) {
-		if done, err := deploy.DeleteByKeyWithClient(
-			ctx.ClusterAPI.NonCachingClient,
-			types.NamespacedName{
-				Namespace: ctx.CheCluster.Namespace,
-				Name:      getImagePullerCustomResourceName(ctx)},
+		key := types.NamespacedName{
+			Namespace: ctx.CheCluster.Namespace,
+			Name:      getImagePullerCustomResourceName(ctx),
+		}
+
+		err := ctx.ClusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(
+			ctx.Context,
+			key,
 			&chev1alpha1.KubernetesImagePuller{},
-		); !done {
-			return false, err
+		)
+		if err != nil {
+			return false, fmt.Errorf("failed to delete KubernetesImagePuller %s/%s: %w", key.Namespace, key.Name, err)
 		}
 	}
 

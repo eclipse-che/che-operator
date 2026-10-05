@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -25,7 +25,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -174,7 +173,7 @@ func TestSyncConfigMap(t *testing.T) {
 	assert.Equal(t, "new-test", cm.Annotations["new-annotation"])
 
 	// Delete dst ConfigMap
-	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.Client, objectKeyInUserNs, &corev1.ConfigMap{})
+	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInUserNs, &corev1.ConfigMap{})
 	assert.Nil(t, err)
 
 	// Sync ConfigMap
@@ -194,7 +193,7 @@ func TestSyncConfigMap(t *testing.T) {
 	assert.Equal(t, "true", cm.Labels["controller.devfile.io/mount-to-devworkspace"])
 
 	// Delete src ConfigMap
-	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.Client, objectKeyInCheNs, &corev1.ConfigMap{})
+	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &corev1.ConfigMap{})
 	assert.Nil(t, err)
 
 	// Sync ConfigMap
@@ -522,7 +521,7 @@ func TestSyncConfigMapShouldRetainIfAnnotationSetTrue(t *testing.T) {
 	assert.Equal(t, "true", cm.Annotations[syncRetainOnDeleteAnnotation])
 
 	// Delete src ConfigMap
-	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.Client, objectKeyInCheNs, &corev1.ConfigMap{})
+	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &corev1.ConfigMap{})
 	assert.Nil(t, err)
 
 	// Sync ConfigMap
@@ -583,7 +582,7 @@ func TestSyncConfigMapShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 	assert.Equal(t, "false", cm.Annotations[syncRetainOnDeleteAnnotation])
 
 	// Delete src ConfigMap
-	err = deploy.DeleteIgnoreIfNotFound(context.TODO(), deployContext.ClusterAPI.Client, objectKeyInCheNs, &corev1.ConfigMap{})
+	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &corev1.ConfigMap{})
 	assert.Nil(t, err)
 
 	// Sync ConfigMap

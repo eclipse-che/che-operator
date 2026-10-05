@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -171,14 +171,12 @@ func TestRouteSpec(t *testing.T) {
 func TestSyncRouteToCluster(t *testing.T) {
 	ctx := test.NewCtxBuilder().Build()
 
-	done, err := SyncRouteToCluster(ctx, "test", "", "service", 80, "test")
+	err := SyncRouteToCluster(ctx, "test", "", "service", 80, "test")
 	assert.Nil(t, err)
-	assert.True(t, done)
 
 	// sync another route
-	done, err = SyncRouteToCluster(ctx, "test", "", "service", 90, "test")
+	err = SyncRouteToCluster(ctx, "test", "", "service", 90, "test")
 	assert.Nil(t, err)
-	assert.True(t, done)
 
 	actual := &routev1.Route{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
@@ -188,9 +186,8 @@ func TestSyncRouteToCluster(t *testing.T) {
 	// sync route with labels & domain
 	ctx.CheCluster.Spec.Networking.Domain = "domain"
 	ctx.CheCluster.Spec.Networking.Labels = map[string]string{"a": "b"}
-	done, err = SyncRouteToCluster(ctx, "test", "", "service", 90, "test")
+	err = SyncRouteToCluster(ctx, "test", "", "service", 90, "test")
 	assert.Nil(t, err)
-	assert.True(t, done)
 
 	actual = &routev1.Route{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
@@ -202,14 +199,12 @@ func TestSyncRouteToCluster(t *testing.T) {
 
 	// sync route with annotations
 	ctx.CheCluster.Spec.Networking.Annotations = map[string]string{"a": "b"}
-	done, err = SyncRouteToCluster(ctx, "test", "", "service", 90, "test")
+	err = SyncRouteToCluster(ctx, "test", "", "service", 90, "test")
 	assert.Nil(t, err)
-	assert.True(t, done)
 
 	actual = &routev1.Route{}
 	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
 	assert.Nil(t, err)
-	assert.True(t, done)
 	assert.Equal(t, "b", actual.Annotations["a"])
 	assert.NotEmpty(t, actual.Annotations[constants.CheEclipseOrgManagedAnnotationsDigest])
 }

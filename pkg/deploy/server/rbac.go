@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -43,11 +43,11 @@ func (s *CheServerReconciler) syncPermissions(ctx *chetypes.DeployContext) (bool
 	}
 
 	for name, policy := range policies {
-		if done, err := deploy.SyncClusterRoleToCluster(ctx, name, policy); !done {
+		if err := deploy.SyncClusterRoleToCluster(ctx, name, policy); err != nil {
 			return false, err
 		}
 
-		if done, err := deploy.SyncClusterRoleBindingToCluster(ctx, name, constants.DefaultCheServiceAccountName, name); !done {
+		if err := deploy.SyncClusterRoleBindingToCluster(ctx, name, constants.DefaultCheServiceAccountName, name); err != nil {
 			return false, err
 		}
 	}
@@ -55,7 +55,7 @@ func (s *CheServerReconciler) syncPermissions(ctx *chetypes.DeployContext) (bool
 	for _, cheClusterRole := range ctx.CheCluster.Spec.Components.CheServer.ClusterRoles {
 		cheClusterRole := strings.TrimSpace(cheClusterRole)
 		if cheClusterRole != "" {
-			if done, err := deploy.SyncClusterRoleBindingToCluster(ctx, cheClusterRole, constants.DefaultCheServiceAccountName, cheClusterRole); !done {
+			if err := deploy.SyncClusterRoleBindingToCluster(ctx, cheClusterRole, constants.DefaultCheServiceAccountName, cheClusterRole); err != nil {
 				return false, err
 			}
 
@@ -71,8 +71,12 @@ func (s *CheServerReconciler) syncPermissions(ctx *chetypes.DeployContext) (bool
 		if strings.HasSuffix(finalizer, cheCRBFinalizerSuffix) {
 			cheClusterRole := strings.TrimSuffix(finalizer, cheCRBFinalizerSuffix)
 			if !util.Contains(ctx.CheCluster.Spec.Components.CheServer.ClusterRoles, cheClusterRole) {
-				if done, err := deploy.Delete(ctx, types.NamespacedName{Name: cheClusterRole}, &rbacv1.ClusterRoleBinding{}); !done {
-					return false, err
+				if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+					ctx.Context,
+					types.NamespacedName{Name: cheClusterRole},
+					&rbacv1.ClusterRoleBinding{},
+				); err != nil {
+					return false, fmt.Errorf("failed to delete ClusterRoleBinding %s: %w", cheClusterRole, err)
 				}
 
 				if err := deploy.DeleteFinalizer(ctx, finalizer); err != nil {
@@ -95,12 +99,20 @@ func (s *CheServerReconciler) deletePermissions(ctx *chetypes.DeployContext) boo
 	done := true
 
 	for _, name := range names {
-		if _, err := deploy.Delete(ctx, types.NamespacedName{Name: name}, &rbacv1.ClusterRole{}); err != nil {
+		if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+			ctx.Context,
+			types.NamespacedName{Name: name},
+			&rbacv1.ClusterRole{},
+		); err != nil {
 			done = false
 			logrus.Errorf("Failed to delete ClusterRole '%s', cause: %v", name, err)
 		}
 
-		if _, err := deploy.Delete(ctx, types.NamespacedName{Name: name}, &rbacv1.ClusterRoleBinding{}); err != nil {
+		if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+			ctx.Context,
+			types.NamespacedName{Name: name},
+			&rbacv1.ClusterRoleBinding{},
+		); err != nil {
 			done = false
 			logrus.Errorf("Failed to delete ClusterRoleBinding '%s', cause: %v", name, err)
 		}
@@ -109,14 +121,22 @@ func (s *CheServerReconciler) deletePermissions(ctx *chetypes.DeployContext) boo
 	for _, name := range ctx.CheCluster.Spec.Components.CheServer.ClusterRoles {
 		name := strings.TrimSpace(name)
 		if name != "" {
-			if _, err := deploy.Delete(ctx, types.NamespacedName{Name: name}, &rbacv1.ClusterRoleBinding{}); err != nil {
+			if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+				ctx.Context,
+				types.NamespacedName{Name: name},
+				&rbacv1.ClusterRoleBinding{},
+			); err != nil {
 				done = false
 				logrus.Errorf("Failed to delete ClusterRoleBinding '%s', cause: %v", name, err)
 			}
 
 			// Removes any legacy CRB https://github.com/eclipse/che/issues/19506
 			legacyName := ctx.CheCluster.Namespace + "-" + constants.DefaultCheServiceAccountName + "-" + name
-			if _, err := deploy.Delete(ctx, types.NamespacedName{Name: legacyName}, &rbacv1.ClusterRoleBinding{}); err != nil {
+			if err := ctx.ClusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(
+				ctx.Context,
+				types.NamespacedName{Name: legacyName},
+				&rbacv1.ClusterRoleBinding{},
+			); err != nil {
 				done = false
 				logrus.Errorf("Failed to delete ClusterRoleBinding '%s', cause: %v", legacyName, err)
 			}

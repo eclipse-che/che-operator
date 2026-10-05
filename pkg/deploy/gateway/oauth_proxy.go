@@ -231,7 +231,11 @@ func resolveOpenShiftOAuthProxyImage(ctx *chetypes.DeployContext) string {
 func getOauthProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
 	// append env var with ConfigMap revision to restore pod automatically when config has been changed
 	cm := &corev1.ConfigMap{}
-	exists, _ := deploy.GetNamespacedObject(ctx, "che-gateway-config-oauth-proxy", cm)
+	exists, _ := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		ctx.Context,
+		types.NamespacedName{Name: "che-gateway-config-oauth-proxy", Namespace: ctx.CheCluster.Namespace},
+		cm,
+	)
 	configMapRevision := map[bool]string{true: cm.GetResourceVersion(), false: ""}[exists]
 
 	var image, probePath string

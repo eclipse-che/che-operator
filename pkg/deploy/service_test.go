@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -24,14 +24,14 @@ import (
 func TestServiceToCluster(t *testing.T) {
 	ctx := test.NewCtxBuilder().Build()
 
-	done, err := SyncServiceToCluster(ctx, "test", []string{"port"}, []int32{8080}, "test")
-	if !done || err != nil {
+	err := SyncServiceToCluster(ctx, "test", []string{"port"}, []int32{8080}, "test")
+	if err != nil {
 		t.Fatalf("Failed to sync service: %v", err)
 	}
 
 	// sync another service
-	done, err = SyncServiceToCluster(ctx, "test", []string{"port"}, []int32{9090}, "test")
-	if !done || err != nil {
+	err = SyncServiceToCluster(ctx, "test", []string{"port"}, []int32{9090}, "test")
+	if err != nil {
 		t.Fatalf("Failed to sync service: %v", err)
 	}
 

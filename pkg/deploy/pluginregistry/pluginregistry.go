@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2024 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -17,11 +17,15 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
+	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -42,10 +46,20 @@ func NewPluginRegistryReconciler() *PluginRegistryReconciler {
 
 func (p *PluginRegistryReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	if ctx.CheCluster.IsInternalPluginRegistryDisabled() {
-		_, _ = deploy.DeleteNamespacedObject(ctx, constants.PluginRegistryName, &corev1.Service{})
-		_, _ = deploy.DeleteNamespacedObject(ctx, constants.PluginRegistryName, &corev1.ConfigMap{})
-		_, _ = deploy.DeleteNamespacedObject(ctx, gateway.GatewayConfigMapNamePrefix+constants.PluginRegistryName, &corev1.ConfigMap{})
-		_, _ = deploy.DeleteNamespacedObject(ctx, constants.PluginRegistryName, &appsv1.Deployment{})
+		objects := []struct {
+			name string
+			obj  client.Object
+		}{
+			{constants.PluginRegistryName, &corev1.Service{}},
+			{constants.PluginRegistryName, &corev1.ConfigMap{}},
+			{gateway.GatewayConfigMapNamePrefix + constants.PluginRegistryName, &corev1.ConfigMap{}},
+			{constants.PluginRegistryName, &appsv1.Deployment{}},
+		}
+
+		for _, object := range objects {
+			key := types.NamespacedName{Name: object.name, Namespace: ctx.CheCluster.Namespace}
+			_ = ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(ctx.Context, key, object.obj)
+		}
 
 		if ctx.CheCluster.Status.PluginRegistryURL != "" {
 			ctx.CheCluster.Status.PluginRegistryURL = ""
@@ -56,8 +70,7 @@ func (p *PluginRegistryReconciler) Reconcile(ctx *chetypes.DeployContext) (recon
 		return reconcile.Result{}, true, nil
 	}
 
-	done, err := p.syncService(ctx)
-	if !done {
+	if err := p.syncService(ctx); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
@@ -71,8 +84,7 @@ func (p *PluginRegistryReconciler) Reconcile(ctx *chetypes.DeployContext) (recon
 		return reconcile.Result{}, false, err
 	}
 
-	done, err = p.syncConfigMap(ctx)
-	if !done {
+	if err := p.syncConfigMap(ctx); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
@@ -88,7 +100,7 @@ func (p *PluginRegistryReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	return true
 }
 
-func (p *PluginRegistryReconciler) syncService(ctx *chetypes.DeployContext) (bool, error) {
+func (p *PluginRegistryReconciler) syncService(ctx *chetypes.DeployContext) error {
 	return deploy.SyncServiceToCluster(
 		ctx,
 		constants.PluginRegistryName,
@@ -97,10 +109,10 @@ func (p *PluginRegistryReconciler) syncService(ctx *chetypes.DeployContext) (boo
 		constants.PluginRegistryName)
 }
 
-func (p *PluginRegistryReconciler) syncConfigMap(ctx *chetypes.DeployContext) (bool, error) {
+func (p *PluginRegistryReconciler) syncConfigMap(ctx *chetypes.DeployContext) error {
 	data, err := p.getConfigMapData(ctx)
 	if err != nil {
-		return false, err
+		return fmt.Errorf("failed to get ConfigMap data: %w", err)
 	}
 
 	cm := &corev1.ConfigMap{
@@ -117,7 +129,19 @@ func (p *PluginRegistryReconciler) syncConfigMap(ctx *chetypes.DeployContext) (b
 		Data: data,
 	}
 
-	return deploy.Sync(ctx, cm, diffs.ConfigMapEnsureLabels)
+	if err := controllerutil.SetControllerReference(ctx.CheCluster, cm, ctx.ClusterAPI.Scheme); err != nil {
+		return fmt.Errorf("failed to set owner reference for ConfigMap %s/%s: %w", cm.Namespace, cm.Name, err)
+	}
+
+	if err := ctx.ClusterAPI.ClientWrapper.Sync(
+		ctx.Context,
+		cm,
+		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
+	); err != nil {
+		return fmt.Errorf("failed to sync ConfigMap %s/%s: %w", cm.Namespace, cm.Name, err)
+	}
+
+	return nil
 }
 
 func (p *PluginRegistryReconciler) ExposeEndpoint(ctx *chetypes.DeployContext) (string, bool, error) {

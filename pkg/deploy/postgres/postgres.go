@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -15,9 +15,10 @@ package postgres
 import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -38,11 +39,21 @@ func NewPostgresReconciler() *PostgresReconciler {
 
 func (p *PostgresReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	// PostgreSQL component is not used anymore
-	_, _ = deploy.DeleteNamespacedObject(ctx, postgresComponentName, &appsv1.Deployment{})
-	_, _ = deploy.DeleteNamespacedObject(ctx, backupServerComponentName, &appsv1.Deployment{})
-	_, _ = deploy.DeleteNamespacedObject(ctx, defaultPostgresVolumeClaimName, &corev1.PersistentVolumeClaim{})
-	_, _ = deploy.DeleteNamespacedObject(ctx, defaultPostgresCredentialsSecret, &corev1.Secret{})
-	_, _ = deploy.DeleteNamespacedObject(ctx, postgresComponentName, &corev1.Service{})
+	objects := []struct {
+		name string
+		obj  client.Object
+	}{
+		{postgresComponentName, &appsv1.Deployment{}},
+		{backupServerComponentName, &appsv1.Deployment{}},
+		{defaultPostgresVolumeClaimName, &corev1.PersistentVolumeClaim{}},
+		{defaultPostgresCredentialsSecret, &corev1.Secret{}},
+		{postgresComponentName, &corev1.Service{}},
+	}
+
+	for _, object := range objects {
+		key := types.NamespacedName{Name: object.name, Namespace: ctx.CheCluster.Namespace}
+		_ = ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(ctx.Context, key, object.obj)
+	}
 
 	return reconcile.Result{}, true, nil
 }
