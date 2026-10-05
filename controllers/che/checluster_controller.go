@@ -102,7 +102,6 @@ func NewReconciler(
 	reconcilerManager := reconciler.NewReconcilerManager()
 
 	// order does matter
-	reconcilerManager.AddReconciler(migration.NewMigrator())
 	reconcilerManager.AddReconciler(migration.NewCheClusterDefaultsCleaner())
 	reconcilerManager.AddReconciler(NewCheClusterValidator())
 	reconcilerManager.AddReconciler(tls.NewCertificatesReconciler())

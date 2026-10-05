@@ -21,5 +21,5 @@ import (
 func init() {
 	k8shelper.InitializeForTesting()
 	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
-	defaults.InitializeForTesting("../../config/manager/manager.yaml")
+	defaults.InitializeForTesting()
 }
