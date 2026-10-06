@@ -15,6 +15,7 @@ package defaults
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
@@ -57,7 +58,15 @@ var (
 	log = ctrl.Log.WithName("defaults")
 )
 
-func InitializeForTesting(operatorDeploymentFilePath string) {
+func InitializeForTesting() {
+	projectRoot, err := findProjectRoot()
+	if err != nil {
+		log.Error(err, "Failed to find project root")
+		os.Exit(1)
+	}
+
+	operatorDeploymentFilePath := filepath.Join(projectRoot, "config", "manager", "manager.yaml")
+
 	operatorDeployment := &appsv1.Deployment{}
 	if err := util.ReadObjectInto(operatorDeploymentFilePath, operatorDeployment); err != nil {
 		log.Error(err, "Error reading operator deployment")
@@ -374,4 +383,25 @@ func getOrganizationFromImage(image string) string {
 		organization = imageParts[1]
 	}
 	return organization
+}
+
+// findProjectRoot walks the directory tree up until `go.mod` is found.
+func findProjectRoot() (string, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to get working directory: %w", err)
+	}
+
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir, nil
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return "", fmt.Errorf("failed to find project root: no go.mod found above the working directory")
+		}
+
+		dir = parent
+	}
 }

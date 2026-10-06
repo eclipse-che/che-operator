@@ -19,5 +19,5 @@ import (
 
 func init() {
 	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
-	defaults.InitializeForTesting("../../config/manager/manager.yaml")
+	defaults.InitializeForTesting()
 }

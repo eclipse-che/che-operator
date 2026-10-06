@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -68,6 +68,8 @@ type SyncOptions struct {
 	DiffOpts []cmp.Option
 	// DeleteOpts can be used to customize deletion when object is recreated
 	DeleteOpts []client.DeleteOption
+	// ForceRecreate can be used to delete and create object instead of updating it when object is not in sync
+	ForceRecreate bool
 }
 
 func (o *SyncOptions) ApplyToList(so *SyncOptions) {
@@ -89,6 +91,10 @@ func (o *SyncOptions) ApplyToList(so *SyncOptions) {
 
 	if len(o.DeleteOpts) != 0 {
 		so.DeleteOpts = o.DeleteOpts
+	}
+
+	if o.ForceRecreate {
+		so.ForceRecreate = o.ForceRecreate
 	}
 }
 
