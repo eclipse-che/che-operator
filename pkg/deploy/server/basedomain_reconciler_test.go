@@ -26,7 +26,7 @@ import (
 )
 
 func TestBaseDomainFromNetworkingDomain(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
@@ -39,15 +39,15 @@ func TestBaseDomainFromNetworkingDomain(t *testing.T) {
 	}).Build()
 
 	reconciler := NewBaseDomainReconciler()
-	_, done, err := reconciler.Reconcile(ctx)
+	_, done, err := reconciler.Reconcile(cheCtx)
 
 	assert.True(t, done)
 	assert.Nil(t, err)
-	assert.Equal(t, "my-domain.com", ctx.CheCluster.Status.WorkspaceBaseDomain)
+	assert.Equal(t, "my-domain.com", cheCtx.CheCluster.Status.WorkspaceBaseDomain)
 }
 
 func TestBaseDomainFromExtraProperties(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
@@ -67,15 +67,15 @@ func TestBaseDomainFromExtraProperties(t *testing.T) {
 	}).Build()
 
 	reconciler := NewBaseDomainReconciler()
-	_, done, err := reconciler.Reconcile(ctx)
+	_, done, err := reconciler.Reconcile(cheCtx)
 
 	assert.True(t, done)
 	assert.Nil(t, err)
-	assert.Equal(t, "custom-domain.com", ctx.CheCluster.Status.WorkspaceBaseDomain)
+	assert.Equal(t, "custom-domain.com", cheCtx.CheCluster.Status.WorkspaceBaseDomain)
 }
 
 func TestBaseDomainExtraPropertiesOverridesNetworkingDomain(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
@@ -95,15 +95,15 @@ func TestBaseDomainExtraPropertiesOverridesNetworkingDomain(t *testing.T) {
 	}).Build()
 
 	reconciler := NewBaseDomainReconciler()
-	_, done, err := reconciler.Reconcile(ctx)
+	_, done, err := reconciler.Reconcile(cheCtx)
 
 	assert.True(t, done)
 	assert.Nil(t, err)
-	assert.Equal(t, "extra-domain.com", ctx.CheCluster.Status.WorkspaceBaseDomain)
+	assert.Equal(t, "extra-domain.com", cheCtx.CheCluster.Status.WorkspaceBaseDomain)
 }
 
 func TestBaseDomainStatusUpdated(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
@@ -119,21 +119,21 @@ func TestBaseDomainStatusUpdated(t *testing.T) {
 	}).Build()
 
 	reconciler := NewBaseDomainReconciler()
-	_, done, err := reconciler.Reconcile(ctx)
+	_, done, err := reconciler.Reconcile(cheCtx)
 
 	assert.True(t, done)
 	assert.Nil(t, err)
-	assert.Equal(t, "new-domain.com", ctx.CheCluster.Status.WorkspaceBaseDomain)
+	assert.Equal(t, "new-domain.com", cheCtx.CheCluster.Status.WorkspaceBaseDomain)
 
 	// Verify status was persisted
 	cheCluster := &chev2.CheCluster{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"}, cheCluster)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"}, cheCluster)
 	assert.Nil(t, err)
 	assert.Equal(t, "new-domain.com", cheCluster.Status.WorkspaceBaseDomain)
 }
 
 func TestBaseDomainIdempotency(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
@@ -151,26 +151,26 @@ func TestBaseDomainIdempotency(t *testing.T) {
 	reconciler := NewBaseDomainReconciler()
 
 	// First reconcile
-	_, done, err := reconciler.Reconcile(ctx)
+	_, done, err := reconciler.Reconcile(cheCtx)
 	assert.True(t, done)
 	assert.Nil(t, err)
-	assert.Equal(t, "my-domain.com", ctx.CheCluster.Status.WorkspaceBaseDomain)
+	assert.Equal(t, "my-domain.com", cheCtx.CheCluster.Status.WorkspaceBaseDomain)
 
 	// Second reconcile should produce the same result
-	_, done, err = reconciler.Reconcile(ctx)
+	_, done, err = reconciler.Reconcile(cheCtx)
 	assert.True(t, done)
 	assert.Nil(t, err)
-	assert.Equal(t, "my-domain.com", ctx.CheCluster.Status.WorkspaceBaseDomain)
+	assert.Equal(t, "my-domain.com", cheCtx.CheCluster.Status.WorkspaceBaseDomain)
 }
 
 func TestBaseDomainFailsWhenNoDomainResolved(t *testing.T) {
 	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 	defer infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
 	reconciler := NewBaseDomainReconciler()
-	_, done, err := reconciler.Reconcile(ctx)
+	_, done, err := reconciler.Reconcile(cheCtx)
 
 	assert.False(t, done)
 	assert.NotNil(t, err)
@@ -191,10 +191,10 @@ func TestBaseDomainFailsWhenRouteHostMalformed(t *testing.T) {
 		},
 	}
 
-	ctx := test.NewCtxBuilder().WithObjects(route).Build()
+	cheCtx := test.NewCtxBuilder().WithObjects(route).Build()
 
 	reconciler := NewBaseDomainReconciler()
-	_, done, err := reconciler.Reconcile(ctx)
+	_, done, err := reconciler.Reconcile(cheCtx)
 
 	assert.False(t, done)
 	assert.NotNil(t, err)
@@ -215,12 +215,12 @@ func TestBaseDomainFromRoute(t *testing.T) {
 		},
 	}
 
-	ctx := test.NewCtxBuilder().WithObjects(route).Build()
+	cheCtx := test.NewCtxBuilder().WithObjects(route).Build()
 
 	reconciler := NewBaseDomainReconciler()
-	_, done, err := reconciler.Reconcile(ctx)
+	_, done, err := reconciler.Reconcile(cheCtx)
 
 	assert.True(t, done)
 	assert.Nil(t, err)
-	assert.Equal(t, "eclipse.org", ctx.CheCluster.Status.WorkspaceBaseDomain)
+	assert.Equal(t, "eclipse.org", cheCtx.CheCluster.Status.WorkspaceBaseDomain)
 }

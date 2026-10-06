@@ -35,51 +35,51 @@ const (
 
 // Create ClusterRole and ClusterRoleBinding for "che" service account.
 // che-server uses "che" service account for creation RBAC for a user in his namespace.
-func (s *CheServerReconciler) syncPermissions(ctx *chetypes.DeployContext) (bool, error) {
+func (s *CheServerReconciler) syncPermissions(cheCtx *chetypes.CheContext) (bool, error) {
 	policies := map[string][]rbacv1.PolicyRule{
-		fmt.Sprintf(userCommonPermissionsTemplateName, ctx.CheCluster.Namespace):       s.getUserCommonPolicies(),
-		fmt.Sprintf(cheSASpecificPermissionsTemplateName, ctx.CheCluster.Namespace):    s.getCheSASpecificPolicies(),
-		fmt.Sprintf(userDevWorkspacePermissionsTemplateName, ctx.CheCluster.Namespace): s.getUserDevWorkspacePolicies(),
+		fmt.Sprintf(userCommonPermissionsTemplateName, cheCtx.CheCluster.Namespace):       s.getUserCommonPolicies(),
+		fmt.Sprintf(cheSASpecificPermissionsTemplateName, cheCtx.CheCluster.Namespace):    s.getCheSASpecificPolicies(),
+		fmt.Sprintf(userDevWorkspacePermissionsTemplateName, cheCtx.CheCluster.Namespace): s.getUserDevWorkspacePolicies(),
 	}
 
 	for name, policy := range policies {
-		if err := deploy.SyncClusterRoleToCluster(ctx, name, policy); err != nil {
+		if err := deploy.SyncClusterRoleToCluster(cheCtx, name, policy); err != nil {
 			return false, err
 		}
 
-		if err := deploy.SyncClusterRoleBindingToCluster(ctx, name, constants.DefaultCheServiceAccountName, name); err != nil {
+		if err := deploy.SyncClusterRoleBindingToCluster(cheCtx, name, constants.DefaultCheServiceAccountName, name); err != nil {
 			return false, err
 		}
 	}
 
-	for _, cheClusterRole := range ctx.CheCluster.Spec.Components.CheServer.ClusterRoles {
+	for _, cheClusterRole := range cheCtx.CheCluster.Spec.Components.CheServer.ClusterRoles {
 		cheClusterRole := strings.TrimSpace(cheClusterRole)
 		if cheClusterRole != "" {
-			if err := deploy.SyncClusterRoleBindingToCluster(ctx, cheClusterRole, constants.DefaultCheServiceAccountName, cheClusterRole); err != nil {
+			if err := deploy.SyncClusterRoleBindingToCluster(cheCtx, cheClusterRole, constants.DefaultCheServiceAccountName, cheClusterRole); err != nil {
 				return false, err
 			}
 
 			finalizer := s.getCRBFinalizerName(cheClusterRole)
-			if err := deploy.AppendFinalizer(ctx, finalizer); err != nil {
+			if err := deploy.AppendFinalizer(cheCtx, finalizer); err != nil {
 				return false, err
 			}
 		}
 	}
 
 	// Delete abandoned CRBs
-	for _, finalizer := range ctx.CheCluster.Finalizers {
+	for _, finalizer := range cheCtx.CheCluster.Finalizers {
 		if strings.HasSuffix(finalizer, cheCRBFinalizerSuffix) {
 			cheClusterRole := strings.TrimSuffix(finalizer, cheCRBFinalizerSuffix)
-			if !util.Contains(ctx.CheCluster.Spec.Components.CheServer.ClusterRoles, cheClusterRole) {
-				if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
-					ctx.Context,
+			if !util.Contains(cheCtx.CheCluster.Spec.Components.CheServer.ClusterRoles, cheClusterRole) {
+				if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+					cheCtx.Context,
 					types.NamespacedName{Name: cheClusterRole},
 					&rbacv1.ClusterRoleBinding{},
 				); err != nil {
 					return false, fmt.Errorf("failed to delete ClusterRoleBinding %s: %w", cheClusterRole, err)
 				}
 
-				if err := deploy.DeleteFinalizer(ctx, finalizer); err != nil {
+				if err := deploy.DeleteFinalizer(cheCtx, finalizer); err != nil {
 					return false, err
 				}
 			}
@@ -89,18 +89,18 @@ func (s *CheServerReconciler) syncPermissions(ctx *chetypes.DeployContext) (bool
 	return true, nil
 }
 
-func (s *CheServerReconciler) deletePermissions(ctx *chetypes.DeployContext) bool {
+func (s *CheServerReconciler) deletePermissions(cheCtx *chetypes.CheContext) bool {
 	names := []string{
-		fmt.Sprintf(userCommonPermissionsTemplateName, ctx.CheCluster.Namespace),
-		fmt.Sprintf(cheSASpecificPermissionsTemplateName, ctx.CheCluster.Namespace),
-		fmt.Sprintf(userDevWorkspacePermissionsTemplateName, ctx.CheCluster.Namespace),
+		fmt.Sprintf(userCommonPermissionsTemplateName, cheCtx.CheCluster.Namespace),
+		fmt.Sprintf(cheSASpecificPermissionsTemplateName, cheCtx.CheCluster.Namespace),
+		fmt.Sprintf(userDevWorkspacePermissionsTemplateName, cheCtx.CheCluster.Namespace),
 	}
 
 	done := true
 
 	for _, name := range names {
-		if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
-			ctx.Context,
+		if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+			cheCtx.Context,
 			types.NamespacedName{Name: name},
 			&rbacv1.ClusterRole{},
 		); err != nil {
@@ -108,8 +108,8 @@ func (s *CheServerReconciler) deletePermissions(ctx *chetypes.DeployContext) boo
 			logrus.Errorf("Failed to delete ClusterRole '%s', cause: %v", name, err)
 		}
 
-		if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
-			ctx.Context,
+		if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+			cheCtx.Context,
 			types.NamespacedName{Name: name},
 			&rbacv1.ClusterRoleBinding{},
 		); err != nil {
@@ -118,11 +118,11 @@ func (s *CheServerReconciler) deletePermissions(ctx *chetypes.DeployContext) boo
 		}
 	}
 
-	for _, name := range ctx.CheCluster.Spec.Components.CheServer.ClusterRoles {
+	for _, name := range cheCtx.CheCluster.Spec.Components.CheServer.ClusterRoles {
 		name := strings.TrimSpace(name)
 		if name != "" {
-			if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
-				ctx.Context,
+			if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+				cheCtx.Context,
 				types.NamespacedName{Name: name},
 				&rbacv1.ClusterRoleBinding{},
 			); err != nil {
@@ -131,9 +131,9 @@ func (s *CheServerReconciler) deletePermissions(ctx *chetypes.DeployContext) boo
 			}
 
 			// Removes any legacy CRB https://github.com/eclipse/che/issues/19506
-			legacyName := ctx.CheCluster.Namespace + "-" + constants.DefaultCheServiceAccountName + "-" + name
-			if err := ctx.ClusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(
-				ctx.Context,
+			legacyName := cheCtx.CheCluster.Namespace + "-" + constants.DefaultCheServiceAccountName + "-" + name
+			if err := cheCtx.ClusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(
+				cheCtx.Context,
 				types.NamespacedName{Name: legacyName},
 				&rbacv1.ClusterRoleBinding{},
 			); err != nil {
@@ -313,9 +313,9 @@ func (s *CheServerReconciler) getUserCommonPolicies() []rbacv1.PolicyRule {
 	return k8sPolicies
 }
 
-func (s *CheServerReconciler) getDefaultUserClusterRoles(ctx *chetypes.DeployContext) []string {
+func (s *CheServerReconciler) getDefaultUserClusterRoles(cheCtx *chetypes.CheContext) []string {
 	return []string{
-		fmt.Sprintf(userCommonPermissionsTemplateName, ctx.CheCluster.Namespace),
-		fmt.Sprintf(userDevWorkspacePermissionsTemplateName, ctx.CheCluster.Namespace),
+		fmt.Sprintf(userCommonPermissionsTemplateName, cheCtx.CheCluster.Namespace),
+		fmt.Sprintf(userDevWorkspacePermissionsTemplateName, cheCtx.CheCluster.Namespace),
 	}
 }

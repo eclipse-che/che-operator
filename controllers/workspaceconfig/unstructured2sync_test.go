@@ -37,7 +37,7 @@ var (
 )
 
 func TestSyncTemplateWithLimitRange(t *testing.T) {
-	deployContext := test.NewCtxBuilder().WithObjects(
+	cheCtx := test.NewCtxBuilder().WithObjects(
 		&templatev1.Template{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Template",
@@ -78,11 +78,11 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Scheme,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
-			Client: deployContext.ClusterAPI.Client,
+			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
@@ -99,7 +99,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 
 	// Check LimitRange in a user namespace is created
 	lr := &corev1.LimitRange{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
 	assert.Nil(t, err)
 	assert.Equal(t, corev1.LimitTypeContainer, lr.Spec.Limits[0].Type)
 	assert.Equal(t, constants.WorkspacesConfig, lr.Labels[constants.KubernetesComponentLabelKey])
@@ -109,7 +109,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 
 	// Update src Template
 	template := &templatev1.Template{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInCheNs, template)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInCheNs, template)
 	assert.Nil(t, err)
 	template.Objects = []runtime.RawExtension{
 		{
@@ -131,7 +131,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 			},
 		},
 	}
-	err = deployContext.ClusterAPI.Client.Update(context.TODO(), template)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), template)
 	assert.Nil(t, err)
 
 	// Sync Template
@@ -141,7 +141,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 
 	// Check that destination LimitRange is updated
 	lr = &corev1.LimitRange{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
 	assert.Nil(t, err)
 	assert.Equal(t, corev1.LimitTypePod, lr.Spec.Limits[0].Type)
 	assert.Equal(t, constants.WorkspacesConfig, lr.Labels[constants.KubernetesComponentLabelKey])
@@ -149,10 +149,10 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 
 	// Update dst LimitRange
 	lr = &corev1.LimitRange{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
 	assert.Nil(t, err)
 	lr.Spec.Limits[0].Type = corev1.LimitTypePersistentVolumeClaim
-	err = deployContext.ClusterAPI.Client.Update(context.TODO(), lr)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), lr)
 	assert.Nil(t, err)
 
 	// Sync Template
@@ -162,7 +162,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 
 	// Check that destination LimitRange is reverted
 	lr = &corev1.LimitRange{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
 	assert.Nil(t, err)
 	assert.Equal(t, corev1.LimitTypePod, lr.Spec.Limits[0].Type)
 	assert.Equal(t, constants.WorkspacesConfig, lr.Labels[constants.KubernetesComponentLabelKey])
@@ -170,11 +170,11 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 
 	// Update dst LimitRange in the way that it won't be reverted
 	lr = &corev1.LimitRange{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
 	assert.Nil(t, err)
 	lr.Annotations = map[string]string{"new-annotation": "new-test"}
 	utils.AddMap(lr.Labels, map[string]string{"new-label": "new-test"})
-	err = deployContext.ClusterAPI.Client.Update(context.TODO(), lr)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), lr)
 	assert.Nil(t, err)
 
 	// Sync Template
@@ -184,7 +184,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 
 	// Check that destination ConfigMap is not reverted
 	lr = &corev1.LimitRange{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
 	assert.Nil(t, err)
 	assert.Equal(t, corev1.LimitTypePod, lr.Spec.Limits[0].Type)
 	assert.Equal(t, constants.WorkspacesConfig, lr.Labels[constants.KubernetesComponentLabelKey])
@@ -193,7 +193,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 	assert.Equal(t, "new-test", lr.Annotations["new-annotation"])
 
 	// Delete dst LimitRange
-	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInUserNs, &corev1.LimitRange{})
+	err = cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInUserNs, &corev1.LimitRange{})
 	assert.Nil(t, err)
 
 	// Sync Template
@@ -203,14 +203,14 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 
 	// Check that destination LimitRange is reverted
 	lr = &corev1.LimitRange{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
 	assert.Nil(t, err)
 	assert.Equal(t, corev1.LimitTypePod, lr.Spec.Limits[0].Type)
 	assert.Equal(t, constants.WorkspacesConfig, lr.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.CheEclipseOrg, lr.Labels[constants.KubernetesPartOfLabelKey])
 
 	// Delete src Template
-	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &templatev1.Template{})
+	err = cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &templatev1.Template{})
 	assert.Nil(t, err)
 
 	// Sync Template
@@ -220,13 +220,13 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 
 	// Check that destination LimitRange in a user namespace is deleted
 	lr = &corev1.LimitRange{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
 	assert.NotNil(t, err)
 	assert.True(t, errors.IsNotFound(err))
 }
 
 func TestSyncUnstructuredShouldRetainIfAnnotationSetTrue(t *testing.T) {
-	deployContext := test.NewCtxBuilder().WithObjects(
+	cheCtx := test.NewCtxBuilder().WithObjects(
 		&templatev1.Template{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Template",
@@ -270,11 +270,11 @@ func TestSyncUnstructuredShouldRetainIfAnnotationSetTrue(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Scheme,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
-			Client: deployContext.ClusterAPI.Client,
+			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
@@ -291,12 +291,12 @@ func TestSyncUnstructuredShouldRetainIfAnnotationSetTrue(t *testing.T) {
 
 	// Check LimitRange in a user namespace is created
 	lr := &corev1.LimitRange{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
 	assert.Nil(t, err)
 	assert.Equal(t, "true", lr.Annotations[syncRetainOnDeleteAnnotation])
 
 	// Delete src Template
-	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &templatev1.Template{})
+	err = cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &templatev1.Template{})
 	assert.Nil(t, err)
 
 	// Sync Template
@@ -305,12 +305,12 @@ func TestSyncUnstructuredShouldRetainIfAnnotationSetTrue(t *testing.T) {
 	assertSyncConfig(t, workspaceConfigReconciler, 0, v1LimitRangeGKV)
 
 	// Check that destination LimitRange in a user namespace is NOT deleted
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, &corev1.LimitRange{})
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, &corev1.LimitRange{})
 	assert.NoError(t, err)
 }
 
 func TestSyncUnstructuredShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
-	deployContext := test.NewCtxBuilder().WithObjects(
+	cheCtx := test.NewCtxBuilder().WithObjects(
 		&templatev1.Template{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Template",
@@ -354,11 +354,11 @@ func TestSyncUnstructuredShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Scheme,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
-			Client: deployContext.ClusterAPI.Client,
+			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
@@ -375,12 +375,12 @@ func TestSyncUnstructuredShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 
 	// Check LimitRange in a user namespace is created
 	lr := &corev1.LimitRange{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
 	assert.Nil(t, err)
 	assert.Equal(t, "false", lr.Annotations[syncRetainOnDeleteAnnotation])
 
 	// Delete src Template
-	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &templatev1.Template{})
+	err = cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &templatev1.Template{})
 	assert.Nil(t, err)
 
 	// Sync Template
@@ -389,13 +389,13 @@ func TestSyncUnstructuredShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 	assertSyncConfig(t, workspaceConfigReconciler, 0, v1LimitRangeGKV)
 
 	// Check that destination LimitRange in a user namespace is deleted
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, &corev1.LimitRange{})
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, &corev1.LimitRange{})
 	assert.Error(t, err)
 	assert.True(t, errors.IsNotFound(err))
 }
 
 func TestSyncUnstructuredShouldNotRetainIfAnnotationIsNotSet(t *testing.T) {
-	deployContext := test.NewCtxBuilder().WithObjects(
+	cheCtx := test.NewCtxBuilder().WithObjects(
 		&templatev1.Template{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Template",
@@ -436,11 +436,11 @@ func TestSyncUnstructuredShouldNotRetainIfAnnotationIsNotSet(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Scheme,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
-			Client: deployContext.ClusterAPI.Client,
+			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
@@ -457,11 +457,11 @@ func TestSyncUnstructuredShouldNotRetainIfAnnotationIsNotSet(t *testing.T) {
 
 	// Check LimitRange in a user namespace is created
 	lr := &corev1.LimitRange{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
 	assert.Nil(t, err)
 
 	// Delete src Template
-	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &templatev1.Template{})
+	err = cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &templatev1.Template{})
 	assert.Nil(t, err)
 
 	// Sync Template
@@ -470,7 +470,7 @@ func TestSyncUnstructuredShouldNotRetainIfAnnotationIsNotSet(t *testing.T) {
 	assertSyncConfig(t, workspaceConfigReconciler, 0, v1LimitRangeGKV)
 
 	// Check that destination LimitRange in a user namespace is deleted
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, &corev1.LimitRange{})
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, &corev1.LimitRange{})
 	assert.Error(t, err)
 	assert.True(t, errors.IsNotFound(err))
 }

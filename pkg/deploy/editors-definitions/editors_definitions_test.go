@@ -66,13 +66,13 @@ func TestReadEditorDefinitions(t *testing.T) {
 }
 
 func TestSyncEditorDefinitions(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
 	editorDefinitions, err := readEditorDefinitions()
 	assert.NoError(t, err)
 	assert.NotEmpty(t, editorDefinitions)
 	assert.Len(t, editorDefinitions, 2)
 
-	err = syncEditorDefinitions(ctx, editorDefinitions)
+	err = syncEditorDefinitions(cheCtx, editorDefinitions)
 	assert.NoError(t, err)
 }

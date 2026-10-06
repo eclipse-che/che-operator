@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -380,9 +380,9 @@ func TestMountSecret(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			testCase.initObjects = append(testCase.initObjects, testCase.initDeployment)
-			ctx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
+			cheCtx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
 
-			err := MountSecrets(testCase.initDeployment, ctx)
+			err := MountSecrets(testCase.initDeployment, cheCtx)
 			if err != nil {
 				t.Fatalf("Error mounting secret: %v", err)
 			}
@@ -717,9 +717,9 @@ func TestMountConfigMaps(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			testCase.initObjects = append(testCase.initObjects, testCase.initDeployment)
-			ctx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
+			cheCtx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
 
-			err := MountConfigMaps(testCase.initDeployment, ctx)
+			err := MountConfigMaps(testCase.initDeployment, cheCtx)
 			if err != nil {
 				t.Fatalf("Error mounting configmap: %v", err)
 			}
@@ -732,10 +732,10 @@ func TestMountConfigMaps(t *testing.T) {
 }
 
 func TestSyncEnvVarDeploymentToCluster(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
 	// initial sync
-	done, err := SyncDeploymentSpecToCluster(ctx, deployment, DefaultDeploymentDiffOpts)
+	done, err := SyncDeploymentSpecToCluster(cheCtx, deployment, DefaultDeploymentDiffOpts)
 	if !done || err != nil {
 		t.Fatalf("Failed to sync deployment: %v", err)
 	}
@@ -752,7 +752,7 @@ func TestSyncEnvVarDeploymentToCluster(t *testing.T) {
 		Kind:       "Deployment",
 		APIVersion: appsv1.SchemeGroupVersion.String(),
 	}
-	_, err = SyncDeploymentSpecToCluster(ctx, deployment, DefaultDeploymentDiffOpts)
+	_, err = SyncDeploymentSpecToCluster(cheCtx, deployment, DefaultDeploymentDiffOpts)
 	if err != nil {
 		t.Fatalf("Failed to sync deployment: %v", err)
 	}
@@ -762,13 +762,13 @@ func TestSyncEnvVarDeploymentToCluster(t *testing.T) {
 		Kind:       "Deployment",
 		APIVersion: appsv1.SchemeGroupVersion.String(),
 	}
-	done, err = SyncDeploymentSpecToCluster(ctx, deployment, DefaultDeploymentDiffOpts)
+	done, err = SyncDeploymentSpecToCluster(cheCtx, deployment, DefaultDeploymentDiffOpts)
 	if !done || err != nil {
 		t.Fatalf("Failed to sync deployment: %v", err)
 	}
 
 	actual := &appsv1.Deployment{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
 	if err != nil {
 		t.Fatalf("Failed to sync deployment: %v", err)
 	}
@@ -817,8 +817,8 @@ func TestCustomizeDeploymentShouldNotUpdateResources(t *testing.T) {
 		},
 	}
 
-	ctx := test.NewCtxBuilder().Build()
-	err := OverrideDeployment(ctx, deployment, customizationDeployment)
+	cheCtx := test.NewCtxBuilder().Build()
+	err := OverrideDeployment(cheCtx, deployment, customizationDeployment)
 	assert.Nil(t, err)
 
 	assert.Equal(t, "1", deployment.Spec.Template.Spec.Containers[0].Resources.Requests.Cpu().String())
@@ -901,8 +901,8 @@ func TestCustomizeDeploymentImagePullPolicy(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.NewCtxBuilder().Build()
-			err := OverrideDeployment(ctx, testCase.initDeployment, testCase.customizationDeployment)
+			cheCtx := test.NewCtxBuilder().Build()
+			err := OverrideDeployment(cheCtx, testCase.initDeployment, testCase.customizationDeployment)
 			assert.Nil(t, err)
 
 			assert.Equal(t, testCase.expectedImagePullPolicy, testCase.initDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
@@ -984,8 +984,8 @@ func TestCustomizeDeploymentEnvVar(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.NewCtxBuilder().Build()
-			err := OverrideDeployment(ctx, testCase.initDeployment, testCase.customizationDeployment)
+			cheCtx := test.NewCtxBuilder().Build()
+			err := OverrideDeployment(cheCtx, testCase.initDeployment, testCase.customizationDeployment)
 			assert.Nil(t, err)
 
 			assert.Equal(t, testCase.expectedEnv, testCase.initDeployment.Spec.Template.Spec.Containers[0].Env)
@@ -1026,8 +1026,8 @@ func TestCustomizeDeploymentVolumeMounts(t *testing.T) {
 			},
 		},
 	}
-	ctx := test.NewCtxBuilder().Build()
-	err := OverrideDeployment(ctx, initDeployment, customization)
+	cheCtx := test.NewCtxBuilder().Build()
+	err := OverrideDeployment(cheCtx, initDeployment, customization)
 	assert.Nil(t, err)
 
 	assert.Equal(t, []corev1.VolumeMount{
@@ -1066,8 +1066,8 @@ func TestCustomizeDeploymentVolumes(t *testing.T) {
 		},
 		Containers: []chev2.Container{{Name: "test"}},
 	}
-	ctx := test.NewCtxBuilder().Build()
-	err := OverrideDeployment(ctx, initDeployment, customization)
+	cheCtx := test.NewCtxBuilder().Build()
+	err := OverrideDeployment(cheCtx, initDeployment, customization)
 	assert.Nil(t, err)
 
 	assert.Len(t, initDeployment.Spec.Template.Spec.Volumes, 2)
@@ -1106,8 +1106,8 @@ func TestCustomizeDeploymentVolumesReplaceByName(t *testing.T) {
 		},
 		Containers: []chev2.Container{{Name: "test"}},
 	}
-	ctx := test.NewCtxBuilder().Build()
-	err := OverrideDeployment(ctx, initDeployment, customization)
+	cheCtx := test.NewCtxBuilder().Build()
+	err := OverrideDeployment(cheCtx, initDeployment, customization)
 	assert.Nil(t, err)
 
 	assert.Len(t, initDeployment.Spec.Template.Spec.Volumes, 1)
@@ -1148,8 +1148,8 @@ func TestCustomizeDeploymentContainerSecurityContext(t *testing.T) {
 			},
 		},
 	}
-	ctx := test.NewCtxBuilder().Build()
-	err := OverrideDeployment(ctx, initDeployment, customization)
+	cheCtx := test.NewCtxBuilder().Build()
+	err := OverrideDeployment(cheCtx, initDeployment, customization)
 	assert.Nil(t, err)
 
 	sc := initDeployment.Spec.Template.Spec.Containers[0].SecurityContext
@@ -1180,8 +1180,8 @@ func TestShouldNotThrowErrorIfOverrideDeploymentSettingsIsEmpty(t *testing.T) {
 
 	overrideDeploymentSettings := &chev2.Deployment{}
 
-	ctx := test.NewCtxBuilder().Build()
-	err := OverrideDeployment(ctx, deployment, overrideDeploymentSettings)
+	cheCtx := test.NewCtxBuilder().Build()
+	err := OverrideDeployment(cheCtx, deployment, overrideDeploymentSettings)
 	assert.Nil(t, err)
 }
 
@@ -1312,7 +1312,7 @@ func TestOverrideContainerCpuLimit(t *testing.T) {
 }
 
 func TestOverrideNodeSelector(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
@@ -1337,13 +1337,13 @@ func TestOverrideNodeSelector(t *testing.T) {
 		},
 	}
 
-	err := OverrideDeployment(ctx, deployment, overrideDeployment)
+	err := OverrideDeployment(cheCtx, deployment, overrideDeployment)
 	assert.NoError(t, err)
 	assert.Equal(t, overrideDeployment.NodeSelector, deployment.Spec.Template.Spec.NodeSelector)
 }
 
 func TestOverrideTolerations(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
@@ -1378,7 +1378,7 @@ func TestOverrideTolerations(t *testing.T) {
 		},
 	}
 
-	err := OverrideDeployment(ctx, deployment, overrideDeployment)
+	err := OverrideDeployment(cheCtx, deployment, overrideDeployment)
 	assert.NoError(t, err)
 	assert.Equal(t, overrideDeployment.Tolerations, deployment.Spec.Template.Spec.Tolerations)
 }

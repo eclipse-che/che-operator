@@ -33,47 +33,47 @@ func NewCheHostReconciler() *CheHostReconciler {
 	return &CheHostReconciler{}
 }
 
-func (s *CheHostReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if err := s.syncCheService(ctx); err != nil {
+func (s *CheHostReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
+	if err := s.syncCheService(cheCtx); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
-	cheHost, done, err := s.exposeCheEndpoint(ctx)
+	cheHost, done, err := s.exposeCheEndpoint(cheCtx)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
 
-	ctx.CheHost = cheHost
+	cheCtx.CheHost = cheHost
 
 	return reconcile.Result{}, true, nil
 }
 
-func (s *CheHostReconciler) Finalize(ctx *chetypes.DeployContext) bool {
+func (s *CheHostReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
 	return true
 }
 
-func (s *CheHostReconciler) syncCheService(ctx *chetypes.DeployContext) error {
+func (s *CheHostReconciler) syncCheService(cheCtx *chetypes.CheContext) error {
 	portName := []string{"http"}
 	portNumber := []int32{constants.DefaultServerPort}
 
-	if ctx.CheCluster.Spec.Components.Metrics.Enable {
+	if cheCtx.CheCluster.Spec.Components.Metrics.Enable {
 		portName = append(portName, "metrics")
 		portNumber = append(portNumber, constants.DefaultServerMetricsPort)
 	}
 
-	if ctx.CheCluster.Spec.Components.CheServer.Debug != nil && *ctx.CheCluster.Spec.Components.CheServer.Debug {
+	if cheCtx.CheCluster.Spec.Components.CheServer.Debug != nil && *cheCtx.CheCluster.Spec.Components.CheServer.Debug {
 		portName = append(portName, "debug")
 		portNumber = append(portNumber, constants.DefaultServerDebugPort)
 	}
 
-	spec := deploy.GetServiceSpec(ctx, deploy.CheServiceName, portName, portNumber, getComponentName())
-	return deploy.SyncServiceSpecToCluster(ctx, spec)
+	spec := deploy.GetServiceSpec(cheCtx, deploy.CheServiceName, portName, portNumber, getComponentName())
+	return deploy.SyncServiceSpecToCluster(cheCtx, spec)
 }
 
-func (s CheHostReconciler) exposeCheEndpoint(ctx *chetypes.DeployContext) (string, bool, error) {
+func (s CheHostReconciler) exposeCheEndpoint(cheCtx *chetypes.CheContext) (string, bool, error) {
 	if !infrastructure.IsOpenShift() {
 		if _, err := deploy.SyncIngressToCluster(
-			ctx,
+			cheCtx,
 			getComponentName(),
 			"",
 			gateway.GatewayServiceName,
@@ -83,9 +83,9 @@ func (s CheHostReconciler) exposeCheEndpoint(ctx *chetypes.DeployContext) (strin
 		}
 
 		ingress := &networking.Ingress{}
-		exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-			ctx.Context,
-			types.NamespacedName{Name: getComponentName(), Namespace: ctx.CheCluster.Namespace},
+		exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+			cheCtx.Context,
+			types.NamespacedName{Name: getComponentName(), Namespace: cheCtx.CheCluster.Namespace},
 			ingress,
 		)
 		if !exists {
@@ -96,7 +96,7 @@ func (s CheHostReconciler) exposeCheEndpoint(ctx *chetypes.DeployContext) (strin
 	}
 
 	if err := deploy.SyncRouteToCluster(
-		ctx,
+		cheCtx,
 		getComponentName(),
 		"/",
 		gateway.GatewayServiceName,
@@ -106,9 +106,9 @@ func (s CheHostReconciler) exposeCheEndpoint(ctx *chetypes.DeployContext) (strin
 	}
 
 	route := &routev1.Route{}
-	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-		ctx.Context,
-		types.NamespacedName{Name: getComponentName(), Namespace: ctx.CheCluster.Namespace},
+	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		cheCtx.Context,
+		types.NamespacedName{Name: getComponentName(), Namespace: cheCtx.CheCluster.Namespace},
 		route,
 	)
 	if !exists {

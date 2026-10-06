@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -115,7 +115,7 @@ func TestIsTrustedBundleConfigMap(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
+			cheCtx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
 
 			newTestObject := testObject.DeepCopy()
 			newTestObject.Namespace = testCase.objNamespace
@@ -123,12 +123,12 @@ func TestIsTrustedBundleConfigMap(t *testing.T) {
 				newTestObject.Labels = testCase.objLabels
 			}
 
-			isEclipseCheObj, req := IsTrustedBundleConfigMap(ctx.ClusterAPI.Client, testCase.watchNamespace, newTestObject)
+			isEclipseCheObj, req := IsTrustedBundleConfigMap(cheCtx.ClusterAPI.Client, testCase.watchNamespace, newTestObject)
 
 			assert.Equal(t, testCase.expectedIsEclipseCheObj, isEclipseCheObj)
 			if isEclipseCheObj {
-				assert.Equal(t, req.Namespace, ctx.CheCluster.Namespace)
-				assert.Equal(t, req.Name, ctx.CheCluster.Name)
+				assert.Equal(t, req.Namespace, cheCtx.CheCluster.Namespace)
+				assert.Equal(t, req.Name, cheCtx.CheCluster.Name)
 			}
 		})
 	}
@@ -214,15 +214,15 @@ func TestIsEclipseCheRelatedObj(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
+			cheCtx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
 
 			testObject.Namespace = testCase.objNamespace
-			isEclipseCheObj, req := IsEclipseCheRelatedObj(ctx.ClusterAPI.Client, testCase.watchNamespace, testObject)
+			isEclipseCheObj, req := IsEclipseCheRelatedObj(cheCtx.ClusterAPI.Client, testCase.watchNamespace, testObject)
 
 			assert.Equal(t, testCase.expectedIsEclipseCheObj, isEclipseCheObj)
 			if isEclipseCheObj {
-				assert.Equal(t, req.Namespace, ctx.CheCluster.Namespace)
-				assert.Equal(t, req.Name, ctx.CheCluster.Name)
+				assert.Equal(t, req.Namespace, cheCtx.CheCluster.Namespace)
+				assert.Equal(t, req.Name, cheCtx.CheCluster.Name)
 			}
 		})
 	}

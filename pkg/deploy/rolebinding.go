@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -25,20 +25,20 @@ import (
 )
 
 func SyncRoleBindingToCluster(
-	deployContext *chetypes.DeployContext,
+	cheCtx *chetypes.CheContext,
 	name string,
 	serviceAccountName string,
 	roleName string,
 	roleKind string) error {
 
-	rbSpec := getRoleBindingSpec(deployContext, name, serviceAccountName, roleName, roleKind)
+	rbSpec := getRoleBindingSpec(cheCtx, name, serviceAccountName, roleName, roleKind)
 
-	if err := controllerutil.SetControllerReference(deployContext.CheCluster, rbSpec, deployContext.ClusterAPI.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, rbSpec, cheCtx.ClusterAPI.Scheme); err != nil {
 		return fmt.Errorf("failed to set owner reference for RoleBinding %s/%s: %w", rbSpec.Namespace, rbSpec.Name, err)
 	}
 
-	if err := deployContext.ClusterAPI.ClientWrapper.Sync(
-		deployContext.Context,
+	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
+		cheCtx.Context,
 		rbSpec,
 		&k8sclient.SyncOptions{DiffOpts: diffs.RoleBinding},
 	); err != nil {
@@ -49,7 +49,7 @@ func SyncRoleBindingToCluster(
 }
 
 func getRoleBindingSpec(
-	deployContext *chetypes.DeployContext,
+	cheCtx *chetypes.CheContext,
 	name string,
 	serviceAccountName string,
 	roleName string,
@@ -63,14 +63,14 @@ func getRoleBindingSpec(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: deployContext.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Subjects: []rbac.Subject{
 			{
 				Kind:      rbac.ServiceAccountKind,
 				Name:      serviceAccountName,
-				Namespace: deployContext.CheCluster.Namespace,
+				Namespace: cheCtx.CheCluster.Namespace,
 			},
 		},
 		RoleRef: rbac.RoleRef{

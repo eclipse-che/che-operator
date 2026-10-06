@@ -25,15 +25,15 @@ import (
 )
 
 func SyncClusterRoleBindingToCluster(
-	deployContext *chetypes.DeployContext,
+	cheCtx *chetypes.CheContext,
 	name string,
 	serviceAccountName string,
 	clusterRoleName string) error {
 
-	crbSpec := getClusterRoleBindingSpec(deployContext, name, serviceAccountName, deployContext.CheCluster.Namespace, clusterRoleName)
+	crbSpec := getClusterRoleBindingSpec(cheCtx, name, serviceAccountName, cheCtx.CheCluster.Namespace, clusterRoleName)
 
-	if err := deployContext.ClusterAPI.ClientWrapper.Sync(
-		deployContext.Context,
+	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
+		cheCtx.Context,
 		crbSpec,
 		&k8sclient.SyncOptions{DiffOpts: diffs.ClusterRoleBinding},
 	); err != nil {
@@ -44,7 +44,7 @@ func SyncClusterRoleBindingToCluster(
 }
 
 func getClusterRoleBindingSpec(
-	deployContext *chetypes.DeployContext,
+	cheCtx *chetypes.CheContext,
 	name string,
 	serviceAccountName string,
 	serviceAccountNamespace string,
@@ -60,7 +60,7 @@ func getClusterRoleBindingSpec(
 			Name:   name,
 			Labels: labels,
 			Annotations: map[string]string{
-				constants.CheEclipseOrgNamespace: deployContext.CheCluster.Namespace,
+				constants.CheEclipseOrgNamespace: cheCtx.CheCluster.Namespace,
 			},
 		},
 		Subjects: []rbac.Subject{

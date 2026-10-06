@@ -91,16 +91,16 @@ func TestGetConfigMapData(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
-			ctx.Proxy.HttpProxy = "http://127.0.0.1:8080"
-			ctx.Proxy.HttpHost = "127.0.0.1"
-			ctx.Proxy.HttpPort = "8080"
-			ctx.Proxy.HttpsProxy = "http://127.0.0.1:8080"
-			ctx.Proxy.HttpsHost = "127.0.0.1"
-			ctx.Proxy.HttpsPort = "8080"
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			cheCtx.Proxy.HttpProxy = "http://127.0.0.1:8080"
+			cheCtx.Proxy.HttpHost = "127.0.0.1"
+			cheCtx.Proxy.HttpPort = "8080"
+			cheCtx.Proxy.HttpsProxy = "http://127.0.0.1:8080"
+			cheCtx.Proxy.HttpsHost = "127.0.0.1"
+			cheCtx.Proxy.HttpsPort = "8080"
 
 			serverReconciler := NewCheServerReconciler()
-			actualData, err := serverReconciler.getConfigMapData(ctx)
+			actualData, err := serverReconciler.getConfigMapData(cheCtx)
 
 			assert.NoError(t, err)
 			assert.Equal(t, testCase.expectedData, actualData)
@@ -317,10 +317,10 @@ func TestGetConfigMapDataWithServerEndpoints(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
 			serverReconciler := NewCheServerReconciler()
 
-			actualData, err := serverReconciler.getConfigMapData(ctx)
+			actualData, err := serverReconciler.getConfigMapData(cheCtx)
 
 			assert.Nil(t, err)
 			test.ValidateContainData(actualData, testCase.expectedData, t)
@@ -395,10 +395,10 @@ func TestGetConfigMapDataWithUserClusterRoles(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 			serverReconciler := NewCheServerReconciler()
 
-			cheEnv, err := serverReconciler.getConfigMapData(ctx)
+			cheEnv, err := serverReconciler.getConfigMapData(cheCtx)
 
 			assert.NoError(t, err)
 			assert.Equal(t, testCase.expectedUserClusterRoles, cheEnv["CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"])
@@ -533,10 +533,10 @@ func TestUpdateAdvancedAuthorizationEnv(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 
 			serverReconciler := NewCheServerReconciler()
-			cheEnv, err := serverReconciler.getConfigMapData(ctx)
+			cheEnv, err := serverReconciler.getConfigMapData(cheCtx)
 
 			if testCase.errorExpected {
 				assert.Error(t, err)

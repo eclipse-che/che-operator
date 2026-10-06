@@ -50,38 +50,38 @@ func TestContainerBuildReconciler(t *testing.T) {
 		},
 	}
 
-	ctx := test.NewCtxBuilder().WithObjects(dwPod).Build()
+	cheCtx := test.NewCtxBuilder().WithObjects(dwPod).Build()
 	containerBuildReconciler := NewContainerCapabilitiesReconciler()
 
-	test.EnsureReconcile(t, ctx, containerBuildReconciler.Reconcile)
+	test.EnsureReconcile(t, cheCtx, containerBuildReconciler.Reconcile)
 
 	// Enable container capabilities
-	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = ptr.To(false)
-	ctx.CheCluster.Spec.DevEnvironments.ContainerBuildConfiguration = &chev2.ContainerBuildConfiguration{OpenShiftSecurityContextConstraint: "scc-build"}
+	cheCtx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = ptr.To(false)
+	cheCtx.CheCluster.Spec.DevEnvironments.ContainerBuildConfiguration = &chev2.ContainerBuildConfiguration{OpenShiftSecurityContextConstraint: "scc-build"}
 
-	ctx.CheCluster.Spec.DevEnvironments.DisableContainerRunCapabilities = ptr.To(false)
-	ctx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration = &chev2.ContainerRunConfiguration{OpenShiftSecurityContextConstraint: "scc-run"}
+	cheCtx.CheCluster.Spec.DevEnvironments.DisableContainerRunCapabilities = ptr.To(false)
+	cheCtx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration = &chev2.ContainerRunConfiguration{OpenShiftSecurityContextConstraint: "scc-run"}
 
-	err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
+	err := cheCtx.ClusterAPI.Client.Update(context.TODO(), cheCtx.CheCluster)
 	assert.NoError(t, err)
 
-	test.EnsureReconcile(t, ctx, containerBuildReconciler.Reconcile)
+	test.EnsureReconcile(t, cheCtx, containerBuildReconciler.Reconcile)
 
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "scc-build"}, &securityv1.SecurityContextConstraints{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerBuildCapability.getDWOClusterRoleName()}, &rbacv1.ClusterRole{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerBuildCapability.getDWOClusterRoleBindingName()}, &rbacv1.ClusterRoleBinding{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerBuildCapability.GetUserRoleName()}, &rbacv1.ClusterRole{}))
-	assert.True(t, utils.Contains(ctx.CheCluster.Finalizers, containerBuildReconciler.containerBuildCapability.getFinalizer()))
+	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "scc-build"}, &securityv1.SecurityContextConstraints{}))
+	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerBuildCapability.getDWOClusterRoleName()}, &rbacv1.ClusterRole{}))
+	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerBuildCapability.getDWOClusterRoleBindingName()}, &rbacv1.ClusterRoleBinding{}))
+	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerBuildCapability.GetUserRoleName()}, &rbacv1.ClusterRole{}))
+	assert.True(t, utils.Contains(cheCtx.CheCluster.Finalizers, containerBuildReconciler.containerBuildCapability.getFinalizer()))
 
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "scc-run"}, &securityv1.SecurityContextConstraints{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerRunCapability.getDWOClusterRoleName()}, &rbacv1.ClusterRole{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerRunCapability.getDWOClusterRoleBindingName()}, &rbacv1.ClusterRoleBinding{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerRunCapability.GetUserRoleName()}, &rbacv1.ClusterRole{}))
-	assert.True(t, utils.Contains(ctx.CheCluster.Finalizers, containerBuildReconciler.containerRunCapability.getFinalizer()))
+	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "scc-run"}, &securityv1.SecurityContextConstraints{}))
+	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerRunCapability.getDWOClusterRoleName()}, &rbacv1.ClusterRole{}))
+	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerRunCapability.getDWOClusterRoleBindingName()}, &rbacv1.ClusterRoleBinding{}))
+	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerRunCapability.GetUserRoleName()}, &rbacv1.ClusterRole{}))
+	assert.True(t, utils.Contains(cheCtx.CheCluster.Finalizers, containerBuildReconciler.containerRunCapability.getFinalizer()))
 
 	crb := &rbacv1.ClusterRoleBinding{}
-	_, err = ctx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(
-		ctx.Context,
+	_, err = cheCtx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(
+		cheCtx.Context,
 		types.NamespacedName{Name: containerBuildReconciler.containerBuildCapability.getDWOClusterRoleBindingName()},
 		crb,
 	)
@@ -89,8 +89,8 @@ func TestContainerBuildReconciler(t *testing.T) {
 	assert.Equal(t, "devworkspace-controller", crb.Subjects[0].Namespace)
 
 	crb = &rbacv1.ClusterRoleBinding{}
-	_, err = ctx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(
-		ctx.Context,
+	_, err = cheCtx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(
+		cheCtx.Context,
 		types.NamespacedName{Name: containerBuildReconciler.containerRunCapability.getDWOClusterRoleBindingName()},
 		crb,
 	)
@@ -98,25 +98,25 @@ func TestContainerBuildReconciler(t *testing.T) {
 	assert.Equal(t, "devworkspace-controller", crb.Subjects[0].Namespace)
 
 	// Disable Container capabilities
-	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = ptr.To(true)
-	ctx.CheCluster.Spec.DevEnvironments.DisableContainerRunCapabilities = ptr.To(true)
+	cheCtx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = ptr.To(true)
+	cheCtx.CheCluster.Spec.DevEnvironments.DisableContainerRunCapabilities = ptr.To(true)
 
-	err = ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), cheCtx.CheCluster)
 	assert.NoError(t, err)
 
-	test.EnsureReconcile(t, ctx, containerBuildReconciler.Reconcile)
+	test.EnsureReconcile(t, cheCtx, containerBuildReconciler.Reconcile)
 
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "scc-build"}, &securityv1.SecurityContextConstraints{}))
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerBuildCapability.getDWOClusterRoleName()}, &rbacv1.ClusterRole{}))
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerBuildCapability.getDWOClusterRoleBindingName()}, &rbacv1.ClusterRoleBinding{}))
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerBuildCapability.GetUserRoleName()}, &rbacv1.ClusterRole{}))
-	assert.False(t, utils.Contains(ctx.CheCluster.Finalizers, containerBuildReconciler.containerBuildCapability.getFinalizer()))
+	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "scc-build"}, &securityv1.SecurityContextConstraints{}))
+	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerBuildCapability.getDWOClusterRoleName()}, &rbacv1.ClusterRole{}))
+	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerBuildCapability.getDWOClusterRoleBindingName()}, &rbacv1.ClusterRoleBinding{}))
+	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerBuildCapability.GetUserRoleName()}, &rbacv1.ClusterRole{}))
+	assert.False(t, utils.Contains(cheCtx.CheCluster.Finalizers, containerBuildReconciler.containerBuildCapability.getFinalizer()))
 
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "scc-run"}, &securityv1.SecurityContextConstraints{}))
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerRunCapability.getDWOClusterRoleName()}, &rbacv1.ClusterRole{}))
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerRunCapability.getDWOClusterRoleBindingName()}, &rbacv1.ClusterRoleBinding{}))
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerRunCapability.GetUserRoleName()}, &rbacv1.ClusterRole{}))
-	assert.False(t, utils.Contains(ctx.CheCluster.Finalizers, containerBuildReconciler.containerRunCapability.getFinalizer()))
+	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "scc-run"}, &securityv1.SecurityContextConstraints{}))
+	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerRunCapability.getDWOClusterRoleName()}, &rbacv1.ClusterRole{}))
+	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerRunCapability.getDWOClusterRoleBindingName()}, &rbacv1.ClusterRoleBinding{}))
+	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerRunCapability.GetUserRoleName()}, &rbacv1.ClusterRole{}))
+	assert.False(t, utils.Contains(cheCtx.CheCluster.Finalizers, containerBuildReconciler.containerRunCapability.getFinalizer()))
 }
 
 func TestShouldUpdateManagedSCCOnReconcile(t *testing.T) {
@@ -151,20 +151,20 @@ func TestShouldUpdateManagedSCCOnReconcile(t *testing.T) {
 		AllowedCapabilities: []corev1.Capability{"SETUID", "SETGID"},
 	}
 
-	ctx := test.NewCtxBuilder().WithObjects(dwPod, sccRun).Build()
+	cheCtx := test.NewCtxBuilder().WithObjects(dwPod, sccRun).Build()
 
-	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = ptr.To(true)
-	ctx.CheCluster.Spec.DevEnvironments.DisableContainerRunCapabilities = ptr.To(false)
-	ctx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration = &chev2.ContainerRunConfiguration{OpenShiftSecurityContextConstraint: "scc-run"}
-	err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
+	cheCtx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = ptr.To(true)
+	cheCtx.CheCluster.Spec.DevEnvironments.DisableContainerRunCapabilities = ptr.To(false)
+	cheCtx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration = &chev2.ContainerRunConfiguration{OpenShiftSecurityContextConstraint: "scc-run"}
+	err := cheCtx.ClusterAPI.Client.Update(context.TODO(), cheCtx.CheCluster)
 	assert.NoError(t, err)
 
 	containerBuildReconciler := NewContainerCapabilitiesReconciler()
-	test.EnsureReconcile(t, ctx, containerBuildReconciler.Reconcile)
+	test.EnsureReconcile(t, cheCtx, containerBuildReconciler.Reconcile)
 
 	// Verify the SCC was updated with the new capabilities including CHOWN
 	scc := &securityv1.SecurityContextConstraints{}
-	exists, err := ctx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(ctx.Context, types.NamespacedName{Name: "scc-run"}, scc)
+	exists, err := cheCtx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(cheCtx.Context, types.NamespacedName{Name: "scc-run"}, scc)
 	assert.True(t, exists)
 	assert.NoError(t, err)
 	assert.Equal(t, []corev1.Capability{"SETUID", "SETGID", "CHOWN"}, scc.AllowedCapabilities)
@@ -209,40 +209,40 @@ func TestShouldNotSyncSCCIfAlreadyExists(t *testing.T) {
 		},
 	}
 
-	ctx := test.NewCtxBuilder().WithObjects(dwPod, sccBuild, sccRun).Build()
-	ctx.DWONamespace = "devworkspace-controller"
+	cheCtx := test.NewCtxBuilder().WithObjects(dwPod, sccBuild, sccRun).Build()
+	cheCtx.DWONamespace = "devworkspace-controller"
 
-	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = ptr.To(false)
-	ctx.CheCluster.Spec.DevEnvironments.ContainerBuildConfiguration = &chev2.ContainerBuildConfiguration{OpenShiftSecurityContextConstraint: "scc-build"}
-	ctx.CheCluster.Spec.DevEnvironments.DisableContainerRunCapabilities = ptr.To(false)
-	ctx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration = &chev2.ContainerRunConfiguration{OpenShiftSecurityContextConstraint: "scc-run"}
-	err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
+	cheCtx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = ptr.To(false)
+	cheCtx.CheCluster.Spec.DevEnvironments.ContainerBuildConfiguration = &chev2.ContainerBuildConfiguration{OpenShiftSecurityContextConstraint: "scc-build"}
+	cheCtx.CheCluster.Spec.DevEnvironments.DisableContainerRunCapabilities = ptr.To(false)
+	cheCtx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration = &chev2.ContainerRunConfiguration{OpenShiftSecurityContextConstraint: "scc-run"}
+	err := cheCtx.ClusterAPI.Client.Update(context.TODO(), cheCtx.CheCluster)
 	assert.NoError(t, err)
 
 	containerBuildReconciler := NewContainerCapabilitiesReconciler()
 
-	test.EnsureReconcile(t, ctx, containerBuildReconciler.Reconcile)
+	test.EnsureReconcile(t, cheCtx, containerBuildReconciler.Reconcile)
 
 	scc := &securityv1.SecurityContextConstraints{}
-	exists, err := ctx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(ctx.Context, types.NamespacedName{Name: "scc-build"}, scc)
+	exists, err := cheCtx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(cheCtx.Context, types.NamespacedName{Name: "scc-build"}, scc)
 	assert.True(t, exists)
 	assert.Nil(t, err)
 	assert.True(t, scc.Labels[deploy.GetManagedByLabel()] == "")
 
 	scc = &securityv1.SecurityContextConstraints{}
-	exists, err = ctx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(ctx.Context, types.NamespacedName{Name: "scc-run"}, scc)
+	exists, err = cheCtx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(cheCtx.Context, types.NamespacedName{Name: "scc-run"}, scc)
 	assert.True(t, exists)
 	assert.Nil(t, err)
 	assert.True(t, scc.Labels[deploy.GetManagedByLabel()] == "")
 
 	// Disable Container capabilities
-	ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = ptr.To(true)
-	ctx.CheCluster.Spec.DevEnvironments.DisableContainerRunCapabilities = ptr.To(true)
-	err = ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
+	cheCtx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = ptr.To(true)
+	cheCtx.CheCluster.Spec.DevEnvironments.DisableContainerRunCapabilities = ptr.To(true)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), cheCtx.CheCluster)
 	assert.NoError(t, err)
 
-	test.EnsureReconcile(t, ctx, containerBuildReconciler.Reconcile)
+	test.EnsureReconcile(t, cheCtx, containerBuildReconciler.Reconcile)
 
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "scc-build"}, &securityv1.SecurityContextConstraints{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "scc-run"}, &securityv1.SecurityContextConstraints{}))
+	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "scc-build"}, &securityv1.SecurityContextConstraints{}))
+	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "scc-run"}, &securityv1.SecurityContextConstraints{}))
 }

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -62,10 +62,10 @@ func GetPrivilegedPoliciesRulesForKubernetes() []rbacv1.PolicyRule {
 	return rules
 }
 
-func (d *DashboardReconciler) getClusterRoleName(ctx *chetypes.DeployContext) string {
-	return fmt.Sprintf(DashboardSAClusterRoleTemplate, ctx.CheCluster.Namespace)
+func (d *DashboardReconciler) getClusterRoleName(cheCtx *chetypes.CheContext) string {
+	return fmt.Sprintf(DashboardSAClusterRoleTemplate, cheCtx.CheCluster.Namespace)
 }
 
-func (d *DashboardReconciler) getClusterRoleBindingName(ctx *chetypes.DeployContext) string {
-	return fmt.Sprintf(DashboardSAClusterRoleBindingTemplate, ctx.CheCluster.Namespace)
+func (d *DashboardReconciler) getClusterRoleBindingName(cheCtx *chetypes.CheContext) string {
+	return fmt.Sprintf(DashboardSAClusterRoleBindingTemplate, cheCtx.CheCluster.Namespace)
 }

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -34,8 +34,8 @@ func TestGetNamespaceInfoReadsFromCache(t *testing.T) {
 		infrastructure.InitializeForTesting(infraType)
 		ns := namespace.GetName()
 
-		ctx := test.NewCtxBuilder().WithObjects(namespace.(client.Object)).Build()
-		cl := ctx.ClusterAPI.Client
+		cheCtx := test.NewCtxBuilder().WithObjects(namespace.(client.Object)).Build()
+		cl := cheCtx.ClusterAPI.Client
 
 		nsc := NamespaceCache{
 			Client:          cl,
@@ -64,8 +64,8 @@ func TestGetNamespaceInfoReadsFromCache(t *testing.T) {
 func TestExamineUpdatesCache(t *testing.T) {
 	test := func(infraType infrastructure.Type, namespace metav1.Object) {
 		nsName := namespace.GetName()
-		ctx := test.NewCtxBuilder().WithObjects(namespace.(client.Object)).Build()
-		cl := ctx.ClusterAPI.Client
+		cheCtx := test.NewCtxBuilder().WithObjects(namespace.(client.Object)).Build()
+		cl := cheCtx.ClusterAPI.Client
 		infrastructure.InitializeForTesting(infraType)
 
 		nsc := NamespaceCache{

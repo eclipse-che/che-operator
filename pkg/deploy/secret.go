@@ -36,18 +36,18 @@ var SecretDiffOpts = cmp.Options{
 
 // SyncSecretToCluster applies secret into cluster or external namespace
 func SyncSecretToCluster(
-	deployContext *chetypes.DeployContext,
+	cheCtx *chetypes.CheContext,
 	name string,
 	data map[string][]byte) error {
 
-	secretSpec := GetSecretSpec(name, deployContext.CheCluster.Namespace, data)
+	secretSpec := GetSecretSpec(name, cheCtx.CheCluster.Namespace, data)
 
-	if err := controllerutil.SetControllerReference(deployContext.CheCluster, secretSpec, deployContext.ClusterAPI.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, secretSpec, cheCtx.ClusterAPI.Scheme); err != nil {
 		return fmt.Errorf("failed to set owner reference for Secret %s/%s: %w", secretSpec.Namespace, name, err)
 	}
 
-	if err := deployContext.ClusterAPI.ClientWrapper.Sync(
-		deployContext.Context,
+	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
+		cheCtx.Context,
 		secretSpec,
 		&k8sclient.SyncOptions{DiffOpts: SecretDiffOpts},
 	); err != nil {
@@ -58,7 +58,7 @@ func SyncSecretToCluster(
 }
 
 // Get all secrets by labels and annotations
-func GetSecrets(deployContext *chetypes.DeployContext, labels map[string]string, annotations map[string]string) ([]corev1.Secret, error) {
+func GetSecrets(cheCtx *chetypes.CheContext, labels map[string]string, annotations map[string]string) ([]corev1.Secret, error) {
 	secrets := []corev1.Secret{}
 
 	labelSelector := k8slabels.NewSelector()
@@ -71,11 +71,11 @@ func GetSecrets(deployContext *chetypes.DeployContext, labels map[string]string,
 	}
 
 	listOptions := &client.ListOptions{
-		Namespace:     deployContext.CheCluster.Namespace,
+		Namespace:     cheCtx.CheCluster.Namespace,
 		LabelSelector: labelSelector,
 	}
 	secretList := &corev1.SecretList{}
-	if err := deployContext.ClusterAPI.Client.List(context.TODO(), secretList, listOptions); err != nil {
+	if err := cheCtx.ClusterAPI.Client.List(context.TODO(), secretList, listOptions); err != nil {
 		return secrets, err
 	}
 

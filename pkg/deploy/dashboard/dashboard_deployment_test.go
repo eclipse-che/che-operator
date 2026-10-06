@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -40,10 +40,10 @@ import (
 )
 
 func TestDashboardDeploymentSecurityContext(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
 	dashboard := NewDashboardReconciler()
-	deployment, err := dashboard.getDashboardDeploymentSpec(ctx)
+	deployment, err := dashboard.getDashboardDeploymentSpec(cheCtx)
 
 	assert.Nil(t, err)
 	test.ValidateSecurityContext(deployment, t)
@@ -122,10 +122,10 @@ func TestDashboardDeploymentResources(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 
 			dashboard := NewDashboardReconciler()
-			deployment, err := dashboard.getDashboardDeploymentSpec(ctx)
+			deployment, err := dashboard.getDashboardDeploymentSpec(cheCtx)
 			assert.Nil(t, err)
 			test.CompareResources(deployment,
 				test.TestExpectedResources{
@@ -148,7 +148,7 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 		_ = os.Unsetenv("RELATED_IMAGE_sample_encoded_")
 	}()
 
-	ctx := test.NewCtxBuilder().WithObjects(&configv1.Console{
+	cheCtx := test.NewCtxBuilder().WithObjects(&configv1.Console{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cluster",
 			Namespace: "openshift-console",
@@ -158,7 +158,7 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 		},
 	}).Build()
 
-	deployment, err := NewDashboardReconciler().getDashboardDeploymentSpec(ctx)
+	deployment, err := NewDashboardReconciler().getDashboardDeploymentSpec(cheCtx)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(deployment.Spec.Template.Spec.Containers))
@@ -362,10 +362,10 @@ func TestDashboardDeploymentVolumes(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
 
 			dashboard := NewDashboardReconciler()
-			deployment, err := dashboard.getDashboardDeploymentSpec(ctx)
+			deployment, err := dashboard.getDashboardDeploymentSpec(cheCtx)
 
 			assert.Nil(t, err)
 			assert.Equal(t, len(deployment.Spec.Template.Spec.Containers), 1)

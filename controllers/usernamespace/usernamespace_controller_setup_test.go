@@ -154,10 +154,10 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, cheNam
 func setup(infraType infrastructure.Type, objs ...client.Object) (*runtime.Scheme, client.Client, *CheUserNamespaceReconciler) {
 	infrastructure.InitializeForTesting(infraType)
 
-	ctx := test.NewCtxBuilder().WithObjects(objs...).WithCheCluster(nil).Build()
+	cheCtx := test.NewCtxBuilder().WithObjects(objs...).WithCheCluster(nil).Build()
 
-	cl := ctx.ClusterAPI.Client
-	scheme := ctx.ClusterAPI.Scheme
+	cl := cheCtx.ClusterAPI.Client
+	scheme := cheCtx.ClusterAPI.Scheme
 
 	r := &CheUserNamespaceReconciler{
 		client:                 cl,

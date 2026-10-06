@@ -49,17 +49,17 @@ var workspacePolicyNames = []string{
 }
 
 func TestReconcileCreatesNetworkPoliciesWhenEnabled(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
-	ctx.CheCluster.Spec.Networking.NetworkPolicy = &chev2.NetworkPolicy{Enabled: ptr.To(true)}
+	cheCtx := test.NewCtxBuilder().Build()
+	cheCtx.CheCluster.Spec.Networking.NetworkPolicy = &chev2.NetworkPolicy{Enabled: ptr.To(true)}
 
 	reconciler := NewNetworkPoliciesReconciler()
 
-	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
+	test.EnsureReconcile(t, cheCtx, reconciler.Reconcile)
 
 	for _, name := range cheClusterPolicyNames {
-		exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
 			context.TODO(),
-			types.NamespacedName{Name: name, Namespace: ctx.CheCluster.Namespace},
+			types.NamespacedName{Name: name, Namespace: cheCtx.CheCluster.Namespace},
 			&networkingv1.NetworkPolicy{},
 		)
 
@@ -69,21 +69,21 @@ func TestReconcileCreatesNetworkPoliciesWhenEnabled(t *testing.T) {
 }
 
 func TestReconcileDeletesNetworkPoliciesWhenDisabled(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
-	ctx.CheCluster.Spec.Networking.NetworkPolicy = &chev2.NetworkPolicy{Enabled: ptr.To(true)}
+	cheCtx := test.NewCtxBuilder().Build()
+	cheCtx.CheCluster.Spec.Networking.NetworkPolicy = &chev2.NetworkPolicy{Enabled: ptr.To(true)}
 
 	reconciler := NewNetworkPoliciesReconciler()
 
-	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
+	test.EnsureReconcile(t, cheCtx, reconciler.Reconcile)
 
-	ctx.CheCluster.Spec.Networking.NetworkPolicy.Enabled = ptr.To(false)
+	cheCtx.CheCluster.Spec.Networking.NetworkPolicy.Enabled = ptr.To(false)
 
-	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
+	test.EnsureReconcile(t, cheCtx, reconciler.Reconcile)
 
 	for _, name := range cheClusterPolicyNames {
-		exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
 			context.TODO(),
-			types.NamespacedName{Name: name, Namespace: ctx.CheCluster.Namespace},
+			types.NamespacedName{Name: name, Namespace: cheCtx.CheCluster.Namespace},
 			&networkingv1.NetworkPolicy{},
 		)
 
@@ -100,20 +100,20 @@ func TestReconcileDeletesOnlyLabeledPolicies(t *testing.T) {
 		},
 	}
 
-	ctx := test.NewCtxBuilder().WithObjects(unownedPolicy).Build()
-	ctx.CheCluster.Spec.Networking.NetworkPolicy = &chev2.NetworkPolicy{Enabled: ptr.To(true)}
+	cheCtx := test.NewCtxBuilder().WithObjects(unownedPolicy).Build()
+	cheCtx.CheCluster.Spec.Networking.NetworkPolicy = &chev2.NetworkPolicy{Enabled: ptr.To(true)}
 
 	reconciler := NewNetworkPoliciesReconciler()
 
-	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
+	test.EnsureReconcile(t, cheCtx, reconciler.Reconcile)
 
-	ctx.CheCluster.Spec.Networking.NetworkPolicy.Enabled = ptr.To(false)
+	cheCtx.CheCluster.Spec.Networking.NetworkPolicy.Enabled = ptr.To(false)
 
-	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
+	test.EnsureReconcile(t, cheCtx, reconciler.Reconcile)
 
-	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
 		context.TODO(),
-		types.NamespacedName{Name: "unowned-policy", Namespace: ctx.CheCluster.Namespace},
+		types.NamespacedName{Name: "unowned-policy", Namespace: cheCtx.CheCluster.Namespace},
 		&networkingv1.NetworkPolicy{},
 	)
 
@@ -122,18 +122,18 @@ func TestReconcileDeletesOnlyLabeledPolicies(t *testing.T) {
 }
 
 func TestReconcileIdempotent(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
-	ctx.CheCluster.Spec.Networking.NetworkPolicy = &chev2.NetworkPolicy{Enabled: ptr.To(true)}
+	cheCtx := test.NewCtxBuilder().Build()
+	cheCtx.CheCluster.Spec.Networking.NetworkPolicy = &chev2.NetworkPolicy{Enabled: ptr.To(true)}
 
 	reconciler := NewNetworkPoliciesReconciler()
 
-	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
-	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
+	test.EnsureReconcile(t, cheCtx, reconciler.Reconcile)
+	test.EnsureReconcile(t, cheCtx, reconciler.Reconcile)
 
 	for _, name := range cheClusterPolicyNames {
-		exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
 			context.TODO(),
-			types.NamespacedName{Name: name, Namespace: ctx.CheCluster.Namespace},
+			types.NamespacedName{Name: name, Namespace: cheCtx.CheCluster.Namespace},
 			&networkingv1.NetworkPolicy{},
 		)
 
@@ -143,9 +143,9 @@ func TestReconcileIdempotent(t *testing.T) {
 }
 
 func TestGetNetworkPoliciesPodSelectorForCheClusterNamespace(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	policies, err := GetNetworkPolicies(ctx, ctx.CheCluster.Namespace)
+	policies, err := GetNetworkPolicies(cheCtx, cheCtx.CheCluster.Namespace)
 	assert.NoError(t, err)
 
 	expectedSelector := metav1.LabelSelector{
@@ -160,9 +160,9 @@ func TestGetNetworkPoliciesPodSelectorForCheClusterNamespace(t *testing.T) {
 }
 
 func TestGetNetworkPoliciesPodSelectorForWorkspaceNamespace(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	policies, err := GetNetworkPolicies(ctx, "user-ns")
+	policies, err := GetNetworkPolicies(cheCtx, "user-ns")
 	assert.NoError(t, err)
 
 	expectedSelector := metav1.LabelSelector{}
@@ -173,9 +173,9 @@ func TestGetNetworkPoliciesPodSelectorForWorkspaceNamespace(t *testing.T) {
 }
 
 func TestGetNetworkPoliciesLabelsForCheClusterNamespace(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	policies, err := GetNetworkPolicies(ctx, ctx.CheCluster.Namespace)
+	policies, err := GetNetworkPolicies(cheCtx, cheCtx.CheCluster.Namespace)
 	assert.NoError(t, err)
 
 	expectedLabels := deploy.GetLabels(defaults.GetCheFlavor())
@@ -186,9 +186,9 @@ func TestGetNetworkPoliciesLabelsForCheClusterNamespace(t *testing.T) {
 }
 
 func TestGetNetworkPoliciesLabelsForWorkspaceNamespace(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	policies, err := GetNetworkPolicies(ctx, "user-ns")
+	policies, err := GetNetworkPolicies(cheCtx, "user-ns")
 	assert.NoError(t, err)
 
 	expectedLabels := deploy.GetLabels(defaults.GetCheFlavor())
@@ -199,20 +199,20 @@ func TestGetNetworkPoliciesLabelsForWorkspaceNamespace(t *testing.T) {
 }
 
 func TestGetNetworkPoliciesNamespaceForCheClusterNamespace(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	policies, err := GetNetworkPolicies(ctx, ctx.CheCluster.Namespace)
+	policies, err := GetNetworkPolicies(cheCtx, cheCtx.CheCluster.Namespace)
 	assert.NoError(t, err)
 
 	for _, p := range policies {
-		assert.Equal(t, ctx.CheCluster.Namespace, p.Namespace)
+		assert.Equal(t, cheCtx.CheCluster.Namespace, p.Namespace)
 	}
 }
 
 func TestGetNetworkPoliciesNamespaceForWorkspaceNamespace(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	policies, err := GetNetworkPolicies(ctx, "user-ns")
+	policies, err := GetNetworkPolicies(cheCtx, "user-ns")
 	assert.NoError(t, err)
 
 	for _, p := range policies {
@@ -221,9 +221,9 @@ func TestGetNetworkPoliciesNamespaceForWorkspaceNamespace(t *testing.T) {
 }
 
 func TestAllowFromSameNamespaceSpecForCheClusterNamespace(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	policy := findPolicy(t, ctx, ctx.CheCluster.Namespace, "allow-from-same-namespace")
+	policy := findPolicy(t, cheCtx, cheCtx.CheCluster.Namespace, "allow-from-same-namespace")
 
 	assert.Equal(t, []networkingv1.PolicyType{networkingv1.PolicyTypeIngress}, policy.Spec.PolicyTypes)
 	assert.Equal(t, []networkingv1.NetworkPolicyIngressRule{
@@ -240,9 +240,9 @@ func TestAllowFromSameNamespaceSpecForCheClusterNamespace(t *testing.T) {
 }
 
 func TestAllowFromSameNamespaceSpecForWorkspaceNamespace(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	policy := findPolicy(t, ctx, "user-ns", "allow-from-same-namespace")
+	policy := findPolicy(t, cheCtx, "user-ns", "allow-from-same-namespace")
 
 	assert.Equal(t, []networkingv1.PolicyType{networkingv1.PolicyTypeIngress}, policy.Spec.PolicyTypes)
 	assert.Equal(t, []networkingv1.NetworkPolicyIngressRule{
@@ -255,9 +255,9 @@ func TestAllowFromSameNamespaceSpecForWorkspaceNamespace(t *testing.T) {
 }
 
 func TestAllowFromOpenShiftIngressSpecForCheClusterNamespace(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	policy := findPolicy(t, ctx, ctx.CheCluster.Namespace, "allow-from-openshift-ingress")
+	policy := findPolicy(t, cheCtx, cheCtx.CheCluster.Namespace, "allow-from-openshift-ingress")
 
 	assert.Equal(t, []networkingv1.PolicyType{networkingv1.PolicyTypeIngress}, policy.Spec.PolicyTypes)
 	assert.Equal(t, []networkingv1.NetworkPolicyIngressRule{
@@ -276,9 +276,9 @@ func TestAllowFromOpenShiftIngressSpecForCheClusterNamespace(t *testing.T) {
 }
 
 func TestAllowFromOpenShiftIngressSpecForWorkspaceNamespace(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	policy := findPolicy(t, ctx, "user-ns", "allow-from-openshift-ingress")
+	policy := findPolicy(t, cheCtx, "user-ns", "allow-from-openshift-ingress")
 
 	assert.Equal(t, []networkingv1.PolicyType{networkingv1.PolicyTypeIngress}, policy.Spec.PolicyTypes)
 	assert.Equal(t, []networkingv1.NetworkPolicyIngressRule{
@@ -297,9 +297,9 @@ func TestAllowFromOpenShiftIngressSpecForWorkspaceNamespace(t *testing.T) {
 }
 
 func TestAllowFromOpenShiftMonitoringSpecForCheClusterNamespace(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	policy := findPolicy(t, ctx, ctx.CheCluster.Namespace, "allow-from-openshift-monitoring")
+	policy := findPolicy(t, cheCtx, cheCtx.CheCluster.Namespace, "allow-from-openshift-monitoring")
 
 	assert.Equal(t, []networkingv1.PolicyType{networkingv1.PolicyTypeIngress}, policy.Spec.PolicyTypes)
 	assert.Equal(t, []networkingv1.NetworkPolicyIngressRule{
@@ -318,9 +318,9 @@ func TestAllowFromOpenShiftMonitoringSpecForCheClusterNamespace(t *testing.T) {
 }
 
 func TestAllowFromOpenShiftMonitoringSpecForWorkspaceNamespace(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	policy := findPolicy(t, ctx, "user-ns", "allow-from-openshift-monitoring")
+	policy := findPolicy(t, cheCtx, "user-ns", "allow-from-openshift-monitoring")
 
 	assert.Equal(t, []networkingv1.PolicyType{networkingv1.PolicyTypeIngress}, policy.Spec.PolicyTypes)
 	assert.Equal(t, []networkingv1.NetworkPolicyIngressRule{
@@ -339,9 +339,9 @@ func TestAllowFromOpenShiftMonitoringSpecForWorkspaceNamespace(t *testing.T) {
 }
 
 func TestAllowFromWorkspacesSpec(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	policy := findPolicy(t, ctx, ctx.CheCluster.Namespace, "allow-from-workspaces")
+	policy := findPolicy(t, cheCtx, cheCtx.CheCluster.Namespace, "allow-from-workspaces")
 
 	assert.Equal(t, []networkingv1.PolicyType{networkingv1.PolicyTypeIngress}, policy.Spec.PolicyTypes)
 	assert.Equal(t, []networkingv1.NetworkPolicyIngressRule{
@@ -360,9 +360,9 @@ func TestAllowFromWorkspacesSpec(t *testing.T) {
 }
 
 func TestAllowFromCheOperatorSpec(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	policy := findPolicy(t, ctx, ctx.CheCluster.Namespace, "allow-from-che-operator")
+	policy := findPolicy(t, cheCtx, cheCtx.CheCluster.Namespace, "allow-from-che-operator")
 
 	assert.Equal(t, []networkingv1.PolicyType{networkingv1.PolicyTypeIngress}, policy.Spec.PolicyTypes)
 	assert.Equal(t, []networkingv1.NetworkPolicyIngressRule{
@@ -386,9 +386,9 @@ func TestAllowFromCheOperatorSpec(t *testing.T) {
 }
 
 func TestAllowFromCheNamespaceSpec(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	policy := findPolicy(t, ctx, "user-ns", "allow-from-eclipse-che")
+	policy := findPolicy(t, cheCtx, "user-ns", "allow-from-eclipse-che")
 
 	assert.Equal(t, []networkingv1.PolicyType{networkingv1.PolicyTypeIngress}, policy.Spec.PolicyTypes)
 	assert.Equal(t, []networkingv1.NetworkPolicyIngressRule{
@@ -412,9 +412,9 @@ func TestAllowFromCheNamespaceSpec(t *testing.T) {
 }
 
 func TestAllowFromDevWorkspaceOperatorSpec(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	policy := findPolicy(t, ctx, "user-ns", "allow-from-devworkspace-operator")
+	policy := findPolicy(t, cheCtx, "user-ns", "allow-from-devworkspace-operator")
 
 	assert.Equal(t, []networkingv1.PolicyType{networkingv1.PolicyTypeIngress}, policy.Spec.PolicyTypes)
 	assert.Equal(t, []networkingv1.NetworkPolicyIngressRule{
@@ -438,9 +438,9 @@ func TestAllowFromDevWorkspaceOperatorSpec(t *testing.T) {
 }
 
 func TestAllowAllEgressSpecForCheClusterNamespace(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	policy := findPolicy(t, ctx, ctx.CheCluster.Namespace, "allow-all-egress")
+	policy := findPolicy(t, cheCtx, cheCtx.CheCluster.Namespace, "allow-all-egress")
 
 	assert.Equal(t, []networkingv1.PolicyType{networkingv1.PolicyTypeEgress}, policy.Spec.PolicyTypes)
 	assert.Empty(t, policy.Spec.Ingress)
@@ -448,9 +448,9 @@ func TestAllowAllEgressSpecForCheClusterNamespace(t *testing.T) {
 }
 
 func TestAllowAllEgressSpecForWorkspaceNamespace(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	policy := findPolicy(t, ctx, "user-ns", "allow-all-egress")
+	policy := findPolicy(t, cheCtx, "user-ns", "allow-all-egress")
 
 	assert.Equal(t, []networkingv1.PolicyType{networkingv1.PolicyTypeEgress}, policy.Spec.PolicyTypes)
 	assert.Empty(t, policy.Spec.Ingress)
@@ -458,14 +458,14 @@ func TestAllowAllEgressSpecForWorkspaceNamespace(t *testing.T) {
 }
 
 func TestSyncNetworkPolicySetsOwnerReferenceForCheClusterNamespace(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	err := SyncNetworkPolicy(ctx, ctx.CheCluster.Namespace)
+	err := SyncNetworkPolicy(cheCtx, cheCtx.CheCluster.Namespace)
 	assert.NoError(t, err)
 
 	for _, name := range cheClusterPolicyNames {
 		networkPolicy := &networkingv1.NetworkPolicy{}
-		exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
 			context.TODO(),
 			types.NamespacedName{Name: name, Namespace: "eclipse-che"},
 			networkPolicy,
@@ -474,19 +474,19 @@ func TestSyncNetworkPolicySetsOwnerReferenceForCheClusterNamespace(t *testing.T)
 		assert.NoError(t, err)
 		assert.True(t, exists)
 		assert.NotEmpty(t, networkPolicy.OwnerReferences)
-		assert.Equal(t, ctx.CheCluster.Name, networkPolicy.OwnerReferences[0].Name)
+		assert.Equal(t, cheCtx.CheCluster.Name, networkPolicy.OwnerReferences[0].Name)
 	}
 }
 
 func TestSyncNetworkPolicyNoOwnerReferenceForWorkspaceNamespace(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	err := SyncNetworkPolicy(ctx, "user-ns")
+	err := SyncNetworkPolicy(cheCtx, "user-ns")
 	assert.NoError(t, err)
 
 	for _, name := range workspacePolicyNames {
 		networkPolicy := &networkingv1.NetworkPolicy{}
-		exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
 			context.TODO(),
 			types.NamespacedName{Name: name, Namespace: "user-ns"},
 			networkPolicy,
@@ -498,10 +498,10 @@ func TestSyncNetworkPolicyNoOwnerReferenceForWorkspaceNamespace(t *testing.T) {
 	}
 }
 
-func findPolicy(t *testing.T, ctx *chetypes.DeployContext, namespace string, name string) *networkingv1.NetworkPolicy {
+func findPolicy(t *testing.T, cheCtx *chetypes.CheContext, namespace string, name string) *networkingv1.NetworkPolicy {
 	t.Helper()
 
-	policies, err := GetNetworkPolicies(ctx, namespace)
+	policies, err := GetNetworkPolicies(cheCtx, namespace)
 	assert.NoError(t, err)
 
 	idx := slices.IndexFunc(policies, func(item *networkingv1.NetworkPolicy) bool { return item.Name == name })

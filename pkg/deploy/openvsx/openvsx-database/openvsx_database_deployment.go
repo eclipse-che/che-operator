@@ -29,21 +29,21 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-func (p *OpenVSXDatabaseReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
-	spec, err := getDeploymentSpec(ctx)
+func (p *OpenVSXDatabaseReconciler) syncDeployment(cheCtx *chetypes.CheContext) (bool, error) {
+	spec, err := getDeploymentSpec(cheCtx)
 	if err != nil {
 		return false, fmt.Errorf("failed to get deployment spec: %w", err)
 	}
 
-	return deploy.SyncDeploymentSpecToCluster(ctx, spec, deploy.DefaultDeploymentDiffOpts)
+	return deploy.SyncDeploymentSpecToCluster(cheCtx, spec, deploy.DefaultDeploymentDiffOpts)
 }
 
-func getDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
-	image := defaults.GetOpenVSXDatabaseImage(ctx.CheCluster)
+func getDeploymentSpec(cheCtx *chetypes.CheContext) (*appsv1.Deployment, error) {
+	image := defaults.GetOpenVSXDatabaseImage(cheCtx.CheCluster)
 	imagePullPolicy := utils.GetPullPolicyFromDockerImage(image)
 
 	labels := deploy.GetLabels(constants.OpenVSXDatabaseComponentName)
-	credentialsSecretName := openvsx.GetCredentialsSecretName(ctx)
+	credentialsSecretName := openvsx.GetCredentialsSecretName(cheCtx)
 
 	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -52,7 +52,7 @@ func getDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) 
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.OpenVSXDatabaseComponentName,
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -157,8 +157,8 @@ func getDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) 
 		kubernetesGroupId,
 	)
 
-	if ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database != nil {
-		if err := deploy.OverrideDeployment(ctx, deployment, ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database.Deployment); err != nil {
+	if cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Database != nil {
+		if err := deploy.OverrideDeployment(cheCtx, deployment, cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Database.Deployment); err != nil {
 			return nil, fmt.Errorf("failed to override deployment: %w", err)
 		}
 	}

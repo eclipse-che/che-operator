@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -25,46 +25,46 @@ import (
 
 // mockReconciler is a mock implementation of Reconcilable for testing
 type mockReconciler struct {
-	reconcileFunc func(ctx *chetypes.DeployContext) (reconcile.Result, bool, error)
-	finalizeFunc  func(ctx *chetypes.DeployContext) bool
+	reconcileFunc func(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error)
+	finalizeFunc  func(cheCtx *chetypes.CheContext) bool
 }
 
-func (m *mockReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
+func (m *mockReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
 	if m.reconcileFunc != nil {
-		return m.reconcileFunc(ctx)
+		return m.reconcileFunc(cheCtx)
 	}
 	return reconcile.Result{}, true, nil
 }
 
-func (m *mockReconciler) Finalize(ctx *chetypes.DeployContext) bool {
+func (m *mockReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
 	if m.finalizeFunc != nil {
-		return m.finalizeFunc(ctx)
+		return m.finalizeFunc(cheCtx)
 	}
 	return true
 }
 
 func TestReconcileAll_AllSucceed(t *testing.T) {
 	manager := NewReconcilerManager()
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
 	// Add three reconcilers that all succeed
 	manager.AddReconciler(&mockReconciler{
-		reconcileFunc: func(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
+		reconcileFunc: func(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
 			return reconcile.Result{}, true, nil
 		},
 	})
 	manager.AddReconciler(&mockReconciler{
-		reconcileFunc: func(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
+		reconcileFunc: func(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
 			return reconcile.Result{}, true, nil
 		},
 	})
 	manager.AddReconciler(&mockReconciler{
-		reconcileFunc: func(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
+		reconcileFunc: func(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
 			return reconcile.Result{}, true, nil
 		},
 	})
 
-	result, done, err := manager.ReconcileAll(ctx)
+	result, done, err := manager.ReconcileAll(cheCtx)
 
 	assert.True(t, done)
 	assert.Nil(t, err)
@@ -73,7 +73,7 @@ func TestReconcileAll_AllSucceed(t *testing.T) {
 
 func TestReconcileAll_FirstReconcilerFails(t *testing.T) {
 	manager := NewReconcilerManager()
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
 	expectedErr := errors.Wrap(errors.New("test"), fmt.Sprintf("%s reconciliation failed", "reconciler.mockReconciler"))
 	reconciler2Called := false
@@ -81,25 +81,25 @@ func TestReconcileAll_FirstReconcilerFails(t *testing.T) {
 
 	// First reconciler fails
 	manager.AddReconciler(&mockReconciler{
-		reconcileFunc: func(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
+		reconcileFunc: func(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
 			return reconcile.Result{}, false, errors.New("test")
 		},
 	})
 	// These should not be called
 	manager.AddReconciler(&mockReconciler{
-		reconcileFunc: func(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
+		reconcileFunc: func(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
 			reconciler2Called = true
 			return reconcile.Result{}, true, nil
 		},
 	})
 	manager.AddReconciler(&mockReconciler{
-		reconcileFunc: func(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
+		reconcileFunc: func(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
 			reconciler3Called = true
 			return reconcile.Result{}, true, nil
 		},
 	})
 
-	result, done, err := manager.ReconcileAll(ctx)
+	result, done, err := manager.ReconcileAll(cheCtx)
 
 	assert.False(t, done)
 	assert.Equal(t, expectedErr.Error(), err.Error())
@@ -110,60 +110,60 @@ func TestReconcileAll_FirstReconcilerFails(t *testing.T) {
 
 func TestFinalizeAll_AllSucceed(t *testing.T) {
 	manager := NewReconcilerManager()
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
 	// Add three reconcilers that all finalize successfully
 	manager.AddReconciler(&mockReconciler{
-		finalizeFunc: func(ctx *chetypes.DeployContext) bool {
+		finalizeFunc: func(cheCtx *chetypes.CheContext) bool {
 			return true
 		},
 	})
 	manager.AddReconciler(&mockReconciler{
-		finalizeFunc: func(ctx *chetypes.DeployContext) bool {
+		finalizeFunc: func(cheCtx *chetypes.CheContext) bool {
 			return true
 		},
 	})
 	manager.AddReconciler(&mockReconciler{
-		finalizeFunc: func(ctx *chetypes.DeployContext) bool {
+		finalizeFunc: func(cheCtx *chetypes.CheContext) bool {
 			return true
 		},
 	})
 
-	doneAll := manager.FinalizeAll(ctx)
+	doneAll := manager.FinalizeAll(cheCtx)
 
 	assert.True(t, doneAll)
 }
 
 func TestFinalizeAll_OneFails(t *testing.T) {
 	manager := NewReconcilerManager()
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
 	reconciler1Called := false
 	reconciler2Called := false
 	reconciler3Called := false
 
 	manager.AddReconciler(&mockReconciler{
-		finalizeFunc: func(ctx *chetypes.DeployContext) bool {
+		finalizeFunc: func(cheCtx *chetypes.CheContext) bool {
 			reconciler1Called = true
 			return true
 		},
 	})
 	// Second reconciler fails
 	manager.AddReconciler(&mockReconciler{
-		finalizeFunc: func(ctx *chetypes.DeployContext) bool {
+		finalizeFunc: func(cheCtx *chetypes.CheContext) bool {
 			reconciler2Called = true
 			return false
 		},
 	})
 	// Third should still be called even though second failed
 	manager.AddReconciler(&mockReconciler{
-		finalizeFunc: func(ctx *chetypes.DeployContext) bool {
+		finalizeFunc: func(cheCtx *chetypes.CheContext) bool {
 			reconciler3Called = true
 			return true
 		},
 	})
 
-	doneAll := manager.FinalizeAll(ctx)
+	doneAll := manager.FinalizeAll(cheCtx)
 
 	assert.False(t, doneAll)
 	assert.True(t, reconciler1Called)

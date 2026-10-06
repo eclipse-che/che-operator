@@ -11,8 +11,8 @@ Reference implementation: `pkg/deploy/dashboard/`
 
 1. Create a new package under `pkg/deploy/<component>/`
 2. Define a reconciler struct implementing `Reconcilable` from `pkg/common/reconciler/`:
-   - `Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error)`
-   - `Finalize(ctx *chetypes.DeployContext) bool`
+   - `Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error)`
+   - `Finalize(cheCtx *chetypes.CheContext) bool`
 3. Build k8s resource specs (Deployment, Service, ConfigMap, etc.) in the same package
 4. Register the reconciler in `controllers/che/checluster_controller.go` via `reconcilerManager.AddReconciler()`
 5. Placement in the chain matters — add after dependencies are reconciled

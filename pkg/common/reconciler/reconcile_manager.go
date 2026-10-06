@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -29,7 +29,7 @@ type Reconcilable interface {
 	// - result: reconcile.Result indicating when to requeue (if needed)
 	// - done: true if reconciliation completed successfully, false if it needs to be retried
 	// - err: any error encountered during reconciliation
-	Reconcile(ctx *chetypes.DeployContext) (result reconcile.Result, done bool, err error)
+	Reconcile(cheCtx *chetypes.CheContext) (result reconcile.Result, done bool, err error)
 
 	// Finalize performs cleanup operations before the resource is deleted.
 	// All created resources should be removed, including:
@@ -37,7 +37,7 @@ type Reconcilable interface {
 	// - cluster scoped resources
 	// Returns true if finalization completed successfully, false otherwise.
 	// TODO make Finalize return error as well
-	Finalize(ctx *chetypes.DeployContext) (done bool)
+	Finalize(cheCtx *chetypes.CheContext) (done bool)
 }
 
 // ReconcilerManager manages a collection of Reconcilable objects and executes them in order.
@@ -58,9 +58,9 @@ func (r *ReconcilerManager) AddReconciler(reconciler Reconcilable) {
 // ReconcileAll reconciles all registered reconcilers in the order they were added.
 // The reconciliation process stops at the first reconciler that returns done=false,
 // ensuring dependencies between reconcilers are respected.
-func (r *ReconcilerManager) ReconcileAll(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
+func (r *ReconcilerManager) ReconcileAll(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
 	for _, reconciler := range r.reconcilers {
-		result, done, err := reconciler.Reconcile(ctx)
+		result, done, err := reconciler.Reconcile(cheCtx)
 
 		// Stop reconciliation chain if current reconciler is not done
 		if !done {
@@ -80,11 +80,11 @@ func (r *ReconcilerManager) ReconcileAll(ctx *chetypes.DeployContext) (reconcile
 // Unlike ReconcileAll, this method continues executing all finalizers even if one fails,
 // ensuring all cleanup operations have a chance to run.
 // Returns true if all finalizers completed successfully, false if any failed.
-func (r *ReconcilerManager) FinalizeAll(ctx *chetypes.DeployContext) (doneAll bool) {
+func (r *ReconcilerManager) FinalizeAll(cheCtx *chetypes.CheContext) (doneAll bool) {
 	doneAll = true
 
 	for _, reconciler := range r.reconcilers {
-		done := reconciler.Finalize(ctx)
+		done := reconciler.Finalize(cheCtx)
 		doneAll = doneAll && done
 	}
 

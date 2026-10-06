@@ -37,7 +37,7 @@ func NewPostgresReconciler() *PostgresReconciler {
 	return &PostgresReconciler{}
 }
 
-func (p *PostgresReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
+func (p *PostgresReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
 	// PostgreSQL component is not used anymore
 	objects := []struct {
 		name string
@@ -51,13 +51,13 @@ func (p *PostgresReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.R
 	}
 
 	for _, object := range objects {
-		key := types.NamespacedName{Name: object.name, Namespace: ctx.CheCluster.Namespace}
-		_ = ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(ctx.Context, key, object.obj)
+		key := types.NamespacedName{Name: object.name, Namespace: cheCtx.CheCluster.Namespace}
+		_ = cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(cheCtx.Context, key, object.obj)
 	}
 
 	return reconcile.Result{}, true, nil
 }
 
-func (p *PostgresReconciler) Finalize(ctx *chetypes.DeployContext) bool {
+func (p *PostgresReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
 	return true
 }

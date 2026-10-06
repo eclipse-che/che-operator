@@ -75,8 +75,8 @@ func NewGatewayReconciler() *GatewayReconciler {
 	return &GatewayReconciler{}
 }
 
-func (p *GatewayReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	done, err := SyncGatewayToCluster(ctx)
+func (p *GatewayReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
+	done, err := SyncGatewayToCluster(cheCtx)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
@@ -84,49 +84,49 @@ func (p *GatewayReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Re
 	return reconcile.Result{}, true, nil
 }
 
-func (p *GatewayReconciler) Finalize(ctx *chetypes.DeployContext) bool {
+func (p *GatewayReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
 	return true
 }
 
 // SyncGatewayToCluster installs or deletes the gateway based on the custom resource configuration
-func SyncGatewayToCluster(deployContext *chetypes.DeployContext) (bool, error) {
-	return syncAll(deployContext)
+func SyncGatewayToCluster(cheCtx *chetypes.CheContext) (bool, error) {
+	return syncAll(cheCtx)
 }
 
-func syncAll(deployContext *chetypes.DeployContext) (bool, error) {
-	instance := deployContext.CheCluster
+func syncAll(cheCtx *chetypes.CheContext) (bool, error) {
+	instance := cheCtx.CheCluster
 
 	sa := getGatewayServiceAccountSpec(instance)
-	if err := syncGatewayObject(deployContext, &sa, serviceAccountDiffOpts); err != nil {
+	if err := syncGatewayObject(cheCtx, &sa, serviceAccountDiffOpts); err != nil {
 		return false, err
 	}
 
 	role := getGatewayRoleSpec(instance)
-	if err := syncGatewayObject(deployContext, &role, roleDiffOpts); err != nil {
+	if err := syncGatewayObject(cheCtx, &role, roleDiffOpts); err != nil {
 		return false, err
 	}
 
 	roleBinding := getGatewayRoleBindingSpec(instance)
-	if err := syncGatewayObject(deployContext, &roleBinding, roleBindingDiffOpts); err != nil {
+	if err := syncGatewayObject(cheCtx, &roleBinding, roleBindingDiffOpts); err != nil {
 		return false, err
 	}
 
-	oauthSecret, err := getGatewaySecretSpec(deployContext)
+	oauthSecret, err := getGatewaySecretSpec(cheCtx)
 	if err != nil {
 		return false, err
 	}
 
-	if err := syncGatewayObject(deployContext, oauthSecret, secretDiffOpts); err != nil {
+	if err := syncGatewayObject(cheCtx, oauthSecret, secretDiffOpts); err != nil {
 		return false, err
 	}
 
-	oauthProxyConfig := getGatewayOauthProxyConfigSpec(deployContext, string(oauthSecret.Data["cookie_secret"]))
-	if err := syncGatewayObject(deployContext, &oauthProxyConfig, configMapDiffOpts); err != nil {
+	oauthProxyConfig := getGatewayOauthProxyConfigSpec(cheCtx, string(oauthSecret.Data["cookie_secret"]))
+	if err := syncGatewayObject(cheCtx, &oauthProxyConfig, configMapDiffOpts); err != nil {
 		return false, err
 	}
 
 	kubeRbacProxyConfig := getGatewayKubeRbacProxyConfigSpec(instance)
-	if err := syncGatewayObject(deployContext, &kubeRbacProxyConfig, configMapDiffOpts); err != nil {
+	if err := syncGatewayObject(cheCtx, &kubeRbacProxyConfig, configMapDiffOpts); err != nil {
 		return false, err
 	}
 
@@ -136,41 +136,41 @@ func syncAll(deployContext *chetypes.DeployContext) (bool, error) {
 			return false, err
 		}
 
-		if err := syncGatewayObject(deployContext, headerRewritePluginConfig, configMapDiffOpts); err != nil {
+		if err := syncGatewayObject(cheCtx, headerRewritePluginConfig, configMapDiffOpts); err != nil {
 			return false, err
 		}
 	}
 
 	traefikConfig := getGatewayTraefikConfigSpec(instance)
-	if err := syncGatewayObject(deployContext, &traefikConfig, configMapDiffOpts); err != nil {
+	if err := syncGatewayObject(cheCtx, &traefikConfig, configMapDiffOpts); err != nil {
 		return false, err
 	}
 
-	fallbackConfig, err := createGatewayFallbackConfig(deployContext)
+	fallbackConfig, err := createGatewayFallbackConfig(cheCtx)
 	if err != nil {
 		return false, err
 	}
 
-	if err := syncGatewayObject(deployContext, fallbackConfig, configMapDiffOpts); err != nil {
+	if err := syncGatewayObject(cheCtx, fallbackConfig, configMapDiffOpts); err != nil {
 		return false, err
 	}
 
-	depl, err := getGatewayDeploymentSpec(deployContext)
+	depl, err := getGatewayDeploymentSpec(cheCtx)
 	if err != nil {
 		return false, err
 	}
 
-	if done, err := deploy.SyncDeploymentSpecToCluster(deployContext, depl, deploy.DefaultDeploymentDiffOpts); !done {
+	if done, err := deploy.SyncDeploymentSpecToCluster(cheCtx, depl, deploy.DefaultDeploymentDiffOpts); !done {
 		return false, err
 	}
 
 	service := getGatewayServiceSpec(instance)
-	if err := syncGatewayObject(deployContext, &service, deploy.ServiceDefaultDiffOpts); err != nil {
+	if err := syncGatewayObject(cheCtx, &service, deploy.ServiceDefaultDiffOpts); err != nil {
 		return false, err
 	}
 
-	if serverConfig, cfgErr := getGatewayServerConfigSpec(deployContext); cfgErr == nil {
-		if err := syncGatewayObject(deployContext, serverConfig, configMapDiffOpts); err != nil {
+	if serverConfig, cfgErr := getGatewayServerConfigSpec(cheCtx); cfgErr == nil {
+		if err := syncGatewayObject(cheCtx, serverConfig, configMapDiffOpts); err != nil {
 			return false, err
 		}
 	}
@@ -179,15 +179,15 @@ func syncAll(deployContext *chetypes.DeployContext) (bool, error) {
 }
 
 // syncGatewayObject syncs the given object into the CheCluster namespace.
-func syncGatewayObject(deployContext *chetypes.DeployContext, obj client.Object, diffOpts ...cmp.Option) error {
+func syncGatewayObject(cheCtx *chetypes.CheContext, obj client.Object, diffOpts ...cmp.Option) error {
 	kind := k8sclient.GetObjectType(obj)
 
-	if err := controllerutil.SetControllerReference(deployContext.CheCluster, obj, deployContext.ClusterAPI.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, obj, cheCtx.ClusterAPI.Scheme); err != nil {
 		return fmt.Errorf("failed to set owner reference for %s %s/%s: %w", kind, obj.GetNamespace(), obj.GetName(), err)
 	}
 
-	if err := deployContext.ClusterAPI.ClientWrapper.Sync(
-		deployContext.Context,
+	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
+		cheCtx.Context,
 		obj,
 		&k8sclient.SyncOptions{DiffOpts: diffOpts},
 	); err != nil {
@@ -197,27 +197,27 @@ func syncGatewayObject(deployContext *chetypes.DeployContext, obj client.Object,
 	return nil
 }
 
-func getGatewaySecretSpec(deployContext *chetypes.DeployContext) (*corev1.Secret, error) {
+func getGatewaySecretSpec(cheCtx *chetypes.CheContext) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
-	exists, err := deployContext.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-		deployContext.Context,
-		types.NamespacedName{Name: gatewayOauthSecretName, Namespace: deployContext.CheCluster.Namespace},
+	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		cheCtx.Context,
+		types.NamespacedName{Name: gatewayOauthSecretName, Namespace: cheCtx.CheCluster.Namespace},
 		secret,
 	)
 	if err == nil && exists {
 		if _, ok := secret.Data["cookie_secret"]; !ok {
 			logrus.Info("che-gateway-secret found, but does not contain `cookie_secret` value. Regenerating...")
-			return generateOauthSecretSpec(deployContext), nil
+			return generateOauthSecretSpec(cheCtx), nil
 		}
 		return secret, nil
 	} else if err == nil && !exists {
-		return generateOauthSecretSpec(deployContext), nil
+		return generateOauthSecretSpec(cheCtx), nil
 	} else {
-		return nil, fmt.Errorf("failed to get Secret %s/%s: %w", deployContext.CheCluster.Namespace, gatewayOauthSecretName, err)
+		return nil, fmt.Errorf("failed to get Secret %s/%s: %w", cheCtx.CheCluster.Namespace, gatewayOauthSecretName, err)
 	}
 }
 
-func generateOauthSecretSpec(deployContext *chetypes.DeployContext) *corev1.Secret {
+func generateOauthSecretSpec(cheCtx *chetypes.CheContext) *corev1.Secret {
 	return &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
@@ -225,7 +225,7 @@ func generateOauthSecretSpec(deployContext *chetypes.DeployContext) *corev1.Secr
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      gatewayOauthSecretName,
-			Namespace: deployContext.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Labels:    deploy.GetLabels(GatewayServiceName),
 		},
 		Data: map[string][]byte{
@@ -236,7 +236,7 @@ func generateOauthSecretSpec(deployContext *chetypes.DeployContext) *corev1.Secr
 
 // below functions declare the desired states of the various objects required for the gateway
 
-func getGatewayServerConfigSpec(deployContext *chetypes.DeployContext) (*corev1.ConfigMap, error) {
+func getGatewayServerConfigSpec(cheCtx *chetypes.CheContext) (*corev1.ConfigMap, error) {
 	cfg := CreateCommonTraefikConfig(
 		serverComponentName,
 		"PathPrefix(`/api`) || PathPrefix(`/swagger`) || PathPrefix(`/_app`)",
@@ -244,7 +244,7 @@ func getGatewayServerConfigSpec(deployContext *chetypes.DeployContext) (*corev1.
 		"http://"+deploy.CheServiceName+":8080",
 		[]string{})
 
-	if deployContext.CheCluster.IsAccessTokenConfigured() {
+	if cheCtx.CheCluster.IsAccessTokenConfigured() {
 		cfg.AddAuthHeaderRewrite(serverComponentName)
 	}
 
@@ -255,11 +255,11 @@ func getGatewayServerConfigSpec(deployContext *chetypes.DeployContext) (*corev1.
 		cfg.AddOpenShiftTokenCheck(serverComponentName)
 	}
 
-	return GetConfigmapForGatewayConfig(deployContext, serverComponentName, cfg)
+	return GetConfigmapForGatewayConfig(cheCtx, serverComponentName, cfg)
 }
 
 func GetConfigmapForGatewayConfig(
-	deployContext *chetypes.DeployContext,
+	cheCtx *chetypes.CheContext,
 	componentName string,
 	gatewayConfig *TraefikConfig) (*corev1.ConfigMap, error) {
 
@@ -275,17 +275,17 @@ func GetConfigmapForGatewayConfig(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayConfigMapNamePrefix + componentName,
-			Namespace: deployContext.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Labels: labels.Merge(
 				deploy.GetLabels(gatewayConfigComponentName),
-				utils.GetMapOrDefault(deployContext.CheCluster.Spec.Networking.Auth.Gateway.ConfigLabels, constants.DefaultSingleHostGatewayConfigMapLabels)),
+				utils.GetMapOrDefault(cheCtx.CheCluster.Spec.Networking.Auth.Gateway.ConfigLabels, constants.DefaultSingleHostGatewayConfigMapLabels)),
 		},
 		Data: map[string]string{
 			componentName + ".yml": string(gatewayConfigContent),
 		},
 	}
 
-	err = controllerutil.SetControllerReference(deployContext.CheCluster, ret, deployContext.ClusterAPI.Scheme)
+	err = controllerutil.SetControllerReference(cheCtx.CheCluster, ret, cheCtx.ClusterAPI.Scheme)
 	if err != nil {
 		return nil, err
 	}
@@ -434,7 +434,7 @@ experimental:
 	}
 }
 
-func createGatewayFallbackConfig(ctx *chetypes.DeployContext) (*corev1.ConfigMap, error) {
+func createGatewayFallbackConfig(cheCtx *chetypes.CheContext) (*corev1.ConfigMap, error) {
 	cfg := CreateEmptyTraefikConfig()
 
 	// clear services to prevent the following error fom traefik pod:
@@ -451,10 +451,10 @@ func createGatewayFallbackConfig(ctx *chetypes.DeployContext) (*corev1.ConfigMap
 	closeHeader := map[string]string{"Connection": "close"}
 	cfg.AddResponseHeaders(noopComponent, closeHeader)
 
-	return GetConfigmapForGatewayConfig(ctx, "fallback", cfg)
+	return GetConfigmapForGatewayConfig(cheCtx, "fallback", cfg)
 }
 
-func getGatewayDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
+func getGatewayDeploymentSpec(cheCtx *chetypes.CheContext) (*appsv1.Deployment, error) {
 	terminationGracePeriodSeconds := int64(10)
 
 	deployLabels, labelsSelector := deploy.GetLabelsAndSelector(GatewayServiceName)
@@ -466,7 +466,7 @@ func getGatewayDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, 
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayServiceName,
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Labels:    deployLabels,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -484,8 +484,8 @@ func getGatewayDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, 
 					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
 					ServiceAccountName:            GatewayServiceName,
 					RestartPolicy:                 corev1.RestartPolicyAlways,
-					Containers:                    getContainersSpec(ctx),
-					Volumes:                       getVolumesSpec(ctx.CheCluster),
+					Containers:                    getContainersSpec(cheCtx),
+					Volumes:                       getVolumesSpec(cheCtx.CheCluster),
 				},
 			},
 		},
@@ -497,17 +497,17 @@ func getGatewayDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, 
 		constants.DefaultSecurityContextFsGroup,
 	)
 
-	if err := deploy.OverrideDeployment(ctx, deployment, ctx.CheCluster.Spec.Networking.Auth.Gateway.Deployment); err != nil {
+	if err := deploy.OverrideDeployment(cheCtx, deployment, cheCtx.CheCluster.Spec.Networking.Auth.Gateway.Deployment); err != nil {
 		return nil, err
 	}
 
 	return deployment, nil
 }
 
-func getContainersSpec(ctx *chetypes.DeployContext) []corev1.Container {
-	configLabelsMap := utils.GetMapOrDefault(ctx.CheCluster.Spec.Networking.Auth.Gateway.ConfigLabels, constants.DefaultSingleHostGatewayConfigMapLabels)
-	gatewayImage := defaults.GetGatewayImage(ctx.CheCluster)
-	configSidecarImage := defaults.GetGatewayConfigSidecarImage(ctx.CheCluster)
+func getContainersSpec(cheCtx *chetypes.CheContext) []corev1.Container {
+	configLabelsMap := utils.GetMapOrDefault(cheCtx.CheCluster.Spec.Networking.Auth.Gateway.ConfigLabels, constants.DefaultSingleHostGatewayConfigMapLabels)
+	gatewayImage := defaults.GetGatewayImage(cheCtx.CheCluster)
+	configSidecarImage := defaults.GetGatewayConfigSidecarImage(cheCtx.CheCluster)
 	configLabels := labels.FormatLabels(configLabelsMap)
 
 	containers := []corev1.Container{
@@ -515,7 +515,7 @@ func getContainersSpec(ctx *chetypes.DeployContext) []corev1.Container {
 			Name:            "gateway",
 			Image:           gatewayImage,
 			ImagePullPolicy: corev1.PullIfNotPresent,
-			VolumeMounts:    getTraefikContainerVolumeMounts(ctx.CheCluster),
+			VolumeMounts:    getTraefikContainerVolumeMounts(cheCtx.CheCluster),
 			Resources: corev1.ResourceRequirements{
 				Limits: corev1.ResourceList{
 					corev1.ResourceMemory: resource.MustParse("4Gi"),
@@ -628,8 +628,8 @@ func getContainersSpec(ctx *chetypes.DeployContext) []corev1.Container {
 	}
 
 	containers = append(containers,
-		getOauthProxyContainerSpec(ctx),
-		getKubeRbacProxyContainerSpec(ctx))
+		getOauthProxyContainerSpec(cheCtx),
+		getKubeRbacProxyContainerSpec(cheCtx))
 
 	return containers
 }

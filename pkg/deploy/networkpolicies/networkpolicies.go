@@ -39,30 +39,30 @@ func NewNetworkPoliciesReconciler() *NetworkPoliciesReconciler {
 	return &NetworkPoliciesReconciler{}
 }
 
-func (r *NetworkPoliciesReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if !ctx.CheCluster.IsNetworkPoliciesEnabled() {
-		err := DeleteNetworkPolicy(ctx, ctx.CheCluster.Namespace)
+func (r *NetworkPoliciesReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
+	if !cheCtx.CheCluster.IsNetworkPoliciesEnabled() {
+		err := DeleteNetworkPolicy(cheCtx, cheCtx.CheCluster.Namespace)
 		if err != nil {
-			err = fmt.Errorf("failed to delete NetworkPolicy in namespace %s: %w", ctx.CheCluster.Namespace, err)
+			err = fmt.Errorf("failed to delete NetworkPolicy in namespace %s: %w", cheCtx.CheCluster.Namespace, err)
 		}
 
 		return reconcile.Result{}, err == nil, err
 	}
 
-	err := SyncNetworkPolicy(ctx, ctx.CheCluster.Namespace)
+	err := SyncNetworkPolicy(cheCtx, cheCtx.CheCluster.Namespace)
 	if err != nil {
-		return reconcile.Result{}, false, fmt.Errorf("failed to sync NetworkPolicy in namespace %s: %w", ctx.CheCluster.Namespace, err)
+		return reconcile.Result{}, false, fmt.Errorf("failed to sync NetworkPolicy in namespace %s: %w", cheCtx.CheCluster.Namespace, err)
 	}
 
 	return reconcile.Result{}, true, nil
 }
 
-func (r *NetworkPoliciesReconciler) Finalize(_ *chetypes.DeployContext) bool {
+func (r *NetworkPoliciesReconciler) Finalize(_ *chetypes.CheContext) bool {
 	return true
 }
 
-func GetNetworkPolicies(ctx *chetypes.DeployContext, namespace string) ([]*networkingv1.NetworkPolicy, error) {
-	isWorkspaceNetworkPolicies := ctx.CheCluster.Namespace != namespace
+func GetNetworkPolicies(cheCtx *chetypes.CheContext, namespace string) ([]*networkingv1.NetworkPolicy, error) {
+	isWorkspaceNetworkPolicies := cheCtx.CheCluster.Namespace != namespace
 
 	operatorNamespace, err := infrastructure.GetOperatorNamespace()
 	if err != nil {
@@ -199,7 +199,7 @@ func GetNetworkPolicies(ctx *chetypes.DeployContext, namespace string) ([]*netwo
 			APIVersion: networkingv1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "allow-from-" + ctx.CheCluster.Namespace,
+			Name:      "allow-from-" + cheCtx.CheCluster.Namespace,
 			Namespace: namespace,
 			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
@@ -211,7 +211,7 @@ func GetNetworkPolicies(ctx *chetypes.DeployContext, namespace string) ([]*netwo
 						{
 							NamespaceSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{
-									"kubernetes.io/metadata.name": ctx.CheCluster.Namespace,
+									"kubernetes.io/metadata.name": cheCtx.CheCluster.Namespace,
 								},
 							},
 							PodSelector: &metav1.LabelSelector{
@@ -263,7 +263,7 @@ func GetNetworkPolicies(ctx *chetypes.DeployContext, namespace string) ([]*netwo
 
 	var allowFromDevWorkspaceOperator *networkingv1.NetworkPolicy
 
-	if ctx.DWONamespace != "" {
+	if cheCtx.DWONamespace != "" {
 		allowFromDevWorkspaceOperator = &networkingv1.NetworkPolicy{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "NetworkPolicy",
@@ -282,7 +282,7 @@ func GetNetworkPolicies(ctx *chetypes.DeployContext, namespace string) ([]*netwo
 							{
 								NamespaceSelector: &metav1.LabelSelector{
 									MatchLabels: map[string]string{
-										"kubernetes.io/metadata.name": ctx.DWONamespace,
+										"kubernetes.io/metadata.name": cheCtx.DWONamespace,
 									},
 								},
 								PodSelector: &metav1.LabelSelector{
@@ -335,21 +335,21 @@ func GetNetworkPolicies(ctx *chetypes.DeployContext, namespace string) ([]*netwo
 	return networkPolicies, nil
 }
 
-func SyncNetworkPolicy(ctx *chetypes.DeployContext, namespace string) error {
-	networkPolicies, err := GetNetworkPolicies(ctx, namespace)
+func SyncNetworkPolicy(cheCtx *chetypes.CheContext, namespace string) error {
+	networkPolicies, err := GetNetworkPolicies(cheCtx, namespace)
 	if err != nil {
 		return fmt.Errorf("failed to get NetworkPolicy in namespace %s: %w", namespace, err)
 	}
 
 	for _, networkPolicy := range networkPolicies {
-		if ctx.CheCluster.Namespace == namespace {
-			if err = controllerutil.SetControllerReference(ctx.CheCluster, networkPolicy, ctx.ClusterAPI.Scheme); err != nil {
+		if cheCtx.CheCluster.Namespace == namespace {
+			if err = controllerutil.SetControllerReference(cheCtx.CheCluster, networkPolicy, cheCtx.ClusterAPI.Scheme); err != nil {
 				return err
 			}
 		}
 
-		if err := ctx.ClusterAPI.ClientWrapper.Sync(
-			ctx.Context,
+		if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
+			cheCtx.Context,
 			networkPolicy,
 			&k8sclient.SyncOptions{DiffOpts: diffs.NetworkPolicy},
 		); err != nil {
@@ -360,9 +360,9 @@ func SyncNetworkPolicy(ctx *chetypes.DeployContext, namespace string) error {
 	return nil
 }
 
-func DeleteNetworkPolicy(ctx *chetypes.DeployContext, namespace string) error {
-	items, err := ctx.ClusterAPI.ClientWrapper.List(
-		ctx.Context,
+func DeleteNetworkPolicy(cheCtx *chetypes.CheContext, namespace string) error {
+	items, err := cheCtx.ClusterAPI.ClientWrapper.List(
+		cheCtx.Context,
 		&networkingv1.NetworkPolicyList{},
 		&client.ListOptions{
 			Namespace:     namespace,
@@ -379,7 +379,7 @@ func DeleteNetworkPolicy(ctx *chetypes.DeployContext, namespace string) error {
 			continue
 		}
 
-		err = ctx.ClusterAPI.ClientWrapper.DeleteIgnoreNotFound(ctx.Context, networkPolicy)
+		err = cheCtx.ClusterAPI.ClientWrapper.DeleteIgnoreNotFound(cheCtx.Context, networkPolicy)
 		if err != nil {
 			return fmt.Errorf("failed to delete NetworkPolicy %s/%s: %w", networkPolicy.GetNamespace(), networkPolicy.GetName(), err)
 		}

@@ -51,21 +51,21 @@ var (
 // SyncIngressToCluster creates ingress to expose service with the set settings
 // host and path are evaluated if they are empty
 func SyncIngressToCluster(
-	deployContext *chetypes.DeployContext,
+	cheCtx *chetypes.CheContext,
 	name string,
 	path string,
 	serviceName string,
 	servicePort int32,
 	component string) (endpointUrl string, err error) {
 
-	ingressUrl, ingressSpec := GetIngressSpec(deployContext, name, path, serviceName, servicePort, component)
+	ingressUrl, ingressSpec := GetIngressSpec(cheCtx, name, path, serviceName, servicePort, component)
 
-	if err := controllerutil.SetControllerReference(deployContext.CheCluster, ingressSpec, deployContext.ClusterAPI.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, ingressSpec, cheCtx.ClusterAPI.Scheme); err != nil {
 		return "", fmt.Errorf("failed to set owner reference for Ingress %s/%s: %w", ingressSpec.Namespace, ingressSpec.Name, err)
 	}
 
-	if err := deployContext.ClusterAPI.ClientWrapper.Sync(
-		deployContext.Context,
+	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
+		cheCtx.Context,
 		ingressSpec,
 		&k8sclient.SyncOptions{DiffOpts: IngressDiffOpts},
 	); err != nil {
@@ -78,22 +78,22 @@ func SyncIngressToCluster(
 // GetIngressSpec returns expected ingress config for given parameters
 // host and path are evaluated if they are empty
 func GetIngressSpec(
-	deployContext *chetypes.DeployContext,
+	cheCtx *chetypes.CheContext,
 	name string,
 	path string,
 	serviceName string,
 	servicePort int32,
 	component string) (ingressUrl string, i *networking.Ingress) {
 
-	ingressDomain := deployContext.CheCluster.Spec.Networking.Domain
-	tlsSecretName := deployContext.CheCluster.Spec.Networking.TlsSecretName
+	ingressDomain := cheCtx.CheCluster.Spec.Networking.Domain
+	tlsSecretName := cheCtx.CheCluster.Spec.Networking.TlsSecretName
 	labels := GetLabels(component)
-	for k, v := range deployContext.CheCluster.Spec.Networking.Labels {
+	for k, v := range cheCtx.CheCluster.Spec.Networking.Labels {
 		labels[k] = v
 	}
 	pathType := networking.PathTypeImplementationSpecific
 
-	host := deployContext.CheCluster.Spec.Networking.Hostname
+	host := cheCtx.CheCluster.Spec.Networking.Hostname
 	if host == "" {
 		host = ingressDomain
 	}
@@ -107,8 +107,8 @@ func GetIngressSpec(
 	}
 
 	annotations := map[string]string{}
-	if len(deployContext.CheCluster.Spec.Networking.Annotations) > 0 {
-		for k, v := range deployContext.CheCluster.Spec.Networking.Annotations {
+	if len(cheCtx.CheCluster.Spec.Networking.Annotations) > 0 {
+		for k, v := range cheCtx.CheCluster.Spec.Networking.Annotations {
 			annotations[k] = v
 		}
 	} else {
@@ -137,7 +137,7 @@ func GetIngressSpec(
 		annotations[constants.CheEclipseOrgManagedAnnotationsDigest] = utils.ComputeHash256([]byte(data))
 	}
 
-	ingressClassName := deployContext.CheCluster.Spec.Networking.IngressClassName
+	ingressClassName := cheCtx.CheCluster.Spec.Networking.IngressClassName
 	if ingressClassName == "" {
 		ingressClassName = annotations["kubernetes.io/ingress.class"]
 	}
@@ -151,7 +151,7 @@ func GetIngressSpec(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
-			Namespace:   deployContext.CheCluster.Namespace,
+			Namespace:   cheCtx.CheCluster.Namespace,
 			Labels:      labels,
 			Annotations: annotations,
 		},

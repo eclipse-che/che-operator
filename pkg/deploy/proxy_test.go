@@ -147,8 +147,8 @@ func TestReadCheClusterProxyConfiguration(t *testing.T) {
 		NoProxy: "host1,host2",
 	}
 
-	ctx := test.NewCtxBuilder().WithCheCluster(checluster).WithObjects(proxySecret).Build()
-	actualProxy, _ := ReadCheClusterProxyConfiguration(ctx)
+	cheCtx := test.NewCtxBuilder().WithCheCluster(checluster).WithObjects(proxySecret).Build()
+	actualProxy, _ := ReadCheClusterProxyConfiguration(cheCtx)
 
 	if !reflect.DeepEqual(actualProxy, expectedProxy) {
 		t.Errorf("Test failed. Expected '%v', but got '%v'", expectedProxy, actualProxy)
@@ -182,8 +182,8 @@ func TestReadCheClusterProxyConfigurationNoUser(t *testing.T) {
 		NoProxy: "host1,host2",
 	}
 
-	ctx := test.NewCtxBuilder().WithCheCluster(checluster).Build()
-	actualProxy, _ := ReadCheClusterProxyConfiguration(ctx)
+	cheCtx := test.NewCtxBuilder().WithCheCluster(checluster).Build()
+	actualProxy, _ := ReadCheClusterProxyConfiguration(cheCtx)
 
 	if !reflect.DeepEqual(actualProxy, expectedProxy) {
 		t.Errorf("Test failed. Expected '%v', but got '%v'", expectedProxy, actualProxy)
@@ -232,8 +232,8 @@ func TestReadCheClusterProxyConfigurationNoPort(t *testing.T) {
 		NoProxy: "host1,host2",
 	}
 
-	ctx := test.NewCtxBuilder().WithCheCluster(checluster).WithObjects(proxySecret).Build()
-	actualProxy, _ := ReadCheClusterProxyConfiguration(ctx)
+	cheCtx := test.NewCtxBuilder().WithCheCluster(checluster).WithObjects(proxySecret).Build()
+	actualProxy, _ := ReadCheClusterProxyConfiguration(cheCtx)
 	assert.Equal(t, actualProxy, expectedProxy)
 }
 

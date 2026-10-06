@@ -22,7 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func SyncServiceAccountToCluster(deployContext *chetypes.DeployContext, name string) error {
+func SyncServiceAccountToCluster(cheCtx *chetypes.CheContext, name string) error {
 	sa := &corev1.ServiceAccount{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ServiceAccount",
@@ -30,16 +30,16 @@ func SyncServiceAccountToCluster(deployContext *chetypes.DeployContext, name str
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: deployContext.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Labels:    GetLabels(defaults.GetCheFlavor()),
 		},
 	}
 
-	if err := controllerutil.SetControllerReference(deployContext.CheCluster, sa, deployContext.ClusterAPI.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, sa, cheCtx.ClusterAPI.Scheme); err != nil {
 		return fmt.Errorf("failed to set owner reference for ServiceAccount %s/%s: %w", sa.Namespace, sa.Name, err)
 	}
 
-	if err := deployContext.ClusterAPI.ClientWrapper.CreateIfNotExists(deployContext.Context, sa); err != nil {
+	if err := cheCtx.ClusterAPI.ClientWrapper.CreateIfNotExists(cheCtx.Context, sa); err != nil {
 		return fmt.Errorf("failed to create ServiceAccount %s/%s: %w", sa.Namespace, sa.Name, err)
 	}
 

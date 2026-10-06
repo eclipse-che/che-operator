@@ -38,11 +38,11 @@ type TestExpectedResources struct {
 // EnsureReconcile runs the testReconcileFunc until it returns done=true or 10 iterations
 func EnsureReconcile(
 	t *testing.T,
-	ctx *chetypes.DeployContext,
-	testReconcileFunc func(ctx *chetypes.DeployContext) (result reconcile.Result, done bool, err error)) {
+	cheCtx *chetypes.CheContext,
+	testReconcileFunc func(cheCtx *chetypes.CheContext) (result reconcile.Result, done bool, err error)) {
 
 	for i := 0; i < 10; i++ {
-		_, done, err := testReconcileFunc(ctx)
+		_, done, err := testReconcileFunc(cheCtx)
 		assert.NoError(t, err)
 		if done {
 			return

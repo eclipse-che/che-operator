@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -126,10 +126,10 @@ func TestGetPluginRegistryDeploymentSpec(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 
 			pluginregistry := NewPluginRegistryReconciler()
-			deployment, err := pluginregistry.getPluginRegistryDeploymentSpec(ctx)
+			deployment, err := pluginregistry.getPluginRegistryDeploymentSpec(cheCtx)
 			assert.NoError(t, err)
 
 			test.CompareResources(deployment,

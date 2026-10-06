@@ -57,22 +57,22 @@ var DefaultDeploymentDiffOpts = cmp.Options{
 }
 
 func SyncDeploymentSpecToCluster(
-	deployContext *chetypes.DeployContext,
+	cheCtx *chetypes.CheContext,
 	deploymentSpec *appsv1.Deployment,
 	deploymentDiffOpts cmp.Options) (bool, error) {
 
-	if err := MountSecrets(deploymentSpec, deployContext); err != nil {
+	if err := MountSecrets(deploymentSpec, cheCtx); err != nil {
 		return false, err
 	}
 
-	if err := MountConfigMaps(deploymentSpec, deployContext); err != nil {
+	if err := MountConfigMaps(deploymentSpec, cheCtx); err != nil {
 		return false, err
 	}
 
-	key := types.NamespacedName{Name: deploymentSpec.Name, Namespace: deployContext.CheCluster.Namespace}
+	key := types.NamespacedName{Name: deploymentSpec.Name, Namespace: cheCtx.CheCluster.Namespace}
 
 	actual := &appsv1.Deployment{}
-	existed, err := deployContext.ClusterAPI.ClientWrapper.GetIgnoreNotFound(deployContext.Context, key, actual)
+	existed, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(cheCtx.Context, key, actual)
 	if err != nil {
 		return false, fmt.Errorf("failed to get Deployment %s/%s: %w", key.Namespace, key.Name, err)
 	}
@@ -82,18 +82,18 @@ func SyncDeploymentSpecToCluster(
 		deploymentSpec.Spec.Replicas = actual.Spec.Replicas
 	}
 
-	if err := controllerutil.SetControllerReference(deployContext.CheCluster, deploymentSpec, deployContext.ClusterAPI.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, deploymentSpec, cheCtx.ClusterAPI.Scheme); err != nil {
 		return false, fmt.Errorf("failed to set owner reference for Deployment %s/%s: %w", key.Namespace, key.Name, err)
 	}
 
-	if err := deployContext.ClusterAPI.ClientWrapper.Sync(
-		deployContext.Context,
+	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
+		cheCtx.Context,
 		deploymentSpec,
 		&k8sclient.SyncOptions{DiffOpts: deploymentDiffOpts},
 	); err != nil {
 		// Failed to sync (update), let's delete it, so it is created from scratch on the next reconcile loop
 		if strings.Contains(err.Error(), "field is immutable") {
-			if deleteErr := deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(deployContext.Context, key, &appsv1.Deployment{}); deleteErr != nil {
+			if deleteErr := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(cheCtx.Context, key, &appsv1.Deployment{}); deleteErr != nil {
 				return false, fmt.Errorf("failed to delete Deployment %s/%s: %w", key.Namespace, key.Name, deleteErr)
 			}
 		}
@@ -101,7 +101,7 @@ func SyncDeploymentSpecToCluster(
 		return false, fmt.Errorf("failed to sync Deployment %s/%s: %w", key.Namespace, key.Name, err)
 	}
 
-	exists, err := deployContext.ClusterAPI.ClientWrapper.GetIgnoreNotFound(deployContext.Context, key, actual)
+	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(cheCtx.Context, key, actual)
 	if err != nil {
 		return false, fmt.Errorf("failed to get Deployment %s/%s: %w", key.Namespace, key.Name, err)
 	} else if !exists {
@@ -118,7 +118,7 @@ func SyncDeploymentSpecToCluster(
 
 // OverrideDeployment with custom settings
 func OverrideDeployment(
-	ctx *chetypes.DeployContext,
+	cheCtx *chetypes.CheContext,
 	deployment *appsv1.Deployment,
 	overrideDeploymentSettings *chev2.Deployment) error {
 
@@ -139,7 +139,7 @@ func OverrideDeployment(
 			}
 		}
 
-		if err := OverrideContainer(ctx.CheCluster.Namespace, container, overrideContainerSettings); err != nil {
+		if err := OverrideContainer(cheCtx.CheCluster.Namespace, container, overrideContainerSettings); err != nil {
 			return err
 		}
 	}
@@ -383,7 +383,7 @@ func EnsurePodSecurityStandards(podSpec *corev1.PodSpec, userId int64, groupId i
 // Secrets are selected by the following labels:
 // - app.kubernetes.io/part-of=che.eclipse.org
 // - app.kubernetes.io/component=<DEPLOYMENT-NAME>-secret
-func MountSecrets(specDeployment *appsv1.Deployment, deployContext *chetypes.DeployContext) error {
+func MountSecrets(specDeployment *appsv1.Deployment, cheCtx *chetypes.CheContext) error {
 	secrets := &corev1.SecretList{}
 
 	kubernetesPartOfLabelSelectorRequirement, _ := labels.NewRequirement(constants.KubernetesPartOfLabelKey, selection.Equals, []string{constants.CheEclipseOrg})
@@ -392,7 +392,7 @@ func MountSecrets(specDeployment *appsv1.Deployment, deployContext *chetypes.Dep
 	listOptions := &client.ListOptions{
 		LabelSelector: labels.NewSelector().Add(*kubernetesPartOfLabelSelectorRequirement).Add(*kubernetesComponentLabelSelectorRequirement),
 	}
-	if err := deployContext.ClusterAPI.Client.List(context.TODO(), secrets, listOptions); err != nil {
+	if err := cheCtx.ClusterAPI.Client.List(context.TODO(), secrets, listOptions); err != nil {
 		return err
 	}
 
@@ -451,13 +451,13 @@ func MountSecrets(specDeployment *appsv1.Deployment, deployContext *chetypes.Dep
 			}
 		case "env":
 			secret := &corev1.Secret{}
-			exists, err := deployContext.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-				deployContext.Context,
-				types.NamespacedName{Name: secretObj.Name, Namespace: deployContext.CheCluster.Namespace},
+			exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+				cheCtx.Context,
+				types.NamespacedName{Name: secretObj.Name, Namespace: cheCtx.CheCluster.Namespace},
 				secret,
 			)
 			if err != nil {
-				return fmt.Errorf("failed to get Secret %s/%s: %w", deployContext.CheCluster.Namespace, secretObj.Name, err)
+				return fmt.Errorf("failed to get Secret %s/%s: %w", cheCtx.CheCluster.Namespace, secretObj.Name, err)
 			} else if !exists {
 				return fmt.Errorf("secret '%s' not found", secretObj.Name)
 			}
@@ -510,7 +510,7 @@ func MountSecrets(specDeployment *appsv1.Deployment, deployContext *chetypes.Dep
 // Configmaps are selected by the following labels:
 // - app.kubernetes.io/part-of=che.eclipse.org
 // - app.kubernetes.io/component=<DEPLOYMENT-NAME>-configmap
-func MountConfigMaps(specDeployment *appsv1.Deployment, deployContext *chetypes.DeployContext) error {
+func MountConfigMaps(specDeployment *appsv1.Deployment, cheCtx *chetypes.CheContext) error {
 	configmaps := &corev1.ConfigMapList{}
 
 	kubernetesPartOfLabelSelectorRequirement, _ := labels.NewRequirement(constants.KubernetesPartOfLabelKey, selection.Equals, []string{constants.CheEclipseOrg})
@@ -519,7 +519,7 @@ func MountConfigMaps(specDeployment *appsv1.Deployment, deployContext *chetypes.
 	listOptions := &client.ListOptions{
 		LabelSelector: labels.NewSelector().Add(*kubernetesPartOfLabelSelectorRequirement).Add(*kubernetesComponentLabelSelectorRequirement),
 	}
-	if err := deployContext.ClusterAPI.Client.List(context.TODO(), configmaps, listOptions); err != nil {
+	if err := cheCtx.ClusterAPI.Client.List(context.TODO(), configmaps, listOptions); err != nil {
 		return err
 	}
 
@@ -585,13 +585,13 @@ func MountConfigMaps(specDeployment *appsv1.Deployment, deployContext *chetypes.
 
 		case "env":
 			configmap := &corev1.ConfigMap{}
-			exists, err := deployContext.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-				deployContext.Context,
-				types.NamespacedName{Name: configMapObj.Name, Namespace: deployContext.CheCluster.Namespace},
+			exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+				cheCtx.Context,
+				types.NamespacedName{Name: configMapObj.Name, Namespace: cheCtx.CheCluster.Namespace},
 				configmap,
 			)
 			if err != nil {
-				return fmt.Errorf("failed to get ConfigMap %s/%s: %w", deployContext.CheCluster.Namespace, configMapObj.Name, err)
+				return fmt.Errorf("failed to get ConfigMap %s/%s: %w", cheCtx.CheCluster.Namespace, configMapObj.Name, err)
 			} else if !exists {
 				return fmt.Errorf("ConfigMap '%s' not found", configMapObj.Name)
 			}

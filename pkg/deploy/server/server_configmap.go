@@ -57,8 +57,8 @@ type CheConfigMap struct {
 	CheOIDCAuthServerUrl string `json:"CHE_OIDC_AUTH__SERVER__URL,omitempty"`
 }
 
-func (s *CheServerReconciler) syncConfigMap(ctx *chetypes.DeployContext) (bool, error) {
-	data, err := s.getConfigMapData(ctx)
+func (s *CheServerReconciler) syncConfigMap(cheCtx *chetypes.CheContext) (bool, error) {
+	data, err := s.getConfigMapData(cheCtx)
 	if err != nil {
 		return false, err
 	}
@@ -70,17 +70,17 @@ func (s *CheServerReconciler) syncConfigMap(ctx *chetypes.DeployContext) (bool, 
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      configMapName,
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Labels:    deploy.GetLabels(getComponentName()),
 		},
 		Data: data,
 	}
 
-	if err := controllerutil.SetControllerReference(ctx.CheCluster, cm, ctx.ClusterAPI.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, cm, cheCtx.ClusterAPI.Scheme); err != nil {
 		return false, err
 	}
 
-	err = ctx.ClusterAPI.ClientWrapper.Sync(
+	err = cheCtx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
 		cm,
 		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
@@ -89,13 +89,13 @@ func (s *CheServerReconciler) syncConfigMap(ctx *chetypes.DeployContext) (bool, 
 	return err == nil, err
 }
 
-func (s *CheServerReconciler) getConfigMapRevision(ctx *chetypes.DeployContext) (string, error) {
+func (s *CheServerReconciler) getConfigMapRevision(cheCtx *chetypes.CheContext) (string, error) {
 	cm := &corev1.ConfigMap{}
 
-	if exist, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+	if exist, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
 		context.TODO(),
 		types.NamespacedName{
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Name:      configMapName,
 		},
 		cm,
@@ -106,7 +106,7 @@ func (s *CheServerReconciler) getConfigMapRevision(ctx *chetypes.DeployContext) 
 	return cm.ResourceVersion, nil
 }
 
-func (s *CheServerReconciler) getConfigMapData(ctx *chetypes.DeployContext) (cheEnv map[string]string, err error) {
+func (s *CheServerReconciler) getConfigMapData(cheCtx *chetypes.CheContext) (cheEnv map[string]string, err error) {
 	var cheInfrastructure string
 	if infrastructure.IsOpenShift() {
 		cheInfrastructure = "openshift"
@@ -115,28 +115,28 @@ func (s *CheServerReconciler) getConfigMapData(ctx *chetypes.DeployContext) (che
 	}
 
 	javaOpts := constants.DefaultJavaOpts
-	if ctx.Proxy.HttpProxy != "" {
-		javaOpts += deploy.GenerateProxyJavaOpts(ctx.Proxy, ctx.Proxy.NoProxy)
+	if cheCtx.Proxy.HttpProxy != "" {
+		javaOpts += deploy.GenerateProxyJavaOpts(cheCtx.Proxy, cheCtx.Proxy.NoProxy)
 	}
 
 	cheLogLevel := utils.GetValue(
-		ctx.CheCluster.Spec.Components.CheServer.LogLevel,
+		cheCtx.CheCluster.Spec.Components.CheServer.LogLevel,
 		constants.DefaultServerLogLevel,
 	)
 
 	cheDebugServer := strconv.FormatBool(
 		ptr.Deref(
-			ctx.CheCluster.Spec.Components.CheServer.Debug,
+			cheCtx.CheCluster.Spec.Components.CheServer.Debug,
 			constants.DefaultServerDebug,
 		))
 
 	chePort := strconv.Itoa(int(constants.DefaultServerPort))
-	cheMetricsEnabled := strconv.FormatBool(ctx.CheCluster.Spec.Components.Metrics.Enable)
+	cheMetricsEnabled := strconv.FormatBool(cheCtx.CheCluster.Spec.Components.Metrics.Enable)
 
-	namespaceDefault := ctx.CheCluster.GetDefaultNamespace()
+	namespaceDefault := cheCtx.CheCluster.GetDefaultNamespace()
 	namespaceCreationAllowed := strconv.FormatBool(
 		ptr.Deref(
-			ctx.CheCluster.Spec.DevEnvironments.DefaultNamespace.AutoProvision,
+			cheCtx.CheCluster.Spec.DevEnvironments.DefaultNamespace.AutoProvision,
 			constants.DefaultAutoProvision,
 		))
 
@@ -144,20 +144,20 @@ func (s *CheServerReconciler) getConfigMapData(ctx *chetypes.DeployContext) (che
 
 	openShiftCreateKubernetesNamespaces := strconv.FormatBool(
 		ptr.Deref(
-			ctx.CheCluster.Spec.DevEnvironments.DefaultNamespace.CreateKubernetesNamespaces,
+			cheCtx.CheCluster.Spec.DevEnvironments.DefaultNamespace.CreateKubernetesNamespaces,
 			constants.OpenShiftCreateKubernetesNamespaces,
 		),
 	)
 
 	data := &CheConfigMap{
 		JavaOpts:                            javaOpts,
-		CheHost:                             ctx.CheHost,
+		CheHost:                             cheCtx.CheHost,
 		ChePort:                             chePort,
 		CheDebugServer:                      cheDebugServer,
 		CheLogLevel:                         cheLogLevel,
 		CheMetricsEnabled:                   cheMetricsEnabled,
 		CheInfrastructure:                   cheInfrastructure,
-		CheOIDCAuthServerUrl:                ctx.Authentication.IssuerURL,
+		CheOIDCAuthServerUrl:                cheCtx.Authentication.IssuerURL,
 		NamespaceDefault:                    namespaceDefault,
 		NamespaceCreationAllowed:            namespaceCreationAllowed,
 		KubernetesLabels:                    kubernetesLabels,
@@ -182,36 +182,36 @@ func (s *CheServerReconciler) getConfigMapData(ctx *chetypes.DeployContext) (che
 	}
 
 	// override envs by extra properties
-	maps.Copy(cheEnv, ctx.CheCluster.Spec.Components.CheServer.ExtraProperties)
+	maps.Copy(cheEnv, cheCtx.CheCluster.Spec.Components.CheServer.ExtraProperties)
 
 	// Updates `CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION__<...>`
-	if err := s.updateAdvancedAuthorizationEnv(ctx, cheEnv); err != nil {
+	if err := s.updateAdvancedAuthorizationEnv(cheCtx, cheEnv); err != nil {
 		return nil, err
 	}
 
 	// Updates `CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES`
-	s.updateUserClusterRoleEnv(ctx, cheEnv)
+	s.updateUserClusterRoleEnv(cheCtx, cheEnv)
 
 	// Update `CHE_INTEGRATION_<...>_SERVER__ENDPOINTS`
-	if err := s.updateServerEndpointsEnv(ctx, cheEnv); err != nil {
+	if err := s.updateServerEndpointsEnv(cheCtx, cheEnv); err != nil {
 		return nil, err
 	}
 
 	if infrastructure.IsOpenShiftExternalAuth() {
-		s.updateOIDCClaimMappings(ctx, cheEnv)
+		s.updateOIDCClaimMappings(cheCtx, cheEnv)
 	}
 
 	return cheEnv, nil
 }
 
-func (s *CheServerReconciler) updateAdvancedAuthorizationEnv(ctx *chetypes.DeployContext, cheEnv map[string]string) error {
-	if ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization != nil {
+func (s *CheServerReconciler) updateAdvancedAuthorizationEnv(cheCtx *chetypes.CheContext, cheEnv map[string]string) error {
+	if cheCtx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization != nil {
 		delimiter := cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_DELIMITER"]
 		if delimiter == "" {
-			allFields := strings.Join(ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.AllowUsers, "") +
-				strings.Join(ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.DenyUsers, "") +
-				strings.Join(ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.AllowGroups, "") +
-				strings.Join(ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.DenyGroups, "")
+			allFields := strings.Join(cheCtx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.AllowUsers, "") +
+				strings.Join(cheCtx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.DenyUsers, "") +
+				strings.Join(cheCtx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.AllowGroups, "") +
+				strings.Join(cheCtx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.DenyGroups, "")
 
 			delimiter = utils.FindAvailableDelimiter(allFields)
 		}
@@ -221,19 +221,19 @@ func (s *CheServerReconciler) updateAdvancedAuthorizationEnv(ctx *chetypes.Deplo
 		}
 
 		cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_ALLOW__USERS"] = strings.Join(
-			ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.AllowUsers,
+			cheCtx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.AllowUsers,
 			delimiter,
 		)
 		cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_DENY__USERS"] = strings.Join(
-			ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.DenyUsers,
+			cheCtx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.DenyUsers,
 			delimiter,
 		)
 		cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_ALLOW__GROUPS"] = strings.Join(
-			ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.AllowGroups,
+			cheCtx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.AllowGroups,
 			delimiter,
 		)
 		cheEnv["CHE_INFRA_KUBERNETES_ADVANCED__AUTHORIZATION_DENY__GROUPS"] = strings.Join(
-			ctx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.DenyGroups,
+			cheCtx.CheCluster.Spec.Networking.Auth.AdvancedAuthorization.DenyGroups,
 			delimiter,
 		)
 
@@ -243,10 +243,10 @@ func (s *CheServerReconciler) updateAdvancedAuthorizationEnv(ctx *chetypes.Deplo
 	return nil
 }
 
-func (s *CheServerReconciler) updateUserClusterRoleEnv(ctx *chetypes.DeployContext, cheEnv map[string]string) {
+func (s *CheServerReconciler) updateUserClusterRoleEnv(cheCtx *chetypes.CheContext, cheEnv map[string]string) {
 	userClusterRolesSet := map[string]bool{}
 
-	for _, role := range s.getDefaultUserClusterRoles(ctx) {
+	for _, role := range s.getDefaultUserClusterRoles(cheCtx) {
 		userClusterRolesSet[role] = true
 	}
 
@@ -257,8 +257,8 @@ func (s *CheServerReconciler) updateUserClusterRoleEnv(ctx *chetypes.DeployConte
 		}
 	}
 
-	if ctx.CheCluster.Spec.DevEnvironments.User != nil {
-		for _, role := range ctx.CheCluster.Spec.DevEnvironments.User.ClusterRoles {
+	if cheCtx.CheCluster.Spec.DevEnvironments.User != nil {
+		for _, role := range cheCtx.CheCluster.Spec.DevEnvironments.User.ClusterRoles {
 			role = strings.TrimSpace(role)
 			if role != "" {
 				userClusterRolesSet[role] = true
@@ -272,12 +272,12 @@ func (s *CheServerReconciler) updateUserClusterRoleEnv(ctx *chetypes.DeployConte
 	cheEnv["CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"] = strings.Join(userClusterRoles, ",")
 }
 
-func (s *CheServerReconciler) updateServerEndpointsEnv(ctx *chetypes.DeployContext, cheEnv map[string]string) error {
+func (s *CheServerReconciler) updateServerEndpointsEnv(cheCtx *chetypes.CheContext, cheEnv map[string]string) error {
 	// https://github.com/eclipse-che/che-operator/pull/1250
 	oAuthProviders := []string{constants.BitbucketOAuth, constants.AzureDevOpsOAuth}
 
 	for _, oauthProvider := range oAuthProviders {
-		secret, err := getOAuthConfigSecret(ctx, oauthProvider)
+		secret, err := getOAuthConfigSecret(cheCtx, oauthProvider)
 		if err != nil {
 			return err
 		} else if secret == nil {
@@ -317,9 +317,9 @@ func (s *CheServerReconciler) updateServerEndpointsEnv(ctx *chetypes.DeployConte
 	return nil
 }
 
-func (s *CheServerReconciler) updateOIDCClaimMappings(ctx *chetypes.DeployContext, cheEnv map[string]string) {
-	cheEnv["CHE_OIDC_GROUPS__CLAIM"] = ctx.Authentication.GroupsClaim
-	cheEnv["CHE_OIDC_GROUPS__PREFIX"] = ctx.Authentication.GroupsPrefix
-	cheEnv["CHE_OIDC_USERNAME__CLAIM"] = ctx.Authentication.UsernameClaim
-	cheEnv["CHE_OIDC_USERNAME__PREFIX"] = ctx.Authentication.UsernamePrefix
+func (s *CheServerReconciler) updateOIDCClaimMappings(cheCtx *chetypes.CheContext, cheEnv map[string]string) {
+	cheEnv["CHE_OIDC_GROUPS__CLAIM"] = cheCtx.Authentication.GroupsClaim
+	cheEnv["CHE_OIDC_GROUPS__PREFIX"] = cheCtx.Authentication.GroupsPrefix
+	cheEnv["CHE_OIDC_USERNAME__CLAIM"] = cheCtx.Authentication.UsernameClaim
+	cheEnv["CHE_OIDC_USERNAME__PREFIX"] = cheCtx.Authentication.UsernamePrefix
 }

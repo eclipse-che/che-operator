@@ -494,12 +494,12 @@ func TestResolveOIDCAuthentication(t *testing.T) {
 				infrastructure.SetOpenShiftOAuthEnabledForTesting(true)
 			}()
 
-			ctx := test.NewCtxBuilder().
+			cheCtx := test.NewCtxBuilder().
 				WithCheCluster(tc.cheCluster).
 				WithObjects(tc.initObjects...).
 				Build()
 
-			auth, err := ResolveAuthentication(ctx)
+			auth, err := ResolveAuthentication(cheCtx)
 
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)

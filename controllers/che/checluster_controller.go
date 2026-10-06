@@ -244,47 +244,47 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
-	deployContext := &chetypes.DeployContext{
+	cheCtx := &chetypes.CheContext{
 		ClusterAPI: clusterAPI,
 		CheCluster: checluster,
 		Context:    ctx,
 	}
 
 	// Resolve proxy configuration
-	deployContext.Proxy, err = GetProxyConfiguration(deployContext)
+	cheCtx.Proxy, err = GetProxyConfiguration(cheCtx)
 	if err != nil {
 		r.Log.Error(err, "Error on reading proxy configuration")
 		return ctrl.Result{}, err
 	}
 
 	// Resolve authentication configuration
-	deployContext.Authentication, err = ResolveAuthentication(deployContext)
+	cheCtx.Authentication, err = ResolveAuthentication(cheCtx)
 	if err != nil {
 		r.Log.Error(err, "Error on resolving authentication")
 		return ctrl.Result{}, err
 	}
 
-	deployContext.DWONamespace, err = devworkspace.GetDevWorkspaceOperatorNamespace(ctx, clusterAPI.ClientWrapper)
+	cheCtx.DWONamespace, err = devworkspace.GetDevWorkspaceOperatorNamespace(ctx, clusterAPI.ClientWrapper)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to get DevWorkspaceOperator namespace: %w", err)
 	}
-	if deployContext.DWONamespace == "" {
+	if cheCtx.DWONamespace == "" {
 		r.Log.Info("DevWorkspaceOperator namespace not found, requeuing.")
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	// Detect whether self-signed certificate is used
-	deployContext.IsSelfSignedCertificate, err = tls.IsSelfSignedCertificateUsed(deployContext)
+	cheCtx.IsSelfSignedCertificate, err = tls.IsSelfSignedCertificateUsed(cheCtx)
 	if err != nil {
 		r.Log.Error(err, "Failed to detect if self-signed certificate used.")
 		return ctrl.Result{}, err
 	}
 
-	if deployContext.CheCluster.DeletionTimestamp.IsZero() {
-		result, done, err := r.reconcilerManager.ReconcileAll(deployContext)
+	if cheCtx.CheCluster.DeletionTimestamp.IsZero() {
+		result, done, err := r.reconcilerManager.ReconcileAll(cheCtx)
 		if done {
 			// Clean up status if so
-			if err := deploy.SetStatusDetails(deployContext, "", ""); err != nil {
+			if err := deploy.SetStatusDetails(cheCtx, "", ""); err != nil {
 				return ctrl.Result{}, err
 			}
 
@@ -295,7 +295,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				errMsg := "Failed to reconcile CheCluster resources. The installation is not completed. Check operator logs for details."
 				r.Log.Error(err, errMsg)
 
-				if err := deploy.SetStatusDetails(deployContext, constants.InstallOrUpdateFailed, errMsg); err != nil {
+				if err := deploy.SetStatusDetails(cheCtx, constants.InstallOrUpdateFailed, errMsg); err != nil {
 					return ctrl.Result{}, err
 				}
 			}
@@ -303,15 +303,15 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return result, err
 		}
 	} else {
-		deployContext.CheCluster.Status.ChePhase = chev2.ClusterPhasePendingDeletion
-		if err = deploy.UpdateCheCRStatus(deployContext, "ChePhase", chev2.ClusterPhasePendingDeletion); err != nil {
+		cheCtx.CheCluster.Status.ChePhase = chev2.ClusterPhasePendingDeletion
+		if err = deploy.UpdateCheCRStatus(cheCtx, "ChePhase", chev2.ClusterPhasePendingDeletion); err != nil {
 			return ctrl.Result{}, err
 		}
 
-		done := r.reconcilerManager.FinalizeAll(deployContext)
+		done := r.reconcilerManager.FinalizeAll(cheCtx)
 		if done {
 			// Removes remaining finalizers, which prevent CheCluster from deletion
-			if err := deploy.CleanUpAllFinalizers(deployContext); err != nil {
+			if err := deploy.CleanUpAllFinalizers(cheCtx); err != nil {
 				return ctrl.Result{}, err
 			}
 			return ctrl.Result{}, nil

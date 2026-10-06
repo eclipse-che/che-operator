@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -31,19 +31,19 @@ import (
 )
 
 func TestSyncOpenShiftCABundleCertificates(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
+	test.EnsureReconcile(t, cheCtx, NewCertificatesReconciler().Reconcile)
 
 	caCertsCM := &corev1.ConfigMap{}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
+	err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
 	assert.Nil(t, err)
 	assert.Equal(t, "true", caCertsCM.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
 	assert.Equal(t, constants.CheEclipseOrg, caCertsCM.Labels[constants.KubernetesPartOfLabelKey])
 	assert.Equal(t, constants.CheCABundle, caCertsCM.Labels[constants.KubernetesComponentLabelKey])
 
 	caCertsMergedCM := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
 	assert.Nil(t, err)
 	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, kubernetesCABundleCertsDir, caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
@@ -52,12 +52,12 @@ func TestSyncOpenShiftCABundleCertificates(t *testing.T) {
 }
 
 func TestSyncEmptyOpenShiftCABundleCertificates(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
+	test.EnsureReconcile(t, cheCtx, NewCertificatesReconciler().Reconcile)
 
 	caCertsCM := &corev1.ConfigMap{}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
+	err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
 	assert.NoError(t, err)
 	assert.Equal(t, "true", caCertsCM.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
 	assert.Equal(t, constants.CheEclipseOrg, caCertsCM.Labels[constants.KubernetesPartOfLabelKey])
@@ -65,13 +65,13 @@ func TestSyncEmptyOpenShiftCABundleCertificates(t *testing.T) {
 
 	// Let's pretend that OpenShift Network operator inject the CA bundle
 	caCertsCM.Data = map[string]string{"ca-bundle.crt": "openshift-ca-bundle"}
-	err = ctx.ClusterAPI.Client.Update(context.TODO(), caCertsCM)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), caCertsCM)
 	assert.NoError(t, err)
 
-	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
+	test.EnsureReconcile(t, cheCtx, NewCertificatesReconciler().Reconcile)
 
 	caCertsMergedCM := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
 	assert.Nil(t, err)
 	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, kubernetesCABundleCertsDir, caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
@@ -80,7 +80,7 @@ func TestSyncEmptyOpenShiftCABundleCertificates(t *testing.T) {
 }
 
 func TestSyncOnlyCustomOpenShiftCertificates(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
+	cheCtx := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "custom-openshift-trusted-certs-cm",
 			Namespace: "openshift-config",
@@ -89,13 +89,13 @@ func TestSyncOnlyCustomOpenShiftCertificates(t *testing.T) {
 			"ca-bundle.crt": "openshift-cert",
 		},
 	}).Build()
-	ctx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: ptr.To(true)}
-	ctx.Proxy.TrustedCAMapName = "custom-openshift-trusted-certs-cm"
+	cheCtx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: ptr.To(true)}
+	cheCtx.Proxy.TrustedCAMapName = "custom-openshift-trusted-certs-cm"
 
-	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
+	test.EnsureReconcile(t, cheCtx, NewCertificatesReconciler().Reconcile)
 
 	cm := &corev1.ConfigMap{}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, cm)
+	err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, cm)
 	assert.Nil(t, err)
 	assert.Empty(t, cm.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
 	assert.Equal(t, constants.CheEclipseOrg, cm.Labels[constants.KubernetesPartOfLabelKey])
@@ -103,7 +103,7 @@ func TestSyncOnlyCustomOpenShiftCertificates(t *testing.T) {
 	assert.Equal(t, "openshift-cert", cm.Data["ca-bundle.crt"])
 
 	caCertsMergedCM := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
 	assert.Nil(t, err)
 	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.PublicCertsDir, caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
@@ -112,7 +112,7 @@ func TestSyncOnlyCustomOpenShiftCertificates(t *testing.T) {
 }
 
 func TestSyncKubernetesCABundleCertificates(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
 	certificates := &CertificatesReconciler{
 		readKubernetesCaBundle: func() ([]byte, error) {
@@ -120,12 +120,12 @@ func TestSyncKubernetesCABundleCertificates(t *testing.T) {
 		},
 	}
 
-	done, err := certificates.syncKubernetesCABundleCertificates(ctx)
+	done, err := certificates.syncKubernetesCABundleCertificates(cheCtx)
 	assert.NoError(t, err)
 	assert.True(t, done)
 
 	cm := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, cm)
 	assert.NoError(t, err)
 	assert.Equal(t, cm.Labels[constants.KubernetesPartOfLabelKey], constants.CheEclipseOrg)
 	assert.Equal(t, cm.Labels[constants.KubernetesComponentLabelKey], constants.CheCABundle)
@@ -141,15 +141,15 @@ func TestSyncKubernetesRootCertificates(t *testing.T) {
 			"ca.crt": "root-cert",
 		},
 	}
-	ctx := test.NewCtxBuilder().WithObjects(kubeRootCert).Build()
+	cheCtx := test.NewCtxBuilder().WithObjects(kubeRootCert).Build()
 
 	certificates := NewCertificatesReconciler()
 
-	_, err := certificates.syncKubernetesRootCertificates(ctx)
+	_, err := certificates.syncKubernetesRootCertificates(cheCtx)
 	assert.NoError(t, err)
 
 	cm := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: kubernetesRootCACertsCMName, Namespace: "eclipse-che"}, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: kubernetesRootCACertsCMName, Namespace: "eclipse-che"}, cm)
 	assert.NoError(t, err)
 	assert.Equal(t, cm.Labels[constants.KubernetesPartOfLabelKey], constants.CheEclipseOrg)
 	assert.Equal(t, cm.Labels[constants.KubernetesComponentLabelKey], constants.CheCABundle)
@@ -178,15 +178,15 @@ func TestSyncGitTrustedCertificates(t *testing.T) {
 			"ca.crt": "git-cert",
 		},
 	}
-	ctx := test.NewCtxBuilder().WithCheCluster(cheCluster).WithObjects(gitCerts).Build()
+	cheCtx := test.NewCtxBuilder().WithCheCluster(cheCluster).WithObjects(gitCerts).Build()
 
 	certificates := NewCertificatesReconciler()
 
-	_, err := certificates.syncGitTrustedCertificates(ctx)
+	_, err := certificates.syncGitTrustedCertificates(cheCtx)
 	assert.NoError(t, err)
 
 	cm := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "git-trusted-certs", Namespace: "eclipse-che"}, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "git-trusted-certs", Namespace: "eclipse-che"}, cm)
 	assert.NoError(t, err)
 	assert.Equal(t, cm.Labels[constants.KubernetesPartOfLabelKey], constants.CheEclipseOrg)
 	assert.Equal(t, cm.Labels[constants.KubernetesComponentLabelKey], constants.CheCABundle)
@@ -203,15 +203,15 @@ func TestSyncSelfSignedCertificates(t *testing.T) {
 			"ca.crt": []byte("self-signed-cert"),
 		},
 	}
-	ctx := test.NewCtxBuilder().WithObjects(selfSignedCerts).Build()
+	cheCtx := test.NewCtxBuilder().WithObjects(selfSignedCerts).Build()
 
 	certificates := NewCertificatesReconciler()
 
-	_, err := certificates.syncSelfSignedCertificates(ctx)
+	_, err := certificates.syncSelfSignedCertificates(cheCtx)
 	assert.NoError(t, err)
 
 	cm := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.DefaultSelfSignedCertificateSecretName, Namespace: "eclipse-che"}, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.DefaultSelfSignedCertificateSecretName, Namespace: "eclipse-che"}, cm)
 	assert.NoError(t, err)
 	assert.Equal(t, cm.Labels[constants.KubernetesPartOfLabelKey], constants.CheEclipseOrg)
 	assert.Equal(t, cm.Labels[constants.KubernetesComponentLabelKey], constants.CheCABundle)
@@ -230,15 +230,15 @@ func TestSyncCheCABundleCerts(t *testing.T) {
 		},
 		Data: map[string]string{"a1": "b1"},
 	}
-	ctx := test.NewCtxBuilder().WithObjects(cert1).Build()
+	cheCtx := test.NewCtxBuilder().WithObjects(cert1).Build()
 
 	certificates := NewCertificatesReconciler()
 
-	_, err := certificates.syncCheCABundleCerts(ctx)
+	_, err := certificates.syncCheCABundleCerts(cheCtx)
 	assert.Nil(t, err)
 
 	cm := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
 	assert.Nil(t, err)
 	assert.Equal(t, "true", cm.Labels[dwconstants.DevWorkspaceWatchConfigMapLabel])
 
@@ -252,20 +252,20 @@ func TestSyncCheCABundleCerts(t *testing.T) {
 		},
 		Data: map[string]string{"a2": "b2"},
 	}
-	err = ctx.ClusterAPI.Client.Create(context.TODO(), cert2)
+	err = cheCtx.ClusterAPI.Client.Create(context.TODO(), cert2)
 	assert.Nil(t, err)
 
-	_, err = certificates.syncCheCABundleCerts(ctx)
+	_, err = certificates.syncCheCABundleCerts(cheCtx)
 	assert.Nil(t, err)
 
 	cm = &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
 	assert.Nil(t, err)
 	assert.Equal(t, cm.Data[kubernetesCABundleCertsFile], "# ConfigMap: cert1,  Key: a1\nb1\n\n# ConfigMap: cert2,  Key: a2\nb2\n\n")
 }
 
 func TestSyncCheCABundleCertsDeterministicKeyOrder(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithObjects(
+	cheCtx := test.NewCtxBuilder().WithObjects(
 		&corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "cert1",
@@ -284,11 +284,11 @@ func TestSyncCheCABundleCertsDeterministicKeyOrder(t *testing.T) {
 
 	certificatesReconciler := NewCertificatesReconciler()
 
-	_, err := certificatesReconciler.syncCheCABundleCerts(ctx)
+	_, err := certificatesReconciler.syncCheCABundleCerts(cheCtx)
 	assert.NoError(t, err)
 
 	cm := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
 	assert.Nil(t, err)
 
 	expected := "# ConfigMap: cert1,  Key: a-key\na-value\n\n" +
@@ -298,7 +298,7 @@ func TestSyncCheCABundleCertsDeterministicKeyOrder(t *testing.T) {
 }
 
 func TestSyncCheCABundleCertsGitTrustedCertsExcludesGitHostKey(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithCheCluster(
+	cheCtx := test.NewCtxBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "eclipse-che",
@@ -342,11 +342,11 @@ func TestSyncCheCABundleCertsGitTrustedCertsExcludesGitHostKey(t *testing.T) {
 
 	certificates := NewCertificatesReconciler()
 
-	_, err := certificates.syncCheCABundleCerts(ctx)
+	_, err := certificates.syncCheCABundleCerts(cheCtx)
 	assert.NoError(t, err)
 
 	cm := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
 	assert.NoError(t, err)
 
 	// Verify that the githost key is excluded from the merged bundle
@@ -357,7 +357,7 @@ func TestSyncCheCABundleCertsGitTrustedCertsExcludesGitHostKey(t *testing.T) {
 }
 
 func TestSyncCheCABundleCertsExcludesGitHostKeyWithDefaultConfigMap(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithObjects(
+	cheCtx := test.NewCtxBuilder().WithObjects(
 		&corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      constants.DefaultGitSelfSignedCertsConfigMapName, // "che-git-self-signed-cert"
@@ -374,11 +374,11 @@ func TestSyncCheCABundleCertsExcludesGitHostKeyWithDefaultConfigMap(t *testing.T
 		}).Build()
 
 	certificates := NewCertificatesReconciler()
-	_, err := certificates.syncCheCABundleCerts(ctx)
+	_, err := certificates.syncCheCABundleCerts(cheCtx)
 	assert.NoError(t, err)
 
 	cm := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
 	assert.NoError(t, err)
 
 	// Verify githost is excluded even when using default ConfigMap name
@@ -402,13 +402,13 @@ func TestSyncOpenShiftCABundleCertificatesRemovesInjectLabel(t *testing.T) {
 		},
 	}
 
-	ctx := test.NewCtxBuilder().WithObjects(existingCM).Build()
-	ctx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: ptr.To(true)}
+	cheCtx := test.NewCtxBuilder().WithObjects(existingCM).Build()
+	cheCtx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: ptr.To(true)}
 
-	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
+	test.EnsureReconcile(t, cheCtx, NewCertificatesReconciler().Reconcile)
 
 	cm := &corev1.ConfigMap{}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.DefaultCaBundleCertsCMName, Namespace: "eclipse-che"}, cm)
+	err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.DefaultCaBundleCertsCMName, Namespace: "eclipse-che"}, cm)
 
 	assert.NoError(t, err)
 
@@ -420,7 +420,7 @@ func TestSyncOpenShiftCABundleCertificatesRemovesInjectLabel(t *testing.T) {
 
 func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 	// Enable workspace CA bundle mount
-	ctx := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
+	cheCtx := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "custom-openshift-trusted-certs-cm",
 			Namespace: "openshift-config",
@@ -429,13 +429,13 @@ func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 			"ca-bundle.crt": "openshift-cert",
 		},
 	}).Build()
-	ctx.Proxy.TrustedCAMapName = "custom-openshift-trusted-certs-cm"
-	ctx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: ptr.To(false)}
+	cheCtx.Proxy.TrustedCAMapName = "custom-openshift-trusted-certs-cm"
+	cheCtx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: ptr.To(false)}
 
-	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
+	test.EnsureReconcile(t, cheCtx, NewCertificatesReconciler().Reconcile)
 
 	caCertsCM := &corev1.ConfigMap{}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
+	err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
 	assert.Nil(t, err)
 	assert.Equal(t, "true", caCertsCM.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
 	assert.Equal(t, constants.CheEclipseOrg, caCertsCM.Labels[constants.KubernetesPartOfLabelKey])
@@ -443,13 +443,13 @@ func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 
 	// Let's pretend that OpenShift Network operator inject the CA bundle
 	caCertsCM.Data = map[string]string{"ca-bundle.crt": "openshift-ca-bundle"}
-	err = ctx.ClusterAPI.Client.Update(context.TODO(), caCertsCM)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), caCertsCM)
 	assert.NoError(t, err)
 
-	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
+	test.EnsureReconcile(t, cheCtx, NewCertificatesReconciler().Reconcile)
 
 	caCertsMergedCM := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
 	assert.Nil(t, err)
 	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, kubernetesCABundleCertsDir, caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
@@ -459,12 +459,12 @@ func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 	assert.Equal(t, 1, len(caCertsMergedCM.Data))
 
 	// Disable workspace CA bundle mount
-	ctx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: ptr.To(true)}
+	cheCtx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: ptr.To(true)}
 
-	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
+	test.EnsureReconcile(t, cheCtx, NewCertificatesReconciler().Reconcile)
 
 	caCertsCM = &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
 	assert.Nil(t, err)
 	assert.Empty(t, caCertsCM.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
 	assert.Equal(t, constants.CheEclipseOrg, caCertsCM.Labels[constants.KubernetesPartOfLabelKey])
@@ -472,7 +472,7 @@ func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 	assert.Equal(t, "openshift-cert", caCertsCM.Data["ca-bundle.crt"])
 
 	caCertsMergedCM = &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
 	assert.Nil(t, err)
 	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.PublicCertsDir, caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
@@ -482,11 +482,11 @@ func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 	assert.Equal(t, 1, len(caCertsMergedCM.Data))
 
 	// Enable workspace CA bundle mount
-	ctx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: ptr.To(false)}
-	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
+	cheCtx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: ptr.To(false)}
+	test.EnsureReconcile(t, cheCtx, NewCertificatesReconciler().Reconcile)
 
 	caCertsCM = &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
 	assert.Nil(t, err)
 	assert.Equal(t, "true", caCertsCM.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
 	assert.Equal(t, constants.CheEclipseOrg, caCertsCM.Labels[constants.KubernetesPartOfLabelKey])
@@ -494,13 +494,13 @@ func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 
 	// Let's pretend that OpenShift Network operator inject the CA bundle
 	caCertsCM.Data = map[string]string{"ca-bundle.crt": "openshift-ca-bundle-new"}
-	err = ctx.ClusterAPI.Client.Update(context.TODO(), caCertsCM)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), caCertsCM)
 	assert.NoError(t, err)
 
-	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
+	test.EnsureReconcile(t, cheCtx, NewCertificatesReconciler().Reconcile)
 
 	caCertsMergedCM = &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
 	assert.Nil(t, err)
 	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, kubernetesCABundleCertsDir, caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
@@ -512,13 +512,13 @@ func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 	// Check CM is reverted after changing the annotations
 	caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountPathAnnotation] = "a"
 	caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountAsAnnotation] = "b"
-	err = ctx.ClusterAPI.Client.Update(context.TODO(), caCertsMergedCM)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), caCertsMergedCM)
 	assert.NoError(t, err)
 
-	test.EnsureReconcile(t, ctx, NewCertificatesReconciler().Reconcile)
+	test.EnsureReconcile(t, cheCtx, NewCertificatesReconciler().Reconcile)
 
 	caCertsMergedCM = &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
 	assert.Nil(t, err)
 	assert.Equal(t, constants.WorkspacesConfig, caCertsMergedCM.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, kubernetesCABundleCertsDir, caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountPathAnnotation])
@@ -541,15 +541,15 @@ func TestSyncCheCABundleCertsWithEmptyConfigMap(t *testing.T) {
 		},
 		Data: map[string]string{},
 	}
-	ctx := test.NewCtxBuilder().WithObjects(emptyCert).Build()
+	cheCtx := test.NewCtxBuilder().WithObjects(emptyCert).Build()
 
 	certificates := NewCertificatesReconciler()
 
-	_, err := certificates.syncCheCABundleCerts(ctx)
+	_, err := certificates.syncCheCABundleCerts(cheCtx)
 	assert.NoError(t, err)
 
 	cm := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
 	assert.NoError(t, err)
 
 	// Merged CM should have no tls-ca-bundle.pem key when source ConfigMap is empty
@@ -579,15 +579,15 @@ func TestSyncCheCABundleCertsWithEmptyAndNonEmptyConfigMaps(t *testing.T) {
 		},
 		Data: map[string]string{"ca.crt": "some-cert"},
 	}
-	ctx := test.NewCtxBuilder().WithObjects(emptyCert, nonEmptyCert).Build()
+	cheCtx := test.NewCtxBuilder().WithObjects(emptyCert, nonEmptyCert).Build()
 
 	certificates := NewCertificatesReconciler()
 
-	_, err := certificates.syncCheCABundleCerts(ctx)
+	_, err := certificates.syncCheCABundleCerts(cheCtx)
 	assert.NoError(t, err)
 
 	cm := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
 	assert.NoError(t, err)
 
 	// Only the non-empty ConfigMap's cert should be in the merged bundle
@@ -607,15 +607,15 @@ func TestSyncCheCABundleCertsWithNilDataConfigMap(t *testing.T) {
 			},
 		},
 	}
-	ctx := test.NewCtxBuilder().WithObjects(nilDataCert).Build()
+	cheCtx := test.NewCtxBuilder().WithObjects(nilDataCert).Build()
 
 	certificates := NewCertificatesReconciler()
 
-	_, err := certificates.syncCheCABundleCerts(ctx)
+	_, err := certificates.syncCheCABundleCerts(cheCtx)
 	assert.NoError(t, err)
 
 	cm := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
 	assert.NoError(t, err)
 
 	// Merged CM should have no tls-ca-bundle.pem key when source ConfigMap has nil Data
@@ -624,7 +624,7 @@ func TestSyncCheCABundleCertsWithNilDataConfigMap(t *testing.T) {
 
 func TestSyncCheCABundleCertsGitTrustedCertsOnlyGitHostKey(t *testing.T) {
 	// Git trusted certs ConfigMap has only the githost key (no actual cert)
-	ctx := test.NewCtxBuilder().WithCheCluster(
+	cheCtx := test.NewCtxBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "eclipse-che",
@@ -654,11 +654,11 @@ func TestSyncCheCABundleCertsGitTrustedCertsOnlyGitHostKey(t *testing.T) {
 
 	certificates := NewCertificatesReconciler()
 
-	_, err := certificates.syncCheCABundleCerts(ctx)
+	_, err := certificates.syncCheCABundleCerts(cheCtx)
 	assert.NoError(t, err)
 
 	cm := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: "eclipse-che"}, cm)
 	assert.NoError(t, err)
 
 	// All keys were skipped (githost is excluded), so merged CM should be empty

@@ -34,9 +34,9 @@ Go module: `github.com/eclipse-che/che-operator`
 `Reconcilable` implementations **in order**. Each reconciler returns `(result, done, err)` — the chain stops
 at the first `done=false`. Registration order in `controllers/che/checluster_controller.go` defines the execution order.
 
-### DeployContext
+### CheContext
 
-`DeployContext` (`pkg/common/chetypes/types.go`) is the central context object passed to every reconciler. It carries:
+`CheContext` (`pkg/common/chetypes/types.go`) is the central context object passed to every reconciler. It carries:
 - `CheCluster` — the CR being reconciled
 - `ClusterAPI` — cached and non-cached k8s clients, discovery client, `ClientWrapper` / `NonCachingClientWrapper`
 - `Proxy`, `Authentication` — resolved configuration

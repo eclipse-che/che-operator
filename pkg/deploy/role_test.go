@@ -23,9 +23,9 @@ import (
 )
 
 func TestSyncRoleToCluster(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	err := SyncRoleToCluster(ctx, "test", []rbacv1.PolicyRule{
+	err := SyncRoleToCluster(cheCtx, "test", []rbacv1.PolicyRule{
 		{
 			APIGroups: []string{"test-1"},
 			Resources: []string{"test-1"},
@@ -36,7 +36,7 @@ func TestSyncRoleToCluster(t *testing.T) {
 		t.Fatalf("Failed to sync role: %v", err)
 	}
 
-	err = SyncRoleToCluster(ctx, "test", []rbacv1.PolicyRule{
+	err = SyncRoleToCluster(cheCtx, "test", []rbacv1.PolicyRule{
 		{
 			APIGroups: []string{"test-2"},
 			Resources: []string{"test-2"},
@@ -46,7 +46,7 @@ func TestSyncRoleToCluster(t *testing.T) {
 	assert.NoError(t, err)
 
 	actual := &rbacv1.Role{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
 	if err != nil {
 		t.Fatalf("Failed to get role: %v", err)
 	}

@@ -52,24 +52,24 @@ func NewOpenVSXServerReconciler() *OpenVSXServerReconciler {
 	}
 }
 
-func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if !ctx.CheCluster.IsInternalOpenVSXRegistryEnabled() {
-		deleteResources(ctx)
+func (r *OpenVSXServerReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
+	if !cheCtx.CheCluster.IsInternalOpenVSXRegistryEnabled() {
+		deleteResources(cheCtx)
 		r.extensionsVersion = ""
 		return reconcile.Result{}, true, nil
 	}
 
-	err := r.syncConfigMap(ctx)
+	err := r.syncConfigMap(cheCtx)
 	if err != nil {
 		return reconcile.Result{}, false, fmt.Errorf("failed to sync Config %w", err)
 	}
 
-	err = r.syncPVC(ctx)
+	err = r.syncPVC(cheCtx)
 	if err != nil {
 		return reconcile.Result{}, false, fmt.Errorf("failed to sync PVC: %w", err)
 	}
 
-	done, err := r.syncDeployment(ctx)
+	done, err := r.syncDeployment(cheCtx)
 	if !done {
 		if err != nil {
 			err = fmt.Errorf("failed to sync Deployment %w", err)
@@ -77,12 +77,12 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 		return reconcile.Result{}, false, err
 	}
 
-	err = r.syncService(ctx)
+	err = r.syncService(cheCtx)
 	if err != nil {
 		return reconcile.Result{}, false, fmt.Errorf("failed to sync Service %w", err)
 	}
 
-	_, done, err = r.exposeEndpoint(ctx)
+	_, done, err = r.exposeEndpoint(cheCtx)
 	if !done {
 		if err != nil {
 			err = fmt.Errorf("failed to expose endpoint: %w", err)
@@ -90,30 +90,30 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 		return reconcile.Result{}, false, err
 	}
 
-	err = r.syncOpenVSXURLStatus(ctx)
+	err = r.syncOpenVSXURLStatus(cheCtx)
 	if err != nil {
 		return reconcile.Result{}, false, fmt.Errorf("failed to sync OpenVSXURL status: %w", err)
 	}
 
-	err = r.syncDefaultExtensionsConfig(ctx)
+	err = r.syncDefaultExtensionsConfig(cheCtx)
 	if err != nil {
 		return reconcile.Result{}, false, fmt.Errorf("failed to sync Extensions Config: %w", err)
 	}
 
-	if err = r.syncExtensionUpdateCronJob(ctx); err != nil {
+	if err = r.syncExtensionUpdateCronJob(cheCtx); err != nil {
 		return reconcile.Result{}, false, fmt.Errorf("failed to sync extension update CronJob: %w", err)
 	}
 
-	if !r.isServerReady(ctx) {
+	if !r.isServerReady(cheCtx) {
 		return reconcile.Result{}, false, nil
 	}
 
-	extensionsVersion, err := r.getExtensionsVersion(ctx)
+	extensionsVersion, err := r.getExtensionsVersion(cheCtx)
 	if err != nil {
 		return reconcile.Result{}, false, fmt.Errorf("failed to get Extensions Version: %w", err)
 	}
 	if extensionsVersion != r.extensionsVersion {
-		done, err = r.syncExtensions(ctx)
+		done, err = r.syncExtensions(cheCtx)
 		if !done {
 			if err != nil {
 				err = fmt.Errorf("failed to sync Extensions %w", err)
@@ -127,24 +127,24 @@ func (r *OpenVSXServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 	return reconcile.Result{}, true, nil
 }
 
-func deleteResources(ctx *chetypes.DeployContext) {
-	cw := ctx.ClusterAPI.ClientWrapper
+func deleteResources(cheCtx *chetypes.CheContext) {
+	cw := cheCtx.ClusterAPI.ClientWrapper
 
 	objKey := types.NamespacedName{
 		Name:      constants.OpenVSXServerComponentName,
-		Namespace: ctx.CheCluster.Namespace,
+		Namespace: cheCtx.CheCluster.Namespace,
 	}
 
-	err := cw.DeleteByKeyIgnoreNotFound(ctx.Context, objKey, &appsv1.Deployment{})
+	err := cw.DeleteByKeyIgnoreNotFound(cheCtx.Context, objKey, &appsv1.Deployment{})
 	if err != nil {
 		logger.Error(err, "Failed to delete Deployment", "Name", objKey.Name)
 	}
 
 	err = cw.DeleteByKeyIgnoreNotFound(
-		ctx.Context,
+		cheCtx.Context,
 		types.NamespacedName{
 			Name:      constants.OpenVSXServerExtensionPublishJobName,
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 		},
 		&batchv1.Job{},
 		client.PropagationPolicy(metav1.DeletePropagationBackground),
@@ -153,35 +153,35 @@ func deleteResources(ctx *chetypes.DeployContext) {
 		logger.Error(err, "Failed to delete Job", "Name", constants.OpenVSXServerExtensionPublishJobName)
 	}
 
-	err = deleteExtensionUpdateCronJob(ctx)
+	err = deleteExtensionUpdateCronJob(cheCtx)
 	if err != nil {
 		logger.Error(err, "Failed to delete CronJob", "Name", constants.OpenVSXServerExtensionUpdateCronJobName)
 	}
 
-	err = cw.DeleteByKeyIgnoreNotFound(ctx.Context, objKey, &corev1.Service{})
+	err = cw.DeleteByKeyIgnoreNotFound(cheCtx.Context, objKey, &corev1.Service{})
 	if err != nil {
 		logger.Error(err, "Failed to delete Service", "Name", objKey.Name)
 	}
 
 	gatewayConfigKey := types.NamespacedName{
 		Name:      gateway.GatewayConfigMapNamePrefix + constants.OpenVSXServerComponentName,
-		Namespace: ctx.CheCluster.Namespace,
+		Namespace: cheCtx.CheCluster.Namespace,
 	}
-	err = cw.DeleteByKeyIgnoreNotFound(ctx.Context, gatewayConfigKey, &corev1.ConfigMap{})
+	err = cw.DeleteByKeyIgnoreNotFound(cheCtx.Context, gatewayConfigKey, &corev1.ConfigMap{})
 	if err != nil {
 		logger.Error(err, "failed to delete gateway ConfigMap", "Name", gatewayConfigKey.Name)
 	}
 
-	err = cw.DeleteByKeyIgnoreNotFound(ctx.Context, objKey, &corev1.ConfigMap{})
+	err = cw.DeleteByKeyIgnoreNotFound(cheCtx.Context, objKey, &corev1.ConfigMap{})
 	if err != nil {
 		logger.Error(err, "Failed to delete ConfigMap", "Name", objKey.Name)
 	}
 
 	err = cw.DeleteByKeyIgnoreNotFound(
-		ctx.Context,
+		cheCtx.Context,
 		types.NamespacedName{
 			Name:      constants.OpenVSXServerExtensionsConfigMapName,
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 		},
 		&corev1.ConfigMap{},
 	)
@@ -189,25 +189,25 @@ func deleteResources(ctx *chetypes.DeployContext) {
 		logger.Error(err, "Failed to delete ConfigMap", "Name", constants.OpenVSXServerExtensionsConfigMapName)
 	}
 
-	err = cw.DeleteByKeyIgnoreNotFound(ctx.Context, objKey, &corev1.PersistentVolumeClaim{})
+	err = cw.DeleteByKeyIgnoreNotFound(cheCtx.Context, objKey, &corev1.PersistentVolumeClaim{})
 	if err != nil {
 		logger.Error(err, "Failed to delete PVC", "Name", objKey.Name)
 	}
 
-	if ctx.CheCluster.Status.OpenVSXURL != "" {
-		ctx.CheCluster.Status.OpenVSXURL = ""
+	if cheCtx.CheCluster.Status.OpenVSXURL != "" {
+		cheCtx.CheCluster.Status.OpenVSXURL = ""
 
-		if err = deploy.UpdateCheCRStatus(ctx, "status: OpenVSXURL", ""); err != nil {
+		if err = deploy.UpdateCheCRStatus(cheCtx, "status: OpenVSXURL", ""); err != nil {
 			logger.Error(err, "Failed to update status for OpenVSXURL")
 		}
 	}
 }
 
-func (r *OpenVSXServerReconciler) isServerReady(ctx *chetypes.DeployContext) bool {
+func (r *OpenVSXServerReconciler) isServerReady(cheCtx *chetypes.CheContext) bool {
 	actual := &appsv1.Deployment{}
-	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-		ctx.Context,
-		types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: ctx.CheCluster.Namespace},
+	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		cheCtx.Context,
+		types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: cheCtx.CheCluster.Namespace},
 		actual,
 	)
 	if !exists || err != nil {
@@ -216,6 +216,6 @@ func (r *OpenVSXServerReconciler) isServerReady(ctx *chetypes.DeployContext) boo
 	return actual.Status.AvailableReplicas > 0 && actual.Status.UnavailableReplicas == 0
 }
 
-func (r *OpenVSXServerReconciler) Finalize(_ *chetypes.DeployContext) bool {
+func (r *OpenVSXServerReconciler) Finalize(_ *chetypes.CheContext) bool {
 	return true
 }

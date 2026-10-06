@@ -36,18 +36,18 @@ var (
 
 // Expose exposes the specified component according to the configured exposure strategy rules
 func Expose(
-	deployContext *chetypes.DeployContext,
+	cheCtx *chetypes.CheContext,
 	componentName string,
 	gatewayConfig *gateway.TraefikConfig) (endpointUrl string, done bool, err error) {
 	//the host and path are empty and will be evaluated for the specified component + path
-	return ExposeWithHostPath(deployContext, componentName, "", "", gatewayConfig)
+	return ExposeWithHostPath(cheCtx, componentName, "", "", gatewayConfig)
 }
 
 // Expose exposes the specified component on the specified host and domain.
 // Empty host or path will be evaluated according to the configured strategy rules.
 // Note: path may be prefixed according to the configured strategy rules.
 func ExposeWithHostPath(
-	deployContext *chetypes.DeployContext,
+	cheCtx *chetypes.CheContext,
 	component string,
 	host string,
 	path string,
@@ -57,41 +57,41 @@ func ExposeWithHostPath(
 		path = "/" + path
 	}
 
-	key := types.NamespacedName{Name: component, Namespace: deployContext.CheCluster.Namespace}
-	clientWrapper := deployContext.ClusterAPI.ClientWrapper
+	key := types.NamespacedName{Name: component, Namespace: cheCtx.CheCluster.Namespace}
+	clientWrapper := cheCtx.ClusterAPI.ClientWrapper
 
 	if !infrastructure.IsOpenShift() {
-		return exposeWithGateway(deployContext, gatewayConfig, component, path, func() {
-			if err := clientWrapper.DeleteByKeyIgnoreNotFound(deployContext.Context, key, &networking.Ingress{}); err != nil {
+		return exposeWithGateway(cheCtx, gatewayConfig, component, path, func() {
+			if err := clientWrapper.DeleteByKeyIgnoreNotFound(cheCtx.Context, key, &networking.Ingress{}); err != nil {
 				logger.Error(err, "Failed to delete Ingress", "namespace", key.Namespace, "name", key.Name)
 			}
 		})
 	} else {
-		return exposeWithGateway(deployContext, gatewayConfig, component, path, func() {
-			if err := clientWrapper.DeleteByKeyIgnoreNotFound(deployContext.Context, key, &routev1.Route{}); err != nil {
+		return exposeWithGateway(cheCtx, gatewayConfig, component, path, func() {
+			if err := clientWrapper.DeleteByKeyIgnoreNotFound(cheCtx.Context, key, &routev1.Route{}); err != nil {
 				logger.Error(err, "Failed to delete Route", "namespace", key.Namespace, "name", key.Name)
 			}
 		})
 	}
 }
 
-func exposeWithGateway(deployContext *chetypes.DeployContext,
+func exposeWithGateway(cheCtx *chetypes.CheContext,
 	gatewayConfig *gateway.TraefikConfig,
 	component string,
 	path string,
 	cleanUpRouting func()) (endpointUrl string, done bool, err error) {
 
-	cfg, err := gateway.GetConfigmapForGatewayConfig(deployContext, component, gatewayConfig)
+	cfg, err := gateway.GetConfigmapForGatewayConfig(cheCtx, component, gatewayConfig)
 	if err != nil {
 		return "", false, fmt.Errorf("failed to get gateway ConfigMap for component %s: %w", component, err)
 	}
 
-	if err := controllerutil.SetControllerReference(deployContext.CheCluster, cfg, deployContext.ClusterAPI.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, cfg, cheCtx.ClusterAPI.Scheme); err != nil {
 		return "", false, fmt.Errorf("failed to set owner reference for ConfigMap %s/%s: %w", cfg.Namespace, cfg.Name, err)
 	}
 
-	if err := deployContext.ClusterAPI.ClientWrapper.Sync(
-		deployContext.Context,
+	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
+		cheCtx.Context,
 		cfg,
 		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
 	); err != nil {
@@ -103,5 +103,5 @@ func exposeWithGateway(deployContext *chetypes.DeployContext,
 	if path == "" {
 		path = "/" + component
 	}
-	return deployContext.CheHost + path, true, nil
+	return cheCtx.CheHost + path, true, nil
 }

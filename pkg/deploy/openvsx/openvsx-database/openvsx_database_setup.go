@@ -31,13 +31,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (r *OpenVSXDatabaseReconciler) syncDatabaseProvisioned(ctx *chetypes.DeployContext) (bool, error) {
-	image := defaults.GetOpenVSXDatabaseImage(ctx.CheCluster)
+func (r *OpenVSXDatabaseReconciler) syncDatabaseProvisioned(cheCtx *chetypes.CheContext) (bool, error) {
+	image := defaults.GetOpenVSXDatabaseImage(cheCtx.CheCluster)
 	imagePullPolicy := utils.GetPullPolicyFromDockerImage(image)
 
 	labels := deploy.GetLabels(constants.OpenVSXDatabaseProvisionJobName)
 
-	secretName := openvsx.GetCredentialsSecretName(ctx)
+	secretName := openvsx.GetCredentialsSecretName(cheCtx)
 
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
@@ -46,7 +46,7 @@ func (r *OpenVSXDatabaseReconciler) syncDatabaseProvisioned(ctx *chetypes.Deploy
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.OpenVSXDatabaseProvisionJobName,
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: batchv1.JobSpec{
@@ -138,11 +138,11 @@ EOSQL`,
 		constants.DefaultSecurityContextFsGroup,
 	)
 
-	if err := controllerutil.SetControllerReference(ctx.CheCluster, job, ctx.ClusterAPI.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, job, cheCtx.ClusterAPI.Scheme); err != nil {
 		return false, err
 	}
 
-	err := ctx.ClusterAPI.ClientWrapper.Sync(
+	err := cheCtx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
 		job,
 		&k8sclient.SyncOptions{

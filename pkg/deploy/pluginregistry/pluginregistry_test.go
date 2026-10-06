@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -29,7 +29,7 @@ import (
 )
 
 func TestShouldDeployPluginRegistryIfOpenVSXIsEmpty(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "eclipse-che",
 			Namespace: "eclipse-che",
@@ -44,12 +44,12 @@ func TestShouldDeployPluginRegistryIfOpenVSXIsEmpty(t *testing.T) {
 	}).Build()
 
 	pluginregistry := NewPluginRegistryReconciler()
-	test.EnsureReconcile(t, ctx, pluginregistry.Reconcile)
+	test.EnsureReconcile(t, cheCtx, pluginregistry.Reconcile)
 
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.Service{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &appsv1.Deployment{}))
-	assert.NotEmpty(t, ctx.CheCluster.Status.PluginRegistryURL)
+	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.Service{}))
+	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
+	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &appsv1.Deployment{}))
+	assert.NotEmpty(t, cheCtx.CheCluster.Status.PluginRegistryURL)
 }
 
 func TestShouldDeployPluginRegistryIfOpenVSXIsEmptyByDefault(t *testing.T) {
@@ -65,19 +65,19 @@ func TestShouldDeployPluginRegistryIfOpenVSXIsEmptyByDefault(t *testing.T) {
 	// re initialize defaults with new env var
 	defaults.Initialize()
 
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
 	pluginregistry := NewPluginRegistryReconciler()
-	test.EnsureReconcile(t, ctx, pluginregistry.Reconcile)
+	test.EnsureReconcile(t, cheCtx, pluginregistry.Reconcile)
 
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.Service{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &appsv1.Deployment{}))
-	assert.NotEmpty(t, ctx.CheCluster.Status.PluginRegistryURL)
+	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.Service{}))
+	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
+	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &appsv1.Deployment{}))
+	assert.NotEmpty(t, cheCtx.CheCluster.Status.PluginRegistryURL)
 }
 
 func TestShouldNotDeployPluginRegistryIfOpenVSXConfigured(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "eclipse-che",
 			Namespace: "eclipse-che",
@@ -92,12 +92,12 @@ func TestShouldNotDeployPluginRegistryIfOpenVSXConfigured(t *testing.T) {
 	}).Build()
 
 	pluginregistry := NewPluginRegistryReconciler()
-	test.EnsureReconcile(t, ctx, pluginregistry.Reconcile)
+	test.EnsureReconcile(t, cheCtx, pluginregistry.Reconcile)
 
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.Service{}))
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &appsv1.Deployment{}))
-	assert.Empty(t, ctx.CheCluster.Status.PluginRegistryURL)
+	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.Service{}))
+	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
+	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &appsv1.Deployment{}))
+	assert.Empty(t, cheCtx.CheCluster.Status.PluginRegistryURL)
 }
 
 func TestShouldNotDeployPluginRegistryIfOpenVSXConfiguredByDefault(t *testing.T) {
@@ -112,13 +112,13 @@ func TestShouldNotDeployPluginRegistryIfOpenVSXConfiguredByDefault(t *testing.T)
 	// re initialize defaults with new env var
 	defaults.Initialize()
 
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
 	pluginregistry := NewPluginRegistryReconciler()
-	test.EnsureReconcile(t, ctx, pluginregistry.Reconcile)
+	test.EnsureReconcile(t, cheCtx, pluginregistry.Reconcile)
 
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.Service{}))
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &appsv1.Deployment{}))
-	assert.Empty(t, ctx.CheCluster.Status.PluginRegistryURL)
+	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.Service{}))
+	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
+	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &appsv1.Deployment{}))
+	assert.Empty(t, cheCtx.CheCluster.Status.PluginRegistryURL)
 }

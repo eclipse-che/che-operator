@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -32,9 +32,9 @@ func NewCheClusterValidator() *CheClusterValidator {
 	return &CheClusterValidator{}
 }
 
-func (v *CheClusterValidator) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
+func (v *CheClusterValidator) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
 	if !infrastructure.IsOpenShift() {
-		if ctx.CheCluster.Spec.Networking.Domain == "" {
+		if cheCtx.CheCluster.Spec.Networking.Domain == "" {
 			return reconcile.Result{}, false, fmt.Errorf("required field \"spec.networking.domain\" is not set")
 		}
 	}
@@ -42,6 +42,6 @@ func (v *CheClusterValidator) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 	return reconcile.Result{}, true, nil
 }
 
-func (v *CheClusterValidator) Finalize(ctx *chetypes.DeployContext) bool {
+func (v *CheClusterValidator) Finalize(cheCtx *chetypes.CheContext) bool {
 	return true
 }

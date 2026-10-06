@@ -46,49 +46,49 @@ func NewDashboardReconciler() *DashboardReconciler {
 	return &DashboardReconciler{}
 }
 
-func (d *DashboardReconciler) getComponentName(ctx *chetypes.DeployContext) string {
+func (d *DashboardReconciler) getComponentName(cheCtx *chetypes.CheContext) string {
 	return defaults.GetCheFlavor() + "-dashboard"
 }
 
-func (d *DashboardReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
+func (d *DashboardReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
 	// Create a new dashboard service
-	if err := deploy.SyncServiceToCluster(ctx, d.getComponentName(ctx), []string{"http"}, []int32{8080}, d.getComponentName(ctx)); err != nil {
+	if err := deploy.SyncServiceToCluster(cheCtx, d.getComponentName(cheCtx), []string{"http"}, []int32{8080}, d.getComponentName(cheCtx)); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
 	// Expose dashboard service with route or ingress
-	_, done, err := expose.ExposeWithHostPath(ctx, d.getComponentName(ctx), ctx.CheHost,
+	_, done, err := expose.ExposeWithHostPath(cheCtx, d.getComponentName(cheCtx), cheCtx.CheHost,
 		exposePath,
-		d.createGatewayConfig(ctx),
+		d.createGatewayConfig(cheCtx),
 	)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
 
 	// we create dashboard SA in any case to keep a track on resources we access within it
-	if err := deploy.SyncServiceAccountToCluster(ctx, DashboardSA); err != nil {
+	if err := deploy.SyncServiceAccountToCluster(cheCtx, DashboardSA); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
-	if err := deploy.SyncClusterRoleToCluster(ctx, d.getClusterRoleName(ctx), GetPrivilegedPoliciesRulesForKubernetes()); err != nil {
+	if err := deploy.SyncClusterRoleToCluster(cheCtx, d.getClusterRoleName(cheCtx), GetPrivilegedPoliciesRulesForKubernetes()); err != nil {
 		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
-	if err := deploy.SyncClusterRoleBindingToCluster(ctx, d.getClusterRoleBindingName(ctx), DashboardSA, d.getClusterRoleName(ctx)); err != nil {
+	if err := deploy.SyncClusterRoleBindingToCluster(cheCtx, d.getClusterRoleBindingName(cheCtx), DashboardSA, d.getClusterRoleName(cheCtx)); err != nil {
 		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
-	if err := deploy.AppendFinalizer(ctx, ClusterPermissionsDashboardFinalizer); err != nil {
+	if err := deploy.AppendFinalizer(cheCtx, ClusterPermissionsDashboardFinalizer); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
 	// Deploy dashboard
-	spec, err := d.getDashboardDeploymentSpec(ctx)
+	spec, err := d.getDashboardDeploymentSpec(cheCtx)
 	if err != nil {
 		return reconcile.Result{}, false, err
 	}
 
-	done, err = deploy.SyncDeploymentSpecToCluster(ctx, spec, deploy.DefaultDeploymentDiffOpts)
+	done, err = deploy.SyncDeploymentSpecToCluster(cheCtx, spec, deploy.DefaultDeploymentDiffOpts)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
@@ -96,42 +96,42 @@ func (d *DashboardReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 	return reconcile.Result{}, true, nil
 }
 
-func (d *DashboardReconciler) Finalize(ctx *chetypes.DeployContext) bool {
+func (d *DashboardReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
 	done := true
-	if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
-		ctx.Context,
-		types.NamespacedName{Name: d.getClusterRoleName(ctx)},
+	if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+		cheCtx.Context,
+		types.NamespacedName{Name: d.getClusterRoleName(cheCtx)},
 		&rbacv1.ClusterRole{},
 	); err != nil {
 		done = false
-		logrus.Errorf("Failed to delete ClusterRole %s, cause: %v", d.getClusterRoleName(ctx), err)
+		logrus.Errorf("Failed to delete ClusterRole %s, cause: %v", d.getClusterRoleName(cheCtx), err)
 	}
 
-	if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
-		ctx.Context,
-		types.NamespacedName{Name: d.getClusterRoleBindingName(ctx)},
+	if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+		cheCtx.Context,
+		types.NamespacedName{Name: d.getClusterRoleBindingName(cheCtx)},
 		&rbacv1.ClusterRoleBinding{},
 	); err != nil {
 		done = false
-		logrus.Errorf("Failed to delete ClusterRoleBinding %s, cause: %v", d.getClusterRoleBindingName(ctx), err)
+		logrus.Errorf("Failed to delete ClusterRoleBinding %s, cause: %v", d.getClusterRoleBindingName(cheCtx), err)
 	}
 
-	if err := deploy.DeleteFinalizer(ctx, ClusterPermissionsDashboardFinalizer); err != nil {
+	if err := deploy.DeleteFinalizer(cheCtx, ClusterPermissionsDashboardFinalizer); err != nil {
 		done = false
 		logrus.Errorf("Error deleting finalizer: %v", err)
 	}
 	return done
 }
 
-func (d *DashboardReconciler) createGatewayConfig(ctx *chetypes.DeployContext) *gateway.TraefikConfig {
+func (d *DashboardReconciler) createGatewayConfig(cheCtx *chetypes.CheContext) *gateway.TraefikConfig {
 	cfg := gateway.CreateCommonTraefikConfig(
-		d.getComponentName(ctx),
+		d.getComponentName(cheCtx),
 		fmt.Sprintf("Path(`/`) || Path(`/f`) || PathPrefix(`%s`)", exposePath),
 		10,
-		"http://"+d.getComponentName(ctx)+":8080",
+		"http://"+d.getComponentName(cheCtx)+":8080",
 		[]string{})
-	if ctx.CheCluster.IsAccessTokenConfigured() {
-		cfg.AddAuthHeaderRewrite(d.getComponentName(ctx))
+	if cheCtx.CheCluster.IsAccessTokenConfigured() {
+		cfg.AddAuthHeaderRewrite(d.getComponentName(cheCtx))
 	}
 	return cfg
 }

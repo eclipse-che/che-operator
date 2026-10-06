@@ -50,24 +50,24 @@ func NewIdentityProviderReconciler() *IdentityProviderReconciler {
 	return &IdentityProviderReconciler{}
 }
 
-func (ip *IdentityProviderReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if err := syncOAuthClient(ctx); err != nil {
+func (ip *IdentityProviderReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
+	if err := syncOAuthClient(cheCtx); err != nil {
 		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
 	return reconcile.Result{}, true, nil
 }
 
-func (ip *IdentityProviderReconciler) Finalize(ctx *chetypes.DeployContext) bool {
-	oauthClient, err := GetOAuthClient(ctx)
+func (ip *IdentityProviderReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
+	oauthClient, err := GetOAuthClient(cheCtx)
 	if err != nil {
 		logger.Error(err, "Failed to get OAuthClient")
 		return false
 	}
 
 	if oauthClient != nil {
-		if err := ctx.ClusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(
-			ctx.Context,
+		if err := cheCtx.ClusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(
+			cheCtx.Context,
 			types.NamespacedName{Name: oauthClient.Name},
 			&oauth.OAuthClient{},
 		); err != nil {
@@ -76,7 +76,7 @@ func (ip *IdentityProviderReconciler) Finalize(ctx *chetypes.DeployContext) bool
 		}
 	}
 
-	if err := deploy.DeleteFinalizer(ctx, OAuthFinalizerName); err != nil {
+	if err := deploy.DeleteFinalizer(cheCtx, OAuthFinalizerName); err != nil {
 		logger.Error(err, "Failed to delete finalizer", "finalizer", OAuthFinalizerName)
 		return false
 	}
@@ -84,39 +84,39 @@ func (ip *IdentityProviderReconciler) Finalize(ctx *chetypes.DeployContext) bool
 	return true
 }
 
-func syncOAuthClient(ctx *chetypes.DeployContext) error {
+func syncOAuthClient(cheCtx *chetypes.CheContext) error {
 	var oauthClientName, oauthSecret string
 
-	oauthClient, err := GetOAuthClient(ctx)
+	oauthClient, err := GetOAuthClient(cheCtx)
 	if err != nil {
 		return fmt.Errorf("failed to get OAuthClient: %w", err)
 	}
 
 	if oauthClient != nil {
 		oauthClientName = oauthClient.Name
-		oauthSecret = utils.GetValue(string(ctx.Authentication.ClientSecret), oauthClient.Secret)
+		oauthSecret = utils.GetValue(string(cheCtx.Authentication.ClientSecret), oauthClient.Secret)
 	} else {
-		oauthClientName = GetOAuthClientName(ctx)
-		oauthSecret = utils.GetValue(string(ctx.Authentication.ClientSecret), utils.GeneratePassword(12))
+		oauthClientName = GetOAuthClientName(cheCtx)
+		oauthSecret = utils.GetValue(string(cheCtx.Authentication.ClientSecret), utils.GeneratePassword(12))
 	}
 
-	redirectURIs := []string{"https://" + ctx.CheHost + "/oauth/callback"}
+	redirectURIs := []string{"https://" + cheCtx.CheHost + "/oauth/callback"}
 	oauthClientSpec := GetOAuthClientSpec(
 		oauthClientName,
 		oauthSecret,
 		redirectURIs,
-		ctx.CheCluster.Spec.Networking.Auth.OAuthAccessTokenInactivityTimeoutSeconds,
-		ctx.CheCluster.Spec.Networking.Auth.OAuthAccessTokenMaxAgeSeconds)
+		cheCtx.CheCluster.Spec.Networking.Auth.OAuthAccessTokenInactivityTimeoutSeconds,
+		cheCtx.CheCluster.Spec.Networking.Auth.OAuthAccessTokenMaxAgeSeconds)
 
-	if err := ctx.ClusterAPI.NonCachingClientWrapper.Sync(
-		ctx.Context,
+	if err := cheCtx.ClusterAPI.NonCachingClientWrapper.Sync(
+		cheCtx.Context,
 		oauthClientSpec,
 		&k8sclient.SyncOptions{DiffOpts: oAuthClientDiffOpts, SuppressDiff: true},
 	); err != nil {
 		return fmt.Errorf("failed to sync OAuthClient %s: %w", oauthClientSpec.Name, err)
 	}
 
-	if err := deploy.AppendFinalizer(ctx, OAuthFinalizerName); err != nil {
+	if err := deploy.AppendFinalizer(cheCtx, OAuthFinalizerName); err != nil {
 		return fmt.Errorf("failed to append finalizer %s: %w", OAuthFinalizerName, err)
 	}
 

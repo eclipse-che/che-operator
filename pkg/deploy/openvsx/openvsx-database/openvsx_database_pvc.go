@@ -26,22 +26,22 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (p *OpenVSXDatabaseReconciler) syncPVC(ctx *chetypes.DeployContext) error {
+func (p *OpenVSXDatabaseReconciler) syncPVC(cheCtx *chetypes.CheContext) error {
 	claimSize := constants.OpenVSXDatabaseClaimSize
 
-	if ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database != nil &&
-		ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database.Storage != nil &&
-		ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database.Storage.ClaimSize != "" {
+	if cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Database != nil &&
+		cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Database.Storage != nil &&
+		cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Database.Storage.ClaimSize != "" {
 
-		claimSize = ctx.CheCluster.Spec.Components.OpenVSXRegistry.Database.Storage.ClaimSize
+		claimSize = cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Database.Storage.ClaimSize
 	}
 
 	pvc := &corev1.PersistentVolumeClaim{}
-	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
 		context.TODO(),
 		types.NamespacedName{
 			Name:      constants.OpenVSXDatabaseComponentName,
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 		},
 		pvc,
 	)
@@ -51,7 +51,7 @@ func (p *OpenVSXDatabaseReconciler) syncPVC(ctx *chetypes.DeployContext) error {
 
 	if exists {
 		pvc.Spec.Resources.Requests[corev1.ResourceStorage] = resource.MustParse(claimSize)
-		return ctx.ClusterAPI.ClientWrapper.Sync(context.TODO(), pvc)
+		return cheCtx.ClusterAPI.ClientWrapper.Sync(context.TODO(), pvc)
 	}
 
 	pvc = &corev1.PersistentVolumeClaim{
@@ -61,7 +61,7 @@ func (p *OpenVSXDatabaseReconciler) syncPVC(ctx *chetypes.DeployContext) error {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.OpenVSXDatabaseComponentName,
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Labels:    deploy.GetLabels(constants.OpenVSXDatabaseComponentName),
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
@@ -74,9 +74,9 @@ func (p *OpenVSXDatabaseReconciler) syncPVC(ctx *chetypes.DeployContext) error {
 		},
 	}
 
-	if err = controllerutil.SetControllerReference(ctx.CheCluster, pvc, ctx.ClusterAPI.Scheme); err != nil {
+	if err = controllerutil.SetControllerReference(cheCtx.CheCluster, pvc, cheCtx.ClusterAPI.Scheme); err != nil {
 		return err
 	}
 
-	return ctx.ClusterAPI.ClientWrapper.CreateIfNotExists(context.TODO(), pvc)
+	return cheCtx.ClusterAPI.ClientWrapper.CreateIfNotExists(context.TODO(), pvc)
 }

@@ -170,8 +170,8 @@ func TestIngressSpec(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
-			_, actualIngress := GetIngressSpec(ctx,
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			_, actualIngress := GetIngressSpec(cheCtx,
 				"test",
 				"",
 				"che-host",
@@ -196,16 +196,16 @@ func TestSyncIngressToCluster(t *testing.T) {
 		},
 	}
 
-	deployContext := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
-	_, err := SyncIngressToCluster(deployContext, "test", "", "service-1", 8080, "component")
+	cheCtx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
+	_, err := SyncIngressToCluster(cheCtx, "test", "", "service-1", 8080, "component")
 	assert.Nil(t, err)
 
 	cheCluster.Spec.Networking.Hostname = "host-2"
-	_, err = SyncIngressToCluster(deployContext, "test", "", "service-2", 8080, "component")
+	_, err = SyncIngressToCluster(cheCtx, "test", "", "service-2", 8080, "component")
 	assert.Nil(t, err)
 
 	actual := &networkingv1.Ingress{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
 	assert.Nil(t, err)
 
 	assert.Equal(t, "host-2", actual.Spec.Rules[0].Host)

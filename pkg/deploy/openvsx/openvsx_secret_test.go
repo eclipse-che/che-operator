@@ -25,7 +25,7 @@ import (
 )
 
 func TestOpenVSXSecretReconciler_CreatesSecretWhenEnabled(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithCheCluster(
+	cheCtx := test.NewCtxBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "eclipse-che",
@@ -42,12 +42,12 @@ func TestOpenVSXSecretReconciler_CreatesSecretWhenEnabled(t *testing.T) {
 	).Build()
 
 	reconciler := NewOpenVSXSecretReconciler()
-	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
+	test.EnsureReconcile(t, cheCtx, reconciler.Reconcile)
 
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXCredentialsSecret, Namespace: "eclipse-che"}, &corev1.Secret{}))
+	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXCredentialsSecret, Namespace: "eclipse-che"}, &corev1.Secret{}))
 
-	ctx.CheCluster.Spec.Components.OpenVSXRegistry.Enable = false
-	test.EnsureReconcile(t, ctx, reconciler.Reconcile)
+	cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Enable = false
+	test.EnsureReconcile(t, cheCtx, reconciler.Reconcile)
 
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXCredentialsSecret, Namespace: "eclipse-che"}, &corev1.Secret{}))
+	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXCredentialsSecret, Namespace: "eclipse-che"}, &corev1.Secret{}))
 }

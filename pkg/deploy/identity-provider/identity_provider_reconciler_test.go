@@ -40,14 +40,14 @@ func TestFinalizeDefaultOAuthClientName(t *testing.T) {
 		},
 	}
 
-	ctx := test.NewCtxBuilder().WithCheCluster(checluster).WithObjects(oauthClient).Build()
+	cheCtx := test.NewCtxBuilder().WithCheCluster(checluster).WithObjects(oauthClient).Build()
 
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "eclipse-che-client"}, &oauthv1.OAuthClient{}))
+	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "eclipse-che-client"}, &oauthv1.OAuthClient{}))
 
 	identityProviderReconciler := NewIdentityProviderReconciler()
-	done := identityProviderReconciler.Finalize(ctx)
+	done := identityProviderReconciler.Finalize(cheCtx)
 	assert.True(t, done)
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "eclipse-che-client"}, &oauthv1.OAuthClient{}))
+	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "eclipse-che-client"}, &oauthv1.OAuthClient{}))
 	assert.Equal(t, 0, len(checluster.Finalizers))
 }
 
@@ -70,14 +70,14 @@ func TestFinalizeOAuthClient(t *testing.T) {
 		},
 	}
 
-	ctx := test.NewCtxBuilder().WithCheCluster(checluster).WithObjects(oauthClient).Build()
+	cheCtx := test.NewCtxBuilder().WithCheCluster(checluster).WithObjects(oauthClient).Build()
 
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test"}, &oauthv1.OAuthClient{}))
+	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "test"}, &oauthv1.OAuthClient{}))
 
 	identityProviderReconciler := NewIdentityProviderReconciler()
-	done := identityProviderReconciler.Finalize(ctx)
+	done := identityProviderReconciler.Finalize(cheCtx)
 	assert.True(t, done)
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "test"}, &oauthv1.OAuthClient{}))
+	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "test"}, &oauthv1.OAuthClient{}))
 	assert.Equal(t, 0, len(checluster.Finalizers))
 }
 
@@ -99,8 +99,8 @@ func TestShouldFindSingleOAuthClient(t *testing.T) {
 		},
 	}
 
-	ctx := test.NewCtxBuilder().WithCheCluster(checluster).WithObjects(oauthClient1).WithObjects(oauthClient2).Build()
-	oauthClient, err := GetOAuthClient(ctx)
+	cheCtx := test.NewCtxBuilder().WithCheCluster(checluster).WithObjects(oauthClient1).WithObjects(oauthClient2).Build()
+	oauthClient, err := GetOAuthClient(cheCtx)
 	assert.Nil(t, err)
 	assert.NotNil(t, oauthClient)
 	assert.Equal(t, "test1", oauthClient.Name)
@@ -122,11 +122,11 @@ func TestSyncOAuthClientShouldSyncTokenTimeout(t *testing.T) {
 		},
 	}
 
-	ctx := test.NewCtxBuilder().WithCheCluster(checluster).Build()
-	err := syncOAuthClient(ctx)
+	cheCtx := test.NewCtxBuilder().WithCheCluster(checluster).Build()
+	err := syncOAuthClient(cheCtx)
 	assert.Nil(t, err)
 
-	oauthClient, err := GetOAuthClient(ctx)
+	oauthClient, err := GetOAuthClient(cheCtx)
 	assert.Nil(t, err)
 	assert.NotNil(t, oauthClient)
 	assert.Equal(t, int32(10), *oauthClient.AccessTokenInactivityTimeoutSeconds)
@@ -212,11 +212,11 @@ func TestSyncOAuthClient(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
-			err := syncOAuthClient(ctx)
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			err := syncOAuthClient(cheCtx)
 			assert.Nil(t, err)
 
-			oauthClient, err := GetOAuthClient(ctx)
+			oauthClient, err := GetOAuthClient(cheCtx)
 			assert.Nil(t, err)
 			assert.NotNil(t, oauthClient)
 			if testCase.expectedName != "" {
@@ -313,11 +313,11 @@ func TestSyncExistedOAuthClient(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(oauthClient1).WithObjects(oauthClient2).Build()
-			err := syncOAuthClient(ctx)
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(oauthClient1).WithObjects(oauthClient2).Build()
+			err := syncOAuthClient(cheCtx)
 			assert.Nil(t, err)
 
-			oauthClient, err := GetOAuthClient(ctx)
+			oauthClient, err := GetOAuthClient(cheCtx)
 			assert.Nil(t, err)
 			assert.NotNil(t, oauthClient)
 			if testCase.expectedName != "" {

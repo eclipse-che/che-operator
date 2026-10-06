@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -48,8 +48,8 @@ func NewExternalImagesProvider() *ExternalImagesProvider {
 	return p
 }
 
-func (p *ExternalImagesProvider) Get(ctx *chetypes.DeployContext) ([]string, error) {
-	images, err := p.read(ctx)
+func (p *ExternalImagesProvider) Get(cheCtx *chetypes.CheContext) ([]string, error) {
+	images, err := p.read(cheCtx)
 	if err != nil {
 		return []string{}, err
 	}
@@ -62,13 +62,13 @@ func (p *ExternalImagesProvider) Get(ctx *chetypes.DeployContext) ([]string, err
 	return images, nil
 }
 
-func (p *ExternalImagesProvider) read(ctx *chetypes.DeployContext) ([]string, error) {
-	editorsImages, err := p.fetchEditorImages(ctx)
+func (p *ExternalImagesProvider) read(cheCtx *chetypes.CheContext) ([]string, error) {
+	editorsImages, err := p.fetchEditorImages(cheCtx)
 	if err != nil {
 		return []string{}, err
 	}
 
-	samplesImages, err := p.fetchSampleImages(ctx)
+	samplesImages, err := p.fetchSampleImages(cheCtx)
 	if err != nil {
 		return []string{}, err
 	}
@@ -90,8 +90,8 @@ func (p *ExternalImagesProvider) write(images []string) error {
 // 1. reads list of samples from the given endpoint (json objects array)
 // 2. parses them and retrieves urls to a devfile
 // 3. read and parses devfiles (yaml) and return images
-func (p *ExternalImagesProvider) fetchSampleImages(ctx *chetypes.DeployContext) ([]string, error) {
-	url := getDashboardSamplesInternalAPIUrl(ctx)
+func (p *ExternalImagesProvider) fetchSampleImages(cheCtx *chetypes.CheContext) ([]string, error) {
+	url := getDashboardSamplesInternalAPIUrl(cheCtx)
 
 	rawData, err := p.fetchRawDataFunc(url)
 	if err != nil {
@@ -162,8 +162,8 @@ func (p *ExternalImagesProvider) parseSampleDevfile(rawData []byte) ([]string, e
 // fetchEditorImages fetches list of images from editors:
 // 1. reads list of devfile editors from the given endpoint (json objects array)
 // 2. parses them and return images
-func (p *ExternalImagesProvider) fetchEditorImages(ctx *chetypes.DeployContext) ([]string, error) {
-	url := getDashboardEditorsInternalAPIUrl(ctx)
+func (p *ExternalImagesProvider) fetchEditorImages(cheCtx *chetypes.CheContext) ([]string, error) {
+	url := getDashboardEditorsInternalAPIUrl(cheCtx)
 
 	rawData, err := p.fetchRawDataFunc(url)
 	if err != nil {
@@ -231,18 +231,18 @@ func (p *ExternalImagesProvider) extractContainerImages(devfile map[string]inter
 	return devfileImages
 }
 
-func getDashboardBaseInternalURL(ctx *chetypes.DeployContext) string {
-	namespace := ctx.CheCluster.Namespace
+func getDashboardBaseInternalURL(cheCtx *chetypes.CheContext) string {
+	namespace := cheCtx.CheCluster.Namespace
 	serviceName := defaults.GetCheFlavor() + "-dashboard"
 	return fmt.Sprintf("http://%s.%s.svc:8080/dashboard/api", serviceName, namespace)
 }
 
-func getDashboardEditorsInternalAPIUrl(ctx *chetypes.DeployContext) string {
-	return fmt.Sprintf("%s/editors", getDashboardBaseInternalURL(ctx))
+func getDashboardEditorsInternalAPIUrl(cheCtx *chetypes.CheContext) string {
+	return fmt.Sprintf("%s/editors", getDashboardBaseInternalURL(cheCtx))
 }
 
-func getDashboardSamplesInternalAPIUrl(ctx *chetypes.DeployContext) string {
-	return fmt.Sprintf("%s/airgap-sample", getDashboardBaseInternalURL(ctx))
+func getDashboardSamplesInternalAPIUrl(cheCtx *chetypes.CheContext) string {
+	return fmt.Sprintf("%s/airgap-sample", getDashboardBaseInternalURL(cheCtx))
 }
 
 func fetchRawData(url string) ([]byte, error) {

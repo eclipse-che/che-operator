@@ -34,22 +34,22 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (r *OpenVSXServerReconciler) syncExtensionUpdateCronJob(ctx *chetypes.DeployContext) error {
-	if !ctx.CheCluster.IsExtensionAutoUpdateEnabled() {
-		return deleteExtensionUpdateCronJob(ctx)
+func (r *OpenVSXServerReconciler) syncExtensionUpdateCronJob(cheCtx *chetypes.CheContext) error {
+	if !cheCtx.CheCluster.IsExtensionAutoUpdateEnabled() {
+		return deleteExtensionUpdateCronJob(cheCtx)
 	}
 
-	cronJob, err := r.getExtensionUpdateCronJobSpec(ctx)
+	cronJob, err := r.getExtensionUpdateCronJobSpec(cheCtx)
 	if err != nil {
 		return fmt.Errorf("failed to get extension update CronJob spec: %w", err)
 	}
 
-	if err := controllerutil.SetControllerReference(ctx.CheCluster, cronJob, ctx.ClusterAPI.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, cronJob, cheCtx.ClusterAPI.Scheme); err != nil {
 		return fmt.Errorf("failed to set controller reference on CronJob %s/%s: %w", cronJob.Namespace, cronJob.Name, err)
 	}
 
-	if err := ctx.ClusterAPI.ClientWrapper.Sync(
-		ctx.Context,
+	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
+		cheCtx.Context,
 		cronJob,
 		&k8sclient.SyncOptions{DiffOpts: diffs.CronJob},
 	); err != nil {
@@ -59,8 +59,8 @@ func (r *OpenVSXServerReconciler) syncExtensionUpdateCronJob(ctx *chetypes.Deplo
 	return nil
 }
 
-func (r *OpenVSXServerReconciler) getExtensionUpdateCronJobSpec(ctx *chetypes.DeployContext) (*batchv1.CronJob, error) {
-	autoUpdate := ctx.CheCluster.Spec.Components.OpenVSXRegistry.ExtensionAutoUpdate
+func (r *OpenVSXServerReconciler) getExtensionUpdateCronJobSpec(cheCtx *chetypes.CheContext) (*batchv1.CronJob, error) {
+	autoUpdate := cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.ExtensionAutoUpdate
 	if autoUpdate == nil {
 		return nil, fmt.Errorf("failed to get extension update CronJob spec: ExtensionAutoUpdate is nil")
 	}
@@ -70,20 +70,20 @@ func (r *OpenVSXServerReconciler) getExtensionUpdateCronJobSpec(ctx *chetypes.De
 		schedule = *autoUpdate.Schedule
 	}
 
-	image := defaults.GetOpenVSXImage(ctx.CheCluster)
+	image := defaults.GetOpenVSXImage(cheCtx.CheCluster)
 	imagePullPolicy := utils.GetPullPolicyFromDockerImage(image)
 
 	labels := deploy.GetLabels(constants.OpenVSXServerExtensionUpdateCronJobName)
-	credentialsSecret := openvsx.GetCredentialsSecretName(ctx)
+	credentialsSecret := openvsx.GetCredentialsSecretName(cheCtx)
 
 	env := []corev1.EnvVar{
 		{
 			Name:  "OVSX_REGISTRY_URL",
-			Value: openvsx.GetOpenVSXServerServiceURL(ctx),
+			Value: openvsx.GetOpenVSXServerServiceURL(cheCtx),
 		},
 		{
 			Name:  "OVSX_FORWARDED_HOST",
-			Value: ctx.CheHost,
+			Value: cheCtx.CheHost,
 		},
 		utils.EnvVarFromSecret("OVSX_PAT", credentialsSecret, "openvsx-publisher-token"),
 	}
@@ -109,7 +109,7 @@ func (r *OpenVSXServerReconciler) getExtensionUpdateCronJobSpec(ctx *chetypes.De
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.OpenVSXServerExtensionUpdateCronJobName,
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: batchv1.CronJobSpec{
@@ -188,14 +188,14 @@ func (r *OpenVSXServerReconciler) getExtensionUpdateCronJobSpec(ctx *chetypes.De
 	return cronJob, nil
 }
 
-func deleteExtensionUpdateCronJob(ctx *chetypes.DeployContext) error {
+func deleteExtensionUpdateCronJob(cheCtx *chetypes.CheContext) error {
 	cronJobKey := types.NamespacedName{
 		Name:      constants.OpenVSXServerExtensionUpdateCronJobName,
-		Namespace: ctx.CheCluster.Namespace,
+		Namespace: cheCtx.CheCluster.Namespace,
 	}
 
-	if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
-		ctx.Context,
+	if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+		cheCtx.Context,
 		cronJobKey,
 		&batchv1.CronJob{},
 		client.PropagationPolicy(metav1.DeletePropagationBackground),

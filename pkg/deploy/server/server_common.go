@@ -26,9 +26,9 @@ func getComponentName() string {
 	return defaults.GetCheFlavor()
 }
 
-func getOAuthConfigSecret(ctx *chetypes.DeployContext, oauthProvider string) (*corev1.Secret, error) {
+func getOAuthConfigSecret(cheCtx *chetypes.CheContext, oauthProvider string) (*corev1.Secret, error) {
 	secrets, err := deploy.GetSecrets(
-		ctx,
+		cheCtx,
 		map[string]string{
 			constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
 			constants.KubernetesComponentLabelKey: constants.OAuthScmConfiguration,

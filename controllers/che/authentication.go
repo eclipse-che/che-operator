@@ -34,23 +34,23 @@ const (
 
 // ResolveAuthentication builds an Authentication config from the CheCluster spec,
 // falling back to the OpenShift cluster Authentication resource for any unset fields.
-func ResolveAuthentication(ctx *chetypes.DeployContext) (*chetypes.Authentication, error) {
+func ResolveAuthentication(cheCtx *chetypes.CheContext) (*chetypes.Authentication, error) {
 	authentication := &chetypes.Authentication{
-		UsernameClaim:  ctx.CheCluster.Spec.Components.CheServer.ExtraProperties["CHE_OIDC_USERNAME__CLAIM"],
-		UsernamePrefix: ctx.CheCluster.Spec.Components.CheServer.ExtraProperties["CHE_OIDC_USERNAME__PREFIX"],
-		GroupsClaim:    ctx.CheCluster.Spec.Components.CheServer.ExtraProperties["CHE_OIDC_GROUPS__CLAIM"],
-		GroupsPrefix:   ctx.CheCluster.Spec.Components.CheServer.ExtraProperties["CHE_OIDC_GROUPS__PREFIX"],
-		IssuerURL:      ctx.CheCluster.Spec.Networking.Auth.IdentityProviderURL,
+		UsernameClaim:  cheCtx.CheCluster.Spec.Components.CheServer.ExtraProperties["CHE_OIDC_USERNAME__CLAIM"],
+		UsernamePrefix: cheCtx.CheCluster.Spec.Components.CheServer.ExtraProperties["CHE_OIDC_USERNAME__PREFIX"],
+		GroupsClaim:    cheCtx.CheCluster.Spec.Components.CheServer.ExtraProperties["CHE_OIDC_GROUPS__CLAIM"],
+		GroupsPrefix:   cheCtx.CheCluster.Spec.Components.CheServer.ExtraProperties["CHE_OIDC_GROUPS__PREFIX"],
+		IssuerURL:      cheCtx.CheCluster.Spec.Networking.Auth.IdentityProviderURL,
 		// OIDC client ID must be explicitly defined; the openshift-console client
 		// cannot be reused because it has a different callback URL.
-		ClientId: ctx.CheCluster.Spec.Networking.Auth.OAuthClientName,
+		ClientId: cheCtx.CheCluster.Spec.Networking.Auth.OAuthClientName,
 	}
 
 	// must be outside main `if` condition
-	if ctx.CheCluster.Spec.Networking.Auth.OAuthSecret != "" {
+	if cheCtx.CheCluster.Spec.Networking.Auth.OAuthSecret != "" {
 		// `OAuthSecret` can be a Kubernetes Secret name in CheCluster namespace
 		// or a literal value; resolve accordingly.
-		clientSecret, err := resolveOAuthSecretInCheNamespace(ctx)
+		clientSecret, err := resolveOAuthSecretInCheNamespace(cheCtx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve secret: %w", err)
 		}
@@ -59,7 +59,7 @@ func ResolveAuthentication(ctx *chetypes.DeployContext) (*chetypes.Authenticatio
 
 	if infrastructure.IsOpenShiftExternalAuth() {
 		clusterAuthentication := &configv1.Authentication{}
-		err := ctx.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, clusterAuthentication)
+		err := cheCtx.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, clusterAuthentication)
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch authentication config: %w", err)
 		}
@@ -86,7 +86,7 @@ func ResolveAuthentication(ctx *chetypes.DeployContext) (*chetypes.Authenticatio
 		// issuer certificate authority
 		if authentication.IssuerURL == oidcProvider.Issuer.URL {
 			if oidcProvider.Issuer.CertificateAuthority.Name != "" {
-				issuerCA, err := readIssuerCA(oidcProvider.Issuer.CertificateAuthority.Name, ctx)
+				issuerCA, err := readIssuerCA(oidcProvider.Issuer.CertificateAuthority.Name, cheCtx)
 				if err != nil {
 					return nil, fmt.Errorf("failed to read issuer CA: %w", err)
 				}
@@ -128,7 +128,7 @@ func ResolveAuthentication(ctx *chetypes.DeployContext) (*chetypes.Authenticatio
 			if idx != -1 {
 				oidcClient := oidcProvider.OIDCClients[idx]
 				if oidcClient.ClientSecret.Name != "" {
-					clientSecret, err := resolveClientSecretInOpenShiftConfigNamespace(oidcClient.ClientSecret.Name, ctx)
+					clientSecret, err := resolveClientSecretInOpenShiftConfigNamespace(oidcClient.ClientSecret.Name, cheCtx)
 					if err != nil {
 						return nil, fmt.Errorf("failed to read client secret: %w", err)
 					}
@@ -141,9 +141,9 @@ func ResolveAuthentication(ctx *chetypes.DeployContext) (*chetypes.Authenticatio
 	return authentication, nil
 }
 
-func resolveClientSecretInOpenShiftConfigNamespace(secretName string, ctx *chetypes.DeployContext) ([]byte, error) {
+func resolveClientSecretInOpenShiftConfigNamespace(secretName string, cheCtx *chetypes.CheContext) ([]byte, error) {
 	secret := &corev1.Secret{}
-	err := ctx.ClusterAPI.NonCachingClient.Get(
+	err := cheCtx.ClusterAPI.NonCachingClient.Get(
 		context.TODO(),
 		types.NamespacedName{Name: secretName, Namespace: openshiftConfigNamespace},
 		secret,
@@ -160,13 +160,13 @@ func resolveClientSecretInOpenShiftConfigNamespace(secretName string, ctx *chety
 	return nil, fmt.Errorf("client secret not found in: %s", secretName)
 }
 
-func resolveOAuthSecretInCheNamespace(ctx *chetypes.DeployContext) ([]byte, error) {
+func resolveOAuthSecretInCheNamespace(cheCtx *chetypes.CheContext) ([]byte, error) {
 	secret := &corev1.Secret{}
-	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
 		context.TODO(),
 		types.NamespacedName{
-			Name:      ctx.CheCluster.Spec.Networking.Auth.OAuthSecret,
-			Namespace: ctx.CheCluster.Namespace,
+			Name:      cheCtx.CheCluster.Spec.Networking.Auth.OAuthSecret,
+			Namespace: cheCtx.CheCluster.Namespace,
 		},
 		secret,
 	)
@@ -179,16 +179,16 @@ func resolveOAuthSecretInCheNamespace(ctx *chetypes.DeployContext) ([]byte, erro
 			return value, nil
 		}
 
-		return nil, fmt.Errorf("client secret not found in: %s", ctx.CheCluster.Spec.Networking.Auth.OAuthSecret)
+		return nil, fmt.Errorf("client secret not found in: %s", cheCtx.CheCluster.Spec.Networking.Auth.OAuthSecret)
 	}
 
 	// Backward compatibility: treat as a literal secret value, not a reference.
-	return []byte(ctx.CheCluster.Spec.Networking.Auth.OAuthSecret), nil
+	return []byte(cheCtx.CheCluster.Spec.Networking.Auth.OAuthSecret), nil
 }
 
-func readIssuerCA(cmName string, ctx *chetypes.DeployContext) (string, error) {
+func readIssuerCA(cmName string, cheCtx *chetypes.CheContext) (string, error) {
 	cm := &corev1.ConfigMap{}
-	err := ctx.ClusterAPI.NonCachingClient.Get(
+	err := cheCtx.ClusterAPI.NonCachingClient.Get(
 		context.TODO(),
 		types.NamespacedName{Name: cmName, Namespace: openshiftConfigNamespace},
 		cm,

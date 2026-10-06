@@ -44,7 +44,7 @@ func NewDevfileRegistryReconciler() *DevfileRegistryReconciler {
 	return &DevfileRegistryReconciler{}
 }
 
-func (d *DevfileRegistryReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
+func (d *DevfileRegistryReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
 	objects := []struct {
 		name string
 		obj  client.Object
@@ -56,18 +56,18 @@ func (d *DevfileRegistryReconciler) Reconcile(ctx *chetypes.DeployContext) (reco
 	}
 
 	for _, object := range objects {
-		key := types.NamespacedName{Name: object.name, Namespace: ctx.CheCluster.Namespace}
-		_ = ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(ctx.Context, key, object.obj)
+		key := types.NamespacedName{Name: object.name, Namespace: cheCtx.CheCluster.Namespace}
+		_ = cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(cheCtx.Context, key, object.obj)
 	}
 
-	if ctx.CheCluster.Status.DevfileRegistryURL != "" {
+	if cheCtx.CheCluster.Status.DevfileRegistryURL != "" {
 		var externalDevfileRegistries []v2.ExternalDevfileRegistry
 		if err := json.Unmarshal([]byte(defaults.GetDevfileRegistryExternalDevfileRegistries()), &externalDevfileRegistries); err == nil {
 
 			// Add default external devfile registries to the CheCluster CR
 			for _, newRegistry := range externalDevfileRegistries {
 				newRegistryAlreadyExists := false
-				for _, existedRegistry := range ctx.CheCluster.Spec.Components.DevfileRegistry.ExternalDevfileRegistries {
+				for _, existedRegistry := range cheCtx.CheCluster.Spec.Components.DevfileRegistry.ExternalDevfileRegistries {
 					if existedRegistry.Url == newRegistry.Url {
 						newRegistryAlreadyExists = true
 						break
@@ -76,12 +76,12 @@ func (d *DevfileRegistryReconciler) Reconcile(ctx *chetypes.DeployContext) (reco
 
 				if !newRegistryAlreadyExists {
 					logger.Info("Adding external devfile registry to the CheCluster CR", "Url", newRegistry.Url)
-					ctx.CheCluster.Spec.Components.DevfileRegistry.ExternalDevfileRegistries =
-						append(ctx.CheCluster.Spec.Components.DevfileRegistry.ExternalDevfileRegistries, newRegistry)
+					cheCtx.CheCluster.Spec.Components.DevfileRegistry.ExternalDevfileRegistries =
+						append(cheCtx.CheCluster.Spec.Components.DevfileRegistry.ExternalDevfileRegistries, newRegistry)
 				}
 			}
 
-			if err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster); err != nil {
+			if err := cheCtx.ClusterAPI.Client.Update(context.TODO(), cheCtx.CheCluster); err != nil {
 				return reconcile.Result{}, false, err
 			}
 		} else {
@@ -92,13 +92,13 @@ func (d *DevfileRegistryReconciler) Reconcile(ctx *chetypes.DeployContext) (reco
 			)
 		}
 
-		ctx.CheCluster.Status.DevfileRegistryURL = ""
-		_ = deploy.UpdateCheCRStatus(ctx, "DevfileRegistryURL", "")
+		cheCtx.CheCluster.Status.DevfileRegistryURL = ""
+		_ = deploy.UpdateCheCRStatus(cheCtx, "DevfileRegistryURL", "")
 	}
 
 	return reconcile.Result{}, true, nil
 }
 
-func (d *DevfileRegistryReconciler) Finalize(ctx *chetypes.DeployContext) bool {
+func (d *DevfileRegistryReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
 	return true
 }

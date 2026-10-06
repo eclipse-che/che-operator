@@ -32,7 +32,7 @@ import (
 )
 
 func TestSyncService(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
@@ -50,11 +50,11 @@ func TestSyncService(t *testing.T) {
 	}).Build()
 
 	server := NewCheHostReconciler()
-	err := server.syncCheService(ctx)
+	err := server.syncCheService(cheCtx)
 	assert.Nil(t, err)
 
 	service := &corev1.Service{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: deploy.CheServiceName, Namespace: "eclipse-che"}, service)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: deploy.CheServiceName, Namespace: "eclipse-che"}, service)
 	assert.Nil(t, err)
 
 	assert.Equal(t, service.Spec.Ports[0].Name, "http")
@@ -66,7 +66,7 @@ func TestSyncService(t *testing.T) {
 }
 
 func TestConfiguringLabelsForRoutes(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
@@ -80,22 +80,22 @@ func TestConfiguringLabelsForRoutes(t *testing.T) {
 	}).Build()
 
 	server := NewCheHostReconciler()
-	_, done, err := server.exposeCheEndpoint(ctx)
+	_, done, err := server.exposeCheEndpoint(cheCtx)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
 	route := &routev1.Route{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: getComponentName(), Namespace: "eclipse-che"}, route)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: getComponentName(), Namespace: "eclipse-che"}, route)
 	assert.Nil(t, err)
 	assert.Equal(t, route.Labels["route"], "one")
 }
 
 func TestCheHostReconciler(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
 	cheHostReconciler := NewCheHostReconciler()
-	test.EnsureReconcile(t, ctx, cheHostReconciler.Reconcile)
+	test.EnsureReconcile(t, cheCtx, cheHostReconciler.Reconcile)
 
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: getComponentName(), Namespace: "eclipse-che"}, &routev1.Route{}))
-	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: deploy.CheServiceName, Namespace: "eclipse-che"}, &corev1.Service{}))
+	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: getComponentName(), Namespace: "eclipse-che"}, &routev1.Route{}))
+	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: deploy.CheServiceName, Namespace: "eclipse-che"}, &corev1.Service{}))
 }

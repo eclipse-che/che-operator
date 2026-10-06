@@ -44,8 +44,8 @@ func NewPluginRegistryReconciler() *PluginRegistryReconciler {
 	return &PluginRegistryReconciler{}
 }
 
-func (p *PluginRegistryReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if ctx.CheCluster.IsInternalPluginRegistryDisabled() {
+func (p *PluginRegistryReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
+	if cheCtx.CheCluster.IsInternalPluginRegistryDisabled() {
 		objects := []struct {
 			name string
 			obj  client.Object
@@ -57,38 +57,38 @@ func (p *PluginRegistryReconciler) Reconcile(ctx *chetypes.DeployContext) (recon
 		}
 
 		for _, object := range objects {
-			key := types.NamespacedName{Name: object.name, Namespace: ctx.CheCluster.Namespace}
-			_ = ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(ctx.Context, key, object.obj)
+			key := types.NamespacedName{Name: object.name, Namespace: cheCtx.CheCluster.Namespace}
+			_ = cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(cheCtx.Context, key, object.obj)
 		}
 
-		if ctx.CheCluster.Status.PluginRegistryURL != "" {
-			ctx.CheCluster.Status.PluginRegistryURL = ""
-			err := deploy.UpdateCheCRStatus(ctx, "PluginRegistryURL", "")
+		if cheCtx.CheCluster.Status.PluginRegistryURL != "" {
+			cheCtx.CheCluster.Status.PluginRegistryURL = ""
+			err := deploy.UpdateCheCRStatus(cheCtx, "PluginRegistryURL", "")
 			return reconcile.Result{}, err == nil, err
 		}
 
 		return reconcile.Result{}, true, nil
 	}
 
-	if err := p.syncService(ctx); err != nil {
+	if err := p.syncService(cheCtx); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
-	endpoint, done, err := p.ExposeEndpoint(ctx)
+	endpoint, done, err := p.ExposeEndpoint(cheCtx)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
 
-	done, err = p.updateStatus(endpoint, ctx)
+	done, err = p.updateStatus(endpoint, cheCtx)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
 
-	if err := p.syncConfigMap(ctx); err != nil {
+	if err := p.syncConfigMap(cheCtx); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
-	done, err = p.syncDeployment(ctx)
+	done, err = p.syncDeployment(cheCtx)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
@@ -96,21 +96,21 @@ func (p *PluginRegistryReconciler) Reconcile(ctx *chetypes.DeployContext) (recon
 	return reconcile.Result{}, true, nil
 }
 
-func (p *PluginRegistryReconciler) Finalize(ctx *chetypes.DeployContext) bool {
+func (p *PluginRegistryReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
 	return true
 }
 
-func (p *PluginRegistryReconciler) syncService(ctx *chetypes.DeployContext) error {
+func (p *PluginRegistryReconciler) syncService(cheCtx *chetypes.CheContext) error {
 	return deploy.SyncServiceToCluster(
-		ctx,
+		cheCtx,
 		constants.PluginRegistryName,
 		[]string{"http"},
 		[]int32{8080},
 		constants.PluginRegistryName)
 }
 
-func (p *PluginRegistryReconciler) syncConfigMap(ctx *chetypes.DeployContext) error {
-	data, err := p.getConfigMapData(ctx)
+func (p *PluginRegistryReconciler) syncConfigMap(cheCtx *chetypes.CheContext) error {
+	data, err := p.getConfigMapData(cheCtx)
 	if err != nil {
 		return fmt.Errorf("failed to get ConfigMap data: %w", err)
 	}
@@ -122,19 +122,19 @@ func (p *PluginRegistryReconciler) syncConfigMap(ctx *chetypes.DeployContext) er
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        constants.PluginRegistryName,
-			Namespace:   ctx.CheCluster.Namespace,
+			Namespace:   cheCtx.CheCluster.Namespace,
 			Labels:      deploy.GetLabels(constants.PluginRegistryName),
 			Annotations: data,
 		},
 		Data: data,
 	}
 
-	if err := controllerutil.SetControllerReference(ctx.CheCluster, cm, ctx.ClusterAPI.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, cm, cheCtx.ClusterAPI.Scheme); err != nil {
 		return fmt.Errorf("failed to set owner reference for ConfigMap %s/%s: %w", cm.Namespace, cm.Name, err)
 	}
 
-	if err := ctx.ClusterAPI.ClientWrapper.Sync(
-		ctx.Context,
+	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
+		cheCtx.Context,
 		cm,
 		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
 	); err != nil {
@@ -144,14 +144,14 @@ func (p *PluginRegistryReconciler) syncConfigMap(ctx *chetypes.DeployContext) er
 	return nil
 }
 
-func (p *PluginRegistryReconciler) ExposeEndpoint(ctx *chetypes.DeployContext) (string, bool, error) {
+func (p *PluginRegistryReconciler) ExposeEndpoint(cheCtx *chetypes.CheContext) (string, bool, error) {
 	return expose.Expose(
-		ctx,
+		cheCtx,
 		constants.PluginRegistryName,
-		p.createGatewayConfig(ctx))
+		p.createGatewayConfig(cheCtx))
 }
 
-func (p *PluginRegistryReconciler) updateStatus(endpoint string, ctx *chetypes.DeployContext) (bool, error) {
+func (p *PluginRegistryReconciler) updateStatus(endpoint string, cheCtx *chetypes.CheContext) (bool, error) {
 	pluginRegistryURL := "https://" + endpoint
 
 	// append the API version to plugin registry
@@ -161,9 +161,9 @@ func (p *PluginRegistryReconciler) updateStatus(endpoint string, ctx *chetypes.D
 		pluginRegistryURL = pluginRegistryURL + "v3"
 	}
 
-	if pluginRegistryURL != ctx.CheCluster.Status.PluginRegistryURL {
-		ctx.CheCluster.Status.PluginRegistryURL = pluginRegistryURL
-		if err := deploy.UpdateCheCRStatus(ctx, "status: Plugin Registry URL", pluginRegistryURL); err != nil {
+	if pluginRegistryURL != cheCtx.CheCluster.Status.PluginRegistryURL {
+		cheCtx.CheCluster.Status.PluginRegistryURL = pluginRegistryURL
+		if err := deploy.UpdateCheCRStatus(cheCtx, "status: Plugin Registry URL", pluginRegistryURL); err != nil {
 			return false, err
 		}
 	}
@@ -171,15 +171,15 @@ func (p *PluginRegistryReconciler) updateStatus(endpoint string, ctx *chetypes.D
 	return true, nil
 }
 
-func (p *PluginRegistryReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
-	if spec, err := p.getPluginRegistryDeploymentSpec(ctx); err != nil {
+func (p *PluginRegistryReconciler) syncDeployment(cheCtx *chetypes.CheContext) (bool, error) {
+	if spec, err := p.getPluginRegistryDeploymentSpec(cheCtx); err != nil {
 		return false, err
 	} else {
-		return deploy.SyncDeploymentSpecToCluster(ctx, spec, deploy.DefaultDeploymentDiffOpts)
+		return deploy.SyncDeploymentSpecToCluster(cheCtx, spec, deploy.DefaultDeploymentDiffOpts)
 	}
 }
 
-func (p *PluginRegistryReconciler) createGatewayConfig(ctx *chetypes.DeployContext) *gateway.TraefikConfig {
+func (p *PluginRegistryReconciler) createGatewayConfig(cheCtx *chetypes.CheContext) *gateway.TraefikConfig {
 	pathPrefix := "/" + constants.PluginRegistryName
 	cfg := gateway.CreateCommonTraefikConfig(
 		constants.PluginRegistryName,

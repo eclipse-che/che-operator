@@ -23,11 +23,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func GetProxyConfiguration(deployContext *chetypes.DeployContext) (*chetypes.Proxy, error) {
+func GetProxyConfiguration(cheCtx *chetypes.CheContext) (*chetypes.Proxy, error) {
 	if infrastructure.IsOpenShift() {
 		clusterProxy := &configv1.Proxy{}
-		exists, err := deployContext.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(
-			deployContext.Context,
+		exists, err := cheCtx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(
+			cheCtx.Context,
 			types.NamespacedName{Name: "cluster"},
 			clusterProxy,
 		)
@@ -43,7 +43,7 @@ func GetProxyConfiguration(deployContext *chetypes.DeployContext) (*chetypes.Pro
 			}
 		}
 
-		cheClusterProxyConf, err := deploy.ReadCheClusterProxyConfiguration(deployContext)
+		cheClusterProxyConf, err := deploy.ReadCheClusterProxyConfiguration(cheCtx)
 		if err != nil {
 			return nil, err
 		}
@@ -72,7 +72,7 @@ func GetProxyConfiguration(deployContext *chetypes.DeployContext) (*chetypes.Pro
 	}
 
 	// OpenShift 3.x and k8s
-	cheClusterProxyConf, err := deploy.ReadCheClusterProxyConfiguration(deployContext)
+	cheClusterProxyConf, err := deploy.ReadCheClusterProxyConfiguration(cheCtx)
 	if err != nil {
 		return nil, err
 	}

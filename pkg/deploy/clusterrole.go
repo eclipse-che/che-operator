@@ -25,14 +25,14 @@ import (
 )
 
 func SyncClusterRoleToCluster(
-	deployContext *chetypes.DeployContext,
+	cheCtx *chetypes.CheContext,
 	name string,
 	policyRule []rbac.PolicyRule) error {
 
-	crSpec := getClusterRoleSpec(deployContext, name, policyRule)
+	crSpec := getClusterRoleSpec(cheCtx, name, policyRule)
 
-	if err := deployContext.ClusterAPI.ClientWrapper.Sync(
-		deployContext.Context,
+	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
+		cheCtx.Context,
 		crSpec,
 		&k8sclient.SyncOptions{DiffOpts: diffs.ClusterRole},
 	); err != nil {
@@ -42,7 +42,7 @@ func SyncClusterRoleToCluster(
 	return nil
 }
 
-func getClusterRoleSpec(deployContext *chetypes.DeployContext, name string, policyRule []rbac.PolicyRule) *rbac.ClusterRole {
+func getClusterRoleSpec(cheCtx *chetypes.CheContext, name string, policyRule []rbac.PolicyRule) *rbac.ClusterRole {
 	labels := GetLabels(defaults.GetCheFlavor())
 	clusterRole := &rbac.ClusterRole{
 		TypeMeta: metav1.TypeMeta{
@@ -53,7 +53,7 @@ func getClusterRoleSpec(deployContext *chetypes.DeployContext, name string, poli
 			Name:   name,
 			Labels: labels,
 			Annotations: map[string]string{
-				constants.CheEclipseOrgNamespace: deployContext.CheCluster.Namespace,
+				constants.CheEclipseOrgNamespace: cheCtx.CheCluster.Namespace,
 			},
 		},
 		Rules: policyRule,

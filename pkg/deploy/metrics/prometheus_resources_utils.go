@@ -32,9 +32,9 @@ const (
 	defaultMetricsUpdateInterval monitoringv1.Duration = "10s"
 )
 
-func getServiceMonitorInterval(ctx *chetypes.DeployContext, name, namespace string) (monitoringv1.Duration, error) {
+func getServiceMonitorInterval(cheCtx *chetypes.CheContext, name, namespace string) (monitoringv1.Duration, error) {
 	serviceMonitor := &monitoringv1.ServiceMonitor{}
-	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
 		context.TODO(),
 		types.NamespacedName{Name: name, Namespace: namespace},
 		serviceMonitor,

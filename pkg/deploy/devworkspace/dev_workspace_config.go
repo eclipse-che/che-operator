@@ -49,15 +49,15 @@ func NewDevWorkspaceConfigReconciler() *DevWorkspaceConfigReconciler {
 	return &DevWorkspaceConfigReconciler{}
 }
 
-func (d *DevWorkspaceConfigReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
+func (d *DevWorkspaceConfigReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
 	dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      devWorkspaceConfigName,
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 		},
 	}
-	key := types.NamespacedName{Name: devWorkspaceConfigName, Namespace: ctx.CheCluster.Namespace}
-	if _, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(ctx.Context, key, dwoc); err != nil {
+	key := types.NamespacedName{Name: devWorkspaceConfigName, Namespace: cheCtx.CheCluster.Namespace}
+	if _, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(cheCtx.Context, key, dwoc); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
@@ -71,27 +71,27 @@ func (d *DevWorkspaceConfigReconciler) Reconcile(ctx *chetypes.DeployContext) (r
 		dwoc.Config = &controllerv1alpha1.OperatorConfiguration{}
 	}
 
-	if err := updateWorkspaceConfig(ctx, dwoc.Config); err != nil {
+	if err := updateWorkspaceConfig(cheCtx, dwoc.Config); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
-	if err := controllerutil.SetControllerReference(ctx.CheCluster, dwoc, ctx.ClusterAPI.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, dwoc, cheCtx.ClusterAPI.Scheme); err != nil {
 		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
-	if err := ctx.ClusterAPI.ClientWrapper.Sync(ctx.Context, dwoc); err != nil {
+	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(cheCtx.Context, dwoc); err != nil {
 		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
 	return reconcile.Result{}, true, nil
 }
 
-func (d *DevWorkspaceConfigReconciler) Finalize(ctx *chetypes.DeployContext) bool {
+func (d *DevWorkspaceConfigReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
 	return true
 }
 
-func updateWorkspaceConfig(ctx *chetypes.DeployContext, operatorConfig *controllerv1alpha1.OperatorConfiguration) error {
-	cheCluster := ctx.CheCluster
+func updateWorkspaceConfig(cheCtx *chetypes.CheContext, operatorConfig *controllerv1alpha1.OperatorConfiguration) error {
+	cheCluster := cheCtx.CheCluster
 	devEnvironments := &cheCluster.Spec.DevEnvironments
 	if operatorConfig.Workspace == nil {
 		operatorConfig.Workspace = &controllerv1alpha1.WorkspaceConfig{}
@@ -123,15 +123,15 @@ func updateWorkspaceConfig(ctx *chetypes.DeployContext, operatorConfig *controll
 
 	updateWorkspaceContainerResourceCaps(devEnvironments.ContainerResourceCaps, operatorConfig.Workspace)
 
-	updateAnnotations(ctx.CheCluster, operatorConfig.Workspace)
+	updateAnnotations(cheCtx.CheCluster, operatorConfig.Workspace)
 
 	updateIgnoredUnrecoverableEvents(devEnvironments.IgnoredUnrecoverableEvents, operatorConfig.Workspace)
 
-	updateHostUsers(ctx.CheCluster, operatorConfig.Workspace)
+	updateHostUsers(cheCtx.CheCluster, operatorConfig.Workspace)
 
 	updateInitContainers(devEnvironments, operatorConfig.Workspace)
 
-	if err := updateTLSCertificateConfigmapRef(ctx, operatorConfig); err != nil {
+	if err := updateTLSCertificateConfigmapRef(cheCtx, operatorConfig); err != nil {
 		return err
 	}
 
@@ -139,7 +139,7 @@ func updateWorkspaceConfig(ctx *chetypes.DeployContext, operatorConfig *controll
 	// we need to disable automatic proxy handling in the DevWorkspace Operator as its implementation collides
 	// with ours -- they set environment variables the deployment spec explicitly, which overrides the proxy-settings
 	// automount configmap.
-	if ctx.Proxy.HttpProxy != "" || ctx.Proxy.HttpsProxy != "" {
+	if cheCtx.Proxy.HttpProxy != "" || cheCtx.Proxy.HttpsProxy != "" {
 		if operatorConfig.Routing == nil {
 			operatorConfig.Routing = &controllerv1alpha1.RoutingConfig{}
 		}
@@ -313,13 +313,13 @@ func updateInitContainers(devEnvironments *chev2.CheClusterDevEnvironments, work
 	workspaceConfig.InitContainers = devEnvironments.InitContainers
 }
 
-func updateTLSCertificateConfigmapRef(ctx *chetypes.DeployContext, operatorConfig *controllerv1alpha1.OperatorConfiguration) error {
+func updateTLSCertificateConfigmapRef(cheCtx *chetypes.CheContext, operatorConfig *controllerv1alpha1.OperatorConfiguration) error {
 	cm := &corev1.ConfigMap{}
-	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
 		context.TODO(),
 		types.NamespacedName{
 			Name:      tls.CheMergedCABundleCertsCMName,
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 		},
 		cm,
 	)
@@ -335,7 +335,7 @@ func updateTLSCertificateConfigmapRef(ctx *chetypes.DeployContext, operatorConfi
 
 		operatorConfig.Routing.TLSCertificateConfigmapRef = &controllerv1alpha1.ConfigmapReference{
 			Name:      tls.CheMergedCABundleCertsCMName,
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 		}
 	} else {
 		if operatorConfig.Routing != nil {
