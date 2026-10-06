@@ -283,13 +283,13 @@ func TestReconcileDevWorkspaceConfigTLSCertificateConfigmapRef(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.existedObjects...).Build()
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.existedObjects...).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			test.EnsureReconcile(t, deployContext, devWorkspaceConfigReconciler.Reconcile)
+			test.EnsureReconcile(t, cheCtx, devWorkspaceConfigReconciler.Reconcile)
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
-			err := deployContext.ClusterAPI.Client.Get(
+			err := cheCtx.ClusterAPI.Client.Get(
 				context.TODO(),
 				types.NamespacedName{
 					Name:      devWorkspaceConfigName,
@@ -445,15 +445,15 @@ func TestReconcileDevWorkspaceConfigProxyAndTLSComposition(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.existedObjects...).Build()
-			deployContext.Proxy.HttpProxy = testCase.httpProxy
-			deployContext.Proxy.HttpsProxy = testCase.httpsProxy
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.existedObjects...).Build()
+			cheCtx.Proxy.HttpProxy = testCase.httpProxy
+			cheCtx.Proxy.HttpsProxy = testCase.httpsProxy
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			test.EnsureReconcile(t, deployContext, devWorkspaceConfigReconciler.Reconcile)
+			test.EnsureReconcile(t, cheCtx, devWorkspaceConfigReconciler.Reconcile)
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
-			err := deployContext.ClusterAPI.Client.Get(
+			err := cheCtx.ClusterAPI.Client.Get(
 				context.TODO(),
 				types.NamespacedName{
 					Name:      devWorkspaceConfigName,

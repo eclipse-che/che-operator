@@ -34,7 +34,7 @@ import (
 )
 
 func TestSyncSecrets(t *testing.T) {
-	deployContext := test.NewCtxBuilder().WithObjects(
+	cheCtx := test.NewCtxBuilder().WithObjects(
 		&corev1.Secret{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Secret",
@@ -58,11 +58,11 @@ func TestSyncSecrets(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Scheme,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
-			Client: deployContext.ClusterAPI.Client,
+			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
@@ -79,7 +79,7 @@ func TestSyncSecrets(t *testing.T) {
 
 	// Check Secret in a user namespace is created
 	secret := &corev1.Secret{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
 	assert.Nil(t, err)
 	assert.Equal(t, "b", secret.StringData["a"])
 	assert.Equal(t, []byte("d"), secret.Data["c"])
@@ -91,13 +91,13 @@ func TestSyncSecrets(t *testing.T) {
 
 	// Update src Secret
 	secret = &corev1.Secret{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInCheNs, secret)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInCheNs, secret)
 	assert.Nil(t, err)
 	secret.StringData["a"] = "c"
 	secret.Annotations = map[string]string{
 		"test": "test",
 	}
-	err = deployContext.ClusterAPI.Client.Update(context.TODO(), secret)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), secret)
 	assert.Nil(t, err)
 
 	// Sync Secret
@@ -107,7 +107,7 @@ func TestSyncSecrets(t *testing.T) {
 
 	// Check that destination Secret is updated
 	secret = &corev1.Secret{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
 	assert.Nil(t, err)
 	assert.Equal(t, "c", secret.StringData["a"])
 	assert.Equal(t, []byte("d"), secret.Data["c"])
@@ -120,10 +120,10 @@ func TestSyncSecrets(t *testing.T) {
 
 	// Update dst Secret
 	secret = &corev1.Secret{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
 	assert.Nil(t, err)
 	secret.StringData["a"] = "new-c"
-	err = deployContext.ClusterAPI.Client.Update(context.TODO(), secret)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), secret)
 	assert.Nil(t, err)
 
 	// Sync Secret
@@ -133,7 +133,7 @@ func TestSyncSecrets(t *testing.T) {
 
 	// Check that destination Secret is reverted
 	secret = &corev1.Secret{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
 	assert.Nil(t, err)
 	assert.Equal(t, "c", secret.StringData["a"])
 	assert.Equal(t, []byte("d"), secret.Data["c"])
@@ -145,11 +145,11 @@ func TestSyncSecrets(t *testing.T) {
 
 	// Update dst Secret in the way that it won't be reverted
 	secret = &corev1.Secret{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
 	assert.Nil(t, err)
 	utils.AddMap(secret.Annotations, map[string]string{"new-annotation": "new-test"})
 	utils.AddMap(secret.Labels, map[string]string{"new-label": "new-test"})
-	err = deployContext.ClusterAPI.Client.Update(context.TODO(), secret)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), secret)
 	assert.Nil(t, err)
 
 	// Sync Secret
@@ -159,7 +159,7 @@ func TestSyncSecrets(t *testing.T) {
 
 	// Check that destination Secret is not reverted
 	secret = &corev1.Secret{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
 	assert.Nil(t, err)
 	assert.Equal(t, "c", secret.StringData["a"])
 	assert.Equal(t, []byte("d"), secret.Data["c"])
@@ -172,7 +172,7 @@ func TestSyncSecrets(t *testing.T) {
 	assert.Equal(t, "new-test", secret.Annotations["new-annotation"])
 
 	// Delete dst Secret
-	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInUserNs, &corev1.Secret{})
+	err = cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInUserNs, &corev1.Secret{})
 	assert.Nil(t, err)
 
 	// Sync Secret
@@ -182,7 +182,7 @@ func TestSyncSecrets(t *testing.T) {
 
 	// Check that destination Secret is reverted
 	secret = &corev1.Secret{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
 	assert.Nil(t, err)
 	assert.Equal(t, "c", secret.StringData["a"])
 	assert.Equal(t, []byte("d"), secret.Data["c"])
@@ -193,7 +193,7 @@ func TestSyncSecrets(t *testing.T) {
 	assert.Equal(t, "true", secret.Labels["controller.devfile.io/mount-to-devworkspace"])
 
 	// Delete src Secret
-	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &corev1.Secret{})
+	err = cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &corev1.Secret{})
 	assert.Nil(t, err)
 
 	// Sync Secret
@@ -203,13 +203,13 @@ func TestSyncSecrets(t *testing.T) {
 
 	// Check that destination Secret in a user namespace is deleted
 	secret = &corev1.Secret{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
 	assert.NotNil(t, err)
 	assert.True(t, errors.IsNotFound(err))
 }
 
 func TestSyncSecretShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
-	deployContext := test.NewCtxBuilder().WithObjects(
+	cheCtx := test.NewCtxBuilder().WithObjects(
 		&corev1.Secret{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Secret",
@@ -233,11 +233,11 @@ func TestSyncSecretShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Scheme,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
-			Client: deployContext.ClusterAPI.Client,
+			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
@@ -254,7 +254,7 @@ func TestSyncSecretShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 
 	// Check Secret in a user namespace is created
 	secret := &corev1.Secret{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
 	assert.Nil(t, err)
 	assert.Equal(t, constants.WorkspacesConfig, secret.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.CheEclipseOrg, secret.Labels[constants.KubernetesPartOfLabelKey])
@@ -265,11 +265,11 @@ func TestSyncSecretShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 
 	// Update labels and annotations on dst Secret
 	secret = &corev1.Secret{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
 	assert.Nil(t, err)
 	utils.AddMap(secret.Labels, map[string]string{"new-label": "new-label-value"})
 	utils.AddMap(secret.Annotations, map[string]string{"new-annotation": "new-annotation-value"})
-	err = deployContext.ClusterAPI.Client.Update(context.TODO(), secret)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), secret)
 	assert.Nil(t, err)
 
 	// Sync Secret
@@ -279,7 +279,7 @@ func TestSyncSecretShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 
 	// Check that destination Secret is not reverted
 	secret = &corev1.Secret{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
 	assert.Nil(t, err)
 	assert.Equal(t, constants.WorkspacesConfig, secret.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.CheEclipseOrg, secret.Labels[constants.KubernetesPartOfLabelKey])
@@ -292,12 +292,12 @@ func TestSyncSecretShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 
 	// Update src Secret
 	secret = &corev1.Secret{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInCheNs, secret)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInCheNs, secret)
 	assert.Nil(t, err)
 	secret.StringData["a"] = "c"
 	utils.AddMap(secret.Labels, map[string]string{"label": "label-value-2"})
 	utils.AddMap(secret.Annotations, map[string]string{"annotation": "annotation-value-2"})
-	err = deployContext.ClusterAPI.Client.Update(context.TODO(), secret)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), secret)
 	assert.Nil(t, err)
 
 	// Sync Secret
@@ -307,7 +307,7 @@ func TestSyncSecretShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 
 	// Check that destination Secret is updated but old labels and annotations are preserved
 	secret = &corev1.Secret{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
 	assert.Nil(t, err)
 	assert.Equal(t, "c", secret.StringData["a"])
 	assert.Equal(t, constants.WorkspacesConfig, secret.Labels[constants.KubernetesComponentLabelKey])
@@ -321,7 +321,7 @@ func TestSyncSecretShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 }
 
 func TestSyncSecretShouldRespectDWOLabels(t *testing.T) {
-	deployContext := test.NewCtxBuilder().WithObjects(
+	cheCtx := test.NewCtxBuilder().WithObjects(
 		&corev1.Secret{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Secret",
@@ -339,11 +339,11 @@ func TestSyncSecretShouldRespectDWOLabels(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Scheme,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
-			Client: deployContext.ClusterAPI.Client,
+			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
@@ -360,7 +360,7 @@ func TestSyncSecretShouldRespectDWOLabels(t *testing.T) {
 
 	// Check Secret in a user namespace is created
 	secret := &corev1.Secret{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
 	assert.Nil(t, err)
 	assert.Equal(t, constants.WorkspacesConfig, secret.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.CheEclipseOrg, secret.Labels[constants.KubernetesPartOfLabelKey])
@@ -369,13 +369,13 @@ func TestSyncSecretShouldRespectDWOLabels(t *testing.T) {
 
 	// Update labels in dst Secret
 	secret = &corev1.Secret{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
 	assert.Nil(t, err)
 	utils.AddMap(secret.Labels, map[string]string{
 		dwconstants.DevWorkspaceWatchSecretLabel: "true",
 		dwconstants.DevWorkspaceMountLabel:       "true",
 	})
-	err = deployContext.ClusterAPI.Client.Update(context.TODO(), secret)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), secret)
 	assert.Nil(t, err)
 
 	// Sync Secret
@@ -385,7 +385,7 @@ func TestSyncSecretShouldRespectDWOLabels(t *testing.T) {
 
 	// Check that destination Secret is reverted
 	secret = &corev1.Secret{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
 	assert.Nil(t, err)
 	assert.Equal(t, constants.WorkspacesConfig, secret.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.CheEclipseOrg, secret.Labels[constants.KubernetesPartOfLabelKey])
@@ -394,13 +394,13 @@ func TestSyncSecretShouldRespectDWOLabels(t *testing.T) {
 
 	// Update src Secret
 	secret = &corev1.Secret{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInCheNs, secret)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInCheNs, secret)
 	assert.Nil(t, err)
 	utils.AddMap(secret.Labels, map[string]string{
 		dwconstants.DevWorkspaceWatchSecretLabel: "true",
 		dwconstants.DevWorkspaceMountLabel:       "true",
 	})
-	err = deployContext.ClusterAPI.Client.Update(context.TODO(), secret)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), secret)
 	assert.Nil(t, err)
 
 	// Sync Secret
@@ -410,7 +410,7 @@ func TestSyncSecretShouldRespectDWOLabels(t *testing.T) {
 
 	// Check that destination Secret is updated
 	secret = &corev1.Secret{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
 	assert.Nil(t, err)
 	assert.Equal(t, constants.WorkspacesConfig, secret.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.CheEclipseOrg, secret.Labels[constants.KubernetesPartOfLabelKey])
@@ -419,7 +419,7 @@ func TestSyncSecretShouldRespectDWOLabels(t *testing.T) {
 }
 
 func TestSyncSecretShouldRemoveSomeLabels(t *testing.T) {
-	deployContext := test.NewCtxBuilder().WithObjects(
+	cheCtx := test.NewCtxBuilder().WithObjects(
 		&corev1.Secret{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Secret",
@@ -437,11 +437,11 @@ func TestSyncSecretShouldRemoveSomeLabels(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Scheme,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
-			Client: deployContext.ClusterAPI.Client,
+			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
@@ -458,7 +458,7 @@ func TestSyncSecretShouldRemoveSomeLabels(t *testing.T) {
 
 	// Check Secret in a user namespace is created
 	secret := &corev1.Secret{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
 	assert.Nil(t, err)
 	assert.Equal(t, constants.WorkspacesConfig, secret.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.CheEclipseOrg, secret.Labels[constants.KubernetesPartOfLabelKey])

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -38,13 +38,13 @@ const (
 	CHE_CUSTOM_CERTS_MOUNT_PATH = "/public-certs/custom"
 )
 
-func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
+func (d *DashboardReconciler) getDashboardDeploymentSpec(cheCtx *chetypes.CheContext) (*appsv1.Deployment, error) {
 	var volumes []corev1.Volume
 	var volumeMounts []corev1.VolumeMount
 
 	volumes, volumeMounts = d.provisionCustomPublicCA(volumes, volumeMounts)
 
-	selfSignedCertSecretExist, err := tls.IsSelfSignedCASecretExists(ctx)
+	selfSignedCertSecretExist, err := tls.IsSelfSignedCASecretExists(cheCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -58,71 +58,71 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployCon
 	envVars = append(envVars,
 		corev1.EnvVar{
 			Name:  "http_proxy",
-			Value: ctx.Proxy.HttpProxy,
+			Value: cheCtx.Proxy.HttpProxy,
 		},
 		corev1.EnvVar{
 			Name:  "https_proxy",
-			Value: ctx.Proxy.HttpsProxy,
+			Value: cheCtx.Proxy.HttpsProxy,
 		},
 		corev1.EnvVar{
 			Name:  "no_proxy",
-			Value: ctx.Proxy.NoProxy,
+			Value: cheCtx.Proxy.NoProxy,
 		},
 		corev1.EnvVar{
 			Name:  "HTTP_PROXY",
-			Value: ctx.Proxy.HttpProxy,
+			Value: cheCtx.Proxy.HttpProxy,
 		},
 		corev1.EnvVar{
 			Name:  "HTTPS_PROXY",
-			Value: ctx.Proxy.HttpsProxy,
+			Value: cheCtx.Proxy.HttpsProxy,
 		},
 		corev1.EnvVar{
 			Name:  "NO_PROXY",
-			Value: ctx.Proxy.NoProxy,
+			Value: cheCtx.Proxy.NoProxy,
 		},
 		// CHE_HOST is here for backward compatibility. Replaced with CHE_URL
 		corev1.EnvVar{
 			Name:  "CHE_HOST",
-			Value: "https://" + ctx.CheHost},
+			Value: "https://" + cheCtx.CheHost},
 		corev1.EnvVar{
 			Name:  "CHE_URL",
-			Value: "https://" + ctx.CheHost},
+			Value: "https://" + cheCtx.CheHost},
 		corev1.EnvVar{
 			Name:  "CHECLUSTER_CR_NAMESPACE",
-			Value: ctx.CheCluster.Namespace},
+			Value: cheCtx.CheCluster.Namespace},
 		corev1.EnvVar{
 			Name:  "CHECLUSTER_CR_NAME",
-			Value: ctx.CheCluster.Name},
+			Value: cheCtx.CheCluster.Name},
 		corev1.EnvVar{
 			Name:  "DWO_NAMESPACE",
-			Value: ctx.DWONamespace,
+			Value: cheCtx.DWONamespace,
 		},
 	)
 
 	envVars = append(envVars,
 		corev1.EnvVar{
 			Name:  "CHE_DASHBOARD_INTERNAL_URL",
-			Value: fmt.Sprintf("http://%s.%s.svc:8080", d.getComponentName(ctx), ctx.CheCluster.Namespace)},
+			Value: fmt.Sprintf("http://%s.%s.svc:8080", d.getComponentName(cheCtx), cheCtx.CheCluster.Namespace)},
 	)
 
 	envVars = append(envVars,
 		corev1.EnvVar{
 			Name:  "CHE_INTERNAL_URL",
-			Value: fmt.Sprintf("http://%s.%s.svc:8080/api", deploy.CheServiceName, ctx.CheCluster.Namespace)},
+			Value: fmt.Sprintf("http://%s.%s.svc:8080/api", deploy.CheServiceName, cheCtx.CheCluster.Namespace)},
 	)
 
-	if !ctx.CheCluster.IsInternalPluginRegistryDisabled() {
+	if !cheCtx.CheCluster.IsInternalPluginRegistryDisabled() {
 		envVars = append(envVars,
 			corev1.EnvVar{
 				Name:  "CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL",
-				Value: fmt.Sprintf("http://%s.%s.svc:8080/v3", constants.PluginRegistryName, ctx.CheCluster.Namespace)},
+				Value: fmt.Sprintf("http://%s.%s.svc:8080/v3", constants.PluginRegistryName, cheCtx.CheCluster.Namespace)},
 		)
 	}
 
 	// Mount CheCluster default values
 	envVars = append(envVars, utils.GetEnvsByRegExp("^CHE_DEFAULT_SPEC.*")...)
 
-	if ctx.CheCluster.IsInternalOpenVSXRegistryEnabled() {
+	if cheCtx.CheCluster.IsInternalOpenVSXRegistryEnabled() {
 		envVars = slices.DeleteFunc(envVars, func(envVar corev1.EnvVar) bool {
 			return envVar.Name == "CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL"
 		})
@@ -130,7 +130,7 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployCon
 		envVars = append(envVars,
 			corev1.EnvVar{
 				Name:  "CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL",
-				Value: ctx.CheCluster.Status.OpenVSXURL, // only public url
+				Value: cheCtx.CheCluster.Status.OpenVSXURL, // only public url
 			},
 		)
 	}
@@ -139,13 +139,13 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployCon
 		envVars = append(envVars,
 			corev1.EnvVar{
 				Name:  "OPENSHIFT_CONSOLE_URL",
-				Value: d.evaluateOpenShiftConsoleURL(ctx)})
+				Value: d.evaluateOpenShiftConsoleURL(cheCtx)})
 	}
 
 	terminationGracePeriodSeconds := int64(30)
-	labels, labelsSelector := deploy.GetLabelsAndSelector(d.getComponentName(ctx))
+	labels, labelsSelector := deploy.GetLabelsAndSelector(d.getComponentName(cheCtx))
 
-	image := defaults.GetDashboardImage(ctx.CheCluster)
+	image := defaults.GetDashboardImage(cheCtx.CheCluster)
 	pullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(image))
 
 	deployment := &appsv1.Deployment{
@@ -154,8 +154,8 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployCon
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      d.getComponentName(ctx),
-			Namespace: ctx.CheCluster.Namespace,
+			Name:      d.getComponentName(cheCtx),
+			Namespace: cheCtx.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -171,7 +171,7 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployCon
 					ServiceAccountName: DashboardSA,
 					Containers: []corev1.Container{
 						{
-							Name:            d.getComponentName(ctx),
+							Name:            d.getComponentName(cheCtx),
 							ImagePullPolicy: pullPolicy,
 							Image:           image,
 							Ports: []corev1.ContainerPort{
@@ -243,16 +243,16 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *chetypes.DeployCon
 		constants.DefaultSecurityContextFsGroup,
 	)
 
-	if err := deploy.OverrideDeployment(ctx, deployment, ctx.CheCluster.Spec.Components.Dashboard.Deployment); err != nil {
+	if err := deploy.OverrideDeployment(cheCtx, deployment, cheCtx.CheCluster.Spec.Components.Dashboard.Deployment); err != nil {
 		return nil, err
 	}
 	return deployment, nil
 }
 
-func (d *DashboardReconciler) evaluateOpenShiftConsoleURL(ctx *chetypes.DeployContext) string {
+func (d *DashboardReconciler) evaluateOpenShiftConsoleURL(cheCtx *chetypes.CheContext) string {
 	console := &configv1.Console{}
 
-	err := ctx.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{
+	err := cheCtx.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{
 		Name:      "cluster",
 		Namespace: "openshift-console",
 	}, console)

@@ -32,7 +32,7 @@ const (
 
 type DWOPrometheusResourceProvider struct{}
 
-func (r *DWOPrometheusResourceProvider) GetPrometheusRoleBinding(ctx *chetypes.DeployContext) (*rbacv1.RoleBinding, error) {
+func (r *DWOPrometheusResourceProvider) GetPrometheusRoleBinding(cheCtx *chetypes.CheContext) (*rbacv1.RoleBinding, error) {
 	namespace, err := infrastructure.GetOperatorNamespace()
 	if err != nil {
 		return nil, err
@@ -62,8 +62,8 @@ func (r *DWOPrometheusResourceProvider) GetPrometheusRoleBinding(ctx *chetypes.D
 		},
 	}
 
-	if namespace == ctx.CheCluster.Namespace {
-		if err := controllerutil.SetControllerReference(ctx.CheCluster, roleBinding, ctx.ClusterAPI.Scheme); err != nil {
+	if namespace == cheCtx.CheCluster.Namespace {
+		if err := controllerutil.SetControllerReference(cheCtx.CheCluster, roleBinding, cheCtx.ClusterAPI.Scheme); err != nil {
 			return nil, err
 		}
 	}
@@ -71,7 +71,7 @@ func (r *DWOPrometheusResourceProvider) GetPrometheusRoleBinding(ctx *chetypes.D
 	return roleBinding, nil
 }
 
-func (r *DWOPrometheusResourceProvider) GetPrometheusRole(ctx *chetypes.DeployContext) (*rbacv1.Role, error) {
+func (r *DWOPrometheusResourceProvider) GetPrometheusRole(cheCtx *chetypes.CheContext) (*rbacv1.Role, error) {
 	namespace, err := infrastructure.GetOperatorNamespace()
 	if err != nil {
 		return nil, err
@@ -96,8 +96,8 @@ func (r *DWOPrometheusResourceProvider) GetPrometheusRole(ctx *chetypes.DeployCo
 		},
 	}
 
-	if namespace == ctx.CheCluster.Namespace {
-		if err := controllerutil.SetControllerReference(ctx.CheCluster, role, ctx.ClusterAPI.Scheme); err != nil {
+	if namespace == cheCtx.CheCluster.Namespace {
+		if err := controllerutil.SetControllerReference(cheCtx.CheCluster, role, cheCtx.ClusterAPI.Scheme); err != nil {
 			return nil, err
 		}
 	}
@@ -105,13 +105,13 @@ func (r *DWOPrometheusResourceProvider) GetPrometheusRole(ctx *chetypes.DeployCo
 	return role, nil
 }
 
-func (r *DWOPrometheusResourceProvider) GetServiceMonitor(ctx *chetypes.DeployContext) (*monitoringv1.ServiceMonitor, error) {
+func (r *DWOPrometheusResourceProvider) GetServiceMonitor(cheCtx *chetypes.CheContext) (*monitoringv1.ServiceMonitor, error) {
 	operatorNamespace, err := infrastructure.GetOperatorNamespace()
 	if err != nil {
 		return nil, err
 	}
 
-	interval, err := getServiceMonitorInterval(ctx, dwoServiceMonitorName, ctx.CheCluster.Namespace)
+	interval, err := getServiceMonitorInterval(cheCtx, dwoServiceMonitorName, cheCtx.CheCluster.Namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func (r *DWOPrometheusResourceProvider) GetServiceMonitor(ctx *chetypes.DeployCo
 			APIVersion: monitoringv1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Name:      dwoServiceMonitorName,
 			Labels:    deploy.GetLabels(constants.MetricsComponentName),
 		},
@@ -153,7 +153,7 @@ func (r *DWOPrometheusResourceProvider) GetServiceMonitor(ctx *chetypes.DeployCo
 		},
 	}
 
-	if err := controllerutil.SetControllerReference(ctx.CheCluster, serviceMonitor, ctx.ClusterAPI.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, serviceMonitor, cheCtx.ClusterAPI.Scheme); err != nil {
 		return nil, err
 	}
 

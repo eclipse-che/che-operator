@@ -39,15 +39,15 @@ func NewBaseDomainReconciler() *BaseDomainReconciler {
 	return &BaseDomainReconciler{}
 }
 
-func (r *BaseDomainReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
+func (r *BaseDomainReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
 	workspaceBaseDomain := utils.GetValue(
-		ctx.CheCluster.Spec.Components.CheServer.ExtraProperties["CHE_INFRA_OPENSHIFT_ROUTE_HOST_DOMAIN__SUFFIX"],
-		ctx.CheCluster.Spec.Networking.Domain, // must be set for Kubernetes, see CheClusterValidator
+		cheCtx.CheCluster.Spec.Components.CheServer.ExtraProperties["CHE_INFRA_OPENSHIFT_ROUTE_HOST_DOMAIN__SUFFIX"],
+		cheCtx.CheCluster.Spec.Networking.Domain, // must be set for Kubernetes, see CheClusterValidator
 	)
 
 	if workspaceBaseDomain == "" {
 		if infrastructure.IsOpenShift() {
-			openshiftBaseDomain, err := r.detectOpenShiftRouteBaseDomain(ctx)
+			openshiftBaseDomain, err := r.detectOpenShiftRouteBaseDomain(cheCtx)
 			if err != nil {
 				return reconcile.Result{}, false, err
 			}
@@ -63,9 +63,9 @@ func (r *BaseDomainReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile
 		return reconcile.Result{}, false, fmt.Errorf("unable to detect base domain")
 	}
 
-	if ctx.CheCluster.Status.WorkspaceBaseDomain != workspaceBaseDomain {
-		ctx.CheCluster.Status.WorkspaceBaseDomain = workspaceBaseDomain
-		if err := deploy.UpdateCheCRStatus(ctx, "WorkspaceBaseDomain", workspaceBaseDomain); err != nil {
+	if cheCtx.CheCluster.Status.WorkspaceBaseDomain != workspaceBaseDomain {
+		cheCtx.CheCluster.Status.WorkspaceBaseDomain = workspaceBaseDomain
+		if err := deploy.UpdateCheCRStatus(cheCtx, "WorkspaceBaseDomain", workspaceBaseDomain); err != nil {
 			return reconcile.Result{}, false, err
 		}
 	}
@@ -73,16 +73,16 @@ func (r *BaseDomainReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile
 	return reconcile.Result{}, true, nil
 }
 
-func (r *BaseDomainReconciler) Finalize(ctx *chetypes.DeployContext) bool {
+func (r *BaseDomainReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
 	return true
 }
 
 // Tries to autodetect the route base domain.
-func (r *BaseDomainReconciler) detectOpenShiftRouteBaseDomain(ctx *chetypes.DeployContext) (string, error) {
+func (r *BaseDomainReconciler) detectOpenShiftRouteBaseDomain(cheCtx *chetypes.CheContext) (string, error) {
 	name := "devworkspace-che-test"
 	testRoute := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Name:      name,
 			Labels:    deploy.GetLabels(defaults.GetCheFlavor()),
 		},
@@ -95,7 +95,7 @@ func (r *BaseDomainReconciler) detectOpenShiftRouteBaseDomain(ctx *chetypes.Depl
 	}
 
 	// We don't use ClientWrapper here not to print logs (improve in the future)
-	if err := ctx.ClusterAPI.Client.Create(context.TODO(), testRoute); err != nil {
+	if err := cheCtx.ClusterAPI.Client.Create(context.TODO(), testRoute); err != nil {
 		if !errors.IsAlreadyExists(err) {
 			return "", err
 		}
@@ -103,8 +103,8 @@ func (r *BaseDomainReconciler) detectOpenShiftRouteBaseDomain(ctx *chetypes.Depl
 
 	// Re-read the route to get the Host field populated by the OpenShift router
 	route := &routev1.Route{}
-	routeKey := types.NamespacedName{Name: name, Namespace: ctx.CheCluster.Namespace}
-	if err := ctx.ClusterAPI.Client.Get(context.TODO(), routeKey, route); err != nil {
+	routeKey := types.NamespacedName{Name: name, Namespace: cheCtx.CheCluster.Namespace}
+	if err := cheCtx.ClusterAPI.Client.Get(context.TODO(), routeKey, route); err != nil {
 		if errors.IsNotFound(err) {
 			// Route is not ready
 			return "", nil
@@ -114,7 +114,7 @@ func (r *BaseDomainReconciler) detectOpenShiftRouteBaseDomain(ctx *chetypes.Depl
 	}
 
 	defer func() {
-		if err := ctx.ClusterAPI.Client.Delete(context.TODO(), route); err != nil {
+		if err := cheCtx.ClusterAPI.Client.Delete(context.TODO(), route); err != nil {
 			log.Error(err, "unable to delete test route %s", name)
 		}
 	}()

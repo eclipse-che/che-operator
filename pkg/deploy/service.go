@@ -38,23 +38,23 @@ var ServiceDefaultDiffOpts = cmp.Options{
 }
 
 func SyncServiceToCluster(
-	deployContext *chetypes.DeployContext,
+	cheCtx *chetypes.CheContext,
 	name string,
 	portName []string,
 	portNumber []int32,
 	component string) error {
 
-	serviceSpec := GetServiceSpec(deployContext, name, portName, portNumber, component)
-	return SyncServiceSpecToCluster(deployContext, serviceSpec)
+	serviceSpec := GetServiceSpec(cheCtx, name, portName, portNumber, component)
+	return SyncServiceSpecToCluster(cheCtx, serviceSpec)
 }
 
-func SyncServiceSpecToCluster(deployContext *chetypes.DeployContext, serviceSpec *corev1.Service) error {
-	if err := controllerutil.SetControllerReference(deployContext.CheCluster, serviceSpec, deployContext.ClusterAPI.Scheme); err != nil {
+func SyncServiceSpecToCluster(cheCtx *chetypes.CheContext, serviceSpec *corev1.Service) error {
+	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, serviceSpec, cheCtx.ClusterAPI.Scheme); err != nil {
 		return fmt.Errorf("failed to set owner reference for Service %s/%s: %w", serviceSpec.Namespace, serviceSpec.Name, err)
 	}
 
-	if err := deployContext.ClusterAPI.ClientWrapper.Sync(
-		deployContext.Context,
+	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
+		cheCtx.Context,
 		serviceSpec,
 		&k8sclient.SyncOptions{DiffOpts: ServiceDefaultDiffOpts},
 	); err != nil {
@@ -65,7 +65,7 @@ func SyncServiceSpecToCluster(deployContext *chetypes.DeployContext, serviceSpec
 }
 
 func GetServiceSpec(
-	deployContext *chetypes.DeployContext,
+	cheCtx *chetypes.CheContext,
 	name string,
 	portName []string,
 	portNumber []int32,
@@ -89,7 +89,7 @@ func GetServiceSpec(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: deployContext.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: corev1.ServiceSpec{

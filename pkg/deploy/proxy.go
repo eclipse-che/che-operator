@@ -64,12 +64,12 @@ func ReadClusterWideProxyConfiguration(clusterProxy *configv1.Proxy) (*chetypes.
 	return proxy, nil
 }
 
-func ReadCheClusterProxyConfiguration(ctx *chetypes.DeployContext) (*chetypes.Proxy, error) {
-	if ctx.CheCluster.Spec.Components.CheServer.Proxy == nil {
+func ReadCheClusterProxyConfiguration(cheCtx *chetypes.CheContext) (*chetypes.Proxy, error) {
+	if cheCtx.CheCluster.Spec.Components.CheServer.Proxy == nil {
 		return &chetypes.Proxy{}, nil
 	}
 
-	proxyParts := strings.Split(ctx.CheCluster.Spec.Components.CheServer.Proxy.Url, "://")
+	proxyParts := strings.Split(cheCtx.CheCluster.Spec.Components.CheServer.Proxy.Url, "://")
 	proxyProtocol := ""
 	proxyHost := ""
 	if len(proxyParts) == 1 {
@@ -81,22 +81,22 @@ func ReadCheClusterProxyConfiguration(ctx *chetypes.DeployContext) (*chetypes.Pr
 	}
 
 	proxyURL := proxyHost
-	if ctx.CheCluster.Spec.Components.CheServer.Proxy.Port != "" {
-		proxyURL = proxyURL + ":" + ctx.CheCluster.Spec.Components.CheServer.Proxy.Port
+	if cheCtx.CheCluster.Spec.Components.CheServer.Proxy.Port != "" {
+		proxyURL = proxyURL + ":" + cheCtx.CheCluster.Spec.Components.CheServer.Proxy.Port
 	}
 
 	proxyUser := ""
 	proxyPassword := ""
 
-	proxyCredentialsSecretName := utils.GetValue(ctx.CheCluster.Spec.Components.CheServer.Proxy.CredentialsSecretName, constants.DefaultProxyCredentialsSecret)
+	proxyCredentialsSecretName := utils.GetValue(cheCtx.CheCluster.Spec.Components.CheServer.Proxy.CredentialsSecretName, constants.DefaultProxyCredentialsSecret)
 	proxyCredentialsSecret := &corev1.Secret{}
-	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-		ctx.Context,
-		types.NamespacedName{Name: proxyCredentialsSecretName, Namespace: ctx.CheCluster.Namespace},
+	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		cheCtx.Context,
+		types.NamespacedName{Name: proxyCredentialsSecretName, Namespace: cheCtx.CheCluster.Namespace},
 		proxyCredentialsSecret,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get Secret %s/%s: %w", ctx.CheCluster.Namespace, proxyCredentialsSecretName, err)
+		return nil, fmt.Errorf("failed to get Secret %s/%s: %w", cheCtx.CheCluster.Namespace, proxyCredentialsSecretName, err)
 	} else if exists {
 		proxyUser = string(proxyCredentialsSecret.Data["user"])
 		proxyPassword = string(proxyCredentialsSecret.Data["password"])
@@ -114,16 +114,16 @@ func ReadCheClusterProxyConfiguration(ctx *chetypes.DeployContext) (*chetypes.Pr
 		HttpProxy:    proxyURL,
 		HttpUser:     proxyUser,
 		HttpHost:     proxyHost,
-		HttpPort:     ctx.CheCluster.Spec.Components.CheServer.Proxy.Port,
+		HttpPort:     cheCtx.CheCluster.Spec.Components.CheServer.Proxy.Port,
 		HttpPassword: proxyPassword,
 
 		HttpsProxy:    proxyURL,
 		HttpsUser:     proxyUser,
 		HttpsHost:     proxyHost,
-		HttpsPort:     ctx.CheCluster.Spec.Components.CheServer.Proxy.Port,
+		HttpsPort:     cheCtx.CheCluster.Spec.Components.CheServer.Proxy.Port,
 		HttpsPassword: proxyPassword,
 
-		NoProxy: strings.Join(ctx.CheCluster.Spec.Components.CheServer.Proxy.NonProxyHosts, ","),
+		NoProxy: strings.Join(cheCtx.CheCluster.Spec.Components.CheServer.Proxy.NonProxyHosts, ","),
 	}, nil
 }
 
@@ -173,11 +173,11 @@ func removeProtocolPrefix(url string) string {
 }
 
 // ConfigureProxy adds existing proxy configuration into provided transport object.
-func ConfigureProxy(deployContext *chetypes.DeployContext, transport *http.Transport) {
+func ConfigureProxy(cheCtx *chetypes.CheContext, transport *http.Transport) {
 	config := httpproxy.Config{
-		HTTPProxy:  deployContext.Proxy.HttpProxy,
-		HTTPSProxy: deployContext.Proxy.HttpsProxy,
-		NoProxy:    deployContext.Proxy.NoProxy,
+		HTTPProxy:  cheCtx.Proxy.HttpProxy,
+		HTTPSProxy: cheCtx.Proxy.HttpsProxy,
+		NoProxy:    cheCtx.Proxy.NoProxy,
 	}
 	proxyFunc := config.ProxyFunc()
 	transport.Proxy = func(r *http.Request) (*url.URL, error) {

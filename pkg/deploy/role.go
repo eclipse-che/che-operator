@@ -31,18 +31,18 @@ var roleDiffOpts = cmp.Options{
 }
 
 func SyncRoleToCluster(
-	deployContext *chetypes.DeployContext,
+	cheCtx *chetypes.CheContext,
 	name string,
 	policyRule []rbac.PolicyRule) error {
 
-	roleSpec := getRoleSpec(deployContext, name, policyRule)
+	roleSpec := getRoleSpec(cheCtx, name, policyRule)
 
-	if err := controllerutil.SetControllerReference(deployContext.CheCluster, roleSpec, deployContext.ClusterAPI.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, roleSpec, cheCtx.ClusterAPI.Scheme); err != nil {
 		return fmt.Errorf("failed to set owner reference for Role %s/%s: %w", roleSpec.Namespace, roleSpec.Name, err)
 	}
 
-	if err := deployContext.ClusterAPI.ClientWrapper.Sync(
-		deployContext.Context,
+	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
+		cheCtx.Context,
 		roleSpec,
 		&k8sclient.SyncOptions{DiffOpts: roleDiffOpts},
 	); err != nil {
@@ -52,7 +52,7 @@ func SyncRoleToCluster(
 	return nil
 }
 
-func getRoleSpec(deployContext *chetypes.DeployContext, name string, policyRule []rbac.PolicyRule) *rbac.Role {
+func getRoleSpec(cheCtx *chetypes.CheContext, name string, policyRule []rbac.PolicyRule) *rbac.Role {
 	labels := GetLabels(defaults.GetCheFlavor())
 	role := &rbac.Role{
 		TypeMeta: metav1.TypeMeta{
@@ -61,7 +61,7 @@ func getRoleSpec(deployContext *chetypes.DeployContext, name string, policyRule 
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: deployContext.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Rules: policyRule,

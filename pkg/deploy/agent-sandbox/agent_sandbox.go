@@ -40,13 +40,13 @@ func NewAgentSandboxReconciler() *AgentSandboxReconciler {
 	return &AgentSandboxReconciler{}
 }
 
-func (r *AgentSandboxReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if ctx.CheCluster.IsAgentSandboxEnabled() {
-		if err := r.sync(ctx); err != nil {
+func (r *AgentSandboxReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
+	if cheCtx.CheCluster.IsAgentSandboxEnabled() {
+		if err := r.sync(cheCtx); err != nil {
 			return reconcile.Result{}, false, err
 		}
 	} else {
-		if err := r.delete(ctx); err != nil {
+		if err := r.delete(cheCtx); err != nil {
 			return reconcile.Result{}, false, err
 		}
 	}
@@ -54,8 +54,8 @@ func (r *AgentSandboxReconciler) Reconcile(ctx *chetypes.DeployContext) (reconci
 	return reconcile.Result{}, true, nil
 }
 
-func (r *AgentSandboxReconciler) Finalize(ctx *chetypes.DeployContext) bool {
-	if err := r.delete(ctx); err != nil {
+func (r *AgentSandboxReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
+	if err := r.delete(cheCtx); err != nil {
 		logger.Error(err, "failed to finalize resources")
 		return false
 	}
@@ -63,7 +63,7 @@ func (r *AgentSandboxReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	return true
 }
 
-func (r *AgentSandboxReconciler) sync(ctx *chetypes.DeployContext) error {
+func (r *AgentSandboxReconciler) sync(cheCtx *chetypes.CheContext) error {
 	clusterRole := &rbacv1.ClusterRole{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ClusterRole",
@@ -94,8 +94,8 @@ func (r *AgentSandboxReconciler) sync(ctx *chetypes.DeployContext) error {
 		},
 	}
 
-	if err := ctx.ClusterAPI.ClientWrapper.Sync(
-		ctx.Context,
+	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
+		cheCtx.Context,
 		clusterRole,
 		&k8sclient.SyncOptions{DiffOpts: diffs.ClusterRole},
 	); err != nil {
@@ -105,11 +105,11 @@ func (r *AgentSandboxReconciler) sync(ctx *chetypes.DeployContext) error {
 	return nil
 }
 
-func (r *AgentSandboxReconciler) delete(ctx *chetypes.DeployContext) error {
+func (r *AgentSandboxReconciler) delete(cheCtx *chetypes.CheContext) error {
 	clusterRoleKey := types.NamespacedName{Name: GetUserClusterRoleName()}
 
-	if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
-		ctx.Context,
+	if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+		cheCtx.Context,
 		clusterRoleKey,
 		&rbacv1.ClusterRole{},
 	); err != nil {

@@ -54,25 +54,25 @@ func NewEditorsDefinitionsReconciler() *EditorsDefinitionsReconciler {
 	return &EditorsDefinitionsReconciler{}
 }
 
-func (p *EditorsDefinitionsReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if err := p.syncEditors(ctx); err != nil {
+func (p *EditorsDefinitionsReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
+	if err := p.syncEditors(cheCtx); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
 	return reconcile.Result{}, true, nil
 }
 
-func (p *EditorsDefinitionsReconciler) Finalize(ctx *chetypes.DeployContext) bool {
+func (p *EditorsDefinitionsReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
 	return true
 }
 
-func (p *EditorsDefinitionsReconciler) syncEditors(ctx *chetypes.DeployContext) error {
+func (p *EditorsDefinitionsReconciler) syncEditors(cheCtx *chetypes.CheContext) error {
 	editorDefinitions, err := readEditorDefinitions()
 	if err != nil {
 		return fmt.Errorf("failed to read editors definitions: %w", err)
 	}
 
-	return syncEditorDefinitions(ctx, editorDefinitions)
+	return syncEditorDefinitions(cheCtx, editorDefinitions)
 }
 
 func readEditorDefinitions() (map[string][]byte, error) {
@@ -139,7 +139,7 @@ func updateEditorDefinitionImages(devfile map[string]interface{}) {
 	}
 }
 
-func syncEditorDefinitions(ctx *chetypes.DeployContext, editorDefinitions map[string][]byte) error {
+func syncEditorDefinitions(cheCtx *chetypes.CheContext, editorDefinitions map[string][]byte) error {
 	cm := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
@@ -147,7 +147,7 @@ func syncEditorDefinitions(ctx *chetypes.DeployContext, editorDefinitions map[st
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        editorsDefinitionsConfigMapName,
-			Namespace:   ctx.CheCluster.Namespace,
+			Namespace:   cheCtx.CheCluster.Namespace,
 			Labels:      deploy.GetLabels(constants.EditorDefinitionComponentName),
 			Annotations: map[string]string{},
 		},
@@ -158,12 +158,12 @@ func syncEditorDefinitions(ctx *chetypes.DeployContext, editorDefinitions map[st
 		cm.Data[fileName] = string(content)
 	}
 
-	if err := controllerutil.SetControllerReference(ctx.CheCluster, cm, ctx.ClusterAPI.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, cm, cheCtx.ClusterAPI.Scheme); err != nil {
 		return fmt.Errorf("failed to set owner reference for ConfigMap %s/%s: %w", cm.Namespace, cm.Name, err)
 	}
 
-	if err := ctx.ClusterAPI.ClientWrapper.Sync(
-		ctx.Context,
+	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
+		cheCtx.Context,
 		cm,
 		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
 	); err != nil {

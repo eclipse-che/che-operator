@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -64,25 +64,25 @@ func NewContainerCapabilitiesReconciler() *ContainerCapabilitiesReconciler {
 	}
 }
 
-func (r *ContainerCapabilitiesReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
+func (r *ContainerCapabilitiesReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
 	// If container build/run capabilities are enabled, then container build/run configuration is supposed to be set as well
 	// with default values, see `api/v2/checluster_webhook.go` and `api/v2/checluster_types.go` (for default values).
-	if ctx.CheCluster.IsContainerBuildCapabilitiesEnabled() {
-		if err := r.sync(ctx, r.containerBuildCapability); err != nil {
+	if cheCtx.CheCluster.IsContainerBuildCapabilitiesEnabled() {
+		if err := r.sync(cheCtx, r.containerBuildCapability); err != nil {
 			return reconcile.Result{RequeueAfter: 1 * time.Second}, false, err
 		}
 	} else {
-		if err := r.delete(ctx, r.containerBuildCapability); err != nil {
+		if err := r.delete(cheCtx, r.containerBuildCapability); err != nil {
 			return reconcile.Result{RequeueAfter: 1 * time.Second}, false, err
 		}
 	}
 
-	if ctx.CheCluster.IsContainerRunCapabilitiesEnabled() {
-		if err := r.sync(ctx, r.containerRunCapability); err != nil {
+	if cheCtx.CheCluster.IsContainerRunCapabilitiesEnabled() {
+		if err := r.sync(cheCtx, r.containerRunCapability); err != nil {
 			return reconcile.Result{RequeueAfter: 1 * time.Second}, false, err
 		}
 	} else {
-		if err := r.delete(ctx, r.containerRunCapability); err != nil {
+		if err := r.delete(cheCtx, r.containerRunCapability); err != nil {
 			return reconcile.Result{RequeueAfter: 1 * time.Second}, false, err
 		}
 	}
@@ -90,13 +90,13 @@ func (r *ContainerCapabilitiesReconciler) Reconcile(ctx *chetypes.DeployContext)
 	return reconcile.Result{}, true, nil
 }
 
-func (r *ContainerCapabilitiesReconciler) Finalize(ctx *chetypes.DeployContext) bool {
-	if err := r.delete(ctx, r.containerBuildCapability); err != nil {
+func (r *ContainerCapabilitiesReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
+	if err := r.delete(cheCtx, r.containerBuildCapability); err != nil {
 		logger.Error(err, "Failed to delete container build capability resources")
 		return false
 	}
 
-	if err := r.delete(ctx, r.containerRunCapability); err != nil {
+	if err := r.delete(cheCtx, r.containerRunCapability); err != nil {
 		logger.Error(err, "Failed to delete container run capability resources")
 		return false
 	}
@@ -104,13 +104,13 @@ func (r *ContainerCapabilitiesReconciler) Finalize(ctx *chetypes.DeployContext) 
 	return true
 }
 
-func (r *ContainerCapabilitiesReconciler) sync(ctx *chetypes.DeployContext, cc ContainerCapability) error {
-	sccName := cc.getSCCName(ctx.CheCluster)
+func (r *ContainerCapabilitiesReconciler) sync(cheCtx *chetypes.CheContext, cc ContainerCapability) error {
+	sccName := cc.getSCCName(cheCtx.CheCluster)
 	if sccName == "" {
 		return nil
 	}
 
-	if err := ctx.ClusterAPI.ClientWrapper.Sync(
+	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
 		r.getDWOClusterRole(
 			sccName,
@@ -121,10 +121,10 @@ func (r *ContainerCapabilitiesReconciler) sync(ctx *chetypes.DeployContext, cc C
 		return err
 	}
 
-	if err := ctx.ClusterAPI.ClientWrapper.Sync(
+	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
 		r.getDWClusterRoleBinding(
-			ctx.DWONamespace,
+			cheCtx.DWONamespace,
 			cc.getDWOClusterRoleName(),
 			cc.getDWOClusterRoleBindingName(),
 		),
@@ -133,7 +133,7 @@ func (r *ContainerCapabilitiesReconciler) sync(ctx *chetypes.DeployContext, cc C
 		return err
 	}
 
-	if err := ctx.ClusterAPI.ClientWrapper.Sync(
+	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
 		r.getUserClusterRole(
 			sccName,
@@ -147,7 +147,7 @@ func (r *ContainerCapabilitiesReconciler) sync(ctx *chetypes.DeployContext, cc C
 	sccKey := types.NamespacedName{Name: sccName}
 
 	scc := &securityv1.SecurityContextConstraints{}
-	if exists, err := ctx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(context.TODO(), sccKey, scc); exists {
+	if exists, err := cheCtx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(context.TODO(), sccKey, scc); exists {
 		if deploy.IsOperatorManagedComponent(scc.Labels, defaults.GetCheFlavor()) {
 			// SCC exists and created by operator (custom SCC won't be updated).
 			// Remove priority, see details https://issues.redhat.com/browse/CRW-389
@@ -156,7 +156,7 @@ func (r *ContainerCapabilitiesReconciler) sync(ctx *chetypes.DeployContext, cc C
 			// and avoid endless reconcile loop
 			cc.applySCCSpec(scc)
 
-			if err := ctx.ClusterAPI.NonCachingClientWrapper.Sync(
+			if err := cheCtx.ClusterAPI.NonCachingClientWrapper.Sync(
 				context.TODO(),
 				scc,
 				&k8sclient.SyncOptions{DiffOpts: diffs.SecurityContextConstraints},
@@ -177,7 +177,7 @@ func (r *ContainerCapabilitiesReconciler) sync(ctx *chetypes.DeployContext, cc C
 		}
 		cc.applySCCSpec(scc)
 
-		if err := ctx.ClusterAPI.NonCachingClientWrapper.Create(
+		if err := cheCtx.ClusterAPI.NonCachingClientWrapper.Create(
 			context.TODO(),
 			scc,
 		); err != nil {
@@ -187,15 +187,15 @@ func (r *ContainerCapabilitiesReconciler) sync(ctx *chetypes.DeployContext, cc C
 		return err
 	}
 
-	if err := deploy.AppendFinalizer(ctx, cc.getFinalizer()); err != nil {
+	if err := deploy.AppendFinalizer(cheCtx, cc.getFinalizer()); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r *ContainerCapabilitiesReconciler) delete(ctx *chetypes.DeployContext, cc ContainerCapability) error {
-	if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+func (r *ContainerCapabilitiesReconciler) delete(cheCtx *chetypes.CheContext, cc ContainerCapability) error {
+	if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
 		context.TODO(),
 		types.NamespacedName{Name: cc.getDWOClusterRoleBindingName()},
 		&rbacv1.ClusterRoleBinding{},
@@ -203,7 +203,7 @@ func (r *ContainerCapabilitiesReconciler) delete(ctx *chetypes.DeployContext, cc
 		return err
 	}
 
-	if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+	if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
 		context.TODO(),
 		types.NamespacedName{Name: cc.getDWOClusterRoleName()},
 		&rbacv1.ClusterRole{},
@@ -211,7 +211,7 @@ func (r *ContainerCapabilitiesReconciler) delete(ctx *chetypes.DeployContext, cc
 		return err
 	}
 
-	if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+	if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
 		context.TODO(),
 		types.NamespacedName{Name: cc.GetUserRoleName()},
 		&rbacv1.ClusterRole{},
@@ -219,14 +219,14 @@ func (r *ContainerCapabilitiesReconciler) delete(ctx *chetypes.DeployContext, cc
 		return err
 	}
 
-	sccName := utils.GetValue(cc.getSCCName(ctx.CheCluster), cc.getDefaultSCCName())
+	sccName := utils.GetValue(cc.getSCCName(cheCtx.CheCluster), cc.getDefaultSCCName())
 	sccKey := types.NamespacedName{Name: sccName}
 
 	scc := &securityv1.SecurityContextConstraints{}
-	if exists, err := ctx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(context.TODO(), sccKey, scc); exists {
+	if exists, err := cheCtx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(context.TODO(), sccKey, scc); exists {
 		// Removes only if it is managed by operator
 		if scc.Labels[constants.KubernetesManagedByLabelKey] == deploy.GetManagedByLabel() {
-			if err = ctx.ClusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(
+			if err = cheCtx.ClusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(
 				context.TODO(),
 				sccKey,
 				&securityv1.SecurityContextConstraints{}); err != nil {
@@ -237,7 +237,7 @@ func (r *ContainerCapabilitiesReconciler) delete(ctx *chetypes.DeployContext, cc
 		return err
 	}
 
-	if err := deploy.DeleteFinalizer(ctx, cc.getFinalizer()); err != nil {
+	if err := deploy.DeleteFinalizer(cheCtx, cc.getFinalizer()); err != nil {
 		return err
 	}
 

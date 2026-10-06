@@ -132,9 +132,9 @@ func TestGetSecrets(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			testCase.initObjects = append(testCase.initObjects, runtimeSecrets...)
-			ctx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
+			cheCtx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
 
-			secrets, err := GetSecrets(ctx, testCase.labels, testCase.annotations)
+			secrets, err := GetSecrets(cheCtx, testCase.labels, testCase.annotations)
 			if err != nil {
 				t.Fatalf("Error getting secrets: %v", err)
 			}
@@ -147,21 +147,21 @@ func TestGetSecrets(t *testing.T) {
 }
 
 func TestSyncSecretToCluster(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	err := SyncSecretToCluster(ctx, "test", map[string][]byte{"A": []byte("AAAA")})
+	err := SyncSecretToCluster(cheCtx, "test", map[string][]byte{"A": []byte("AAAA")})
 	if err != nil {
 		t.Fatalf("Failed to sync secret: %v", err)
 	}
 
 	// sync another secret
-	err = SyncSecretToCluster(ctx, "test", map[string][]byte{"B": []byte("BBBB")})
+	err = SyncSecretToCluster(cheCtx, "test", map[string][]byte{"B": []byte("BBBB")})
 	if err != nil {
 		t.Fatalf("Failed to sync secret: %v", err)
 	}
 
 	actual := &corev1.Secret{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
 	if err != nil {
 		t.Fatalf("Failed to get secret: %v", err)
 	}

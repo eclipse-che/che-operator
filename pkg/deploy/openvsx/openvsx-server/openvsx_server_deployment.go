@@ -31,28 +31,28 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-func (r *OpenVSXServerReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
-	spec, err := r.getDeploymentSpec(ctx)
+func (r *OpenVSXServerReconciler) syncDeployment(cheCtx *chetypes.CheContext) (bool, error) {
+	spec, err := r.getDeploymentSpec(cheCtx)
 	if err != nil {
 		return false, fmt.Errorf("failed to get deployment spec: %w", err)
 	}
 
-	return deploy.SyncDeploymentSpecToCluster(ctx, spec, deploy.DefaultDeploymentDiffOpts)
+	return deploy.SyncDeploymentSpecToCluster(cheCtx, spec, deploy.DefaultDeploymentDiffOpts)
 }
 
-func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
-	configRevision, err := r.getConfigRevision(ctx)
+func (r *OpenVSXServerReconciler) getDeploymentSpec(cheCtx *chetypes.CheContext) (*appsv1.Deployment, error) {
+	configRevision, err := r.getConfigRevision(cheCtx)
 	if err != nil {
 		return nil, err
 	}
 
-	image := defaults.GetOpenVSXImage(ctx.CheCluster)
+	image := defaults.GetOpenVSXImage(cheCtx.CheCluster)
 	imagePullPolicy := utils.GetPullPolicyFromDockerImage(image)
 
 	labels := deploy.GetLabels(constants.OpenVSXServerComponentName)
-	credentialsSecretName := openvsx.GetCredentialsSecretName(ctx)
+	credentialsSecretName := openvsx.GetCredentialsSecretName(cheCtx)
 
-	dbImage := defaults.GetOpenVSXDatabaseImage(ctx.CheCluster)
+	dbImage := defaults.GetOpenVSXDatabaseImage(cheCtx.CheCluster)
 	dbImagePullPolicy := utils.GetPullPolicyFromDockerImage(dbImage)
 
 	deployment := &appsv1.Deployment{
@@ -62,7 +62,7 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.OpenVSXServerComponentName,
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -180,7 +180,7 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 							Env: []corev1.EnvVar{
 								{
 									Name:  "OVSX_REGISTRY_URL",
-									Value: openvsx.GetOpenVSXServerServiceURL(ctx),
+									Value: openvsx.GetOpenVSXServerServiceURL(cheCtx),
 								},
 								{
 									Name:  "CONFIG_REVISION",
@@ -235,8 +235,8 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 		constants.DefaultSecurityContextFsGroup,
 	)
 
-	if ctx.CheCluster.Spec.Components.OpenVSXRegistry.Server != nil {
-		if err := deploy.OverrideDeployment(ctx, deployment, ctx.CheCluster.Spec.Components.OpenVSXRegistry.Server.Deployment); err != nil {
+	if cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Server != nil {
+		if err := deploy.OverrideDeployment(cheCtx, deployment, cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Server.Deployment); err != nil {
 			return nil, fmt.Errorf("failed to override deployment: %w", err)
 		}
 	}

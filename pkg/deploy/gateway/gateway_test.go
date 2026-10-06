@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -35,14 +35,14 @@ import (
 )
 
 func TestSyncAllToCluster(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	done, err := SyncGatewayToCluster(ctx)
+	done, err := SyncGatewayToCluster(cheCtx)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
 	deployment := &appsv1.Deployment{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: GatewayServiceName, Namespace: "eclipse-che"}, deployment)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: GatewayServiceName, Namespace: "eclipse-che"}, deployment)
 	if err != nil {
 		t.Fatalf("Failed to get deployment: %v", err)
 	}
@@ -54,21 +54,21 @@ func TestSyncAllToCluster(t *testing.T) {
 	}
 
 	service := &corev1.Service{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: GatewayServiceName, Namespace: "eclipse-che"}, service)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: GatewayServiceName, Namespace: "eclipse-che"}, service)
 	if err != nil {
 		t.Fatalf("Failed to get service: %v", err)
 	}
 }
 
 func TestNativeUserGateway(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	done, err := SyncGatewayToCluster(ctx)
+	done, err := SyncGatewayToCluster(cheCtx)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
 	deployment := &appsv1.Deployment{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: GatewayServiceName, Namespace: "eclipse-che"}, deployment)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: GatewayServiceName, Namespace: "eclipse-che"}, deployment)
 	if err != nil {
 		t.Fatalf("Failed to get deployment: %v", err)
 	}
@@ -87,7 +87,7 @@ func TestNativeUserGateway(t *testing.T) {
 	}
 
 	service := &corev1.Service{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: GatewayServiceName, Namespace: "eclipse-che"}, service)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: GatewayServiceName, Namespace: "eclipse-che"}, service)
 	if err != nil {
 		t.Fatalf("Failed to get service: %v", err)
 	}
@@ -107,7 +107,7 @@ func TestRandomCookieSecret(t *testing.T) {
 
 func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 	t.Run("no skip auth", func(t *testing.T) {
-		ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+		cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
 			Spec: chev2.CheClusterSpec{
 				Components: chev2.CheClusterComponents{
 					PluginRegistry: chev2.PluginRegistry{
@@ -116,7 +116,7 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 				}},
 		}).Build()
 
-		configmap := getGatewayOauthProxyConfigSpec(ctx, "blabol")
+		configmap := getGatewayOauthProxyConfigSpec(cheCtx, "blabol")
 		config := configmap.Data["oauth-proxy.cfg"]
 		if !strings.Contains(config, "skip_auth_regex = \"^/$|/healthz$|^/dashboard/static/preload|^/dashboard/assets/branding/loader.svg$\"") {
 			t.Errorf("oauth config shold not contain any skip auth when both registries are external")
@@ -124,7 +124,7 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 	})
 
 	t.Run("skip plugin registry", func(t *testing.T) {
-		ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+		cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
 			Spec: chev2.CheClusterSpec{
 				Components: chev2.CheClusterComponents{
 					PluginRegistry: chev2.PluginRegistry{
@@ -134,7 +134,7 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 				}},
 		}).Build()
 
-		configmap := getGatewayOauthProxyConfigSpec(ctx, "blabol")
+		configmap := getGatewayOauthProxyConfigSpec(cheCtx, "blabol")
 		config := configmap.Data["oauth-proxy.cfg"]
 		if !strings.Contains(config, "skip_auth_regex = \"^/plugin-registry|^/$|/healthz$|^/dashboard/static/preload|^/dashboard/assets/branding/loader.svg$\"") {
 			t.Error("oauth config should skip auth for plugin and devfile registry.", config)
@@ -142,14 +142,14 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 	})
 
 	t.Run("skip '/healthz' path", func(t *testing.T) {
-		ctx := test.NewCtxBuilder().Build()
-		configmap := getGatewayOauthProxyConfigSpec(ctx, "blabol")
+		cheCtx := test.NewCtxBuilder().Build()
+		configmap := getGatewayOauthProxyConfigSpec(cheCtx, "blabol")
 		config := configmap.Data["oauth-proxy.cfg"]
 		assert.Contains(t, config, "/healthz$")
 	})
 
 	t.Run("skip openvsx", func(t *testing.T) {
-		ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+		cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
 			Spec: chev2.CheClusterSpec{
 				Components: chev2.CheClusterComponents{
 					PluginRegistry: chev2.PluginRegistry{
@@ -161,7 +161,7 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 				}},
 		}).Build()
 
-		configmap := getGatewayOauthProxyConfigSpec(ctx, "blabol")
+		configmap := getGatewayOauthProxyConfigSpec(cheCtx, "blabol")
 		config := configmap.Data["oauth-proxy.cfg"]
 		assert.Contains(t, config, "^/openvsx")
 	})
@@ -171,7 +171,7 @@ func TestTokenValidityCheckOnOpenShiftNativeUser(t *testing.T) {
 	_ = chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
 	_ = corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
 
-	cm, err := getGatewayServerConfigSpec(&chetypes.DeployContext{
+	cm, err := getGatewayServerConfigSpec(&chetypes.CheContext{
 		CheCluster: &chev2.CheCluster{},
 		ClusterAPI: chetypes.ClusterAPI{
 			Scheme: scheme.Scheme,
@@ -226,9 +226,9 @@ func TestCustomizeGatewayDeploymentAllImages(t *testing.T) {
 			},
 		},
 	}
-	ctx := test.NewCtxBuilder().WithCheCluster(checluster).Build()
+	cheCtx := test.NewCtxBuilder().WithCheCluster(checluster).Build()
 
-	deployment, err := getGatewayDeploymentSpec(ctx)
+	deployment, err := getGatewayDeploymentSpec(cheCtx)
 	assert.NoError(t, err)
 	containers := deployment.Spec.Template.Spec.Containers
 	assert.Equal(t, constants.GatewayContainerName, containers[0].Name)
@@ -267,9 +267,9 @@ func TestCustomizeGatewayDeploymentSingleImage(t *testing.T) {
 			},
 		},
 	}
-	ctx := test.NewCtxBuilder().WithCheCluster(checluster).Build()
+	cheCtx := test.NewCtxBuilder().WithCheCluster(checluster).Build()
 
-	deployment, err := getGatewayDeploymentSpec(ctx)
+	deployment, err := getGatewayDeploymentSpec(cheCtx)
 	assert.NoError(t, err)
 
 	containers := deployment.Spec.Template.Spec.Containers
@@ -336,9 +336,9 @@ func TestKubeRbacProxyLogLevel(t *testing.T) {
 			},
 		},
 	}
-	ctx := test.NewCtxBuilder().WithCheCluster(checluster).Build()
+	cheCtx := test.NewCtxBuilder().WithCheCluster(checluster).Build()
 
-	deployment, err := getGatewayDeploymentSpec(ctx)
+	deployment, err := getGatewayDeploymentSpec(cheCtx)
 	assert.NoError(t, err)
 
 	containers := deployment.Spec.Template.Spec.Containers
@@ -347,9 +347,9 @@ func TestKubeRbacProxyLogLevel(t *testing.T) {
 }
 
 func TestKubeRbacProxyLogLevelDefault(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	deployment, err := getGatewayDeploymentSpec(ctx)
+	deployment, err := getGatewayDeploymentSpec(cheCtx)
 	assert.NoError(t, err)
 
 	containers := deployment.Spec.Template.Spec.Containers

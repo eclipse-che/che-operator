@@ -22,14 +22,14 @@ import (
 )
 
 func TestSyncServiceAccountToCluster(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	err := SyncServiceAccountToCluster(ctx, "test")
+	err := SyncServiceAccountToCluster(cheCtx, "test")
 	assert.NoError(t, err)
 
-	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-		ctx.Context,
-		types.NamespacedName{Name: "test", Namespace: ctx.CheCluster.Namespace},
+	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		cheCtx.Context,
+		types.NamespacedName{Name: "test", Namespace: cheCtx.CheCluster.Namespace},
 		&corev1.ServiceAccount{},
 	)
 	assert.NoError(t, err)

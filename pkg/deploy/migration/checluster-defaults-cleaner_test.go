@@ -106,17 +106,17 @@ func TestCheClusterDefaultsCleanerShouldNotChangeValuesOnInstallation(t *testing
 
 			cheClusterCopy := testCase.cheCluster.DeepCopy()
 
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 			cheClusterDefaultsCleanup := NewCheClusterDefaultsCleaner()
 
-			test.EnsureReconcile(t, ctx, cheClusterDefaultsCleanup.Reconcile)
+			test.EnsureReconcile(t, cheCtx, cheClusterDefaultsCleanup.Reconcile)
 
-			assert.Equal(t, cheClusterCopy.Spec.DevEnvironments.DefaultEditor, ctx.CheCluster.Spec.DevEnvironments.DefaultEditor)
-			assert.Equal(t, cheClusterCopy.Spec.DevEnvironments.DefaultComponents, ctx.CheCluster.Spec.DevEnvironments.DefaultComponents)
-			assert.Equal(t, cheClusterCopy.Spec.DevEnvironments.DisableContainerBuildCapabilities, ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities)
-			assert.Equal(t, cheClusterCopy.Spec.Components.PluginRegistry.OpenVSXURL, ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL)
-			assert.Equal(t, cheClusterCopy.Spec.Components.Dashboard.HeaderMessage, ctx.CheCluster.Spec.Components.Dashboard.HeaderMessage)
-			assert.Equal(t, cheClusterCopy.Spec.Components.CheServer.Deployment.Containers[0].Resources, ctx.CheCluster.Spec.Components.CheServer.Deployment.Containers[0].Resources)
+			assert.Equal(t, cheClusterCopy.Spec.DevEnvironments.DefaultEditor, cheCtx.CheCluster.Spec.DevEnvironments.DefaultEditor)
+			assert.Equal(t, cheClusterCopy.Spec.DevEnvironments.DefaultComponents, cheCtx.CheCluster.Spec.DevEnvironments.DefaultComponents)
+			assert.Equal(t, cheClusterCopy.Spec.DevEnvironments.DisableContainerBuildCapabilities, cheCtx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities)
+			assert.Equal(t, cheClusterCopy.Spec.Components.PluginRegistry.OpenVSXURL, cheCtx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL)
+			assert.Equal(t, cheClusterCopy.Spec.Components.Dashboard.HeaderMessage, cheCtx.CheCluster.Spec.Components.Dashboard.HeaderMessage)
+			assert.Equal(t, cheClusterCopy.Spec.Components.CheServer.Deployment.Containers[0].Resources, cheCtx.CheCluster.Spec.Components.CheServer.Deployment.Containers[0].Resources)
 		})
 	}
 }
@@ -188,19 +188,19 @@ func TestCheClusterDefaultsCleanerDefaultEditor(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			infrastructure.InitializeForTesting(testCase.infra)
 
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 			cheClusterDefaultsCleanup := NewCheClusterDefaultsCleaner()
 
-			test.EnsureReconcile(t, ctx, cheClusterDefaultsCleanup.Reconcile)
+			test.EnsureReconcile(t, cheCtx, cheClusterDefaultsCleanup.Reconcile)
 
-			assert.Equal(t, testCase.expectedDefaultEditor, ctx.CheCluster.Spec.DevEnvironments.DefaultEditor)
+			assert.Equal(t, testCase.expectedDefaultEditor, cheCtx.CheCluster.Spec.DevEnvironments.DefaultEditor)
 
-			cheClusterFields := cheClusterDefaultsCleanup.getProcessedFields(ctx)
+			cheClusterFields := cheClusterDefaultsCleanup.getProcessedFields(cheCtx)
 			assert.Equal(t, "true", cheClusterFields["spec.devEnvironments.defaultEditor"])
 
-			test.EnsureReconcile(t, ctx, cheClusterDefaultsCleanup.Reconcile)
+			test.EnsureReconcile(t, cheCtx, cheClusterDefaultsCleanup.Reconcile)
 
-			assert.Equal(t, testCase.expectedDefaultEditor, ctx.CheCluster.Spec.DevEnvironments.DefaultEditor)
+			assert.Equal(t, testCase.expectedDefaultEditor, cheCtx.CheCluster.Spec.DevEnvironments.DefaultEditor)
 		})
 	}
 }
@@ -305,19 +305,19 @@ func TestCheClusterDefaultsCleanerDefaultComponents(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			infrastructure.InitializeForTesting(testCase.infra)
 
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 			cheClusterDefaultsCleanup := NewCheClusterDefaultsCleaner()
 
-			test.EnsureReconcile(t, ctx, cheClusterDefaultsCleanup.Reconcile)
+			test.EnsureReconcile(t, cheCtx, cheClusterDefaultsCleanup.Reconcile)
 
-			assert.Equal(t, testCase.expectedDefaultComponents, ctx.CheCluster.Spec.DevEnvironments.DefaultComponents)
+			assert.Equal(t, testCase.expectedDefaultComponents, cheCtx.CheCluster.Spec.DevEnvironments.DefaultComponents)
 
-			cheClusterFields := cheClusterDefaultsCleanup.getProcessedFields(ctx)
+			cheClusterFields := cheClusterDefaultsCleanup.getProcessedFields(cheCtx)
 			assert.Equal(t, "true", cheClusterFields["spec.devEnvironments.defaultComponents"])
 
-			test.EnsureReconcile(t, ctx, cheClusterDefaultsCleanup.Reconcile)
+			test.EnsureReconcile(t, cheCtx, cheClusterDefaultsCleanup.Reconcile)
 
-			assert.Equal(t, testCase.expectedDefaultComponents, ctx.CheCluster.Spec.DevEnvironments.DefaultComponents)
+			assert.Equal(t, testCase.expectedDefaultComponents, cheCtx.CheCluster.Spec.DevEnvironments.DefaultComponents)
 		})
 	}
 }
@@ -394,19 +394,19 @@ func TestCheClusterDefaultsCleanerOpenVSXURL(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 			cheClusterDefaultsCleanup := NewCheClusterDefaultsCleaner()
 
-			test.EnsureReconcile(t, ctx, cheClusterDefaultsCleanup.Reconcile)
+			test.EnsureReconcile(t, cheCtx, cheClusterDefaultsCleanup.Reconcile)
 
-			assert.Equal(t, testCase.expectedOpenVSXURL, ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL)
+			assert.Equal(t, testCase.expectedOpenVSXURL, cheCtx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL)
 
-			cheClusterFields := cheClusterDefaultsCleanup.getProcessedFields(ctx)
+			cheClusterFields := cheClusterDefaultsCleanup.getProcessedFields(cheCtx)
 			assert.Equal(t, "true", cheClusterFields["spec.components.pluginRegistry.openVSXURL"])
 
-			test.EnsureReconcile(t, ctx, cheClusterDefaultsCleanup.Reconcile)
+			test.EnsureReconcile(t, cheCtx, cheClusterDefaultsCleanup.Reconcile)
 
-			assert.Equal(t, testCase.expectedOpenVSXURL, ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL)
+			assert.Equal(t, testCase.expectedOpenVSXURL, cheCtx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL)
 		})
 	}
 }
@@ -502,19 +502,19 @@ func TestCheClusterDefaultsCleanerDashboardHeaderMessage(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			infrastructure.InitializeForTesting(testCase.infra)
 
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 			cheClusterDefaultsCleanup := NewCheClusterDefaultsCleaner()
 
-			test.EnsureReconcile(t, ctx, cheClusterDefaultsCleanup.Reconcile)
+			test.EnsureReconcile(t, cheCtx, cheClusterDefaultsCleanup.Reconcile)
 
-			assert.Equal(t, testCase.expectedHeaderMessage, ctx.CheCluster.Spec.Components.Dashboard.HeaderMessage)
+			assert.Equal(t, testCase.expectedHeaderMessage, cheCtx.CheCluster.Spec.Components.Dashboard.HeaderMessage)
 
-			cheClusterFields := cheClusterDefaultsCleanup.getProcessedFields(ctx)
+			cheClusterFields := cheClusterDefaultsCleanup.getProcessedFields(cheCtx)
 			assert.Equal(t, "true", cheClusterFields["spec.components.dashboard.headerMessage"])
 
-			test.EnsureReconcile(t, ctx, cheClusterDefaultsCleanup.Reconcile)
+			test.EnsureReconcile(t, cheCtx, cheClusterDefaultsCleanup.Reconcile)
 
-			assert.Equal(t, testCase.expectedHeaderMessage, ctx.CheCluster.Spec.Components.Dashboard.HeaderMessage)
+			assert.Equal(t, testCase.expectedHeaderMessage, cheCtx.CheCluster.Spec.Components.Dashboard.HeaderMessage)
 		})
 	}
 }
@@ -567,20 +567,20 @@ func TestCheClusterDefaultsCleanerDisableContainerBuildCapabilities(t *testing.T
 		t.Run(testCase.name, func(t *testing.T) {
 			infrastructure.InitializeForTesting(testCase.infra)
 
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 			cheClusterDefaultsCleanup := NewCheClusterDefaultsCleaner()
 
-			test.EnsureReconcile(t, ctx, cheClusterDefaultsCleanup.Reconcile)
+			test.EnsureReconcile(t, cheCtx, cheClusterDefaultsCleanup.Reconcile)
 
-			assert.Equal(t, testCase.expectedDisableContainerBuildCapabilities, ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities)
+			assert.Equal(t, testCase.expectedDisableContainerBuildCapabilities, cheCtx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities)
 
-			cheClusterFields := cheClusterDefaultsCleanup.getProcessedFields(ctx)
+			cheClusterFields := cheClusterDefaultsCleanup.getProcessedFields(cheCtx)
 			assert.Equal(t, "true", cheClusterFields["spec.devEnvironments.disableContainerBuildCapabilities"])
 
 			// run twice to check that fields are not changed
-			test.EnsureReconcile(t, ctx, cheClusterDefaultsCleanup.Reconcile)
+			test.EnsureReconcile(t, cheCtx, cheClusterDefaultsCleanup.Reconcile)
 
-			assert.Equal(t, testCase.expectedDisableContainerBuildCapabilities, ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities)
+			assert.Equal(t, testCase.expectedDisableContainerBuildCapabilities, cheCtx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities)
 		})
 	}
 }
@@ -705,20 +705,20 @@ func TestCheClusterDefaultsCleanerContainerResources(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 			cheClusterDefaultsCleanup := NewCheClusterDefaultsCleaner()
 
-			test.EnsureReconcile(t, ctx, cheClusterDefaultsCleanup.Reconcile)
+			test.EnsureReconcile(t, cheCtx, cheClusterDefaultsCleanup.Reconcile)
 
-			assert.Equal(t, testCase.expectedDeployment, ctx.CheCluster.Spec.Components.CheServer.Deployment)
+			assert.Equal(t, testCase.expectedDeployment, cheCtx.CheCluster.Spec.Components.CheServer.Deployment)
 
-			cheClusterFields := cheClusterDefaultsCleanup.getProcessedFields(ctx)
+			cheClusterFields := cheClusterDefaultsCleanup.getProcessedFields(cheCtx)
 			assert.Equal(t, "true", cheClusterFields["containers.resources"])
 
 			// run twice to check that fields are not changed
-			test.EnsureReconcile(t, ctx, cheClusterDefaultsCleanup.Reconcile)
+			test.EnsureReconcile(t, cheCtx, cheClusterDefaultsCleanup.Reconcile)
 
-			assert.Equal(t, testCase.expectedDeployment, ctx.CheCluster.Spec.Components.CheServer.Deployment)
+			assert.Equal(t, testCase.expectedDeployment, cheCtx.CheCluster.Spec.Components.CheServer.Deployment)
 		})
 	}
 }
@@ -858,14 +858,14 @@ func TestCheClusterDefaultsCleanerContainerRunConfiguration(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 			defaultsCleanup := NewCheClusterDefaultsCleaner()
 
 			// run twice, to ensure nothing changes
 			for i := 0; i < 2; i++ {
-				test.EnsureReconcile(t, ctx, defaultsCleanup.Reconcile)
+				test.EnsureReconcile(t, cheCtx, defaultsCleanup.Reconcile)
 
-				runConfiguration := ctx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration
+				runConfiguration := cheCtx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration
 				if testCase.expectedCapabilities == nil {
 					assert.True(
 						t,
@@ -878,7 +878,7 @@ func TestCheClusterDefaultsCleanerContainerRunConfiguration(t *testing.T) {
 					assert.Equal(t, testCase.expectedCapabilities, runConfiguration.ContainerSecurityContext.Capabilities.Add)
 				}
 
-				fields := defaultsCleanup.getProcessedFields(ctx)
+				fields := defaultsCleanup.getProcessedFields(cheCtx)
 				assert.Equal(t, "true", fields["spec.devEnvironments.containerRunConfiguration.containerSecurityContext.capabilities.add"])
 			}
 		})

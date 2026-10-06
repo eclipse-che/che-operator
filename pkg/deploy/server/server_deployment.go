@@ -30,17 +30,17 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
-	selfSignedCASecretExists, err := tls.IsSelfSignedCASecretExists(ctx)
+func (s CheServerReconciler) getDeploymentSpec(cheCtx *chetypes.CheContext) (*appsv1.Deployment, error) {
+	selfSignedCASecretExists, err := tls.IsSelfSignedCASecretExists(cheCtx)
 	if err != nil {
 		return nil, err
 	}
 
-	cmResourceVersions, err := s.getConfigMapRevision(ctx)
+	cmResourceVersions, err := s.getConfigMapRevision(cheCtx)
 	if err != nil {
 		return nil, err
 	}
-	cmResourceVersions += "," + tls.GetAdditionalCACertsConfigMapVersion(ctx)
+	cmResourceVersions += "," + tls.GetAdditionalCACertsConfigMapVersion(cheCtx)
 
 	terminationGracePeriodSeconds := int64(30)
 	labels, labelSelector := deploy.GetLabelsAndSelector(defaults.GetCheFlavor())
@@ -99,7 +99,7 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 		Value: "true",
 	})
 
-	image := defaults.GetCheServerImage(ctx.CheCluster)
+	image := defaults.GetCheServerImage(cheCtx.CheCluster)
 	pullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(image))
 
 	deployment := &appsv1.Deployment{
@@ -109,7 +109,7 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      defaults.GetCheFlavor(),
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -174,29 +174,29 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 		},
 	}
 
-	err = MountBitBucketOAuthConfig(ctx, deployment)
+	err = MountBitBucketOAuthConfig(cheCtx, deployment)
 	if err != nil {
 		return nil, err
 	}
 
-	err = MountGitHubOAuthConfig(ctx, deployment)
+	err = MountGitHubOAuthConfig(cheCtx, deployment)
 	if err != nil {
 		return nil, err
 	}
 
-	err = MountGitLabOAuthConfig(ctx, deployment)
+	err = MountGitLabOAuthConfig(cheCtx, deployment)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := MountAzureDevOpsOAuthConfig(ctx, deployment); err != nil {
+	if err := MountAzureDevOpsOAuthConfig(cheCtx, deployment); err != nil {
 		return nil, err
 	}
 
 	container := &deployment.Spec.Template.Spec.Containers[0]
 
 	// configure probes if debug isn't set
-	if ctx.CheCluster.Spec.Components.CheServer.Debug == nil || !*ctx.CheCluster.Spec.Components.CheServer.Debug {
+	if cheCtx.CheCluster.Spec.Components.CheServer.Debug == nil || !*cheCtx.CheCluster.Spec.Components.CheServer.Debug {
 		container.ReadinessProbe = &corev1.Probe{
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
@@ -242,15 +242,15 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext) (*ap
 		constants.DefaultSecurityContextFsGroup,
 	)
 
-	if err := deploy.OverrideDeployment(ctx, deployment, ctx.CheCluster.Spec.Components.CheServer.Deployment); err != nil {
+	if err := deploy.OverrideDeployment(cheCtx, deployment, cheCtx.CheCluster.Spec.Components.CheServer.Deployment); err != nil {
 		return nil, err
 	}
 
 	return deployment, nil
 }
 
-func MountBitBucketOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1.Deployment) error {
-	secret, err := getOAuthConfigSecret(ctx, constants.BitbucketOAuth)
+func MountBitBucketOAuthConfig(cheCtx *chetypes.CheContext, deployment *appsv1.Deployment) error {
+	secret, err := getOAuthConfigSecret(cheCtx, constants.BitbucketOAuth)
 	if secret == nil {
 		return err
 	}
@@ -272,8 +272,8 @@ func MountBitBucketOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1.D
 	return nil
 }
 
-func MountGitHubOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1.Deployment) error {
-	secrets, err := deploy.GetSecrets(ctx, map[string]string{
+func MountGitHubOAuthConfig(cheCtx *chetypes.CheContext, deployment *appsv1.Deployment) error {
+	secrets, err := deploy.GetSecrets(cheCtx, map[string]string{
 		constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
 		constants.KubernetesComponentLabelKey: constants.OAuthScmConfiguration,
 	}, map[string]string{
@@ -309,8 +309,8 @@ func MountGitHubOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1.Depl
 	return nil
 }
 
-func MountAzureDevOpsOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1.Deployment) error {
-	secret, err := getOAuthConfigSecret(ctx, constants.AzureDevOpsOAuth)
+func MountAzureDevOpsOAuthConfig(cheCtx *chetypes.CheContext, deployment *appsv1.Deployment) error {
+	secret, err := getOAuthConfigSecret(cheCtx, constants.AzureDevOpsOAuth)
 	if secret == nil {
 		return err
 	}
@@ -323,8 +323,8 @@ func MountAzureDevOpsOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1
 	return nil
 }
 
-func MountGitLabOAuthConfig(ctx *chetypes.DeployContext, deployment *appsv1.Deployment) error {
-	secrets, err := deploy.GetSecrets(ctx, map[string]string{
+func MountGitLabOAuthConfig(cheCtx *chetypes.CheContext, deployment *appsv1.Deployment) error {
+	secrets, err := deploy.GetSecrets(cheCtx, map[string]string{
 		constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
 		constants.KubernetesComponentLabelKey: constants.OAuthScmConfiguration,
 	}, map[string]string{

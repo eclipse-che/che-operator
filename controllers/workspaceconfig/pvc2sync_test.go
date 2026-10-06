@@ -29,7 +29,7 @@ import (
 )
 
 func TestSyncPVC(t *testing.T) {
-	deployContext := test.NewCtxBuilder().WithObjects(
+	cheCtx := test.NewCtxBuilder().WithObjects(
 		&corev1.PersistentVolumeClaim{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "PersistentVolumeClaim",
@@ -53,11 +53,11 @@ func TestSyncPVC(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Scheme,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
-			Client: deployContext.ClusterAPI.Client,
+			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
@@ -76,7 +76,7 @@ func TestSyncPVC(t *testing.T) {
 
 	// Check if PVC in a user namespace is created
 	pvc := &corev1.PersistentVolumeClaim{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, pvc)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, pvc)
 	assert.Nil(t, err)
 	assert.Equal(t, constants.WorkspacesConfig, pvc.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.CheEclipseOrg, pvc.Labels[constants.KubernetesPartOfLabelKey])
@@ -84,10 +84,10 @@ func TestSyncPVC(t *testing.T) {
 
 	// Update src PVC
 	pvc = &corev1.PersistentVolumeClaim{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInCheNs, pvc)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInCheNs, pvc)
 	assert.Nil(t, err)
 	pvc.Spec.Resources.Requests[corev1.ResourceStorage] = resource.MustParse("2Gi")
-	err = deployContext.ClusterAPI.Client.Update(context.TODO(), pvc)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), pvc)
 	assert.Nil(t, err)
 
 	// Sync PVC
@@ -97,14 +97,14 @@ func TestSyncPVC(t *testing.T) {
 
 	// Check that destination PVC is not updated
 	pvc = &corev1.PersistentVolumeClaim{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, pvc)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, pvc)
 	assert.Nil(t, err)
 	assert.Equal(t, constants.WorkspacesConfig, pvc.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.CheEclipseOrg, pvc.Labels[constants.KubernetesPartOfLabelKey])
 	assert.True(t, pvc.Spec.Resources.Requests[corev1.ResourceStorage].Equal(resource.MustParse("1Gi")))
 
 	// Delete dst PVC
-	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInUserNs, &corev1.PersistentVolumeClaim{})
+	err = cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInUserNs, &corev1.PersistentVolumeClaim{})
 	assert.Nil(t, err)
 
 	// Sync PVC
@@ -114,14 +114,14 @@ func TestSyncPVC(t *testing.T) {
 
 	// Check if PVC in a user namespace is created again
 	pvc = &corev1.PersistentVolumeClaim{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, pvc)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, pvc)
 	assert.Nil(t, err)
 	assert.Equal(t, constants.WorkspacesConfig, pvc.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.CheEclipseOrg, pvc.Labels[constants.KubernetesPartOfLabelKey])
 	assert.True(t, pvc.Spec.Resources.Requests[corev1.ResourceStorage].Equal(resource.MustParse("2Gi")))
 
 	// Delete src PVC
-	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &corev1.PersistentVolumeClaim{})
+	err = cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &corev1.PersistentVolumeClaim{})
 	assert.Nil(t, err)
 
 	// Sync PVC
@@ -131,12 +131,12 @@ func TestSyncPVC(t *testing.T) {
 
 	// Check that destination PersistentVolumeClaim in a user namespace is NOT deleted
 	pvc = &corev1.PersistentVolumeClaim{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, pvc)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, pvc)
 	assert.Nil(t, err)
 }
 
 func TestSyncPVCShouldRetainIfAnnotationSetTrue(t *testing.T) {
-	deployContext := test.NewCtxBuilder().WithObjects(
+	cheCtx := test.NewCtxBuilder().WithObjects(
 		&corev1.PersistentVolumeClaim{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "PersistentVolumeClaim",
@@ -156,11 +156,11 @@ func TestSyncPVCShouldRetainIfAnnotationSetTrue(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Scheme,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
-			Client: deployContext.ClusterAPI.Client,
+			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
@@ -179,12 +179,12 @@ func TestSyncPVCShouldRetainIfAnnotationSetTrue(t *testing.T) {
 
 	// Check if PVC in a user namespace is created
 	pvc := &corev1.PersistentVolumeClaim{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, pvc)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, pvc)
 	assert.Nil(t, err)
 	assert.Equal(t, "true", pvc.Annotations[syncRetainOnDeleteAnnotation])
 
 	// Delete src PVC
-	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &corev1.PersistentVolumeClaim{})
+	err = cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &corev1.PersistentVolumeClaim{})
 	assert.Nil(t, err)
 
 	// Sync PVC
@@ -193,12 +193,12 @@ func TestSyncPVCShouldRetainIfAnnotationSetTrue(t *testing.T) {
 	assertSyncConfig(t, workspaceConfigReconciler, 0, v1PvcGKV)
 
 	// Check that destination PVC in a user namespace is NOT deleted
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, &corev1.PersistentVolumeClaim{})
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, &corev1.PersistentVolumeClaim{})
 	assert.NoError(t, err)
 }
 
 func TestSyncPVCShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
-	deployContext := test.NewCtxBuilder().WithObjects(
+	cheCtx := test.NewCtxBuilder().WithObjects(
 		&corev1.PersistentVolumeClaim{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "PersistentVolumeClaim",
@@ -218,11 +218,11 @@ func TestSyncPVCShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Scheme,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
-			Client: deployContext.ClusterAPI.Client,
+			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
@@ -241,12 +241,12 @@ func TestSyncPVCShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 
 	// Check if PVC in a user namespace is created
 	pvc := &corev1.PersistentVolumeClaim{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, pvc)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, pvc)
 	assert.Nil(t, err)
 	assert.Equal(t, "false", pvc.Annotations[syncRetainOnDeleteAnnotation])
 
 	// Delete src PVC
-	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &corev1.PersistentVolumeClaim{})
+	err = cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &corev1.PersistentVolumeClaim{})
 	assert.Nil(t, err)
 
 	// Sync PVC
@@ -255,7 +255,7 @@ func TestSyncPVCShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 	assertSyncConfig(t, workspaceConfigReconciler, 0, v1PvcGKV)
 
 	// Check that destination PVC in a user namespace is deleted
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, &corev1.PersistentVolumeClaim{})
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, &corev1.PersistentVolumeClaim{})
 	assert.NotNil(t, err)
 	assert.True(t, errors.IsNotFound(err))
 }

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -99,10 +99,10 @@ func TestDeployment(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
 
 			server := NewCheServerReconciler()
-			deployment, err := server.getDeploymentSpec(ctx)
+			deployment, err := server.getDeploymentSpec(cheCtx)
 
 			assert.Nil(t, err)
 			test.CompareResources(deployment,
@@ -177,10 +177,10 @@ func TestMountBitBucketServerOAuthEnvVar(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
+			cheCtx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
 
 			server := NewCheServerReconciler()
-			deployment, err := server.getDeploymentSpec(ctx)
+			deployment, err := server.getDeploymentSpec(cheCtx)
 			assert.Nil(t, err, "Unexpected error occurred %v", err)
 
 			container := &deployment.Spec.Template.Spec.Containers[0]
@@ -261,10 +261,10 @@ func TestMountBitbucketOAuthEnvVar(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
+			cheCtx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
 
 			server := NewCheServerReconciler()
-			deployment, err := server.getDeploymentSpec(ctx)
+			deployment, err := server.getDeploymentSpec(cheCtx)
 			assert.Nil(t, err, "Unexpected error %v", err)
 
 			container := &deployment.Spec.Template.Spec.Containers[0]
@@ -335,10 +335,10 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 		},
 	}
 
-	ctx := test.NewCtxBuilder().WithObjects(secret1).WithObjects(secret2).Build()
+	cheCtx := test.NewCtxBuilder().WithObjects(secret1).WithObjects(secret2).Build()
 
 	server := NewCheServerReconciler()
-	deployment, err := server.getDeploymentSpec(ctx)
+	deployment, err := server.getDeploymentSpec(cheCtx)
 	assert.Nil(t, err, "Unexpected error %v", err)
 
 	container := &deployment.Spec.Template.Spec.Containers[0]
@@ -452,10 +452,10 @@ func TestMountAzureDevOpsOAuthEnvVar(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
+			cheCtx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
 
 			server := NewCheServerReconciler()
-			deployment, err := server.getDeploymentSpec(ctx)
+			deployment, err := server.getDeploymentSpec(cheCtx)
 			assert.Nil(t, err, "Unexpected error %v", err)
 
 			container := &deployment.Spec.Template.Spec.Containers[0]
@@ -528,10 +528,10 @@ func TestMountGitLabOAuthEnvVar(t *testing.T) {
 		},
 	}
 
-	ctx := test.NewCtxBuilder().WithObjects(secret1).WithObjects(secret2).Build()
+	cheCtx := test.NewCtxBuilder().WithObjects(secret1).WithObjects(secret2).Build()
 
 	server := NewCheServerReconciler()
-	deployment, err := server.getDeploymentSpec(ctx)
+	deployment, err := server.getDeploymentSpec(cheCtx)
 	assert.Nil(t, err, "Unexpected error %v", err)
 
 	container := &deployment.Spec.Template.Spec.Containers[0]

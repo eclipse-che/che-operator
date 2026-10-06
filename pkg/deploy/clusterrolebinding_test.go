@@ -22,27 +22,27 @@ import (
 )
 
 func TestSyncClusterRoleBindingToCluster(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	err := SyncClusterRoleBindingToCluster(ctx, "test", "sa", "clusterrole-1")
+	err := SyncClusterRoleBindingToCluster(cheCtx, "test", "sa", "clusterrole-1")
 	if err != nil {
 		t.Fatalf("Failed to sync crb: %v", err)
 	}
 
 	// sync a new cluster role binding
-	err = SyncClusterRoleBindingToCluster(ctx, "test", "sa", "clusterrole-2")
+	err = SyncClusterRoleBindingToCluster(cheCtx, "test", "sa", "clusterrole-2")
 	if err != nil {
 		t.Fatalf("Failed to sync crb: %v", err)
 	}
 
 	// sync twice to be sure update done correctly
-	err = SyncClusterRoleBindingToCluster(ctx, "test", "sa", "clusterrole-2")
+	err = SyncClusterRoleBindingToCluster(cheCtx, "test", "sa", "clusterrole-2")
 	if err != nil {
 		t.Fatalf("Failed to sync crb: %v", err)
 	}
 
 	actual := &rbacv1.ClusterRoleBinding{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test"}, actual)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test"}, actual)
 	if err != nil {
 		t.Fatalf("Failed to get crb: %v", err)
 	}

@@ -39,50 +39,50 @@ func NewGatewayPermissionsReconciler() *GatewayPermissionsReconciler {
 	return &GatewayPermissionsReconciler{}
 }
 
-func (gp *GatewayPermissionsReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	name := gp.gatewayPermissionsName(ctx.CheCluster)
-	if err := deploy.SyncClusterRoleToCluster(ctx, name, gp.getGatewayClusterRoleRules()); err != nil {
+func (gp *GatewayPermissionsReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
+	name := gp.gatewayPermissionsName(cheCtx.CheCluster)
+	if err := deploy.SyncClusterRoleToCluster(cheCtx, name, gp.getGatewayClusterRoleRules()); err != nil {
 		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
-	if err := deploy.SyncClusterRoleBindingToCluster(ctx, name, gateway.GatewayServiceName, name); err != nil {
+	if err := deploy.SyncClusterRoleBindingToCluster(cheCtx, name, gateway.GatewayServiceName, name); err != nil {
 		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
-	if err := deploy.AppendFinalizer(ctx, CheGatewayClusterPermissionsFinalizerName); err != nil {
+	if err := deploy.AppendFinalizer(cheCtx, CheGatewayClusterPermissionsFinalizerName); err != nil {
 		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
 	return reconcile.Result{}, true, nil
 }
 
-func (gp *GatewayPermissionsReconciler) Finalize(ctx *chetypes.DeployContext) bool {
-	if _, err := gp.deleteGatewayPermissions(ctx); err != nil {
+func (gp *GatewayPermissionsReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
+	if _, err := gp.deleteGatewayPermissions(cheCtx); err != nil {
 		logrus.Errorf("Error deleting finalizer: %v", err)
 		return false
 	}
 	return true
 }
 
-func (gp *GatewayPermissionsReconciler) deleteGatewayPermissions(deployContext *chetypes.DeployContext) (bool, error) {
-	name := gp.gatewayPermissionsName(deployContext.CheCluster)
-	if err := deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
-		deployContext.Context,
+func (gp *GatewayPermissionsReconciler) deleteGatewayPermissions(cheCtx *chetypes.CheContext) (bool, error) {
+	name := gp.gatewayPermissionsName(cheCtx.CheCluster)
+	if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+		cheCtx.Context,
 		types.NamespacedName{Name: name},
 		&rbacv1.ClusterRoleBinding{},
 	); err != nil {
 		return false, fmt.Errorf("failed to delete ClusterRoleBinding %s: %w", name, err)
 	}
 
-	if err := deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
-		deployContext.Context,
+	if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+		cheCtx.Context,
 		types.NamespacedName{Name: name},
 		&rbacv1.ClusterRole{},
 	); err != nil {
 		return false, fmt.Errorf("failed to delete ClusterRole %s: %w", name, err)
 	}
 
-	if err := deploy.DeleteFinalizer(deployContext, CheGatewayClusterPermissionsFinalizerName); err != nil {
+	if err := deploy.DeleteFinalizer(cheCtx, CheGatewayClusterPermissionsFinalizerName); err != nil {
 		return false, err
 	}
 

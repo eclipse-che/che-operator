@@ -49,21 +49,21 @@ var (
 )
 
 func SyncJobToCluster(
-	deployContext *chetypes.DeployContext,
+	cheCtx *chetypes.CheContext,
 	name string,
 	component string,
 	image string,
 	serviceAccountName string,
 	env map[string]string) error {
 
-	jobSpec := getJobSpec(deployContext, name, component, image, serviceAccountName, env)
+	jobSpec := getJobSpec(cheCtx, name, component, image, serviceAccountName, env)
 
-	if err := controllerutil.SetControllerReference(deployContext.CheCluster, jobSpec, deployContext.ClusterAPI.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, jobSpec, cheCtx.ClusterAPI.Scheme); err != nil {
 		return fmt.Errorf("failed to set owner reference for Job %s/%s: %w", jobSpec.Namespace, jobSpec.Name, err)
 	}
 
-	if err := deployContext.ClusterAPI.ClientWrapper.Sync(
-		deployContext.Context,
+	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
+		cheCtx.Context,
 		jobSpec,
 		&k8sclient.SyncOptions{DiffOpts: JobDiffOpts},
 	); err != nil {
@@ -75,7 +75,7 @@ func SyncJobToCluster(
 
 // GetSpecJob creates new job configuration by given parameters.
 func getJobSpec(
-	deployContext *chetypes.DeployContext,
+	cheCtx *chetypes.CheContext,
 	name string,
 	component string,
 	image string,
@@ -101,7 +101,7 @@ func getJobSpec(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: deployContext.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: batchv1.JobSpec{

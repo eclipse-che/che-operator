@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2024 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -50,10 +50,10 @@ func TestGetExternalImages(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := test.NewCtxBuilder().Build()
+			cheCtx := test.NewCtxBuilder().Build()
 
-			editorsEndpointUrl := getDashboardEditorsInternalAPIUrl(ctx)
-			samplesEndpointUrl := getDashboardSamplesInternalAPIUrl(ctx)
+			editorsEndpointUrl := getDashboardEditorsInternalAPIUrl(cheCtx)
+			samplesEndpointUrl := getDashboardSamplesInternalAPIUrl(cheCtx)
 
 			imagesProvider := &ExternalImagesProvider{
 				imagesFilePath: filepath.Join(os.TempDir(), externalImagesStoreFileName),
@@ -73,7 +73,7 @@ func TestGetExternalImages(t *testing.T) {
 				},
 			}
 
-			images, err := imagesProvider.Get(ctx)
+			images, err := imagesProvider.Get(cheCtx)
 
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expectedImages, images)

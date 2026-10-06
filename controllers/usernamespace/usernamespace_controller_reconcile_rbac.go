@@ -29,21 +29,21 @@ import (
 func (r *CheUserNamespaceReconciler) reconcileAgentSandboxRbac(
 	username string,
 	targetNs string,
-	ctx *chetypes.DeployContext,
+	cheCtx *chetypes.CheContext,
 ) (bool, error) {
 	if username == "" {
 		logger.Info("AgentSandbox RBAC creation skipped because username is unknown", "namespace", targetNs)
 		return true, nil
 	}
 
-	if !ctx.CheCluster.IsAgentSandboxEnabled() {
+	if !cheCtx.CheCluster.IsAgentSandboxEnabled() {
 		roleBindingKey := types.NamespacedName{
 			Name:      agentsandbox.GetUserRoleBindingName(),
 			Namespace: targetNs,
 		}
 
 		if err := r.clientWrapper.DeleteByKeyIgnoreNotFound(
-			ctx.Context,
+			cheCtx.Context,
 			roleBindingKey,
 			&rbacv1.RoleBinding{},
 		); err != nil {
@@ -58,7 +58,7 @@ func (r *CheUserNamespaceReconciler) reconcileAgentSandboxRbac(
 	// the main controller requires some time to provision ClusterRole resource.
 	// See pkg/deploy/agent-sandbox/agent_sandbox.go
 	exists, err := r.clientWrapper.GetIgnoreNotFound(
-		ctx.Context,
+		cheCtx.Context,
 		types.NamespacedName{Name: agentsandbox.GetUserClusterRoleName()},
 		&rbacv1.ClusterRole{},
 	)
@@ -102,7 +102,7 @@ func (r *CheUserNamespaceReconciler) reconcileAgentSandboxRbac(
 	}
 
 	if err := r.clientWrapper.Sync(
-		ctx.Context,
+		cheCtx.Context,
 		roleBinding,
 		&k8sclient.SyncOptions{DiffOpts: diffs.RoleBinding},
 	); err != nil {

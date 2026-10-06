@@ -22,9 +22,9 @@ import (
 )
 
 func TestSyncClusterRole(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	err := SyncClusterRoleToCluster(ctx, "test", []rbacv1.PolicyRule{
+	err := SyncClusterRoleToCluster(cheCtx, "test", []rbacv1.PolicyRule{
 		{
 			APIGroups: []string{"test-1"},
 			Resources: []string{"test-1"},
@@ -36,7 +36,7 @@ func TestSyncClusterRole(t *testing.T) {
 	}
 
 	// sync a new cluster role
-	err = SyncClusterRoleToCluster(ctx, "test", []rbacv1.PolicyRule{
+	err = SyncClusterRoleToCluster(cheCtx, "test", []rbacv1.PolicyRule{
 		{
 			APIGroups: []string{"test-2"},
 			Resources: []string{"test-2"},
@@ -48,7 +48,7 @@ func TestSyncClusterRole(t *testing.T) {
 	}
 
 	// sync twice to be sure update done correctly
-	err = SyncClusterRoleToCluster(ctx, "test", []rbacv1.PolicyRule{
+	err = SyncClusterRoleToCluster(cheCtx, "test", []rbacv1.PolicyRule{
 		{
 			APIGroups: []string{"test-2"},
 			Resources: []string{"test-2"},
@@ -60,7 +60,7 @@ func TestSyncClusterRole(t *testing.T) {
 	}
 
 	actual := &rbacv1.ClusterRole{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test"}, actual)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test"}, actual)
 	if err != nil {
 		t.Fatalf("Failed to get cluster role: %v", err)
 	}

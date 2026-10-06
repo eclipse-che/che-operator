@@ -23,7 +23,7 @@ import (
 )
 
 func GetSpecRegistryDeployment(
-	deployContext *chetypes.DeployContext,
+	cheCtx *chetypes.CheContext,
 	registryType string,
 	registryImage string,
 	env []corev1.EnvVar,
@@ -33,9 +33,9 @@ func GetSpecRegistryDeployment(
 
 	// append env var with ConfigMap revision to restore pod automatically when config has been changed
 	cm := &corev1.ConfigMap{}
-	exists, _ := deployContext.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-		deployContext.Context,
-		types.NamespacedName{Name: registryType + "-registry", Namespace: deployContext.CheCluster.Namespace},
+	exists, _ := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		cheCtx.Context,
+		types.NamespacedName{Name: registryType + "-registry", Namespace: cheCtx.CheCluster.Namespace},
 		cm,
 	)
 	configMapRevision := map[bool]string{true: cm.GetResourceVersion(), false: ""}[exists]
@@ -53,7 +53,7 @@ func GetSpecRegistryDeployment(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: deployContext.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{

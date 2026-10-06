@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -30,23 +30,23 @@ import (
 )
 
 func TestReconcileConsoleLink(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
 	consolelink := NewConsoleLinkReconciler()
-	test.EnsureReconcile(t, ctx, consolelink.Reconcile)
+	test.EnsureReconcile(t, cheCtx, consolelink.Reconcile)
 
 	consoleLink := &consolev1.ConsoleLink{}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: defaults.GetConsoleLinkName()}, consoleLink)
+	err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: defaults.GetConsoleLinkName()}, consoleLink)
 	assert.Nil(t, err)
-	assert.True(t, utils.Contains(ctx.CheCluster.Finalizers, ConsoleLinkFinalizerName))
+	assert.True(t, utils.Contains(cheCtx.CheCluster.Finalizers, ConsoleLinkFinalizerName))
 	assert.Equal(t, "https://che-host", consoleLink.Spec.Href)
 
 	// Initialize DeletionTimestamp => checluster is being deleted
-	done := consolelink.Finalize(ctx)
+	done := consolelink.Finalize(cheCtx)
 	assert.True(t, done)
 
-	assert.False(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: defaults.GetConsoleLinkName()}, &consolev1.ConsoleLink{}))
-	assert.False(t, utils.Contains(ctx.CheCluster.Finalizers, ConsoleLinkFinalizerName))
+	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: defaults.GetConsoleLinkName()}, &consolev1.ConsoleLink{}))
+	assert.False(t, utils.Contains(cheCtx.CheCluster.Finalizers, ConsoleLinkFinalizerName))
 }
 
 func TestReconcileConsoleLinkWhenCheURLChanged(t *testing.T) {
@@ -80,15 +80,15 @@ func TestReconcileConsoleLinkWhenCheURLChanged(t *testing.T) {
 		},
 	}
 
-	ctx := test.NewCtxBuilder().WithCheCluster(cheCluster).WithObjects(existedConsoleLink).Build()
+	cheCtx := test.NewCtxBuilder().WithCheCluster(cheCluster).WithObjects(existedConsoleLink).Build()
 
 	consoleLinkReconciler := NewConsoleLinkReconciler()
-	test.EnsureReconcile(t, ctx, consoleLinkReconciler.Reconcile)
+	test.EnsureReconcile(t, cheCtx, consoleLinkReconciler.Reconcile)
 
 	consoleLink := &consolev1.ConsoleLink{}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: defaults.GetConsoleLinkName()}, consoleLink)
+	err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: defaults.GetConsoleLinkName()}, consoleLink)
 	assert.Nil(t, err)
-	assert.True(t, utils.Contains(ctx.CheCluster.Finalizers, ConsoleLinkFinalizerName))
+	assert.True(t, utils.Contains(cheCtx.CheCluster.Finalizers, ConsoleLinkFinalizerName))
 	assert.Equal(t, "https://test-host", consoleLink.Spec.Href)
 	assert.Equal(t, fmt.Sprintf("https://test-host%s", defaults.GetConsoleLinkImage()), consoleLink.Spec.ApplicationMenu.ImageURL)
 }

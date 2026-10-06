@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -24,24 +24,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type DeployContextBuild struct {
+type CheContextBuild struct {
 	cheCluster *chev2.CheCluster
 	initObject []client.Object
 }
 
-func NewCtxBuilder() *DeployContextBuild {
-	return &DeployContextBuild{
+func NewCtxBuilder() *CheContextBuild {
+	return &CheContextBuild{
 		initObject: []client.Object{},
 		cheCluster: getDefaultCheCluster(),
 	}
 }
 
-func (f *DeployContextBuild) WithObjects(initObjs ...client.Object) *DeployContextBuild {
+func (f *CheContextBuild) WithObjects(initObjs ...client.Object) *CheContextBuild {
 	f.initObject = append(f.initObject, initObjs...)
 	return f
 }
 
-func (f *DeployContextBuild) WithCheCluster(cheCluster *chev2.CheCluster) *DeployContextBuild {
+func (f *CheContextBuild) WithCheCluster(cheCluster *chev2.CheCluster) *CheContextBuild {
 	f.cheCluster = cheCluster
 	if f.cheCluster != nil {
 		f.cheCluster.TypeMeta = metav1.TypeMeta{
@@ -58,14 +58,14 @@ func (f *DeployContextBuild) WithCheCluster(cheCluster *chev2.CheCluster) *Deplo
 	return f
 }
 
-func (f *DeployContextBuild) Build() *chetypes.DeployContext {
+func (f *CheContextBuild) Build() *chetypes.CheContext {
 	if f.cheCluster != nil {
 		f.initObject = append(f.initObject, f.cheCluster)
 	}
 
 	fakeClient, discoveryClient, scheme := testclient.GetTestClients(f.initObject...)
 
-	ctx := &chetypes.DeployContext{
+	cheCtx := &chetypes.CheContext{
 		CheCluster: f.cheCluster,
 		ClusterAPI: chetypes.ClusterAPI{
 			Client:                  fakeClient,
@@ -82,10 +82,10 @@ func (f *DeployContextBuild) Build() *chetypes.DeployContext {
 	}
 
 	if f.cheCluster != nil {
-		ctx.CheHost = strings.TrimPrefix(f.cheCluster.Status.CheURL, "https://")
+		cheCtx.CheHost = strings.TrimPrefix(f.cheCluster.Status.CheURL, "https://")
 	}
 
-	return ctx
+	return cheCtx
 }
 
 func buildAuthentication(cheCluster *chev2.CheCluster) *chetypes.Authentication {

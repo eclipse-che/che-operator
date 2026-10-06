@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (r *OpenVSXServerReconciler) syncConfigMap(ctx *chetypes.DeployContext) error {
+func (r *OpenVSXServerReconciler) syncConfigMap(cheCtx *chetypes.CheContext) error {
 	cm := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
@@ -32,7 +32,7 @@ func (r *OpenVSXServerReconciler) syncConfigMap(ctx *chetypes.DeployContext) err
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.OpenVSXServerComponentName,
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Labels:    deploy.GetLabels(constants.OpenVSXServerComponentName),
 		},
 		Data: map[string]string{
@@ -40,20 +40,20 @@ func (r *OpenVSXServerReconciler) syncConfigMap(ctx *chetypes.DeployContext) err
 		},
 	}
 
-	if err := controllerutil.SetControllerReference(ctx.CheCluster, cm, ctx.ClusterAPI.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, cm, cheCtx.ClusterAPI.Scheme); err != nil {
 		return err
 	}
 
-	return ctx.ClusterAPI.ClientWrapper.CreateIfNotExists(context.TODO(), cm)
+	return cheCtx.ClusterAPI.ClientWrapper.CreateIfNotExists(context.TODO(), cm)
 }
 
-func (r *OpenVSXServerReconciler) getConfigRevision(ctx *chetypes.DeployContext) (string, error) {
+func (r *OpenVSXServerReconciler) getConfigRevision(cheCtx *chetypes.CheContext) (string, error) {
 	cm := &corev1.ConfigMap{}
-	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
 		context.TODO(),
 		types.NamespacedName{
 			Name:      constants.OpenVSXServerComponentName,
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 		},
 		cm,
 	)

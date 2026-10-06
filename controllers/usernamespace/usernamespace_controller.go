@@ -252,8 +252,8 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
-	// let's construct the deployContext to be able to use methods from v1 operator
-	deployContext := &chetypes.DeployContext{
+	// let's construct the CheContext to be able to use methods from v1 operator
+	cheCtx := &chetypes.CheContext{
 		CheCluster: checluster,
 		ClusterAPI: chetypes.ClusterAPI{
 			Client:                  r.client,
@@ -270,7 +270,7 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	// All certificates are mounted into /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 	// and automatically added to the system trust store.
 	// TODO remove in the future.
-	if err = r.reconcileSelfSignedCert(ctx, deployContext, req.Name, checluster); err != nil {
+	if err = r.reconcileSelfSignedCert(ctx, cheCtx, req.Name, checluster); err != nil {
 		logrus.Errorf("Failed to reconcile self-signed certificate into namespace '%s': %v", req.Name, err)
 		return ctrl.Result{}, err
 	}
@@ -279,7 +279,7 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	// All certificates are mounted into /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 	// and automatically added to the system trust store.
 	// TODO remove in the future.
-	if err = r.reconcileTrustedCerts(ctx, deployContext, req.Name, checluster); err != nil {
+	if err = r.reconcileTrustedCerts(ctx, cheCtx, req.Name, checluster); err != nil {
 		logrus.Errorf("Failed to reconcile trusted certificates into namespace '%s': %v", req.Name, err)
 		return ctrl.Result{}, err
 	}
@@ -288,17 +288,17 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	// All certificates are mounted into /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 	// and automatically added to the system trust store.
 	// TODO remove in the future.
-	if err = r.reconcileGitTlsCertificate(ctx, req.Name, checluster, deployContext); err != nil {
+	if err = r.reconcileGitTlsCertificate(ctx, req.Name, checluster, cheCtx); err != nil {
 		logrus.Errorf("Failed to reconcile Che git TLS certificate  into namespace '%s': %v", req.Name, err)
 		return ctrl.Result{}, err
 	}
 
-	if err = r.reconcileUserSettings(deployContext, req.Name, checluster); err != nil {
+	if err = r.reconcileUserSettings(cheCtx, req.Name, checluster); err != nil {
 		logrus.Errorf("Failed to reconcile user settings into namespace '%s': %v", req.Name, err)
 		return ctrl.Result{}, err
 	}
 
-	if err = r.reconcileNodeSelectorAndTolerations(ctx, req.Name, checluster, deployContext); err != nil {
+	if err = r.reconcileNodeSelectorAndTolerations(ctx, req.Name, checluster, cheCtx); err != nil {
 		logrus.Errorf("Failed to reconcile the workspace pod node selector and tolerations in namespace '%s': %v", req.Name, err)
 		return ctrl.Result{}, err
 	}
@@ -323,7 +323,7 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
-	if done, err := r.reconcileAgentSandboxRbac(info.Username, req.Name, deployContext); !done {
+	if done, err := r.reconcileAgentSandboxRbac(info.Username, req.Name, cheCtx); !done {
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -331,7 +331,7 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	if infrastructure.IsOpenShift() {
-		if err = r.reconcileNetworkPolicies(deployContext, req.Name); err != nil {
+		if err = r.reconcileNetworkPolicies(cheCtx, req.Name); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to reconcile network policies in namespace %s: %w", req.Name, err)
 		}
 	}
@@ -339,8 +339,8 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	return ctrl.Result{}, nil
 }
 
-func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context, deployContext *chetypes.DeployContext, targetNs string, checluster *chev2.CheCluster) error {
-	if err := deleteLegacyObject("server-cert", &corev1.Secret{}, targetNs, checluster, deployContext); err != nil {
+func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context, cheCtx *chetypes.CheContext, targetNs string, checluster *chev2.CheCluster) error {
+	if err := deleteLegacyObject("server-cert", &corev1.Secret{}, targetNs, checluster, cheCtx); err != nil {
 		return err
 	}
 	targetCertName := prefixedName("server-cert")
@@ -401,8 +401,8 @@ func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context
 	return nil
 }
 
-func (r *CheUserNamespaceReconciler) reconcileTrustedCerts(ctx context.Context, deployContext *chetypes.DeployContext, targetNs string, checluster *chev2.CheCluster) error {
-	if err := deleteLegacyObject("trusted-ca-certs", &corev1.ConfigMap{}, targetNs, checluster, deployContext); err != nil {
+func (r *CheUserNamespaceReconciler) reconcileTrustedCerts(ctx context.Context, cheCtx *chetypes.CheContext, targetNs string, checluster *chev2.CheCluster) error {
+	if err := deleteLegacyObject("trusted-ca-certs", &corev1.ConfigMap{}, targetNs, checluster, cheCtx); err != nil {
 		return err
 	}
 
@@ -415,7 +415,7 @@ func (r *CheUserNamespaceReconciler) reconcileTrustedCerts(ctx context.Context, 
 }
 
 func (r *CheUserNamespaceReconciler) reconcileUserSettings(
-	deployContext *chetypes.DeployContext,
+	cheCtx *chetypes.CheContext,
 	targetNs string,
 	checluster *chev2.CheCluster,
 ) error {
@@ -429,7 +429,7 @@ func (r *CheUserNamespaceReconciler) reconcileUserSettings(
 	// delete previously created CMs
 	for _, name := range cm2Delete {
 		if err := r.nonCachedClientWrapper.DeleteByKeyIgnoreNotFound(
-			deployContext.Context,
+			cheCtx.Context,
 			client.ObjectKey{Name: name, Namespace: targetNs},
 			&corev1.ConfigMap{},
 		); err != nil {
@@ -452,8 +452,8 @@ func (r *CheUserNamespaceReconciler) reconcileUserSettings(
 	data := map[string]string{}
 
 	// editor download urls
-	if len(deployContext.CheCluster.Spec.DevEnvironments.EditorsDownloadUrls) > 0 {
-		for _, editorDownloadUrl := range deployContext.CheCluster.Spec.DevEnvironments.EditorsDownloadUrls {
+	if len(cheCtx.CheCluster.Spec.DevEnvironments.EditorsDownloadUrls) > 0 {
+		for _, editorDownloadUrl := range cheCtx.CheCluster.Spec.DevEnvironments.EditorsDownloadUrls {
 			editor := strings.ToUpper(editorDownloadUrl.Editor)
 			editor = strings.ReplaceAll(editor, "-", "_")
 			editor = strings.ReplaceAll(editor, "/", "_")
@@ -498,7 +498,7 @@ func (r *CheUserNamespaceReconciler) reconcileUserSettings(
 	}
 
 	// proxy settings
-	if proxyConfig, err := che.GetProxyConfiguration(deployContext); err != nil {
+	if proxyConfig, err := che.GetProxyConfiguration(cheCtx); err != nil {
 		return err
 	} else if proxyConfig != nil {
 		if proxyConfig.HttpProxy != "" {
@@ -530,7 +530,7 @@ func (r *CheUserNamespaceReconciler) reconcileUserSettings(
 	}
 
 	if err := r.nonCachedClientWrapper.Sync(
-		deployContext.Context,
+		cheCtx.Context,
 		cm,
 		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
 	); err != nil {
@@ -540,8 +540,8 @@ func (r *CheUserNamespaceReconciler) reconcileUserSettings(
 	return nil
 }
 
-func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Context, targetNs string, checluster *chev2.CheCluster, deployContext *chetypes.DeployContext) error {
-	if err := deleteLegacyObject("git-tls-creds", &corev1.ConfigMap{}, targetNs, checluster, deployContext); err != nil {
+func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Context, targetNs string, checluster *chev2.CheCluster, cheCtx *chetypes.CheContext) error {
+	if err := deleteLegacyObject("git-tls-creds", &corev1.ConfigMap{}, targetNs, checluster, cheCtx); err != nil {
 		return err
 	}
 	targetName := prefixedName("git-tls-creds")
@@ -559,7 +559,7 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 
 	gitCert := &corev1.ConfigMap{}
 
-	if err := deployContext.ClusterAPI.Client.Get(ctx, client.ObjectKey{Name: checluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName, Namespace: checluster.Namespace}, gitCert); err != nil {
+	if err := cheCtx.ClusterAPI.Client.Get(ctx, client.ObjectKey{Name: checluster.Spec.DevEnvironments.TrustedCerts.GitTrustedCertsConfigMapName, Namespace: checluster.Namespace}, gitCert); err != nil {
 		if !errors.IsNotFound(err) {
 			return err
 		}
@@ -604,7 +604,7 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 	return nil
 }
 
-func (r *CheUserNamespaceReconciler) reconcileNodeSelectorAndTolerations(ctx context.Context, targetNs string, checluster *chev2.CheCluster, deployContext *chetypes.DeployContext) error {
+func (r *CheUserNamespaceReconciler) reconcileNodeSelectorAndTolerations(ctx context.Context, targetNs string, checluster *chev2.CheCluster, cheCtx *chetypes.CheContext) error {
 	ns := &corev1.Namespace{}
 	if err := r.client.Get(ctx, client.ObjectKey{Name: targetNs}, ns); err != nil {
 		return err
@@ -702,9 +702,9 @@ func (r *CheUserNamespaceReconciler) reconcileSCCPrivileges(
 	)
 }
 
-func (r *CheUserNamespaceReconciler) reconcileNetworkPolicies(deployContext *chetypes.DeployContext, targetNs string) error {
-	if !deployContext.CheCluster.IsNetworkPoliciesEnabled() {
-		err := networkpolicies.DeleteNetworkPolicy(deployContext, targetNs)
+func (r *CheUserNamespaceReconciler) reconcileNetworkPolicies(cheCtx *chetypes.CheContext, targetNs string) error {
+	if !cheCtx.CheCluster.IsNetworkPoliciesEnabled() {
+		err := networkpolicies.DeleteNetworkPolicy(cheCtx, targetNs)
 		if err != nil {
 			err = fmt.Errorf("failed to delete NetworkPolicy in namespace %s: %w", targetNs, err)
 		}
@@ -712,7 +712,7 @@ func (r *CheUserNamespaceReconciler) reconcileNetworkPolicies(deployContext *che
 		return err
 	}
 
-	err := networkpolicies.SyncNetworkPolicy(deployContext, targetNs)
+	err := networkpolicies.SyncNetworkPolicy(cheCtx, targetNs)
 	if err != nil {
 		return fmt.Errorf("failed to sync NetworkPolicy in namespace %s: %w", targetNs, err)
 	}
@@ -726,11 +726,11 @@ func prefixedName(name string) string {
 
 // Deletes object with a legacy name to avoid mounting several ones under the same path
 // See https://github.com/eclipse/che/issues/21385
-func deleteLegacyObject(name string, objectMeta client.Object, targetNs string, checluster *chev2.CheCluster, deployContext *chetypes.DeployContext) error {
+func deleteLegacyObject(name string, objectMeta client.Object, targetNs string, checluster *chev2.CheCluster, cheCtx *chetypes.CheContext) error {
 	legacyPrefixedName := checluster.Name + "-" + checluster.Namespace + "-" + name
 	key := client.ObjectKey{Name: legacyPrefixedName, Namespace: targetNs}
 
-	err := deployContext.ClusterAPI.Client.Get(context.TODO(), key, objectMeta)
+	err := cheCtx.ClusterAPI.Client.Get(context.TODO(), key, objectMeta)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil
@@ -738,7 +738,7 @@ func deleteLegacyObject(name string, objectMeta client.Object, targetNs string, 
 		return err
 	}
 
-	err = deployContext.ClusterAPI.Client.Delete(context.TODO(), objectMeta)
+	err = cheCtx.ClusterAPI.Client.Delete(context.TODO(), objectMeta)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil

@@ -46,47 +46,47 @@ func NewCheServerReconciler() *CheServerReconciler {
 	return &CheServerReconciler{}
 }
 
-func (s *CheServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	done, err := s.syncConfigMap(ctx)
+func (s *CheServerReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
+	done, err := s.syncConfigMap(cheCtx)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
 
 	// ensure configmap is created
 	// the version of the object is used in the deployment
-	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-		ctx.Context,
-		types.NamespacedName{Name: configMapName, Namespace: ctx.CheCluster.Namespace},
+	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		cheCtx.Context,
+		types.NamespacedName{Name: configMapName, Namespace: cheCtx.CheCluster.Namespace},
 		&corev1.ConfigMap{},
 	)
 	if !exists {
 		return reconcile.Result{}, false, err
 	}
 
-	if err := deploy.SyncServiceAccountToCluster(ctx, constants.DefaultCheServiceAccountName); err != nil {
+	if err := deploy.SyncServiceAccountToCluster(cheCtx, constants.DefaultCheServiceAccountName); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
-	if done, err := s.syncPermissions(ctx); !done {
+	if done, err := s.syncPermissions(cheCtx); !done {
 		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
-	done, err = s.syncDeployment(ctx)
+	done, err = s.syncDeployment(cheCtx)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
 
-	done, err = s.syncActiveChePhase(ctx)
+	done, err = s.syncActiveChePhase(cheCtx)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
 
-	done, err = s.syncCheVersion(ctx)
+	done, err = s.syncCheVersion(cheCtx)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
 
-	done, err = s.syncCheURL(ctx)
+	done, err = s.syncCheURL(cheCtx)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
@@ -94,44 +94,44 @@ func (s *CheServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 	return reconcile.Result{}, true, nil
 }
 
-func (c *CheServerReconciler) Finalize(ctx *chetypes.DeployContext) bool {
-	return c.deletePermissions(ctx)
+func (c *CheServerReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
+	return c.deletePermissions(cheCtx)
 }
 
-func (s *CheServerReconciler) syncActiveChePhase(ctx *chetypes.DeployContext) (bool, error) {
+func (s *CheServerReconciler) syncActiveChePhase(cheCtx *chetypes.CheContext) (bool, error) {
 	cheDeployment := &appsv1.Deployment{}
-	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-		ctx.Context,
-		types.NamespacedName{Name: getComponentName(), Namespace: ctx.CheCluster.Namespace},
+	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		cheCtx.Context,
+		types.NamespacedName{Name: getComponentName(), Namespace: cheCtx.CheCluster.Namespace},
 		cheDeployment,
 	)
 	if err != nil {
-		return false, fmt.Errorf("failed to get Deployment %s/%s: %w", ctx.CheCluster.Namespace, getComponentName(), err)
+		return false, fmt.Errorf("failed to get Deployment %s/%s: %w", cheCtx.CheCluster.Namespace, getComponentName(), err)
 	}
 
 	if exists {
 		if cheDeployment.Status.AvailableReplicas == 0 {
-			if ctx.CheCluster.Status.ChePhase != chev2.ClusterPhaseInactive {
-				ctx.CheCluster.Status.ChePhase = chev2.ClusterPhaseInactive
-				err := deploy.UpdateCheCRStatus(ctx, "Phase", chev2.ClusterPhaseInactive)
+			if cheCtx.CheCluster.Status.ChePhase != chev2.ClusterPhaseInactive {
+				cheCtx.CheCluster.Status.ChePhase = chev2.ClusterPhaseInactive
+				err := deploy.UpdateCheCRStatus(cheCtx, "Phase", chev2.ClusterPhaseInactive)
 				return false, err
 			}
 		} else if cheDeployment.Status.Replicas != cheDeployment.Status.AvailableReplicas {
-			if ctx.CheCluster.Status.ChePhase != chev2.RollingUpdate {
-				ctx.CheCluster.Status.ChePhase = chev2.RollingUpdate
-				err := deploy.UpdateCheCRStatus(ctx, "Phase", chev2.RollingUpdate)
+			if cheCtx.CheCluster.Status.ChePhase != chev2.RollingUpdate {
+				cheCtx.CheCluster.Status.ChePhase = chev2.RollingUpdate
+				err := deploy.UpdateCheCRStatus(cheCtx, "Phase", chev2.RollingUpdate)
 				return false, err
 			}
 		} else {
-			if ctx.CheCluster.Status.ChePhase != chev2.ClusterPhaseActive {
-				ctx.CheCluster.Status.ChePhase = chev2.ClusterPhaseActive
-				err := deploy.UpdateCheCRStatus(ctx, "Phase", chev2.ClusterPhaseActive)
+			if cheCtx.CheCluster.Status.ChePhase != chev2.ClusterPhaseActive {
+				cheCtx.CheCluster.Status.ChePhase = chev2.ClusterPhaseActive
+				err := deploy.UpdateCheCRStatus(cheCtx, "Phase", chev2.ClusterPhaseActive)
 				return err == nil, err
 			}
 		}
 	} else {
-		ctx.CheCluster.Status.ChePhase = chev2.ClusterPhaseInactive
-		err := deploy.UpdateCheCRStatus(ctx, "Phase", chev2.ClusterPhaseInactive)
+		cheCtx.CheCluster.Status.ChePhase = chev2.ClusterPhaseInactive
+		err := deploy.UpdateCheCRStatus(cheCtx, "Phase", chev2.ClusterPhaseInactive)
 		return false, err
 	}
 
@@ -147,33 +147,33 @@ func (s *CheServerReconciler) getCRBFinalizerName(crbName string) string {
 	return finalizer
 }
 
-func (s *CheServerReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool, error) {
-	spec, err := s.getDeploymentSpec(ctx)
+func (s *CheServerReconciler) syncDeployment(cheCtx *chetypes.CheContext) (bool, error) {
+	spec, err := s.getDeploymentSpec(cheCtx)
 	if err != nil {
 		return false, err
 	}
 
-	return deploy.SyncDeploymentSpecToCluster(ctx, spec, deploy.DefaultDeploymentDiffOpts)
+	return deploy.SyncDeploymentSpecToCluster(cheCtx, spec, deploy.DefaultDeploymentDiffOpts)
 }
 
-func (s CheServerReconciler) syncCheVersion(ctx *chetypes.DeployContext) (bool, error) {
+func (s CheServerReconciler) syncCheVersion(cheCtx *chetypes.CheContext) (bool, error) {
 	cheVersion := defaults.GetCheVersion()
-	if ctx.CheCluster.Status.CheVersion != cheVersion {
-		ctx.CheCluster.Status.CheVersion = cheVersion
-		err := deploy.UpdateCheCRStatus(ctx, "version", cheVersion)
+	if cheCtx.CheCluster.Status.CheVersion != cheVersion {
+		cheCtx.CheCluster.Status.CheVersion = cheVersion
+		err := deploy.UpdateCheCRStatus(cheCtx, "version", cheVersion)
 		return err == nil, err
 	}
 	return true, nil
 }
 
-func (s CheServerReconciler) syncCheURL(ctx *chetypes.DeployContext) (bool, error) {
-	var cheUrl = "https://" + ctx.CheHost
-	if ctx.CheCluster.Status.CheURL != cheUrl {
+func (s CheServerReconciler) syncCheURL(cheCtx *chetypes.CheContext) (bool, error) {
+	var cheUrl = "https://" + cheCtx.CheHost
+	if cheCtx.CheCluster.Status.CheURL != cheUrl {
 		product := map[bool]string{true: "Red Hat OpenShift Dev Spaces", false: "Eclipse Che"}[defaults.GetCheFlavor() == "devspaces"]
 		logrus.Infof("%s is now available at: %s", product, cheUrl)
 
-		ctx.CheCluster.Status.CheURL = cheUrl
-		err := deploy.UpdateCheCRStatus(ctx, getComponentName()+" server URL", cheUrl)
+		cheCtx.CheCluster.Status.CheURL = cheUrl
+		err := deploy.UpdateCheCRStatus(cheCtx, getComponentName()+" server URL", cheUrl)
 		return err == nil, err
 	}
 

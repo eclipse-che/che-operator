@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (r *OpenVSXServerReconciler) syncService(ctx *chetypes.DeployContext) error {
+func (r *OpenVSXServerReconciler) syncService(cheCtx *chetypes.CheContext) error {
 	labels := deploy.GetLabels(constants.OpenVSXServerComponentName)
 
 	service := &corev1.Service{
@@ -36,7 +36,7 @@ func (r *OpenVSXServerReconciler) syncService(ctx *chetypes.DeployContext) error
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.OpenVSXServerComponentName,
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: corev1.ServiceSpec{
@@ -52,11 +52,11 @@ func (r *OpenVSXServerReconciler) syncService(ctx *chetypes.DeployContext) error
 		},
 	}
 
-	if err := controllerutil.SetControllerReference(ctx.CheCluster, service, ctx.ClusterAPI.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, service, cheCtx.ClusterAPI.Scheme); err != nil {
 		return err
 	}
 
-	return ctx.ClusterAPI.ClientWrapper.Sync(
+	return cheCtx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
 		service,
 		&k8sclient.SyncOptions{

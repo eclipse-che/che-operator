@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -53,11 +53,11 @@ authorization:
 	}
 }
 
-func getKubeRbacProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
-	image := defaults.GetGatewayAuthorizationSidecarImage(ctx.CheCluster)
+func getKubeRbacProxyContainerSpec(cheCtx *chetypes.CheContext) corev1.Container {
+	image := defaults.GetGatewayAuthorizationSidecarImage(cheCtx.CheCluster)
 	logLevel := constants.DefaultKubeRbacProxyLogLevel
-	if ctx.CheCluster.Spec.Networking.Auth.Gateway.KubeRbacProxy != nil && ctx.CheCluster.Spec.Networking.Auth.Gateway.KubeRbacProxy.LogLevel != nil {
-		logLevel = *ctx.CheCluster.Spec.Networking.Auth.Gateway.KubeRbacProxy.LogLevel
+	if cheCtx.CheCluster.Spec.Networking.Auth.Gateway.KubeRbacProxy != nil && cheCtx.CheCluster.Spec.Networking.Auth.Gateway.KubeRbacProxy.LogLevel != nil {
+		logLevel = *cheCtx.CheCluster.Spec.Networking.Auth.Gateway.KubeRbacProxy.LogLevel
 	}
 
 	return corev1.Container{

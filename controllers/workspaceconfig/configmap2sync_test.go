@@ -46,7 +46,7 @@ var (
 )
 
 func TestSyncConfigMap(t *testing.T) {
-	deployContext := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
+	cheCtx := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
 			APIVersion: "v1",
@@ -67,11 +67,11 @@ func TestSyncConfigMap(t *testing.T) {
 	}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Scheme,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
-			Client: deployContext.ClusterAPI.Client,
+			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
@@ -88,7 +88,7 @@ func TestSyncConfigMap(t *testing.T) {
 
 	// Check ConfigMap in a user namespace is created
 	cm := &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.Nil(t, err)
 	assert.Equal(t, "b", cm.Data["a"])
 	assert.Equal(t, false, *cm.Immutable)
@@ -99,10 +99,10 @@ func TestSyncConfigMap(t *testing.T) {
 
 	// Update src ConfigMap
 	cm = &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInCheNs, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInCheNs, cm)
 	assert.Nil(t, err)
 	cm.Data["a"] = "c"
-	err = deployContext.ClusterAPI.Client.Update(context.TODO(), cm)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), cm)
 	assert.Nil(t, err)
 
 	// Sync ConfigMap
@@ -112,7 +112,7 @@ func TestSyncConfigMap(t *testing.T) {
 
 	// Check that destination ConfigMap is updated
 	cm = &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.Nil(t, err)
 	assert.Equal(t, "c", cm.Data["a"])
 	assert.Equal(t, false, *cm.Immutable)
@@ -123,10 +123,10 @@ func TestSyncConfigMap(t *testing.T) {
 
 	// Update dst ConfigMap
 	cm = &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.Nil(t, err)
 	cm.Data["a"] = "new-c"
-	err = deployContext.ClusterAPI.Client.Update(context.TODO(), cm)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), cm)
 	assert.Nil(t, err)
 
 	// Sync ConfigMap
@@ -136,7 +136,7 @@ func TestSyncConfigMap(t *testing.T) {
 
 	// Check that destination ConfigMap is reverted
 	cm = &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.Nil(t, err)
 	assert.Equal(t, "c", cm.Data["a"])
 	assert.Equal(t, false, *cm.Immutable)
@@ -147,11 +147,11 @@ func TestSyncConfigMap(t *testing.T) {
 
 	// Update dst ConfigMap in the way that it won't be reverted
 	cm = &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.Nil(t, err)
 	cm.Annotations = map[string]string{"new-annotation": "new-test"}
 	utils.AddMap(cm.Labels, map[string]string{"new-label": "new-test"})
-	err = deployContext.ClusterAPI.Client.Update(context.TODO(), cm)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), cm)
 	assert.Nil(t, err)
 
 	// Sync ConfigMap
@@ -161,7 +161,7 @@ func TestSyncConfigMap(t *testing.T) {
 
 	// Check that destination ConfigMap is not reverted
 	cm = &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.Nil(t, err)
 	assert.Equal(t, "c", cm.Data["a"])
 	assert.Equal(t, false, *cm.Immutable)
@@ -173,7 +173,7 @@ func TestSyncConfigMap(t *testing.T) {
 	assert.Equal(t, "new-test", cm.Annotations["new-annotation"])
 
 	// Delete dst ConfigMap
-	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInUserNs, &corev1.ConfigMap{})
+	err = cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInUserNs, &corev1.ConfigMap{})
 	assert.Nil(t, err)
 
 	// Sync ConfigMap
@@ -183,7 +183,7 @@ func TestSyncConfigMap(t *testing.T) {
 
 	// Check that destination ConfigMap is reverted
 	cm = &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.Nil(t, err)
 	assert.Equal(t, "c", cm.Data["a"])
 	assert.Equal(t, false, *cm.Immutable)
@@ -193,7 +193,7 @@ func TestSyncConfigMap(t *testing.T) {
 	assert.Equal(t, "true", cm.Labels["controller.devfile.io/mount-to-devworkspace"])
 
 	// Delete src ConfigMap
-	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &corev1.ConfigMap{})
+	err = cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &corev1.ConfigMap{})
 	assert.Nil(t, err)
 
 	// Sync ConfigMap
@@ -203,13 +203,13 @@ func TestSyncConfigMap(t *testing.T) {
 
 	// Check that destination ConfigMap in a user namespace is deleted
 	cm = &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.NotNil(t, err)
 	assert.True(t, errors.IsNotFound(err))
 }
 
 func TestSyncConfigMapShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
-	deployContext := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
+	cheCtx := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
 			APIVersion: "v1",
@@ -232,11 +232,11 @@ func TestSyncConfigMapShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 	}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Scheme,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
-			Client: deployContext.ClusterAPI.Client,
+			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
@@ -253,7 +253,7 @@ func TestSyncConfigMapShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 
 	// Check ConfigMap in a user namespace is created
 	cm := &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.Nil(t, err)
 	assert.Equal(t, constants.WorkspacesConfig, cm.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.CheEclipseOrg, cm.Labels[constants.KubernetesPartOfLabelKey])
@@ -264,11 +264,11 @@ func TestSyncConfigMapShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 
 	// Update labels and annotations on dst ConfigMap
 	cm = &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.Nil(t, err)
 	utils.AddMap(cm.Labels, map[string]string{"new-label": "new-label-value"})
 	utils.AddMap(cm.Annotations, map[string]string{"new-annotation": "new-annotation-value"})
-	err = deployContext.ClusterAPI.Client.Update(context.TODO(), cm)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), cm)
 	assert.Nil(t, err)
 
 	// Sync ConfigMap
@@ -278,7 +278,7 @@ func TestSyncConfigMapShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 
 	// Check that destination ConfigMap is not reverted
 	cm = &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.Nil(t, err)
 	assert.Equal(t, constants.WorkspacesConfig, cm.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.CheEclipseOrg, cm.Labels[constants.KubernetesPartOfLabelKey])
@@ -291,12 +291,12 @@ func TestSyncConfigMapShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 
 	// Update src ConfigMap
 	cm = &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInCheNs, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInCheNs, cm)
 	assert.Nil(t, err)
 	cm.Data["a"] = "c"
 	utils.AddMap(cm.Labels, map[string]string{"label": "label-value-2"})
 	utils.AddMap(cm.Annotations, map[string]string{"annotation": "annotation-value-2"})
-	err = deployContext.ClusterAPI.Client.Update(context.TODO(), cm)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), cm)
 	assert.Nil(t, err)
 
 	// Sync ConfigMap
@@ -306,7 +306,7 @@ func TestSyncConfigMapShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 
 	// Check that destination ConfigMap is updated but old labels and annotations are preserved
 	cm = &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.Nil(t, err)
 	assert.Equal(t, "c", cm.Data["a"])
 	assert.Equal(t, constants.WorkspacesConfig, cm.Labels[constants.KubernetesComponentLabelKey])
@@ -330,7 +330,7 @@ func assertSyncConfig(t *testing.T, workspaceConfigReconciler *WorkspacesConfigR
 }
 
 func TestSyncConfigMapShouldRespectDWOLabels(t *testing.T) {
-	deployContext := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
+	cheCtx := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
 			APIVersion: "v1",
@@ -348,11 +348,11 @@ func TestSyncConfigMapShouldRespectDWOLabels(t *testing.T) {
 	}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Scheme,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
-			Client: deployContext.ClusterAPI.Client,
+			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
@@ -369,7 +369,7 @@ func TestSyncConfigMapShouldRespectDWOLabels(t *testing.T) {
 
 	// Check ConfigMap in a user namespace is created
 	cm := &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.Nil(t, err)
 	assert.Equal(t, constants.WorkspacesConfig, cm.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.CheEclipseOrg, cm.Labels[constants.KubernetesPartOfLabelKey])
@@ -378,13 +378,13 @@ func TestSyncConfigMapShouldRespectDWOLabels(t *testing.T) {
 
 	// Update DWO labels in dst ConfigMap
 	cm = &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.Nil(t, err)
 	utils.AddMap(cm.Labels, map[string]string{
 		dwconstants.DevWorkspaceWatchConfigMapLabel: "true",
 		dwconstants.DevWorkspaceMountLabel:          "true",
 	})
-	err = deployContext.ClusterAPI.Client.Update(context.TODO(), cm)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), cm)
 	assert.Nil(t, err)
 
 	// Sync ConfigMap
@@ -394,20 +394,20 @@ func TestSyncConfigMapShouldRespectDWOLabels(t *testing.T) {
 
 	// Check that dst ConfigMap is reverted
 	cm = &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.Nil(t, err)
 	assert.Equal(t, "false", cm.Labels[dwconstants.DevWorkspaceWatchConfigMapLabel])
 	assert.Equal(t, "false", cm.Labels[dwconstants.DevWorkspaceMountLabel])
 
 	// Update src ConfigMap
 	cm = &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInCheNs, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInCheNs, cm)
 	assert.Nil(t, err)
 	utils.AddMap(cm.Labels, map[string]string{
 		dwconstants.DevWorkspaceWatchConfigMapLabel: "true",
 		dwconstants.DevWorkspaceMountLabel:          "true",
 	})
-	err = deployContext.ClusterAPI.Client.Update(context.TODO(), cm)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), cm)
 	assert.Nil(t, err)
 
 	// Sync ConfigMap
@@ -417,7 +417,7 @@ func TestSyncConfigMapShouldRespectDWOLabels(t *testing.T) {
 
 	// Check that destination ConfigMap is updated
 	cm = &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.Nil(t, err)
 	assert.Equal(t, constants.WorkspacesConfig, cm.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.CheEclipseOrg, cm.Labels[constants.KubernetesPartOfLabelKey])
@@ -426,7 +426,7 @@ func TestSyncConfigMapShouldRespectDWOLabels(t *testing.T) {
 }
 
 func TestSyncConfigMapShouldRemoveSomeLabels(t *testing.T) {
-	deployContext := test.NewCtxBuilder().WithObjects(
+	cheCtx := test.NewCtxBuilder().WithObjects(
 		&corev1.ConfigMap{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "ConfigMap",
@@ -445,11 +445,11 @@ func TestSyncConfigMapShouldRemoveSomeLabels(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Scheme,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
-			Client: deployContext.ClusterAPI.Client,
+			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
@@ -466,7 +466,7 @@ func TestSyncConfigMapShouldRemoveSomeLabels(t *testing.T) {
 
 	// Check ConfigMap in a user namespace is created
 	cm := &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.Nil(t, err)
 	assert.Equal(t, constants.WorkspacesConfig, cm.Labels[constants.KubernetesComponentLabelKey])
 	assert.Equal(t, constants.CheEclipseOrg, cm.Labels[constants.KubernetesPartOfLabelKey])
@@ -475,7 +475,7 @@ func TestSyncConfigMapShouldRemoveSomeLabels(t *testing.T) {
 }
 
 func TestSyncConfigMapShouldRetainIfAnnotationSetTrue(t *testing.T) {
-	deployContext := test.NewCtxBuilder().WithObjects(
+	cheCtx := test.NewCtxBuilder().WithObjects(
 		&corev1.ConfigMap{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "ConfigMap",
@@ -495,11 +495,11 @@ func TestSyncConfigMapShouldRetainIfAnnotationSetTrue(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Scheme,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
-			Client: deployContext.ClusterAPI.Client,
+			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
@@ -516,12 +516,12 @@ func TestSyncConfigMapShouldRetainIfAnnotationSetTrue(t *testing.T) {
 
 	// Check ConfigMap in a user namespace is created
 	cm := &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.Nil(t, err)
 	assert.Equal(t, "true", cm.Annotations[syncRetainOnDeleteAnnotation])
 
 	// Delete src ConfigMap
-	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &corev1.ConfigMap{})
+	err = cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &corev1.ConfigMap{})
 	assert.Nil(t, err)
 
 	// Sync ConfigMap
@@ -531,12 +531,12 @@ func TestSyncConfigMapShouldRetainIfAnnotationSetTrue(t *testing.T) {
 
 	// Check that destination ConfigMap in a user namespace NOT is deleted
 	cm = &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.NoError(t, err)
 }
 
 func TestSyncConfigMapShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
-	deployContext := test.NewCtxBuilder().WithObjects(
+	cheCtx := test.NewCtxBuilder().WithObjects(
 		&corev1.ConfigMap{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "ConfigMap",
@@ -556,11 +556,11 @@ func TestSyncConfigMapShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Client,
-		deployContext.ClusterAPI.Scheme,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
-			Client: deployContext.ClusterAPI.Client,
+			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
 				userNamespace: {
 					IsWorkspaceNamespace: true,
@@ -577,12 +577,12 @@ func TestSyncConfigMapShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 
 	// Check ConfigMap in a user namespace is created
 	cm := &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.Nil(t, err)
 	assert.Equal(t, "false", cm.Annotations[syncRetainOnDeleteAnnotation])
 
 	// Delete src ConfigMap
-	err = deployContext.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &corev1.ConfigMap{})
+	err = cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(context.TODO(), objectKeyInCheNs, &corev1.ConfigMap{})
 	assert.Nil(t, err)
 
 	// Sync ConfigMap
@@ -592,7 +592,7 @@ func TestSyncConfigMapShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 
 	// Check that destination ConfigMap in a user namespace is deleted
 	cm = &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.NotNil(t, err)
 	assert.True(t, errors.IsNotFound(err))
 }

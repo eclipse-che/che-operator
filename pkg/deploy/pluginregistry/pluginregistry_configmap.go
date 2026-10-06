@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -30,14 +30,14 @@ type PluginRegistryConfigMap struct {
 	StartOpenVSX                             string `json:"START_OPENVSX"`
 }
 
-func (p *PluginRegistryReconciler) getConfigMapData(ctx *chetypes.DeployContext) (map[string]string, error) {
+func (p *PluginRegistryReconciler) getConfigMapData(cheCtx *chetypes.CheContext) (map[string]string, error) {
 	pluginRegistryEnv := make(map[string]string)
 	data := &PluginRegistryConfigMap{
-		CheSidecarContainersRegistryURL:          ctx.CheCluster.Spec.ContainerRegistry.Hostname,
-		CheSidecarContainersRegistryOrganization: ctx.CheCluster.Spec.ContainerRegistry.Organization,
-		ChePluginRegistryURL:                     ctx.CheCluster.Status.PluginRegistryURL,
-		ChePluginRegistryInternalURL:             fmt.Sprintf("http://%s.%s.svc:8080", constants.PluginRegistryName, ctx.CheCluster.Namespace),
-		StartOpenVSX:                             strconv.FormatBool(ctx.CheCluster.IsInternalPluginRegistryWithOpenVSXEnabled()),
+		CheSidecarContainersRegistryURL:          cheCtx.CheCluster.Spec.ContainerRegistry.Hostname,
+		CheSidecarContainersRegistryOrganization: cheCtx.CheCluster.Spec.ContainerRegistry.Organization,
+		ChePluginRegistryURL:                     cheCtx.CheCluster.Status.PluginRegistryURL,
+		ChePluginRegistryInternalURL:             fmt.Sprintf("http://%s.%s.svc:8080", constants.PluginRegistryName, cheCtx.CheCluster.Namespace),
+		StartOpenVSX:                             strconv.FormatBool(cheCtx.CheCluster.IsInternalPluginRegistryWithOpenVSXEnabled()),
 	}
 
 	out, err := json.Marshal(data)

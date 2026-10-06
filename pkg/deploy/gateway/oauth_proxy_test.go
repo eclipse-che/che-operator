@@ -26,7 +26,7 @@ import (
 )
 
 func TestCookieExpireForOpenShiftOauthProxyConfig(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
 				Auth: chev2.Auth{
@@ -39,12 +39,12 @@ func TestCookieExpireForOpenShiftOauthProxyConfig(t *testing.T) {
 			}},
 	}).Build()
 
-	config := openshiftOauthProxyConfig(ctx, "")
+	config := openshiftOauthProxyConfig(cheCtx, "")
 	assert.Contains(t, config, "cookie_expire = \"1h1m5s\"")
 }
 
 func TestCookieExpireKubernetesOauthProxyConfig(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
 				Auth: chev2.Auth{
@@ -59,12 +59,12 @@ func TestCookieExpireKubernetesOauthProxyConfig(t *testing.T) {
 
 	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
-	config := kubernetesOauthProxyConfig(ctx, "")
+	config := kubernetesOauthProxyConfig(cheCtx, "")
 	assert.Contains(t, config, "cookie_expire = \"1h1m5s\"")
 }
 
 func TestKubernetesOauthProxyConfig(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithCheCluster(
+	cheCtx := test.NewCtxBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			Spec: chev2.CheClusterSpec{
 				Networking: chev2.CheClusterSpecNetworking{
@@ -75,10 +75,10 @@ func TestKubernetesOauthProxyConfig(t *testing.T) {
 					},
 				}},
 		}).Build()
-	ctx.CheHost = "che-site.che-domain.com"
+	cheCtx.CheHost = "che-site.che-domain.com"
 	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
-	config := kubernetesOauthProxyConfig(ctx, "blabol")
+	config := kubernetesOauthProxyConfig(cheCtx, "blabol")
 	assert.Contains(t, config, "pass_authorization_header = true")
 	assert.Contains(t, config, "whitelist_domains = \".che-domain.com\"")
 	assert.Contains(t, config, "cookie_domains = \".che-domain.com\"")
@@ -87,7 +87,7 @@ func TestKubernetesOauthProxyConfig(t *testing.T) {
 }
 
 func TestScopeDefinedForKubernetesOauthProxyConfig(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithCheCluster(
+	cheCtx := test.NewCtxBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			Spec: chev2.CheClusterSpec{
 				Networking: chev2.CheClusterSpecNetworking{
@@ -101,12 +101,12 @@ func TestScopeDefinedForKubernetesOauthProxyConfig(t *testing.T) {
 		}).Build()
 	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
-	config := kubernetesOauthProxyConfig(ctx, "blabol")
+	config := kubernetesOauthProxyConfig(cheCtx, "blabol")
 	assert.Contains(t, config, "scope = \"scope1 scope2 scope3 scope4 scope5\"")
 }
 
 func TestAccessTokenDefinedForKubernetesOauthProxyConfig(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithCheCluster(
+	cheCtx := test.NewCtxBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			Spec: chev2.CheClusterSpec{
 				Networking: chev2.CheClusterSpecNetworking{
@@ -120,7 +120,7 @@ func TestAccessTokenDefinedForKubernetesOauthProxyConfig(t *testing.T) {
 		}).Build()
 	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
-	config := kubernetesOauthProxyConfig(ctx, "blabol")
+	config := kubernetesOauthProxyConfig(cheCtx, "blabol")
 	assert.Contains(t, config, "pass_access_token = true")
 	assert.NotContains(t, config, "pass_authorization_header = true")
 }
@@ -155,9 +155,9 @@ func TestResolveOpenShiftOAuthProxyImage_InternalRegistry(t *testing.T) {
 		},
 	}, "status", "tags")
 
-	ctx := test.NewCtxBuilder().WithObjects(imageStream).Build()
+	cheCtx := test.NewCtxBuilder().WithObjects(imageStream).Build()
 
-	resolved := resolveOpenShiftOAuthProxyImage(ctx)
+	resolved := resolveOpenShiftOAuthProxyImage(cheCtx)
 	assert.Equal(t, expectedImage, resolved)
 }
 
@@ -186,9 +186,9 @@ func TestResolveOpenShiftOAuthProxyImage_NoInternalRegistry(t *testing.T) {
 		},
 	}, "status", "tags")
 
-	ctx := test.NewCtxBuilder().WithObjects(imageStream).Build()
+	cheCtx := test.NewCtxBuilder().WithObjects(imageStream).Build()
 
-	resolved := resolveOpenShiftOAuthProxyImage(ctx)
+	resolved := resolveOpenShiftOAuthProxyImage(cheCtx)
 	assert.Equal(t, "", resolved)
 }
 
@@ -197,8 +197,8 @@ func TestResolveOpenShiftOAuthProxyImage_NoInternalRegistry(t *testing.T) {
 func TestResolveOpenShiftOAuthProxyImage_ImageStreamAbsent(t *testing.T) {
 	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	resolved := resolveOpenShiftOAuthProxyImage(ctx)
+	resolved := resolveOpenShiftOAuthProxyImage(cheCtx)
 	assert.Equal(t, "", resolved)
 }

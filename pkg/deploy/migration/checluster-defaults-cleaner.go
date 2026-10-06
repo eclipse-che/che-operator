@@ -41,7 +41,7 @@ type CheClusterDefaultsCleaner struct {
 
 type ActionTask struct {
 	field    string
-	doUpdate func(*chetypes.DeployContext) (bool, error)
+	doUpdate func(*chetypes.CheContext) (bool, error)
 }
 
 func NewCheClusterDefaultsCleaner() *CheClusterDefaultsCleaner {
@@ -79,14 +79,14 @@ func NewCheClusterDefaultsCleaner() *CheClusterDefaultsCleaner {
 	}
 }
 
-func (dc *CheClusterDefaultsCleaner) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
+func (dc *CheClusterDefaultsCleaner) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
 	for _, actionTask := range dc.actionTasks {
-		if dc.isFieldProcessed(ctx, actionTask.field) {
+		if dc.isFieldProcessed(cheCtx, actionTask.field) {
 			continue
 		}
 
-		if !ctx.CheCluster.IsCheBeingInstalled() {
-			done, err := actionTask.doUpdate(ctx)
+		if !cheCtx.CheCluster.IsCheBeingInstalled() {
+			done, err := actionTask.doUpdate(cheCtx)
 			if done {
 				logger.Info("CheCluster CR updated", "field", actionTask.field)
 			} else if err != nil {
@@ -94,8 +94,8 @@ func (dc *CheClusterDefaultsCleaner) Reconcile(ctx *chetypes.DeployContext) (rec
 			}
 		}
 
-		dc.setFieldProcessed(ctx, actionTask.field)
-		err := ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster)
+		dc.setFieldProcessed(cheCtx, actionTask.field)
+		err := cheCtx.ClusterAPI.Client.Update(context.TODO(), cheCtx.CheCluster)
 		if err != nil {
 			return reconcile.Result{}, false, err
 		}
@@ -104,17 +104,17 @@ func (dc *CheClusterDefaultsCleaner) Reconcile(ctx *chetypes.DeployContext) (rec
 	return reconcile.Result{}, true, nil
 }
 
-func (dc *CheClusterDefaultsCleaner) Finalize(_ *chetypes.DeployContext) bool {
+func (dc *CheClusterDefaultsCleaner) Finalize(_ *chetypes.CheContext) bool {
 	return true
 }
 
-func (dc *CheClusterDefaultsCleaner) isFieldProcessed(ctx *chetypes.DeployContext, field string) bool {
-	fields := dc.getProcessedFields(ctx)
+func (dc *CheClusterDefaultsCleaner) isFieldProcessed(cheCtx *chetypes.CheContext, field string) bool {
+	fields := dc.getProcessedFields(cheCtx)
 	return fields[field] == "true"
 }
 
-func (dc *CheClusterDefaultsCleaner) setFieldProcessed(ctx *chetypes.DeployContext, field string) {
-	fields := dc.getProcessedFields(ctx)
+func (dc *CheClusterDefaultsCleaner) setFieldProcessed(cheCtx *chetypes.CheContext, field string) {
+	fields := dc.getProcessedFields(cheCtx)
 	fields[field] = "true"
 
 	data, err := json.Marshal(fields)
@@ -122,13 +122,13 @@ func (dc *CheClusterDefaultsCleaner) setFieldProcessed(ctx *chetypes.DeployConte
 		logger.Error(err, "Failed to marshal annotation", "annotation", cheClusterDefaultsCleanupAnnotation)
 	}
 
-	annotations := utils.GetMapOrDefault(ctx.CheCluster.GetAnnotations(), map[string]string{})
+	annotations := utils.GetMapOrDefault(cheCtx.CheCluster.GetAnnotations(), map[string]string{})
 	annotations[cheClusterDefaultsCleanupAnnotation] = string(data)
-	ctx.CheCluster.SetAnnotations(annotations)
+	cheCtx.CheCluster.SetAnnotations(annotations)
 }
 
-func (dc *CheClusterDefaultsCleaner) getProcessedFields(ctx *chetypes.DeployContext) map[string]string {
-	annotations := utils.GetMapOrDefault(ctx.CheCluster.GetAnnotations(), map[string]string{})
+func (dc *CheClusterDefaultsCleaner) getProcessedFields(cheCtx *chetypes.CheContext) map[string]string {
+	annotations := utils.GetMapOrDefault(cheCtx.CheCluster.GetAnnotations(), map[string]string{})
 
 	data := annotations[cheClusterDefaultsCleanupAnnotation]
 	if data == "" {

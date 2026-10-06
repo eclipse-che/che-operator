@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -23,7 +23,7 @@ import (
 )
 
 func TestReload(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:       "eclipse-che",
 			Name:            "eclipse-che",
@@ -31,7 +31,7 @@ func TestReload(t *testing.T) {
 		},
 	}).Build()
 
-	ctx.CheCluster = &chev2.CheCluster{
+	cheCtx.CheCluster = &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:       "eclipse-che",
 			Name:            "eclipse-che",
@@ -46,13 +46,13 @@ func TestReload(t *testing.T) {
 		},
 	}
 
-	err := ReloadCheClusterCR(ctx)
+	err := ReloadCheClusterCR(cheCtx)
 	if err != nil {
 		t.Errorf("Failed to reload checluster, %v", err)
 	}
 
-	assert.Equal(t, "1", ctx.CheCluster.ResourceVersion)
-	assert.Nil(t, ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL)
+	assert.Equal(t, "1", cheCtx.CheCluster.ResourceVersion)
+	assert.Nil(t, cheCtx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL)
 }
 
 func TestFindCheCRinNamespace(t *testing.T) {
@@ -86,8 +86,8 @@ func TestFindCheCRinNamespace(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := test.NewCtxBuilder().WithCheCluster(testCase.checluster).Build()
-			checluster, err := FindCheClusterCRInNamespace(deployContext.ClusterAPI.Client, testCase.namespace)
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.checluster).Build()
+			checluster, err := FindCheClusterCRInNamespace(cheCtx.ClusterAPI.Client, testCase.namespace)
 			if testCase.found {
 				assert.NoError(t, err)
 				assert.Equal(t, testCase.checluster.Name, checluster.Name)

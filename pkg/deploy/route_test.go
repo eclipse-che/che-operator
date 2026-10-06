@@ -152,9 +152,9 @@ func TestRouteSpec(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 
-			actualRoute, err := GetRouteSpec(ctx,
+			actualRoute, err := GetRouteSpec(cheCtx,
 				testCase.routeName,
 				testCase.routePath,
 				testCase.serviceName,
@@ -169,28 +169,28 @@ func TestRouteSpec(t *testing.T) {
 }
 
 func TestSyncRouteToCluster(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	err := SyncRouteToCluster(ctx, "test", "", "service", 80, "test")
+	err := SyncRouteToCluster(cheCtx, "test", "", "service", 80, "test")
 	assert.Nil(t, err)
 
 	// sync another route
-	err = SyncRouteToCluster(ctx, "test", "", "service", 90, "test")
+	err = SyncRouteToCluster(cheCtx, "test", "", "service", 90, "test")
 	assert.Nil(t, err)
 
 	actual := &routev1.Route{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
 	assert.Nil(t, err)
 	assert.Equal(t, int32(90), actual.Spec.Port.TargetPort.IntVal)
 
 	// sync route with labels & domain
-	ctx.CheCluster.Spec.Networking.Domain = "domain"
-	ctx.CheCluster.Spec.Networking.Labels = map[string]string{"a": "b"}
-	err = SyncRouteToCluster(ctx, "test", "", "service", 90, "test")
+	cheCtx.CheCluster.Spec.Networking.Domain = "domain"
+	cheCtx.CheCluster.Spec.Networking.Labels = map[string]string{"a": "b"}
+	err = SyncRouteToCluster(cheCtx, "test", "", "service", 90, "test")
 	assert.Nil(t, err)
 
 	actual = &routev1.Route{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
 	assert.Nil(t, err)
 	assert.Equal(t, "b", actual.Labels["a"])
 
@@ -198,12 +198,12 @@ func TestSyncRouteToCluster(t *testing.T) {
 	assert.Equal(t, expectedHost, actual.Spec.Host)
 
 	// sync route with annotations
-	ctx.CheCluster.Spec.Networking.Annotations = map[string]string{"a": "b"}
-	err = SyncRouteToCluster(ctx, "test", "", "service", 90, "test")
+	cheCtx.CheCluster.Spec.Networking.Annotations = map[string]string{"a": "b"}
+	err = SyncRouteToCluster(cheCtx, "test", "", "service", 90, "test")
 	assert.Nil(t, err)
 
 	actual = &routev1.Route{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
 	assert.Nil(t, err)
 	assert.Equal(t, "b", actual.Annotations["a"])
 	assert.NotEmpty(t, actual.Annotations[constants.CheEclipseOrgManagedAnnotationsDigest])

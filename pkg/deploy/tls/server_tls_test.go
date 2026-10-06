@@ -26,10 +26,10 @@ import (
 )
 
 func TestBuildServerTLSOptions_APIServerAbsent(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 	log := ctrl.Log.WithName("test")
 
-	got, err := buildServerTLSOptions(context.Background(), ctx.ClusterAPI.Client, log)
+	got, err := buildServerTLSOptions(context.Background(), cheCtx.ClusterAPI.Client, log)
 
 	assert.NoError(t, err)
 
@@ -56,10 +56,10 @@ func TestBuildServerTLSOptions_StrictWithModernProfile(t *testing.T) {
 		},
 	}
 
-	ctx := test.NewCtxBuilder().WithObjects(apiServer).Build()
+	cheCtx := test.NewCtxBuilder().WithObjects(apiServer).Build()
 	log := ctrl.Log.WithName("test")
 
-	got, err := buildServerTLSOptions(context.Background(), ctx.ClusterAPI.Client, log)
+	got, err := buildServerTLSOptions(context.Background(), cheCtx.ClusterAPI.Client, log)
 
 	assert.NoError(t, err)
 
@@ -87,10 +87,10 @@ func TestBuildServerTLSOptions_StrictWithOldProfile(t *testing.T) {
 		},
 	}
 
-	ctx := test.NewCtxBuilder().WithObjects(apiServer).Build()
+	cheCtx := test.NewCtxBuilder().WithObjects(apiServer).Build()
 	log := ctrl.Log.WithName("test")
 
-	got, err := buildServerTLSOptions(context.Background(), ctx.ClusterAPI.Client, log)
+	got, err := buildServerTLSOptions(context.Background(), cheCtx.ClusterAPI.Client, log)
 
 	assert.NoError(t, err)
 
@@ -115,10 +115,10 @@ func TestBuildServerTLSOptions_NoOpinionUsesDefaultProfile(t *testing.T) {
 		},
 	}
 
-	ctx := test.NewCtxBuilder().WithObjects(apiServer).Build()
+	cheCtx := test.NewCtxBuilder().WithObjects(apiServer).Build()
 	log := ctrl.Log.WithName("test")
 
-	got, err := buildServerTLSOptions(context.Background(), ctx.ClusterAPI.Client, log)
+	got, err := buildServerTLSOptions(context.Background(), cheCtx.ClusterAPI.Client, log)
 
 	assert.NoError(t, err)
 

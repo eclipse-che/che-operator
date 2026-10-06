@@ -48,12 +48,12 @@ func GetOAuthClientSpec(
 	}
 }
 
-func GetOAuthClient(ctx *chetypes.DeployContext) (*oauth.OAuthClient, error) {
-	oAuthClientName := GetOAuthClientName(ctx)
+func GetOAuthClient(cheCtx *chetypes.CheContext) (*oauth.OAuthClient, error) {
+	oAuthClientName := GetOAuthClientName(cheCtx)
 
 	oauthClient := &oauth.OAuthClient{}
-	exists, err := ctx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(
-		ctx.Context,
+	exists, err := cheCtx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(
+		cheCtx.Context,
 		types.NamespacedName{Name: oAuthClientName},
 		oauthClient,
 	)
@@ -66,6 +66,6 @@ func GetOAuthClient(ctx *chetypes.DeployContext) (*oauth.OAuthClient, error) {
 	return oauthClient, nil
 }
 
-func GetOAuthClientName(ctx *chetypes.DeployContext) string {
-	return utils.GetValue(ctx.Authentication.ClientId, ctx.CheCluster.Namespace+"-client")
+func GetOAuthClientName(cheCtx *chetypes.CheContext) string {
+	return utils.GetValue(cheCtx.Authentication.ClientId, cheCtx.CheCluster.Namespace+"-client")
 }

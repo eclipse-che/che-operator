@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -34,7 +34,7 @@ import (
 )
 
 func TestCreate(t *testing.T) {
-	ctx := test.NewCtxBuilder().WithObjects(
+	cheCtx := test.NewCtxBuilder().WithObjects(
 		&corev1.ConfigMap{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "ConfigMap",
@@ -68,10 +68,10 @@ func TestCreate(t *testing.T) {
 	).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		ctx.ClusterAPI.Client,
-		ctx.ClusterAPI.Client,
-		ctx.ClusterAPI.Scheme,
-		namespacecache.NewNamespaceCache(ctx.ClusterAPI.NonCachingClient))
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Scheme,
+		namespacecache.NewNamespaceCache(cheCtx.ClusterAPI.NonCachingClient))
 
 	err := workspaceConfigReconciler.syncNamespace(
 		context.TODO(),
@@ -82,7 +82,7 @@ func TestCreate(t *testing.T) {
 	assert.NoError(t, err)
 
 	dstCm := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: "user-che", Name: "test"}, dstCm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: "user-che", Name: "test"}, dstCm)
 
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(dstCm.Data))
@@ -90,16 +90,16 @@ func TestCreate(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		ctx.ClusterAPI.Client,
-		ctx.ClusterAPI.Client,
-		ctx.ClusterAPI.Scheme,
-		namespacecache.NewNamespaceCache(ctx.ClusterAPI.NonCachingClient),
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Scheme,
+		namespacecache.NewNamespaceCache(cheCtx.ClusterAPI.NonCachingClient),
 	)
 
-	err := ctx.ClusterAPI.Client.Create(
+	err := cheCtx.ClusterAPI.Client.Create(
 		context.TODO(),
 		&corev1.ConfigMap{
 			TypeMeta: metav1.TypeMeta{
@@ -130,12 +130,12 @@ func TestUpdate(t *testing.T) {
 	assert.NoError(t, err)
 
 	dstCm := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "user-che"}, dstCm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "user-che"}, dstCm)
 
 	assert.NoError(t, err)
 
 	srcCm := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, srcCm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, srcCm)
 
 	assert.NoError(t, err)
 	assert.Equal(t, srcCm.Labels[constants.KubernetesPartOfLabelKey], dstCm.Labels[constants.KubernetesPartOfLabelKey])
@@ -150,7 +150,7 @@ func TestUpdate(t *testing.T) {
 	dstCm.Annotations = map[string]string{}
 	dstCm.Annotations["annotation_1"] = "new_dst_value_1"
 	dstCm.Annotations["annotation_2"] = "new_dst_value_2"
-	err = ctx.ClusterAPI.Client.Update(context.TODO(), dstCm)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), dstCm)
 
 	assert.NoError(t, err)
 
@@ -162,7 +162,7 @@ func TestUpdate(t *testing.T) {
 	srcCm.Annotations["annotation_1"] = "new_src_value_1"
 	srcCm.Annotations["annotation_3"] = "new_src_value_3"
 
-	err = ctx.ClusterAPI.Client.Update(context.TODO(), srcCm)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), srcCm)
 
 	assert.NoError(t, err)
 
@@ -177,12 +177,12 @@ func TestUpdate(t *testing.T) {
 	assert.NoError(t, err)
 
 	dstCm = &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "user-che"}, dstCm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "user-che"}, dstCm)
 
 	assert.NoError(t, err)
 
 	srcCm = &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, srcCm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, srcCm)
 
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(dstCm.Data))
@@ -197,15 +197,15 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestDeleteIfObjectIsObsolete(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		ctx.ClusterAPI.Client,
-		ctx.ClusterAPI.Client,
-		ctx.ClusterAPI.Scheme,
-		namespacecache.NewNamespaceCache(ctx.ClusterAPI.NonCachingClient))
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Scheme,
+		namespacecache.NewNamespaceCache(cheCtx.ClusterAPI.NonCachingClient))
 
-	err := ctx.ClusterAPI.Client.Create(
+	err := cheCtx.ClusterAPI.Client.Create(
 		context.TODO(),
 		&corev1.ConfigMap{
 			TypeMeta: metav1.TypeMeta{
@@ -241,7 +241,7 @@ func TestDeleteIfObjectIsObsolete(t *testing.T) {
 	}
 
 	syncCM := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), syncCMKey, syncCM)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), syncCMKey, syncCM)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "1", syncCM.Data[buildKey(v1ConfigMapGKV, "test_1", "eclipse-che")])
@@ -259,11 +259,11 @@ func TestDeleteIfObjectIsObsolete(t *testing.T) {
 	syncCM.Data[buildKey(v1ConfigMapGKV, "test_2", "user-che")] = "1"
 	syncCM.Data[buildKey(v1ConfigMapGKV, "test_2", "eclipse-che")] = "1"
 
-	err = ctx.ClusterAPI.Client.Update(context.TODO(), syncCM)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), syncCM)
 
 	assert.NoError(t, err)
 
-	err = ctx.ClusterAPI.Client.Create(
+	err = cheCtx.ClusterAPI.Client.Create(
 		context.TODO(),
 		&corev1.ConfigMap{
 			TypeMeta: metav1.TypeMeta{
@@ -295,7 +295,7 @@ func TestDeleteIfObjectIsObsolete(t *testing.T) {
 	assert.NoError(t, err)
 
 	syncCM = &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), syncCMKey, syncCM)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), syncCMKey, syncCM)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "1", syncCM.Data[buildKey(v1ConfigMapGKV, "test_1", "eclipse-che")])
@@ -308,7 +308,7 @@ func TestDeleteIfObjectIsObsolete(t *testing.T) {
 		},
 		syncCM.Labels)
 
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test_2", Namespace: "user-che"}, &corev1.ConfigMap{})
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test_2", Namespace: "user-che"}, &corev1.ConfigMap{})
 
 	assert.Error(t, err)
 	assert.True(t, errors.IsNotFound(err))
@@ -317,7 +317,7 @@ func TestDeleteIfObjectIsObsolete(t *testing.T) {
 
 	syncCM.Data = map[string]string{}
 
-	err = ctx.ClusterAPI.Client.Update(context.TODO(), syncCM)
+	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), syncCM)
 
 	assert.NoError(t, err)
 
@@ -332,7 +332,7 @@ func TestDeleteIfObjectIsObsolete(t *testing.T) {
 	assert.NoError(t, err)
 
 	syncCM = &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), syncCMKey, syncCM)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), syncCMKey, syncCM)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "1", syncCM.Data[buildKey(v1ConfigMapGKV, "test_1", "eclipse-che")])
@@ -345,7 +345,7 @@ func TestDeleteIfObjectIsObsolete(t *testing.T) {
 		},
 		syncCM.Labels)
 
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test_1", Namespace: "user-che"}, &corev1.ConfigMap{})
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test_1", Namespace: "user-che"}, &corev1.ConfigMap{})
 
 	assert.NoError(t, err)
 }
@@ -438,13 +438,13 @@ func TestBuildKey(t *testing.T) {
 }
 
 func TestSyncConfig(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		ctx.ClusterAPI.Client,
-		ctx.ClusterAPI.Client,
-		ctx.ClusterAPI.Scheme,
-		namespacecache.NewNamespaceCache(ctx.ClusterAPI.NonCachingClient))
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Client,
+		cheCtx.ClusterAPI.Scheme,
+		namespacecache.NewNamespaceCache(cheCtx.ClusterAPI.NonCachingClient))
 
 	syncCMKey := types.NamespacedName{
 		Name:      syncedWorkspacesConfig,
@@ -453,7 +453,7 @@ func TestSyncConfig(t *testing.T) {
 
 	// Sync config map should not exist
 	syncCM := &corev1.ConfigMap{}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), syncCMKey, syncCM)
+	err := cheCtx.ClusterAPI.Client.Get(context.TODO(), syncCMKey, syncCM)
 
 	assert.Error(t, err)
 	assert.True(t, errors.IsNotFound(err))
@@ -468,7 +468,7 @@ func TestSyncConfig(t *testing.T) {
 
 	// Sync config map should exist
 	syncCM = &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), syncCMKey, syncCM)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), syncCMKey, syncCM)
 
 	assert.NoError(t, err)
 	assert.Empty(t, syncCM.Data)
@@ -482,7 +482,7 @@ func TestSyncConfig(t *testing.T) {
 
 	// sync some object and check sync config map
 
-	err = ctx.ClusterAPI.Client.Create(
+	err = cheCtx.ClusterAPI.Client.Create(
 		context.TODO(),
 		&corev1.ConfigMap{
 			TypeMeta: metav1.TypeMeta{
@@ -515,7 +515,7 @@ func TestSyncConfig(t *testing.T) {
 	// Sync config map should exist and contains synced object revision
 
 	syncCM = &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), syncCMKey, syncCM)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), syncCMKey, syncCM)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "1", syncCM.Data[buildKey(v1ConfigMapGKV, "test", "eclipse-che")])
@@ -539,7 +539,7 @@ func TestSyncConfig(t *testing.T) {
 	assert.NoError(t, err)
 
 	syncCM = &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), syncCMKey, syncCM)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), syncCMKey, syncCM)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "1", syncCM.Data[buildKey(v1ConfigMapGKV, "test", "eclipse-che")])
@@ -555,11 +555,11 @@ func TestSyncConfig(t *testing.T) {
 	// delete some object and check sync config map
 
 	cm := &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, cm)
 
 	assert.NoError(t, err)
 
-	err = ctx.ClusterAPI.Client.Delete(context.TODO(), cm)
+	err = cheCtx.ClusterAPI.Client.Delete(context.TODO(), cm)
 	assert.NoError(t, err)
 
 	err = workspaceConfigReconciler.syncNamespace(
@@ -571,7 +571,7 @@ func TestSyncConfig(t *testing.T) {
 	assert.NoError(t, err)
 
 	syncCM = &corev1.ConfigMap{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), syncCMKey, syncCM)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), syncCMKey, syncCM)
 
 	assert.NoError(t, err)
 	assert.Empty(t, syncCM.Data)

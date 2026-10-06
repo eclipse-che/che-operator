@@ -40,20 +40,20 @@ func NewOpenVSXSecretReconciler() *OpenVSXSecretReconciler {
 	return &OpenVSXSecretReconciler{}
 }
 
-func (r *OpenVSXSecretReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	hasCustomCredentialsSecret, err := HasCustomCredentialsSecret(ctx)
+func (r *OpenVSXSecretReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
+	hasCustomCredentialsSecret, err := HasCustomCredentialsSecret(cheCtx)
 	if err != nil {
 		return reconcile.Result{}, false, fmt.Errorf("error checking OpenVSX Credentials secret: %w", err)
 	}
 
-	if !ctx.CheCluster.IsInternalOpenVSXRegistryEnabled() {
+	if !cheCtx.CheCluster.IsInternalOpenVSXRegistryEnabled() {
 		if !hasCustomCredentialsSecret {
-			deleteResources(ctx)
+			deleteResources(cheCtx)
 		}
 		return reconcile.Result{}, true, nil
 	}
 
-	err = r.syncSecret(ctx)
+	err = r.syncSecret(cheCtx)
 	if err != nil {
 		return reconcile.Result{}, false, fmt.Errorf("failed to sync Secret %w", err)
 	}
@@ -61,11 +61,11 @@ func (r *OpenVSXSecretReconciler) Reconcile(ctx *chetypes.DeployContext) (reconc
 	return reconcile.Result{}, true, nil
 }
 
-func (r *OpenVSXSecretReconciler) Finalize(_ *chetypes.DeployContext) bool {
+func (r *OpenVSXSecretReconciler) Finalize(_ *chetypes.CheContext) bool {
 	return true
 }
 
-func (p *OpenVSXSecretReconciler) syncSecret(ctx *chetypes.DeployContext) error {
+func (p *OpenVSXSecretReconciler) syncSecret(cheCtx *chetypes.CheContext) error {
 	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
@@ -73,7 +73,7 @@ func (p *OpenVSXSecretReconciler) syncSecret(ctx *chetypes.DeployContext) error 
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.OpenVSXCredentialsSecret,
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Labels:    deploy.GetLabels(constants.OpenVSXDatabaseComponentName),
 		},
 		Type: corev1.SecretTypeOpaque,
@@ -88,20 +88,20 @@ func (p *OpenVSXSecretReconciler) syncSecret(ctx *chetypes.DeployContext) error 
 		},
 	}
 
-	if err := controllerutil.SetControllerReference(ctx.CheCluster, secret, ctx.ClusterAPI.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, secret, cheCtx.ClusterAPI.Scheme); err != nil {
 		return err
 	}
 
-	return ctx.ClusterAPI.ClientWrapper.CreateIfNotExists(context.TODO(), secret)
+	return cheCtx.ClusterAPI.ClientWrapper.CreateIfNotExists(context.TODO(), secret)
 }
 
-func HasCustomCredentialsSecret(ctx *chetypes.DeployContext) (bool, error) {
-	credentialsSecretName := GetCredentialsSecretName(ctx)
+func HasCustomCredentialsSecret(cheCtx *chetypes.CheContext) (bool, error) {
+	credentialsSecretName := GetCredentialsSecretName(cheCtx)
 
 	secret := &corev1.Secret{}
-	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
 		context.TODO(),
-		types.NamespacedName{Name: credentialsSecretName, Namespace: ctx.CheCluster.Namespace},
+		types.NamespacedName{Name: credentialsSecretName, Namespace: cheCtx.CheCluster.Namespace},
 		secret,
 	)
 	if err != nil {
@@ -114,17 +114,17 @@ func HasCustomCredentialsSecret(ctx *chetypes.DeployContext) (bool, error) {
 	return false, nil
 }
 
-func GetCredentialsSecretName(ctx *chetypes.DeployContext) string {
+func GetCredentialsSecretName(cheCtx *chetypes.CheContext) string {
 	return ptr.Deref(
-		ctx.CheCluster.Spec.Components.OpenVSXRegistry.CredentialsSecretName,
+		cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.CredentialsSecretName,
 		constants.OpenVSXCredentialsSecret,
 	)
 }
 
-func deleteResources(ctx *chetypes.DeployContext) {
-	err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+func deleteResources(cheCtx *chetypes.CheContext) {
+	err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
 		context.TODO(),
-		types.NamespacedName{Name: constants.OpenVSXCredentialsSecret, Namespace: ctx.CheCluster.Namespace},
+		types.NamespacedName{Name: constants.OpenVSXCredentialsSecret, Namespace: cheCtx.CheCluster.Namespace},
 		&corev1.Secret{},
 	)
 	if err != nil {

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -166,15 +166,15 @@ func TestDevfileRegistryReconciler(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
 
 			devfileRegistryReconciler := NewDevfileRegistryReconciler()
-			test.EnsureReconcile(t, ctx, devfileRegistryReconciler.Reconcile)
+			test.EnsureReconcile(t, cheCtx, devfileRegistryReconciler.Reconcile)
 
-			assert.Equal(t, testCase.expectedDevfileRegistryURL, ctx.CheCluster.Status.DevfileRegistryURL)
-			assert.Equal(t, testCase.expectedDisableInternalRegistry, ctx.CheCluster.Spec.Components.DevfileRegistry.DisableInternalRegistry)
-			assert.Equal(t, len(testCase.expectedExternalDevfileRegistries), len(ctx.CheCluster.Spec.Components.DevfileRegistry.ExternalDevfileRegistries))
-			assert.Equal(t, testCase.expectedExternalDevfileRegistries, ctx.CheCluster.Spec.Components.DevfileRegistry.ExternalDevfileRegistries)
+			assert.Equal(t, testCase.expectedDevfileRegistryURL, cheCtx.CheCluster.Status.DevfileRegistryURL)
+			assert.Equal(t, testCase.expectedDisableInternalRegistry, cheCtx.CheCluster.Spec.Components.DevfileRegistry.DisableInternalRegistry)
+			assert.Equal(t, len(testCase.expectedExternalDevfileRegistries), len(cheCtx.CheCluster.Spec.Components.DevfileRegistry.ExternalDevfileRegistries))
+			assert.Equal(t, testCase.expectedExternalDevfileRegistries, cheCtx.CheCluster.Spec.Components.DevfileRegistry.ExternalDevfileRegistries)
 		})
 	}
 }

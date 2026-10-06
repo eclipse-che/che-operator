@@ -22,20 +22,20 @@ import (
 )
 
 func TestSyncJobToCluster(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	err := SyncJobToCluster(ctx, "test", "component", "image-1", "sa", map[string]string{})
+	err := SyncJobToCluster(cheCtx, "test", "component", "image-1", "sa", map[string]string{})
 	if err != nil {
 		t.Fatalf("Failed to sync job: %v", err)
 	}
 
-	err = SyncJobToCluster(ctx, "test", "component", "image-2", "sa", map[string]string{})
+	err = SyncJobToCluster(cheCtx, "test", "component", "image-2", "sa", map[string]string{})
 	if err != nil {
 		t.Fatalf("Failed to sync job: %v", err)
 	}
 
 	actual := &batchv1.Job{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
 	if err != nil {
 		t.Fatalf("Failed to get job: %v", err)
 	}

@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (r *OpenVSXServerReconciler) syncDefaultExtensionsConfig(ctx *chetypes.DeployContext) error {
+func (r *OpenVSXServerReconciler) syncDefaultExtensionsConfig(cheCtx *chetypes.CheContext) error {
 	cm := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
@@ -41,7 +41,7 @@ func (r *OpenVSXServerReconciler) syncDefaultExtensionsConfig(ctx *chetypes.Depl
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.OpenVSXServerExtensionsConfigMapName,
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Labels:    deploy.GetLabels(constants.OpenVSXServerComponentName),
 		},
 		Data: map[string]string{
@@ -49,20 +49,20 @@ func (r *OpenVSXServerReconciler) syncDefaultExtensionsConfig(ctx *chetypes.Depl
 		},
 	}
 
-	if err := controllerutil.SetControllerReference(ctx.CheCluster, cm, ctx.ClusterAPI.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, cm, cheCtx.ClusterAPI.Scheme); err != nil {
 		return err
 	}
 
-	return ctx.ClusterAPI.ClientWrapper.CreateIfNotExists(ctx.Context, cm)
+	return cheCtx.ClusterAPI.ClientWrapper.CreateIfNotExists(cheCtx.Context, cm)
 }
 
-func (r *OpenVSXServerReconciler) getExtensionsVersion(ctx *chetypes.DeployContext) (string, error) {
+func (r *OpenVSXServerReconciler) getExtensionsVersion(cheCtx *chetypes.CheContext) (string, error) {
 	cm := &corev1.ConfigMap{}
-	exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-		ctx.Context,
+	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		cheCtx.Context,
 		types.NamespacedName{
 			Name:      constants.OpenVSXServerExtensionsConfigMapName,
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 		},
 		cm,
 	)
@@ -76,13 +76,13 @@ func (r *OpenVSXServerReconciler) getExtensionsVersion(ctx *chetypes.DeployConte
 	return cm.ResourceVersion, nil
 }
 
-func (r *OpenVSXServerReconciler) syncExtensions(ctx *chetypes.DeployContext) (bool, error) {
-	image := defaults.GetOpenVSXImage(ctx.CheCluster)
+func (r *OpenVSXServerReconciler) syncExtensions(cheCtx *chetypes.CheContext) (bool, error) {
+	image := defaults.GetOpenVSXImage(cheCtx.CheCluster)
 	imagePullPolicy := utils.GetPullPolicyFromDockerImage(image)
 
 	labels := deploy.GetLabels(constants.OpenVSXServerExtensionPublishJobName)
 
-	credentialsSecret := openvsx.GetCredentialsSecretName(ctx)
+	credentialsSecret := openvsx.GetCredentialsSecretName(cheCtx)
 
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
@@ -91,7 +91,7 @@ func (r *OpenVSXServerReconciler) syncExtensions(ctx *chetypes.DeployContext) (b
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.OpenVSXServerExtensionPublishJobName,
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: batchv1.JobSpec{
@@ -115,11 +115,11 @@ func (r *OpenVSXServerReconciler) syncExtensions(ctx *chetypes.DeployContext) (b
 							Env: []corev1.EnvVar{
 								{
 									Name:  "OVSX_REGISTRY_URL",
-									Value: openvsx.GetOpenVSXServerServiceURL(ctx),
+									Value: openvsx.GetOpenVSXServerServiceURL(cheCtx),
 								},
 								{
 									Name:  "OVSX_FORWARDED_HOST",
-									Value: ctx.CheHost,
+									Value: cheCtx.CheHost,
 								},
 								utils.EnvVarFromSecret("OVSX_PAT", credentialsSecret, "openvsx-publisher-token"),
 							},
@@ -166,12 +166,12 @@ func (r *OpenVSXServerReconciler) syncExtensions(ctx *chetypes.DeployContext) (b
 		constants.DefaultSecurityContextFsGroup,
 	)
 
-	if err := controllerutil.SetControllerReference(ctx.CheCluster, job, ctx.ClusterAPI.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, job, cheCtx.ClusterAPI.Scheme); err != nil {
 		return false, err
 	}
 
-	err := ctx.ClusterAPI.ClientWrapper.Sync(
-		ctx.Context,
+	err := cheCtx.ClusterAPI.ClientWrapper.Sync(
+		cheCtx.Context,
 		job,
 		&k8sclient.SyncOptions{
 			DeleteOpts: []client.DeleteOption{client.PropagationPolicy(metav1.DeletePropagationBackground)},

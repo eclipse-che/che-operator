@@ -45,24 +45,24 @@ var routeDiffOpts = cmp.Options{
 }
 
 func SyncRouteToCluster(
-	deployContext *chetypes.DeployContext,
+	cheCtx *chetypes.CheContext,
 	name string,
 	path string,
 	serviceName string,
 	servicePort int32,
 	component string) error {
 
-	routeSpec, err := GetRouteSpec(deployContext, name, path, serviceName, servicePort, component)
+	routeSpec, err := GetRouteSpec(cheCtx, name, path, serviceName, servicePort, component)
 	if err != nil {
-		return fmt.Errorf("failed to get Route spec %s/%s: %w", deployContext.CheCluster.Namespace, name, err)
+		return fmt.Errorf("failed to get Route spec %s/%s: %w", cheCtx.CheCluster.Namespace, name, err)
 	}
 
-	if err := controllerutil.SetControllerReference(deployContext.CheCluster, routeSpec, deployContext.ClusterAPI.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, routeSpec, cheCtx.ClusterAPI.Scheme); err != nil {
 		return fmt.Errorf("failed to set owner reference for Route %s/%s: %w", routeSpec.Namespace, routeSpec.Name, err)
 	}
 
-	if err := deployContext.ClusterAPI.ClientWrapper.Sync(
-		deployContext.Context,
+	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
+		cheCtx.Context,
 		routeSpec,
 		&k8sclient.SyncOptions{DiffOpts: routeDiffOpts},
 	); err != nil {
@@ -74,7 +74,7 @@ func SyncRouteToCluster(
 
 // GetRouteSpec returns default configuration of a route in Che namespace.
 func GetRouteSpec(
-	deployContext *chetypes.DeployContext,
+	cheCtx *chetypes.CheContext,
 	name string,
 	path string,
 	serviceName string,
@@ -82,15 +82,15 @@ func GetRouteSpec(
 	component string) (*routev1.Route, error) {
 
 	labels := GetLabels(component)
-	for k, v := range deployContext.CheCluster.Spec.Networking.Labels {
+	for k, v := range cheCtx.CheCluster.Spec.Networking.Labels {
 		labels[k] = v
 	}
 
 	// add custom annotations
 	var annotations map[string]string
-	if len(deployContext.CheCluster.Spec.Networking.Annotations) > 0 {
+	if len(cheCtx.CheCluster.Spec.Networking.Annotations) > 0 {
 		annotations = make(map[string]string)
-		for k, v := range deployContext.CheCluster.Spec.Networking.Annotations {
+		for k, v := range cheCtx.CheCluster.Spec.Networking.Annotations {
 			annotations[k] = v
 		}
 	}
@@ -124,7 +124,7 @@ func GetRouteSpec(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
-			Namespace:   deployContext.CheCluster.Namespace,
+			Namespace:   cheCtx.CheCluster.Namespace,
 			Labels:      labels,
 			Annotations: annotations,
 		},
@@ -142,15 +142,15 @@ func GetRouteSpec(
 		},
 	}
 
-	route.Spec.Host = deployContext.CheCluster.Spec.Networking.Hostname
+	route.Spec.Host = cheCtx.CheCluster.Spec.Networking.Hostname
 	if route.Spec.Host == "" {
-		hostSuffix := deployContext.CheCluster.Spec.Networking.Domain
+		hostSuffix := cheCtx.CheCluster.Spec.Networking.Domain
 
 		if hostSuffix == "" {
 			existedRoute := &routev1.Route{}
-			exists, _ := deployContext.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-				deployContext.Context,
-				types.NamespacedName{Name: name, Namespace: deployContext.CheCluster.Namespace},
+			exists, _ := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+				cheCtx.Context,
+				types.NamespacedName{Name: name, Namespace: cheCtx.CheCluster.Namespace},
 				existedRoute,
 			)
 			if exists {
@@ -180,13 +180,13 @@ func GetRouteSpec(
 	}
 
 	// for server and dashboard ingresses
-	if deployContext.CheCluster.Spec.Networking.TlsSecretName != "" {
+	if cheCtx.CheCluster.Spec.Networking.TlsSecretName != "" {
 		secret := &corev1.Secret{}
 		namespacedName := types.NamespacedName{
-			Namespace: deployContext.CheCluster.Namespace,
-			Name:      deployContext.CheCluster.Spec.Networking.TlsSecretName,
+			Namespace: cheCtx.CheCluster.Namespace,
+			Name:      cheCtx.CheCluster.Spec.Networking.TlsSecretName,
 		}
-		if err := deployContext.ClusterAPI.Client.Get(context.TODO(), namespacedName, secret); err != nil {
+		if err := cheCtx.ClusterAPI.Client.Get(context.TODO(), namespacedName, secret); err != nil {
 			return nil, err
 		}
 

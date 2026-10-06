@@ -22,21 +22,21 @@ import (
 )
 
 func TestServiceToCluster(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 
-	err := SyncServiceToCluster(ctx, "test", []string{"port"}, []int32{8080}, "test")
+	err := SyncServiceToCluster(cheCtx, "test", []string{"port"}, []int32{8080}, "test")
 	if err != nil {
 		t.Fatalf("Failed to sync service: %v", err)
 	}
 
 	// sync another service
-	err = SyncServiceToCluster(ctx, "test", []string{"port"}, []int32{9090}, "test")
+	err = SyncServiceToCluster(cheCtx, "test", []string{"port"}, []int32{9090}, "test")
 	if err != nil {
 		t.Fatalf("Failed to sync service: %v", err)
 	}
 
 	actual := &corev1.Service{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
 	if err != nil {
 		t.Fatalf("Failed to get service: %v", err)
 	}

@@ -45,9 +45,9 @@ var (
 )
 
 type PrometheusResourceProvider interface {
-	GetPrometheusRole(*chetypes.DeployContext) (*rbacv1.Role, error)
-	GetPrometheusRoleBinding(*chetypes.DeployContext) (*rbacv1.RoleBinding, error)
-	GetServiceMonitor(*chetypes.DeployContext) (*monitoringv1.ServiceMonitor, error)
+	GetPrometheusRole(*chetypes.CheContext) (*rbacv1.Role, error)
+	GetPrometheusRoleBinding(*chetypes.CheContext) (*rbacv1.RoleBinding, error)
+	GetServiceMonitor(*chetypes.CheContext) (*monitoringv1.ServiceMonitor, error)
 }
 
 type MetricsReconciler struct {
@@ -58,24 +58,24 @@ func NewMetricsReconciler() *MetricsReconciler {
 	return &MetricsReconciler{}
 }
 
-func (r *MetricsReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if err := syncResources(ctx, &DWOPrometheusResourceProvider{}); err != nil {
+func (r *MetricsReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
+	if err := syncResources(cheCtx, &DWOPrometheusResourceProvider{}); err != nil {
 		return reconcile.Result{}, false, err
 	}
 
 	if infrastructure.IsOpenShift() {
-		if err := addOpenShiftMonitoringLabel(ctx); err != nil {
+		if err := addOpenShiftMonitoringLabel(cheCtx); err != nil {
 			return reconcile.Result{}, false, err
 		}
 	}
 
-	isCheServerMetricsEnabled := ctx.CheCluster.Spec.Components.Metrics.Enable
+	isCheServerMetricsEnabled := cheCtx.CheCluster.Spec.Components.Metrics.Enable
 	if isCheServerMetricsEnabled {
-		if err := syncResources(ctx, &CheServerPrometheusResourceProvider{}); err != nil {
+		if err := syncResources(cheCtx, &CheServerPrometheusResourceProvider{}); err != nil {
 			return reconcile.Result{}, false, err
 		}
 	} else {
-		if err := deleteResources(ctx, &CheServerPrometheusResourceProvider{}); err != nil {
+		if err := deleteResources(cheCtx, &CheServerPrometheusResourceProvider{}); err != nil {
 			return reconcile.Result{}, false, err
 		}
 	}
@@ -83,7 +83,7 @@ func (r *MetricsReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Re
 	// It is safe to remove abandoned resources after reconciling new ones
 	// since resources names are different.
 	if !isAbandonedResourcesDeleted {
-		if err := deleteAbandonedResources(ctx); err != nil {
+		if err := deleteAbandonedResources(cheCtx); err != nil {
 			return reconcile.Result{}, false, err
 		}
 
@@ -95,17 +95,17 @@ func (r *MetricsReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Re
 	return reconcile.Result{}, true, nil
 }
 
-func (r *MetricsReconciler) Finalize(ctx *chetypes.DeployContext) bool {
+func (r *MetricsReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
 	// Do not remove the openshift.io/cluster-monitoring label,
 	// as it may have already existed.
 
-	cheServerPrometheusResources, err := collectPrometheusResources(ctx, &CheServerPrometheusResourceProvider{})
+	cheServerPrometheusResources, err := collectPrometheusResources(cheCtx, &CheServerPrometheusResourceProvider{})
 	if err != nil {
 		log.Error(err, "Failed to collect Prometheus resources")
 		return false
 	}
 
-	dwoPrometheusResources, err := collectPrometheusResources(ctx, &DWOPrometheusResourceProvider{})
+	dwoPrometheusResources, err := collectPrometheusResources(cheCtx, &DWOPrometheusResourceProvider{})
 	if err != nil {
 		log.Error(err, "Failed to collect Prometheus resources")
 		return false
@@ -115,7 +115,7 @@ func (r *MetricsReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 
 	done := true
 	for _, resource := range prometheusResources {
-		if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+		if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
 			context.TODO(),
 			types.NamespacedName{
 				Name:      resource.Object.GetName(),
@@ -131,14 +131,14 @@ func (r *MetricsReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	return done
 }
 
-func syncResources(ctx *chetypes.DeployContext, prometheusResourceProvider PrometheusResourceProvider) error {
-	prometheusResources, err := collectPrometheusResources(ctx, prometheusResourceProvider)
+func syncResources(cheCtx *chetypes.CheContext, prometheusResourceProvider PrometheusResourceProvider) error {
+	prometheusResources, err := collectPrometheusResources(cheCtx, prometheusResourceProvider)
 	if err != nil {
 		return err
 	}
 
 	for _, resource := range prometheusResources {
-		if err := ctx.ClusterAPI.ClientWrapper.Sync(
+		if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
 			context.TODO(),
 			resource.Object,
 			&k8sclient.SyncOptions{
@@ -152,14 +152,14 @@ func syncResources(ctx *chetypes.DeployContext, prometheusResourceProvider Prome
 	return nil
 }
 
-func deleteResources(ctx *chetypes.DeployContext, prometheusResourceProvider PrometheusResourceProvider) error {
-	prometheusResources, err := collectPrometheusResources(ctx, prometheusResourceProvider)
+func deleteResources(cheCtx *chetypes.CheContext, prometheusResourceProvider PrometheusResourceProvider) error {
+	prometheusResources, err := collectPrometheusResources(cheCtx, prometheusResourceProvider)
 	if err != nil {
 		return err
 	}
 
 	for _, resource := range prometheusResources {
-		if err := ctx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+		if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
 			context.TODO(),
 			types.NamespacedName{
 				Name:      resource.Object.GetName(),
@@ -174,18 +174,18 @@ func deleteResources(ctx *chetypes.DeployContext, prometheusResourceProvider Pro
 	return nil
 }
 
-func collectPrometheusResources(ctx *chetypes.DeployContext, prometheusResourceProvider PrometheusResourceProvider) ([]k8sclient.SyncTarget, error) {
+func collectPrometheusResources(cheCtx *chetypes.CheContext, prometheusResourceProvider PrometheusResourceProvider) ([]k8sclient.SyncTarget, error) {
 	var prometheusResources []k8sclient.SyncTarget
 
-	role, err := prometheusResourceProvider.GetPrometheusRole(ctx)
+	role, err := prometheusResourceProvider.GetPrometheusRole(cheCtx)
 	if err != nil {
 		return prometheusResources, err
 	}
-	roleBinding, err := prometheusResourceProvider.GetPrometheusRoleBinding(ctx)
+	roleBinding, err := prometheusResourceProvider.GetPrometheusRoleBinding(cheCtx)
 	if err != nil {
 		return prometheusResources, err
 	}
-	serviceMonitor, err := prometheusResourceProvider.GetServiceMonitor(ctx)
+	serviceMonitor, err := prometheusResourceProvider.GetServiceMonitor(cheCtx)
 	if err != nil {
 		return prometheusResources, err
 	}
@@ -197,11 +197,11 @@ func collectPrometheusResources(ctx *chetypes.DeployContext, prometheusResourceP
 	return prometheusResources, nil
 }
 
-func addOpenShiftMonitoringLabel(ctx *chetypes.DeployContext) error {
+func addOpenShiftMonitoringLabel(cheCtx *chetypes.CheContext) error {
 	namespace := &corev1.Namespace{}
-	if err := ctx.ClusterAPI.NonCachingClient.Get(
+	if err := cheCtx.ClusterAPI.NonCachingClient.Get(
 		context.TODO(),
-		types.NamespacedName{Name: ctx.CheCluster.Namespace},
+		types.NamespacedName{Name: cheCtx.CheCluster.Namespace},
 		namespace,
 	); err != nil {
 		return err
@@ -212,7 +212,7 @@ func addOpenShiftMonitoringLabel(ctx *chetypes.DeployContext) error {
 	}
 
 	patch := []byte(fmt.Sprintf(`{"metadata":{"labels":{"%s":"true"}}}`, openshiftMonitoringLabel))
-	if err := ctx.ClusterAPI.NonCachingClient.Patch(
+	if err := cheCtx.ClusterAPI.NonCachingClient.Patch(
 		context.TODO(),
 		namespace,
 		client.RawPatch(types.MergePatchType, patch),
@@ -224,7 +224,7 @@ func addOpenShiftMonitoringLabel(ctx *chetypes.DeployContext) error {
 }
 
 // Deletes abandoned resources, that previously were mentioned in the documentation.
-func deleteAbandonedResources(ctx *chetypes.DeployContext) error {
+func deleteAbandonedResources(cheCtx *chetypes.CheContext) error {
 	operatorNamespace, err := infrastructure.GetOperatorNamespace()
 	if err != nil {
 		return err
@@ -233,11 +233,11 @@ func deleteAbandonedResources(ctx *chetypes.DeployContext) error {
 	syncObjects := []k8sclient.SyncTarget{
 		{
 			Object: &monitoringv1.ServiceMonitor{},
-			Key:    types.NamespacedName{Name: "che-host", Namespace: ctx.CheCluster.Namespace},
+			Key:    types.NamespacedName{Name: "che-host", Namespace: cheCtx.CheCluster.Namespace},
 		},
 		{
 			Object: &monitoringv1.ServiceMonitor{},
-			Key:    types.NamespacedName{Name: "devworkspace-controller", Namespace: ctx.CheCluster.Namespace},
+			Key:    types.NamespacedName{Name: "devworkspace-controller", Namespace: cheCtx.CheCluster.Namespace},
 		},
 		{
 			Object: &monitoringv1.ServiceMonitor{},
@@ -245,7 +245,7 @@ func deleteAbandonedResources(ctx *chetypes.DeployContext) error {
 		},
 		{
 			Object: &rbacv1.Role{},
-			Key:    types.NamespacedName{Name: "prometheus-k8s", Namespace: ctx.CheCluster.Namespace},
+			Key:    types.NamespacedName{Name: "prometheus-k8s", Namespace: cheCtx.CheCluster.Namespace},
 		},
 		{
 			Object: &rbacv1.Role{},
@@ -253,7 +253,7 @@ func deleteAbandonedResources(ctx *chetypes.DeployContext) error {
 		},
 		{
 			Object: &rbacv1.RoleBinding{},
-			Key:    types.NamespacedName{Name: fmt.Sprintf("view-%s-openshift-monitoring-prometheus-k8s", defaults.GetCheFlavor()), Namespace: ctx.CheCluster.Namespace},
+			Key:    types.NamespacedName{Name: fmt.Sprintf("view-%s-openshift-monitoring-prometheus-k8s", defaults.GetCheFlavor()), Namespace: cheCtx.CheCluster.Namespace},
 		},
 		{
 			Object: &rbacv1.RoleBinding{},
@@ -266,7 +266,7 @@ func deleteAbandonedResources(ctx *chetypes.DeployContext) error {
 	}
 
 	for _, syncObject := range syncObjects {
-		err := ctx.ClusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(
+		err := cheCtx.ClusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(
 			context.TODO(),
 			syncObject.Key,
 			syncObject.Object,

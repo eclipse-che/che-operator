@@ -26,18 +26,18 @@ import (
 )
 
 func TestPVCSync(t *testing.T) {
-	ctx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCtxBuilder().Build()
 	reconciler := NewOpenVSXServerReconciler()
 
-	err := reconciler.syncPVC(ctx)
+	err := reconciler.syncPVC(cheCtx)
 	assert.NoError(t, err)
 
 	pvc := &corev1.PersistentVolumeClaim{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: "eclipse-che"}, pvc)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: "eclipse-che"}, pvc)
 	assert.NoError(t, err)
 	assert.Equal(t, resource.MustParse(constants.OpenVSXServerClaimSize), pvc.Spec.Resources.Requests[corev1.ResourceStorage])
 
-	ctx.CheCluster.Spec.Components.OpenVSXRegistry = chev2.OpenVSXRegistry{
+	cheCtx.CheCluster.Spec.Components.OpenVSXRegistry = chev2.OpenVSXRegistry{
 		Server: &chev2.OpenVSXServer{
 			Storage: &chev2.PVC{
 				ClaimSize: "4Gi",
@@ -45,11 +45,11 @@ func TestPVCSync(t *testing.T) {
 		},
 	}
 
-	err = reconciler.syncPVC(ctx)
+	err = reconciler.syncPVC(cheCtx)
 	assert.NoError(t, err)
 
 	pvc = &corev1.PersistentVolumeClaim{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: "eclipse-che"}, pvc)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: "eclipse-che"}, pvc)
 	assert.NoError(t, err)
 	assert.Equal(t, resource.MustParse("4Gi"), pvc.Spec.Resources.Requests[corev1.ResourceStorage])
 	assert.NotEqual(t, "4Gi", constants.OpenVSXServerClaimSize)

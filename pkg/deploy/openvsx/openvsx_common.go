@@ -19,10 +19,10 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 )
 
-func GetOpenVSXServerServiceURL(ctx *chetypes.DeployContext) string {
+func GetOpenVSXServerServiceURL(cheCtx *chetypes.CheContext) string {
 	return fmt.Sprintf("http://%s.%s.svc:%d/%s",
 		constants.OpenVSXServerComponentName,
-		ctx.CheCluster.Namespace,
+		cheCtx.CheCluster.Namespace,
 		constants.OpenVSXServerServicePort,
 		constants.OpenVSXServerGatewayPath,
 	)

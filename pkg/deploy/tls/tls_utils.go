@@ -54,9 +54,9 @@ const (
 )
 
 // IsSelfSignedCASecretExists checks if CheTLSSelfSignedCertificateSecretName exists so depending components can mount it
-func IsSelfSignedCASecretExists(ctx *chetypes.DeployContext) (bool, error) {
+func IsSelfSignedCASecretExists(cheCtx *chetypes.CheContext) (bool, error) {
 	cheTLSSelfSignedCertificateSecret := &corev1.Secret{}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: constants.DefaultSelfSignedCertificateSecretName}, cheTLSSelfSignedCertificateSecret)
+	err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: cheCtx.CheCluster.Namespace, Name: constants.DefaultSelfSignedCertificateSecretName}, cheTLSSelfSignedCertificateSecret)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return false, nil
@@ -67,8 +67,8 @@ func IsSelfSignedCASecretExists(ctx *chetypes.DeployContext) (bool, error) {
 }
 
 // IsSelfSignedCertificateUsed detects whether endpoints are/should be secured by self-signed certificate.
-func IsSelfSignedCertificateUsed(ctx *chetypes.DeployContext) (bool, error) {
-	cheCASecretExist, err := IsSelfSignedCASecretExists(ctx)
+func IsSelfSignedCertificateUsed(cheCtx *chetypes.CheContext) (bool, error) {
+	cheCASecretExist, err := IsSelfSignedCASecretExists(cheCtx)
 	if err != nil {
 		return false, err
 	}
@@ -78,11 +78,11 @@ func IsSelfSignedCertificateUsed(ctx *chetypes.DeployContext) (bool, error) {
 	}
 
 	// Handle custom tls secret
-	cheTLSSecretName := ctx.CheCluster.Spec.Networking.TlsSecretName
+	cheTLSSecretName := cheCtx.CheCluster.Spec.Networking.TlsSecretName
 	if cheTLSSecretName != "" {
 		// The secret is specified in CR
 		cheTLSSecret := &corev1.Secret{}
-		err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: cheTLSSecretName}, cheTLSSecret)
+		err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: cheCtx.CheCluster.Namespace, Name: cheTLSSecretName}, cheTLSSecret)
 		if err != nil {
 			if !errors.IsNotFound(err) {
 				// Failed to get secret, return error to restart reconcile loop.
@@ -100,7 +100,7 @@ func IsSelfSignedCertificateUsed(ctx *chetypes.DeployContext) (bool, error) {
 	// Retrieve the info about certificate chain from test ingress below.
 
 	// Get route/ingress TLS certificates chain
-	peerCertificates, err := GetTLSCrtChain(ctx)
+	peerCertificates, err := GetTLSCrtChain(cheCtx)
 	if err != nil {
 		return false, err
 	}
@@ -117,13 +117,13 @@ func IsSelfSignedCertificateUsed(ctx *chetypes.DeployContext) (bool, error) {
 }
 
 // GetTLSCrtChain retrieves TLS certificates chain from a test route/ingress.
-func GetTLSCrtChain(ctx *chetypes.DeployContext) ([]*x509.Certificate, error) {
+func GetTLSCrtChain(cheCtx *chetypes.CheContext) ([]*x509.Certificate, error) {
 	var requestURL string
 	if infrastructure.IsOpenShift() {
 		// Create test route to get certificates chain.
 		// Note, it is not possible to use SyncRouteToCluster here as it may cause infinite reconcile loop.
 		routeSpec, err := deploy.GetRouteSpec(
-			ctx,
+			cheCtx,
 			"test",
 			"",
 			"test",
@@ -135,7 +135,7 @@ func GetTLSCrtChain(ctx *chetypes.DeployContext) ([]*x509.Certificate, error) {
 		// Remove controller reference to prevent queueing new reconcile loop
 		routeSpec.SetOwnerReferences(nil)
 		// Create route manually
-		if err := ctx.ClusterAPI.Client.Create(context.TODO(), routeSpec); err != nil {
+		if err := cheCtx.ClusterAPI.Client.Create(context.TODO(), routeSpec); err != nil {
 			if !errors.IsAlreadyExists(err) {
 				logrus.Errorf("Failed to create test route 'test': %s", err)
 				return nil, err
@@ -144,7 +144,7 @@ func GetTLSCrtChain(ctx *chetypes.DeployContext) ([]*x509.Certificate, error) {
 
 		// Schedule test route cleanup after the job done.
 		defer func() {
-			if err := ctx.ClusterAPI.Client.Delete(context.TODO(), routeSpec); err != nil {
+			if err := cheCtx.ClusterAPI.Client.Delete(context.TODO(), routeSpec); err != nil {
 				logrus.Errorf("Failed to delete test route %s: %s", routeSpec.Name, err)
 			}
 		}()
@@ -153,13 +153,13 @@ func GetTLSCrtChain(ctx *chetypes.DeployContext) ([]*x509.Certificate, error) {
 		route := &routev1.Route{}
 		for {
 			time.Sleep(time.Duration(1) * time.Second)
-			exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-				ctx.Context,
-				types.NamespacedName{Name: routeSpec.Name, Namespace: ctx.CheCluster.Namespace},
+			exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+				cheCtx.Context,
+				types.NamespacedName{Name: routeSpec.Name, Namespace: cheCtx.CheCluster.Namespace},
 				route,
 			)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get Route %s/%s: %w", ctx.CheCluster.Namespace, routeSpec.Name, err)
+				return nil, fmt.Errorf("failed to get Route %s/%s: %w", cheCtx.CheCluster.Namespace, routeSpec.Name, err)
 			} else if exists {
 				break
 			}
@@ -172,14 +172,14 @@ func GetTLSCrtChain(ctx *chetypes.DeployContext) ([]*x509.Certificate, error) {
 		// Create test ingress to get certificates chain.
 		// Note, it is not possible to use SyncIngressToCluster here as it may cause infinite reconcile loop.
 		_, ingressSpec := deploy.GetIngressSpec(
-			ctx,
+			cheCtx,
 			"test",
 			"",
 			"test",
 			8080,
 			defaults.GetCheFlavor())
 		// Create ingress manually
-		if err := ctx.ClusterAPI.Client.Create(context.TODO(), ingressSpec); err != nil {
+		if err := cheCtx.ClusterAPI.Client.Create(context.TODO(), ingressSpec); err != nil {
 			if !errors.IsAlreadyExists(err) {
 				logrus.Errorf("Failed to create test ingress 'test': %s", err)
 				return nil, err
@@ -188,7 +188,7 @@ func GetTLSCrtChain(ctx *chetypes.DeployContext) ([]*x509.Certificate, error) {
 
 		// Schedule test ingress cleanup after the job done.
 		defer func() {
-			if err := ctx.ClusterAPI.Client.Delete(context.TODO(), ingressSpec); err != nil {
+			if err := cheCtx.ClusterAPI.Client.Delete(context.TODO(), ingressSpec); err != nil {
 				logrus.Errorf("Failed to delete test ingress %s: %s", ingressSpec.Name, err)
 			}
 		}()
@@ -197,13 +197,13 @@ func GetTLSCrtChain(ctx *chetypes.DeployContext) ([]*x509.Certificate, error) {
 		ingress := &networking.Ingress{}
 		for {
 			time.Sleep(time.Duration(1) * time.Second)
-			exists, err := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-				ctx.Context,
-				types.NamespacedName{Name: ingressSpec.Name, Namespace: ctx.CheCluster.Namespace},
+			exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+				cheCtx.Context,
+				types.NamespacedName{Name: ingressSpec.Name, Namespace: cheCtx.CheCluster.Namespace},
 				ingress,
 			)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get Ingress %s/%s: %w", ctx.CheCluster.Namespace, ingressSpec.Name, err)
+				return nil, fmt.Errorf("failed to get Ingress %s/%s: %w", cheCtx.CheCluster.Namespace, ingressSpec.Name, err)
 			} else if exists {
 				break
 			}
@@ -212,14 +212,14 @@ func GetTLSCrtChain(ctx *chetypes.DeployContext) ([]*x509.Certificate, error) {
 		requestURL = "https://" + ingress.Spec.Rules[0].Host
 	}
 
-	certificates, err := doRequestForTLSCrtChain(ctx, requestURL, true)
+	certificates, err := doRequestForTLSCrtChain(cheCtx, requestURL, true)
 	if err != nil {
-		if ctx.Proxy.HttpProxy != "" {
+		if cheCtx.Proxy.HttpProxy != "" {
 			// Fetching certificates from the test route without proxy failed. Probably non-proxy connections are blocked.
 			// Retrying with proxy configuration, however it might cause retreiving of wrong certificate in case of TLS interception by proxy.
 			logrus.Warn("Failed to get certificate chain of trust of the OpenShift Ingress bypassing the proxy")
 
-			return doRequestForTLSCrtChain(ctx, requestURL, false)
+			return doRequestForTLSCrtChain(cheCtx, requestURL, false)
 		}
 
 		return nil, err
@@ -227,13 +227,13 @@ func GetTLSCrtChain(ctx *chetypes.DeployContext) ([]*x509.Certificate, error) {
 	return certificates, nil
 }
 
-func doRequestForTLSCrtChain(ctx *chetypes.DeployContext, requestURL string, skipProxy bool) ([]*x509.Certificate, error) {
+func doRequestForTLSCrtChain(cheCtx *chetypes.CheContext, requestURL string, skipProxy bool) ([]*x509.Certificate, error) {
 	transport := &http.Transport{}
 	// Adding the proxy settings to the Transport object.
 	// However, in case of test route we need to reach cluter directly in order to get the right certificate.
-	if ctx.Proxy.HttpProxy != "" && !skipProxy {
-		logrus.Infof("Configuring proxy with %s to extract certificate chain from the following URL: %s", ctx.Proxy.HttpProxy, requestURL)
-		deploy.ConfigureProxy(ctx, transport)
+	if cheCtx.Proxy.HttpProxy != "" && !skipProxy {
+		logrus.Infof("Configuring proxy to extract certificate chain from the following URL: %s", requestURL)
+		deploy.ConfigureProxy(cheCtx, transport)
 	}
 	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	client := &http.Client{
@@ -259,8 +259,8 @@ func doRequestForTLSCrtChain(ctx *chetypes.DeployContext, requestURL string, ski
 }
 
 // GetTLSCrtBytes extracts certificate chain of trust from the test route/ingress.
-func GetTLSCrtBytes(ctx *chetypes.DeployContext) (certificates []byte, err error) {
-	peerCertificates, err := GetTLSCrtChain(ctx)
+func GetTLSCrtBytes(cheCtx *chetypes.CheContext) (certificates []byte, err error) {
+	peerCertificates, err := GetTLSCrtChain(cheCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -278,14 +278,14 @@ func GetTLSCrtBytes(ctx *chetypes.DeployContext) (certificates []byte, err error
 }
 
 // K8sHandleCheTLSSecrets handles TLS secrets required for Che deployment on Kubernetes infrastructure.
-func K8sHandleCheTLSSecrets(ctx *chetypes.DeployContext) (reconcile.Result, error) {
-	cheTLSSecretName := ctx.CheCluster.Spec.Networking.TlsSecretName
+func K8sHandleCheTLSSecrets(cheCtx *chetypes.CheContext) (reconcile.Result, error) {
+	cheTLSSecretName := cheCtx.CheCluster.Spec.Networking.TlsSecretName
 
-	cheTLSSecretNamespacedName := types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: cheTLSSecretName}
-	CheTLSSelfSignedCertificateSecretNamespacedName := types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: constants.DefaultSelfSignedCertificateSecretName}
+	cheTLSSecretNamespacedName := types.NamespacedName{Namespace: cheCtx.CheCluster.Namespace, Name: cheTLSSecretName}
+	CheTLSSelfSignedCertificateSecretNamespacedName := types.NamespacedName{Namespace: cheCtx.CheCluster.Namespace, Name: constants.DefaultSelfSignedCertificateSecretName}
 
 	job := &batchv1.Job{}
-	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheTLSJobName, Namespace: ctx.CheCluster.Namespace}, job)
+	err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheTLSJobName, Namespace: cheCtx.CheCluster.Namespace}, job)
 	var jobExists bool
 	if err != nil {
 		if !errors.IsNotFound(err) {
@@ -299,7 +299,7 @@ func K8sHandleCheTLSSecrets(ctx *chetypes.DeployContext) (reconcile.Result, erro
 	// ===== Check Che server TLS certificate ===== //
 
 	cheTLSSecret := &corev1.Secret{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), cheTLSSecretNamespacedName, cheTLSSecret)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), cheTLSSecretNamespacedName, cheTLSSecret)
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			// Error reading secret info
@@ -322,7 +322,7 @@ func K8sHandleCheTLSSecrets(ctx *chetypes.DeployContext) (reconcile.Result, erro
 
 		// Remove Che CA certificate secret if any
 		cheCASelfSignedCertificateSecret := &corev1.Secret{}
-		err = ctx.ClusterAPI.Client.Get(context.TODO(), CheTLSSelfSignedCertificateSecretNamespacedName, cheCASelfSignedCertificateSecret)
+		err = cheCtx.ClusterAPI.Client.Get(context.TODO(), CheTLSSelfSignedCertificateSecretNamespacedName, cheCASelfSignedCertificateSecret)
 		if err != nil {
 			if !errors.IsNotFound(err) {
 				// Error reading secret info
@@ -332,28 +332,28 @@ func K8sHandleCheTLSSecrets(ctx *chetypes.DeployContext) (reconcile.Result, erro
 			// Che CA certificate doesn't exists (that's expected at this point), do nothing
 		} else {
 			// Remove Che CA secret because Che TLS secret is missing (they should be generated together).
-			if err = ctx.ClusterAPI.Client.Delete(context.TODO(), cheCASelfSignedCertificateSecret); err != nil {
+			if err = cheCtx.ClusterAPI.Client.Delete(context.TODO(), cheCASelfSignedCertificateSecret); err != nil {
 				logrus.Errorf("Error deleting Che self-signed certificate secret \"%s\": %v", constants.DefaultSelfSignedCertificateSecretName, err)
 				return reconcile.Result{RequeueAfter: time.Second}, err
 			}
 		}
 
 		// Prepare permissions for the certificate generation job
-		if err := deploy.SyncServiceAccountToCluster(ctx, CheTLSJobServiceAccountName); err != nil {
+		if err := deploy.SyncServiceAccountToCluster(cheCtx, CheTLSJobServiceAccountName); err != nil {
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 
-		if err := SyncTLSRoleToCluster(ctx); err != nil {
+		if err := SyncTLSRoleToCluster(cheCtx); err != nil {
 			return reconcile.Result{}, err
 		}
 
-		if err := deploy.SyncRoleBindingToCluster(ctx, CheTLSJobRoleBindingName, CheTLSJobServiceAccountName, CheTLSJobRoleName, "Role"); err != nil {
+		if err := deploy.SyncRoleBindingToCluster(cheCtx, CheTLSJobRoleBindingName, CheTLSJobServiceAccountName, CheTLSJobRoleName, "Role"); err != nil {
 			return reconcile.Result{}, err
 		}
 
-		domains := ctx.CheCluster.Spec.Networking.Domain + ",*." + ctx.CheCluster.Spec.Networking.Domain
-		if ctx.CheHost != "" && !strings.Contains(ctx.CheHost, ctx.CheCluster.Spec.Networking.Domain) {
-			domains += "," + ctx.CheHost
+		domains := cheCtx.CheCluster.Spec.Networking.Domain + ",*." + cheCtx.CheCluster.Spec.Networking.Domain
+		if cheCtx.CheHost != "" && !strings.Contains(cheCtx.CheHost, cheCtx.CheCluster.Spec.Networking.Domain) {
+			domains += "," + cheCtx.CheHost
 		}
 
 		labels := ""
@@ -364,13 +364,13 @@ func K8sHandleCheTLSSecrets(ctx *chetypes.DeployContext) (reconcile.Result, erro
 		cheTLSSecretsCreationJobImage := defaults.GetCheTLSSecretsCreationJobImage()
 		jobEnvVars := map[string]string{
 			"DOMAIN":                         domains,
-			"CHE_NAMESPACE":                  ctx.CheCluster.Namespace,
+			"CHE_NAMESPACE":                  cheCtx.CheCluster.Namespace,
 			"CHE_SERVER_TLS_SECRET_NAME":     cheTLSSecretName,
 			"CHE_CA_CERTIFICATE_SECRET_NAME": constants.DefaultSelfSignedCertificateSecretName,
 			"LABELS":                         labels,
 		}
 
-		err = deploy.SyncJobToCluster(ctx, CheTLSJobName, CheTLSJobComponentName, cheTLSSecretsCreationJobImage, CheTLSJobServiceAccountName, jobEnvVars)
+		err = deploy.SyncJobToCluster(cheCtx, CheTLSJobName, CheTLSJobComponentName, cheTLSSecretsCreationJobImage, CheTLSJobServiceAccountName, jobEnvVars)
 		if err != nil {
 			logrus.Error(err)
 		}
@@ -382,10 +382,10 @@ func K8sHandleCheTLSSecrets(ctx *chetypes.DeployContext) (reconcile.Result, erro
 		// The job object is present
 		if job.Status.Succeeded > 0 {
 			logrus.Infof("Import public part of Eclipse Che self-signed CA certificate from \"%s\" secret into your browser.", constants.DefaultSelfSignedCertificateSecretName)
-			deleteJob(ctx, job)
+			deleteJob(cheCtx, job)
 		} else if job.Status.Failed > 0 {
 			// The job failed, but the certificate is present, shouldn't happen
-			deleteJob(ctx, job)
+			deleteJob(cheCtx, job)
 			return reconcile.Result{}, nil
 		}
 		// Job hasn't reported finished status yet, wait more
@@ -397,7 +397,7 @@ func K8sHandleCheTLSSecrets(ctx *chetypes.DeployContext) (reconcile.Result, erro
 		// The secret is invalid because required field(s) missing.
 		logrus.Infof("Che TLS secret \"%s\" is invalid. Recreating...", cheTLSSecretName)
 		// Delete old invalid secret
-		if err = ctx.ClusterAPI.Client.Delete(context.TODO(), cheTLSSecret); err != nil {
+		if err = cheCtx.ClusterAPI.Client.Delete(context.TODO(), cheTLSSecret); err != nil {
 			logrus.Errorf("Error deleting Che TLS secret \"%s\": %v", cheTLSSecretName, err)
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
@@ -408,11 +408,11 @@ func K8sHandleCheTLSSecrets(ctx *chetypes.DeployContext) (reconcile.Result, erro
 	// Check owner reference
 	if cheTLSSecret.OwnerReferences == nil {
 		// Set owner Che cluster as Che TLS secret owner
-		if err := controllerutil.SetControllerReference(ctx.CheCluster, cheTLSSecret, ctx.ClusterAPI.Scheme); err != nil {
+		if err := controllerutil.SetControllerReference(cheCtx.CheCluster, cheTLSSecret, cheCtx.ClusterAPI.Scheme); err != nil {
 			logrus.Errorf("Failed to set owner for Che TLS secret \"%s\". Error: %s", cheTLSSecretName, err)
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
-		if err := ctx.ClusterAPI.Client.Update(context.TODO(), cheTLSSecret); err != nil {
+		if err := cheCtx.ClusterAPI.Client.Update(context.TODO(), cheTLSSecret); err != nil {
 			logrus.Errorf("Failed to update owner for Che TLS secret \"%s\". Error: %s", cheTLSSecretName, err)
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
@@ -421,7 +421,7 @@ func K8sHandleCheTLSSecrets(ctx *chetypes.DeployContext) (reconcile.Result, erro
 	// ===== Check Che CA certificate ===== //
 
 	cheTLSSelfSignedCertificateSecret := &corev1.Secret{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), CheTLSSelfSignedCertificateSecretNamespacedName, cheTLSSelfSignedCertificateSecret)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), CheTLSSelfSignedCertificateSecretNamespacedName, cheTLSSelfSignedCertificateSecret)
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			// Error reading Che self-signed secret info
@@ -435,13 +435,13 @@ func K8sHandleCheTLSSecrets(ctx *chetypes.DeployContext) (reconcile.Result, erro
 		if !isCheCASecretValid(cheTLSSelfSignedCertificateSecret) {
 			logrus.Infof("Che self-signed certificate secret \"%s\" is invalid. Recrating...", constants.DefaultSelfSignedCertificateSecretName)
 			// Che CA self-signed certificate secret is invalid, delete it
-			if err = ctx.ClusterAPI.Client.Delete(context.TODO(), cheTLSSelfSignedCertificateSecret); err != nil {
+			if err = cheCtx.ClusterAPI.Client.Delete(context.TODO(), cheTLSSelfSignedCertificateSecret); err != nil {
 				logrus.Errorf("Error deleting Che self-signed certificate secret \"%s\": %v", constants.DefaultSelfSignedCertificateSecretName, err)
 				return reconcile.Result{RequeueAfter: time.Second}, err
 			}
 			// Also delete Che TLS as the certificates should be created together
 			// Here it is not mandatory to check Che TLS secret existence as it is handled above
-			if err = ctx.ClusterAPI.Client.Delete(context.TODO(), cheTLSSecret); err != nil {
+			if err = cheCtx.ClusterAPI.Client.Delete(context.TODO(), cheTLSSecret); err != nil {
 				logrus.Errorf("Error deleting Che TLS secret \"%s\": %v", cheTLSSecretName, err)
 				return reconcile.Result{RequeueAfter: time.Second}, err
 			}
@@ -452,11 +452,11 @@ func K8sHandleCheTLSSecrets(ctx *chetypes.DeployContext) (reconcile.Result, erro
 		// Check owner reference
 		if cheTLSSelfSignedCertificateSecret.OwnerReferences == nil {
 			// Set owner Che cluster as Che TLS secret owner
-			if err := controllerutil.SetControllerReference(ctx.CheCluster, cheTLSSelfSignedCertificateSecret, ctx.ClusterAPI.Scheme); err != nil {
+			if err := controllerutil.SetControllerReference(cheCtx.CheCluster, cheTLSSelfSignedCertificateSecret, cheCtx.ClusterAPI.Scheme); err != nil {
 				logrus.Errorf("Failed to set owner for Che self-signed certificate secret \"%s\". Error: %s", constants.DefaultSelfSignedCertificateSecretName, err)
 				return reconcile.Result{RequeueAfter: time.Second}, err
 			}
-			if err := ctx.ClusterAPI.Client.Update(context.TODO(), cheTLSSelfSignedCertificateSecret); err != nil {
+			if err := cheCtx.ClusterAPI.Client.Update(context.TODO(), cheTLSSelfSignedCertificateSecret); err != nil {
 				logrus.Errorf("Failed to update owner for Che self-signed certificate secret \"%s\". Error: %s", constants.DefaultSelfSignedCertificateSecretName, err)
 				return reconcile.Result{RequeueAfter: time.Second}, err
 			}
@@ -484,21 +484,21 @@ func isCheCASecretValid(cheCASelfSignedCertificateSecret *corev1.Secret) bool {
 	return true
 }
 
-func deleteJob(ctx *chetypes.DeployContext, job *batchv1.Job) {
+func deleteJob(cheCtx *chetypes.CheContext, job *batchv1.Job) {
 	k8sHelper := k8shelper.GetInstance()
-	names := k8sHelper.GetPodsByComponent(CheTLSJobComponentName, ctx.CheCluster.Namespace)
+	names := k8sHelper.GetPodsByComponent(CheTLSJobComponentName, cheCtx.CheCluster.Namespace)
 	for _, podName := range names {
 		pod := &corev1.Pod{}
-		err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: podName, Namespace: ctx.CheCluster.Namespace}, pod)
+		err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: podName, Namespace: cheCtx.CheCluster.Namespace}, pod)
 		if err == nil {
 			// Delete pod (for some reasons pod isn't removed when job is removed)
-			if err = ctx.ClusterAPI.Client.Delete(context.TODO(), pod); err != nil {
+			if err = cheCtx.ClusterAPI.Client.Delete(context.TODO(), pod); err != nil {
 				logrus.Errorf("Error deleting pod: '%s', error: %v", podName, err)
 			}
 		}
 	}
 
-	if err := ctx.ClusterAPI.Client.Delete(context.TODO(), job); err != nil {
+	if err := cheCtx.ClusterAPI.Client.Delete(context.TODO(), job); err != nil {
 		logrus.Errorf("Error deleting job: '%s', error: %v", CheTLSJobName, err)
 	}
 }
@@ -522,11 +522,11 @@ func GetCheCABundles(client k8sclient.Client, namespace string) ([]corev1.Config
 }
 
 // GetAdditionalCACertsConfigMapVersion returns revision of merged additional CA certs config map
-func GetAdditionalCACertsConfigMapVersion(ctx *chetypes.DeployContext) string {
+func GetAdditionalCACertsConfigMapVersion(cheCtx *chetypes.CheContext) string {
 	trustStoreConfigMap := &corev1.ConfigMap{}
-	exists, _ := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-		ctx.Context,
-		types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: ctx.CheCluster.Namespace},
+	exists, _ := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		cheCtx.Context,
+		types.NamespacedName{Name: CheMergedCABundleCertsCMName, Namespace: cheCtx.CheCluster.Namespace},
 		trustStoreConfigMap,
 	)
 	if exists {
@@ -538,16 +538,16 @@ func GetAdditionalCACertsConfigMapVersion(ctx *chetypes.DeployContext) string {
 
 // CreateTLSSecret creates TLS secret with given name.
 // Does nothing if secret with given name already exists.
-func CreateTLSSecret(ctx *chetypes.DeployContext, name string) (err error) {
+func CreateTLSSecret(cheCtx *chetypes.CheContext, name string) (err error) {
 	secret := &corev1.Secret{}
-	if err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: ctx.CheCluster.Namespace}, secret); err != nil && errors.IsNotFound(err) {
-		crtBytes, err := GetTLSCrtBytes(ctx)
+	if err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: cheCtx.CheCluster.Namespace}, secret); err != nil && errors.IsNotFound(err) {
+		crtBytes, err := GetTLSCrtBytes(cheCtx)
 		if err != nil {
 			logrus.Errorf("Failed to extract certificate for secret %s. Failed to create a secret with a self signed crt: %s", name, err)
 			return err
 		}
 
-		if err := deploy.SyncSecretToCluster(ctx, name, map[string][]byte{"ca.crt": crtBytes}); err != nil {
+		if err := deploy.SyncSecretToCluster(cheCtx, name, map[string][]byte{"ca.crt": crtBytes}); err != nil {
 			return err
 		}
 	}
@@ -555,7 +555,7 @@ func CreateTLSSecret(ctx *chetypes.DeployContext, name string) (err error) {
 	return nil
 }
 
-func SyncTLSRoleToCluster(ctx *chetypes.DeployContext) error {
+func SyncTLSRoleToCluster(cheCtx *chetypes.CheContext) error {
 	tlsPolicyRule := []rbac.PolicyRule{
 		{
 			APIGroups: []string{
@@ -571,5 +571,5 @@ func SyncTLSRoleToCluster(ctx *chetypes.DeployContext) error {
 			},
 		},
 	}
-	return deploy.SyncRoleToCluster(ctx, CheTLSJobRoleName, tlsPolicyRule)
+	return deploy.SyncRoleToCluster(cheCtx, CheTLSJobRoleName, tlsPolicyRule)
 }

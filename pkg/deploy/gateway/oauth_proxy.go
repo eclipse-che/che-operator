@@ -36,12 +36,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func getGatewayOauthProxyConfigSpec(ctx *chetypes.DeployContext, cookieSecret string) corev1.ConfigMap {
+func getGatewayOauthProxyConfigSpec(cheCtx *chetypes.CheContext, cookieSecret string) corev1.ConfigMap {
 	var config string
 	if infrastructure.IsOpenShiftOAuthEnabled() {
-		config = openshiftOauthProxyConfig(ctx, cookieSecret)
+		config = openshiftOauthProxyConfig(cheCtx, cookieSecret)
 	} else {
-		config = kubernetesOauthProxyConfig(ctx, cookieSecret)
+		config = kubernetesOauthProxyConfig(cheCtx, cookieSecret)
 	}
 	return corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
@@ -50,7 +50,7 @@ func getGatewayOauthProxyConfigSpec(ctx *chetypes.DeployContext, cookieSecret st
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "che-gateway-config-oauth-proxy",
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 			Labels:    deploy.GetLabels(GatewayServiceName),
 		},
 		Data: map[string]string{
@@ -59,11 +59,11 @@ func getGatewayOauthProxyConfigSpec(ctx *chetypes.DeployContext, cookieSecret st
 	}
 }
 
-func openshiftOauthProxyConfig(ctx *chetypes.DeployContext, cookieSecret string) string {
+func openshiftOauthProxyConfig(cheCtx *chetypes.CheContext, cookieSecret string) string {
 	oauthSecret := ""
 	oauthClientName := ""
 
-	oauthClient, _ := identityprovider.GetOAuthClient(ctx)
+	oauthClient, _ := identityprovider.GetOAuthClient(cheCtx)
 	if oauthClient == nil {
 		logrus.Error("oauth client not found")
 	} else {
@@ -90,17 +90,17 @@ pass_access_token = true
 skip_provider_button = false
 %s
 `, GatewayServicePort,
-		ctx.CheHost,
+		cheCtx.CheHost,
 		oauthClientName,
 		oauthSecret,
-		utils.GetValue(ctx.CheCluster.Spec.Networking.Auth.OAuthScope, constants.OpenShiftOAuthScope),
+		utils.GetValue(cheCtx.CheCluster.Spec.Networking.Auth.OAuthScope, constants.OpenShiftOAuthScope),
 		GatewayServiceName,
 		cookieSecret,
-		cookieExpireAsString(ctx.CheCluster),
-		skipAuthConfig(ctx.CheCluster))
+		cookieExpireAsString(cheCtx.CheCluster),
+		skipAuthConfig(cheCtx.CheCluster))
 }
 
-func kubernetesOauthProxyConfig(ctx *chetypes.DeployContext, cookieSecret string) string {
+func kubernetesOauthProxyConfig(cheCtx *chetypes.CheContext, cookieSecret string) string {
 	return fmt.Sprintf(`
 proxy_prefix = "/oauth"
 http_address = ":%d"
@@ -126,17 +126,17 @@ cookie_domains = "%s"
 %s
 %s
 `, GatewayServicePort,
-		ctx.CheHost,
-		ctx.Authentication.IssuerURL,
-		ctx.Authentication.ClientId,
-		string(ctx.Authentication.ClientSecret),
+		cheCtx.CheHost,
+		cheCtx.Authentication.IssuerURL,
+		cheCtx.Authentication.ClientId,
+		string(cheCtx.Authentication.ClientSecret),
 		cookieSecret,
-		cookieExpireAsString(ctx.CheCluster),
-		utils.Whitelist(ctx.CheHost),
-		utils.Whitelist(ctx.CheHost),
-		skipAuthConfig(ctx.CheCluster),
-		identityTokenConfig(ctx.CheCluster),
-		oauthScopeConfig(ctx.CheCluster))
+		cookieExpireAsString(cheCtx.CheCluster),
+		utils.Whitelist(cheCtx.CheHost),
+		utils.Whitelist(cheCtx.CheHost),
+		skipAuthConfig(cheCtx.CheCluster),
+		identityTokenConfig(cheCtx.CheCluster),
+		oauthScopeConfig(cheCtx.CheCluster))
 }
 
 func skipAuthConfig(instance *chev2.CheCluster) string {
@@ -180,7 +180,7 @@ func oauthScopeConfig(instance *chev2.CheCluster) string {
 
 // resolveOpenShiftOAuthProxyImage resolves the oauth-proxy image from the cluster's own
 // openshift/oauth-proxy ImageStream. Returns empty string when unavailable.
-func resolveOpenShiftOAuthProxyImage(ctx *chetypes.DeployContext) string {
+func resolveOpenShiftOAuthProxyImage(cheCtx *chetypes.CheContext) string {
 	imageStream := &unstructured.Unstructured{}
 	imageStream.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "image.openshift.io",
@@ -188,8 +188,8 @@ func resolveOpenShiftOAuthProxyImage(ctx *chetypes.DeployContext) string {
 		Kind:    "ImageStream",
 	})
 
-	if err := ctx.ClusterAPI.NonCachingClient.Get(
-		ctx.Context,
+	if err := cheCtx.ClusterAPI.NonCachingClient.Get(
+		cheCtx.Context,
 		types.NamespacedName{Name: "oauth-proxy", Namespace: "openshift"},
 		imageStream,
 	); err != nil {
@@ -228,12 +228,12 @@ func resolveOpenShiftOAuthProxyImage(ctx *chetypes.DeployContext) string {
 	return ""
 }
 
-func getOauthProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
+func getOauthProxyContainerSpec(cheCtx *chetypes.CheContext) corev1.Container {
 	// append env var with ConfigMap revision to restore pod automatically when config has been changed
 	cm := &corev1.ConfigMap{}
-	exists, _ := ctx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-		ctx.Context,
-		types.NamespacedName{Name: "che-gateway-config-oauth-proxy", Namespace: ctx.CheCluster.Namespace},
+	exists, _ := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		cheCtx.Context,
+		types.NamespacedName{Name: "che-gateway-config-oauth-proxy", Namespace: cheCtx.CheCluster.Namespace},
 		cm,
 	)
 	configMapRevision := map[bool]string{true: cm.GetResourceVersion(), false: ""}[exists]
@@ -242,15 +242,15 @@ func getOauthProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
 	var args = []string{"--config=/etc/oauth-proxy/oauth-proxy.cfg"}
 	if infrastructure.IsOpenShiftOAuthEnabled() {
 		// Guarded to upstream Che only; downstream manages its own oauth-proxy image.
-		if ctx.CheCluster.IsCheFlavor() && ctx.CheCluster.IsOAuthProxyImageResolutionFromImageStreamEnabled() {
-			image = resolveOpenShiftOAuthProxyImage(ctx)
+		if cheCtx.CheCluster.IsCheFlavor() && cheCtx.CheCluster.IsOAuthProxyImageResolutionFromImageStreamEnabled() {
+			image = resolveOpenShiftOAuthProxyImage(cheCtx)
 		}
 		if image == "" {
-			image = defaults.GetGatewayOpenShiftAuthenticationSidecarImage(ctx.CheCluster)
+			image = defaults.GetGatewayOpenShiftAuthenticationSidecarImage(cheCtx.CheCluster)
 		}
 		probePath = "/oauth/healthz"
 	} else {
-		image = defaults.GetGatewayKubernetesAuthenticationSidecarImage(ctx.CheCluster)
+		image = defaults.GetGatewayKubernetesAuthenticationSidecarImage(cheCtx.CheCluster)
 		probePath = "/ping"
 		args = append(args, "--ping-path=/ping", "--exclude-logging-path=/ping")
 	}
@@ -282,15 +282,15 @@ func getOauthProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
 		Env: []corev1.EnvVar{
 			{
 				Name:  "http_proxy",
-				Value: ctx.Proxy.HttpProxy,
+				Value: cheCtx.Proxy.HttpProxy,
 			},
 			{
 				Name:  "https_proxy",
-				Value: ctx.Proxy.HttpsProxy,
+				Value: cheCtx.Proxy.HttpsProxy,
 			},
 			{
 				Name:  "no_proxy",
-				Value: ctx.Proxy.NoProxy,
+				Value: cheCtx.Proxy.NoProxy,
 			},
 			{
 				Name:  "CM_REVISION",

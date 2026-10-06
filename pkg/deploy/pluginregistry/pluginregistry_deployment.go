@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -24,9 +24,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
-func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(ctx *chetypes.DeployContext) (*appsv1.Deployment, error) {
+func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(cheCtx *chetypes.CheContext) (*appsv1.Deployment, error) {
 	registryType := "plugin"
-	registryImage := defaults.GetPluginRegistryImage(ctx.CheCluster)
+	registryImage := defaults.GetPluginRegistryImage(cheCtx.CheCluster)
 	registryImagePullPolicy := corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(registryImage))
 	probePath := "/openvsx/api/version"
 	pluginImagesEnv := utils.GetGetArchitectureDependentEnvsByRegExp("^.*plugin_registry_image.*$")
@@ -42,13 +42,13 @@ func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(ctx *chetypes
 		},
 	}
 
-	if ctx.CheCluster.IsInternalPluginRegistryWithOpenVSXEnabled() {
+	if cheCtx.CheCluster.IsInternalPluginRegistryWithOpenVSXEnabled() {
 		resources.Requests[corev1.ResourceMemory] = resource.MustParse(constants.DefaultPluginRegistryMemoryRequestEmbeddedOpenVSXRegistry)
 		resources.Limits[corev1.ResourceMemory] = resource.MustParse(constants.DefaultPluginRegistryMemoryLimitEmbeddedOpenVSXRegistry)
 	}
 
 	deployment := registry.GetSpecRegistryDeployment(
-		ctx,
+		cheCtx,
 		registryType,
 		registryImage,
 		pluginImagesEnv,
@@ -56,7 +56,7 @@ func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(ctx *chetypes
 		resources,
 		probePath)
 
-	if ctx.CheCluster.IsInternalPluginRegistryWithOpenVSXEnabled() {
+	if cheCtx.CheCluster.IsInternalPluginRegistryWithOpenVSXEnabled() {
 		// Add time to start embedded VSX registry
 		deployment.Spec.Template.Spec.Containers[0].LivenessProbe.InitialDelaySeconds = 300
 		deployment.Spec.Template.Spec.Containers[0].LivenessProbe.FailureThreshold = 30
@@ -68,7 +68,7 @@ func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(ctx *chetypes
 		constants.DefaultSecurityContextFsGroup,
 	)
 
-	if err := deploy.OverrideDeployment(ctx, deployment, ctx.CheCluster.Spec.Components.PluginRegistry.Deployment); err != nil {
+	if err := deploy.OverrideDeployment(cheCtx, deployment, cheCtx.CheCluster.Spec.Components.PluginRegistry.Deployment); err != nil {
 		return nil, err
 	}
 

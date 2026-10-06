@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -44,9 +44,9 @@ var (
 )
 
 func getSpecObjectsForManager(t *testing.T, mgr *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, additionalInitialObjects ...client.Object) (client.Client, solvers.RoutingSolver, solvers.RoutingObjects) {
-	ctx := test.NewCtxBuilder().WithCheCluster(mgr).WithObjects(routing).WithObjects(additionalInitialObjects...).Build()
-	scheme := ctx.ClusterAPI.Scheme
-	cl := ctx.ClusterAPI.Client
+	cheCtx := test.NewCtxBuilder().WithCheCluster(mgr).WithObjects(routing).WithObjects(additionalInitialObjects...).Build()
+	scheme := cheCtx.ClusterAPI.Scheme
+	cl := cheCtx.ClusterAPI.Client
 
 	solver, err := Getter(scheme).GetSolver(cl, "che")
 	if err != nil {
@@ -2126,9 +2126,9 @@ func TestOverrideGatewayContainerProvisioning(t *testing.T) {
 		},
 	}
 
-	ctx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
-	scheme := ctx.ClusterAPI.Scheme
-	cl := ctx.ClusterAPI.Client
+	cheCtx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
+	scheme := cheCtx.ClusterAPI.Scheme
+	cl := cheCtx.ClusterAPI.Client
 
 	cheSolver := &CheRoutingSolver{client: cl, scheme: scheme}
 	objs := &solvers.RoutingObjects{}
@@ -2180,9 +2180,9 @@ func TestOverridePartialLimitsGatewayContainerProvisioning(t *testing.T) {
 		},
 	}
 
-	ctx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
-	scheme := ctx.ClusterAPI.Scheme
-	cl := ctx.ClusterAPI.Client
+	cheCtx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
+	scheme := cheCtx.ClusterAPI.Scheme
+	cl := cheCtx.ClusterAPI.Client
 
 	cheSolver := &CheRoutingSolver{client: cl, scheme: scheme}
 	objs := &solvers.RoutingObjects{}
@@ -2239,9 +2239,9 @@ func TestOverrideGatewayEmptyContainerProvisioning(t *testing.T) {
 		},
 	}
 
-	ctx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
-	scheme := ctx.ClusterAPI.Scheme
-	cl := ctx.ClusterAPI.Client
+	cheCtx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
+	scheme := cheCtx.ClusterAPI.Scheme
+	cl := cheCtx.ClusterAPI.Client
 
 	cheSolver := &CheRoutingSolver{client: cl, scheme: scheme}
 	objs := &solvers.RoutingObjects{}
@@ -2283,9 +2283,9 @@ func TestDefaultGatewayContainerProvisioning(t *testing.T) {
 		},
 	}
 
-	ctx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
-	scheme := ctx.ClusterAPI.Scheme
-	cl := ctx.ClusterAPI.Client
+	cheCtx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
+	scheme := cheCtx.ClusterAPI.Scheme
+	cl := cheCtx.ClusterAPI.Client
 
 	cheSolver := &CheRoutingSolver{client: cl, scheme: scheme}
 	objs := &solvers.RoutingObjects{}

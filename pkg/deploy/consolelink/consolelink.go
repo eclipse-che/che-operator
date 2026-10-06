@@ -49,17 +49,17 @@ func NewConsoleLinkReconciler() *ConsoleLinkReconciler {
 	return &ConsoleLinkReconciler{}
 }
 
-func (c *ConsoleLinkReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if err := c.syncConsoleLink(ctx); err != nil {
+func (c *ConsoleLinkReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
+	if err := c.syncConsoleLink(cheCtx); err != nil {
 		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
 	return reconcile.Result{}, true, nil
 }
 
-func (c *ConsoleLinkReconciler) Finalize(ctx *chetypes.DeployContext) bool {
-	if err := ctx.ClusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(
-		ctx.Context,
+func (c *ConsoleLinkReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
+	if err := cheCtx.ClusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(
+		cheCtx.Context,
 		client.ObjectKey{Name: defaults.GetConsoleLinkName()},
 		&consolev1.ConsoleLink{},
 	); err != nil {
@@ -67,7 +67,7 @@ func (c *ConsoleLinkReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 		logger.Error(err, "Failed to delete ConsoleLink", "name", defaults.GetConsoleLinkName())
 	}
 
-	if err := deploy.DeleteFinalizer(ctx, ConsoleLinkFinalizerName); err != nil {
+	if err := deploy.DeleteFinalizer(cheCtx, ConsoleLinkFinalizerName); err != nil {
 		logger.Error(err, "Failed to delete finalizer", "finalizer", ConsoleLinkFinalizerName)
 		return false
 	}
@@ -75,17 +75,17 @@ func (c *ConsoleLinkReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	return true
 }
 
-func (c *ConsoleLinkReconciler) syncConsoleLink(ctx *chetypes.DeployContext) error {
-	if err := deploy.AppendFinalizer(ctx, ConsoleLinkFinalizerName); err != nil {
+func (c *ConsoleLinkReconciler) syncConsoleLink(cheCtx *chetypes.CheContext) error {
+	if err := deploy.AppendFinalizer(cheCtx, ConsoleLinkFinalizerName); err != nil {
 		return fmt.Errorf("failed to append finalizer %s: %w", ConsoleLinkFinalizerName, err)
 	}
 
-	consoleLinkSpec := c.getConsoleLinkSpec(ctx)
+	consoleLinkSpec := c.getConsoleLinkSpec(cheCtx)
 
 	// ConsoleLink is a cluster scoped object, so it can't have an owner reference
 	// and must be synced with the non-caching client
-	if err := ctx.ClusterAPI.NonCachingClientWrapper.Sync(
-		ctx.Context,
+	if err := cheCtx.ClusterAPI.NonCachingClientWrapper.Sync(
+		cheCtx.Context,
 		consoleLinkSpec,
 		&k8sclient.SyncOptions{DiffOpts: consoleLinkDiffOpts},
 	); err != nil {
@@ -95,7 +95,7 @@ func (c *ConsoleLinkReconciler) syncConsoleLink(ctx *chetypes.DeployContext) err
 	return nil
 }
 
-func (c *ConsoleLinkReconciler) getConsoleLinkSpec(ctx *chetypes.DeployContext) *consolev1.ConsoleLink {
+func (c *ConsoleLinkReconciler) getConsoleLinkSpec(cheCtx *chetypes.CheContext) *consolev1.ConsoleLink {
 	consoleLink := &consolev1.ConsoleLink{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConsoleLink",
@@ -106,12 +106,12 @@ func (c *ConsoleLinkReconciler) getConsoleLinkSpec(ctx *chetypes.DeployContext) 
 		},
 		Spec: consolev1.ConsoleLinkSpec{
 			Link: consolev1.Link{
-				Href: "https://" + ctx.CheHost,
+				Href: "https://" + cheCtx.CheHost,
 				Text: defaults.GetConsoleLinkDisplayName()},
 			Location: consolev1.ApplicationMenu,
 			ApplicationMenu: &consolev1.ApplicationMenuSpec{
 				Section:  defaults.GetConsoleLinkSection(),
-				ImageURL: fmt.Sprintf("https://%s%s", ctx.CheHost, defaults.GetConsoleLinkImage()),
+				ImageURL: fmt.Sprintf("https://%s%s", cheCtx.CheHost, defaults.GetConsoleLinkImage()),
 			},
 		},
 	}

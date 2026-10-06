@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -134,7 +134,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
 
 			ip := &ImagePuller{
 				externalImages: &ExternalImagesProvider{
@@ -145,10 +145,10 @@ func TestImagePullerConfiguration(t *testing.T) {
 				},
 			}
 
-			test.EnsureReconcile(t, ctx, ip.Reconcile)
+			test.EnsureReconcile(t, cheCtx, ip.Reconcile)
 
 			actualImagePuller := &chev1alpha1.KubernetesImagePuller{}
-			err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: "eclipse-che", Name: "eclipse-che-image-puller"}, actualImagePuller)
+			err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: "eclipse-che", Name: "eclipse-che-image-puller"}, actualImagePuller)
 			if testCase.cheCluster.Spec.Components.ImagePuller.Enable {
 				assert.NoError(t, err)
 

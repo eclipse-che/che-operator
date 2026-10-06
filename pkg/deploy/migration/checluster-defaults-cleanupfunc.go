@@ -31,7 +31,7 @@ import (
 )
 
 // cleanUpDevEnvironmentsDefaultEditor cleans up CheCluster CR `Spec.DevEnvironments.DefaultEditor` field.
-func cleanUpDevEnvironmentsDefaultEditor(ctx *chetypes.DeployContext) (bool, error) {
+func cleanUpDevEnvironmentsDefaultEditor(cheCtx *chetypes.CheContext) (bool, error) {
 	devEnvironmentsDefaultEditor := []string{
 		"eclipse/che-theia/latest",                 // is not supported anymore, see details at https://github.com/eclipse/che/issues/21771
 		"che-incubator/che-code/insiders",          // is replaced by `che-incubator/che-code/latest`, see details at https://issues.redhat.com/browse/CRW-3568
@@ -40,8 +40,8 @@ func cleanUpDevEnvironmentsDefaultEditor(ctx *chetypes.DeployContext) (bool, err
 	}
 
 	for _, defaultEditor := range devEnvironmentsDefaultEditor {
-		if ctx.CheCluster.Spec.DevEnvironments.DefaultEditor == defaultEditor {
-			ctx.CheCluster.Spec.DevEnvironments.DefaultEditor = ""
+		if cheCtx.CheCluster.Spec.DevEnvironments.DefaultEditor == defaultEditor {
+			cheCtx.CheCluster.Spec.DevEnvironments.DefaultEditor = ""
 			return true, nil
 		}
 	}
@@ -50,7 +50,7 @@ func cleanUpDevEnvironmentsDefaultEditor(ctx *chetypes.DeployContext) (bool, err
 }
 
 // cleanUpDevEnvironmentsDefaultComponents cleans up CheCluster CR `Spec.DevEnvironments.DefaultComponents` field.
-func cleanUpDevEnvironmentsDefaultComponents(ctx *chetypes.DeployContext) (bool, error) {
+func cleanUpDevEnvironmentsDefaultComponents(cheCtx *chetypes.CheContext) (bool, error) {
 	devEnvironmentsDefaultComponents := []string{
 		"[{\"name\": \"universal-developer-image\", " +
 			"\"container\": {\"image\": \"quay.io/devfile/universal-developer-image:ubi8-38da5c2\"}}]", // previous default
@@ -65,11 +65,11 @@ func cleanUpDevEnvironmentsDefaultComponents(ctx *chetypes.DeployContext) (bool,
 
 		if cmp.Diff(
 			defaultComponent,
-			ctx.CheCluster.Spec.DevEnvironments.DefaultComponents,
+			cheCtx.CheCluster.Spec.DevEnvironments.DefaultComponents,
 			cmp.Options{
 				cmpopts.IgnoreFields(devfile.Container{}, "SourceMapping"), // SourceMapping can have a default value, so it should be ignored
 			}) == "" {
-			ctx.CheCluster.Spec.DevEnvironments.DefaultComponents = nil
+			cheCtx.CheCluster.Spec.DevEnvironments.DefaultComponents = nil
 			return true, nil
 		}
 	}
@@ -78,15 +78,15 @@ func cleanUpDevEnvironmentsDefaultComponents(ctx *chetypes.DeployContext) (bool,
 }
 
 // cleanUpDashboardHeaderMessage cleans up CheCluster CR `Spec.Components.Dashboard.HeaderMessage`.
-func cleanUpDashboardHeaderMessage(ctx *chetypes.DeployContext) (bool, error) {
+func cleanUpDashboardHeaderMessage(cheCtx *chetypes.CheContext) (bool, error) {
 	dashboardHeaderMessageText := []string{
 		defaults.GetDashboardHeaderMessageText(),
 	}
 
-	if ctx.CheCluster.Spec.Components.Dashboard.HeaderMessage != nil {
+	if cheCtx.CheCluster.Spec.Components.Dashboard.HeaderMessage != nil {
 		for _, text := range dashboardHeaderMessageText {
-			if ctx.CheCluster.Spec.Components.Dashboard.HeaderMessage.Text == text {
-				ctx.CheCluster.Spec.Components.Dashboard.HeaderMessage = nil
+			if cheCtx.CheCluster.Spec.Components.Dashboard.HeaderMessage.Text == text {
+				cheCtx.CheCluster.Spec.Components.Dashboard.HeaderMessage = nil
 				return true, nil
 			}
 		}
@@ -96,17 +96,17 @@ func cleanUpDashboardHeaderMessage(ctx *chetypes.DeployContext) (bool, error) {
 }
 
 // cleanUpPluginRegistryOpenVSXURL cleans up CheCluster CR `Spec.Components.PluginRegistry.OpenVSXURL` field.
-func cleanUpPluginRegistryOpenVSXURL(ctx *chetypes.DeployContext) (bool, error) {
+func cleanUpPluginRegistryOpenVSXURL(cheCtx *chetypes.CheContext) (bool, error) {
 	pluginRegistryOpenVSXURL := []string{
 		"https://openvsx.org",                  // redirects to "https://open-vsx.org"
 		"https://open-vsx.org",                 // previous default
 		defaults.GetPluginRegistryOpenVSXURL(), // current default (can be equal to the previous one)
 	}
 
-	if ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL != nil {
+	if cheCtx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL != nil {
 		for _, openVSXURL := range pluginRegistryOpenVSXURL {
-			if *ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL == openVSXURL {
-				ctx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL = nil
+			if *cheCtx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL == openVSXURL {
+				cheCtx.CheCluster.Spec.Components.PluginRegistry.OpenVSXURL = nil
 				return true, nil
 			}
 		}
@@ -117,19 +117,19 @@ func cleanUpPluginRegistryOpenVSXURL(ctx *chetypes.DeployContext) (bool, error) 
 
 // cleanUpDevEnvironmentsDisableContainerBuildCapabilities cleans up
 // CheCluster CR `Spec.DevEnvironments.DisableContainerBuildCapabilities` field. See also [v2.CheCluster].
-func cleanUpDevEnvironmentsDisableContainerBuildCapabilities(ctx *chetypes.DeployContext) (bool, error) {
+func cleanUpDevEnvironmentsDisableContainerBuildCapabilities(cheCtx *chetypes.CheContext) (bool, error) {
 	if !infrastructure.IsOpenShift() {
-		ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = ptr.To(true)
+		cheCtx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = ptr.To(true)
 		return true, nil
 	}
 
-	if ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities != nil {
+	if cheCtx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities != nil {
 		disableContainerBuildCapabilities, err := strconv.ParseBool(defaults.GetDevEnvironmentsDisableContainerBuildCapabilities())
 		if err != nil {
 			return false, err
 		}
-		if disableContainerBuildCapabilities == *ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities {
-			ctx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = nil
+		if disableContainerBuildCapabilities == *cheCtx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities {
+			cheCtx.CheCluster.Spec.DevEnvironments.DisableContainerBuildCapabilities = nil
 			return true, nil
 		}
 	}
@@ -137,12 +137,12 @@ func cleanUpDevEnvironmentsDisableContainerBuildCapabilities(ctx *chetypes.Deplo
 	return false, nil
 }
 
-func cleanUpContainersResources(ctx *chetypes.DeployContext) (bool, error) {
+func cleanUpContainersResources(cheCtx *chetypes.CheContext) (bool, error) {
 	deployments := []*chev2.Deployment{
-		ctx.CheCluster.Spec.Components.CheServer.Deployment,
-		ctx.CheCluster.Spec.Components.PluginRegistry.Deployment,
-		ctx.CheCluster.Spec.Components.Dashboard.Deployment,
-		ctx.CheCluster.Spec.Networking.Auth.Gateway.Deployment,
+		cheCtx.CheCluster.Spec.Components.CheServer.Deployment,
+		cheCtx.CheCluster.Spec.Components.PluginRegistry.Deployment,
+		cheCtx.CheCluster.Spec.Components.Dashboard.Deployment,
+		cheCtx.CheCluster.Spec.Networking.Auth.Gateway.Deployment,
 	}
 
 	done := false
@@ -181,8 +181,8 @@ func cleanUpContainersResources(ctx *chetypes.DeployContext) (bool, error) {
 
 // updateDevEnvironmentsContainerRunConfiguration adds `CHOWN` to the list of added capabilities.
 // See for details: https://github.com/eclipse-che/che/issues/23748
-func updateDevEnvironmentsContainerRunConfiguration(ctx *chetypes.DeployContext) (bool, error) {
-	runConfiguration := ctx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration
+func updateDevEnvironmentsContainerRunConfiguration(cheCtx *chetypes.CheContext) (bool, error) {
+	runConfiguration := cheCtx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration
 	if runConfiguration == nil ||
 		runConfiguration.ContainerSecurityContext == nil ||
 		runConfiguration.ContainerSecurityContext.Capabilities == nil {

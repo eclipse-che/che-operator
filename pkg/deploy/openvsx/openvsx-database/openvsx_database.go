@@ -44,24 +44,24 @@ func NewOpenVSXDatabaseReconciler() *OpenVSXDatabaseReconciler {
 	return &OpenVSXDatabaseReconciler{}
 }
 
-func (p *OpenVSXDatabaseReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	if !ctx.CheCluster.IsInternalOpenVSXRegistryEnabled() {
-		p.deleteResources(ctx)
+func (p *OpenVSXDatabaseReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
+	if !cheCtx.CheCluster.IsInternalOpenVSXRegistryEnabled() {
+		p.deleteResources(cheCtx)
 		p.databaseProvisioned = false
 		return reconcile.Result{}, true, nil
 	}
 
-	err := p.syncService(ctx)
+	err := p.syncService(cheCtx)
 	if err != nil {
 		return reconcile.Result{}, false, fmt.Errorf("failed to sync service: %w", err)
 	}
 
-	err = p.syncPVC(ctx)
+	err = p.syncPVC(cheCtx)
 	if err != nil {
 		return reconcile.Result{}, false, fmt.Errorf("failed to sync pvc: %w", err)
 	}
 
-	done, err := p.syncDeployment(ctx)
+	done, err := p.syncDeployment(cheCtx)
 	if !done {
 		if err != nil {
 			err = fmt.Errorf("failed to sync deployment: %w", err)
@@ -70,7 +70,7 @@ func (p *OpenVSXDatabaseReconciler) Reconcile(ctx *chetypes.DeployContext) (reco
 	}
 
 	if !p.databaseProvisioned {
-		done, err = p.syncDatabaseProvisioned(ctx)
+		done, err = p.syncDatabaseProvisioned(cheCtx)
 		if !done {
 			if err != nil {
 				err = fmt.Errorf("failed to sync Extensions %w", err)
@@ -84,16 +84,16 @@ func (p *OpenVSXDatabaseReconciler) Reconcile(ctx *chetypes.DeployContext) (reco
 	return reconcile.Result{}, true, nil
 }
 
-func (p *OpenVSXDatabaseReconciler) Finalize(_ *chetypes.DeployContext) bool {
+func (p *OpenVSXDatabaseReconciler) Finalize(_ *chetypes.CheContext) bool {
 	return true
 }
 
-func (p *OpenVSXDatabaseReconciler) deleteResources(ctx *chetypes.DeployContext) {
+func (p *OpenVSXDatabaseReconciler) deleteResources(cheCtx *chetypes.CheContext) {
 	objtKey := types.NamespacedName{
 		Name:      constants.OpenVSXDatabaseComponentName,
-		Namespace: ctx.CheCluster.Namespace,
+		Namespace: cheCtx.CheCluster.Namespace,
 	}
-	cw := ctx.ClusterAPI.ClientWrapper
+	cw := cheCtx.ClusterAPI.ClientWrapper
 
 	err := cw.DeleteByKeyIgnoreNotFound(context.TODO(), objtKey, &appsv1.Deployment{})
 	if err != nil {
@@ -114,7 +114,7 @@ func (p *OpenVSXDatabaseReconciler) deleteResources(ctx *chetypes.DeployContext)
 		context.TODO(),
 		types.NamespacedName{
 			Name:      constants.OpenVSXDatabaseProvisionJobName,
-			Namespace: ctx.CheCluster.Namespace,
+			Namespace: cheCtx.CheCluster.Namespace,
 		},
 		&batchv1.Job{},
 		client.PropagationPolicy(metav1.DeletePropagationBackground),

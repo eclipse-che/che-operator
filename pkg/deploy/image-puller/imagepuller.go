@@ -61,8 +61,8 @@ func NewImagePuller() *ImagePuller {
 	}
 }
 
-func (ip *ImagePuller) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
-	externalImages, err := ip.externalImages.Get(ctx)
+func (ip *ImagePuller) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
+	externalImages, err := ip.externalImages.Get(cheCtx)
 	if err != nil {
 		// Previously, failures to get external images didn't block reconciliation.
 		// Actually it should not happen, because all requests go to dashboard service (not external url).
@@ -75,45 +75,45 @@ func (ip *ImagePuller) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result,
 		}
 	}
 
-	if ctx.CheCluster.Spec.Components.ImagePuller.Enable {
-		if !infrastructure.IsKubernetesImagePullerEnabled(ctx.ClusterAPI.DiscoveryClient) {
+	if cheCtx.CheCluster.Spec.Components.ImagePuller.Enable {
+		if !infrastructure.IsKubernetesImagePullerEnabled(cheCtx.ClusterAPI.DiscoveryClient) {
 			errMsg := "kubernetes Image Puller is not installed, in order to enable the property admin should install the operator first"
 			return reconcile.Result{}, false, errors.New(errMsg)
 		}
 
-		if done, err := ip.syncKubernetesImagePuller(externalImages, ctx); !done {
+		if done, err := ip.syncKubernetesImagePuller(externalImages, cheCtx); !done {
 			return reconcile.Result{RequeueAfter: time.Second}, false, err
 		}
 	} else {
-		if done, err := ip.uninstallImagePuller(ctx); !done {
+		if done, err := ip.uninstallImagePuller(cheCtx); !done {
 			return reconcile.Result{RequeueAfter: time.Second}, false, err
 		}
 	}
 	return reconcile.Result{}, true, nil
 }
 
-func (ip *ImagePuller) Finalize(ctx *chetypes.DeployContext) bool {
-	done, err := ip.uninstallImagePuller(ctx)
+func (ip *ImagePuller) Finalize(cheCtx *chetypes.CheContext) bool {
+	done, err := ip.uninstallImagePuller(cheCtx)
 	if err != nil {
 		logger.Error(err, "Failed to uninstall Kubernetes Image Puller")
 	}
 	return done
 }
 
-func (ip *ImagePuller) uninstallImagePuller(ctx *chetypes.DeployContext) (bool, error) {
+func (ip *ImagePuller) uninstallImagePuller(cheCtx *chetypes.CheContext) (bool, error) {
 	// Keep it here for backward compatibility
-	if err := deploy.DeleteFinalizer(ctx, finalizerName); err != nil {
+	if err := deploy.DeleteFinalizer(cheCtx, finalizerName); err != nil {
 		return false, err
 	}
 
-	if infrastructure.IsKubernetesImagePullerEnabled(ctx.ClusterAPI.DiscoveryClient) {
+	if infrastructure.IsKubernetesImagePullerEnabled(cheCtx.ClusterAPI.DiscoveryClient) {
 		key := types.NamespacedName{
-			Namespace: ctx.CheCluster.Namespace,
-			Name:      getImagePullerCustomResourceName(ctx),
+			Namespace: cheCtx.CheCluster.Namespace,
+			Name:      getImagePullerCustomResourceName(cheCtx),
 		}
 
-		err := ctx.ClusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(
-			ctx.Context,
+		err := cheCtx.ClusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(
+			cheCtx.Context,
 			key,
 			&chev1alpha1.KubernetesImagePuller{},
 		)
@@ -125,22 +125,22 @@ func (ip *ImagePuller) uninstallImagePuller(ctx *chetypes.DeployContext) (bool, 
 	return true, nil
 }
 
-func (ip *ImagePuller) syncKubernetesImagePuller(externalImages []string, ctx *chetypes.DeployContext) (bool, error) {
+func (ip *ImagePuller) syncKubernetesImagePuller(externalImages []string, cheCtx *chetypes.CheContext) (bool, error) {
 	imagePuller := &chev1alpha1.KubernetesImagePuller{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: chev1alpha1.GroupVersion.String(),
 			Kind:       "KubernetesImagePuller",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      getImagePullerCustomResourceName(ctx),
-			Namespace: ctx.CheCluster.Namespace,
+			Name:      getImagePullerCustomResourceName(cheCtx),
+			Namespace: cheCtx.CheCluster.Namespace,
 			Labels: map[string]string{
 				constants.KubernetesComponentLabelKey: constants.KubernetesImagePullerComponentName,
 				constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
 				constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel(),
 			},
 		},
-		Spec: *ctx.CheCluster.Spec.Components.ImagePuller.Spec.DeepCopy(),
+		Spec: *cheCtx.CheCluster.Spec.Components.ImagePuller.Spec.DeepCopy(),
 	}
 
 	// Set default values to avoid syncing object on every loop
@@ -151,11 +151,11 @@ func (ip *ImagePuller) syncKubernetesImagePuller(externalImages []string, ctx *c
 		imagePuller.Spec.Images = convertToSpecField(externalImages)
 	}
 
-	if err := controllerutil.SetControllerReference(ctx.CheCluster, imagePuller, ctx.ClusterAPI.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, imagePuller, cheCtx.ClusterAPI.Scheme); err != nil {
 		return false, err
 	}
 
-	err := ctx.ClusterAPI.NonCachingClientWrapper.Sync(
+	err := cheCtx.ClusterAPI.NonCachingClientWrapper.Sync(
 		context.TODO(),
 		imagePuller,
 		&k8s_client.SyncOptions{
@@ -165,8 +165,8 @@ func (ip *ImagePuller) syncKubernetesImagePuller(externalImages []string, ctx *c
 	return err == nil, fmt.Errorf("failed to sync KubernetesImagePuller %s/%s: %w", imagePuller.GetNamespace(), imagePuller.GetName(), err)
 }
 
-func getImagePullerCustomResourceName(ctx *chetypes.DeployContext) string {
-	return ctx.CheCluster.Name + "-image-puller"
+func getImagePullerCustomResourceName(cheCtx *chetypes.CheContext) string {
+	return cheCtx.CheCluster.Name + "-image-puller"
 }
 
 func convertToSpecField(images []string) string {

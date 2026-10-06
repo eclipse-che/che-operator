@@ -22,16 +22,16 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 )
 
-func (r *OpenVSXServerReconciler) exposeEndpoint(ctx *chetypes.DeployContext) (string, bool, error) {
+func (r *OpenVSXServerReconciler) exposeEndpoint(cheCtx *chetypes.CheContext) (string, bool, error) {
 	return expose.ExposeWithHostPath(
-		ctx,
+		cheCtx,
 		constants.OpenVSXServerComponentName,
 		"",
 		"/"+constants.OpenVSXServerGatewayPath,
-		r.createGatewayConfig(ctx))
+		r.createGatewayConfig(cheCtx))
 }
 
-func (r *OpenVSXServerReconciler) createGatewayConfig(ctx *chetypes.DeployContext) *gateway.TraefikConfig {
+func (r *OpenVSXServerReconciler) createGatewayConfig(cheCtx *chetypes.CheContext) *gateway.TraefikConfig {
 	pathPrefix := "/" + constants.OpenVSXServerGatewayPath
 	cfg := gateway.CreateCommonTraefikConfig(
 		constants.OpenVSXServerComponentName,
@@ -43,13 +43,13 @@ func (r *OpenVSXServerReconciler) createGatewayConfig(ctx *chetypes.DeployContex
 	return cfg
 }
 
-func (r *OpenVSXServerReconciler) syncOpenVSXURLStatus(ctx *chetypes.DeployContext) error {
-	openVSXURL := "https://" + ctx.CheHost + "/" + constants.OpenVSXServerGatewayPath
+func (r *OpenVSXServerReconciler) syncOpenVSXURLStatus(cheCtx *chetypes.CheContext) error {
+	openVSXURL := "https://" + cheCtx.CheHost + "/" + constants.OpenVSXServerGatewayPath
 
-	if openVSXURL != ctx.CheCluster.Status.OpenVSXURL {
-		ctx.CheCluster.Status.OpenVSXURL = openVSXURL
+	if openVSXURL != cheCtx.CheCluster.Status.OpenVSXURL {
+		cheCtx.CheCluster.Status.OpenVSXURL = openVSXURL
 
-		if err := deploy.UpdateCheCRStatus(ctx, "status: OpenVSXURL", openVSXURL); err != nil {
+		if err := deploy.UpdateCheCRStatus(cheCtx, "status: OpenVSXURL", openVSXURL); err != nil {
 			return fmt.Errorf("failed to update status for OpenVSXURL: %w", err)
 		}
 	}
