@@ -232,7 +232,7 @@ func doRequestForTLSCrtChain(cheCtx *chetypes.CheContext, requestURL string, ski
 	// Adding the proxy settings to the Transport object.
 	// However, in case of test route we need to reach cluter directly in order to get the right certificate.
 	if cheCtx.Proxy.HttpProxy != "" && !skipProxy {
-		logrus.Infof("Configuring proxy with %s to extract certificate chain from the following URL: %s", cheCtx.Proxy.HttpProxy, requestURL)
+		logrus.Infof("Configuring proxy to extract certificate chain from the following URL: %s", requestURL)
 		deploy.ConfigureProxy(cheCtx, transport)
 	}
 	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
