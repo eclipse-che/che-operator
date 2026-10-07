@@ -10,6 +10,8 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
+//go:build integration
+
 package provision
 
 import (

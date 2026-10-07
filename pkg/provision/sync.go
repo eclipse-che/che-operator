@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// syncObject ensures that the object is up to date in the cluster.
+// SyncObject ensures that the object is up to date in the cluster.
 // Besides the actual sync it:
 //   - selects the client to use: the cached one for objects labeled with
 //     `app.kubernetes.io/part-of: che.eclipse.org` (they are watched by the operator),
@@ -38,10 +38,10 @@ import (
 //   - sets the CheCluster as the controller owner if the object lives in the same namespace as the CR
 //     (cross-namespace owner references are not supported by Kubernetes);
 //   - builds the sync options: existing labels and annotations are merged rather than replaced,
-//     and only the labels and annotations defined on the given object participate in the diff,
-//     so that keys added by other controllers do not trigger an update;
+//     and only the labels and annotations defined on the given object participate in the diff;
+//     should not be used with `pkg/common/diffs/diffs.go`.
 //   - retries the sync with recreation if the update failed because an immutable field has changed.
-func syncObject(
+func SyncObject(
 	cheCtx *chetypes.CheContext,
 	obj client.Object,
 	diff cmp.Options,

@@ -292,11 +292,15 @@ lint: ## Run static code analyzers
 	golangci-lint run
 
 test: SHELL := /bin/bash
-test: SHELLFLAGS := -ec
-test: download-setup-envtest ## Run tests, including the envtest integration tests.
+test: ## Run tests
+	go test -mod=vendor ./... -coverprofile cover.out
+
+test-all: SHELL := /bin/bash
+test-all: SHELLFLAGS := -ec
+test-all: download-setup-envtest ## Run all unit tests including envtest integration tests
 	KUBEBUILDER_ASSETS=$$(make get-envtest-assets-path)
 	export KUBEBUILDER_ASSETS
-	go test -mod=vendor ./... -coverprofile cover.out -count=1
+	go test -mod=vendor ./... -coverprofile cover.out -tags=integration -count=1
 
 update-go-dependencies:  ## Update golang dependencies
 	go mod tidy
@@ -345,6 +349,8 @@ install-che-operands: SHELL := /bin/bash
 install-che-operands: generate manifests download-kustomize copy-editors-definitions
 	PLATFORM=$$($(MAKE) get_platform)
 
+	# Copy traefik plugin
+	rm -rf /tmp/header-rewrite-traefik-plugin
 	cp -r header-rewrite-traefik-plugin /tmp
 
 	if [[ "$$($(K8S_CLI) get crd | grep "cert-manager.io" | wc -l)" == "0" ]]; then

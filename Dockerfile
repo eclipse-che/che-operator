@@ -9,7 +9,7 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-FROM registry.access.redhat.com/ubi8:8.10-1304 as builder
+FROM registry.access.redhat.com/ubi8:8.10-1304.1751400627 as builder
 
 USER root
 
@@ -19,7 +19,6 @@ ENV CGO_ENABLED=1
 ENV GO_VERSION=1.26.5
 ENV PATH=$PATH:$GOROOT/bin:/usr/local/bin
 
-ARG DEV_HEADER_REWRITE_TRAEFIK_PLUGIN="main"
 ARG SKIP_TESTS="false"
 
 RUN dnf install -y unzip gcc make curl && dnf clean all
@@ -65,7 +64,7 @@ RUN ARCH="$(uname -m)" && \
     GOOS=linux GOARCH="${ARCH}" GO111MODULE=on \
     go build -mod=vendor -a -o che-operator cmd/main.go
 
-FROM registry.access.redhat.com/ubi8-minimal:8.10-1295
+FROM registry.access.redhat.com/ubi8-minimal:8.10-1295.1749680713
 
 COPY --from=builder /tmp/header-rewrite-traefik-plugin /tmp/header-rewrite-traefik-plugin
 COPY --from=builder /tmp/editors-definitions /tmp/editors-definitions

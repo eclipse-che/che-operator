@@ -1,7 +1,7 @@
 # Build & Test Commands
 
 - Build: `make build`
-- Tests: `make test` — this is the only supported way to validate. It runs the whole suite and sets up
+- Tests: `make test-all` — this is the only supported way to validate. It runs the whole suite and sets up
   the prerequisites (`download-setup-envtest`, `KUBEBUILDER_ASSETS`).
 - Do **not** validate with a bare `go test -mod=vendor ./package/...`. The envtest-based suites abort in
   `BeforeSuite` unless `KUBEBUILDER_ASSETS` points at the control-plane binaries, so a direct `go test`
@@ -14,4 +14,4 @@
 - Format: `make fmt`
 - Vet: `make vet`
 - Lint: `make lint`
-- After making changes, always build and run `make test` before reporting the task as complete.
+- After making changes, always build and run `make test-all` before reporting the task as complete.
