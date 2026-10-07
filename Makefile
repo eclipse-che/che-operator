@@ -74,7 +74,6 @@ endif
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # This is a requirement for 'setup-envtest.sh' in the test target.
 .ONESHELL:
-.SHELLFLAGS := -ec
 
 all: build
 
@@ -293,9 +292,9 @@ lint: ## Run static code analyzers
 	golangci-lint run
 
 test: SHELL := /bin/bash
-test: download-gateway-resources download-setup-envtest ## Run tests, including the envtest integration tests.
-	KUBEBUILDER_ASSETS=$$($(SETUP_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(ENVTEST_ASSETS_DIR) -p path)
-	export KUBEBUILDER_ASSETS
+test: SHELLFLAGS := -ec
+test: download-setup-envtest ## Run tests, including the envtest integration tests.
+	export KUBEBUILDER_ASSETS=$$(make get-envtest-assets-path)
 	go test -mod=vendor ./... -coverprofile cover.out -count=1
 
 update-go-dependencies:  ## Update golang dependencies
@@ -342,7 +341,7 @@ genenerate-env:
 	cat $(BASH_ENV_FILE)
 
 install-che-operands: SHELL := /bin/bash
-install-che-operands: generate manifests download-kustomize download-gateway-resources copy-editors-definitions
+install-che-operands: generate manifests download-kustomize copy-editors-definitions
 	PLATFORM=$$($(MAKE) get_platform)
 
 	if [[ "$$($(K8S_CLI) get crd | grep "cert-manager.io" | wc -l)" == "0" ]]; then
@@ -382,18 +381,6 @@ install-che-operands: generate manifests download-kustomize download-gateway-res
 copy-editors-definitions:
 	mkdir -p /tmp/editors-definitions
 	cp -r $(PROJECT_DIR)/editors-definitions/* /tmp/editors-definitions
-
-# Downloads Gateway resources
-download-gateway-resources:
-	GATEWAY_RESOURCES=/tmp/header-rewrite-traefik-plugin
-
-	rm -rf /tmp/asset-header-rewrite-traefik-plugin.zip /tmp/*-header-rewrite-traefik-plugin-*/ $${GATEWAY_RESOURCES}
-	mkdir -p $${GATEWAY_RESOURCES}
-	curl -sL https://api.github.com/repos/che-incubator/header-rewrite-traefik-plugin/zipball/${DEV_HEADER_REWRITE_TRAEFIK_PLUGIN} > /tmp/asset-header-rewrite-traefik-plugin.zip
-	unzip -q /tmp/asset-header-rewrite-traefik-plugin.zip -d /tmp
-	mv /tmp/*-header-rewrite-traefik-plugin-*/headerRewrite.go /tmp/*-header-rewrite-traefik-plugin-*/.traefik.yml $${GATEWAY_RESOURCES}
-
-	echo "[INFO] Gateway resources downloaded into  $${GATEWAY_RESOURCES}"
 
 # Store `che-operator-webhook-server-cert` secret locally
 store_tls_cert:
@@ -627,12 +614,11 @@ ADD_LICENSE = $(shell pwd)/bin/addlicense
 download-addlicense: ## Download addlicense tool
 	$(call go-get-tool,$(ADD_LICENSE),github.com/google/addlicense@99ebc9c9db7bceb8623073e894533b978d7b7c8a)
 
-ENVTEST_K8S_VERSION ?= 1.34.x
+ENVTEST_K8S_VERSION ?= "1.34.x"
 ENVTEST_ASSETS_DIR = $(shell pwd)/bin/testbin
 SETUP_ENVTEST = $(shell pwd)/bin/setup-envtest
 download-setup-envtest: ## Download setup-envtest tool and the envtest control plane binaries
-	$(call go-get-tool,$(SETUP_ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@release-0.24)
-	$(SETUP_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(ENVTEST_ASSETS_DIR)
+	$(call go-get-tool,$(SETUP_ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@release-0.25)
 
 OPERATOR_SDK_VERSION ?= "v1.39.2"
 OPERATOR_SDK ?= $(shell pwd)/bin/operator-sdk
@@ -697,6 +683,10 @@ increment-bundle-version:
 
 	echo "[INFO] New next version: $${NEW_NEXT_BUNDLE_VERSION}"
 
+
+get-envtest-assets-path: SHELL := /bin/bash
+get-envtest-assets-path: ## Resolve the path to the envtest assets for the configured Kubernetes version.
+	echo $$($(SETUP_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(ENVTEST_ASSETS_DIR) -p path)
 
 ##@ Kubernetes helper
 

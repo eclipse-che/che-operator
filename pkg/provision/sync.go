@@ -115,11 +115,10 @@ func cmpMetadata(
 			}
 		}
 
-		return equality.Semantic.DeepEqual(x.Finalizers, y.Finalizers) &&
-			equality.Semantic.DeepEqual(
-				metav1.GetControllerOf(&x),
-				metav1.GetControllerOf(&y),
-			)
+		return equality.Semantic.DeepEqual(
+			metav1.GetControllerOf(&x),
+			metav1.GetControllerOf(&y),
+		)
 	}))
 }
 

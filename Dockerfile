@@ -56,9 +56,10 @@ COPY config/ config/
 COPY controllers/ controllers/
 COPY pkg/ pkg/
 COPY editors-definitions /tmp/editors-definitions
+COPY header-rewrite-traefik-plugin /tmp/header-rewrite-traefik-plugin
 
 RUN if [ "${SKIP_TESTS}" = "false" ]; then \
-      make test; \
+      make test \
     fi
 
 # build operator

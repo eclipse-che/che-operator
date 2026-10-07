@@ -28,7 +28,7 @@ type CheContextBuilder struct {
 	initObject []client.Object
 }
 
-// NewCheCtxBuilder returns a builder of a DeployContext backed by the envtest API server.
+// NewCheCtxBuilder returns a builder of a CheContext backed by the envtest API server.
 func (e *Env) NewCheCtxBuilder() *CheContextBuilder {
 	return &CheContextBuilder{
 		env:        e,

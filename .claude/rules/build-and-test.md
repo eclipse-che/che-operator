@@ -2,7 +2,7 @@
 
 - Build: `make build`
 - Tests: `make test` — this is the only supported way to validate. It runs the whole suite and sets up
-  the prerequisites (`download-gateway-resources`, `download-setup-envtest`, `KUBEBUILDER_ASSETS`).
+  the prerequisites (`download-setup-envtest`, `KUBEBUILDER_ASSETS`).
 - Do **not** validate with a bare `go test -mod=vendor ./package/...`. The envtest-based suites abort in
   `BeforeSuite` unless `KUBEBUILDER_ASSETS` points at the control-plane binaries, so a direct `go test`
   reports failures that are not real. If you need to narrow the run while iterating, export the assets

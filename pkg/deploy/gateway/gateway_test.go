@@ -15,6 +15,7 @@ package gateway
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -34,10 +35,23 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+var (
+	readFile = func(name string) ([]byte, error) {
+		switch name {
+		case "/tmp/header-rewrite-traefik-plugin/headerRewrite.go":
+			return []byte("fake plugin"), nil
+		case "/tmp/header-rewrite-traefik-plugin/.traefik.yml":
+			return []byte("fake metadata"), nil
+		default:
+			return nil, fmt.Errorf("unexpected file: %s", name)
+		}
+	}
+)
+
 func TestSyncAllToCluster(t *testing.T) {
 	cheCtx := test.NewCtxBuilder().Build()
 
-	done, err := SyncGatewayToCluster(cheCtx)
+	done, err := SyncGatewayToCluster(cheCtx, readFile)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
@@ -63,7 +77,7 @@ func TestSyncAllToCluster(t *testing.T) {
 func TestNativeUserGateway(t *testing.T) {
 	cheCtx := test.NewCtxBuilder().Build()
 
-	done, err := SyncGatewayToCluster(cheCtx)
+	done, err := SyncGatewayToCluster(cheCtx, readFile)
 	assert.True(t, done)
 	assert.Nil(t, err)
 

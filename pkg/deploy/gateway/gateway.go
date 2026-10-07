@@ -69,14 +69,17 @@ var (
 
 type GatewayReconciler struct {
 	reconciler.Reconcilable
+	readFile func(name string) ([]byte, error)
 }
 
 func NewGatewayReconciler() *GatewayReconciler {
-	return &GatewayReconciler{}
+	return &GatewayReconciler{
+		readFile: os.ReadFile,
+	}
 }
 
 func (p *GatewayReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
-	done, err := SyncGatewayToCluster(cheCtx)
+	done, err := SyncGatewayToCluster(cheCtx, p.readFile)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
@@ -89,11 +92,17 @@ func (p *GatewayReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
 }
 
 // SyncGatewayToCluster installs or deletes the gateway based on the custom resource configuration
-func SyncGatewayToCluster(cheCtx *chetypes.CheContext) (bool, error) {
-	return syncAll(cheCtx)
+func SyncGatewayToCluster(
+	cheCtx *chetypes.CheContext,
+	readFile func(name string) ([]byte, error),
+) (bool, error) {
+	return syncAll(cheCtx, readFile)
 }
 
-func syncAll(cheCtx *chetypes.CheContext) (bool, error) {
+func syncAll(
+	cheCtx *chetypes.CheContext,
+	readFile func(name string) ([]byte, error),
+) (bool, error) {
 	instance := cheCtx.CheCluster
 
 	sa := getGatewayServiceAccountSpec(instance)
@@ -131,7 +140,7 @@ func syncAll(cheCtx *chetypes.CheContext) (bool, error) {
 	}
 
 	if instance.IsAccessTokenConfigured() {
-		headerRewritePluginConfig, err := getGatewayHeaderRewritePluginConfigSpec(instance)
+		headerRewritePluginConfig, err := getGatewayHeaderRewritePluginConfigSpec(instance, readFile)
 		if err != nil {
 			return false, err
 		}
@@ -357,12 +366,15 @@ func generateRandomCookieSecret() []byte {
 	return []byte(base64.StdEncoding.EncodeToString([]byte(utils.GeneratePassword(16))))
 }
 
-func getGatewayHeaderRewritePluginConfigSpec(instance *chev2.CheCluster) (*corev1.ConfigMap, error) {
-	headerRewrite, err := os.ReadFile("/tmp/header-rewrite-traefik-plugin/headerRewrite.go")
+func getGatewayHeaderRewritePluginConfigSpec(
+	instance *chev2.CheCluster,
+	readFile func(name string) ([]byte, error),
+) (*corev1.ConfigMap, error) {
+	headerRewrite, err := readFile("/tmp/header-rewrite-traefik-plugin/headerRewrite.go")
 	if err != nil {
 		return nil, err
 	}
-	pluginMeta, err := os.ReadFile("/tmp/header-rewrite-traefik-plugin/.traefik.yml")
+	pluginMeta, err := readFile("/tmp/header-rewrite-traefik-plugin/.traefik.yml")
 	if err != nil {
 		return nil, err
 	}

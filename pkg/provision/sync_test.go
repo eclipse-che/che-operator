@@ -41,45 +41,6 @@ var _ = Describe("syncObject", Ordered, func() {
 		Expect(env.Client.DeleteAllOf(env.Context, &corev1.ConfigMap{}, client.InNamespace(cheContext.CheCluster.Namespace))).To(Succeed())
 	})
 
-	It("should set finalizer", func(ctx SpecContext) {
-		testCm := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:       "test",
-				Namespace:  "eclipse-che",
-				Finalizers: []string{},
-			},
-		}
-
-		Expect(syncObject(cheContext, testCm, cmDiffs, false, false)).To(Succeed())
-
-		testCm = &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:       "test",
-				Namespace:  "eclipse-che",
-				Finalizers: []string{"test/test"},
-			},
-		}
-
-		Expect(syncObject(cheContext, testCm, cmDiffs, false, false)).To(Succeed())
-
-		actualCm := &corev1.ConfigMap{}
-		Expect(env.Client.Get(cheContext.Context, types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actualCm)).To(Succeed())
-		Expect(actualCm.Finalizers).To(Equal([]string{"test/test"}))
-
-		testCm = &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test",
-				Namespace: "eclipse-che",
-			},
-		}
-
-		Expect(syncObject(cheContext, testCm, cmDiffs, false, false)).To(Succeed())
-
-		actualCm = &corev1.ConfigMap{}
-		Expect(env.Client.Get(cheContext.Context, types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actualCm)).To(Succeed())
-		Expect(actualCm.Finalizers).To(BeEmpty())
-	})
-
 	It("should set owner reference", func(ctx SpecContext) {
 		testCm := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
