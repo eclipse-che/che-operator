@@ -68,7 +68,8 @@ type SyncOptions struct {
 	DiffOpts []cmp.Option
 	// DeleteOpts can be used to customize deletion when object is recreated
 	DeleteOpts []client.DeleteOption
-	// ForceRecreate can be used to delete and create object instead of updating it when object is not in sync
+	// ForceRecreate deletes and re-creates the object instead of updating it when it is not in sync.
+	// This applies to every kind, so it is caller's responsibility.
 	ForceRecreate bool
 }
 

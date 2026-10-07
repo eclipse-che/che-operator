@@ -34,13 +34,14 @@ import (
 // Besides the actual sync it:
 //   - selects the client to use: the cached one for objects labeled with
 //     `app.kubernetes.io/part-of: che.eclipse.org` (they are watched by the operator),
-//     the non-caching one otherwise; see `cmd/main.go:365`.
+//     the non-caching one otherwise; see `getCacheFunc` in `cmd/main.go`.
 //   - sets the CheCluster as the controller owner if the object lives in the same namespace as the CR
 //     (cross-namespace owner references are not supported by Kubernetes);
 //   - builds the sync options: existing labels and annotations are merged rather than replaced,
 //     and only the labels and annotations defined on the given object participate in the diff;
 //     should not be used with `pkg/common/diffs/diffs.go`.
-//   - retries the sync with recreation if the update failed because an immutable field has changed.
+//   - retries the sync with recreation if the update failed because an immutable field has changed,
+//     but only when `allowForceRecreate` is set.
 func SyncObject(
 	cheCtx *chetypes.CheContext,
 	obj client.Object,
@@ -98,6 +99,13 @@ func SyncObject(
 	return nil
 }
 
+// cmpMetadata compares only the labels and annotations under the given keys, plus the controller owner
+// reference. Everything else in the metadata - resourceVersion, uid, managedFields, timestamps and any
+// label or annotation set by another actor - is ignored, which is what lets the merge semantics of
+// `MergeLabels`/`MergeAnnotations` converge instead of producing a diff on every reconcile.
+//
+// It is wired as a `metav1.ObjectMeta` comparer behind `cmp.FilterPath`, so it only takes effect for
+// types that embed `metav1.ObjectMeta` at the top level. It is silently a no-op for `*unstructured.Unstructured`.
 func cmpMetadata(
 	labelKeys []string,
 	annotationKeys []string,

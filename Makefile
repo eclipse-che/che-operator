@@ -286,7 +286,7 @@ fmt: download-addlicense ## Run go fmt against code.
 	$(MAKE) license $${FILES_TO_CHECK_LICENSE}
 
 vet: ## Run go vet against code.
-	go vet ./...
+	go vet -tags=integration ./...
 
 lint: ## Run static code analyzers
 	golangci-lint run

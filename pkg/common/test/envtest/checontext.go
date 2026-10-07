@@ -56,6 +56,12 @@ func (b *CheContextBuilder) WithEmptyCheCluster() *CheContextBuilder {
 	return b
 }
 
+// Build creates the configured objects (and the namespaces they live in) in the envtest API server and
+// returns a CheContext wired to it.
+//
+// Both `Client`/`ClientWrapper` and `NonCachingClient`/`NonCachingClientWrapper` are backed by the same
+// direct client - envtest runs no manager and therefore has no cache - so code that branches on cached
+// vs non-caching  behaves identically on either side and that branch cannot be asserted on from tests.
 func (b *CheContextBuilder) Build() *chetypes.CheContext {
 	ginkgo.GinkgoHelper()
 
