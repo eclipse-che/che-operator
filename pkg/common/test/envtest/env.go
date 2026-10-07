@@ -14,11 +14,11 @@ package envtest
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -49,7 +49,7 @@ func Start() *Env {
 
 	gomega.Expect(os.Getenv("KUBEBUILDER_ASSETS")).NotTo(gomega.BeEmpty(), "set KUBEBUILDER_ASSETS")
 
-	projectRoot, err := findProjectRoot()
+	projectRoot, err := utils.FindProjectRoot()
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	env := &Env{Scheme: newScheme()}
@@ -107,25 +107,4 @@ func newScheme() *runtime.Scheme {
 	utilruntime.Must(chev2.AddToScheme(scheme))
 
 	return scheme
-}
-
-// findProjectRoot walks the directory tree up until `go.mod` is found.
-func findProjectRoot() (string, error) {
-	dir, err := os.Getwd()
-	if err != nil {
-		return "", fmt.Errorf("failed to get working directory: %w", err)
-	}
-
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			return dir, nil
-		}
-
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return "", fmt.Errorf("failed to find project root: no go.mod found above the working directory")
-		}
-
-		dir = parent
-	}
 }

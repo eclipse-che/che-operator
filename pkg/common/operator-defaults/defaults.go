@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -59,7 +60,7 @@ var (
 )
 
 func InitializeForTesting() {
-	projectRoot, err := findProjectRoot()
+	projectRoot, err := utils.FindProjectRoot()
 	if err != nil {
 		log.Error(err, "Failed to find project root")
 		os.Exit(1)
@@ -383,25 +384,4 @@ func getOrganizationFromImage(image string) string {
 		organization = imageParts[1]
 	}
 	return organization
-}
-
-// findProjectRoot walks the directory tree up until `go.mod` is found.
-func findProjectRoot() (string, error) {
-	dir, err := os.Getwd()
-	if err != nil {
-		return "", fmt.Errorf("failed to get working directory: %w", err)
-	}
-
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			return dir, nil
-		}
-
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return "", fmt.Errorf("failed to find project root: no go.mod found above the working directory")
-		}
-
-		dir = parent
-	}
 }

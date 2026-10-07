@@ -9,7 +9,7 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-FROM registry.access.redhat.com/ubi8:8.10-1304.1751400627 as builder
+FROM registry.access.redhat.com/ubi8:8.10-1304.1751400627 AS builder
 
 USER root
 

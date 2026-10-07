@@ -61,11 +61,9 @@ func (b *CheContextBuilder) WithEmptyCheCluster() *CheContextBuilder {
 //
 // Both `Client`/`ClientWrapper` and `NonCachingClient`/`NonCachingClientWrapper` are backed by the same
 // direct client - envtest runs no manager and therefore has no cache - so code that branches on cached
-// vs non-caching  behaves identically on either side and that branch cannot be asserted on from tests.
+// vs non-caching behaves identically on either side and that branch cannot be asserted on from tests.
 func (b *CheContextBuilder) Build() *chetypes.CheContext {
 	ginkgo.GinkgoHelper()
-
-	ctx := b.env.Context
 
 	if b.cheCluster != nil {
 		b.initObject = append(b.initObject, b.cheCluster)
@@ -73,7 +71,7 @@ func (b *CheContextBuilder) Build() *chetypes.CheContext {
 
 	for _, obj := range b.initObject {
 		gomega.Expect(b.env.ensureNamespaceExists(obj.GetNamespace())).To(gomega.Succeed())
-		gomega.Expect(b.env.Client.Create(ctx, obj)).To(gomega.Succeed())
+		gomega.Expect(b.env.Client.Create(b.env.Context, obj)).To(gomega.Succeed())
 	}
 
 	return &chetypes.CheContext{
@@ -86,6 +84,6 @@ func (b *CheContextBuilder) Build() *chetypes.CheContext {
 			ClientWrapper:           k8sclient.NewK8sClient(b.env.Client, b.env.Scheme),
 			NonCachingClientWrapper: k8sclient.NewK8sClient(b.env.Client, b.env.Scheme),
 		},
-		Context: ctx,
+		Context: b.env.Context,
 	}
 }
