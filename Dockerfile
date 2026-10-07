@@ -9,7 +9,7 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-FROM registry.access.redhat.com/ubi8:8.10-1790754002 as builder
+FROM registry.access.redhat.com/ubi8:8.10-1304 as builder
 
 USER root
 
@@ -35,18 +35,6 @@ RUN ARCH="$(uname -m)" && \
     tar -C /usr/local -xzf go.tar.gz && \
     rm go.tar.gz && \
     go version
-
-# kubectl installation
-RUN ARCH="$(uname -m)" && \
-    if [ "${ARCH}" = "x86_64" ]; then \
-        ARCH="amd64"; \
-    elif [ "${ARCH}" = "aarch64" ]; then \
-        ARCH="arm64"; \
-    fi && \
-    curl -fsSL -o /tmp/kubectl "https://dl.k8s.io/release/$(curl -fsSL https://dl.k8s.io/release/stable.txt)/bin/linux/${ARCH}/kubectl" && \
-    install -m 0755 /tmp/kubectl /usr/local/bin/kubectl && \
-    rm /tmp/kubectl && \
-    kubectl version --client
 
 RUN curl -sSLo /tmp/asset-header-rewrite-traefik-plugin.zip \
         "https://api.github.com/repos/che-incubator/header-rewrite-traefik-plugin/zipball/${DEV_HEADER_REWRITE_TRAEFIK_PLUGIN}" && \
@@ -84,7 +72,7 @@ RUN ARCH="$(uname -m)" && \
     GOOS=linux GOARCH="${ARCH}" GO111MODULE=on \
     go build -mod=vendor -a -o che-operator cmd/main.go
 
-FROM registry.access.redhat.com/ubi8:8.10-1790754002
+FROM registry.access.redhat.com/ubi8-minimal:8.10-1295
 
 COPY --from=builder /tmp/header-rewrite-traefik-plugin /tmp/header-rewrite-traefik-plugin
 COPY --from=builder /tmp/editors-definitions /tmp/editors-definitions

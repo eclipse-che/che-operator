@@ -11,10 +11,6 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-ifeq (,$(shell which kubectl)$(shell which oc))
-$(error oc or kubectl is required to proceed)
-endif
-
 ifneq (,$(shell which kubectl))
 K8S_CLI := kubectl
 else
