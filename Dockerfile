@@ -21,7 +21,7 @@ ENV PATH=$PATH:$GOROOT/bin:/usr/local/bin
 
 ARG SKIP_TESTS="false"
 
-RUN dnf install -y unzip gcc make curl && dnf clean all
+RUN dnf install -y gcc make curl && dnf clean all
 
 # go v1.26.5 installation
 RUN ARCH="$(uname -m)" && \

@@ -77,7 +77,9 @@ func Start() *Env {
 func (e *Env) Stop() {
 	ginkgo.GinkgoHelper()
 
-	e.Cancel()
+	if e.Cancel != nil {
+		e.Cancel()
+	}
 
 	gomega.Expect(e.testEnv.Stop()).To(gomega.Succeed(), "failed to stop envtest control plane")
 }

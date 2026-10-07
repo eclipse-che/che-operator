@@ -20,12 +20,10 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
-
-	util "github.com/eclipse-che/che-operator/pkg/common/utils"
-	appsv1 "k8s.io/api/apps/v1"
 )
 
 var (
@@ -69,7 +67,7 @@ func InitializeForTesting() {
 	operatorDeploymentFilePath := filepath.Join(projectRoot, "config", "manager", "manager.yaml")
 
 	operatorDeployment := &appsv1.Deployment{}
-	if err := util.ReadObjectInto(operatorDeploymentFilePath, operatorDeployment); err != nil {
+	if err := utils.ReadObjectInto(operatorDeploymentFilePath, operatorDeployment); err != nil {
 		log.Error(err, "Error reading operator deployment")
 		os.Exit(1)
 	}
@@ -104,22 +102,22 @@ func Initialize() {
 	defaultDashboardHeaderMessageText = os.Getenv("CHE_DEFAULT_SPEC_COMPONENTS_DASHBOARD_HEADERMESSAGE_TEXT")
 	defaultDevfileRegistryExternalDevfileRegistries = os.Getenv("CHE_DEFAULT_SPEC_COMPONENTS_DEVFILEREGISTRY_EXTERNAL_DEVFILE_REGISTRIES")
 
-	defaultCheServerImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_che_server"))
-	defaultDashboardImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_dashboard"))
-	defaultPluginRegistryImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_plugin_registry"))
-	defaultSingleHostGatewayImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_single_host_gateway"))
-	defaultSingleHostGatewayConfigSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_single_host_gateway_config_sidecar"))
+	defaultCheServerImage = ensureEnv(utils.GetArchitectureDependentEnvName("RELATED_IMAGE_che_server"))
+	defaultDashboardImage = ensureEnv(utils.GetArchitectureDependentEnvName("RELATED_IMAGE_dashboard"))
+	defaultPluginRegistryImage = ensureEnv(utils.GetArchitectureDependentEnvName("RELATED_IMAGE_plugin_registry"))
+	defaultSingleHostGatewayImage = ensureEnv(utils.GetArchitectureDependentEnvName("RELATED_IMAGE_single_host_gateway"))
+	defaultSingleHostGatewayConfigSidecarImage = ensureEnv(utils.GetArchitectureDependentEnvName("RELATED_IMAGE_single_host_gateway_config_sidecar"))
 
-	defaultGatewayAuthorizationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authorization_sidecar"))
-	defaultGatewayOpenShiftAuthenticationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authentication_sidecar"))
-	defaultGatewayKubernetesAuthenticationSidecarImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authentication_sidecar_k8s"))
+	defaultGatewayAuthorizationSidecarImage = ensureEnv(utils.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authorization_sidecar"))
+	defaultGatewayOpenShiftAuthenticationSidecarImage = ensureEnv(utils.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authentication_sidecar"))
+	defaultGatewayKubernetesAuthenticationSidecarImage = ensureEnv(utils.GetArchitectureDependentEnvName("RELATED_IMAGE_gateway_authentication_sidecar_k8s"))
 
-	defaultOpenVSXImage = os.Getenv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_openvsx"))
-	defaultOpenVSXDatabaseImage = os.Getenv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_openvsx_postgres"))
+	defaultOpenVSXImage = os.Getenv(utils.GetArchitectureDependentEnvName("RELATED_IMAGE_openvsx"))
+	defaultOpenVSXDatabaseImage = os.Getenv(utils.GetArchitectureDependentEnvName("RELATED_IMAGE_openvsx_postgres"))
 
 	// Don't get some k8s specific env
 	if !infrastructure.IsOpenShift() {
-		defaultCheTLSSecretsCreationJobImage = ensureEnv(util.GetArchitectureDependentEnvName("RELATED_IMAGE_che_tls_secrets_creation_job"))
+		defaultCheTLSSecretsCreationJobImage = ensureEnv(utils.GetArchitectureDependentEnvName("RELATED_IMAGE_che_tls_secrets_creation_job"))
 	}
 
 	initialized = true

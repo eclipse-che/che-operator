@@ -62,8 +62,6 @@ ECLIPSE_CHE_PACKAGE_NAME=eclipse-che
 CHECLUSTER_CR_PATH="$(PROJECT_DIR)/config/samples/org_v2_checluster.yaml"
 CHECLUSTER_CRD_PATH="$(PROJECT_DIR)/config/crd/bases/org.eclipse.che_checlusters.yaml"
 
-DEV_HEADER_REWRITE_TRAEFIK_PLUGIN="main"
-
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -281,6 +279,7 @@ fmt: download-addlicense ## Run go fmt against code.
 		-not -path "./bin/testbin/*" \
 		-not -path "./bundle/stable/*" \
 		-not -path "./config/manager/controller_manager_config.yaml" \
+		-not -path "./header-rewrite-traefik-plugin/*" \
 		\( -name '*.sh' -o -name "*.go" -o -name "*.yaml" -o -name "*.yml" \))
 
 	$(MAKE) license $${FILES_TO_CHECK_LICENSE}
@@ -623,7 +622,7 @@ ADD_LICENSE = $(shell pwd)/bin/addlicense
 download-addlicense: ## Download addlicense tool
 	$(call go-get-tool,$(ADD_LICENSE),github.com/google/addlicense@99ebc9c9db7bceb8623073e894533b978d7b7c8a)
 
-ENVTEST_K8S_VERSION ?= "1.34.x"
+ENVTEST_K8S_VERSION ?= "1.36.x"
 ENVTEST_ASSETS_DIR = $(shell pwd)/bin/testbin
 SETUP_ENVTEST = $(shell pwd)/bin/setup-envtest
 download-setup-envtest: ## Download setup-envtest tool and the envtest control plane binaries

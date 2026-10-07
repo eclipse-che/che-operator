@@ -348,11 +348,6 @@ func (r *WorkspacesConfigReconciler) syncObjectsList(
 
 	for _, srcObj := range srcObjs {
 		obj2Sync := createObject2SyncFromObject(srcObj.(client.Object))
-		if obj2Sync == nil {
-			logger.Info("Object skipped since has unsupported kind",
-				"kind", gvk2PrintString(srcObj.GetObjectKind().GroupVersionKind()))
-			break
-		}
 
 		if err = r.syncObject(
 			&syncContext{
