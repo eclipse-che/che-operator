@@ -440,6 +440,8 @@ func getCacheFunc() (cache.NewCacheFunc, error) {
 
 	return func(config *rest.Config, opts cache.Options) (cache.Cache, error) {
 		opts.ByObject = selectors
+		// TODO consider
+		// opts.ReaderFailOnMissingInformer = true
 		return cache.New(config, opts)
 	}, nil
 }
