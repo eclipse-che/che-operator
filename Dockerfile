@@ -36,14 +36,6 @@ RUN ARCH="$(uname -m)" && \
     rm go.tar.gz && \
     go version
 
-RUN curl -sSLo /tmp/asset-header-rewrite-traefik-plugin.zip \
-        "https://api.github.com/repos/che-incubator/header-rewrite-traefik-plugin/zipball/${DEV_HEADER_REWRITE_TRAEFIK_PLUGIN}" && \
-    unzip /tmp/asset-header-rewrite-traefik-plugin.zip -d /tmp && \
-    mkdir -p /tmp/header-rewrite-traefik-plugin && \
-    mv /tmp/*-header-rewrite-traefik-plugin-*/headerRewrite.go \
-       /tmp/*-header-rewrite-traefik-plugin-*/.traefik.yml \
-       /tmp/header-rewrite-traefik-plugin
-
 WORKDIR /che-operator
 
 COPY go.mod go.mod
@@ -59,7 +51,7 @@ COPY editors-definitions /tmp/editors-definitions
 COPY header-rewrite-traefik-plugin /tmp/header-rewrite-traefik-plugin
 
 RUN if [ "${SKIP_TESTS}" = "false" ]; then \
-      make test \
+      make test; \
     fi
 
 # build operator

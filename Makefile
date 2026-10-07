@@ -294,7 +294,8 @@ lint: ## Run static code analyzers
 test: SHELL := /bin/bash
 test: SHELLFLAGS := -ec
 test: download-setup-envtest ## Run tests, including the envtest integration tests.
-	export KUBEBUILDER_ASSETS=$$(make get-envtest-assets-path)
+	KUBEBUILDER_ASSETS=$$(make get-envtest-assets-path)
+	export KUBEBUILDER_ASSETS
 	go test -mod=vendor ./... -coverprofile cover.out -count=1
 
 update-go-dependencies:  ## Update golang dependencies
@@ -343,6 +344,8 @@ genenerate-env:
 install-che-operands: SHELL := /bin/bash
 install-che-operands: generate manifests download-kustomize copy-editors-definitions
 	PLATFORM=$$($(MAKE) get_platform)
+
+	cp -r header-rewrite-traefik-plugin /tmp
 
 	if [[ "$$($(K8S_CLI) get crd | grep "cert-manager.io" | wc -l)" == "0" ]]; then
 		[[ $${PLATFORM} == "kubernetes" ]] && $(MAKE) install-certmgr
@@ -618,7 +621,7 @@ ENVTEST_K8S_VERSION ?= "1.34.x"
 ENVTEST_ASSETS_DIR = $(shell pwd)/bin/testbin
 SETUP_ENVTEST = $(shell pwd)/bin/setup-envtest
 download-setup-envtest: ## Download setup-envtest tool and the envtest control plane binaries
-	$(call go-get-tool,$(SETUP_ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@release-0.25)
+	$(call go-get-tool,$(SETUP_ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@v0.25.2)
 
 OPERATOR_SDK_VERSION ?= "v1.39.2"
 OPERATOR_SDK ?= $(shell pwd)/bin/operator-sdk

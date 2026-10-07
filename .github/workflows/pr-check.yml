@@ -90,6 +90,7 @@ jobs:
         -not -path "./testbin/*" \
         -not -path "./bundle/stable/*" \
         -not -path "./config/manager/controller_manager_config.yaml" \
+        -not -path "./header-rewrite-traefik-plugin" \
         \( -name '*.sh' -o -name "*.go" -o -name "*.yaml" -o -name "*.yml" \))
         LICENSE_TEMPLATE="${GITHUB_WORKSPACE}/hack/license-header.txt"
         check-license-header -f "${LICENSE_TEMPLATE}" ${FILES_TO_CHECK_LICENSE}
