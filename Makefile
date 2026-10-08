@@ -291,12 +291,8 @@ lint: ## Run static code analyzers
 	golangci-lint run
 
 test: SHELL := /bin/bash
+test: .SHELLFLAGS := -ec
 test: ## Run tests
-	go test -mod=vendor ./... -coverprofile cover.out
-
-test-all: SHELL := /bin/bash
-test-all: SHELLFLAGS := -ec
-test-all: download-setup-envtest ## Run all unit tests including envtest integration tests
 	KUBEBUILDER_ASSETS=$$(make get-envtest-assets-path)
 	export KUBEBUILDER_ASSETS
 	go test -mod=vendor ./... -coverprofile cover.out -tags=integration -count=1

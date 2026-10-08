@@ -269,8 +269,6 @@ func (k K8sClientWrapper) doSync(
 		}
 
 		if syncOptions.ForceRecreate || k.isRecreate(actual.GetObjectKind().GroupVersionKind().Kind) {
-			mergeMetadata(syncOptions, obj, actual)
-
 			if err := k.doDeleteIgnoreIfNotFound(ctx, actual, syncOptions.DeleteOpts...); err != nil {
 				return err
 			}

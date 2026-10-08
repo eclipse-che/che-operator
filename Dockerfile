@@ -50,7 +50,7 @@ COPY editors-definitions /tmp/editors-definitions
 COPY header-rewrite-traefik-plugin /tmp/header-rewrite-traefik-plugin
 
 RUN if [ "${SKIP_TESTS}" = "false" ]; then \
-      make test; \
+      go test -mod=vendor ./... -tags='!integration'; \
     fi
 
 # build operator

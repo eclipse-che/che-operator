@@ -31,7 +31,7 @@ jobs:
         with:
           go-version: 1.26.5
       - name: Run unit tests
-        run: make test-all
+        run: make test
       - name: Build Codecov report
         uses: codecov/codecov-action@ab904c41d6ece82784817410c45d8b8c02684457 # v3.1.6
         with:
