@@ -13,6 +13,8 @@
 version: "2"
 run:
   modules-download-mode: vendor
+  build-tags:
+    - integration
 linters:
   enable:
     - misspell

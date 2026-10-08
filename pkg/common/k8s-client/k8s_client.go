@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -268,7 +268,7 @@ func (k K8sClientWrapper) doSync(
 			fmt.Printf("Difference:\n%s", diff)
 		}
 
-		if k.isRecreate(actual.GetObjectKind().GroupVersionKind().Kind) {
+		if syncOptions.ForceRecreate || k.isRecreate(actual.GetObjectKind().GroupVersionKind().Kind) {
 			if err := k.doDeleteIgnoreIfNotFound(ctx, actual, syncOptions.DeleteOpts...); err != nil {
 				return err
 			}
@@ -278,29 +278,7 @@ func (k K8sClientWrapper) doSync(
 			// to be able to update, we need to set the resource version of the object that we know of
 			obj.(metav1.Object).SetResourceVersion(actual.GetResourceVersion())
 
-			if syncOptions.MergeLabels {
-				if obj.GetLabels() == nil {
-					obj.SetLabels(map[string]string{})
-				}
-
-				for k, v := range actual.GetLabels() {
-					if _, exists := obj.GetLabels()[k]; !exists {
-						obj.GetLabels()[k] = v
-					}
-				}
-			}
-
-			if syncOptions.MergeAnnotations {
-				if obj.GetAnnotations() == nil {
-					obj.SetAnnotations(map[string]string{})
-				}
-
-				for k, v := range actual.GetAnnotations() {
-					if _, exists := obj.GetAnnotations()[k]; !exists {
-						obj.GetAnnotations()[k] = v
-					}
-				}
-			}
+			mergeMetadata(syncOptions, obj, actual)
 
 			err := k.cli.Update(ctx, obj)
 			if err == nil {
@@ -311,6 +289,32 @@ func (k K8sClientWrapper) doSync(
 	}
 
 	return nil
+}
+
+func mergeMetadata(syncOptions SyncOptions, obj client.Object, actual client.Object) {
+	if syncOptions.MergeLabels {
+		if obj.GetLabels() == nil {
+			obj.SetLabels(map[string]string{})
+		}
+
+		for k, v := range actual.GetLabels() {
+			if _, exists := obj.GetLabels()[k]; !exists {
+				obj.GetLabels()[k] = v
+			}
+		}
+	}
+
+	if syncOptions.MergeAnnotations {
+		if obj.GetAnnotations() == nil {
+			obj.SetAnnotations(map[string]string{})
+		}
+
+		for k, v := range actual.GetAnnotations() {
+			if _, exists := obj.GetAnnotations()[k]; !exists {
+				obj.GetAnnotations()[k] = v
+			}
+		}
+	}
 }
 
 // isRecreate returns true, if object should be deleted/created instead of being updated.

@@ -11,10 +11,6 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-ifeq (,$(shell which kubectl)$(shell which oc))
-$(error oc or kubectl is required to proceed)
-endif
-
 ifneq (,$(shell which kubectl))
 K8S_CLI := kubectl
 else
@@ -66,8 +62,6 @@ ECLIPSE_CHE_PACKAGE_NAME=eclipse-che
 CHECLUSTER_CR_PATH="$(PROJECT_DIR)/config/samples/org_v2_checluster.yaml"
 CHECLUSTER_CRD_PATH="$(PROJECT_DIR)/config/crd/bases/org.eclipse.che_checlusters.yaml"
 
-DEV_HEADER_REWRITE_TRAEFIK_PLUGIN="main"
-
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -77,7 +71,6 @@ endif
 
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # This is a requirement for 'setup-envtest.sh' in the test target.
-# Options are set to exit when a recipe line exits non-zero or a piped command fails.
 .ONESHELL:
 
 all: build
@@ -283,22 +276,26 @@ fmt: download-addlicense ## Run go fmt against code.
 	FILES_TO_CHECK_LICENSE=$$(find . \
 		-not -path "./mocks/*" \
 		-not -path "./vendor/*" \
-		-not -path "./testbin/*" \
+		-not -path "./bin/testbin/*" \
 		-not -path "./bundle/stable/*" \
 		-not -path "./config/manager/controller_manager_config.yaml" \
+		-not -path "./header-rewrite-traefik-plugin/*" \
 		\( -name '*.sh' -o -name "*.go" -o -name "*.yaml" -o -name "*.yml" \))
 
 	$(MAKE) license $${FILES_TO_CHECK_LICENSE}
 
 vet: ## Run go vet against code.
-	go vet ./...
+	go vet -tags=integration ./...
 
 lint: ## Run static code analyzers
 	golangci-lint run
 
-ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
-test: download-gateway-resources ## Run tests.
-	go test -mod=vendor ./... -coverprofile cover.out
+test: SHELL := /bin/bash
+test: .SHELLFLAGS := -ec
+test: download-setup-envtest ## Run tests
+	KUBEBUILDER_ASSETS=$$(make get-envtest-assets-path)
+	export KUBEBUILDER_ASSETS
+	go test -mod=vendor ./... -coverprofile cover.out -tags=integration -count=1
 
 update-go-dependencies:  ## Update golang dependencies
 	go mod tidy
@@ -344,8 +341,12 @@ genenerate-env:
 	cat $(BASH_ENV_FILE)
 
 install-che-operands: SHELL := /bin/bash
-install-che-operands: generate manifests download-kustomize download-gateway-resources copy-editors-definitions
+install-che-operands: generate manifests download-kustomize copy-editors-definitions
 	PLATFORM=$$($(MAKE) get_platform)
+
+	# Copy traefik plugin
+	rm -rf /tmp/header-rewrite-traefik-plugin
+	cp -r header-rewrite-traefik-plugin /tmp
 
 	if [[ "$$($(K8S_CLI) get crd | grep "cert-manager.io" | wc -l)" == "0" ]]; then
 		[[ $${PLATFORM} == "kubernetes" ]] && $(MAKE) install-certmgr
@@ -384,18 +385,6 @@ install-che-operands: generate manifests download-kustomize download-gateway-res
 copy-editors-definitions:
 	mkdir -p /tmp/editors-definitions
 	cp -r $(PROJECT_DIR)/editors-definitions/* /tmp/editors-definitions
-
-# Downloads Gateway resources
-download-gateway-resources:
-	GATEWAY_RESOURCES=/tmp/header-rewrite-traefik-plugin
-
-	rm -rf /tmp/asset-header-rewrite-traefik-plugin.zip /tmp/*-header-rewrite-traefik-plugin-*/ $${GATEWAY_RESOURCES}
-	mkdir -p $${GATEWAY_RESOURCES}
-	curl -sL https://api.github.com/repos/che-incubator/header-rewrite-traefik-plugin/zipball/${DEV_HEADER_REWRITE_TRAEFIK_PLUGIN} > /tmp/asset-header-rewrite-traefik-plugin.zip
-	unzip -q /tmp/asset-header-rewrite-traefik-plugin.zip -d /tmp
-	mv /tmp/*-header-rewrite-traefik-plugin-*/headerRewrite.go /tmp/*-header-rewrite-traefik-plugin-*/.traefik.yml $${GATEWAY_RESOURCES}
-
-	echo "[INFO] Gateway resources downloaded into  $${GATEWAY_RESOURCES}"
 
 # Store `che-operator-webhook-server-cert` secret locally
 store_tls_cert:
@@ -629,6 +618,12 @@ ADD_LICENSE = $(shell pwd)/bin/addlicense
 download-addlicense: ## Download addlicense tool
 	$(call go-get-tool,$(ADD_LICENSE),github.com/google/addlicense@99ebc9c9db7bceb8623073e894533b978d7b7c8a)
 
+ENVTEST_K8S_VERSION ?= "1.36.x"
+ENVTEST_ASSETS_DIR = $(shell pwd)/bin/testbin
+SETUP_ENVTEST = $(shell pwd)/bin/setup-envtest
+download-setup-envtest: ## Download setup-envtest tool and the envtest control plane binaries
+	$(call go-get-tool,$(SETUP_ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@v0.25.2)
+
 OPERATOR_SDK_VERSION ?= "v1.39.2"
 OPERATOR_SDK ?= $(shell pwd)/bin/operator-sdk
 download-operator-sdk: SHELL := /bin/bash
@@ -692,6 +687,10 @@ increment-bundle-version:
 
 	echo "[INFO] New next version: $${NEW_NEXT_BUNDLE_VERSION}"
 
+
+get-envtest-assets-path: SHELL := /bin/bash
+get-envtest-assets-path: ## Resolve the path to the envtest assets for the configured Kubernetes version.
+	echo $$($(SETUP_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(ENVTEST_ASSETS_DIR) -p path)
 
 ##@ Kubernetes helper
 

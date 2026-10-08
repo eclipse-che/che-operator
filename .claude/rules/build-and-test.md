@@ -1,10 +1,8 @@
 # Build & Test Commands
 
 - Build: `make build`
-- All unit tests: `make test`
-- Single package: `go test -mod=vendor ./package/...`
-- Single test: `go test -mod=vendor ./package/... -run TestSpecificName -v`
+- Tests: `make test` - runs the whole suite including integration tests
 - Format: `make fmt`
 - Vet: `make vet`
 - Lint: `make lint`
-- After making changes, always build and run the relevant tests before reporting the task as complete.
+- After making changes, always run `make test` before reporting the task as complete.

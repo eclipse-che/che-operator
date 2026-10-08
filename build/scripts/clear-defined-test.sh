@@ -151,6 +151,7 @@ declare -A ignored_paths=(
   ["k8s.io/kube-openapi"]="Harvesting is in progress"
   ["k8s.io/kube-aggregator"]="Harvesting is in progress"
   ["k8s.io/utils"]="Harvesting is in progress"
+  ["github.com/onsi/ginkgo/v2"]="Harvesting is in progress"
 )
 
 declare -A ignored_paths_licenses=(
@@ -172,6 +173,7 @@ declare -A ignored_paths_licenses=(
   ["k8s.io/kube-aggregator"]="Apache-2.0"
   ["k8s.io/kube-openapi"]="Apache-2.0"
   ["k8s.io/utils"]="Apache-2.0"
+  ["github.com/onsi/ginkgo/v2"]="MIT"
 )
 
 declare -A declared_licenses=(

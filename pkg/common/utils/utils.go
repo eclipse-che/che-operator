@@ -15,8 +15,10 @@ package utils
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"fmt"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/labels"
@@ -244,4 +246,25 @@ func Whitelist(hostname string) (value string) {
 		}
 	}
 	return hostname
+}
+
+// FindProjectRoot walks the directory tree up until `go.mod` is found.
+func FindProjectRoot() (string, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to get working directory: %w", err)
+	}
+
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir, nil
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return "", fmt.Errorf("failed to find project root: no go.mod found above the working directory")
+		}
+
+		dir = parent
+	}
 }

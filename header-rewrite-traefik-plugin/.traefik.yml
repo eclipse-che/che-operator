@@ -1,0 +1,11 @@
+displayName: Header Rewrite
+summary: Plugin that can rewrite http headers with given rules. Part of Eclipse Che project.
+iconPath: icon.svg
+type: middleware
+import: github.com/che-incubator/header-rewrite-traefik-plugin
+testData:
+  from: X-Forwarded-Access-Token
+  to: Authorization
+  prefix: 'Bearer '
+  keepOriginal: false
+  keepOriginalTarget: true
