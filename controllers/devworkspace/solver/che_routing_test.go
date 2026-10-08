@@ -14,6 +14,7 @@ package solver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -33,6 +34,7 @@ import (
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -44,19 +46,13 @@ var (
 )
 
 func getSpecObjectsForManager(t *testing.T, mgr *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, additionalInitialObjects ...client.Object) (client.Client, solvers.RoutingSolver, solvers.RoutingObjects) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(mgr).WithObjects(routing).WithObjects(additionalInitialObjects...).Build()
-	scheme := cheCtx.ClusterAPI.Scheme
-	cl := cheCtx.ClusterAPI.Client
-
-	solver, err := Getter(scheme).GetSolver(cl, "che")
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	cl, scheme, solver := getSolverForManager(t, mgr, routing, additionalInitialObjects...)
 	meta := solvers.DevWorkspaceMetadata{
-		DevWorkspaceId: routing.Spec.DevWorkspaceId,
-		Namespace:      routing.GetNamespace(),
-		PodSelector:    routing.Spec.PodSelector,
+		DevWorkspaceId:         routing.Spec.DevWorkspaceId,
+		DevWorkspaceName:       routing.OwnerReferences[0].Name,
+		DevWorkspaceRoutingUID: routing.UID,
+		Namespace:              routing.GetNamespace(),
+		PodSelector:            routing.Spec.PodSelector,
 	}
 
 	objs, err := solver.GetSpecObjects(routing, meta)
@@ -87,6 +83,20 @@ func getSpecObjectsForManager(t *testing.T, mgr *chev2.CheCluster, routing *dwo.
 	return cl, solver, objs
 }
 
+func getSolverForManager(t *testing.T, mgr *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, additionalInitialObjects ...client.Object) (client.Client, *runtime.Scheme, solvers.RoutingSolver) {
+	t.Helper()
+	cheCtx := test.NewCtxBuilder().WithCheCluster(mgr).WithObjects(routing).WithObjects(additionalInitialObjects...).Build()
+	scheme := cheCtx.ClusterAPI.Scheme
+	cl := cheCtx.ClusterAPI.Client
+
+	solver, err := Getter(scheme).GetSolver(cl, "che")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return cl, scheme, solver
+}
+
 func getSpecObjects(t *testing.T, routing *dwo.DevWorkspaceRouting) (client.Client, solvers.RoutingSolver, solvers.RoutingObjects) {
 	return getSpecObjectsForManager(t, &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -100,6 +110,172 @@ func getSpecObjects(t *testing.T, routing *dwo.DevWorkspaceRouting) (client.Clie
 			},
 		},
 	}, routing, userProfileSecret("username"))
+}
+
+type serviceGetErrorClient struct {
+	client.Client
+	serviceName string
+	err         error
+}
+
+func (c serviceGetErrorClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+	if _, isService := obj.(*corev1.Service); isService && key.Name == c.serviceName {
+		return c.err
+	}
+	return c.Client.Get(ctx, key, obj, opts...)
+}
+
+func getSpecObjectsResult(t *testing.T, routing *dwo.DevWorkspaceRouting, existingObjects []client.Object, getErr error) (client.Client, solvers.RoutingObjects, error) {
+	t.Helper()
+	cl, _, routingSolver := getSolverForManager(t, &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{Name: "che", Namespace: "ns"},
+		Spec:       chev2.CheClusterSpec{Networking: chev2.CheClusterSpecNetworking{Domain: "down.on.earth", Hostname: "over.the.rainbow"}},
+	}, routing, append([]client.Object{userProfileSecret("username")}, existingObjects...)...)
+	if getErr != nil {
+		discoverable := routing.Spec.Endpoints["m1"][0]
+		routingSolver.(*CheRoutingSolver).client = serviceGetErrorClient{
+			Client:      cl,
+			serviceName: dwCommon.EndpointName(discoverable.Name),
+			err:         getErr,
+		}
+	}
+	meta := solvers.DevWorkspaceMetadata{
+		DevWorkspaceId:         routing.Spec.DevWorkspaceId,
+		DevWorkspaceName:       routing.OwnerReferences[0].Name,
+		DevWorkspaceRoutingUID: routing.UID,
+		Namespace:              routing.Namespace,
+		PodSelector:            routing.Spec.PodSelector,
+	}
+	objs, err := routingSolver.GetSpecObjects(routing, meta)
+	return cl, objs, err
+}
+
+func assertNoPartialRoutingObjects(t *testing.T, cl client.Client, objs solvers.RoutingObjects) {
+	t.Helper()
+	assert.Equal(t, solvers.RoutingObjects{}, objs)
+	configMaps := &corev1.ConfigMapList{}
+	assert.NoError(t, cl.List(context.Background(), configMaps))
+	assert.Empty(t, configMaps.Items, "failed routing generation must not create gateway ConfigMaps")
+}
+
+func TestGetSpecObjectsReturnsDiscoverableServiceErrors(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
+	t.Run("foreign Service conflict", func(t *testing.T) {
+		routing := discoverableEndpointDevWorkspaceRouting()
+		original := &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      dwCommon.EndpointName("e1"),
+				Namespace: routing.Namespace,
+				Labels: map[string]string{
+					dwConstants.DevWorkspaceIDLabel:   "another-workspace-id",
+					dwConstants.DevWorkspaceNameLabel: "another-workspace",
+				},
+			},
+			Spec: corev1.ServiceSpec{
+				Type:     corev1.ServiceTypeLoadBalancer,
+				Selector: map[string]string{"owner": "another-workspace"},
+				Ports:    []corev1.ServicePort{{Name: "foreign", Port: 1234}},
+			},
+		}
+		cl, objs, err := getSpecObjectsResult(t, routing, []client.Object{original}, nil)
+		var conflict *solvers.ServiceConflictError
+		assert.ErrorAs(t, err, &conflict)
+		if conflict != nil {
+			assert.Equal(t, "e1", conflict.EndpointName)
+		}
+		assertNoPartialRoutingObjects(t, cl, objs)
+
+		got := &corev1.Service{}
+		if !assert.NoError(t, cl.Get(context.Background(), client.ObjectKeyFromObject(original), got)) {
+			return
+		}
+		assert.Equal(t, original, got)
+	})
+
+	t.Run("duplicate endpoint Service names", func(t *testing.T) {
+		routing := discoverableEndpointDevWorkspaceRouting()
+		routing.Spec.Endpoints = map[string]dwo.EndpointList{
+			"m1": {{Name: "same--endpoint", TargetPort: 8080, Exposure: dwo.PublicEndpointExposure, Attributes: dwo.Attributes{string(dwo.DiscoverableAttribute): apiext.JSON{Raw: []byte(`"true"`)}}}},
+			"m2": {{Name: "same-endpoint", TargetPort: 8081, Exposure: dwo.PublicEndpointExposure, Attributes: dwo.Attributes{string(dwo.DiscoverableAttribute): apiext.JSON{Raw: []byte(`"true"`)}}}},
+		}
+		cl, objs, err := getSpecObjectsResult(t, routing, nil, nil)
+		var duplicate *solvers.DuplicateEndpointError
+		assert.ErrorAs(t, err, &duplicate)
+		if duplicate != nil {
+			assert.Contains(t, []string{"same--endpoint", "same-endpoint"}, duplicate.EndpointName)
+		}
+		assertNoPartialRoutingObjects(t, cl, objs)
+	})
+
+	t.Run("reserved aggregate Service name", func(t *testing.T) {
+		routing := discoverableEndpointDevWorkspaceRouting()
+		routing.Spec.Endpoints = map[string]dwo.EndpointList{
+			"m1": {{Name: dwCommon.ServiceName(routing.Spec.DevWorkspaceId), TargetPort: 8080, Exposure: dwo.PublicEndpointExposure, Attributes: dwo.Attributes{string(dwo.DiscoverableAttribute): apiext.JSON{Raw: []byte(`"true"`)}}}},
+		}
+		cl, objs, err := getSpecObjectsResult(t, routing, nil, nil)
+		var invalid *solvers.RoutingInvalid
+		assert.ErrorAs(t, err, &invalid)
+		assertNoPartialRoutingObjects(t, cl, objs)
+	})
+
+	t.Run("Service Get error keeps its cause", func(t *testing.T) {
+		routing := discoverableEndpointDevWorkspaceRouting()
+		cause := errors.New("injected Service read failure")
+		cl, objs, err := getSpecObjectsResult(t, routing, nil, cause)
+		if !assert.ErrorIs(t, err, cause) {
+			return
+		}
+		assert.Contains(t, err.Error(), "failed to generate discoverable Services for DevWorkspaceRouting ws/routing")
+		assertNoPartialRoutingObjects(t, cl, objs)
+	})
+}
+
+func TestDiscoverableServiceRoutingTargets(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		infra infrastructure.Type
+	}{
+		{name: "Ingress", infra: infrastructure.Kubernetes},
+		{name: "Route", infra: infrastructure.OpenShiftV4},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			infrastructure.InitializeForTesting(tc.infra)
+			routing := discoverableEndpointDevWorkspaceRouting()
+			endpoints := routing.Spec.Endpoints["m1"]
+			routing.Spec.Endpoints["m1"] = dwo.EndpointList{endpoints[0], endpoints[2]}
+			_, _, objs := getSpecObjects(t, routing)
+
+			assert.Len(t, objs.Services, 2)
+			discoverableService := getEndpointService(&objs, endpoints[0])
+			assert.NotNil(t, discoverableService)
+			if discoverableService != nil {
+				assert.Equal(t, int32(endpoints[0].TargetPort), discoverableService.Spec.Ports[0].Port)
+			}
+			assert.NotNil(t, getCommonService(&objs, routing.Spec.DevWorkspaceId))
+
+			for _, endpoint := range routing.Spec.Endpoints["m1"] {
+				expectedServiceName := dwCommon.ServiceName(routing.Spec.DevWorkspaceId)
+				if endpoint.Name == endpoints[0].Name {
+					expectedServiceName = dwCommon.EndpointName(endpoint.Name)
+				}
+				if tc.infra == infrastructure.OpenShiftV4 {
+					route := findRouteForEndpoint("m1", endpoint, &objs, routing.Spec.DevWorkspaceId)
+					if assert.NotNil(t, route, "Route missing for endpoint %s", endpoint.Name) {
+						assert.Equal(t, expectedServiceName, route.Spec.To.Name)
+						assert.Equal(t, endpoint.TargetPort, route.Spec.Port.TargetPort.IntValue())
+					}
+				} else {
+					ingress := findIngressForEndpoint("m1", endpoint, &objs)
+					if assert.NotNil(t, ingress, "Ingress missing for endpoint %s", endpoint.Name) {
+						backend := ingress.Spec.Rules[0].HTTP.Paths[0].Backend.Service
+						assert.Equal(t, expectedServiceName, backend.Name)
+						assert.Equal(t, endpoint.TargetPort, int(backend.Port.Number))
+					}
+				}
+			}
+		})
+	}
 }
 
 func subdomainDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
@@ -198,6 +374,7 @@ func endpointAnnotationDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 func discoverableEndpointDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 	return &dwo.DevWorkspaceRouting{
 		ObjectMeta: metav1.ObjectMeta{
+			UID:       "routing-uid",
 			Name:      "routing",
 			Namespace: "ws",
 			OwnerReferences: []metav1.OwnerReference{

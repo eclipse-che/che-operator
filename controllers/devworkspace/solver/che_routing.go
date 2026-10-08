@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -76,7 +76,11 @@ func (c *CheRoutingSolver) cheSpecObjects(cheCluster *chev2.CheCluster, routing 
 }
 
 func (c *CheRoutingSolver) provisionServices(objs *solvers.RoutingObjects, cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, workspaceMeta solvers.DevWorkspaceMetadata) error {
-	objs.Services = solvers.GetDiscoverableServicesForEndpoints(routing.Spec.Endpoints, workspaceMeta)
+	services, err := solvers.GetDiscoverableServicesForEndpoints(routing.Spec.Endpoints, workspaceMeta, c.client)
+	if err != nil {
+		return fmt.Errorf("failed to generate discoverable Services for DevWorkspaceRouting %s/%s: %w", routing.Namespace, routing.Name, err)
+	}
+	objs.Services = services
 
 	commonService := &corev1.Service{
 		ObjectMeta: v1.ObjectMeta{
