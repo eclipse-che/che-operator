@@ -292,7 +292,7 @@ lint: ## Run static code analyzers
 
 test: SHELL := /bin/bash
 test: .SHELLFLAGS := -ec
-test: ## Run tests
+test: download-setup-envtest ## Run tests
 	KUBEBUILDER_ASSETS=$$(make get-envtest-assets-path)
 	export KUBEBUILDER_ASSETS
 	go test -mod=vendor ./... -coverprofile cover.out -tags=integration -count=1
