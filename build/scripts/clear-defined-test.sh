@@ -84,8 +84,8 @@ allowed_licenses=(
 declare -A replaced_modules=(
   # https://github.com/census-instrumentation/opencensus-go/commit/b1a01ee95db0e690d91d7193d037447816fae4c5
   ["go.opencensus.io v0.24.0"]="census-instrumentation/opencensus-go b1a01ee95db0e690d91d7193d037447816fae4c5"
-  # https://github.com/go-git/go-git/commit/3c3be601aa6c0fd0d536c0d1e4f898b4c60e65fe
-  ["github.com/go-git/go-git/v5 v5.19.1"]="github.com/go-git/go-git 3c3be601aa6c0fd0d536c0d1e4f898b4c60e65fe"
+  # https://github.com/go-git/go-git/commit/3eeb238da61eb9c7a324f3ee04f990ce89175642
+  ["github.com/go-git/go-git/v5 v5.19.2"]="github.com/go-git/go-git 3eeb238da61eb9c7a324f3ee04f990ce89175642"
   # https://github.com/grpc-ecosystem/grpc-health-probe/commit/4c1166871b61363793f1c29a00de3046f1505a01
   ["github.com/grpc-ecosystem/grpc-health-probe v0.4.45"]="github.com/grpc-ecosystem/grpc-health-probe 4c1166871b61363793f1c29a00de3046f1505a01"
   # https://github.com/miekg/pkcs11/commit/b7c7893ab1a71197aabf7c9c9ff069644f1714c3
@@ -97,13 +97,30 @@ declare -A replaced_modules=(
   ["github.com/redis/go-redis/extra/redisotel/v9 v9.17.3"]="github.com/redis/go-redis/extra/rediscmd/v9 0a836fb24c808795dfa561ddfdba613e6b4961ea"
   # https://github.com/open-telemetry/opentelemetry-go-contrib/commit/a89d958e7a2575cf539ffca09657cfd90821d6e4
   ["go.opentelemetry.io/contrib/exporters/autoexport v0.65.0"]="open-telemetry/opentelemetry-go-contrib a89d958e7a2575cf539ffca09657cfd90821d6e4"
-  ["go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.65.0"]="open-telemetry/opentelemetry-go-contrib a89d958e7a2575cf539ffca09657cfd90821d6e4"
-  ["go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.65.0"]="open-telemetry/opentelemetry-go-contrib a89d958e7a2575cf539ffca09657cfd90821d6e4"
-  ["go.opentelemetry.io/contrib/bridges/prometheus v0.65.0"]="open-telemetry/opentelemetry-go-contrib a89d958e7a2575cf539ffca09657cfd90821d6e4"
+  # https://github.com/open-telemetry/opentelemetry-go-contrib/commit/c8a87a60ba1b3374fd16df11fc3eeae6c41abbc9
+  ["go.opentelemetry.io/contrib/bridges/prometheus v0.70.0"]="open-telemetry/opentelemetry-go-contrib c8a87a60ba1b3374fd16df11fc3eeae6c41abbc9"
   # https://github.com/open-telemetry/opentelemetry-go/commit/a3a5317c5caed1656fb5b301b66dfeb3c4c944e0
   ["go.opentelemetry.io/otel/exporters/prometheus v0.62.0"]="open-telemetry/opentelemetry-go a3a5317c5caed1656fb5b301b66dfeb3c4c944e0"
   # https://github.com/open-telemetry/opentelemetry-go/commit/93a693edeed0e07ce5ebd1dfe67af42d1e2055d8
-  #["go.opentelemetry.io/otel/metric/x v0.67.0"]="open-telemetry/opentelemetry-go 93a693edeed0e07ce5ebd1dfe67af42d1e2055d8"
+  ["go.opentelemetry.io/otel/metric/x v0.67.0"]="open-telemetry/opentelemetry-go 93a693edeed0e07ce5ebd1dfe67af42d1e2055d8"
+  # https://github.com/GoogleCloudPlatform/opentelemetry-operations-go/commit/059f723244364dd67f86051b38d67c66094651bd
+  ["github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.33.0"]="github.com/GoogleCloudPlatform/opentelemetry-operations-go 059f723244364dd67f86051b38d67c66094651bd"
+  # https://github.com/sirupsen/logrus/commit/6d6a132bc03324d4ceb78e1b927f995d014cda20
+  ["github.com/sirupsen/logrus v1.10.2"]="github.com/sirupsen/logrus 6d6a132bc03324d4ceb78e1b927f995d014cda20"
+  # https://github.com/golang/tools/commit/9b68bc9966ee62cbe4704dea268ca17f0d2cd8a7
+  ["golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated"]="golang/tools 9b68bc9966ee62cbe4704dea268ca17f0d2cd8a7"
+  # https://github.com/grpc/grpc-go/commit/030ee8becb20ce4315d6bf2dfa26bdd876169dc4
+  ["google.golang.org/grpc v1.83.2"]="grpc/grpc-go 030ee8becb20ce4315d6bf2dfa26bdd876169dc4"
+  # https://github.com/kubernetes/api/commit/34b5cc4a2603a1cdcad4aced5c83808fb7df7bb8
+  ["k8s.io/api v0.37.0"]="kubernetes/api 34b5cc4a2603a1cdcad4aced5c83808fb7df7bb8"
+  # https://github.com/kubernetes/apimachinery/commit/7164e39885ced1e843757da6423a337f6eae75f7
+  ["k8s.io/apimachinery v0.37.0"]="kubernetes/apimachinery 7164e39885ced1e843757da6423a337f6eae75f7"
+  # https://github.com/kubernetes/apiserver/commit/4d85a6646b05a5a592882f0ac459b2de87431219
+  ["k8s.io/apiserver v0.37.0"]="kubernetes/apiserver 4d85a6646b05a5a592882f0ac459b2de87431219"
+  # https://github.com/kubernetes/client-go/commit/28076445520055420e3be4255b4cd27fd19df1f9
+  ["k8s.io/client-go v0.37.0"]="kubernetes/client-go 28076445520055420e3be4255b4cd27fd19df1f9"
+  # https://github.com/kubernetes/utils/commit/cf1189d6abe3a7522bbd54a1bc1068a0a56011c8
+  ["k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3"]="kubernetes/utils cf1189d6abe3a7522bbd54a1bc1068a0a56011c8"
 )
 
 # replaces to have a correct link for clearlydefined.io api request
@@ -114,6 +131,8 @@ declare -A replaced_paths=(
   ["github.com/operator-framework/operator-registry"]="operator-framework/operator-registry"
   ["github.com/redis/go-redis/extra/rediscmd/v9"]="redis/go-redis"
   ["github.com/redis/go-redis/extra/redisotel/v9"]="redis/go-redis"
+  ["github.com/GoogleCloudPlatform/opentelemetry-operations-go"]="googlecloudplatform/opentelemetry-operations-go"
+  ["github.com/sirupsen/logrus"]="sirupsen/logrus"
 )
 
 # replaces to have a correct link for clearlydefined.io api request
@@ -127,53 +146,96 @@ declare -A replaced_api_suffix=(
   ["open-telemetry/opentelemetry-go-contrib"]="git/github"
   ["open-telemetry/opentelemetry-go"]="git/github"
   ["census-instrumentation/opencensus-go"]="git/github"
+  ["googlecloudplatform/opentelemetry-operations-go"]="git/github"
+  ["sirupsen/logrus"]="git/github"
+  ["golang/tools"]="git/github"
+  ["grpc/grpc-go"]="git/github"
+  ["kubernetes/api"]="git/github"
+  ["kubernetes/apimachinery"]="git/github"
+  ["kubernetes/apiserver"]="git/github"
+  ["kubernetes/client-go"]="git/github"
+  ["kubernetes/utils"]="git/github"
 )
 
 # Exceptions for dependencies that are not yet harvested in clearlydefined.io
 # License must be checked manually
 # https://clearlydefined.io/harvest
 declare -A ignored_paths=(
-  ["github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp"]="Harvesting is in progress"
+  ["github.com/coreos/go-oidc"]="Harvesting is in progress"
+  ["github.com/devfile/api/v2"]="Harvesting is in progress"
   ["github.com/devfile/devworkspace-operator"]="Harvesting is in progress"
+  ["github.com/fxamacker/cbor/v2"]="Harvesting is in progress"
+  ["github.com/go-openapi/swag/cmdutils"]="Harvesting is in progress"
+  ["github.com/go-openapi/swag/fileutils"]="Harvesting is in progress"
+  ["github.com/go-openapi/swag"]="Harvesting is in progress"
+  ["github.com/go-openapi/swag/loading"]="Harvesting is in progress"
+  ["github.com/go-openapi/swag/mangling"]="Harvesting is in progress"
+  ["github.com/go-openapi/swag/netutils"]="Harvesting is in progress"
+  ["github.com/go-openapi/swag/stringutils"]="Harvesting is in progress"
   ["github.com/go-openapi/testify/enable/yaml/v2"]="Harvesting is in progress"
   ["github.com/go-openapi/testify/v2"]="Harvesting is in progress"
-  ["github.com/openshift/api"]="Harvesting is in progress"
-  ["github.com/openshift/library-go"]="Harvesting is in progress"
-  ["github.com/openshift/controller-runtime-common"]="Harvesting is in progress"
-  ["github.com/openshift/client-go"]="Harvesting is in progress"
-  ["github.com/sirupsen/logrus"]="Harvesting is in progress"
-  ["google.golang.org/grpc"]="Harvesting is in progress"
-  ["golang.org/x/tools/go/packages/packagestest"]="Harvesting is in progress"
-  ["golang.org/x/net"]="Harvesting is in progress"
-  ["golang.org/x/crypto"]="Harvesting is in progress"
-  ["go.opentelemetry.io/otel/metric/x"]="Harvesting is in progress"
-  ["github.com/coreos/go-oidc"]="Harvesting is in progress"
-  ["k8s.io/kube-openapi"]="Harvesting is in progress"
-  ["k8s.io/kube-aggregator"]="Harvesting is in progress"
-  ["k8s.io/utils"]="Harvesting is in progress"
   ["github.com/onsi/ginkgo/v2"]="Harvesting is in progress"
+  ["github.com/openshift/api"]="Harvesting is in progress"
+  ["github.com/openshift/client-go"]="Harvesting is in progress"
+  ["github.com/openshift/controller-runtime-common"]="Harvesting is in progress"
+  ["github.com/openshift/library-go"]="Harvesting is in progress"
+  ["go.etcd.io/bbolt"]="Harvesting is in progress"
+  ["go.etcd.io/etcd/api/v3"]="Harvesting is in progress"
+  ["go.etcd.io/etcd/pkg/v3"]="Harvesting is in progress"
+  ["go.etcd.io/etcd/server/v3"]="Harvesting is in progress"
+  ["go.etcd.io/raft/v3"]="Harvesting is in progress"
+  ["golang.org/x/crypto"]="Harvesting is in progress"
+  ["golang.org/x/net"]="Harvesting is in progress"
+  ["go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"]="Harvesting is in progress"
+  ["go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"]="Harvesting is in progress"
+  ["k8s.io/apiextensions-apiserver"]="Harvesting is in progress"
+  ["k8s.io/code-generator"]="Harvesting is in progress"
+  ["k8s.io/component-base"]="Harvesting is in progress"
+  ["k8s.io/gengo/v2"]="Harvesting is in progress"
+  ["k8s.io/kms"]="Harvesting is in progress"
+  ["k8s.io/kube-aggregator"]="Harvesting is in progress"
+  ["k8s.io/streaming"]="Harvesting is in progress"
+  ["sigs.k8s.io/apiserver-network-proxy/konnectivity-client"]="Harvesting is in progress"
+  ["sigs.k8s.io/controller-runtime"]="Harvesting is in progress"
 )
 
 declare -A ignored_paths_licenses=(
-  ["github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp"]="Apache-2.0"
+  ["github.com/coreos/go-oidc"]="Apache-2.0"
+  ["github.com/devfile/api/v2"]="Apache-2.0"
   ["github.com/devfile/devworkspace-operator"]="Apache-2.0"
+  ["github.com/fxamacker/cbor/v2"]="MIT"
+  ["github.com/go-openapi/swag/cmdutils"]="Apache-2.0"
+  ["github.com/go-openapi/swag/fileutils"]="Apache-2.0"
+  ["github.com/go-openapi/swag"]="Apache-2.0"
+  ["github.com/go-openapi/swag/loading"]="Apache-2.0"
+  ["github.com/go-openapi/swag/mangling"]="Apache-2.0"
+  ["github.com/go-openapi/swag/netutils"]="Apache-2.0"
+  ["github.com/go-openapi/swag/stringutils"]="Apache-2.0"
   ["github.com/go-openapi/testify/enable/yaml/v2"]="Apache-2.0"
   ["github.com/go-openapi/testify/v2"]="Apache-2.0"
-  ["github.com/openshift/api"]="Apache-2.0"
-  ["github.com/openshift/library-go"]="Apache-2.0"
-  ["github.com/openshift/controller-runtime-common"]="Apache-2.0"
-  ["github.com/openshift/client-go"]="Apache-2.0"
-  ["github.com/sirupsen/logrus"]="MIT"
-  ["google.golang.org/grpc"]="Apache-2.0"
-  ["golang.org/x/tools/go/packages/packagestest"]="BSD-3-Clause"
-  ["golang.org/x/net"]="BSD-3-Clause"
-  ["golang.org/x/crypto"]="BSD-3-Clause"
-  ["go.opentelemetry.io/otel/metric/x"]="Apache-2.0"
-  ["github.com/coreos/go-oidc"]="Apache-2.0"
-  ["k8s.io/kube-aggregator"]="Apache-2.0"
-  ["k8s.io/kube-openapi"]="Apache-2.0"
-  ["k8s.io/utils"]="Apache-2.0"
   ["github.com/onsi/ginkgo/v2"]="MIT"
+  ["github.com/openshift/api"]="Apache-2.0"
+  ["github.com/openshift/client-go"]="Apache-2.0"
+  ["github.com/openshift/controller-runtime-common"]="Apache-2.0"
+  ["github.com/openshift/library-go"]="Apache-2.0"
+  ["go.etcd.io/bbolt"]="MIT"
+  ["go.etcd.io/etcd/api/v3"]="Apache-2.0"
+  ["go.etcd.io/etcd/pkg/v3"]="Apache-2.0"
+  ["go.etcd.io/etcd/server/v3"]="Apache-2.0"
+  ["go.etcd.io/raft/v3"]="Apache-2.0"
+  ["golang.org/x/crypto"]="BSD-3-Clause"
+  ["golang.org/x/net"]="BSD-3-Clause"
+  ["go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"]="Apache-2.0"
+  ["go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"]="Apache-2.0"
+  ["k8s.io/apiextensions-apiserver"]="Apache-2.0"
+  ["k8s.io/code-generator"]="Apache-2.0"
+  ["k8s.io/component-base"]="Apache-2.0"
+  ["k8s.io/gengo/v2"]="Apache-2.0"
+  ["k8s.io/kms"]="Apache-2.0"
+  ["k8s.io/kube-aggregator"]="Apache-2.0"
+  ["k8s.io/streaming"]="Apache-2.0"
+  ["sigs.k8s.io/apiserver-network-proxy/konnectivity-client"]="Apache-2.0"
+  ["sigs.k8s.io/controller-runtime"]="Apache-2.0"
 )
 
 declare -A declared_licenses=(
