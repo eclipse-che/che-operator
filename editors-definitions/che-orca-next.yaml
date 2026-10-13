@@ -49,7 +49,9 @@ commands:
   - id: start-orca-command
     exec:
       component: orca-runtime
-      commandLine: nohup /orca/entrypoint.sh > /orca/entrypoint-logs.txt 2>&1 &
+      commandLine: >-
+        nohup /orca/entrypoint.sh > /orca/entrypoint-logs.txt 2>&1 &
+        nohup /orca/runtime/bun-runtime /orca/gateway.mjs > /orca/gateway-logs.txt 2>&1 &
 events:
   preStart:
     - init-orca-command
@@ -67,135 +69,66 @@ components:
           # The image script copies whole directories with `cp -r <dir> /orca/<dir>`, which
           # nests another copy inside the previous one when the volume survives a restart.
           rm -rf /orca/runtime /orca/web /orca/npm-global /orca/google-cloud-sdk
-          exec /entrypoint-init-container.sh
-      volumeMounts:
-        - name: orca
-          path: /orca
-      memoryLimit: 512Mi
-      memoryRequest: 32Mi
-      cpuLimit: 500m
-      cpuRequest: 30m
-  - name: orca-runtime
-    attributes:
-      app.kubernetes.io/component: orca-runtime
-      app.kubernetes.io/part-of: orca.eclipse.org
-      controller.devfile.io/container-contribution: true
-    container:
-      image: quay.io/devfile/universal-developer-image:latest
-      memoryLimit: 2048Mi
-      memoryRequest: 512Mi
-      cpuLimit: 1000m
-      cpuRequest: 100m
-      volumeMounts:
-        - name: orca
-          path: /orca
-  - name: orca-gateway
-    attributes:
-      app.kubernetes.io/component: orca-gateway
-      app.kubernetes.io/part-of: orca.eclipse.org
-    container:
-      image: quay.io/che-incubator/che-orca:next
-      command:
-        - sh
-        - -c
-        - |
-          set -e
-          cat > /tmp/orca-gateway.mjs <<'GATEWAY'
+          /entrypoint-init-container.sh
+
+          # Orca hands out a pairing offer that points at its own loopback listener and only
+          # auto-connects a web client that is opened with that offer. Neither fits a Che
+          # endpoint, so the runtime is fronted by this gateway instead.
+          cat > /orca/gateway.mjs <<'GATEWAY'
           import { createServer, request as httpRequest } from 'node:http'
           import { connect } from 'node:net'
-          import { readFileSync } from 'node:fs'
+          import { readFileSync, statSync } from 'node:fs'
 
-          // The runtime shares the pod network namespace, so `orca serve` is on loopback.
+          // The runtime runs in the same container, so `orca serve` is on loopback.
           const UPSTREAM = { host: '127.0.0.1', port: 6768 }
           const PORT = Number(process.env.ORCA_GATEWAY_PORT || 3100)
           // `orca serve --json` prints its readiness record, including the pairing offer,
           // on stdout; the image entrypoint redirects that stream to this file.
           const READY_LOG = `${process.env.PROJECTS_ROOT || '/projects'}/.che-orca/ready.jsonl`
-
-          const STARTING_PAGE = `<!doctype html>
-          <html lang="en">
-            <head>
-              <meta charset="utf-8">
-              <meta http-equiv="refresh" content="3">
-              <title>Starting Orca</title>
-            </head>
-            <body style="font-family:sans-serif">Starting the Orca runtime&hellip;</body>
-          </html>
-          `
-
-          function readPairingOffer() {
-            try {
-              const line = readFileSync(READY_LOG, 'utf8')
-                .split('\n')
-                .reverse()
-                .find((l) => l.includes('"orca_server_ready"'))
-              if (!line) return null
-
-              const ready = JSON.parse(line.slice(line.indexOf('{')))
-              const webClientUrl = ready?.pairing?.webClientUrl
-              if (!webClientUrl) return null
-
-              const hash = new URL(webClientUrl).hash.replace(/^#/, '')
-              return new URLSearchParams(hash).get('pairing')
-            } catch {
-              return null
-            }
-          }
+          const STARTED_AT = Date.now()
 
           // The offer advertises the loopback listener, which in a browser resolves to the
           // user's own machine. Repoint it at the Che endpoint the request arrived on, so
           // the web client dials the runtime back through this gateway.
-          function rewritePairingOffer(offer, req) {
+          function readPairingOffer(req) {
             try {
-              const code = new URL(offer).searchParams.get('code')
-              if (!code) return null
+              // The log lives on the projects volume, so it outlives the pod. A record left
+              // from an earlier start pairs with a runtime that no longer exists.
+              if (statSync(READY_LOG).mtimeMs < STARTED_AT) return null
 
-              const host = String(req.headers['x-forwarded-host'] || req.headers.host || '')
+              const line = readFileSync(READY_LOG, 'utf8')
+                .split('\n')
+                .reverse()
+                .find((l) => l.includes('"orca_server_ready"'))
+              const code = new URL(JSON.parse(line).pairing.url).searchParams.get('code')
+              const host = String(req.headers['x-forwarded-host'] || req.headers.host)
                 .split(',')[0]
                 .trim()
-              if (!host) return null
-
               // Che serves this endpoint over TLS, so only an explicit header downgrades it.
               const proto = String(req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim()
+
               const payload = JSON.parse(Buffer.from(code, 'base64url').toString())
               payload.endpoint = `${proto === 'http' ? 'ws' : 'wss'}://${host}/`
-              const rewritten = Buffer.from(JSON.stringify(payload)).toString('base64url')
-              return `orca://pair?code=${rewritten}`
+              return `orca://pair?code=${Buffer.from(JSON.stringify(payload)).toString('base64url')}`
             } catch {
               return null
             }
           }
 
-          function isRuntimeListening() {
-            return new Promise((resolve) => {
-              const probe = connect(UPSTREAM.port, UPSTREAM.host)
-              const settle = (listening) => {
-                probe.destroy()
-                resolve(listening)
-              }
-              probe.setTimeout(1000)
-              probe.on('connect', () => settle(true))
-              probe.on('timeout', () => settle(false))
-              probe.on('error', () => settle(false))
-            })
-          }
-
-          async function serveEntryPage(req, res) {
-            const offer = (await isRuntimeListening()) ? readPairingOffer() : null
-            const pairing = offer && rewritePairingOffer(offer, req)
-            if (!pairing) {
+          function serveEntryPage(req, res) {
+            const offer = readPairingOffer(req)
+            if (!offer) {
               // The offer is minted a few seconds into the workspace start. Refreshing beats
-              // dropping the user on the Connect screen with no way to reach the runtime.
+              // dropping the user on the Connect screen with no code to paste.
               res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' })
-              res.end(STARTING_PAGE)
+              res.end('<meta http-equiv="refresh" content="3"><p>Starting the Orca runtime&hellip;</p>')
               return
             }
 
-            // Orca only serves its web client from /web-index.html, and it auto-connects
-            // solely when the page is opened with a runtime-scoped pairing offer. A relative
-            // Location keeps any path prefix of the Che endpoint intact.
+            // Keep the offer in the fragment so it stays out of proxy logs, and keep the
+            // target relative so any path prefix of the Che endpoint survives.
             res.writeHead(302, {
-              location: `web-index.html?pairing=${encodeURIComponent(pairing)}`,
+              location: `web-index.html#pairing=${encodeURIComponent(offer)}`,
               'cache-control': 'no-store'
             })
             res.end()
@@ -210,7 +143,7 @@ components:
           const server = createServer((req, res) => {
             const path = (req.url || '/').split('?')[0]
             if (path === '/' || path === '/index.html') {
-              void serveEntryPage(req, res)
+              serveEntryPage(req, res)
               return
             }
 
@@ -240,12 +173,27 @@ components:
 
           server.listen(PORT, '0.0.0.0')
           GATEWAY
-          exec node /tmp/orca-gateway.mjs
-      mountSources: true
-      memoryLimit: 256Mi
-      memoryRequest: 64Mi
+      volumeMounts:
+        - name: orca
+          path: /orca
+      memoryLimit: 512Mi
+      memoryRequest: 32Mi
       cpuLimit: 500m
       cpuRequest: 30m
+  - name: orca-runtime
+    attributes:
+      app.kubernetes.io/component: orca-runtime
+      app.kubernetes.io/part-of: orca.eclipse.org
+      controller.devfile.io/container-contribution: true
+    container:
+      image: quay.io/devfile/universal-developer-image:latest
+      memoryLimit: 2048Mi
+      memoryRequest: 512Mi
+      cpuLimit: 1000m
+      cpuRequest: 100m
+      volumeMounts:
+        - name: orca
+          path: /orca
       endpoints:
         - name: orca
           targetPort: 3100
