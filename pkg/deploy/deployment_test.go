@@ -1382,3 +1382,153 @@ func TestOverrideTolerations(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, overrideDeployment.Tolerations, deployment.Spec.Template.Spec.Tolerations)
 }
+
+func TestMountAsSubpathShouldSortVolumeMounts(t *testing.T) {
+	newDeployment := func() *appsv1.Deployment {
+		return &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "che",
+			},
+			Spec: appsv1.DeploymentSpec{
+				Template: corev1.PodTemplateSpec{
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{{}},
+					},
+				},
+			},
+		}
+	}
+
+	cheCtx := test.NewCtxBuilder().WithObjects(
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: "eclipse-che",
+				Annotations: map[string]string{
+					constants.CheEclipseOrgMountAs:   "subpath",
+					constants.CheEclipseOrgMountPath: "/test-path",
+				},
+				Labels: map[string]string{
+					constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+					constants.KubernetesComponentLabelKey: "che-secret",
+				},
+			},
+			Data: map[string][]byte{
+				"e": []byte("e"), "c": []byte("c"), "a": []byte("a"), "d": []byte("d"), "b": []byte("b"),
+			},
+		},
+		&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: "eclipse-che",
+				Annotations: map[string]string{
+					constants.CheEclipseOrgMountAs:   "subpath",
+					constants.CheEclipseOrgMountPath: "/test-path",
+				},
+				Labels: map[string]string{
+					constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+					constants.KubernetesComponentLabelKey: "che-configmap",
+				},
+			},
+			Data: map[string]string{
+				"e": "e", "c": "c", "a": "a", "d": "d", "b": "b",
+			},
+		},
+	).Build()
+
+	expectedSubPaths := []string{"a", "b", "c", "d", "e"}
+
+	// map iteration order is random, so repeat several times
+	for range 10 {
+		specDeployment := newDeployment()
+		assert.NoError(t, MountSecrets(specDeployment, cheCtx))
+
+		subPaths := []string{}
+		for _, vm := range specDeployment.Spec.Template.Spec.Containers[0].VolumeMounts {
+			subPaths = append(subPaths, vm.SubPath)
+		}
+		assert.Equal(t, expectedSubPaths, subPaths)
+
+		specDeployment = newDeployment()
+		assert.NoError(t, MountConfigMaps(specDeployment, cheCtx))
+
+		subPaths = []string{}
+		for _, vm := range specDeployment.Spec.Template.Spec.Containers[0].VolumeMounts {
+			subPaths = append(subPaths, vm.SubPath)
+		}
+		assert.Equal(t, expectedSubPaths, subPaths)
+	}
+}
+
+func TestOverrideContainerResourcesWhenNotSet(t *testing.T) {
+	container := &corev1.Container{Name: "test"}
+
+	err := OverrideContainer(
+		"eclipse-che",
+		container,
+		&chev2.Container{
+			Resources: &chev2.ResourceRequirements{
+				Requests: &chev2.ResourceList{
+					Memory: ptr.To(resource.MustParse("100Mi")),
+				},
+				Limits: &chev2.ResourceList{
+					Memory: ptr.To(resource.MustParse("200Mi")),
+				},
+			},
+		},
+	)
+	assert.NoError(t, err)
+
+	assert.Equal(t, "100Mi", container.Resources.Requests.Memory().String())
+	assert.Equal(t, "200Mi", container.Resources.Limits.Memory().String())
+}
+
+func TestOverrideContainerImagePullPolicy(t *testing.T) {
+	type testCase struct {
+		name                    string
+		container               *corev1.Container
+		overrideSettings        *chev2.Container
+		expectedImagePullPolicy corev1.PullPolicy
+	}
+
+	testCases := []testCase{
+		{
+			name: "Should keep ImagePullPolicy if neither image nor ImagePullPolicy is overridden",
+			container: &corev1.Container{
+				Image:           "test/test:next",
+				ImagePullPolicy: corev1.PullIfNotPresent,
+			},
+			overrideSettings: &chev2.Container{
+				Env: []corev1.EnvVar{{Name: "test", Value: "test"}},
+			},
+			expectedImagePullPolicy: corev1.PullIfNotPresent,
+		},
+		{
+			name: "Should set ImagePullPolicy from image if not set",
+			container: &corev1.Container{
+				Image: "test/test:next",
+			},
+			overrideSettings:        &chev2.Container{},
+			expectedImagePullPolicy: corev1.PullAlways,
+		},
+		{
+			name: "Should update ImagePullPolicy if image is overridden",
+			container: &corev1.Container{
+				Image:           "test/test:next",
+				ImagePullPolicy: corev1.PullAlways,
+			},
+			overrideSettings: &chev2.Container{
+				Image: "test/test:1.0.0",
+			},
+			expectedImagePullPolicy: corev1.PullIfNotPresent,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			err := OverrideContainer("eclipse-che", testCase.container, testCase.overrideSettings)
+			assert.NoError(t, err)
+			assert.Equal(t, testCase.expectedImagePullPolicy, testCase.container.ImagePullPolicy)
+		})
+	}
+}
