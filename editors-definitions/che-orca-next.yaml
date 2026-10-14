@@ -1,0 +1,212 @@
+#
+# Copyright (c) 2026 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Red Hat, Inc. - initial API and implementation
+#
+
+schemaVersion: 2.3.0
+metadata:
+  name: che-orca
+  displayName: Orca
+  description: Agent development environment for Eclipse Che
+  tags:
+    - orca
+    - agents
+    - ide
+  attributes:
+    arch:
+      - x86_64
+      - arm64
+    publisher: che-incubator
+    version: next
+    provider: Provided by [Stably AI](https://www.onorca.dev/) under the [MIT License](https://github.com/stablyai/orca/blob/main/LICENSE)
+    title: Orca - Agent Development Environment for Eclipse Che
+    repository: https://github.com/che-incubator/che-orca
+    firstPublicationDate: '2026-10-06'
+    iconMediatype: image/svg+xml
+    iconData: |
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+        <rect width="64" height="64" rx="14" fill="#0d1b2a"/>
+        <path d="M28 27 L34 11 L39 27 Z" fill="#e8eef3"/>
+        <path d="M47 36 L61 25 L57.5 36 L61 47 Z" fill="#e8eef3"/>
+        <ellipse cx="29" cy="36" rx="20" ry="9.5" fill="#e8eef3"/>
+        <ellipse cx="29" cy="40" rx="17" ry="5" fill="#b9c7d2"/>
+        <ellipse cx="17" cy="33" rx="3.6" ry="2.1" fill="#0d1b2a"/>
+        <circle cx="12" cy="37" r="1.6" fill="#0d1b2a"/>
+        <circle cx="50" cy="19" r="4" fill="#4fc3f7"/>
+      </svg>
+
+commands:
+  - id: init-orca-command
+    apply:
+      component: orca-injector
+  - id: start-orca-command
+    exec:
+      component: orca-runtime
+      commandLine: >-
+        nohup /orca/entrypoint.sh > /orca/entrypoint-logs.txt 2>&1 &
+        nohup /orca/runtime/bun-runtime /orca/gateway.mjs > /orca/gateway-logs.txt 2>&1 &
+events:
+  preStart:
+    - init-orca-command
+  postStart:
+    - start-orca-command
+components:
+  - name: orca-injector
+    container:
+      image: quay.io/che-incubator/che-orca:next
+      command:
+        - sh
+        - -c
+        - |
+          set -e
+          # The image script copies whole directories with `cp -r <dir> /orca/<dir>`, which
+          # nests another copy inside the previous one when the volume survives a restart.
+          rm -rf /orca/runtime /orca/web /orca/npm-global /orca/google-cloud-sdk
+          /entrypoint-init-container.sh
+
+          # Orca hands out a pairing offer that points at its own loopback listener and only
+          # auto-connects a web client that is opened with that offer. Neither fits a Che
+          # endpoint, so the runtime is fronted by this gateway instead.
+          cat > /orca/gateway.mjs <<'GATEWAY'
+          import { createServer, request as httpRequest } from 'node:http'
+          import { connect } from 'node:net'
+          import { readFileSync, statSync } from 'node:fs'
+
+          // The runtime runs in the same container, so `orca serve` is on loopback.
+          const UPSTREAM = { host: '127.0.0.1', port: 6768 }
+          const PORT = Number(process.env.ORCA_GATEWAY_PORT || 3100)
+          // `orca serve --json` prints its readiness record, including the pairing offer,
+          // on stdout; the image entrypoint redirects that stream to this file.
+          const READY_LOG = `${process.env.PROJECTS_ROOT || '/projects'}/.che-orca/ready.jsonl`
+          const STARTED_AT = Date.now()
+
+          // The offer advertises the loopback listener, which in a browser resolves to the
+          // user's own machine. Repoint it at the Che endpoint the request arrived on, so
+          // the web client dials the runtime back through this gateway.
+          function readPairingOffer(req) {
+            try {
+              // The log lives on the projects volume, so it outlives the pod. A record left
+              // from an earlier start pairs with a runtime that no longer exists.
+              if (statSync(READY_LOG).mtimeMs < STARTED_AT) return null
+
+              const line = readFileSync(READY_LOG, 'utf8')
+                .split('\n')
+                .reverse()
+                .find((l) => l.includes('"orca_server_ready"'))
+              const code = new URL(JSON.parse(line).pairing.url).searchParams.get('code')
+              const host = String(req.headers['x-forwarded-host'] || req.headers.host)
+                .split(',')[0]
+                .trim()
+              // Che serves this endpoint over TLS, so only an explicit header downgrades it.
+              const proto = String(req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim()
+
+              const payload = JSON.parse(Buffer.from(code, 'base64url').toString())
+              payload.endpoint = `${proto === 'http' ? 'ws' : 'wss'}://${host}/`
+              return `orca://pair?code=${Buffer.from(JSON.stringify(payload)).toString('base64url')}`
+            } catch {
+              return null
+            }
+          }
+
+          function serveEntryPage(req, res) {
+            const offer = readPairingOffer(req)
+            if (!offer) {
+              // The offer is minted a few seconds into the workspace start. Refreshing beats
+              // dropping the user on the Connect screen with no code to paste.
+              res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' })
+              res.end('<meta http-equiv="refresh" content="3"><p>Starting the Orca runtime&hellip;</p>')
+              return
+            }
+
+            // Keep the offer in the fragment so it stays out of proxy logs, and keep the
+            // target relative so any path prefix of the Che endpoint survives.
+            res.writeHead(302, {
+              location: `web-index.html#pairing=${encodeURIComponent(offer)}`,
+              'cache-control': 'no-store'
+            })
+            res.end()
+          }
+
+          function headerLines(headers) {
+            return Object.entries(headers)
+              .flatMap(([k, v]) => (Array.isArray(v) ? v.map((e) => `${k}: ${e}`) : [`${k}: ${v}`]))
+              .join('\r\n')
+          }
+
+          const server = createServer((req, res) => {
+            const path = (req.url || '/').split('?')[0]
+            if (path === '/' || path === '/index.html') {
+              serveEntryPage(req, res)
+              return
+            }
+
+            const upstream = httpRequest(
+              { ...UPSTREAM, method: req.method, path: req.url, headers: req.headers },
+              (up) => {
+                res.writeHead(up.statusCode ?? 502, up.headers)
+                up.pipe(res)
+              }
+            )
+            upstream.on('error', () => {
+              res.writeHead(502)
+              res.end('orca runtime unavailable')
+            })
+            req.pipe(upstream)
+          })
+
+          server.on('upgrade', (req, socket, head) => {
+            const up = connect(UPSTREAM.port, UPSTREAM.host, () => {
+              up.write(`${req.method} ${req.url} HTTP/1.1\r\n${headerLines(req.headers)}\r\n\r\n`)
+              if (head?.length) up.write(head)
+              socket.pipe(up).pipe(socket)
+            })
+            up.on('error', () => socket.destroy())
+            socket.on('error', () => up.destroy())
+          })
+
+          server.listen(PORT, '0.0.0.0')
+          GATEWAY
+      volumeMounts:
+        - name: orca
+          path: /orca
+      memoryLimit: 512Mi
+      memoryRequest: 32Mi
+      cpuLimit: 500m
+      cpuRequest: 30m
+  - name: orca-runtime
+    attributes:
+      app.kubernetes.io/component: orca-runtime
+      app.kubernetes.io/part-of: orca.eclipse.org
+      controller.devfile.io/container-contribution: true
+    container:
+      image: quay.io/devfile/universal-developer-image:latest
+      memoryLimit: 2048Mi
+      memoryRequest: 512Mi
+      cpuLimit: 1000m
+      cpuRequest: 100m
+      volumeMounts:
+        - name: orca
+          path: /orca
+      endpoints:
+        - name: orca
+          targetPort: 3100
+          exposure: public
+          protocol: https
+          secure: true
+          attributes:
+            type: main
+            cookiesAuthEnabled: true
+            discoverable: false
+            # The runtime is dialed back over a WebSocket at the route root, and the
+            # gateway cannot know a stripped path prefix to rebuild, so this endpoint
+            # needs its own hostname rather than a sub-path of the Che gateway.
+            urlRewriteSupported: false
+  - name: orca
+    volume: {}
