@@ -507,7 +507,7 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 			err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
 			assert.NoError(t, err)
 			diff := cmp.Diff(testCase.expectedOperatorConfig, dwoc.Config, cmp.Options{
-				cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount", "DeploymentStrategy", "ContainerSecurityContext"),
+				cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount", "DeploymentStrategy", "ContainerSecurityContext", "NetworkPolicy"),
 				cmpopts.IgnoreFields(controllerv1alpha1.RoutingConfig{}, "TLSCertificateConfigmapRef"),
 			})
 			assert.Empty(t, diff)

@@ -188,7 +188,7 @@ const (
 	DefaultDisableContainerRunCapabilities = true
 
 	// Networking
-	NetworkPolicyEnabled = false
+	DefaultNetworkPolicyEnabled = false
 
 	// AgentSandbox
 	AgentSandboxEnabled       = false

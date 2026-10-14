@@ -347,24 +347,9 @@ type CheClusterSpecNetworking struct {
 	// +optional
 	// +kubebuilder:default:={gateway: {configLabels: {app: che, component: che-gateway-config}}}
 	Auth Auth `json:"auth"`
-	// NetworkPolicy configures NetworkPolicy resources for the Che namespace
-	// and user workspace namespaces. For OpenShift clusters only.
-	// When enabled, the following policies are created:
-	// In the Che namespace:
-	//   - allow-from-same-namespace: allows ingress traffic between Che pods in the same namespace.
-	//   - allow-from-workspaces: allows ingress traffic from user workspace namespaces.
-	//   - allow-from-openshift-ingress: allows ingress traffic from the OpenShift ingress namespace.
-	//   - allow-from-openshift-monitoring: allows ingress traffic from the OpenShift monitoring namespace.
-	//   - allow-from-<flavor>-operator: allows ingress traffic from the operator pod to Che components.
-	//   - allow-all-egress: allows all egress traffic from Che pods.
-	// In each user workspace namespace:
-	//   - allow-from-<che-namespace>: allows ingress traffic from the Che namespace.
-	//   - allow-from-same-namespace: allows ingress traffic between pods in the same namespace.
-	//   - allow-from-devworkspace-operator: allows ingress traffic from the DevWorkspace operator.
-	//   - allow-from-openshift-monitoring: allows ingress traffic from the OpenShift monitoring namespace.
-	//   - allow-from-openshift-ingress: allows ingress traffic from the OpenShift ingress namespace.
-	//   - allow-all-egress: allows all egress traffic from workspace pods.
-	// +optional
+	// NetworkPolicy defines the NetworkPolicies the Operator provisions for Che components,
+	// such as the gateway, the server, the dashboard and the registries.
+	// +kubebuilder:validation:Optional
 	NetworkPolicy *NetworkPolicy `json:"networkPolicy,omitempty"`
 }
 
@@ -372,13 +357,51 @@ type DevEnvironmentNetworking struct {
 	// External TLS configuration.
 	// +optional
 	ExternalTLSConfig *ExternalTLSConfig `json:"externalTLSConfig,omitempty"`
+	// NetworkPolicy defines configuration options for the NetworkPolicies provisioned
+	// for each DevWorkspace by the DevWorkspace Operator.
+	//
+	// When enabled and no ingress rules are specified, the Operator sets the default
+	// DevWorkspace Operator ingress rules and adds one custom ingress rule allowing traffic
+	// from Che operands (pods labeled with `app.kubernetes.io/part-of=che.eclipse.org` in the
+	// CheCluster namespace). If custom ingress rules are specified, only those rules apply
+	// and the rule allowing traffic from Che operands is not added automatically; if Che
+	// operands need to communicate with the workspaces, a corresponding ingress rule must be
+	// explicitly included.
+	//
+	// When enabled and no egress rules are specified, the Operator sets the default
+	// DevWorkspace Operator egress rules. If custom egress rules are specified, only
+	// those rules apply.
+	// +kubebuilder:validation:Optional
+	NetworkPolicy *controllerv1alpha1.NetworkPolicyConfig `json:"networkPolicy,omitempty"`
 }
 
-// NetworkPolicy configuration settings.
+// NetworkPolicy defines the NetworkPolicies the Operator provisions for Che components,
+// such as the gateway, the server, the dashboard and the registries.
 // +k8s:openapi-gen=true
 type NetworkPolicy struct {
-	// Enabled controls whether the operator creates NetworkPolicy resources.
-	// +optional
+	// Enabled determines whether the NetworkPolicies are provisioned for Eclipse Che.
+	// The policies are created in the namespace where the `CheCluster` custom resource is created
+	// and apply to the pods labeled with `app.kubernetes.io/part-of=che.eclipse.org` only.
+	// Disabled by default. When set to `false`, the NetworkPolicies previously created
+	// by the Operator are removed.
+	//
+	// On OpenShift, the following NetworkPolicies are created in the `CheCluster` namespace:
+	//   - `allow-from-same-namespace`         	: from the Che operands themselves.
+	//   - `allow-from-openshift-ingress`      	: from the OpenShift ingress controller.
+	//   - `allow-from-openshift-host-network` 	: from the pods that use the host network, for example
+	//     the OpenShift router.
+	//   - `allow-from-openshift-monitoring`   	: from the OpenShift monitoring stack, to scrape metrics.
+	//   - `allow-from-workspaces`             	: from the users' workspace namespaces.
+	//   - `allow-from-che-operator`      		: from the Operator pods in the Operator namespace.
+	//   - `allow-all-egress`                  	: allows all egress traffic from the Che operands.
+	//
+	// On Kubernetes, only the `allow-all-ingress` and `allow-all-egress` NetworkPolicies are created,
+	// allowing all ingress and egress traffic, since the namespace of the cluster's ingress controller
+	// is not known to the Operator. Enabling this setting on Kubernetes does not restrict any traffic
+	// by itself: administrators are expected to provision their own NetworkPolicies.
+	//
+	// +kubebuilder:default:=false
+	// +kubebuilder:validation:Optional
 	Enabled *bool `json:"enabled,omitempty"`
 }
 
@@ -1403,8 +1426,14 @@ func (c *CheCluster) IsDevEnvironmentExternalTLSConfigEnabled() bool {
 }
 
 func (c *CheCluster) IsNetworkPoliciesEnabled() bool {
-	return c.Spec.Networking.NetworkPolicy != nil &&
-		ptr.Deref(c.Spec.Networking.NetworkPolicy.Enabled, constants.NetworkPolicyEnabled)
+	if c.Spec.Networking.NetworkPolicy == nil {
+		return constants.DefaultNetworkPolicyEnabled
+	}
+
+	return ptr.Deref(
+		c.Spec.Networking.NetworkPolicy.Enabled,
+		constants.DefaultNetworkPolicyEnabled,
+	)
 }
 
 func (c *CheCluster) IsOAuthProxyImageResolutionFromImageStreamEnabled() bool {

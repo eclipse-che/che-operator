@@ -17,8 +17,6 @@ package provision
 import (
 	"testing"
 
-	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
-	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test/envtest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -35,10 +33,6 @@ func TestProvision(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
-
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
-	defaults.InitializeForTesting()
-
 	env = envtest.Start()
 })
 

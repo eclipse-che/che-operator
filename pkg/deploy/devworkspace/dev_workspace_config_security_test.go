@@ -286,7 +286,7 @@ func TestReconcileDevWorkspaceConfigForContainerCapabilities(t *testing.T) {
 
 			diff := cmp.Diff(testCase.expectedOperatorConfig, dwoc.Config,
 				cmp.Options{
-					cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount", "ProjectCloneConfig", "DeploymentStrategy", "DefaultStorageSize", "StorageClassName"),
+					cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount", "ProjectCloneConfig", "DeploymentStrategy", "DefaultStorageSize", "StorageClassName", "NetworkPolicy"),
 					cmpopts.IgnoreFields(controllerv1alpha1.RoutingConfig{}, "TLSCertificateConfigmapRef"),
 				})
 			assert.Empty(t, diff)
