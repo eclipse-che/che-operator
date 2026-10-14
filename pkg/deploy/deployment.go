@@ -15,6 +15,7 @@ package deploy
 import (
 	"context"
 	"fmt"
+	"maps"
 	"slices"
 	"sort"
 	"strings"
@@ -62,11 +63,11 @@ func SyncDeploymentSpecToCluster(
 	deploymentDiffOpts cmp.Options) (bool, error) {
 
 	if err := MountSecrets(deploymentSpec, cheCtx); err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to mount Secrets into Deployment %s/%s: %w", cheCtx.CheCluster.Namespace, deploymentSpec.Name, err)
 	}
 
 	if err := MountConfigMaps(deploymentSpec, cheCtx); err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to mount ConfigMaps into Deployment %s/%s: %w", cheCtx.CheCluster.Namespace, deploymentSpec.Name, err)
 	}
 
 	key := types.NamespacedName{Name: deploymentSpec.Name, Namespace: cheCtx.CheCluster.Namespace}
@@ -261,8 +262,9 @@ func OverrideContainer(
 
 	// Image
 	container.Image = utils.GetValue(overrideSettings.Image, container.Image)
-	container.ImagePullPolicy = overrideSettings.ImagePullPolicy
-	if container.ImagePullPolicy == "" {
+	if overrideSettings.ImagePullPolicy != "" {
+		container.ImagePullPolicy = overrideSettings.ImagePullPolicy
+	} else if overrideSettings.Image != "" || container.ImagePullPolicy == "" {
 		container.ImagePullPolicy = corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(container.Image))
 	}
 
@@ -289,6 +291,10 @@ func OverrideContainer(
 	// Resources
 	if overrideSettings.Resources != nil {
 		if overrideSettings.Resources.Requests != nil {
+			if container.Resources.Requests == nil {
+				container.Resources.Requests = corev1.ResourceList{}
+			}
+
 			if overrideSettings.Resources.Requests.Memory != nil {
 				if overrideSettings.Resources.Requests.Memory.IsZero() {
 					delete(container.Resources.Requests, corev1.ResourceMemory)
@@ -311,6 +317,10 @@ func OverrideContainer(
 		}
 
 		if overrideSettings.Resources.Limits != nil {
+			if container.Resources.Limits == nil {
+				container.Resources.Limits = corev1.ResourceList{}
+			}
+
 			if overrideSettings.Resources.Limits.Memory != nil {
 				if overrideSettings.Resources.Limits.Memory.IsZero() {
 					delete(container.Resources.Limits, corev1.ResourceMemory)
@@ -390,10 +400,11 @@ func MountSecrets(specDeployment *appsv1.Deployment, cheCtx *chetypes.CheContext
 	kubernetesComponentLabelSelectorRequirement, _ := labels.NewRequirement(constants.KubernetesComponentLabelKey, selection.Equals, []string{specDeployment.Name + "-secret"})
 
 	listOptions := &client.ListOptions{
+		Namespace:     cheCtx.CheCluster.Namespace,
 		LabelSelector: labels.NewSelector().Add(*kubernetesPartOfLabelSelectorRequirement).Add(*kubernetesComponentLabelSelectorRequirement),
 	}
-	if err := cheCtx.ClusterAPI.Client.List(context.TODO(), secrets, listOptions); err != nil {
-		return err
+	if _, err := cheCtx.ClusterAPI.ClientWrapper.List(cheCtx.Context, secrets, listOptions); err != nil {
+		return fmt.Errorf("failed to list Secrets in namespace %s: %w", cheCtx.CheCluster.Namespace, err)
 	}
 
 	// sort secrets by name first to have the same order every time
@@ -435,7 +446,7 @@ func MountSecrets(specDeployment *appsv1.Deployment, cheCtx *chetypes.CheContext
 			}
 			specDeployment.Spec.Template.Spec.Volumes = append(specDeployment.Spec.Template.Spec.Volumes, volume)
 
-			for fileName := range secretObj.Data {
+			for _, fileName := range slices.Sorted(maps.Keys(secretObj.Data)) {
 				mountPath := secretObj.Annotations[constants.CheEclipseOrgMountPath]
 				if strings.HasSuffix(mountPath, "/") {
 					mountPath += fileName
@@ -450,28 +461,7 @@ func MountSecrets(specDeployment *appsv1.Deployment, cheCtx *chetypes.CheContext
 				container.VolumeMounts = append(container.VolumeMounts, volumeMount)
 			}
 		case "env":
-			secret := &corev1.Secret{}
-			exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-				cheCtx.Context,
-				types.NamespacedName{Name: secretObj.Name, Namespace: cheCtx.CheCluster.Namespace},
-				secret,
-			)
-			if err != nil {
-				return fmt.Errorf("failed to get Secret %s/%s: %w", cheCtx.CheCluster.Namespace, secretObj.Name, err)
-			} else if !exists {
-				return fmt.Errorf("secret '%s' not found", secretObj.Name)
-			}
-
-			// grab all keys and sort first to have the same order every time
-			keys := make([]string, 0)
-			for k := range secret.Data {
-				keys = append(keys, k)
-			}
-			sort.Slice(keys, func(i, j int) bool {
-				return strings.Compare(keys[i], keys[j]) < 0
-			})
-
-			for _, key := range keys {
+			for _, key := range slices.Sorted(maps.Keys(secretObj.Data)) {
 				var envName string
 
 				// check if evn name defined explicitly
@@ -480,7 +470,7 @@ func MountSecrets(specDeployment *appsv1.Deployment, cheCtx *chetypes.CheContext
 				if !envNameExists {
 					// check if there is only one env name to mount
 					envName, envNameExists = secretObj.Annotations[constants.CheEclipseOrgEnvName]
-					if len(secret.Data) > 1 {
+					if len(secretObj.Data) > 1 {
 						return fmt.Errorf("there are more than one environment variable to mount. Use annotation '%s' to specify a name", envNameAnnotation)
 					} else if !envNameExists {
 						return fmt.Errorf("environment name to mount secret key not found. Use annotation '%s' to specify a name", constants.CheEclipseOrgEnvName)
@@ -517,10 +507,11 @@ func MountConfigMaps(specDeployment *appsv1.Deployment, cheCtx *chetypes.CheCont
 	kubernetesComponentLabelSelectorRequirement, _ := labels.NewRequirement(constants.KubernetesComponentLabelKey, selection.Equals, []string{specDeployment.Name + "-configmap"})
 
 	listOptions := &client.ListOptions{
+		Namespace:     cheCtx.CheCluster.Namespace,
 		LabelSelector: labels.NewSelector().Add(*kubernetesPartOfLabelSelectorRequirement).Add(*kubernetesComponentLabelSelectorRequirement),
 	}
-	if err := cheCtx.ClusterAPI.Client.List(context.TODO(), configmaps, listOptions); err != nil {
-		return err
+	if _, err := cheCtx.ClusterAPI.ClientWrapper.List(cheCtx.Context, configmaps, listOptions); err != nil {
+		return fmt.Errorf("failed to list ConfigMaps in namespace %s: %w", cheCtx.CheCluster.Namespace, err)
 	}
 
 	// sort configmaps by name first to have the same order every time
@@ -568,7 +559,7 @@ func MountConfigMaps(specDeployment *appsv1.Deployment, cheCtx *chetypes.CheCont
 			}
 			specDeployment.Spec.Template.Spec.Volumes = append(specDeployment.Spec.Template.Spec.Volumes, volume)
 
-			for fileName := range configMapObj.Data {
+			for _, fileName := range slices.Sorted(maps.Keys(configMapObj.Data)) {
 				mountPath := configMapObj.Annotations[constants.CheEclipseOrgMountPath]
 				if strings.HasSuffix(mountPath, "/") {
 					mountPath += fileName
@@ -584,28 +575,7 @@ func MountConfigMaps(specDeployment *appsv1.Deployment, cheCtx *chetypes.CheCont
 			}
 
 		case "env":
-			configmap := &corev1.ConfigMap{}
-			exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-				cheCtx.Context,
-				types.NamespacedName{Name: configMapObj.Name, Namespace: cheCtx.CheCluster.Namespace},
-				configmap,
-			)
-			if err != nil {
-				return fmt.Errorf("failed to get ConfigMap %s/%s: %w", cheCtx.CheCluster.Namespace, configMapObj.Name, err)
-			} else if !exists {
-				return fmt.Errorf("ConfigMap '%s' not found", configMapObj.Name)
-			}
-
-			// grab all keys and sort first to have the same order every time
-			keys := make([]string, 0)
-			for k := range configmap.Data {
-				keys = append(keys, k)
-			}
-			sort.Slice(keys, func(i, j int) bool {
-				return strings.Compare(keys[i], keys[j]) < 0
-			})
-
-			for _, key := range keys {
+			for _, key := range slices.Sorted(maps.Keys(configMapObj.Data)) {
 				var envName string
 
 				// check if evn name defined explicitly
@@ -614,7 +584,7 @@ func MountConfigMaps(specDeployment *appsv1.Deployment, cheCtx *chetypes.CheCont
 				if !envNameExists {
 					// check if there is only one env name to mount
 					envName, envNameExists = configMapObj.Annotations[constants.CheEclipseOrgEnvName]
-					if len(configmap.Data) > 1 {
+					if len(configMapObj.Data) > 1 {
 						return fmt.Errorf("there are more than one environment variable to mount. Use annotation '%s' to specify a name", envNameAnnotation)
 					} else if !envNameExists {
 						return fmt.Errorf("environment name to mount configmap key not found. Use annotation '%s' to specify a name", constants.CheEclipseOrgEnvName)
