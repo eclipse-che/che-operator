@@ -25,6 +25,11 @@ linters:
       - common-false-positives
       - legacy
       - std-error-handling
+    rules:
+      # Dot imports are allowed.
+      - linters:
+          - staticcheck
+        text: 'ST1001: should not use dot imports'
     paths:
       - third_party$
       - builtin$
