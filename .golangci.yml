@@ -30,6 +30,7 @@ linters:
       - linters:
           - staticcheck
         text: 'ST1001: should not use dot imports'
+        source: '\. "github\.com/onsi/(ginkgo(/v2)?|gomega)"'
     paths:
       - third_party$
       - builtin$

@@ -147,6 +147,9 @@ func deleteAllManaged(
 	}
 
 	if err := cw.DeleteAllOf(cheCtx.Context, obj, opts); err != nil {
+		if namespace == "" {
+			return fmt.Errorf("failed to delete %s: %w", k8sclient.GetObjectType(obj), err)
+		}
 		return fmt.Errorf("failed to delete %s in %s: %w", k8sclient.GetObjectType(obj), namespace, err)
 	}
 

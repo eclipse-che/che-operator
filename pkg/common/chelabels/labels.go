@@ -14,13 +14,13 @@ package chelabels
 
 import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 )
 
 func OperatorManaged(component string) map[string]string {
 	return map[string]string{
 		constants.KubernetesComponentLabelKey: component,
-		constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel(),
+		constants.KubernetesManagedByLabelKey: defaults.GetOperatorName(),
 		constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
 	}
 }

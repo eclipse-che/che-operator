@@ -349,7 +349,7 @@ type CheClusterSpecNetworking struct {
 	Auth Auth `json:"auth"`
 	// NetworkPolicy defines the NetworkPolicies the Operator provisions for Che components,
 	// such as the gateway, the server, the dashboard and the registries.
-	// +kubebuilder:validation:Optional
+	// +optional
 	NetworkPolicy *NetworkPolicy `json:"networkPolicy,omitempty"`
 }
 
