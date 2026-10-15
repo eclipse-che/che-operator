@@ -37,6 +37,17 @@ func updateNetworkPolicy(cheCtx *chetypes.CheContext, workspaceConfig *controlle
 		workspaceConfig.NetworkPolicy.Egress = dwoEgressRules
 	}
 
+	// Backward compatibility with Che 7.123 and earlier, where workspace isolation was driven by the
+	// Che-wide `spec.networking.networkPolicy.enabled` flag and the Che Operator created the
+	// NetworkPolicies in the user namespace itself. That no longer happens: the usernamespace
+	// controller deletes those legacy policies on OpenShift, and DWO leaves isolation disabled unless
+	// `spec.devEnvironments.networking.networkPolicy.enabled` is set explicitly. Without this, an
+	// upgrade would silently lose isolation, so carry the legacy setting over — unless the user has
+	// already expressed an explicit choice in the devEnvironments section.
+	if workspaceConfig.NetworkPolicy.Enabled == nil && cheCtx.CheCluster.IsNetworkPoliciesEnabled() {
+		workspaceConfig.NetworkPolicy.Enabled = new(true)
+	}
+
 	return nil
 }
 

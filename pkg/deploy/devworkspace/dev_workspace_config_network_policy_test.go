@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func TestReconcileNetworkPolicy(t *testing.T) {
+func TestDWONetworkPolicyRules(t *testing.T) {
 	customIngressRule := networkingv1.NetworkPolicyIngressRule{
 		From: []networkingv1.NetworkPolicyPeer{
 			{PodSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "custom-ingress"}}},
@@ -70,50 +70,56 @@ func TestReconcileNetworkPolicy(t *testing.T) {
 	assert.NoError(t, err)
 
 	type testCase struct {
-		name            string
-		networkPolicy   *controllerv1alpha1.NetworkPolicyConfig
-		existedObjects  []client.Object
-		expectedIngress []networkingv1.NetworkPolicyIngressRule
-		expectedEgress  []networkingv1.NetworkPolicyEgressRule
-		expectedEnabled *bool
+		name                    string
+		dwoNetworkPolicyConfig  *controllerv1alpha1.NetworkPolicyConfig
+		existedObjects          []client.Object
+		expectedDWOIngressRules []networkingv1.NetworkPolicyIngressRule
+		expectedDWOEgressRules  []networkingv1.NetworkPolicyEgressRule
 	}
 
 	testCases := []testCase{
 		{
-			name:            "Set default rules and the rule allowing traffic from Che operands when the network policy is not set",
-			networkPolicy:   nil,
-			expectedIngress: slices.Concat(defaultIngressRules, []networkingv1.NetworkPolicyIngressRule{buildAllowFromCheIngressRule("eclipse-che")}),
-			expectedEgress:  defaultEgressRules,
+			name:                    "Set default rules and the rule allowing traffic from Che operands when the network policy is not set",
+			dwoNetworkPolicyConfig:  nil,
+			expectedDWOIngressRules: slices.Concat(defaultIngressRules, []networkingv1.NetworkPolicyIngressRule{buildAllowFromCheIngressRule("eclipse-che")}),
+			expectedDWOEgressRules:  defaultEgressRules,
 		},
 		{
-			name:            "Set default rules and the rule allowing traffic from Che operands when the network policy is empty",
-			networkPolicy:   &controllerv1alpha1.NetworkPolicyConfig{},
-			expectedIngress: slices.Concat(defaultIngressRules, []networkingv1.NetworkPolicyIngressRule{buildAllowFromCheIngressRule("eclipse-che")}),
-			expectedEgress:  defaultEgressRules,
+			name:                    "Set default rules and the rule allowing traffic from Che operands when the network policy is empty",
+			dwoNetworkPolicyConfig:  &controllerv1alpha1.NetworkPolicyConfig{},
+			expectedDWOIngressRules: slices.Concat(defaultIngressRules, []networkingv1.NetworkPolicyIngressRule{buildAllowFromCheIngressRule("eclipse-che")}),
+			expectedDWOEgressRules:  defaultEgressRules,
 		},
 		{
 			name: "Keep custom ingress rules and not add the rule allowing traffic from Che operands",
-			networkPolicy: &controllerv1alpha1.NetworkPolicyConfig{
+			dwoNetworkPolicyConfig: &controllerv1alpha1.NetworkPolicyConfig{
 				Ingress: []networkingv1.NetworkPolicyIngressRule{customIngressRule},
 			},
-			expectedIngress: []networkingv1.NetworkPolicyIngressRule{customIngressRule},
-			expectedEgress:  defaultEgressRules,
+			expectedDWOIngressRules: []networkingv1.NetworkPolicyIngressRule{customIngressRule},
+			expectedDWOEgressRules:  defaultEgressRules,
 		},
 		{
 			name: "Don't Lose the empty rule lists when they are written to the DWOC",
-			networkPolicy: &controllerv1alpha1.NetworkPolicyConfig{
+			dwoNetworkPolicyConfig: &controllerv1alpha1.NetworkPolicyConfig{
 				Ingress: []networkingv1.NetworkPolicyIngressRule{},
 				Egress:  []networkingv1.NetworkPolicyEgressRule{},
 			},
-			expectedIngress: []networkingv1.NetworkPolicyIngressRule{},
-			expectedEgress:  []networkingv1.NetworkPolicyEgressRule{},
+			expectedDWOIngressRules: []networkingv1.NetworkPolicyIngressRule{},
+			expectedDWOEgressRules:  []networkingv1.NetworkPolicyEgressRule{},
 		},
 		{
-			name:            "Override the network policy already set in the DWOC with the default rules when the network policy is not set",
-			networkPolicy:   nil,
-			existedObjects:  []client.Object{existedDWOC},
-			expectedIngress: slices.Concat(defaultIngressRules, []networkingv1.NetworkPolicyIngressRule{buildAllowFromCheIngressRule("eclipse-che")}),
-			expectedEgress:  defaultEgressRules,
+			name:                    "Override the network policy already set in the DWOC with the default rules when the network policy is not set",
+			dwoNetworkPolicyConfig:  nil,
+			existedObjects:          []client.Object{existedDWOC},
+			expectedDWOIngressRules: slices.Concat(defaultIngressRules, []networkingv1.NetworkPolicyIngressRule{buildAllowFromCheIngressRule("eclipse-che")}),
+			expectedDWOEgressRules:  defaultEgressRules,
+		},
+		{
+			name:                    "Override the network policy already set in the DWOC with the default rules when the network policy is empty",
+			dwoNetworkPolicyConfig:  &controllerv1alpha1.NetworkPolicyConfig{},
+			existedObjects:          []client.Object{existedDWOC},
+			expectedDWOIngressRules: slices.Concat(defaultIngressRules, []networkingv1.NetworkPolicyIngressRule{buildAllowFromCheIngressRule("eclipse-che")}),
+			expectedDWOEgressRules:  defaultEgressRules,
 		},
 	}
 
@@ -127,7 +133,7 @@ func TestReconcileNetworkPolicy(t *testing.T) {
 					},
 					Spec: chev2.CheClusterSpec{
 						DevEnvironments: chev2.CheClusterDevEnvironments{
-							Networking: &chev2.DevEnvironmentNetworking{NetworkPolicy: testCase.networkPolicy},
+							Networking: &chev2.DevEnvironmentNetworking{NetworkPolicy: testCase.dwoNetworkPolicyConfig},
 						},
 					},
 				}).WithObjects(testCase.existedObjects...).Build()
@@ -148,9 +154,92 @@ func TestReconcileNetworkPolicy(t *testing.T) {
 			dwocNetworkPolicy := dwoc.Config.Workspace.NetworkPolicy
 
 			assert.NotNil(t, dwocNetworkPolicy)
-			assert.Equal(t, testCase.expectedIngress, dwocNetworkPolicy.Ingress)
-			assert.Equal(t, testCase.expectedEgress, dwocNetworkPolicy.Egress)
-			assert.Equal(t, testCase.expectedEnabled, dwocNetworkPolicy.Enabled)
+			assert.Equal(t, testCase.expectedDWOIngressRules, dwocNetworkPolicy.Ingress)
+			assert.Equal(t, testCase.expectedDWOEgressRules, dwocNetworkPolicy.Egress)
+		})
+	}
+}
+
+func TestDWONetworkPolicyEnabled(t *testing.T) {
+	type testCase struct {
+		name                            string
+		dwoNetworkPolicyConfig          *controllerv1alpha1.NetworkPolicyConfig
+		cheNetworkPolicyConfig          *chev2.NetworkPolicy
+		expectedDWONetworkPolicyEnabled *bool
+	}
+
+	testCases := []testCase{
+		{
+			name: "Do not set the DWO network policy enabled flag when it is not set in the Che or the DWO network policy configuration",
+			cheNetworkPolicyConfig: &chev2.NetworkPolicy{
+				Enabled: nil,
+			},
+			dwoNetworkPolicyConfig: &controllerv1alpha1.NetworkPolicyConfig{
+				Enabled: nil,
+			},
+			expectedDWONetworkPolicyEnabled: nil,
+		},
+		{
+			name: "Do not set the DWO network policy enabled flag when the Che network policy is disabled",
+			cheNetworkPolicyConfig: &chev2.NetworkPolicy{
+				Enabled: new(false),
+			},
+			dwoNetworkPolicyConfig: &controllerv1alpha1.NetworkPolicyConfig{
+				Enabled: nil,
+			},
+			expectedDWONetworkPolicyEnabled: nil,
+		},
+		{
+			name: "Set the DWO network policy enabled flag when the Che network policy is enabled",
+			cheNetworkPolicyConfig: &chev2.NetworkPolicy{
+				Enabled: new(true),
+			},
+			dwoNetworkPolicyConfig: &controllerv1alpha1.NetworkPolicyConfig{
+				Enabled: nil,
+			},
+			expectedDWONetworkPolicyEnabled: new(true),
+		},
+		{
+			name: "Keep the DWO network policy enabled flag set in the dev environments networking configuration",
+			dwoNetworkPolicyConfig: &controllerv1alpha1.NetworkPolicyConfig{
+				Enabled: new(true),
+			},
+			expectedDWONetworkPolicyEnabled: new(true),
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			cheCtx := test.NewCtxBuilder().WithCheCluster(
+				&chev2.CheCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "eclipse-che",
+						Namespace: "eclipse-che",
+					},
+					Spec: chev2.CheClusterSpec{
+						Networking: chev2.CheClusterSpecNetworking{
+							NetworkPolicy: testCase.cheNetworkPolicyConfig,
+						},
+						DevEnvironments: chev2.CheClusterDevEnvironments{
+							Networking: &chev2.DevEnvironmentNetworking{NetworkPolicy: testCase.dwoNetworkPolicyConfig},
+						},
+					},
+				}).Build()
+
+			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
+			test.EnsureReconcile(t, cheCtx, devWorkspaceConfigReconciler.Reconcile)
+
+			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
+			err := cheCtx.ClusterAPI.Client.Get(
+				cheCtx.Context,
+				types.NamespacedName{Name: devWorkspaceConfigName, Namespace: "eclipse-che"},
+				dwoc)
+			assert.NoError(t, err)
+
+			assert.NotNil(t, dwoc.Config)
+			assert.NotNil(t, dwoc.Config.Workspace)
+			assert.NotNil(t, dwoc.Config.Workspace.NetworkPolicy)
+			assert.Equal(t, testCase.expectedDWONetworkPolicyEnabled, dwoc.Config.Workspace.NetworkPolicy.Enabled)
 		})
 	}
 }
