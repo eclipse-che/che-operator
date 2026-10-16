@@ -14,6 +14,8 @@ github.com/VividCortex/ewma v1.2.0 h1:f58SaIzcDXrSy3kWaHNvuJgJ3Nmz59Zji6XoJR/q1o
 github.com/VividCortex/ewma v1.2.0/go.mod h1:nz4BbCtbLyFDeC9SUHbtcT5644juEuWfUAUnGx7j5l4=
 github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d h1:licZJFw2RwpHMqeKTCYkitsPqHNxTmd4SNR5r94FGM8=
 github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d/go.mod h1:asat636LX7Bqt5lYEZ27JNDcqxfjdBQuJ/MM4CN/Lzo=
+github.com/akurinnoy/devworkspace-operator v0.0.0-20261008102644-4d93c0891277 h1:84WbnVz428i0RIefk3x3ifhhcr3Zc7nx47qw7A+2H58=
+github.com/akurinnoy/devworkspace-operator v0.0.0-20261008102644-4d93c0891277/go.mod h1:+EIM8ujp9GO+S2w/eU3nAZv1hAkEZBrFmRQtg5PMVQA=
 github.com/antlr4-go/antlr/v4 v4.13.1 h1:SqQKkuVZ+zWkMMNkjy5FZe5mr5WURWnlpmOuzYWrPrQ=
 github.com/antlr4-go/antlr/v4 v4.13.1/go.mod h1:GKmUxMtwp6ZgGwZSva4eWPC5mS6vUAmOABFgjdkM7Nw=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
@@ -62,8 +64,6 @@ github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/devfile/api/v2 v2.3.1-alpha.0.20261007143616-3c7e2fd6d137 h1:bECxO1gOSmWNjqoTv+xUWSwzXGZhnCQOSJrlIVOWtR4=
 github.com/devfile/api/v2 v2.3.1-alpha.0.20261007143616-3c7e2fd6d137/go.mod h1:t+btHuWTpDnTPPf+MM4kB34Ebp5PVmEnn/nrhQXC4IQ=
-github.com/devfile/devworkspace-operator v0.2.1-0.20261008221424-9e9bab4780a9 h1:E/c/MIbcMOB7ctfsUK7Ny/iBI95IjocZ8Ygol0qGNWI=
-github.com/devfile/devworkspace-operator v0.2.1-0.20261008221424-9e9bab4780a9/go.mod h1:+EIM8ujp9GO+S2w/eU3nAZv1hAkEZBrFmRQtg5PMVQA=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f h1:lO4WD4F/rVNCu3HqELle0jiPLLBs70cWOduZpkS1E78=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f/go.mod h1:cuUVRXasLTGF7a8hSLbxyZXjz+1KgoB3wDUb6vlszIc=
 github.com/distribution/distribution/v3 v3.0.0 h1:q4R8wemdRQDClzoNNStftB2ZAfqOiN6UX90KJc4HjyM=

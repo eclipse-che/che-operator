@@ -108,3 +108,5 @@ require (
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.2 // indirect
 )
+
+replace github.com/devfile/devworkspace-operator => github.com/akurinnoy/devworkspace-operator v0.0.0-20261008102644-4d93c0891277
