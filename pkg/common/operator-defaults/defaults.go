@@ -237,6 +237,10 @@ func GetCheFlavor() string {
 	return defaultCheFlavor
 }
 
+func GetOperatorName() string {
+	return GetCheFlavor() + "-operator"
+}
+
 func GetConsoleLinkName() string {
 	if !initialized {
 		Initialize()

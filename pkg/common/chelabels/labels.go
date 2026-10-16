@@ -10,16 +10,17 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package networkpolicies
+package chelabels
 
 import (
-	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
-	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 )
 
-func init() {
-	k8shelper.InitializeForTesting()
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
-	defaults.InitializeForTesting()
+func OperatorManaged(component string) map[string]string {
+	return map[string]string{
+		constants.KubernetesComponentLabelKey: component,
+		constants.KubernetesManagedByLabelKey: defaults.GetOperatorName(),
+		constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+	}
 }

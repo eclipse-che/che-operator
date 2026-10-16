@@ -729,7 +729,7 @@ func TestReconcileDevWorkspaceConfigStorage(t *testing.T) {
 			assert.NoError(t, err)
 
 			diff := cmp.Diff(testCase.expectedOperatorConfig, dwoc.Config, cmp.Options{
-				cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount"),
+				cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount", "NetworkPolicy"),
 				cmpopts.IgnoreFields(controllerv1alpha1.RoutingConfig{}, "TLSCertificateConfigmapRef"),
 			})
 			assert.Empty(t, diff)

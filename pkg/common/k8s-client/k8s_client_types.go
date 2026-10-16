@@ -42,6 +42,9 @@ type K8sClient interface {
 	// DeleteByKeyIgnoreNotFound deletes object by key.
 	// Returns nil if object is deleted or not found otherwise returns error.
 	DeleteByKeyIgnoreNotFound(ctx context.Context, key client.ObjectKey, objectMeta client.Object, opts ...client.DeleteOption) error
+	// DeleteAllOf deletes all objects of the given type.
+	// Returns nil if objects are deleted otherwise returns error.
+	DeleteAllOf(ctx context.Context, obj client.Object, opts ...client.DeleteAllOfOption) error
 	// List returns list of runtime objects.
 	// Returns nil if list is retrieved otherwise returns error.
 	List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) ([]runtime.Object, error)

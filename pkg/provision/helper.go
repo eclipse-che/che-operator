@@ -18,6 +18,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/eclipse-che/che-operator/pkg/common/chelabels"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
@@ -26,11 +27,17 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// SyncObject ensures that the object is up to date in the cluster.
+// Package provision provides low-level utilities for provisioning, synchronizing,
+// and cleaning up Kubernetes resources. It serves as a higher-level abstraction
+// layer in front of K8sClientWrapper, simplifying cluster interaction calls.
+
+// syncObject ensures that the object is up to date in the cluster.
 // Besides the actual sync it:
 //   - selects the client to use: the cached one for objects labeled with
 //     `app.kubernetes.io/part-of: che.eclipse.org` (they are watched by the operator),
@@ -42,7 +49,7 @@ import (
 //     should not be used with `pkg/common/diffs/diffs.go`.
 //   - retries the sync with recreation if the update failed because an immutable field has changed,
 //     but only when `allowForceRecreate` is set.
-func SyncObject(
+func syncObject(
 	cheCtx *chetypes.CheContext,
 	obj client.Object,
 	diff cmp.Options,
@@ -94,6 +101,56 @@ func SyncObject(
 		}
 
 		return getSyncError(obj, err)
+	}
+
+	return nil
+}
+
+// deleteObject ensures that the object is deleted in the cluster.
+func deleteObject(
+	cheCtx *chetypes.CheContext,
+	name string,
+	namespace string,
+	obj client.Object,
+	opts ...client.DeleteOption,
+) error {
+	cw := cheCtx.ClusterAPI.ClientWrapper
+	key := types.NamespacedName{Name: name, Namespace: namespace}
+
+	if err := cw.DeleteByKeyIgnoreNotFound(cheCtx.Context, key, obj, opts...); err != nil {
+		return fmt.Errorf("failed to delete %s %s: %w", k8sclient.GetObjectType(obj), key.String(), err)
+	}
+
+	return nil
+}
+
+// deleteAllManaged ensures that all objects of the given type managed by the operator
+// for the specified component are deleted in the cluster.
+// If namespace is not empty, the deletion is scoped to that namespace.
+func deleteAllManaged(
+	cheCtx *chetypes.CheContext,
+	namespace string,
+	obj client.Object,
+	component string,
+) error {
+	cw := cheCtx.ClusterAPI.ClientWrapper
+	cheLabels := chelabels.OperatorManaged(component)
+
+	opts := &client.DeleteAllOfOptions{
+		ListOptions: client.ListOptions{
+			LabelSelector: labels.SelectorFromSet(cheLabels),
+		},
+	}
+
+	if namespace != "" {
+		opts.Namespace = namespace
+	}
+
+	if err := cw.DeleteAllOf(cheCtx.Context, obj, opts); err != nil {
+		if namespace == "" {
+			return fmt.Errorf("failed to delete %s: %w", k8sclient.GetObjectType(obj), err)
+		}
+		return fmt.Errorf("failed to delete %s in %s: %w", k8sclient.GetObjectType(obj), namespace, err)
 	}
 
 	return nil
