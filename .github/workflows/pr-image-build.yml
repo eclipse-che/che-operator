@@ -105,7 +105,7 @@ jobs:
           yq -riY '.metadata.annotations.containerImage = "'"${OPERATOR_IMAGE}"'"' "${CSV_PATH}"
           yq -riY '.spec.install.spec.deployments[0].spec.template.spec.containers[0].image = "'"${OPERATOR_IMAGE}"'"' "${CSV_PATH}"
           
-          ${GITHUB_WORKSPACE}/build/scripts/olm/release-catalog.sh \
+          ${GITHUB_WORKSPACE}/build/scripts/release/release-catalog.sh \
             --channel next \
             --image-tool docker \
             --multi-arch \

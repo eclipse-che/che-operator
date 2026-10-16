@@ -90,7 +90,7 @@ build/scripts/docker-run.sh /bin/bash -c "
     --token=<...> \
     --server=<...> \
     --insecure-skip-tls-verify=true && \
-  build/scripts/olm/test-catalog-from-sources.sh
+  build/scripts/oc-tests/oc-test.sh --from sources=next --to none
 "
 ```
 
