@@ -24714,6 +24714,11 @@ spec:
                           When enabled and no egress rules are specified, the Operator sets the default
                           DevWorkspace Operator egress rules. If custom egress rules are specified, only
                           those rules apply.
+
+                          When `enabled` is not set here, it falls back to the Che-wide
+                          `spec.networking.networkPolicy.enabled` flag: if that flag is `true`, workspace isolation
+                          is enabled as well. Set `enabled` to `false` explicitly to opt the workspaces out while
+                          keeping the NetworkPolicies for the Che components.
                         properties:
                           egress:
                             description: |-
@@ -29302,7 +29307,13 @@ spec:
                           cluster's ingress controller\nis not known to the Operator.
                           Enabling this setting on Kubernetes does not restrict any
                           traffic\nby itself: administrators are expected to provision
-                          their own NetworkPolicies."
+                          their own NetworkPolicies.\n\nThis setting also drives workspace
+                          isolation when `spec.devEnvironments.networking.networkPolicy`\ndoes
+                          not define `enabled`: setting this field to `true` additionally
+                          enables the NetworkPolicies\nthat the DevWorkspace Operator
+                          provisions for each DevWorkspace. To protect the Che components\nwithout
+                          isolating the workspaces, explicitly set\n`spec.devEnvironments.networking.networkPolicy.enabled`
+                          to `false`."
                         type: boolean
                     type: object
                   tlsSecretName:

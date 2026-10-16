@@ -371,6 +371,11 @@ type DevEnvironmentNetworking struct {
 	// When enabled and no egress rules are specified, the Operator sets the default
 	// DevWorkspace Operator egress rules. If custom egress rules are specified, only
 	// those rules apply.
+	//
+	// When `enabled` is not set here, it falls back to the Che-wide
+	// `spec.networking.networkPolicy.enabled` flag: if that flag is `true`, workspace isolation
+	// is enabled as well. Set `enabled` to `false` explicitly to opt the workspaces out while
+	// keeping the NetworkPolicies for the Che components.
 	// +kubebuilder:validation:Optional
 	NetworkPolicy *controllerv1alpha1.NetworkPolicyConfig `json:"networkPolicy,omitempty"`
 }
@@ -399,6 +404,12 @@ type NetworkPolicy struct {
 	// allowing all ingress and egress traffic, since the namespace of the cluster's ingress controller
 	// is not known to the Operator. Enabling this setting on Kubernetes does not restrict any traffic
 	// by itself: administrators are expected to provision their own NetworkPolicies.
+	//
+	// This setting also drives workspace isolation when `spec.devEnvironments.networking.networkPolicy`
+	// does not define `enabled`: setting this field to `true` additionally enables the NetworkPolicies
+	// that the DevWorkspace Operator provisions for each DevWorkspace. To protect the Che components
+	// without isolating the workspaces, explicitly set
+	// `spec.devEnvironments.networking.networkPolicy.enabled` to `false`.
 	//
 	// +kubebuilder:default:=false
 	// +kubebuilder:validation:Optional
