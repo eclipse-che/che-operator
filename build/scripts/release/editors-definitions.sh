@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2019-2024 Red Hat, Inc.
+# Copyright (c) 2019-2026 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -36,7 +36,7 @@ usage () {
   echo "Usage: $0 COMMAND OPTIONS"
   echo
   echo "Commands:"
-  echo "  release              Update the che-code-injector image in the editor definitions"
+  echo "  release              Remove 'next' and 'insiders' editor definitions and update the che-code-injector image"
   echo "  update-manager-yaml  Update the operator deployment file (manager.yaml) with the RELATED_IMAGE env vars"
   echo
   echo "Options:"
@@ -51,7 +51,20 @@ usage () {
 
 release() {
   if [[ ! ${VERSION} ]]; then usage; exit 1; fi
+  removeUnreleasedEditorsDefinitions
   yq -riY "(.components[] | select(.name==\"che-code-injector\") | .container.image) = \"quay.io/che-incubator/che-code:${VERSION}\"" "${EDITORS_DEFINITIONS_DIR}/che-code-latest.yaml"
+}
+
+# 'next' and 'insiders' editor definitions use images that are rebuilt on every commit
+# and can't be pinned to a digest, so they must not be shipped in a release.
+removeUnreleasedEditorsDefinitions() {
+  for EDITOR_DEFINITION_FILE in $(find "${EDITORS_DEFINITIONS_DIR}" -name "*.yaml"); do
+    EDITOR_VERSION=$(yq -r '.metadata.attributes.version' "${EDITOR_DEFINITION_FILE}")
+    if [[ ${EDITOR_VERSION} == "next" || ${EDITOR_VERSION} == "insiders" ]]; then
+      echo "[INFO] Removing editor definition ${EDITOR_DEFINITION_FILE}"
+      rm -f "${EDITOR_DEFINITION_FILE}"
+    fi
+  done
 }
 
 updateOperatorDeploymentEnvVar() {
