@@ -917,14 +917,14 @@ wait-eclipseche-reconciled: ## Wait until Eclipse Che is reconciled
 
 	while (( SECONDS < deadline )); do
 		pods=$$(oc get pod \
-			-l "$$OPERATOR_POD_SELECTOR" \
-			-n "$$OPERATOR_NAMESPACE" \
+			-l "app.kubernetes.io/component=che-operator" \
+			-n "$(NAMESPACE)" \
 			-o jsonpath='{.items[*].metadata.name}' 2>/dev/null) || pods=""
 
 		# Avoid grep -q: with pipefail, an early grep exit can cause
 		# oc logs to fail with SIGPIPE.
 		if [[ $$(wc -w <<< "$$pods") -eq 1 ]] && \
-			oc logs "$$pods" -n "$$OPERATOR_NAMESPACE" 2>/dev/null | \
+			oc logs "$$pods" -n "$(NAMESPACE)" 2>/dev/null | \
 			grep "Successfully reconciled" >/dev/null; then
 			echo "[INFO] CheCluster successfully reconciled"
 			exit 0

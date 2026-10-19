@@ -25,7 +25,7 @@ che-operator Development Guide: https://github.com/eclipse-che/che-operator/#dev
  
 #### OpenShift
 ```bash
-build/scripts/oc-tests/oc-test.sh --from pr
+build/scripts/oc-tests/oc-test.sh --install-from pr
 ```
 
 #### on Minikube

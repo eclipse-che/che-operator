@@ -20,7 +20,7 @@ set -ex
 export OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
 
 runTests() {
-  . "${OPERATOR_REPO}/build/scripts/oc-tests/oc-test.sh" --from stable --to stable
+  . "${OPERATOR_REPO}/build/scripts/oc-tests/oc-test.sh" --install-from stable --update-to stable
 }
 
 runTests

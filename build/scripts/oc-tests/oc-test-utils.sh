@@ -52,9 +52,7 @@ getPullRequestCatalogImage() {
 # '--skip-tls-verify' allows reading catalog images from the in-cluster image registry,
 # whose route certificate the local machine does not trust.
 getBundleNamesFromCatalogImage() {
-  local image="$1"
-
-  opm render "$image" --skip-tls-verify | jq -r 'select(.schema == "olm.bundle") | .name' | sort -V
+  opm render "$1" --skip-tls-verify | jq -r 'select(.schema == "olm.bundle") | .name' | sort -V
 }
 
 # Prints the name of the latest bundle of the given catalog image.
@@ -65,6 +63,7 @@ getLatestBundleNameFromCatalogImage() {
 # Prints the name of the second latest bundle of the given catalog image.
 getSecondLatestBundleNameFromCatalogImage() {
   local bundles
+
   bundles=$(getBundleNamesFromCatalogImage "$1")
 
   if [[ $(echo "$bundles" | wc -l) -lt 2 ]]; then
@@ -77,9 +76,7 @@ getSecondLatestBundleNameFromCatalogImage() {
 
 # Prints the default channel of the package in the given catalog image.
 getDefaultChannelFromCatalogImage() {
-  local image="$1"
-
-  opm render "$image" --skip-tls-verify | jq -r 'select(.schema == "olm.package") | .defaultChannel'
+  opm render "$1" --skip-tls-verify | jq -r 'select(.schema == "olm.package") | .defaultChannel'
 }
 
 # Exposes the in-cluster image registry on a route and makes the cluster nodes trust its certificate,
@@ -137,14 +134,12 @@ buildImageInCluster() {
   oc start-build "$name" --from-dir "$dir" -n "$OPERATOR_NAMESPACE" --wait
 }
 
-# Builds the operator image from the repository sources.
 buildOperatorImageFromSources() {
   echo "[INFO] Building the operator image from sources"
 
   buildImageInCluster "$IMAGESTREAM_OPERATOR_NAME" "$REPO_ROOT"
 }
 
-# Builds the bundle image of SOURCES_CHANNEL, pointing to the operator image built from sources.
 buildBundleImageFromSources() {
   echo "[INFO] Building the bundle image from sources"
 
@@ -161,7 +156,6 @@ buildBundleImageFromSources() {
   buildImageInCluster "$IMAGESTREAM_BUNDLE_NAME" "$BUNDLE_DIR"
 }
 
-# Builds the catalog image of SOURCES_CHANNEL, containing only the bundle image built from sources.
 buildCatalogImageFromSources() {
   echo "[INFO] Building the catalog image from sources"
 

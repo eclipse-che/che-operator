@@ -61,6 +61,11 @@ export IMAGESTREAM_BUNDLE_NAME="eclipse-che-bundle"
 export IMAGESTREAM_CATALOG_NAME="eclipse-che-catalog"
 
 export CLUSTER_APPS_DOMAIN=$(oc get ingresses.config.openshift.io cluster -o jsonpath='{.spec.domain}')
+if [[ -z "${CLUSTER_APPS_DOMAIN:-}" ]]; then
+  echo "[ERROR]: Failed to detect cluster apps domain" >&2
+  exit 1
+fi
+
 export IMAGE_REGISTRY_ROUTE_HOST="default-route-openshift-image-registry.$CLUSTER_APPS_DOMAIN"
 export IMAGESTREAM_OPERATOR_IMAGE="$IMAGE_REGISTRY_ROUTE_HOST/$OPERATOR_NAMESPACE/$IMAGESTREAM_OPERATOR_NAME:latest"
 export IMAGESTREAM_BUNDLE_IMAGE="$IMAGE_REGISTRY_ROUTE_HOST/$OPERATOR_NAMESPACE/$IMAGESTREAM_BUNDLE_NAME:latest"
@@ -80,7 +85,7 @@ else
 fi
 
 init() {
-  unset FROM
+  FROM="none"
   unset FROM_OPTION
   unset FROM_PR_NUMBER
   unset FROM_SOURCES_CHANNEL
@@ -92,12 +97,12 @@ init() {
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
-      --from)
+      --install-from)
         FROM_OPTION="$2"
         parseOptionValue "$1" FROM "$2"
         shift
         ;;
-      --to)
+      --update-to)
         TO_OPTION="$2"
         parseOptionValue "$1" TO "$2"
         shift
@@ -116,8 +121,8 @@ init() {
     shift
   done
 
-  if [[ -z "${FROM:-}" || -z "${TO:-}" ]]; then
-    echo "[ERROR] Both '--from' and '--to' options are required."
+  if [[ "${FROM}" == "none" && "${TO}" == "none" ]]; then
+    echo "[ERROR] At least one of '--install-from' or '--update-to' options is required"
     printUsage
     exit 1
   fi
@@ -125,7 +130,7 @@ init() {
 
 # Parses the value of an option into the variables with the given prefix.
 # Arguments:
-#   $1 - option name, used in error messages, e.g. '--from'
+#   $1 - option name, used in error messages, e.g. '--install-from'
 #   $2 - variable prefix, e.g. 'FROM'
 #   $3 - option value, e.g. 'pr', 'pr=2225', 'pr=current', 'next', 'sources=next'
 # Sets:
@@ -228,44 +233,46 @@ printUsage() {
   echo "Test Eclipse Che install or update."
   echo
   echo "Usage:"
-  echo -e "  $0 --from TARGET --to TARGET"
+  echo -e "  $0 [--install-from TARGET] [--update-to TARGET]"
   echo
   echo "OPTIONS:"
-  echo -e "  --from TARGET  Eclipse Che installation to install as the source of the update"
-  echo -e "  --to TARGET    Eclipse Che installation to update the source to"
-  echo -e "  -h, --help     Show this help message"
+  echo -e "  --install-from TARGET  Eclipse Che installation to install as the source of the update"
+  echo -e "                         (default: none)"
+  echo -e "  --update-to TARGET     Eclipse Che installation to update the source to"
+  echo -e "                         (default: none)"
+  echo -e "  -h, --help             Show this help message"
   echo
   echo "TARGETS:"
   echo -e "  pr=<number>       - the Eclipse Che build from a pull request, where <number>"
-  echo -e "                      is the pull request number, e.g. --to pr=2225"
+  echo -e "                      is the pull request number, e.g. --update-to pr=2225"
   echo -e "  pr, pr=current    - the Eclipse Che build from the pull request of the current"
   echo -e "                      branch, detected with the 'gh' CLI or taken from the"
   echo -e "                      PULL_NUMBER environment variable"
   echo -e "  next              - the Eclipse Che build from the next channel; with"
-  echo -e "                      '--from next --to next' the previous next version is"
+  echo -e "                      '--install-from next --update-to next' the previous next version is"
   echo -e "                      installed and then updated to the latest one"
   echo -e "  stable            - the Eclipse Che build from the stable channel; with"
-  echo -e "                      '--from stable --to stable' the previous stable version is"
+  echo -e "                      '--install-from stable --update-to stable' the previous stable version is"
   echo -e "                      installed and then updated to the latest one"
   echo -e "  sources=<channel> - the Eclipse Che build created from the local sources of the"
   echo -e "                      given channel and pushed to the image registry of the"
   echo -e "                      cluster, where <channel> is one of: $(supportedChannelsList)"
-  echo -e "  none              - --from: the Eclipse Che installation that is already"
-  echo -e "                      deployed on the cluster; --to: do not update Eclipse Che"
+  echo -e "  none              - --install-from: the Eclipse Che installation that is already"
+  echo -e "                      deployed on the cluster; --update-to: do not update Eclipse Che"
   echo
   echo "Examples:"
-  echo -e "  $0 --from pr=2225 --to sources=next"
-  echo -e "  $0 --from pr --to sources=next"
-  echo -e "  $0 --from pr --to pr=1900"
-  echo -e "  $0 --from next --to pr"
-  echo -e "  $0 --from next --to stable"
-  echo -e "  $0 --from next --to next"
-  echo -e "  $0 --from stable --to next"
-  echo -e "  $0 --from stable --to stable"
-  echo -e "  $0 --from sources=next --to sources=stable"
-  echo -e "  $0 --from sources=stable --to pr=2225"
-  echo -e "  $0 --from none --to pr=2225"
-  echo -e "  $0 --from pr=2225 --to none"
+  echo -e "  $0 --install-from pr=2225 --update-to sources=next"
+  echo -e "  $0 --install-from pr --update-to sources=next"
+  echo -e "  $0 --install-from pr --update-to pr=1900"
+  echo -e "  $0 --install-from next --update-to pr"
+  echo -e "  $0 --install-from next --update-to stable"
+  echo -e "  $0 --install-from next --update-to next"
+  echo -e "  $0 --install-from stable --update-to next"
+  echo -e "  $0 --install-from stable --update-to stable"
+  echo -e "  $0 --install-from sources=next --update-to sources=stable"
+  echo -e "  $0 --install-from sources=stable --update-to pr=2225"
+  echo -e "  $0 --update-to pr=2225"
+  echo -e "  $0 --install-from pr=2225"
 }
 
 supportedChannelsList() {
@@ -319,6 +326,7 @@ installFromSources() {
   SOURCES_CHANNEL="${FROM_SOURCES_CHANNEL}"
 
   echo "[INFO] Preparing the OpenShift image registry to host the images built from sources"
+
   exposeAndTrustOpenShiftImageRegistry
   loginToOpenShiftImageRegistry
   buildOperatorImageFromSources
@@ -362,6 +370,7 @@ upgradeToSources() {
   SOURCES_CHANNEL="${TO_SOURCES_CHANNEL}"
 
   echo "[INFO] Preparing the OpenShift image registry to host the images built from sources"
+
   exposeAndTrustOpenShiftImageRegistry
   loginToOpenShiftImageRegistry
   buildOperatorImageFromSources
@@ -381,6 +390,11 @@ installFrom() {
   local catalog_image="$3"
 
   echo "[INFO] Installing Eclipse Che '${desired_csv}'"
+
+  if [[ "$FROM" == "next" ]] || [[ "$FROM" == "pr" ]] || [[ "$FROM" == "sources" && "$FROM_SOURCES_CHANNEL" == "next" ]]; then
+    # Install DevWorkspace operator next version
+    "$MAKE_BIN" install-devworkspace CHANNEL="fast" NAMESPACE="$OPERATOR_NAMESPACE"
+  fi
 
   local catalog_source_namespace="$MARKETPLACE_NAMESPACE"
   if [[ "$FROM" == "sources" ]]; then
@@ -414,7 +428,7 @@ installFrom() {
     | jq '.metadata.annotations["alm-examples"] | fromjson | .[] | select(.apiVersion == "org.eclipse.che/v2")' \
     | oc apply --server-side -n "$CHE_NAMESPACE" -f -
 
-  "$MAKE_BIN" wait-eclipseche-reconciled
+  "$MAKE_BIN" wait-eclipseche-reconciled NAMESPACE="$OPERATOR_NAMESPACE"
 }
 
 upgradeTo() {
@@ -462,7 +476,7 @@ upgradeTo() {
   echo "[INFO] Waiting for the Eclipse Che operator pod to be running"
   "$MAKE_BIN" wait-pod-running SELECTOR="$OPERATOR_POD_SELECTOR" NAMESPACE="$OPERATOR_NAMESPACE"
 
-  "$MAKE_BIN" wait-eclipseche-reconciled
+  "$MAKE_BIN" wait-eclipseche-reconciled NAMESPACE="$OPERATOR_NAMESPACE"
 }
 
 install() {
@@ -483,7 +497,7 @@ install() {
       echo "[INFO] Skipping Eclipse Che install"
       ;;
     *)
-      echo "[ERROR] Unknown '--from' value: '${FROM}'. Must be one of: pr, pr=<number>, pr=current, next, stable, sources=<channel>, none"
+      echo "[ERROR] Unknown '--install-from' value: '${FROM}'. Must be one of: pr, pr=<number>, pr=current, next, stable, sources=<channel>, none"
       printUsage
       exit 1
       ;;
@@ -508,7 +522,7 @@ upgrade() {
       echo "[INFO] Skipping Eclipse Che upgrade"
       ;;
     *)
-      echo "[ERROR] Unknown '--to' value: '${TO}'. Must be one of: pr, pr=<number>, pr=current, next, stable, sources=<channel>, none"
+      echo "[ERROR] Unknown '--update-to' value: '${TO}'. Must be one of: pr, pr=<number>, pr=current, next, stable, sources=<channel>, none"
       printUsage
       exit 1
       ;;

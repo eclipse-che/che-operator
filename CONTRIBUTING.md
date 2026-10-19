@@ -64,7 +64,7 @@ make docker-build IMG=<YOUR_OPERATOR_IMAGE>
 For OpenShift cluster:
 
 ```bash
-build/scripts/oc-tests/oc-test.sh --from sources=next
+build/scripts/oc-tests/oc-test.sh --install-from sources=next
 ```
 
 For Kubernetes cluster:
@@ -86,4 +86,4 @@ Then use VSCode debug configuration `Che Operator` to attach to a running proces
 ### Pull requests
 
 Use the [pull request template](.github/PULL_REQUEST_TEMPLATE.md) and fill in all sections, including steps to deploy and test the change.
-See also [Red Hat compliance and responsible AI](.github/redhat-compliance-and-responsible-ai.md).
+See also [Red Hat compliance and responsible AI](redhat-compliance-and-responsible-ai.md).
