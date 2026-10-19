@@ -8,7 +8,7 @@ require (
 	github.com/devfile/devworkspace-operator v0.2.1-0.20261008221424-9e9bab4780a9
 	github.com/go-logr/logr v1.4.4
 	github.com/google/go-cmp v0.7.0
-	github.com/onsi/ginkgo/v2 v2.33.0
+	github.com/onsi/ginkgo/v2 v2.33.1
 	github.com/openshift/api v0.0.0-20260805215214-cfb63858e9d7
 	github.com/openshift/controller-runtime-common v0.0.0-20260813135806-e1187ec555fc
 	github.com/openshift/library-go v0.0.0-20260826200314-c1c4c5daeed6
