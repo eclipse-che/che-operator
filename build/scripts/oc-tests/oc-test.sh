@@ -392,13 +392,16 @@ installFrom() {
   echo "[INFO] Installing Eclipse Che '${desired_csv}'"
 
   if [[ "$FROM" == "next" ]] || [[ "$FROM" == "pr" ]] || [[ "$FROM" == "sources" && "$FROM_SOURCES_CHANNEL" == "next" ]]; then
-    # Install DevWorkspace operator next version
+    # Install DWO next version
+    "$MAKE_BIN" install-devworkspace CHANNEL="next" NAMESPACE="$OPERATOR_NAMESPACE"
+  else
+    # Install DWO stable version
     "$MAKE_BIN" install-devworkspace CHANNEL="fast" NAMESPACE="$OPERATOR_NAMESPACE"
   fi
 
   local catalog_source_namespace="$MARKETPLACE_NAMESPACE"
   if [[ "$FROM" == "sources" ]]; then
-    # Use namespace where image is build
+    # Use namespace where image is built
     catalog_source_namespace="$OPERATOR_NAMESPACE"
   fi
 
@@ -455,7 +458,7 @@ upgradeTo() {
 
   local catalog_source_namespace="$MARKETPLACE_NAMESPACE"
   if [[ "$TO" == "sources" ]]; then
-    # Use namespace where image is build
+    # Use namespace where image is built
     catalog_source_namespace="$OPERATOR_NAMESPACE"
   fi
 

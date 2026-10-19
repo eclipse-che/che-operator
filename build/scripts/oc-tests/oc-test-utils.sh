@@ -189,5 +189,5 @@ EOF
   sed 's|ADD olm-catalog/${CHANNEL}|ADD /'"$SOURCES_CHANNEL"'|g' \
     "${REPO_ROOT}/olm-catalog/index.Dockerfile" > "$(dirname "$CHANNEL_DIR")/Dockerfile"
 
-  buildImageInCluster "$IMAGESTREAM_CATALOG_NAME" $(dirname "$CHANNEL_DIR")
+  buildImageInCluster "$IMAGESTREAM_CATALOG_NAME" "$(dirname "$CHANNEL_DIR")"
 }
