@@ -523,8 +523,5 @@ main() {
 }
 
 checkPrerequisites
-
 init "$@"
-initClusterVariables
-
 main
