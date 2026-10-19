@@ -21,7 +21,7 @@ export DEVWORKSPACE_HAPPY_PATH="https://raw.githubusercontent.com/eclipse/che/ma
 export OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
 
 runTests() {
-  . "${OPERATOR_REPO}/build/scripts/oc-tests/oc-test.sh" --install-from pr
+  bash "${OPERATOR_REPO}/build/scripts/oc-tests/oc-test.sh" --install-from pr
 
   export HAPPY_PATH_USERSTORY=SmokeTest
   export HAPPY_PATH_SUITE=test

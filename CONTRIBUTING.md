@@ -1,7 +1,6 @@
 # Contributing to Eclipse Che Operator
 
 - [Quick Start](#quick-start)
-- [Update golang dependencies](#update-golang-dependencies)
 - [Run unit tests](#run-unit-tests)
 - [Format the code and fix imports](#format-the-code-and-fix-imports)
 - [Run static code analyzers](#run-static-code-analyzers)
@@ -9,7 +8,6 @@
 - [Build Che operator image](#build-che-operator-image)
 - [Deploy Che operator from the source code](#deploy-che-operator-from-the-source-code)
 - [Debug Che operator](#debug-che-operator)
-- [Validation licenses for runtime dependencies](#validation-licenses-for-runtime-dependencies)
 - [Pull requests](#pull-requests)
 
 ### Quick Start

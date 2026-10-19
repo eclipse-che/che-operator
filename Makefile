@@ -21,10 +21,8 @@ endif
 ifeq ($(IMAGE_TOOL),)
 ifneq (,$(shell command -v docker 2>/dev/null))
 IMAGE_TOOL := docker
-else ifneq (,$(shell command -v podman 2>/dev/null))
-IMAGE_TOOL := podman
 else
-$(warning Neither docker nor podman found in PATH; set IMAGE_TOOL=<tool> to run image-related targets)
+IMAGE_TOOL := podman
 endif
 endif
 
