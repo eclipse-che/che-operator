@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2019-2023 Red Hat, Inc.
+# Copyright (c) 2019-2026 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -69,8 +69,8 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
-# Setting SHELL to bash allows bash commands to be executed by recipes.
-# This is a requirement for 'setup-envtest.sh' in the test target.
+# Run all lines of a recipe in a single shell, so that shell variables, loops and
+# multi-line commands span across lines. Requires GNU make 3.82+.
 .ONESHELL:
 
 all: build
@@ -527,6 +527,7 @@ bundle-build-and-push-multiarch: ## Build a bundle image
 	$(IMAGE_TOOL) buildx build --network=none --push --platform $(ARCHS) -f $${BUNDLE_PATH}/bundle.Dockerfile -t $(BUNDLE_IMG) $${BUNDLE_PATH}
 
 bundle-render: SHELL := /bin/bash
+bundle-render: .SHELLFLAGS := -eo pipefail -c
 bundle-render: download-opm ## Add bundle to a catalog
 	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
 	[[ -z "$(BUNDLE_NAME)" ]] && { echo [ERROR] BUNDLE_NAME not defined; exit 1; }
@@ -582,6 +583,7 @@ csv-path: ## Prints path to a clusterserviceversion file for a given channel
 	echo "$${BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
 
 bundle-name: SHELL := /bin/bash
+bundle-name: .SHELLFLAGS := -eo pipefail -c
 bundle-name: ## Prints a clusterserviceversion name for a given channel
 	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
 	CSV_PATH=$$($(MAKE) csv-path)
@@ -695,6 +697,7 @@ get-envtest-assets-path: ## Resolve the path to the envtest assets for the confi
 ##@ Kubernetes helper
 
 create-catalogsource: SHELL := /bin/bash
+create-catalogsource: .SHELLFLAGS := -eo pipefail -c
 create-catalogsource: ## Creates catalog source
 	[[ -z "$(NAME)" ]] && { echo [ERROR] NAME not defined; exit 1; }
 	[[ -z "$(IMAGE)" ]] && { echo [ERROR] IMAGE not defined; exit 1; }
@@ -723,7 +726,7 @@ create-catalogsource: ## Creates catalog source
 	  }
 	}' | $(K8S_CLI) apply -f -
 
-	sleep 20s
+	sleep 20
 	$(K8S_CLI) wait --for=condition=ready pod -l "olm.catalogSource=$(NAME)" -n $${DEFINED_NAMESPACE} --timeout=240s
 
 create-operatorgroup: SHELL := /bin/bash
@@ -744,6 +747,7 @@ create-operatorgroup: ## Creates operator group
 	fi
 
 create-subscription: SHELL := /bin/bash
+create-subscription: .SHELLFLAGS := -eo pipefail -c
 create-subscription: ## Creates subscription
 	[[ -z "$(NAME)" ]] && { echo [ERROR] NAME not defined; exit 1; }
 	[[ -z "$(NAMESPACE)" ]] && { echo [ERROR] NAMESPACE not defined; exit 1; }
@@ -775,6 +779,7 @@ create-subscription: ## Creates subscription
 	fi
 
 approve-installplan: SHELL := /bin/bash
+approve-installplan: .SHELLFLAGS := -eo pipefail -c
 approve-installplan: ## Approves install plan
 	[[ -z "$(SUBSCRIPTION_NAME)" ]] && { echo [ERROR] SUBSCRIPTION_NAME not defined; exit 1; }
 	[[ -z "$(NAMESPACE)" ]] && { echo [ERROR] NAMESPACE not defined; exit 1; }
@@ -789,12 +794,13 @@ create-namespace: ## Creates namespace
 	$(K8S_CLI) create namespace $${DEFINED_NAMESPACE} || true
 
 wait-pod-running: SHELL := /bin/bash
+wait-pod-running: .SHELLFLAGS := -eo pipefail -c
 wait-pod-running: ## Wait until pod is up and running
 	[[ -z "$(SELECTOR)" ]] && { echo [ERROR] SELECTOR not defined; exit 1; }
 	[[ -z "$(NAMESPACE)" ]] && { echo [ERROR] NAMESPACE not defined; exit 1; }
 
 	while [ $$($(K8S_CLI) get pod -l $(SELECTOR) -n $(NAMESPACE) -o go-template='{{len .items}}') -eq 0 ]; do
-		sleep 10s
+		sleep 10
 	done
 	$(K8S_CLI) wait --for=condition=ready pod -l $(SELECTOR) -n $(NAMESPACE) --timeout=120s
 
@@ -901,3 +907,31 @@ wait-eclipseche-version: ## Wait until Eclipse Che given version is up and runni
 		echo "[ERROR] Failed to deploy Eclipse Che '${version}' version"
 		exit 1
 	fi
+
+wait-eclipseche-reconciled: SHELL := /bin/bash
+wait-eclipseche-reconciled: ## Wait until Eclipse Che is reconciled
+	echo "[INFO] Waiting for the CheCluster reconciliation"
+
+	deadline=$$((SECONDS + 600))
+	pods=""
+
+	while (( SECONDS < deadline )); do
+		pods=$$(oc get pod \
+			-l "$$OPERATOR_POD_SELECTOR" \
+			-n "$$OPERATOR_NAMESPACE" \
+			-o jsonpath='{.items[*].metadata.name}' 2>/dev/null) || pods=""
+
+		# Avoid grep -q: with pipefail, an early grep exit can cause
+		# oc logs to fail with SIGPIPE.
+		if [[ $$(wc -w <<< "$$pods") -eq 1 ]] && \
+			oc logs "$$pods" -n "$$OPERATOR_NAMESPACE" 2>/dev/null | \
+			grep "Successfully reconciled" >/dev/null; then
+			echo "[INFO] CheCluster successfully reconciled"
+			exit 0
+		fi
+
+		sleep 5
+	done
+
+	echo "[ERROR] Timed out waiting for the CheCluster reconciliation"
+	exit 1

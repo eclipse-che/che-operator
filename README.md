@@ -85,19 +85,19 @@ make docker-build IMG=<YOUR_OPERATOR_IMAGE>
 For OpenShift cluster:
 
 ```bash
-build/scripts/docker-run.sh /bin/bash -c "
-  oc login \
-    --token=<...> \
-    --server=<...> \
-    --insecure-skip-tls-verify=true && \
-  build/scripts/oc-tests/oc-test.sh --from sources=next --to none
-"
+build/scripts/oc-tests/oc-test.sh --from sources=next
+```
+
+On macOS, install the required tools first; Homebrew's `gmake` is picked up automatically:
+
+```bash
+brew install make python-yq jq
 ```
 
 For Kubernetes cluster:
 
 ```bash
-./build/scripts/minikube-tests/test-operator-from-sources.sh
+build/scripts/minikube-tests/test-operator-from-sources.sh
 ```
 
 ### Debug Che operator

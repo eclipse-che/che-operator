@@ -11,28 +11,6 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-# Waits until the single running operator pod logs a successful CheCluster reconciliation.
-waitCheClusterReconciled() {
-  echo "[INFO] Waiting for the CheCluster reconciliation"
-
-  timeout 600s bash -c '
-    while true; do
-      pods=$(oc get pod -l "$1" -n "$2" -o jsonpath="{.items[*].metadata.name}" 2>/dev/null)
-
-      if [[ $(echo "$pods" | wc -w) -eq 1 ]] && oc logs "$pods" -n "$2" 2>/dev/null | grep -q "Successfully reconciled"; then
-        exit 0
-      fi
-
-      sleep 5
-    done
-  ' _ "$OPERATOR_POD_SELECTOR" "$OPERATOR_NAMESPACE" || {
-    echo "[ERROR] Timed out waiting for the CheCluster reconciliation"
-    return 1
-  }
-
-  echo "[INFO] CheCluster successfully reconciled"
-}
-
 # Prints the pull request number of the current branch: $PULL_NUMBER if set, otherwise detected by 'gh'.
 getCurrentPullRequestNumber() {
   local pr_number
@@ -47,7 +25,7 @@ getCurrentPullRequestNumber() {
   echo "$pr_number"
 }
 
-# Prints the OLM catalog image built by CI for the given pull request number and the host architecture.
+# Prints the OLM catalog image built by CI for the given pull request number and the cluster architecture.
 getPullRequestCatalogImage() {
   local pr_number="$1"
   local arch
@@ -57,11 +35,12 @@ getPullRequestCatalogImage() {
     return 1
   fi
 
-  case "$(uname -m)" in
-    x86_64|amd64)  arch="amd64" ;;
-    aarch64|arm64) arch="arm64" ;;
+  arch=$(oc get nodes -o jsonpath='{.items[0].status.nodeInfo.architecture}')
+
+  case "$arch" in
+    amd64|arm64) ;;
     *)
-      echo "[ERROR] Unsupported architecture: $(uname -m)" >&2
+      echo "[ERROR] Unsupported cluster architecture: '${arch}'" >&2
       return 1
       ;;
   esac
@@ -108,15 +87,11 @@ getDefaultChannelFromCatalogImage() {
 exposeAndTrustOpenShiftImageRegistry() {
   mkdir -p "$CA_CERT_DIR"
 
-  # Allows pulling and pushing images in the operator namespace without credentials.
-  oc policy add-role-to-user system:image-builder system:anonymous -n "$OPERATOR_NAMESPACE"
-  oc policy add-role-to-user system:image-builder system:unauthenticated -n "$OPERATOR_NAMESPACE"
-
   oc patch configs.imageregistry.operator.openshift.io/cluster --patch '{"spec":{"defaultRoute":true}}' --type=merge
   until oc get route default-route -n "$IMAGE_REGISTRY_NAMESPACE" &>/dev/null; do sleep 2; done
 
   oc get secret router-certs-default -n "$INGRESS_NAMESPACE" -o go-template='{{index .data "tls.crt"}}' \
-    | base64 -d > "${CA_CERT_DIR}/ca.crt"
+    | base64 --decode > "${CA_CERT_DIR}/ca.crt"
 
   # Apply instead of delete and create, so the ConfigMap referenced by the cluster
   # image config never disappears and an unchanged certificate does not trigger reconfiguration.
@@ -127,6 +102,16 @@ exposeAndTrustOpenShiftImageRegistry() {
   oc patch image.config.openshift.io/cluster --patch '{"spec":{"additionalTrustedCA":{"name":"openshift-registry"}}}' --type=merge
 
   waitClusterStable
+}
+
+# Logs in to the OpenShift image registry, so that 'opm' can pull the images built from sources.
+# 'opm' reads credentials only from the Docker config, so they are saved into $DOCKER_CONFIG.
+loginToOpenShiftImageRegistry() {
+  oc registry login \
+    --registry="$IMAGE_REGISTRY_ROUTE_HOST" \
+    --auth-basic="$(oc whoami):$(oc whoami -t)" \
+    --insecure=true \
+    --to="${DOCKER_CONFIG}/config.json"
 }
 
 # Waits until all cluster operators are stable and all machine config pools are updated.
@@ -145,12 +130,11 @@ waitClusterStable() {
 buildImageInCluster() {
   local name="$1"
   local dir="$2"
-  shift 2
 
   oc delete buildconfig "$name" --ignore-not-found=true -n "$OPERATOR_NAMESPACE"
   oc delete imagestreamtag "${name}:latest" --ignore-not-found=true -n "$OPERATOR_NAMESPACE"
   oc new-build --binary --strategy docker --name "$name" -n "$OPERATOR_NAMESPACE"
-  oc start-build "$name" --from-dir "$dir" -n "$OPERATOR_NAMESPACE" --wait "$@"
+  oc start-build "$name" --from-dir "$dir" -n "$OPERATOR_NAMESPACE" --wait
 }
 
 # Builds the operator image from the repository sources.
@@ -181,20 +165,20 @@ buildBundleImageFromSources() {
 buildCatalogImageFromSources() {
   echo "[INFO] Building the catalog image from sources"
 
-  local catalog_root_dir=$(dirname "$CATALOG_DIR")
-  local bundle_name=$(make bundle-name CHANNEL="$SOURCES_CHANNEL")
+  CHANNEL_DIR="$CATALOG_DIR/$SOURCES_CHANNEL"
+  local bundle_name=$("$MAKE_BIN" bundle-name CHANNEL="$SOURCES_CHANNEL")
 
   # Start from an empty directory, so no bundles are left from a previously built channel.
-  rm -rf "$CATALOG_DIR"
-  mkdir -p "$CATALOG_DIR"
+  rm -rf "$CHANNEL_DIR"
+  mkdir -p "$CHANNEL_DIR"
 
-  cat > "${CATALOG_DIR}/package.yaml" <<EOF
+  cat > "${CHANNEL_DIR}/package.yaml" <<EOF
 schema: olm.package
 name: ${CHE_PACKAGE_NAME}
 defaultChannel: ${SOURCES_CHANNEL}
 EOF
 
-  cat > "${CATALOG_DIR}/channel.yaml" <<EOF
+  cat > "${CHANNEL_DIR}/channel.yaml" <<EOF
 schema: olm.channel
 package: ${CHE_PACKAGE_NAME}
 name: ${SOURCES_CHANNEL}
@@ -202,14 +186,14 @@ entries:
   - name: ${bundle_name}
 EOF
 
-  make bundle-render \
+  "$MAKE_BIN" bundle-render \
     CHANNEL="$SOURCES_CHANNEL" \
     BUNDLE_NAME="$bundle_name" \
-    CATALOG_DIR="$CATALOG_DIR" \
+    CATALOG_DIR="$CHANNEL_DIR" \
     BUNDLE_IMG="$IMAGESTREAM_BUNDLE_IMAGE"
 
-  cp "${REPO_ROOT}/olm-catalog/index.Dockerfile" "${catalog_root_dir}/Dockerfile"
-  sed -i 's|ADD olm-catalog/${CHANNEL}|ADD '"$(basename "$CATALOG_DIR")"'|g' "${catalog_root_dir}/Dockerfile"
+  sed 's|ADD olm-catalog/${CHANNEL}|ADD /'"$SOURCES_CHANNEL"'|g' \
+    "${REPO_ROOT}/olm-catalog/index.Dockerfile" > "$(dirname "$CHANNEL_DIR")/Dockerfile"
 
-  buildImageInCluster "$IMAGESTREAM_CATALOG_NAME" "$catalog_root_dir" --build-arg CHANNEL="$SOURCES_CHANNEL"
+  buildImageInCluster "$IMAGESTREAM_CATALOG_NAME" $(dirname "$CHANNEL_DIR")
 }

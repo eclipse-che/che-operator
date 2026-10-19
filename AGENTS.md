@@ -76,7 +76,7 @@ Test helpers in `pkg/common/test/` provide utilities for setting up fake k8s cli
 
 ```bash
 # OpenShift — deploy from sources via OLM
-build/scripts/oc-tests/oc-test.sh --from sources=next --to none
+build/scripts/oc-tests/oc-test.sh --from sources=next
 
 # Minikube
 build/scripts/minikube-tests/test-operator-from-sources.sh

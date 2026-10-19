@@ -16,6 +16,29 @@
 
 set -eo pipefail
 
+export TMP_DIR=$(mktemp -d)
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+# Check if the OpenShift CLI (`oc`) is installed.
+if ! command -v "oc" &>/dev/null; then
+  echo "[ERROR] 'oc' is not installed"
+  exit 1
+fi
+
+# Verify that the user is logged in and can access the OpenShift cluster.
+if ! oc whoami &>/dev/null; then
+  echo "[ERROR] Failed to access the cluster, log in first: 'oc login'"
+  exit 1
+fi
+
+# 'opm' reads registry credentials only from the Docker config. A copy of the user's one is used,
+# so logging in to the OpenShift image registry does not modify it.
+mkdir -p "$TMP_DIR/docker"
+if [[ -f "${DOCKER_CONFIG:-$HOME/.docker}/config.json" ]]; then
+  cp "${DOCKER_CONFIG:-$HOME/.docker}/config.json" "$TMP_DIR/docker/config.json"
+fi
+export DOCKER_CONFIG="$TMP_DIR/docker"
+
 export MARKETPLACE_NAMESPACE="openshift-marketplace"
 export IMAGE_REGISTRY_NAMESPACE="openshift-image-registry"
 export INGRESS_NAMESPACE="openshift-ingress"
@@ -29,31 +52,40 @@ export CHE_PACKAGE_NAME="eclipse-che"
 export OPERATOR_POD_SELECTOR="app.kubernetes.io/component=che-operator"
 export SUPPORTED_CHANNELS=(next stable)
 
-# For building from the sources
-export TMP_DIR=$(mktemp -d)
-trap 'rm -rf "$TMP_DIR"' EXIT
-
 export BUNDLE_DIR="$TMP_DIR/bundle"
-export CATALOG_DIR="$TMP_DIR/olm-catalog/next"
+export CATALOG_DIR="$TMP_DIR/olm-catalog"
 export CA_CERT_DIR="$TMP_DIR/cert"
-export CLUSTER_APPS_DOMAIN=$(oc get ingresses.config.openshift.io cluster -o jsonpath='{.spec.domain}')
-export IMAGE_REGISTRY_ROUTE_HOST="default-route-openshift-image-registry.$CLUSTER_APPS_DOMAIN"
+
 export IMAGESTREAM_OPERATOR_NAME="eclipse-che-operator"
 export IMAGESTREAM_BUNDLE_NAME="eclipse-che-bundle"
 export IMAGESTREAM_CATALOG_NAME="eclipse-che-catalog"
+
+export CLUSTER_APPS_DOMAIN=$(oc get ingresses.config.openshift.io cluster -o jsonpath='{.spec.domain}')
+export IMAGE_REGISTRY_ROUTE_HOST="default-route-openshift-image-registry.$CLUSTER_APPS_DOMAIN"
 export IMAGESTREAM_OPERATOR_IMAGE="$IMAGE_REGISTRY_ROUTE_HOST/$OPERATOR_NAMESPACE/$IMAGESTREAM_OPERATOR_NAME:latest"
 export IMAGESTREAM_BUNDLE_IMAGE="$IMAGE_REGISTRY_ROUTE_HOST/$OPERATOR_NAMESPACE/$IMAGESTREAM_BUNDLE_NAME:latest"
 export IMAGESTREAM_CATALOG_IMAGE="$IMAGE_REGISTRY_ROUTE_HOST/$OPERATOR_NAMESPACE/$IMAGESTREAM_CATALOG_NAME:latest"
 
-export REPO_ROOT=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
+export REPO_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)
 source "${REPO_ROOT}/build/scripts/oc-tests/oc-test-utils.sh"
+
+# The Makefile relies on .ONESHELL, which requires GNU make 3.82+.
+# macOS ships GNU make 3.81; a newer one is installed by Homebrew as 'gmake'.
+if [[ -n "${MAKE:-}" ]]; then
+  MAKE_BIN="$MAKE"
+elif command -v gmake &>/dev/null; then
+  MAKE_BIN="gmake"
+else
+  MAKE_BIN="make"
+fi
 
 init() {
   unset FROM
   unset FROM_OPTION
   unset FROM_PR_NUMBER
   unset FROM_SOURCES_CHANNEL
-  unset TO
+
+  TO="none"
   unset TO_OPTION
   unset TO_PR_NUMBER
   unset TO_SOURCES_CHANNEL
@@ -95,7 +127,7 @@ init() {
 # Arguments:
 #   $1 - option name, used in error messages, e.g. '--from'
 #   $2 - variable prefix, e.g. 'FROM'
-#   $3 - option value, e.g. 'pr=2225', 'pr=current', 'next', 'sources=next'
+#   $3 - option value, e.g. 'pr', 'pr=2225', 'pr=current', 'next', 'sources=next'
 # Sets:
 #   <prefix>                 - the target type: pr, next, stable, sources or none
 #   <prefix>_PR_NUMBER       - the pull request number, for the 'pr' target
@@ -119,7 +151,8 @@ parseOptionValue() {
 
   case "${target}" in
     pr)
-      if [[ "${argument}" == "current" ]]; then
+      # The pull request of the current branch is used by default.
+      if [[ -z "${argument}" || "${argument}" == "current" ]]; then
         local pr_number
         if ! pr_number=$(getCurrentPullRequestNumber); then
           echo "[ERROR] Failed to detect the pull request of the current branch for '${option} ${value}'. Set the PULL_NUMBER environment variable."
@@ -131,7 +164,7 @@ parseOptionValue() {
       fi
 
       if [[ ! "${argument}" =~ ^[0-9]+$ ]]; then
-        echo "[ERROR] Invalid '${option}' value: '${value}'. Expected 'pr=<number>' or 'pr=current'."
+        echo "[ERROR] Invalid '${option}' value: '${value}'. Expected 'pr', 'pr=<number>' or 'pr=current'."
         printUsage
         exit 1
       fi
@@ -155,13 +188,40 @@ parseOptionValue() {
       fi
       ;;
     *)
-      echo "[ERROR] Unknown '${option}' value: '${value}'. Must be one of: pr=<number>, pr=current, next, stable, sources=<channel>, none"
+      echo "[ERROR] Unknown '${option}' value: '${value}'. Must be one of: pr, pr=<number>, pr=current, next, stable, sources=<channel>, none"
       printUsage
       exit 1
       ;;
   esac
 
   printf -v "${prefix}" '%s' "${target}"
+}
+
+checkPrerequisites() {
+  local tool
+  local failed=false
+
+  for tool in jq yq opm; do
+    if ! command -v "$tool" &>/dev/null; then
+      echo "[ERROR] '${tool}' is not installed"
+      failed=true
+    fi
+  done
+
+  if command -v yq &>/dev/null && ! yq --help 2>&1 | grep -q -- '--yaml-output'; then
+    echo "[ERROR] The Python 'yq' (https://github.com/kislyuk/yq) is required: 'pip install yq' or 'brew install python-yq'"
+    failed=true
+  fi
+
+  local make_version=$("$MAKE_BIN" --version 2>/dev/null | head -n 1 | awk '/GNU Make/ {print $3}')
+  if [[ -z "$make_version" || "$(printf '%s\n' 3.82 "$make_version" | sort -V | head -n 1)" != "3.82" ]]; then
+    echo "[ERROR] GNU make 3.82+ is required, found '${make_version:-unknown}': 'brew install make' or set MAKE"
+    failed=true
+  fi
+
+  if [[ "$failed" == "true" ]]; then
+    exit 1
+  fi
 }
 
 printUsage() {
@@ -178,7 +238,7 @@ printUsage() {
   echo "TARGETS:"
   echo -e "  pr=<number>       - the Eclipse Che build from a pull request, where <number>"
   echo -e "                      is the pull request number, e.g. --to pr=2225"
-  echo -e "  pr=current        - the Eclipse Che build from the pull request of the current"
+  echo -e "  pr, pr=current    - the Eclipse Che build from the pull request of the current"
   echo -e "                      branch, detected with the 'gh' CLI or taken from the"
   echo -e "                      PULL_NUMBER environment variable"
   echo -e "  next              - the Eclipse Che build from the next channel; with"
@@ -195,9 +255,9 @@ printUsage() {
   echo
   echo "Examples:"
   echo -e "  $0 --from pr=2225 --to sources=next"
-  echo -e "  $0 --from pr=current --to sources=next"
-  echo -e "  $0 --from pr=current --to pr=1900"
-  echo -e "  $0 --from next --to pr=current"
+  echo -e "  $0 --from pr --to sources=next"
+  echo -e "  $0 --from pr --to pr=1900"
+  echo -e "  $0 --from next --to pr"
   echo -e "  $0 --from next --to stable"
   echo -e "  $0 --from next --to next"
   echo -e "  $0 --from stable --to next"
@@ -260,6 +320,7 @@ installFromSources() {
 
   echo "[INFO] Preparing the OpenShift image registry to host the images built from sources"
   exposeAndTrustOpenShiftImageRegistry
+  loginToOpenShiftImageRegistry
   buildOperatorImageFromSources
   buildBundleImageFromSources
   buildCatalogImageFromSources
@@ -302,6 +363,7 @@ upgradeToSources() {
 
   echo "[INFO] Preparing the OpenShift image registry to host the images built from sources"
   exposeAndTrustOpenShiftImageRegistry
+  loginToOpenShiftImageRegistry
   buildOperatorImageFromSources
   buildBundleImageFromSources
   buildCatalogImageFromSources
@@ -326,12 +388,12 @@ installFrom() {
     catalog_source_namespace="$OPERATOR_NAMESPACE"
   fi
 
-  make create-catalogsource \
+  "$MAKE_BIN" create-catalogsource \
     NAME="$TARGET_CATALOG_SOURCE_NAME" \
     NAMESPACE="$catalog_source_namespace" \
     IMAGE="$catalog_image"
 
-  make create-subscription \
+  "$MAKE_BIN" create-subscription \
     NAME="$CHE_SUBSCRIPTION_NAME" \
     NAMESPACE="$OPERATOR_NAMESPACE" \
     CHANNEL="$desired_channel" \
@@ -341,18 +403,18 @@ installFrom() {
     SOURCE_NAMESPACE="$catalog_source_namespace" \
     STARTING_CSV="$desired_csv"
 
-  make approve-installplan SUBSCRIPTION_NAME="$CHE_SUBSCRIPTION_NAME" NAMESPACE="$OPERATOR_NAMESPACE"
+  "$MAKE_BIN" approve-installplan SUBSCRIPTION_NAME="$CHE_SUBSCRIPTION_NAME" NAMESPACE="$OPERATOR_NAMESPACE"
 
   echo "[INFO] Waiting for the Eclipse Che operator pod to be running"
-  make wait-pod-running SELECTOR="$OPERATOR_POD_SELECTOR" NAMESPACE="$OPERATOR_NAMESPACE"
+  "$MAKE_BIN" wait-pod-running SELECTOR="$OPERATOR_POD_SELECTOR" NAMESPACE="$OPERATOR_NAMESPACE"
 
   echo "[INFO] Applying CheCluster"
   oc create namespace "$CHE_NAMESPACE" --dry-run=client -o yaml | oc apply -f -
-  oc get csv "$desired_csv" -n "$OPERATOR_NAMESPACE" -o yaml \
-    | yq -r '.metadata.annotations["alm-examples"] | fromjson | .[] | select(.apiVersion == "org.eclipse.che/v2")' \
+  oc get csv "$desired_csv" -n "$OPERATOR_NAMESPACE" -o json \
+    | jq '.metadata.annotations["alm-examples"] | fromjson | .[] | select(.apiVersion == "org.eclipse.che/v2")' \
     | oc apply --server-side -n "$CHE_NAMESPACE" -f -
 
-  waitCheClusterReconciled
+  "$MAKE_BIN" wait-eclipseche-reconciled
 }
 
 upgradeTo() {
@@ -360,7 +422,6 @@ upgradeTo() {
   local desired_csv="$2"
   local catalog_image="$3"
 
-  local installed_channel=$(oc get subscription "$CHE_SUBSCRIPTION_NAME" -n "$OPERATOR_NAMESPACE" -o jsonpath='{.spec.channel}')
   local installed_csv=$(oc get subscription "$CHE_SUBSCRIPTION_NAME" -n "$OPERATOR_NAMESPACE" -o jsonpath='{.status.installedCSV}')
 
   if [[ "${installed_csv}" == "$desired_csv" ]]; then
@@ -371,12 +432,12 @@ upgradeTo() {
   echo "[INFO] Updating Eclipse Che '${desired_csv}'"
 
   oc delete csv "$installed_csv" -n "$OPERATOR_NAMESPACE" --ignore-not-found
-  oc wait --for=delete csv/"$installed_csv" --timeout=60s
+  oc wait --for=delete csv/"$installed_csv" -n "$OPERATOR_NAMESPACE" --timeout=60s
 
   oc delete subscription "$CHE_SUBSCRIPTION_NAME" -n "$OPERATOR_NAMESPACE" --ignore-not-found
-  oc wait --for=delete subscription/"$CHE_SUBSCRIPTION_NAME" --timeout=60s
+  oc wait --for=delete subscription/"$CHE_SUBSCRIPTION_NAME" -n "$OPERATOR_NAMESPACE" --timeout=60s
 
-  oc wait pod -l "$OPERATOR_POD_SELECTOR" --for=delete --timeout=60s
+  oc wait pod -l "$OPERATOR_POD_SELECTOR"  -n "$OPERATOR_NAMESPACE"  --for=delete --timeout=60s
 
   local catalog_source_namespace="$MARKETPLACE_NAMESPACE"
   if [[ "$TO" == "sources" ]]; then
@@ -384,12 +445,12 @@ upgradeTo() {
     catalog_source_namespace="$OPERATOR_NAMESPACE"
   fi
 
-  make create-catalogsource \
+  "$MAKE_BIN" create-catalogsource \
     NAME="$TARGET_CATALOG_SOURCE_NAME" \
     NAMESPACE="$catalog_source_namespace" \
     IMAGE="$catalog_image"
 
-  make create-subscription \
+  "$MAKE_BIN" create-subscription \
     NAME="$CHE_SUBSCRIPTION_NAME" \
     NAMESPACE="$OPERATOR_NAMESPACE" \
     CHANNEL="$desired_channel" \
@@ -399,9 +460,9 @@ upgradeTo() {
     SOURCE_NAMESPACE="$catalog_source_namespace"
 
   echo "[INFO] Waiting for the Eclipse Che operator pod to be running"
-  make wait-pod-running SELECTOR="$OPERATOR_POD_SELECTOR" NAMESPACE="$OPERATOR_NAMESPACE"
+  "$MAKE_BIN" wait-pod-running SELECTOR="$OPERATOR_POD_SELECTOR" NAMESPACE="$OPERATOR_NAMESPACE"
 
-  waitCheClusterReconciled
+  "$MAKE_BIN" wait-eclipseche-reconciled
 }
 
 install() {
@@ -422,7 +483,7 @@ install() {
       echo "[INFO] Skipping Eclipse Che install"
       ;;
     *)
-      echo "[ERROR] Unknown '--from' value: '${FROM}'. Must be one of: pr=<number>, pr=current, next, stable, sources=<channel>, none"
+      echo "[ERROR] Unknown '--from' value: '${FROM}'. Must be one of: pr, pr=<number>, pr=current, next, stable, sources=<channel>, none"
       printUsage
       exit 1
       ;;
@@ -447,7 +508,7 @@ upgrade() {
       echo "[INFO] Skipping Eclipse Che upgrade"
       ;;
     *)
-      echo "[ERROR] Unknown '--to' value: '${TO}'. Must be one of: pr=<number>, pr=current, next, stable, sources=<channel>, none"
+      echo "[ERROR] Unknown '--to' value: '${TO}'. Must be one of: pr, pr=<number>, pr=current, next, stable, sources=<channel>, none"
       printUsage
       exit 1
       ;;
@@ -461,5 +522,9 @@ main() {
   echo "[INFO] Completed"
 }
 
+checkPrerequisites
+
 init "$@"
+initClusterVariables
+
 main
