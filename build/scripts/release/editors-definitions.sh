@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2019-2024 Red Hat, Inc.
+# Copyright (c) 2019-2026 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -15,6 +15,7 @@ set -e
 
 OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
 EDITORS_DEFINITIONS_DIR="${OPERATOR_REPO}/editors-definitions"
+EDITORS_DEFINITIONS_DIFFS_DIR="${EDITORS_DEFINITIONS_DIR}/diffs"
 
 init() {
   unset VERSION
@@ -36,11 +37,13 @@ usage () {
   echo "Usage: $0 COMMAND OPTIONS"
   echo
   echo "Commands:"
-  echo "  release              Update the che-code-injector image in the editor definitions"
+  echo "  release              Tag 'next', 'insiders' and 'latest' quay.io/che-incubator images with the release"
+  echo "                       version, promote 'next' editor definitions without a 'latest' counterpart to"
+  echo "                       'latest', and remove the remaining 'next' editor definitions"
   echo "  update-manager-yaml  Update the operator deployment file (manager.yaml) with the RELATED_IMAGE env vars"
   echo
   echo "Options:"
-  echo "  --version VERSION     Specify the version of the che-code-injector image"
+  echo "  --version VERSION     Specify the release version used to tag the images"
   echo "  --yaml-path PATH      Specify the YAML path to the operator deployment file"
   echo "  --help, -h            Show this help message and exit"
   echo
@@ -49,9 +52,127 @@ usage () {
   echo "  $0 update-manager-yaml --yaml-path config/manager/manager.yaml"
 }
 
+# Keep copies of the original definitions to store the promotion diffs in the 'diffs' directory.
+# Must run before tagEditorDefinitionImages so the diffs capture the full change,
+# including the image pinning to the release version
+snapshotPromotableEditorDefinitions() {
+  EDITOR_DEFINITIONS_SNAPSHOT_DIR=$(mktemp -d)
+  for NEXT_FILE in "${EDITORS_DEFINITIONS_DIR}"/*-next.yaml; do
+    [[ -e "${NEXT_FILE}" ]] || continue
+
+    LATEST_FILE="${NEXT_FILE%-next.yaml}-latest.yaml"
+    if [[ -f "${LATEST_FILE}" ]]; then
+      continue
+    fi
+
+    cp "${NEXT_FILE}" "${EDITOR_DEFINITIONS_SNAPSHOT_DIR}/$(basename "${NEXT_FILE}")"
+  done
+}
+
+promoteNextEditorDefinitions() {
+  for NEXT_FILE in "${EDITORS_DEFINITIONS_DIR}"/*-next.yaml; do
+    [[ -e "${NEXT_FILE}" ]] || continue
+
+    LATEST_FILE="${NEXT_FILE%-next.yaml}-latest.yaml"
+    if [[ -f "${LATEST_FILE}" ]]; then
+      continue
+    fi
+
+    echo "[INFO] promoteNextEditorDefinitions :: Promoting ${NEXT_FILE} to ${LATEST_FILE}"
+
+    EDITOR_NAME=$(basename "${NEXT_FILE}" -next.yaml)
+    NEXT_FILE_COPY="${EDITOR_DEFINITIONS_SNAPSHOT_DIR}/${EDITOR_NAME}-next.yaml"
+
+    yq -riY '(.metadata.attributes.version) = "latest" |
+      (.metadata.description) |= sub(" - next$"; " - latest") |
+      (.metadata.attributes.title) |= sub(" - next$"; " - latest") |
+      (.components[] | select(.container != null) | .container.image) |= sub(":next$"; ":latest")' "${NEXT_FILE}"
+    mv "${NEXT_FILE}" "${LATEST_FILE}"
+
+    mkdir -p "${EDITORS_DEFINITIONS_DIFFS_DIR}"
+    # 'diff' returns 1 when the files differ, which is the expected outcome here
+    diff -u \
+      --label "a/editors-definitions/${EDITOR_NAME}-next.yaml" \
+      --label "b/editors-definitions/${EDITOR_NAME}-latest.yaml" \
+      "${NEXT_FILE_COPY}" "${LATEST_FILE}" > "${EDITORS_DEFINITIONS_DIFFS_DIR}/${EDITOR_NAME}.diff" || [[ $? -eq 1 ]]
+  done
+}
+
+# Tag all 'quay.io/che-incubator' images referenced by the editor definitions with a 'next',
+# 'insiders' or 'latest' tag with the release version, and update the definitions to use the
+# versioned images. If the versioned tag already exists in the registry it is reused as is
+# (some images, like 'che-code', publish release tags from external pipelines); otherwise it is
+# created from the source image with 'skopeo copy', which requires QUAY_ECLIPSE_CHE_USERNAME and
+# QUAY_ECLIPSE_CHE_PASSWORD to be set. DRY_RUN=true skips the pushes but still updates the definitions
+tagEditorDefinitionImages() {
+  EDITOR_IMAGES=$(
+    for FILE in "${EDITORS_DEFINITIONS_DIR}"/*.yaml; do
+      yq -r '.components[] | select(.container != null) | .container.image' "${FILE}"
+    done | sort -u | grep -E '^quay\.io/che-incubator/.+:(next|insiders|latest)$' || true
+  )
+
+  if [[ -z "${EDITOR_IMAGES}" ]]; then
+    return
+  fi
+
+  command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] tagEditorDefinitionImages :: skopeo is not installed. Aborting."; exit 1; }
+
+  while read -r IMAGE; do
+    VERSIONED_IMAGE="${IMAGE%:*}:${VERSION}"
+
+    if skopeo inspect "docker://${VERSIONED_IMAGE}" >/dev/null 2>&1; then
+      echo "[INFO] tagEditorDefinitionImages :: Image ${VERSIONED_IMAGE} already exists. Using the existing tag."
+    else
+      if ! skopeo inspect "docker://${IMAGE}" >/dev/null 2>&1; then
+        echo "[ERROR] tagEditorDefinitionImages :: Source image ${IMAGE} does not exist in the registry. Aborting."
+        exit 1
+      fi
+
+      if [[ "${DRY_RUN:-}" == "true" ]]; then
+        echo "[INFO] tagEditorDefinitionImages :: Dry run is enabled. Skipping tagging of ${IMAGE} as ${VERSIONED_IMAGE}."
+      else
+        if [[ -z "${QUAY_ECLIPSE_CHE_USERNAME}" || -z "${QUAY_ECLIPSE_CHE_PASSWORD}" ]]; then
+          echo "[ERROR] tagEditorDefinitionImages :: QUAY_ECLIPSE_CHE_USERNAME and QUAY_ECLIPSE_CHE_PASSWORD must be set to push ${VERSIONED_IMAGE}. Aborting."
+          exit 1
+        fi
+
+        echo "[INFO] tagEditorDefinitionImages :: Tagging ${IMAGE} as ${VERSIONED_IMAGE}"
+        skopeo copy --all --preserve-digests  \
+          --dest-creds "${QUAY_ECLIPSE_CHE_USERNAME}:${QUAY_ECLIPSE_CHE_PASSWORD}" \
+          "docker://${IMAGE}" "docker://${VERSIONED_IMAGE}"
+      fi
+    fi
+
+    echo "[INFO] tagEditorDefinitionImages :: Update editor definitions to use ${VERSIONED_IMAGE}"
+    for FILE in "${EDITORS_DEFINITIONS_DIR}"/*.yaml; do
+      # Update only the files referencing the image to avoid re-serializing the others
+      if grep -q "${IMAGE}\$" "${FILE}"; then
+        yq -riY "(.components[] | select(.container != null) | .container.image | select(. == \"${IMAGE}\")) = \"${VERSIONED_IMAGE}\"" "${FILE}"
+      fi
+    done
+  done <<< "${EDITOR_IMAGES}"
+}
+
+removeNextEditorDefinitions() {
+  # The remaining 'next' definitions have a 'latest' counterpart and are pinned to the same
+  # release version images, so they are redundant and removed
+  for NEXT_FILE in "${EDITORS_DEFINITIONS_DIR}"/*-next.yaml; do
+    [[ -e "${NEXT_FILE}" ]] || continue
+
+    echo "[INFO] removeNextEditorDefinitions :: Removing ${NEXT_FILE}"
+    rm -f "${NEXT_FILE}"
+  done
+}
+
 release() {
   if [[ ! ${VERSION} ]]; then usage; exit 1; fi
-  yq -riY "(.components[] | select(.name==\"che-code-injector\") | .container.image) = \"quay.io/che-incubator/che-code:${VERSION}\"" "${EDITORS_DEFINITIONS_DIR}/che-code-latest.yaml"
+  snapshotPromotableEditorDefinitions
+  # Tag the images before the promotion: a promoted definition must be pinned to the version tagged
+  # from its 'next' source, not from a possibly stale or missing 'latest' tag in the registry
+  tagEditorDefinitionImages
+  promoteNextEditorDefinitions
+  removeNextEditorDefinitions
+  rm -rf "${EDITOR_DEFINITIONS_SNAPSHOT_DIR}"
 }
 
 updateOperatorDeploymentEnvVar() {
