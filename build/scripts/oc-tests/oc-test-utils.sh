@@ -103,10 +103,11 @@ exposeAndTrustOpenShiftImageRegistry() {
 
 # Logs in to the OpenShift image registry, so that 'opm' can pull the images built from sources.
 # 'opm' reads credentials only from the Docker config, so they are saved into $DOCKER_CONFIG.
+# The session token is used by default; '--auth-basic' is avoided, since it splits on the first colon
+# and breaks for user names containing one, e.g. 'kube:admin'.
 loginToOpenShiftImageRegistry() {
   oc registry login \
     --registry="$IMAGE_REGISTRY_ROUTE_HOST" \
-    --auth-basic="$(oc whoami):$(oc whoami -t)" \
     --insecure=true \
     --to="${DOCKER_CONFIG}/config.json"
 }
@@ -180,7 +181,9 @@ entries:
   - name: ${bundle_name}
 EOF
 
+  # Use the 'opm' found on PATH instead of letting the Makefile download one, which requires Go.
   "$MAKE_BIN" bundle-render \
+    OPM="$(command -v opm)" \
     CHANNEL="$SOURCES_CHANNEL" \
     BUNDLE_NAME="$bundle_name" \
     CATALOG_DIR="$CHANNEL_DIR" \

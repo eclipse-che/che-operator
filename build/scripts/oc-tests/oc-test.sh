@@ -539,6 +539,10 @@ main() {
   echo "[INFO] Completed"
 }
 
+pushd ${REPO_ROOT} >/dev/null
+
 checkPrerequisites
 init "$@"
 main
+
+popd >/dev/null
