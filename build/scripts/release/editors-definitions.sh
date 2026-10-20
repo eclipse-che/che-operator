@@ -17,6 +17,8 @@ OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_
 EDITORS_DEFINITIONS_DIR="${OPERATOR_REPO}/editors-definitions"
 EDITORS_DEFINITIONS_DIFFS_DIR="${EDITORS_DEFINITIONS_DIR}/diffs"
 
+command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] skopeo is not installed. Aborting."; exit 1; }
+
 init() {
   unset VERSION
   unset YAML_PATH
@@ -37,9 +39,9 @@ usage () {
   echo "Usage: $0 COMMAND OPTIONS"
   echo
   echo "Commands:"
-  echo "  release              Tag 'next', 'insiders' and 'latest' quay.io/che-incubator images with the release"
-  echo "                       version, promote 'next' editor definitions without a 'latest' counterpart to"
-  echo "                       'latest', and remove the remaining 'next' editor definitions"
+  echo "  release              Remove 'next' editor definitions that have a 'latest' counterpart, tag 'next',"
+  echo "                       'insiders' and 'latest' quay.io/che-incubator images with the release version,"
+  echo "                       and promote the remaining 'next' editor definitions to 'latest'"
   echo "  update-manager-yaml  Update the operator deployment file (manager.yaml) with the RELATED_IMAGE env vars"
   echo
   echo "Options:"
@@ -52,19 +54,33 @@ usage () {
   echo "  $0 update-manager-yaml --yaml-path config/manager/manager.yaml"
 }
 
+# Remove the 'next' definitions with a 'latest' counterpart before tagging: they are not released,
+# so their images must neither be tagged nor take part in the digest conflict check
+removeRedundantNextEditorDefinitions() {
+  for NEXT_FILE in "${EDITORS_DEFINITIONS_DIR}"/*-next.yaml; do
+    [[ -e "${NEXT_FILE}" ]] || continue
+
+    LATEST_FILE="${NEXT_FILE%-next.yaml}-latest.yaml"
+    INSIDERS_FILE="${NEXT_FILE%-next.yaml}-insiders.yaml"
+
+    if [[ -f "${LATEST_FILE}" && -f "${INSIDERS_FILE}" ]]; then
+      echo "[INFO] removeRedundantNextEditorDefinitions :: Removing ${NEXT_FILE}"
+      rm -f "${NEXT_FILE}"
+    else
+      cp "${NEXT_FILE}" "${EDITOR_DEFINITIONS_SNAPSHOT_DIR}/$(basename "${NEXT_FILE}")"
+    fi
+  done
+}
+
 # Keep copies of the original definitions to store the promotion diffs in the 'diffs' directory.
 # Must run before tagEditorDefinitionImages so the diffs capture the full change,
 # including the image pinning to the release version
 snapshotPromotableEditorDefinitions() {
   EDITOR_DEFINITIONS_SNAPSHOT_DIR=$(mktemp -d)
+  trap 'rm -rf "${EDITOR_DEFINITIONS_SNAPSHOT_DIR}"' EXIT
+
   for NEXT_FILE in "${EDITORS_DEFINITIONS_DIR}"/*-next.yaml; do
     [[ -e "${NEXT_FILE}" ]] || continue
-
-    LATEST_FILE="${NEXT_FILE%-next.yaml}-latest.yaml"
-    if [[ -f "${LATEST_FILE}" ]]; then
-      continue
-    fi
-
     cp "${NEXT_FILE}" "${EDITOR_DEFINITIONS_SNAPSHOT_DIR}/$(basename "${NEXT_FILE}")"
   done
 }
@@ -75,7 +91,8 @@ promoteNextEditorDefinitions() {
 
     LATEST_FILE="${NEXT_FILE%-next.yaml}-latest.yaml"
     if [[ -f "${LATEST_FILE}" ]]; then
-      continue
+      echo "[ERROR] Latest editor definitions already exist: ${LATEST_FILE}"
+      exit 1
     fi
 
     echo "[INFO] promoteNextEditorDefinitions :: Promoting ${NEXT_FILE} to ${LATEST_FILE}"
@@ -85,8 +102,7 @@ promoteNextEditorDefinitions() {
 
     yq -riY '(.metadata.attributes.version) = "latest" |
       (.metadata.description) |= sub(" - next$"; " - latest") |
-      (.metadata.attributes.title) |= sub(" - next$"; " - latest") |
-      (.components[] | select(.container != null) | .container.image) |= sub(":next$"; ":latest")' "${NEXT_FILE}"
+      (.metadata.attributes.title) |= sub(" - next$"; " - latest")' "${NEXT_FILE}"
     mv "${NEXT_FILE}" "${LATEST_FILE}"
 
     mkdir -p "${EDITORS_DEFINITIONS_DIFFS_DIR}"
@@ -100,10 +116,7 @@ promoteNextEditorDefinitions() {
 
 # Tag all 'quay.io/che-incubator' images referenced by the editor definitions with a 'next',
 # 'insiders' or 'latest' tag with the release version, and update the definitions to use the
-# versioned images. If the versioned tag already exists in the registry it is reused as is
-# (some images, like 'che-code', publish release tags from external pipelines); otherwise it is
-# created from the source image with 'skopeo copy', which requires QUAY_ECLIPSE_CHE_USERNAME and
-# QUAY_ECLIPSE_CHE_PASSWORD to be set. DRY_RUN=true skips the pushes but still updates the definitions
+# versioned images.
 tagEditorDefinitionImages() {
   EDITOR_IMAGES=$(
     for FILE in "${EDITORS_DEFINITIONS_DIR}"/*.yaml; do
@@ -153,26 +166,12 @@ tagEditorDefinitionImages() {
   done <<< "${EDITOR_IMAGES}"
 }
 
-removeNextEditorDefinitions() {
-  # The remaining 'next' definitions have a 'latest' counterpart and are pinned to the same
-  # release version images, so they are redundant and removed
-  for NEXT_FILE in "${EDITORS_DEFINITIONS_DIR}"/*-next.yaml; do
-    [[ -e "${NEXT_FILE}" ]] || continue
-
-    echo "[INFO] removeNextEditorDefinitions :: Removing ${NEXT_FILE}"
-    rm -f "${NEXT_FILE}"
-  done
-}
-
 release() {
   if [[ ! ${VERSION} ]]; then usage; exit 1; fi
+  removeRedundantNextEditorDefinitions
   snapshotPromotableEditorDefinitions
-  # Tag the images before the promotion: a promoted definition must be pinned to the version tagged
-  # from its 'next' source, not from a possibly stale or missing 'latest' tag in the registry
   tagEditorDefinitionImages
   promoteNextEditorDefinitions
-  removeNextEditorDefinitions
-  rm -rf "${EDITOR_DEFINITIONS_SNAPSHOT_DIR}"
 }
 
 updateOperatorDeploymentEnvVar() {
