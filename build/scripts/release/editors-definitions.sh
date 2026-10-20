@@ -66,8 +66,6 @@ removeRedundantNextEditorDefinitions() {
     if [[ -f "${LATEST_FILE}" && -f "${INSIDERS_FILE}" ]]; then
       echo "[INFO] removeRedundantNextEditorDefinitions :: Removing ${NEXT_FILE}"
       rm -f "${NEXT_FILE}"
-    else
-      cp "${NEXT_FILE}" "${EDITOR_DEFINITIONS_SNAPSHOT_DIR}/$(basename "${NEXT_FILE}")"
     fi
   done
 }
@@ -127,8 +125,6 @@ tagEditorDefinitionImages() {
   if [[ -z "${EDITOR_IMAGES}" ]]; then
     return
   fi
-
-  command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] tagEditorDefinitionImages :: skopeo is not installed. Aborting."; exit 1; }
 
   while read -r IMAGE; do
     VERSIONED_IMAGE="${IMAGE%:*}:${VERSION}"
