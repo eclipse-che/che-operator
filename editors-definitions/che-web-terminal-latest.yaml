@@ -98,6 +98,3 @@ components:
             secure: true
   - name: ttyd-volume
     volume: {}
-
-attributes:
-  version: null

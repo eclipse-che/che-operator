@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 Red Hat, Inc.
+# Copyright (c) 2019-2024 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -12,13 +12,9 @@
 
 schemaVersion: 2.3.0
 metadata:
-  name: che-code-sshd
-  displayName: Visual Studio Code (desktop) (SSH)
-  description: Visual Studio Code server for Eclipse Che over SSH - insiders
-  tags:
-    - ssh
-    - CLI
-    - vscode
+  name: che-code
+  displayName: VS Code - Open Source
+  description: Microsoft Visual Studio Code - Open Source IDE for Eclipse Che - next
   attributes:
     arch:
       - x86_64
@@ -26,11 +22,11 @@ metadata:
       - s390x
       - ppc64le
     publisher: che-incubator
-    version: insiders
-    provider: Provided by [Microsoft](https://www.microsoft.com/) under [License](https://code.visualstudio.com/License)
-    title: Visual Studio Code server for Eclipse Che over SSH - insiders
+    version: next
+    title: Microsoft Visual Studio Code - Open Source IDE for Eclipse Che - next
+      build
     repository: https://github.com/che-incubator/che-code
-    firstPublicationDate: '2025-09-17'
+    firstPublicationDate: '2021-10-31'
     iconMediatype: image/svg+xml
     iconData: |
       <svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -74,61 +70,78 @@ metadata:
       </linearGradient>
       </defs>
       </svg>
-
 commands:
-  - id: start-sshd
+  - id: init-container-command
+    apply:
+      component: che-code-injector
+  - id: init-che-code-command
     exec:
-      component: che-code-sshd
-      commandLine: ( /sshd/sshd.start & )
+      component: che-code-runtime-description
+      commandLine: nohup /checode/entrypoint-volume.sh > /checode/entrypoint-logs.txt
+        2>&1 &
 events:
+  preStart:
+    - init-container-command
   postStart:
-    - start-sshd
-
+    - init-che-code-command
 components:
-
-  - name: che-code-sshd-page
+  - name: che-code-injector
     container:
-      image: quay.io/che-incubator/che-code-sshd:insiders
+      image: quay.io/che-incubator/che-code:next
+      command:
+        - /entrypoint-init-container.sh
+      volumeMounts:
+        - name: checode
+          path: /checode
       memoryLimit: 256Mi
       memoryRequest: 32Mi
       cpuLimit: 500m
       cpuRequest: 30m
-      command:
-        - sh
-        - -c
-        - "/sshd-staging/sshd.init"
+  - name: che-code-runtime-description
+    container:
+      image: quay.io/devfile/universal-developer-image:latest
+      memoryLimit: 1024Mi
+      memoryRequest: 256Mi
+      cpuLimit: 500m
+      cpuRequest: 30m
+      volumeMounts:
+        - name: checode
+          path: /checode
       endpoints:
-        - name: che-code-sshd
+        - name: che-code
           attributes:
             type: main
+            cookiesAuthEnabled: true
             discoverable: false
             urlRewriteSupported: true
-          targetPort: 3400
+          targetPort: 3100
           exposure: public
           secure: true
           protocol: https
-      volumeMounts:
-        - name: sshd-folder
-          path: /sshd
+        - name: code-redirect-1
+          targetPort: 13131
+          exposure: public
+          protocol: https
+          attributes:
+            discoverable: false
+            urlRewriteSupported: false
+        - name: code-redirect-2
+          targetPort: 13132
+          exposure: public
+          protocol: https
+          attributes:
+            discoverable: false
+            urlRewriteSupported: false
+        - name: code-redirect-3
+          targetPort: 13133
+          exposure: public
+          protocol: https
+          attributes:
+            discoverable: false
+            urlRewriteSupported: false
     attributes:
-      app.kubernetes.io/component: che-code-sshd-page
-      app.kubernetes.io/part-of: che-code-server.eclipse.org
-
-  - name: che-code-sshd
-    container:
-      image: registry.access.redhat.com/ubi9-minimal:9.7
-      memoryLimit: 4096Mi
-      memoryRequest: 256Mi
-      cpuLimit: 1000m
-      cpuRequest: 500m
-      volumeMounts:
-        - name: sshd-folder
-          path: /sshd
-    attributes:
-      app.kubernetes.io/component: che-code-sshd
-      app.kubernetes.io/part-of: che-code-server.eclipse.org
+      app.kubernetes.io/component: che-code-runtime
+      app.kubernetes.io/part-of: che-code.eclipse.org
       controller.devfile.io/container-contribution: true
-
-  - name: sshd-folder
+  - name: checode
     volume: {}
-

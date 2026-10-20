@@ -40,7 +40,7 @@ usage () {
   echo
   echo "Commands:"
   echo "  release              Remove 'next' editor definitions that have a 'latest' counterpart, tag 'next',"
-  echo "                       'insiders' and 'latest' quay.io/che-incubator images with the release version,"
+  echo "                       'latest' quay.io/che-incubator images with the release version,"
   echo "                       and promote the remaining 'next' editor definitions to 'latest'"
   echo "  update-manager-yaml  Update the operator deployment file (manager.yaml) with the RELATED_IMAGE env vars"
   echo
@@ -50,7 +50,7 @@ usage () {
   echo "  --help, -h            Show this help message and exit"
   echo
   echo "Examples:"
-  echo "  $0 release --version 0.0.1"
+  echo "  $0 release --version 7.120.0"
   echo "  $0 update-manager-yaml --yaml-path config/manager/manager.yaml"
 }
 
@@ -61,9 +61,8 @@ removeRedundantNextEditorDefinitions() {
     [[ -e "${NEXT_FILE}" ]] || continue
 
     LATEST_FILE="${NEXT_FILE%-next.yaml}-latest.yaml"
-    INSIDERS_FILE="${NEXT_FILE%-next.yaml}-insiders.yaml"
 
-    if [[ -f "${LATEST_FILE}" && -f "${INSIDERS_FILE}" ]]; then
+    if [[ -f "${LATEST_FILE}" ]]; then
       echo "[INFO] removeRedundantNextEditorDefinitions :: Removing ${NEXT_FILE}"
       rm -f "${NEXT_FILE}"
     fi
@@ -112,14 +111,11 @@ promoteNextEditorDefinitions() {
   done
 }
 
-# Tag all 'quay.io/che-incubator' images referenced by the editor definitions with a 'next',
-# 'insiders' or 'latest' tag with the release version, and update the definitions to use the
-# versioned images.
 tagEditorDefinitionImages() {
   EDITOR_IMAGES=$(
     for FILE in "${EDITORS_DEFINITIONS_DIR}"/*.yaml; do
       yq -r '.components[] | select(.container != null) | .container.image' "${FILE}"
-    done | sort -u | grep -E '^quay\.io/che-incubator/.+:(next|insiders|latest)$' || true
+    done | sort -u | grep -E '^quay\.io/che-incubator/.+:(next|latest)$' || true
   )
 
   if [[ -z "${EDITOR_IMAGES}" ]]; then
@@ -155,7 +151,7 @@ tagEditorDefinitionImages() {
     echo "[INFO] tagEditorDefinitionImages :: Update editor definitions to use ${VERSIONED_IMAGE}"
     for FILE in "${EDITORS_DEFINITIONS_DIR}"/*.yaml; do
       # Update only the files referencing the image to avoid re-serializing the others
-      if grep -q "${IMAGE}\$" "${FILE}"; then
+      if grep -qF "${IMAGE}\$" "${FILE}"; then
         yq -riY "(.components[] | select(.container != null) | .container.image | select(. == \"${IMAGE}\")) = \"${VERSIONED_IMAGE}\"" "${FILE}"
       fi
     done

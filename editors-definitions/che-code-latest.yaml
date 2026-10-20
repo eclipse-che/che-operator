@@ -144,5 +144,4 @@ components:
       controller.devfile.io/container-contribution: true
   - name: checode
     volume: {}
-attributes:
-  version: null
+
