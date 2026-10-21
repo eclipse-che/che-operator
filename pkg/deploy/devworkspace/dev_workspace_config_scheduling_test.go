@@ -180,7 +180,7 @@ func TestReconcileDevWorkspaceConfigProgressTimeout(t *testing.T) {
 
 			diff := cmp.Diff(testCase.expectedOperatorConfig, dwoc.Config,
 				cmp.Options{
-					cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount", "DefaultStorageSize", "StorageClassName", "ProjectCloneConfig", "DeploymentStrategy"),
+					cmpopts.IgnoreFields(controllerv1alpha1.WorkspaceConfig{}, "ServiceAccount", "DefaultStorageSize", "StorageClassName", "ProjectCloneConfig", "DeploymentStrategy", "NetworkPolicy"),
 					cmpopts.IgnoreFields(controllerv1alpha1.RoutingConfig{}, "TLSCertificateConfigmapRef"),
 				})
 			assert.Empty(t, diff)

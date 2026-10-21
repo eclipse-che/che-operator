@@ -24698,6 +24698,433 @@ spec:
                               when external TLS is enabled.
                             type: object
                         type: object
+                      networkPolicy:
+                        description: |-
+                          NetworkPolicy defines configuration options for the NetworkPolicies provisioned
+                          for each DevWorkspace by the DevWorkspace Operator.
+
+                          When enabled and no ingress rules are specified, the Operator sets the default
+                          DevWorkspace Operator ingress rules and adds one custom ingress rule allowing traffic
+                          from Che operands (pods labeled with `app.kubernetes.io/part-of=che.eclipse.org` in the
+                          CheCluster namespace). If custom ingress rules are specified, only those rules apply
+                          and the rule allowing traffic from Che operands is not added automatically; if Che
+                          operands need to communicate with the workspaces, a corresponding ingress rule must be
+                          explicitly included.
+
+                          When enabled and no egress rules are specified, the Operator sets the default
+                          DevWorkspace Operator egress rules. If custom egress rules are specified, only
+                          those rules apply.
+
+                          When `enabled` is not set here, it falls back to the Che-wide
+                          `spec.networking.networkPolicy.enabled` flag: if that flag is `true`, workspace isolation
+                          is enabled as well. Set `enabled` to `false` explicitly to opt the workspaces out while
+                          keeping the NetworkPolicies for the Che components.
+                        properties:
+                          egress:
+                            description: |-
+                              Egress defines the egress rules applied to DevWorkspace pods. If this field is not
+                              specified, the default egress rule of the DevWorkspace Operator applies, which allows
+                              all egress traffic. If this field is specified as an empty list, all egress traffic
+                              from DevWorkspace pods is denied. If this field is specified as a non-empty list,
+                              exactly those rules apply and the default rule no longer applies.
+                            items:
+                              description: |-
+                                NetworkPolicyEgressRule describes a particular set of traffic that is allowed out of pods
+                                matched by a NetworkPolicySpec's podSelector. The traffic must match both ports and to.
+                                This type is beta-level in 1.8
+                              properties:
+                                ports:
+                                  description: |-
+                                    ports is a list of destination ports for outgoing traffic.
+                                    Each item in this list is combined using a logical OR. If this field is
+                                    empty or missing, this rule matches all ports (traffic not restricted by port).
+                                    If this field is present and contains at least one item, then this rule allows
+                                    traffic only if the traffic matches at least one port in the list.
+                                  items:
+                                    description: NetworkPolicyPort describes a port
+                                      to allow traffic on
+                                    properties:
+                                      endPort:
+                                        description: |-
+                                          endPort indicates that the range of ports from port to endPort if set, inclusive,
+                                          should be allowed by the policy. This field cannot be defined if the port field
+                                          is not defined or if the port field is defined as a named (string) port.
+                                          The endPort must be equal or greater than port.
+                                        format: int32
+                                        type: integer
+                                      port:
+                                        anyOf:
+                                        - type: integer
+                                        - type: string
+                                        description: |-
+                                          port represents the port on the given protocol. This can either be a numerical or named
+                                          port on a pod. If this field is not provided, this matches all port names and
+                                          numbers.
+                                          If present, only traffic on the specified protocol AND port will be matched.
+                                        x-kubernetes-int-or-string: true
+                                      protocol:
+                                        description: |-
+                                          protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.
+                                          If not specified, this field defaults to TCP.
+                                        type: string
+                                    type: object
+                                  type: array
+                                  x-kubernetes-list-type: atomic
+                                to:
+                                  description: |-
+                                    to is a list of destinations for outgoing traffic of pods selected for this rule.
+                                    Items in this list are combined using a logical OR operation. If this field is
+                                    empty or missing, this rule matches all destinations (traffic not restricted by
+                                    destination). If this field is present and contains at least one item, this rule
+                                    allows traffic only if the traffic matches at least one item in the to list.
+                                  items:
+                                    description: |-
+                                      NetworkPolicyPeer describes a peer to allow traffic to/from. Only certain combinations of
+                                      fields are allowed
+                                    properties:
+                                      ipBlock:
+                                        description: |-
+                                          ipBlock defines policy on a particular IPBlock. If this field is set then
+                                          neither of the other fields can be.
+                                        properties:
+                                          cidr:
+                                            description: |-
+                                              cidr is a string representing the IPBlock
+                                              Valid examples are "192.168.1.0/24" or "2001:db8::/64"
+                                            type: string
+                                          except:
+                                            description: |-
+                                              except is a slice of CIDRs that should not be included within an IPBlock
+                                              Valid examples are "192.168.1.0/24" or "2001:db8::/64"
+                                              Except values will be rejected if they are outside the cidr range
+                                            items:
+                                              type: string
+                                            type: array
+                                            x-kubernetes-list-type: atomic
+                                        required:
+                                        - cidr
+                                        type: object
+                                      namespaceSelector:
+                                        description: |-
+                                          namespaceSelector selects namespaces using cluster-scoped labels. This field follows
+                                          standard label selector semantics; if present but empty, it selects all namespaces.
+
+                                          If podSelector is also set, then the NetworkPolicyPeer as a whole selects
+                                          the pods matching podSelector in the namespaces selected by namespaceSelector.
+                                          Otherwise it selects all pods in the namespaces selected by namespaceSelector.
+                                        properties:
+                                          matchExpressions:
+                                            description: matchExpressions is a list
+                                              of label selector requirements. The
+                                              requirements are ANDed.
+                                            items:
+                                              description: |-
+                                                A label selector requirement is a selector that contains values, a key, and an operator that
+                                                relates the key and values.
+                                              properties:
+                                                key:
+                                                  description: key is the label key
+                                                    that the selector applies to.
+                                                  type: string
+                                                operator:
+                                                  description: |-
+                                                    operator represents a key's relationship to a set of values.
+                                                    Valid operators are In, NotIn, Exists and DoesNotExist.
+                                                  type: string
+                                                values:
+                                                  description: |-
+                                                    values is an array of string values. If the operator is In or NotIn,
+                                                    the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                                    the values array must be empty. This array is replaced during a strategic
+                                                    merge patch.
+                                                  items:
+                                                    type: string
+                                                  type: array
+                                                  x-kubernetes-list-type: atomic
+                                              required:
+                                              - key
+                                              - operator
+                                              type: object
+                                            type: array
+                                            x-kubernetes-list-type: atomic
+                                          matchLabels:
+                                            additionalProperties:
+                                              type: string
+                                            description: |-
+                                              matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                              map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                              operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                            type: object
+                                        type: object
+                                        x-kubernetes-map-type: atomic
+                                      podSelector:
+                                        description: |-
+                                          podSelector is a label selector which selects pods. This field follows standard label
+                                          selector semantics; if present but empty, it selects all pods.
+
+                                          If namespaceSelector is also set, then the NetworkPolicyPeer as a whole selects
+                                          the pods matching podSelector in the Namespaces selected by NamespaceSelector.
+                                          Otherwise it selects the pods matching podSelector in the policy's own namespace.
+                                        properties:
+                                          matchExpressions:
+                                            description: matchExpressions is a list
+                                              of label selector requirements. The
+                                              requirements are ANDed.
+                                            items:
+                                              description: |-
+                                                A label selector requirement is a selector that contains values, a key, and an operator that
+                                                relates the key and values.
+                                              properties:
+                                                key:
+                                                  description: key is the label key
+                                                    that the selector applies to.
+                                                  type: string
+                                                operator:
+                                                  description: |-
+                                                    operator represents a key's relationship to a set of values.
+                                                    Valid operators are In, NotIn, Exists and DoesNotExist.
+                                                  type: string
+                                                values:
+                                                  description: |-
+                                                    values is an array of string values. If the operator is In or NotIn,
+                                                    the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                                    the values array must be empty. This array is replaced during a strategic
+                                                    merge patch.
+                                                  items:
+                                                    type: string
+                                                  type: array
+                                                  x-kubernetes-list-type: atomic
+                                              required:
+                                              - key
+                                              - operator
+                                              type: object
+                                            type: array
+                                            x-kubernetes-list-type: atomic
+                                          matchLabels:
+                                            additionalProperties:
+                                              type: string
+                                            description: |-
+                                              matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                              map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                              operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                            type: object
+                                        type: object
+                                        x-kubernetes-map-type: atomic
+                                    type: object
+                                  type: array
+                                  x-kubernetes-list-type: atomic
+                              type: object
+                            type: array
+                          enabled:
+                            description: |-
+                              Enabled determines whether a NetworkPolicy is provisioned for each DevWorkspace.
+                              Disabled by default. Changing this field does not immediately affect existing
+                              DevWorkspaces: changing the DevWorkspaceOperatorConfig does not enqueue the
+                              DevWorkspaces it affects, so the new value is applied to a DevWorkspace the next
+                              time that DevWorkspace is reconciled for any reason. Restarting a workspace is not
+                              required. Both enabling and disabling apply to running and stopped DevWorkspaces
+                              alike.
+                            type: boolean
+                          ingress:
+                            description: |-
+                              Ingress defines the ingress rules applied to DevWorkspace pods. If this field is not
+                              specified, the default ingress rules of the DevWorkspace Operator apply. On OpenShift,
+                              the defaults allow traffic from the operator's own namespace and from the OpenShift
+                              monitoring, ingress, and host-network namespaces, and deny all other ingress traffic.
+                              On Kubernetes, the default allows all ingress traffic, since the namespace of the
+                              cluster's ingress controller is not known to the operator; administrators are expected
+                              to replace this with rules appropriate to their cluster.
+                              If this field is specified as an empty list, all ingress traffic to DevWorkspace pods
+                              is denied. If this field is specified as a non-empty list, exactly those rules apply
+                              and the default rules no longer apply.
+                            items:
+                              description: |-
+                                NetworkPolicyIngressRule describes a particular set of traffic that is allowed to the pods
+                                matched by a NetworkPolicySpec's podSelector. The traffic must match both ports and from.
+                              properties:
+                                from:
+                                  description: |-
+                                    from is a list of sources which should be able to access the pods selected for this rule.
+                                    Items in this list are combined using a logical OR operation. If this field is
+                                    empty or missing, this rule matches all sources (traffic not restricted by
+                                    source). If this field is present and contains at least one item, this rule
+                                    allows traffic only if the traffic matches at least one item in the from list.
+                                  items:
+                                    description: |-
+                                      NetworkPolicyPeer describes a peer to allow traffic to/from. Only certain combinations of
+                                      fields are allowed
+                                    properties:
+                                      ipBlock:
+                                        description: |-
+                                          ipBlock defines policy on a particular IPBlock. If this field is set then
+                                          neither of the other fields can be.
+                                        properties:
+                                          cidr:
+                                            description: |-
+                                              cidr is a string representing the IPBlock
+                                              Valid examples are "192.168.1.0/24" or "2001:db8::/64"
+                                            type: string
+                                          except:
+                                            description: |-
+                                              except is a slice of CIDRs that should not be included within an IPBlock
+                                              Valid examples are "192.168.1.0/24" or "2001:db8::/64"
+                                              Except values will be rejected if they are outside the cidr range
+                                            items:
+                                              type: string
+                                            type: array
+                                            x-kubernetes-list-type: atomic
+                                        required:
+                                        - cidr
+                                        type: object
+                                      namespaceSelector:
+                                        description: |-
+                                          namespaceSelector selects namespaces using cluster-scoped labels. This field follows
+                                          standard label selector semantics; if present but empty, it selects all namespaces.
+
+                                          If podSelector is also set, then the NetworkPolicyPeer as a whole selects
+                                          the pods matching podSelector in the namespaces selected by namespaceSelector.
+                                          Otherwise it selects all pods in the namespaces selected by namespaceSelector.
+                                        properties:
+                                          matchExpressions:
+                                            description: matchExpressions is a list
+                                              of label selector requirements. The
+                                              requirements are ANDed.
+                                            items:
+                                              description: |-
+                                                A label selector requirement is a selector that contains values, a key, and an operator that
+                                                relates the key and values.
+                                              properties:
+                                                key:
+                                                  description: key is the label key
+                                                    that the selector applies to.
+                                                  type: string
+                                                operator:
+                                                  description: |-
+                                                    operator represents a key's relationship to a set of values.
+                                                    Valid operators are In, NotIn, Exists and DoesNotExist.
+                                                  type: string
+                                                values:
+                                                  description: |-
+                                                    values is an array of string values. If the operator is In or NotIn,
+                                                    the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                                    the values array must be empty. This array is replaced during a strategic
+                                                    merge patch.
+                                                  items:
+                                                    type: string
+                                                  type: array
+                                                  x-kubernetes-list-type: atomic
+                                              required:
+                                              - key
+                                              - operator
+                                              type: object
+                                            type: array
+                                            x-kubernetes-list-type: atomic
+                                          matchLabels:
+                                            additionalProperties:
+                                              type: string
+                                            description: |-
+                                              matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                              map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                              operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                            type: object
+                                        type: object
+                                        x-kubernetes-map-type: atomic
+                                      podSelector:
+                                        description: |-
+                                          podSelector is a label selector which selects pods. This field follows standard label
+                                          selector semantics; if present but empty, it selects all pods.
+
+                                          If namespaceSelector is also set, then the NetworkPolicyPeer as a whole selects
+                                          the pods matching podSelector in the Namespaces selected by NamespaceSelector.
+                                          Otherwise it selects the pods matching podSelector in the policy's own namespace.
+                                        properties:
+                                          matchExpressions:
+                                            description: matchExpressions is a list
+                                              of label selector requirements. The
+                                              requirements are ANDed.
+                                            items:
+                                              description: |-
+                                                A label selector requirement is a selector that contains values, a key, and an operator that
+                                                relates the key and values.
+                                              properties:
+                                                key:
+                                                  description: key is the label key
+                                                    that the selector applies to.
+                                                  type: string
+                                                operator:
+                                                  description: |-
+                                                    operator represents a key's relationship to a set of values.
+                                                    Valid operators are In, NotIn, Exists and DoesNotExist.
+                                                  type: string
+                                                values:
+                                                  description: |-
+                                                    values is an array of string values. If the operator is In or NotIn,
+                                                    the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                                    the values array must be empty. This array is replaced during a strategic
+                                                    merge patch.
+                                                  items:
+                                                    type: string
+                                                  type: array
+                                                  x-kubernetes-list-type: atomic
+                                              required:
+                                              - key
+                                              - operator
+                                              type: object
+                                            type: array
+                                            x-kubernetes-list-type: atomic
+                                          matchLabels:
+                                            additionalProperties:
+                                              type: string
+                                            description: |-
+                                              matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                              map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                              operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                            type: object
+                                        type: object
+                                        x-kubernetes-map-type: atomic
+                                    type: object
+                                  type: array
+                                  x-kubernetes-list-type: atomic
+                                ports:
+                                  description: |-
+                                    ports is a list of ports which should be made accessible on the pods selected for
+                                    this rule. Each item in this list is combined using a logical OR. If this field is
+                                    empty or missing, this rule matches all ports (traffic not restricted by port).
+                                    If this field is present and contains at least one item, then this rule allows
+                                    traffic only if the traffic matches at least one port in the list.
+                                  items:
+                                    description: NetworkPolicyPort describes a port
+                                      to allow traffic on
+                                    properties:
+                                      endPort:
+                                        description: |-
+                                          endPort indicates that the range of ports from port to endPort if set, inclusive,
+                                          should be allowed by the policy. This field cannot be defined if the port field
+                                          is not defined or if the port field is defined as a named (string) port.
+                                          The endPort must be equal or greater than port.
+                                        format: int32
+                                        type: integer
+                                      port:
+                                        anyOf:
+                                        - type: integer
+                                        - type: string
+                                        description: |-
+                                          port represents the port on the given protocol. This can either be a numerical or named
+                                          port on a pod. If this field is not provided, this matches all port names and
+                                          numbers.
+                                          If present, only traffic on the specified protocol AND port will be matched.
+                                        x-kubernetes-int-or-string: true
+                                      protocol:
+                                        description: |-
+                                          protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.
+                                          If not specified, this field defaults to TCP.
+                                        type: string
+                                    type: object
+                                  type: array
+                                  x-kubernetes-list-type: atomic
+                              type: object
+                            type: array
+                        type: object
                     type: object
                   nodeSelector:
                     additionalProperties:
@@ -28852,27 +29279,41 @@ spec:
                     type: object
                   networkPolicy:
                     description: |-
-                      NetworkPolicy configures NetworkPolicy resources for the Che namespace
-                      and user workspace namespaces. For OpenShift clusters only.
-                      When enabled, the following policies are created:
-                      In the Che namespace:
-                        - allow-from-same-namespace: allows ingress traffic between Che pods in the same namespace.
-                        - allow-from-workspaces: allows ingress traffic from user workspace namespaces.
-                        - allow-from-openshift-ingress: allows ingress traffic from the OpenShift ingress namespace.
-                        - allow-from-openshift-monitoring: allows ingress traffic from the OpenShift monitoring namespace.
-                        - allow-from-<flavor>-operator: allows ingress traffic from the operator pod to Che components.
-                        - allow-all-egress: allows all egress traffic from Che pods.
-                      In each user workspace namespace:
-                        - allow-from-<che-namespace>: allows ingress traffic from the Che namespace.
-                        - allow-from-same-namespace: allows ingress traffic between pods in the same namespace.
-                        - allow-from-devworkspace-operator: allows ingress traffic from the DevWorkspace operator.
-                        - allow-from-openshift-monitoring: allows ingress traffic from the OpenShift monitoring namespace.
-                        - allow-from-openshift-ingress: allows ingress traffic from the OpenShift ingress namespace.
-                        - allow-all-egress: allows all egress traffic from workspace pods.
+                      NetworkPolicy defines the NetworkPolicies the Operator provisions for Che components,
+                      such as the gateway, the server, the dashboard and the registries.
                     properties:
                       enabled:
-                        description: Enabled controls whether the operator creates
-                          NetworkPolicy resources.
+                        default: false
+                        description: "Enabled determines whether the NetworkPolicies
+                          are provisioned for Eclipse Che.\nThe policies are created
+                          in the namespace where the `CheCluster` custom resource
+                          is created\nand apply to the pods labeled with `app.kubernetes.io/part-of=che.eclipse.org`
+                          only.\nDisabled by default. When set to `false`, the NetworkPolicies
+                          previously created\nby the Operator are removed.\n\nOn OpenShift,
+                          the following NetworkPolicies are created in the `CheCluster`
+                          namespace:\n  - `allow-from-same-namespace`         \t:
+                          from the Che operands themselves.\n  - `allow-from-openshift-ingress`
+                          \     \t: from the OpenShift ingress controller.\n  - `allow-from-openshift-host-network`
+                          \t: from the pods that use the host network, for example\n
+                          \   the OpenShift router.\n  - `allow-from-openshift-monitoring`
+                          \  \t: from the OpenShift monitoring stack, to scrape metrics.\n
+                          \ - `allow-from-workspaces`             \t: from the users'
+                          workspace namespaces.\n  - `allow-from-che-operator`      \t\t:
+                          from the Operator pods in the Operator namespace.\n  - `allow-all-egress`
+                          \                 \t: allows all egress traffic from the
+                          Che operands.\n\nOn Kubernetes, only the `allow-all-ingress`
+                          and `allow-all-egress` NetworkPolicies are created,\nallowing
+                          all ingress and egress traffic, since the namespace of the
+                          cluster's ingress controller\nis not known to the Operator.
+                          Enabling this setting on Kubernetes does not restrict any
+                          traffic\nby itself: administrators are expected to provision
+                          their own NetworkPolicies.\n\nThis setting also drives workspace
+                          isolation when `spec.devEnvironments.networking.networkPolicy`\ndoes
+                          not define `enabled`: setting this field to `true` additionally
+                          enables the NetworkPolicies\nthat the DevWorkspace Operator
+                          provisions for each DevWorkspace. To protect the Che components\nwithout
+                          isolating the workspaces, explicitly set\n`spec.devEnvironments.networking.networkPolicy.enabled`
+                          to `false`."
                         type: boolean
                     type: object
                   tlsSecretName:

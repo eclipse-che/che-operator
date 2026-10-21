@@ -22,7 +22,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	agentsandbox "github.com/eclipse-che/che-operator/pkg/deploy/agent-sandbox"
 	"github.com/eclipse-che/che-operator/pkg/deploy/metrics"
-	"github.com/eclipse-che/che-operator/pkg/deploy/networkpolicies"
+	"github.com/eclipse-che/che-operator/pkg/reconciler/networkpolicy"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -109,10 +109,7 @@ func NewReconciler(
 	reconcilerManager.AddReconciler(tls.NewTlsSecretReconciler())
 	reconcilerManager.AddReconciler(devworkspace.NewDevWorkspaceConfigReconciler())
 	reconcilerManager.AddReconciler(rbac.NewGatewayPermissionsReconciler())
-
-	if infrastructure.IsOpenShift() {
-		reconcilerManager.AddReconciler(networkpolicies.NewNetworkPoliciesReconciler())
-	}
+	reconcilerManager.AddReconciler(&networkpolicy.NetworkPoliciesReconciler{})
 
 	// we have to expose che endpoint independently of syncing other server
 	// resources since che host is used for dashboard deployment and che config map

@@ -127,6 +127,14 @@ func (k K8sClientWrapper) DeleteByKeyIgnoreNotFound(
 	return k.deleteByKeyIgnoreNotFound(ctx, key, objectMeta, opts...)
 }
 
+func (k K8sClientWrapper) DeleteAllOf(
+	ctx context.Context,
+	obj client.Object,
+	opts ...client.DeleteAllOfOption,
+) error {
+	return k.cli.DeleteAllOf(ctx, obj, opts...)
+}
+
 func (k K8sClientWrapper) DeleteIgnoreNotFound(
 	ctx context.Context,
 	obj client.Object,

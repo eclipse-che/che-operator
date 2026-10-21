@@ -351,14 +351,14 @@ type NetworkPolicyConfig struct {
 	// is denied. If this field is specified as a non-empty list, exactly those rules apply
 	// and the default rules no longer apply.
 	// +kubebuilder:validation:Optional
-	Ingress []networkingv1.NetworkPolicyIngressRule `json:"ingress,omitempty"`
+	Ingress []networkingv1.NetworkPolicyIngressRule `json:"ingress"`
 	// Egress defines the egress rules applied to DevWorkspace pods. If this field is not
 	// specified, the default egress rule of the DevWorkspace Operator applies, which allows
 	// all egress traffic. If this field is specified as an empty list, all egress traffic
 	// from DevWorkspace pods is denied. If this field is specified as a non-empty list,
 	// exactly those rules apply and the default rule no longer applies.
 	// +kubebuilder:validation:Optional
-	Egress []networkingv1.NetworkPolicyEgressRule `json:"egress,omitempty"`
+	Egress []networkingv1.NetworkPolicyEgressRule `json:"egress"`
 }
 
 type Proxy struct {
@@ -438,6 +438,7 @@ type ProjectCloneConfig struct {
 	Image string `json:"image,omitempty"`
 	// ImagePullPolicy configures the imagePullPolicy for the project clone container.
 	// If undefined, the general setting .config.workspace.imagePullPolicy is used instead.
+	// If neither is set, defaults to IfNotPresent.
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 	// Resources defines the resource (cpu, memory) limits and requests for the project
 	// clone container. To explicitly not specify a limit or request, define the resource
@@ -449,7 +450,7 @@ type ProjectCloneConfig struct {
 
 type RestoreConfig struct {
 	// ImagePullPolicy configures the imagePullPolicy for the restore container.
-	// If undefined, the general setting .config.workspace.imagePullPolicy is used instead.
+	// If undefined, defaults to IfNotPresent.
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 	// Resources defines the resource (cpu, memory) limits and requests for the restore
 	// container. To explicitly not specify a limit or request, define the resource

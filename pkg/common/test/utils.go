@@ -16,10 +16,15 @@ import (
 	"context"
 	"testing"
 
+	dwInfrastructure "github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	. "github.com/onsi/gomega"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -39,10 +44,10 @@ type TestExpectedResources struct {
 func EnsureReconcile(
 	t *testing.T,
 	cheCtx *chetypes.CheContext,
-	testReconcileFunc func(cheCtx *chetypes.CheContext) (result reconcile.Result, done bool, err error)) {
+	reconcileFunc func(cheCtx *chetypes.CheContext) (result reconcile.Result, done bool, err error)) {
 
 	for i := 0; i < 10; i++ {
-		_, done, err := testReconcileFunc(cheCtx)
+		_, done, err := reconcileFunc(cheCtx)
 		assert.NoError(t, err)
 		if done {
 			return
@@ -50,6 +55,18 @@ func EnsureReconcile(
 	}
 
 	assert.Fail(t, "Reconcile did not finish in 10 iterations")
+}
+
+// Reconcile runs the reconcileFunc once and asserts, with gomega matchers, that the component
+// reconciled in a single pass: it requested no requeue and returned no error.
+func Reconcile(
+	cheCtx *chetypes.CheContext,
+	reconcileFunc func(cheCtx *chetypes.CheContext) (result reconcile.Result, done bool, err error)) {
+
+	result, done, err := reconcileFunc(cheCtx)
+	Expect(result).To(Equal(reconcile.Result{}))
+	Expect(done).To(BeTrue())
+	Expect(err).ToNot(HaveOccurred())
 }
 
 func CompareResources(actualDeployment *appsv1.Deployment, expected TestExpectedResources, t *testing.T) {
@@ -138,4 +155,10 @@ func GetResourceQuantity(value string, defaultValue string) resource.Quantity {
 		return resource.MustParse(value)
 	}
 	return resource.MustParse(defaultValue)
+}
+
+func Initialize(infra infrastructure.Type) {
+	infrastructure.InitializeForTesting(infra)
+	dwInfrastructure.InitializeForTesting(dwInfrastructure.Type(infra))
+	defaults.InitializeForTesting()
 }

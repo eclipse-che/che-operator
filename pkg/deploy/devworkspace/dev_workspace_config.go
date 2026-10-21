@@ -135,6 +135,10 @@ func updateWorkspaceConfig(cheCtx *chetypes.CheContext, operatorConfig *controll
 		return err
 	}
 
+	if err := updateNetworkPolicy(cheCtx, operatorConfig.Workspace); err != nil {
+		return err
+	}
+
 	// If the CheCluster has a configured proxy, or if the Che Operator has detected a proxy configuration,
 	// we need to disable automatic proxy handling in the DevWorkspace Operator as its implementation collides
 	// with ours -- they set environment variables the deployment spec explicitly, which overrides the proxy-settings
