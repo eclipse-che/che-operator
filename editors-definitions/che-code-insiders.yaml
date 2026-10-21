@@ -14,7 +14,10 @@ schemaVersion: 2.3.0
 metadata:
   name: che-code
   displayName: VS Code - Open Source
-  description: Microsoft Visual Studio Code - Open Source IDE for Eclipse Che - next
+  description: Microsoft Visual Studio Code - Open Source IDE for Eclipse Che - Insiders
+    build
+  tags:
+    - Tech-Preview
   attributes:
     arch:
       - x86_64
@@ -22,8 +25,8 @@ metadata:
       - s390x
       - ppc64le
     publisher: che-incubator
-    version: next
-    title: Microsoft Visual Studio Code - Open Source IDE for Eclipse Che - next
+    version: insiders
+    title: Microsoft Visual Studio Code - Open Source IDE for Eclipse Che - Insiders
       build
     repository: https://github.com/che-incubator/che-code
     firstPublicationDate: '2021-10-31'
@@ -87,7 +90,7 @@ events:
 components:
   - name: che-code-injector
     container:
-      image: quay.io/che-incubator/che-code:next
+      image: quay.io/che-incubator/che-code:insiders
       command:
         - /entrypoint-init-container.sh
       volumeMounts:

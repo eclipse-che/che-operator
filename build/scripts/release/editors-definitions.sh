@@ -17,6 +17,10 @@ OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_
 EDITORS_DEFINITIONS_DIR="${OPERATOR_REPO}/editors-definitions"
 EDITORS_DEFINITIONS_DIFFS_DIR="${EDITORS_DEFINITIONS_DIR}/diffs"
 
+# 'next' and 'insiders' are both unreleased rolling editor definition variants
+# and are treated the same way by the release flow
+EDITOR_DEFINITION_VARIANTS=(next insiders)
+
 command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] skopeo is not installed. Aborting."; exit 1; }
 
 init() {
@@ -39,9 +43,9 @@ usage () {
   echo "Usage: $0 COMMAND OPTIONS"
   echo
   echo "Commands:"
-  echo "  release              Remove 'next' editor definitions that have a 'latest' counterpart, tag 'next',"
-  echo "                       'latest' quay.io/che-incubator images with the release version,"
-  echo "                       and promote the remaining 'next' editor definitions to 'latest'"
+  echo "  release              Remove unreleased variant ('next', 'insiders') editor definitions that have a 'latest'"
+  echo "                       counterpart, tag 'next', 'insiders', 'latest' quay.io/che-incubator images with the"
+  echo "                       release version, and promote the remaining variant editor definitions to 'latest'"
   echo "  update-manager-yaml  Update the operator deployment file (manager.yaml) with the RELATED_IMAGE env vars"
   echo
   echo "Options:"
@@ -54,18 +58,19 @@ usage () {
   echo "  $0 update-manager-yaml --yaml-path config/manager/manager.yaml"
 }
 
-# Remove the 'next' definitions with a 'latest' counterpart before tagging: they are not released,
+# Remove the unreleased variant definitions with a 'latest' counterpart before tagging: they are not released,
 # so their images must neither be tagged nor take part in the digest conflict check
-removeRedundantNextEditorDefinitions() {
-  for NEXT_FILE in "${EDITORS_DEFINITIONS_DIR}"/*-next.yaml; do
-    [[ -e "${NEXT_FILE}" ]] || continue
+removeRedundantEditorDefinitions() {
+  for VARIANT in "${EDITOR_DEFINITION_VARIANTS[@]}"; do
+    for FILE in "${EDITORS_DEFINITIONS_DIR}"/*-"${VARIANT}".yaml; do
+      [[ -e "${FILE}" ]] || continue
 
-    LATEST_FILE="${NEXT_FILE%-next.yaml}-latest.yaml"
-
-    if [[ -f "${LATEST_FILE}" ]]; then
-      echo "[INFO] removeRedundantNextEditorDefinitions :: Removing ${NEXT_FILE}"
-      rm -f "${NEXT_FILE}"
-    fi
+      LATEST_FILE="${FILE%-${VARIANT}.yaml}-latest.yaml"
+      if [[ -f "${LATEST_FILE}" ]]; then
+        echo "[INFO] removeRedundantEditorDefinitions :: Removing ${FILE}"
+        rm -f "${FILE}"
+      fi
+    done
   done
 }
 
@@ -76,46 +81,52 @@ snapshotPromotableEditorDefinitions() {
   EDITOR_DEFINITIONS_SNAPSHOT_DIR=$(mktemp -d)
   trap 'rm -rf "${EDITOR_DEFINITIONS_SNAPSHOT_DIR}"' EXIT
 
-  for NEXT_FILE in "${EDITORS_DEFINITIONS_DIR}"/*-next.yaml; do
-    [[ -e "${NEXT_FILE}" ]] || continue
-    cp "${NEXT_FILE}" "${EDITOR_DEFINITIONS_SNAPSHOT_DIR}/$(basename "${NEXT_FILE}")"
+  for VARIANT in "${EDITOR_DEFINITION_VARIANTS[@]}"; do
+    for FILE in "${EDITORS_DEFINITIONS_DIR}"/*-"${VARIANT}".yaml; do
+      [[ -e "${FILE}" ]] || continue
+      cp "${FILE}" "${EDITOR_DEFINITIONS_SNAPSHOT_DIR}/$(basename "${FILE}")"
+    done
   done
 }
 
-promoteNextEditorDefinitions() {
-  for NEXT_FILE in "${EDITORS_DEFINITIONS_DIR}"/*-next.yaml; do
-    [[ -e "${NEXT_FILE}" ]] || continue
+promoteEditorDefinitions() {
+  for VARIANT in "${EDITOR_DEFINITION_VARIANTS[@]}"; do
+    for FILE in "${EDITORS_DEFINITIONS_DIR}"/*-"${VARIANT}".yaml; do
+      [[ -e "${FILE}" ]] || continue
 
-    LATEST_FILE="${NEXT_FILE%-next.yaml}-latest.yaml"
-    if [[ -f "${LATEST_FILE}" ]]; then
-      echo "[ERROR] Latest editor definitions already exist: ${LATEST_FILE}"
-      exit 1
-    fi
+      LATEST_FILE="${FILE%-${VARIANT}.yaml}-latest.yaml"
+      if [[ -f "${LATEST_FILE}" ]]; then
+        echo "[ERROR] Latest editor definitions already exist: ${LATEST_FILE}"
+        exit 1
+      fi
 
-    echo "[INFO] promoteNextEditorDefinitions :: Promoting ${NEXT_FILE} to ${LATEST_FILE}"
+      echo "[INFO] promoteEditorDefinitions :: Promoting ${FILE} to ${LATEST_FILE}"
 
-    EDITOR_NAME=$(basename "${NEXT_FILE}" -next.yaml)
-    NEXT_FILE_COPY="${EDITOR_DEFINITIONS_SNAPSHOT_DIR}/${EDITOR_NAME}-next.yaml"
+      FILE_COPY="${EDITOR_DEFINITIONS_SNAPSHOT_DIR}/$(basename "${FILE}")"
 
-    yq -riY '(.metadata.attributes.version) = "latest" |
-      (.metadata.description) |= sub(" - next$"; " - latest") |
-      (.metadata.attributes.title) |= sub(" - next$"; " - latest")' "${NEXT_FILE}"
-    mv "${NEXT_FILE}" "${LATEST_FILE}"
+      yq -riY '(.metadata.attributes.version) = "latest" |
+        (.metadata.description) |= sub(" - (?i)(next|insiders)( build)?$"; " - latest") |
+        (.metadata.attributes.title) |= sub(" - (?i)(next|insiders)( build)?$"; " - latest")' "${FILE}"
+      mv "${FILE}" "${LATEST_FILE}"
 
-    mkdir -p "${EDITORS_DEFINITIONS_DIFFS_DIR}"
-    # 'diff' returns 1 when the files differ, which is the expected outcome here
-    diff -u \
-      --label "a/editors-definitions/${EDITOR_NAME}-next.yaml" \
-      --label "b/editors-definitions/${EDITOR_NAME}-latest.yaml" \
-      "${NEXT_FILE_COPY}" "${LATEST_FILE}" > "${EDITORS_DEFINITIONS_DIFFS_DIR}/${EDITOR_NAME}.diff" || [[ $? -eq 1 ]]
+      EDITOR_NAME=$(basename "${FILE}" "-${VARIANT}.yaml")
+
+      mkdir -p "${EDITORS_DEFINITIONS_DIFFS_DIR}"
+      # 'diff' returns 1 when the files differ, which is the expected outcome here
+      diff -u \
+        --label "a/editors-definitions/$(basename "${FILE}")" \
+        --label "b/editors-definitions/$(basename "${LATEST_FILE}")" \
+        "${FILE_COPY}" "${LATEST_FILE}" > "${EDITORS_DEFINITIONS_DIFFS_DIR}/${EDITOR_NAME}.diff" || [[ $? -eq 1 ]]
+    done
   done
 }
 
 tagEditorDefinitionImages() {
+  VARIANTS_PATTERN=$(IFS='|'; echo "${EDITOR_DEFINITION_VARIANTS[*]}")
   EDITOR_IMAGES=$(
     for FILE in "${EDITORS_DEFINITIONS_DIR}"/*.yaml; do
       yq -r '.components[] | select(.container != null) | .container.image' "${FILE}"
-    done | sort -u | grep -E '^quay\.io/che-incubator/.+:(next|latest)$' || true
+    done | sort -u | grep -E "^quay\.io/che-incubator/.+:(${VARIANTS_PATTERN}|latest)$" || true
   )
 
   if [[ -z "${EDITOR_IMAGES}" ]]; then
@@ -150,8 +161,9 @@ tagEditorDefinitionImages() {
 
     echo "[INFO] tagEditorDefinitionImages :: Update editor definitions to use ${VERSIONED_IMAGE}"
     for FILE in "${EDITORS_DEFINITIONS_DIR}"/*.yaml; do
-      # Update only the files referencing the image to avoid re-serializing the others
-      if grep -qF "${IMAGE}\$" "${FILE}"; then
+      # Update only the files referencing the image to avoid re-serializing the others.
+      # The image is expected at the end of the line, hence the '$' anchor (not usable with 'grep -F')
+      if grep -q "${IMAGE}$" "${FILE}"; then
         yq -riY "(.components[] | select(.container != null) | .container.image | select(. == \"${IMAGE}\")) = \"${VERSIONED_IMAGE}\"" "${FILE}"
       fi
     done
@@ -160,10 +172,10 @@ tagEditorDefinitionImages() {
 
 release() {
   if [[ ! ${VERSION} ]]; then usage; exit 1; fi
-  removeRedundantNextEditorDefinitions
+  removeRedundantEditorDefinitions
   snapshotPromotableEditorDefinitions
   tagEditorDefinitionImages
-  promoteNextEditorDefinitions
+  promoteEditorDefinitions
 }
 
 updateOperatorDeploymentEnvVar() {
