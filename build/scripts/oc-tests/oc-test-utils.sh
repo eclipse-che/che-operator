@@ -25,15 +25,39 @@ getCurrentPullRequestNumber() {
   echo "$pr_number"
 }
 
+# Prints the first 6 characters of the head commit hash of the given pull request:
+# $PULL_PULL_SHA if set by the CI and matching the pull request, otherwise detected by 'gh'.
+getPullRequestShortCommitHash() {
+  local pr_number="$1"
+  local sha
+
+  if [[ -z "$pr_number" ]]; then
+    echo "[ERROR] Pull request number is not set" >&2
+    return 1
+  fi
+
+  if [[ -n "${PULL_PULL_SHA:-}" && "${PULL_NUMBER:-}" == "$pr_number" ]]; then
+    sha="$PULL_PULL_SHA"
+  elif ! sha=$(gh pr view "$pr_number" --json headRefOid --jq '.headRefOid' 2>/dev/null) || [[ -z "$sha" ]]; then
+    echo "[ERROR] Failed to detect the head commit hash of pull request ${pr_number} with 'gh'" >&2
+    return 1
+  fi
+
+  echo "${sha:0:6}"
+}
+
 # Prints the OLM catalog image built by CI for the given pull request number and the cluster architecture.
 getPullRequestCatalogImage() {
   local pr_number="$1"
+  local short_sha
   local arch
 
   if [[ -z "$pr_number" ]]; then
     echo "[ERROR] Pull request number is not set" >&2
     return 1
   fi
+
+  short_sha=$(getPullRequestShortCommitHash "$pr_number")
 
   arch=$(oc get nodes -o jsonpath='{.items[0].status.nodeInfo.architecture}')
 
@@ -45,7 +69,7 @@ getPullRequestCatalogImage() {
       ;;
   esac
 
-  echo "quay.io/eclipse/eclipse-che-olm-catalog:pr-${pr_number}-${arch}"
+  echo "quay.io/eclipse/eclipse-che-olm-catalog:pr-${pr_number}-${short_sha}-${arch}"
 }
 
 # Prints the bundle names of the given catalog image, sorted by version in ascending order.
