@@ -11,16 +11,16 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
+################################ !!!   IMPORTANT   !!! ################################
+########### THIS JOB USE openshift ci operators workflows to run  #####################
+#######################################################################################
+
 set -ex
 
 export OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
-source "${OPERATOR_REPO}/build/scripts/oc-tests/oc-common.sh"
-
-trap "catchFinish" EXIT
-trap 'exit 130' SIGINT
 
 runTests() {
-  . "${OPERATOR_REPO}/build/scripts/olm/test-update.sh" -c stable -i quay.io/eclipse/eclipse-che-olm-catalog:stable --verbose
+  bash "${OPERATOR_REPO}/build/scripts/oc-tests/oc-test.sh" --install-from stable --update-to stable
 }
 
 runTests
