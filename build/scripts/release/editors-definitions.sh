@@ -104,9 +104,18 @@ promoteEditorDefinitions() {
 
       FILE_COPY="${EDITOR_DEFINITIONS_SNAPSHOT_DIR}/$(basename "${FILE}")"
 
-      yq -riY '(.metadata.attributes.version) = "latest" |
-        (.metadata.description) |= sub(" - (?i)(next|insiders)( build)?$"; " - latest") |
-        (.metadata.attributes.title) |= sub(" - (?i)(next|insiders)( build)?$"; " - latest")' "${FILE}"
+      # 'sed' is preferred over 'yq' to keep the original formatting of the definition
+      # and make the promotion diff contain only the meaningful changes.
+      # The first letter is matched case-insensitively to handle both 'next' and 'Insiders'
+      SUFFIX_RE="[${VARIANT^}${VARIANT,}]${VARIANT:1}"
+
+      # Unwrap the '- Insiders\n    build' style folded scalar continuations first
+      sed -zi "s| - ${SUFFIX_RE}\n\([[:space:]]*\)build| - latest|g" "${FILE}"
+      sed -i \
+        -e "s|^\([[:space:]]*version: \)${VARIANT}\$|\1latest|" \
+        -e "s| - ${SUFFIX_RE} build\$| - latest|" \
+        -e "s| - ${SUFFIX_RE}\$| - latest|" \
+        "${FILE}"
       mv "${FILE}" "${LATEST_FILE}"
 
       EDITOR_NAME=$(basename "${FILE}" "-${VARIANT}.yaml")
@@ -161,10 +170,11 @@ tagEditorDefinitionImages() {
 
     echo "[INFO] tagEditorDefinitionImages :: Update editor definitions to use ${VERSIONED_IMAGE}"
     for FILE in "${EDITORS_DEFINITIONS_DIR}"/*.yaml; do
-      # Update only the files referencing the image to avoid re-serializing the others.
-      # The image is expected at the end of the line, hence the '$' anchor (not usable with 'grep -F')
+      # Update only the files referencing the image. The image is expected at the end of the line,
+      # hence the '$' anchor (not usable with 'grep -F').
+      # 'sed' is preferred over 'yq' to keep the original formatting of the definition
       if grep -q "${IMAGE}$" "${FILE}"; then
-        yq -riY "(.components[] | select(.container != null) | .container.image | select(. == \"${IMAGE}\")) = \"${VERSIONED_IMAGE}\"" "${FILE}"
+        sed -i "s|${IMAGE}\$|${VERSIONED_IMAGE}|" "${FILE}"
       fi
     done
   done <<< "${EDITOR_IMAGES}"
