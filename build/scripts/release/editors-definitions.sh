@@ -73,12 +73,26 @@ restoreOriginalEditorDefinitions() {
   fi
 
   echo "[INFO] restoreOriginalEditorDefinitions :: Restoring the original editor definitions from ${EDITORS_DEFINITIONS_ORIGINALS_DIR}"
-  rm -f "${EDITORS_DEFINITIONS_DIR}"/*.yaml
-  cp "${EDITORS_DEFINITIONS_ORIGINALS_DIR}"/*.yaml "${EDITORS_DEFINITIONS_DIR}/"
+
+  # Delete only the files the previous release produced from the stored originals: the files
+  # themselves and the '-latest' files the variant originals were promoted to. Definitions added
+  # after the initial release have no stored original and must survive the restore
+  for ORIGINAL_FILE in "${EDITORS_DEFINITIONS_ORIGINALS_DIR}"/*.yaml; do
+    BASENAME=$(basename "${ORIGINAL_FILE}")
+    rm -f "${EDITORS_DEFINITIONS_DIR}/${BASENAME}"
+
+    for VARIANT in "${EDITOR_DEFINITION_VARIANTS[@]}"; do
+      if [[ "${BASENAME}" == *-"${VARIANT}".yaml ]]; then
+        rm -f "${EDITORS_DEFINITIONS_DIR}/${BASENAME%-${VARIANT}.yaml}-latest.yaml"
+        break
+      fi
+    done
+
+    cp "${ORIGINAL_FILE}" "${EDITORS_DEFINITIONS_DIR}/"
+  done
 }
 
-# Remove the unreleased variant definitions with a 'latest' counterpart before tagging: they are not released,
-# so their images must neither be tagged nor take part in the digest conflict check
+# Remove the unreleased variant definitions with a 'latest' counterpart before tagging
 removeRedundantEditorDefinitions() {
   for VARIANT in "${EDITOR_DEFINITION_VARIANTS[@]}"; do
     for FILE in "${EDITORS_DEFINITIONS_DIR}"/*-"${VARIANT}".yaml; do
