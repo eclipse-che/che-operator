@@ -49,6 +49,10 @@ COPY pkg/ pkg/
 COPY editors-definitions /tmp/editors-definitions
 COPY header-rewrite-traefik-plugin /tmp/header-rewrite-traefik-plugin
 
+# The editors definitions directory may contain service subdirectories
+# which must not be shipped in the image
+RUN find /tmp/editors-definitions -mindepth 1 -type d -exec rm -rf {} +
+
 RUN if [ "${SKIP_TESTS}" = "false" ]; then \
       go test -mod=vendor ./...; \
     fi

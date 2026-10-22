@@ -15,12 +15,15 @@ set -e
 
 OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
 EDITORS_DEFINITIONS_DIR="${OPERATOR_REPO}/editors-definitions"
-EDITORS_DEFINITIONS_DIFFS_DIR="${EDITORS_DEFINITIONS_DIR}/diffs"
+EDITORS_DEFINITIONS_PROMOTION_DIR="${EDITORS_DEFINITIONS_DIR}/promotion"
+EDITORS_DEFINITIONS_ORIGINALS_DIR="${EDITORS_DEFINITIONS_PROMOTION_DIR}/originals"
+EDITORS_DEFINITIONS_DIFFS_DIR="${EDITORS_DEFINITIONS_PROMOTION_DIR}/diffs"
 
 # 'next' and 'insiders' are both unreleased rolling editor definition variants
 # and are treated the same way by the release flow
 EDITOR_DEFINITION_VARIANTS=(next insiders)
 
+command -v yq >/dev/null 2>&1 || { echo "[ERROR] yq is not installed. Aborting."; exit 1; }
 command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] skopeo is not installed. Aborting."; exit 1; }
 
 init() {
@@ -43,9 +46,11 @@ usage () {
   echo "Usage: $0 COMMAND OPTIONS"
   echo
   echo "Commands:"
-  echo "  release              Remove unreleased variant ('next', 'insiders') editor definitions that have a 'latest'"
-  echo "                       counterpart, tag 'next', 'insiders', 'latest' quay.io/che-incubator images with the"
-  echo "                       release version, and promote the remaining variant editor definitions to 'latest'"
+  echo "  release              Restore the original editor definitions stored by a previous release (a no-op"
+  echo "                       on the initial release), remove the unreleased variant ('next', 'insiders')"
+  echo "                       editor definitions that have a 'latest' counterpart, tag 'next', 'insiders',"
+  echo "                       'latest' quay.io/che-incubator images with the release version, and promote"
+  echo "                       the remaining variant editor definitions to 'latest'"
   echo "  update-manager-yaml  Update the operator deployment file (manager.yaml) with the RELATED_IMAGE env vars"
   echo
   echo "Options:"
@@ -56,6 +61,20 @@ usage () {
   echo "Examples:"
   echo "  $0 release --version 7.120.0"
   echo "  $0 update-manager-yaml --yaml-path config/manager/manager.yaml"
+}
+
+# Restore the original editor definitions stored by a previous release. On '.x' release branches the
+# definitions only exist as 'latest' variants with the images already pinned to a release version:
+# restoring the originals re-creates the pre-release state, so that the upcoming release can tag the
+# images and promote the definitions exactly like the initial one
+restoreOriginalEditorDefinitions() {
+  if ! ls "${EDITORS_DEFINITIONS_ORIGINALS_DIR}"/*.yaml >/dev/null 2>&1; then
+    return
+  fi
+
+  echo "[INFO] restoreOriginalEditorDefinitions :: Restoring the original editor definitions from ${EDITORS_DEFINITIONS_ORIGINALS_DIR}"
+  rm -f "${EDITORS_DEFINITIONS_DIR}"/*.yaml
+  cp "${EDITORS_DEFINITIONS_ORIGINALS_DIR}"/*.yaml "${EDITORS_DEFINITIONS_DIR}/"
 }
 
 # Remove the unreleased variant definitions with a 'latest' counterpart before tagging: they are not released,
@@ -74,18 +93,14 @@ removeRedundantEditorDefinitions() {
   done
 }
 
-# Keep copies of the original definitions to store the promotion diffs in the 'diffs' directory.
-# Must run before tagEditorDefinitionImages so the diffs capture the full change,
-# including the image pinning to the release version
-snapshotPromotableEditorDefinitions() {
-  EDITOR_DEFINITIONS_SNAPSHOT_DIR=$(mktemp -d)
-  trap 'rm -rf "${EDITOR_DEFINITIONS_SNAPSHOT_DIR}"' EXIT
+# Store the original editor definitions before the release flow modifies them: pins the images to the
+# release version and promotes the variant definitions to 'latest'. The stored originals are used by
+# the upcoming releases on '.x' branches to restore the pre-release state, and to generate the promotion diffs
+storeOriginalEditorDefinitions() {
+  mkdir -p "${EDITORS_DEFINITIONS_ORIGINALS_DIR}"
 
-  for VARIANT in "${EDITOR_DEFINITION_VARIANTS[@]}"; do
-    for FILE in "${EDITORS_DEFINITIONS_DIR}"/*-"${VARIANT}".yaml; do
-      [[ -e "${FILE}" ]] || continue
-      cp "${FILE}" "${EDITOR_DEFINITIONS_SNAPSHOT_DIR}/$(basename "${FILE}")"
-    done
+  for FILE in "${EDITORS_DEFINITIONS_DIR}"/*.yaml; do
+    cp "${FILE}" "${EDITORS_DEFINITIONS_ORIGINALS_DIR}/$(basename "${FILE}")"
   done
 }
 
@@ -102,19 +117,20 @@ promoteEditorDefinitions() {
 
       echo "[INFO] promoteEditorDefinitions :: Promoting ${FILE} to ${LATEST_FILE}"
 
-      FILE_COPY="${EDITOR_DEFINITIONS_SNAPSHOT_DIR}/$(basename "${FILE}")"
+      # The original definition stored before the images were tagged is the diff base
+      FILE_COPY="${EDITORS_DEFINITIONS_ORIGINALS_DIR}/$(basename "${FILE}")"
 
       # 'sed' is preferred over 'yq' to keep the original formatting of the definition
       # and make the promotion diff contain only the meaningful changes.
       # The first letter is matched case-insensitively to handle both 'next' and 'Insiders'
-      SUFFIX_RE="[${VARIANT^}${VARIANT,}]${VARIANT:1}"
+      VARIANT_NAME_RE="[${VARIANT^}${VARIANT,}]${VARIANT:1}"
 
       # Unwrap the '- Insiders\n    build' style folded scalar continuations first
-      sed -zi "s| - ${SUFFIX_RE}\n\([[:space:]]*\)build| - latest|g" "${FILE}"
+      sed -zi "s| - ${VARIANT_NAME_RE}\n\([[:space:]]*\)build| - latest|g" "${FILE}"
       sed -i \
         -e "s|^\([[:space:]]*version: \)${VARIANT}\$|\1latest|" \
-        -e "s| - ${SUFFIX_RE} build\$| - latest|" \
-        -e "s| - ${SUFFIX_RE}\$| - latest|" \
+        -e "s| - ${VARIANT_NAME_RE} build\$| - latest|" \
+        -e "s| - ${VARIANT_NAME_RE}\$| - latest|" \
         "${FILE}"
       mv "${FILE}" "${LATEST_FILE}"
 
@@ -132,6 +148,7 @@ promoteEditorDefinitions() {
 
 tagEditorDefinitionImages() {
   VARIANTS_PATTERN=$(IFS='|'; echo "${EDITOR_DEFINITION_VARIANTS[*]}")
+
   EDITOR_IMAGES=$(
     for FILE in "${EDITORS_DEFINITIONS_DIR}"/*.yaml; do
       yq -r '.components[] | select(.container != null) | .container.image' "${FILE}"
@@ -182,8 +199,9 @@ tagEditorDefinitionImages() {
 
 release() {
   if [[ ! ${VERSION} ]]; then usage; exit 1; fi
+  restoreOriginalEditorDefinitions
   removeRedundantEditorDefinitions
-  snapshotPromotableEditorDefinitions
+  storeOriginalEditorDefinitions
   tagEditorDefinitionImages
   promoteEditorDefinitions
 }
@@ -195,7 +213,8 @@ updateOperatorDeploymentEnvVar() {
 
 printEnvVars() {
   RELATED_IMAGES_ENV=""
-  for EDITOR_DEFINITION_FILE in $(find "${EDITORS_DEFINITIONS_DIR}" -name "*.yaml"); do
+  # The glob, not 'find', is used to skip the 'promotion' directory storing the original definitions
+  for EDITOR_DEFINITION_FILE in "${EDITORS_DEFINITIONS_DIR}"/*.yaml; do
     NAME=$(yq -r '.metadata.name' "${EDITOR_DEFINITION_FILE}")
     VERSION=$(yq -r '.metadata.attributes.version' "${EDITOR_DEFINITION_FILE}")
     for COMPONENT in $(yq -r '.components[] | .name' "${EDITOR_DEFINITION_FILE}"); do
