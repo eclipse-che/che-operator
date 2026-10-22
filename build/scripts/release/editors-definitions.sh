@@ -216,10 +216,10 @@ printEnvVars() {
   # The glob, not 'find', is used to skip the 'promotion' directory storing the original definitions
   for EDITOR_DEFINITION_FILE in "${EDITORS_DEFINITIONS_DIR}"/*.yaml; do
     NAME=$(yq -r '.metadata.name' "${EDITOR_DEFINITION_FILE}")
-    VERSION=$(yq -r '.metadata.attributes.version' "${EDITOR_DEFINITION_FILE}")
+    EDITOR_VERSION=$(yq -r '.metadata.attributes.version' "${EDITOR_DEFINITION_FILE}")
     for COMPONENT in $(yq -r '.components[] | .name' "${EDITOR_DEFINITION_FILE}"); do
       ENV_VALUE=$(yq -r ".components[] | select(.name==\"${COMPONENT}\") | .container.image" "${EDITOR_DEFINITION_FILE}")
-      ENV_NAME=$(echo "RELATED_IMAGE_editor_definition_${NAME}_${VERSION}_${COMPONENT}" | sed 's|[-\.]|_|g')
+      ENV_NAME=$(echo "RELATED_IMAGE_editor_definition_${NAME}_${EDITOR_VERSION}_${COMPONENT}" | sed 's|[-\.]|_|g')
 
       if [[ ! ${ENV_VALUE} == "null" ]]; then
         ENV="{ name: \"${ENV_NAME}\", value: \"${ENV_VALUE}\"}"
