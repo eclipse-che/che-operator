@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2019-2023 Red Hat, Inc.
+# Copyright (c) 2019-2026 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -28,7 +28,7 @@ init() {
   PREPARE_COMMUNITY_OPERATORS_UPDATE=false
   OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
   FORCE_UPDATE=""
-  BUILDX_PLATFORMS="linux/amd64,linux/arm64"
+  BUILDX_PLATFORMS="linux/amd64,linux/arm64,linux/ppc64le,linux/s390x"
   CSV_STABLE_PATH=$(make csv-path CHANNEL=stable)
   MANAGER_YAML=${OPERATOR_REPO}/config/manager/manager.yaml
   CHE_OPERATOR_IMAGE=$(yq -r '.spec.template.spec.containers[0].image' "${MANAGER_YAML}" | sed -e "s/\(.*:\).*/\1${RELEASE}/")
