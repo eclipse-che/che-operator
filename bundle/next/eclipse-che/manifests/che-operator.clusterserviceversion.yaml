@@ -86,7 +86,7 @@ metadata:
     categories: Developer Tools
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:next
-    createdAt: "2026-10-21T13:47:38Z"
+    createdAt: "2026-10-23T07:06:35Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
     features.operators.openshift.io/cnf: "false"
@@ -107,8 +107,10 @@ metadata:
   labels:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.arm64: supported
+    operatorframework.io/arch.ppc64le: supported
+    operatorframework.io/arch.s390x: supported
     operatorframework.io/os.linux: supported
-  name: eclipse-che.v7.125.0-1088.next
+  name: eclipse-che.v7.125.0-1089.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1202,7 +1204,7 @@ spec:
       name: openvsx
     - image: quay.io/sclorg/postgresql-16-c9s:20260319
       name: openvsx-postgres
-  version: 7.125.0-1088.next
+  version: 7.125.0-1089.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1
