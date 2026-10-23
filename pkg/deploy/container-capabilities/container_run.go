@@ -85,10 +85,6 @@ func (r *ContainerRun) getDWOClusterRoleName() string {
 	return "dev-workspace-container-run"
 }
 
-func (r *ContainerRun) getFinalizer() string {
-	return constants.ContainerRunFinalizer
-}
-
 func (r *ContainerRun) getSCCName(cheCluster *chev2.CheCluster) string {
 	if cheCluster.Spec.DevEnvironments.ContainerRunConfiguration != nil {
 		return cheCluster.Spec.DevEnvironments.ContainerRunConfiguration.OpenShiftSecurityContextConstraint

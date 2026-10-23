@@ -17,7 +17,6 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
-	util "github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/sirupsen/logrus"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
@@ -57,31 +56,6 @@ func (s *CheServerReconciler) syncPermissions(cheCtx *chetypes.CheContext) (bool
 		if cheClusterRole != "" {
 			if err := deploy.SyncClusterRoleBindingToCluster(cheCtx, cheClusterRole, constants.DefaultCheServiceAccountName, cheClusterRole); err != nil {
 				return false, err
-			}
-
-			finalizer := s.getCRBFinalizerName(cheClusterRole)
-			if err := deploy.AppendFinalizer(cheCtx, finalizer); err != nil {
-				return false, err
-			}
-		}
-	}
-
-	// Delete abandoned CRBs
-	for _, finalizer := range cheCtx.CheCluster.Finalizers {
-		if strings.HasSuffix(finalizer, cheCRBFinalizerSuffix) {
-			cheClusterRole := strings.TrimSuffix(finalizer, cheCRBFinalizerSuffix)
-			if !util.Contains(cheCtx.CheCluster.Spec.Components.CheServer.ClusterRoles, cheClusterRole) {
-				if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
-					cheCtx.Context,
-					types.NamespacedName{Name: cheClusterRole},
-					&rbacv1.ClusterRoleBinding{},
-				); err != nil {
-					return false, fmt.Errorf("failed to delete ClusterRoleBinding %s: %w", cheClusterRole, err)
-				}
-
-				if err := deploy.DeleteFinalizer(cheCtx, finalizer); err != nil {
-					return false, err
-				}
 			}
 		}
 	}

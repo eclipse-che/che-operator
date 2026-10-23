@@ -22,7 +22,6 @@ import (
 
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
-	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	consolev1 "github.com/openshift/api/console/v1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,7 +37,6 @@ func TestReconcileConsoleLink(t *testing.T) {
 	consoleLink := &consolev1.ConsoleLink{}
 	err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: defaults.GetConsoleLinkName()}, consoleLink)
 	assert.Nil(t, err)
-	assert.True(t, utils.Contains(cheCtx.CheCluster.Finalizers, ConsoleLinkFinalizerName))
 	assert.Equal(t, "https://che-host", consoleLink.Spec.Href)
 
 	// Initialize DeletionTimestamp => checluster is being deleted
@@ -46,7 +44,6 @@ func TestReconcileConsoleLink(t *testing.T) {
 	assert.True(t, done)
 
 	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: defaults.GetConsoleLinkName()}, &consolev1.ConsoleLink{}))
-	assert.False(t, utils.Contains(cheCtx.CheCluster.Finalizers, ConsoleLinkFinalizerName))
 }
 
 func TestReconcileConsoleLinkWhenCheURLChanged(t *testing.T) {
@@ -88,7 +85,6 @@ func TestReconcileConsoleLinkWhenCheURLChanged(t *testing.T) {
 	consoleLink := &consolev1.ConsoleLink{}
 	err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: defaults.GetConsoleLinkName()}, consoleLink)
 	assert.Nil(t, err)
-	assert.True(t, utils.Contains(cheCtx.CheCluster.Finalizers, ConsoleLinkFinalizerName))
 	assert.Equal(t, "https://test-host", consoleLink.Spec.Href)
 	assert.Equal(t, fmt.Sprintf("https://test-host%s", defaults.GetConsoleLinkImage()), consoleLink.Spec.ApplicationMenu.ImageURL)
 }

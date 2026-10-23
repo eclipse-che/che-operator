@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
@@ -63,14 +64,9 @@ func (r *BaseDomainReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile
 		return reconcile.Result{}, false, fmt.Errorf("unable to detect base domain")
 	}
 
-	if cheCtx.CheCluster.Status.WorkspaceBaseDomain != workspaceBaseDomain {
-		cheCtx.CheCluster.Status.WorkspaceBaseDomain = workspaceBaseDomain
-		if err := deploy.UpdateCheCRStatus(cheCtx, "WorkspaceBaseDomain", workspaceBaseDomain); err != nil {
-			return reconcile.Result{}, false, err
-		}
-	}
-
-	return reconcile.Result{}, true, nil
+	cheCtx.CheCluster.Status.WorkspaceBaseDomain = workspaceBaseDomain
+	err := common.CheCluster.UpdateStatus(cheCtx)
+	return reconcile.Result{}, err == nil, err
 }
 
 func (r *BaseDomainReconciler) Finalize(cheCtx *chetypes.CheContext) bool {

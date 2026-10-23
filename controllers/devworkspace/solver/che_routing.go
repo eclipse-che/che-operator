@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
+	"github.com/eclipse-che/che-operator/pkg/common"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -33,7 +34,7 @@ import (
 
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers"
-	"github.com/devfile/devworkspace-operator/pkg/common"
+	dwocommon "github.com/devfile/devworkspace-operator/pkg/common"
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	dwdefaults "github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
@@ -80,7 +81,7 @@ func (c *CheRoutingSolver) provisionServices(objs *solvers.RoutingObjects, cheCl
 
 	commonService := &corev1.Service{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      common.ServiceName(routing.Spec.DevWorkspaceId),
+			Name:      dwocommon.ServiceName(routing.Spec.DevWorkspaceId),
 			Namespace: routing.Namespace,
 			Labels: map[string]string{
 				dwconstants.DevWorkspaceIDLabel:    routing.Spec.DevWorkspaceId,
@@ -92,7 +93,7 @@ func (c *CheRoutingSolver) provisionServices(objs *solvers.RoutingObjects, cheCl
 			Type:     corev1.ServiceTypeClusterIP,
 			Ports: []corev1.ServicePort{
 				{
-					Name:       common.EndpointName("ws-route"),
+					Name:       dwocommon.EndpointName("ws-route"),
 					Protocol:   corev1.ProtocolTCP,
 					Port:       int32(wsGatewayPort),
 					TargetPort: intstr.FromInt(wsGatewayPort),
@@ -468,7 +469,7 @@ func exposeAllEndpoints(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceR
 			if e.Attributes.GetString(urlRewriteSupportedEndpointAttributeName, nil) != "true" {
 				if !containPort(commonService, int32(e.TargetPort)) {
 					commonService.Spec.Ports = append(commonService.Spec.Ports, corev1.ServicePort{
-						Name:       common.EndpointName(e.Name),
+						Name:       dwocommon.EndpointName(e.Name),
 						Protocol:   corev1.ProtocolTCP,
 						Port:       int32(e.TargetPort),
 						TargetPort: intstr.FromInt(e.TargetPort),
@@ -543,7 +544,7 @@ log:
 }
 
 func getCommonService(objs *solvers.RoutingObjects, dwId string) *corev1.Service {
-	commonServiceName := common.ServiceName(dwId)
+	commonServiceName := dwocommon.ServiceName(dwId)
 	for i, svc := range objs.Services {
 		if svc.Name == commonServiceName {
 			return &objs.Services[i]
@@ -553,7 +554,7 @@ func getCommonService(objs *solvers.RoutingObjects, dwId string) *corev1.Service
 }
 
 func getEndpointService(objs *solvers.RoutingObjects, endpoint dwo.Endpoint) *corev1.Service {
-	endpointServiceName := common.EndpointName(endpoint.Name)
+	endpointServiceName := dwocommon.EndpointName(endpoint.Name)
 	for _, svc := range objs.Services {
 		if svc.Name == endpointServiceName {
 			return &svc
@@ -788,7 +789,7 @@ func (c *CheRoutingSolver) cheRoutingFinalize(routing *dwo.DevWorkspaceRouting) 
 		return err
 	}
 
-	cheCluster, err := deploy.FindCheClusterCRInNamespace(c.client, "")
+	cheCluster, err := common.CheCluster.FindSingleton(context.TODO(), c.client, "")
 	if err != nil {
 		return err
 	}
@@ -812,7 +813,7 @@ func (c *CheRoutingSolver) cheRoutingFinalize(routing *dwo.DevWorkspaceRouting) 
 func getServiceURL(port int32, workspaceID string, workspaceNamespace string) string {
 	// the default .cluster.local suffix of the internal domain names seems to be configurable, so let's just
 	// not use it so we don't have to know about it...
-	return fmt.Sprintf("http://%s.%s.svc:%d", common.ServiceName(workspaceID), workspaceNamespace, port)
+	return fmt.Sprintf("http://%s.%s.svc:%d", dwocommon.ServiceName(workspaceID), workspaceNamespace, port)
 }
 
 func getPublicURLPrefixForEndpoint(componentName string, endpoint dwo.Endpoint, endpointStrategy EndpointStrategy) string {

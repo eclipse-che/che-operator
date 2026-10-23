@@ -78,10 +78,6 @@ func (d *DashboardReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.
 		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
-	if err := deploy.AppendFinalizer(cheCtx, ClusterPermissionsDashboardFinalizer); err != nil {
-		return reconcile.Result{}, false, err
-	}
-
 	// Deploy dashboard
 	spec, err := d.getDashboardDeploymentSpec(cheCtx)
 	if err != nil {
@@ -116,10 +112,6 @@ func (d *DashboardReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
 		logrus.Errorf("Failed to delete ClusterRoleBinding %s, cause: %v", d.getClusterRoleBindingName(cheCtx), err)
 	}
 
-	if err := deploy.DeleteFinalizer(cheCtx, ClusterPermissionsDashboardFinalizer); err != nil {
-		done = false
-		logrus.Errorf("Error deleting finalizer: %v", err)
-	}
 	return done
 }
 

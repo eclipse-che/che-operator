@@ -15,9 +15,9 @@ package openvsx_server
 import (
 	"fmt"
 
+	"github.com/eclipse-che/che-operator/pkg/common"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 )
@@ -44,14 +44,9 @@ func (r *OpenVSXServerReconciler) createGatewayConfig(cheCtx *chetypes.CheContex
 }
 
 func (r *OpenVSXServerReconciler) syncOpenVSXURLStatus(cheCtx *chetypes.CheContext) error {
-	openVSXURL := "https://" + cheCtx.CheHost + "/" + constants.OpenVSXServerGatewayPath
-
-	if openVSXURL != cheCtx.CheCluster.Status.OpenVSXURL {
-		cheCtx.CheCluster.Status.OpenVSXURL = openVSXURL
-
-		if err := deploy.UpdateCheCRStatus(cheCtx, "status: OpenVSXURL", openVSXURL); err != nil {
-			return fmt.Errorf("failed to update status for OpenVSXURL: %w", err)
-		}
+	cheCtx.CheCluster.Status.OpenVSXURL = "https://" + cheCtx.CheHost + "/" + constants.OpenVSXServerGatewayPath
+	if err := common.CheCluster.UpdateStatus(cheCtx); err != nil {
+		return fmt.Errorf("failed to update status for OpenVSXURL: %w", err)
 	}
 
 	return nil
