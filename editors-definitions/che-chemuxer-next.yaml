@@ -98,6 +98,3 @@ components:
             secure: true
   - name: chemuxer-volume
     volume: {}
-
-attributes:
-  version: null
