@@ -27,10 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const (
-	CheGatewayClusterPermissionsFinalizerName = "cheGateway.clusterpermissions.finalizers.che.eclipse.org"
-)
-
 type GatewayPermissionsReconciler struct {
 	reconciler.Reconcilable
 }
@@ -46,10 +42,6 @@ func (gp *GatewayPermissionsReconciler) Reconcile(cheCtx *chetypes.CheContext) (
 	}
 
 	if err := deploy.SyncClusterRoleBindingToCluster(cheCtx, name, gateway.GatewayServiceName, name); err != nil {
-		return reconcile.Result{RequeueAfter: time.Second}, false, err
-	}
-
-	if err := deploy.AppendFinalizer(cheCtx, CheGatewayClusterPermissionsFinalizerName); err != nil {
 		return reconcile.Result{RequeueAfter: time.Second}, false, err
 	}
 
@@ -80,10 +72,6 @@ func (gp *GatewayPermissionsReconciler) deleteGatewayPermissions(cheCtx *chetype
 		&rbacv1.ClusterRole{},
 	); err != nil {
 		return false, fmt.Errorf("failed to delete ClusterRole %s: %w", name, err)
-	}
-
-	if err := deploy.DeleteFinalizer(cheCtx, CheGatewayClusterPermissionsFinalizerName); err != nil {
-		return false, err
 	}
 
 	return true, nil

@@ -118,6 +118,15 @@ func (k K8sClientWrapper) GetIgnoreNotFound(
 	return k.doGetIgnoreNotFound(ctx, key, objectMeta, opts...)
 }
 
+func (k K8sClientWrapper) Get(
+	ctx context.Context,
+	key client.ObjectKey,
+	objectMeta client.Object,
+	opts ...client.GetOption,
+) error {
+	return k.doGet(ctx, key, objectMeta, opts...)
+}
+
 func (k K8sClientWrapper) DeleteByKeyIgnoreNotFound(
 	ctx context.Context,
 	key client.ObjectKey,
@@ -229,6 +238,25 @@ func (k K8sClientWrapper) doGetIgnoreNotFound(
 		return false, nil
 	} else {
 		return false, err
+	}
+}
+
+// doGet gets object.
+// Returns nil if object is retrieved otherwise returns error.
+func (k K8sClientWrapper) doGet(
+	ctx context.Context,
+	key client.ObjectKey,
+	obj client.Object,
+	opts ...client.GetOption,
+) error {
+	if err := k.cli.Get(ctx, key, obj, opts...); err == nil {
+		if err = k.ensureGVK(obj); err != nil {
+			return err
+		}
+
+		return nil
+	} else {
+		return err
 	}
 }
 

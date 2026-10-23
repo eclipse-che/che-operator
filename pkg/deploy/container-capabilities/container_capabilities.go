@@ -47,7 +47,6 @@ type ContainerCapability interface {
 	getSCCName(cheCluster *chev2.CheCluster) string
 	getDefaultSCCName() string
 	applySCCSpec(scc *securityv1.SecurityContextConstraints)
-	getFinalizer() string
 }
 
 type ContainerCapabilitiesReconciler struct {
@@ -187,10 +186,6 @@ func (r *ContainerCapabilitiesReconciler) sync(cheCtx *chetypes.CheContext, cc C
 		return err
 	}
 
-	if err := deploy.AppendFinalizer(cheCtx, cc.getFinalizer()); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -234,10 +229,6 @@ func (r *ContainerCapabilitiesReconciler) delete(cheCtx *chetypes.CheContext, cc
 			}
 		}
 	} else if err != nil {
-		return err
-	}
-
-	if err := deploy.DeleteFinalizer(cheCtx, cc.getFinalizer()); err != nil {
 		return err
 	}
 

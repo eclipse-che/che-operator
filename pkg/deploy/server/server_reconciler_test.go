@@ -51,7 +51,6 @@ func TestReconcile(t *testing.T) {
 	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "test-role"}, &rbac.ClusterRoleBinding{}))
 	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: getComponentName(), Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 	assert.Equal(t, cheCtx.CheCluster.Status.ChePhase, chev2.CheClusterPhase(chev2.ClusterPhaseInactive))
-	assert.Equal(t, 1, len(cheCtx.CheCluster.Finalizers))
 
 	cheDeployment := &appsv1.Deployment{}
 	err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: defaults.GetCheFlavor(), Namespace: "eclipse-che"}, cheDeployment)
@@ -93,7 +92,7 @@ func TestUpdateAvailabilityStatus(t *testing.T) {
 
 	server := NewCheServerReconciler()
 	done, err := server.syncActiveChePhase(cheCtx)
-	assert.False(t, done)
+	assert.True(t, done)
 	assert.Nil(t, err)
 	assert.Equal(t, cheCtx.CheCluster.Status.ChePhase, chev2.CheClusterPhase(chev2.ClusterPhaseInactive))
 
@@ -110,17 +109,7 @@ func TestUpdateAvailabilityStatus(t *testing.T) {
 	assert.Nil(t, err)
 
 	done, err = server.syncActiveChePhase(cheCtx)
-	assert.False(t, done)
+	assert.True(t, done)
 	assert.Nil(t, err)
 	assert.Equal(t, cheCtx.CheCluster.Status.ChePhase, chev2.CheClusterPhase(chev2.RollingUpdate))
-}
-
-func TestGetFinalizerName(t *testing.T) {
-	crbName := "0123456789012345678901234567890123456789" // 40 chars
-
-	reconciler := NewCheServerReconciler()
-	finalizer := reconciler.getCRBFinalizerName(crbName)
-
-	assert.Equal(t, crbName+".crb.finalizers.che.ecl", finalizer)
-	assert.True(t, len(finalizer) <= 63)
 }

@@ -20,7 +20,6 @@ import (
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	consolev1 "github.com/openshift/api/console/v1"
@@ -28,10 +27,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-)
-
-const (
-	ConsoleLinkFinalizerName = "consolelink.finalizers.che.eclipse.org"
 )
 
 var (
@@ -67,19 +62,10 @@ func (c *ConsoleLinkReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
 		logger.Error(err, "Failed to delete ConsoleLink", "name", defaults.GetConsoleLinkName())
 	}
 
-	if err := deploy.DeleteFinalizer(cheCtx, ConsoleLinkFinalizerName); err != nil {
-		logger.Error(err, "Failed to delete finalizer", "finalizer", ConsoleLinkFinalizerName)
-		return false
-	}
-
 	return true
 }
 
 func (c *ConsoleLinkReconciler) syncConsoleLink(cheCtx *chetypes.CheContext) error {
-	if err := deploy.AppendFinalizer(cheCtx, ConsoleLinkFinalizerName); err != nil {
-		return fmt.Errorf("failed to append finalizer %s: %w", ConsoleLinkFinalizerName, err)
-	}
-
 	consoleLinkSpec := c.getConsoleLinkSpec(cheCtx)
 
 	// ConsoleLink is a cluster scoped object, so it can't have an owner reference

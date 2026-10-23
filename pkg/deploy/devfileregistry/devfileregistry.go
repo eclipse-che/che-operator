@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 
 	v2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	appsv1 "k8s.io/api/apps/v1"
@@ -27,7 +28,6 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -93,7 +93,7 @@ func (d *DevfileRegistryReconciler) Reconcile(cheCtx *chetypes.CheContext) (reco
 		}
 
 		cheCtx.CheCluster.Status.DevfileRegistryURL = ""
-		_ = deploy.UpdateCheCRStatus(cheCtx, "DevfileRegistryURL", "")
+		_ = common.CheCluster.UpdateStatus(cheCtx)
 	}
 
 	return reconcile.Result{}, true, nil

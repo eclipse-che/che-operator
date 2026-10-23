@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/eclipse-che/che-operator/pkg/common"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
@@ -37,7 +38,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/consolelink"
 	containerbuild "github.com/eclipse-che/che-operator/pkg/deploy/container-capabilities"
 	"github.com/eclipse-che/che-operator/pkg/deploy/dashboard"
@@ -232,7 +232,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// Fetch the CheCluster instance
-	checluster, err := deploy.FindCheClusterCRInNamespace(r.client, req.Namespace)
+	checluster, err := common.CheCluster.FindSingleton(ctx, r.client, req.Namespace)
 	if checluster == nil {
 		r.Log.Info("CheCluster Custom Resource not found.")
 		return ctrl.Result{}, nil
@@ -245,6 +245,14 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		ClusterAPI: clusterAPI,
 		CheCluster: checluster,
 		Context:    ctx,
+	}
+
+	// Ensure the CheCluster is not deleted until the operator
+	// cleans up all related resources
+	if cheCtx.CheCluster.DeletionTimestamp.IsZero() {
+		if err := common.CheCluster.AddFinalizer(cheCtx, constants.CheClusterFinalizer); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// Resolve proxy configuration
@@ -280,8 +288,9 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if cheCtx.CheCluster.DeletionTimestamp.IsZero() {
 		result, done, err := r.reconcilerManager.ReconcileAll(cheCtx)
 		if done {
-			// Clean up status if so
-			if err := deploy.SetStatusDetails(cheCtx, "", ""); err != nil {
+			cheCtx.CheCluster.Status.Reason = ""
+			cheCtx.CheCluster.Status.Message = ""
+			if err := common.CheCluster.UpdateStatus(cheCtx); err != nil {
 				return ctrl.Result{}, err
 			}
 
@@ -290,9 +299,10 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		} else {
 			if err != nil {
 				errMsg := "Failed to reconcile CheCluster resources. The installation is not completed. Check operator logs for details."
-				r.Log.Error(err, errMsg)
 
-				if err := deploy.SetStatusDetails(cheCtx, constants.InstallOrUpdateFailed, errMsg); err != nil {
+				cheCtx.CheCluster.Status.Message = errMsg
+				cheCtx.CheCluster.Status.Reason = constants.InstallOrUpdateFailed
+				if err := common.CheCluster.UpdateStatus(cheCtx); err != nil {
 					return ctrl.Result{}, err
 				}
 			}
@@ -301,19 +311,15 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	} else {
 		cheCtx.CheCluster.Status.ChePhase = chev2.ClusterPhasePendingDeletion
-		if err = deploy.UpdateCheCRStatus(cheCtx, "ChePhase", chev2.ClusterPhasePendingDeletion); err != nil {
+		if err := common.CheCluster.UpdateStatus(cheCtx); err != nil {
 			return ctrl.Result{}, err
 		}
 
 		done := r.reconcilerManager.FinalizeAll(cheCtx)
 		if done {
-			// Removes remaining finalizers, which prevent CheCluster from deletion
-			if err := deploy.CleanUpAllFinalizers(cheCtx); err != nil {
-				return ctrl.Result{}, err
-			}
-			return ctrl.Result{}, nil
-		} else {
-			return ctrl.Result{RequeueAfter: time.Second}, nil
+			err := common.CheCluster.RemoveAllFinalizers(cheCtx)
+			return ctrl.Result{}, err
 		}
+		return ctrl.Result{RequeueAfter: time.Second}, nil
 	}
 }
