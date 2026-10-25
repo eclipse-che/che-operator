@@ -17,7 +17,8 @@
 
 set -e
 
-export DEVWORKSPACE_HAPPY_PATH="https://raw.githubusercontent.com/eclipse/che/main/tests/devworkspace-happy-path"
+export DEVWORKSPACE_HAPPY_PATH="https://raw.githubusercontent.com/eclipse-che/che/crw-13524/tests/devworkspace-happy-path"
+export CHE_REPO_ARCHIVE="https://github.com/eclipse-che/che/archive/refs/heads/crw-13524.zip"
 export OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
 
 runTests() {
