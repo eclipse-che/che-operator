@@ -15,7 +15,7 @@ package resources
 import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
-	"github.com/eclipse-che/che-operator/pkg/provision/sync"
+	"github.com/eclipse-che/che-operator/pkg/provision/syncher"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -36,7 +36,7 @@ type networkPolicyHandler struct {
 }
 
 func (h networkPolicyHandler) Sync(cheCtx *chetypes.CheContext, policy *networkingv1.NetworkPolicy) error {
-	return sync.SyncObject(
+	return syncher.SyncObject(
 		cheCtx,
 		policy,
 		h.diff,
@@ -46,7 +46,7 @@ func (h networkPolicyHandler) Sync(cheCtx *chetypes.CheContext, policy *networki
 }
 
 func (h networkPolicyHandler) Delete(cheCtx *chetypes.CheContext, name string, namespace string) error {
-	return sync.DeleteObject(
+	return syncher.DeleteObject(
 		cheCtx,
 		name,
 		namespace,
@@ -55,7 +55,7 @@ func (h networkPolicyHandler) Delete(cheCtx *chetypes.CheContext, name string, n
 }
 
 func (h networkPolicyHandler) DeleteAll(cheCtx *chetypes.CheContext, namespace string) error {
-	return sync.DeleteAllManaged(
+	return syncher.DeleteAllManaged(
 		cheCtx,
 		namespace,
 		&networkingv1.NetworkPolicy{},

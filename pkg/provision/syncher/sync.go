@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package sync
+package syncher
 
 import (
 	"fmt"
@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// Package sync provides low-level utilities for provisioning, synchronizing,
+// Package syncher provides low-level utilities for provisioning, synchronizing,
 // and cleaning up Kubernetes resources. It serves as a higher-level abstraction
 // layer in front of K8sClientWrapper, simplifying cluster interaction calls.
 

@@ -12,7 +12,7 @@
 
 //go:build integration
 
-package sync
+package syncher
 
 import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"

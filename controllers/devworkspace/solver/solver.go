@@ -42,7 +42,7 @@ var (
 type CheRoutingSolver struct {
 	client        client.Client
 	scheme        *runtime.Scheme
-	clientWrapper *clientwrapper.K8sClientWrapper
+	clientWrapper clientwrapper.ClientWrapper
 }
 
 // Magic to ensure we get compile time error right here if our struct doesn't support the interface.

@@ -12,7 +12,7 @@
 
 //go:build integration
 
-package sync
+package syncher
 
 import (
 	"testing"
@@ -26,9 +26,9 @@ import (
 
 var env *envtest.Env
 
-func TestProvision(t *testing.T) {
+func TestSyncher(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Provision")
+	RunSpecs(t, "Syncher")
 }
 
 var _ = BeforeSuite(func() {
