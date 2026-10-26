@@ -24,9 +24,9 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
-	k8s_client "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -158,7 +158,7 @@ func (ip *ImagePuller) syncKubernetesImagePuller(externalImages []string, cheCtx
 	err := cheCtx.ClusterAPI.NonCachingClientWrapper.Sync(
 		context.TODO(),
 		imagePuller,
-		&k8s_client.SyncOptions{
+		&clientwrapper.SyncOptions{
 			DiffOpts: diffs.KubernetesImagePullerDiffOpts,
 		})
 

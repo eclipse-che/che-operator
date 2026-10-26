@@ -17,8 +17,8 @@ import (
 	"reflect"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	batchv1 "k8s.io/api/batch/v1"
@@ -65,7 +65,7 @@ func SyncJobToCluster(
 	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
 		cheCtx.Context,
 		jobSpec,
-		&k8sclient.SyncOptions{DiffOpts: JobDiffOpts},
+		&clientwrapper.SyncOptions{DiffOpts: JobDiffOpts},
 	); err != nil {
 		return fmt.Errorf("failed to sync Job %s/%s: %w", jobSpec.Namespace, jobSpec.Name, err)
 	}

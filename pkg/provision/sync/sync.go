@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package provision
+package sync
 
 import (
 	"fmt"
@@ -21,7 +21,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chelabels"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -33,11 +33,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// Package provision provides low-level utilities for provisioning, synchronizing,
+// Package sync provides low-level utilities for provisioning, synchronizing,
 // and cleaning up Kubernetes resources. It serves as a higher-level abstraction
 // layer in front of K8sClientWrapper, simplifying cluster interaction calls.
 
-// syncObject ensures that the object is up to date in the cluster.
+// SyncObject ensures that the object is up to date in the cluster.
 // Besides the actual sync it:
 //   - selects the client to use: the cached one for objects labeled with
 //     `app.kubernetes.io/part-of: che.eclipse.org` (they are watched by the operator),
@@ -49,14 +49,14 @@ import (
 //     should not be used with `pkg/common/diffs/diffs.go`.
 //   - retries the sync with recreation if the update failed because an immutable field has changed,
 //     but only when `allowForceRecreate` is set.
-func syncObject(
+func SyncObject(
 	cheCtx *chetypes.CheContext,
 	obj client.Object,
 	diff cmp.Options,
 	suppressDiff bool,
 	allowForceRecreate bool) error {
 
-	var cw *k8sclient.K8sClientWrapper
+	var cw clientwrapper.ClientWrapper
 
 	if obj.GetLabels()[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg {
 		cw = cheCtx.ClusterAPI.ClientWrapper
@@ -72,7 +72,7 @@ func syncObject(
 		}
 	}
 
-	opts := &k8sclient.SyncOptions{
+	opts := &clientwrapper.SyncOptions{
 		MergeAnnotations: true,
 		MergeLabels:      true,
 		SuppressDiff:     suppressDiff,
@@ -106,8 +106,8 @@ func syncObject(
 	return nil
 }
 
-// deleteObject ensures that the object is deleted in the cluster.
-func deleteObject(
+// DeleteObject ensures that the object is deleted in the cluster.
+func DeleteObject(
 	cheCtx *chetypes.CheContext,
 	name string,
 	namespace string,
@@ -118,16 +118,16 @@ func deleteObject(
 	key := types.NamespacedName{Name: name, Namespace: namespace}
 
 	if err := cw.DeleteByKeyIgnoreNotFound(cheCtx.Context, key, obj, opts...); err != nil {
-		return fmt.Errorf("failed to delete %s %s: %w", k8sclient.GetObjectType(obj), key.String(), err)
+		return fmt.Errorf("failed to delete %s %s: %w", clientwrapper.GetObjectType(obj), key.String(), err)
 	}
 
 	return nil
 }
 
-// deleteAllManaged ensures that all objects of the given type managed by the operator
+// DeleteAllManaged ensures that all objects of the given type managed by the operator
 // for the specified component are deleted in the cluster.
 // If namespace is not empty, the deletion is scoped to that namespace.
-func deleteAllManaged(
+func DeleteAllManaged(
 	cheCtx *chetypes.CheContext,
 	namespace string,
 	obj client.Object,
@@ -148,9 +148,9 @@ func deleteAllManaged(
 
 	if err := cw.DeleteAllOf(cheCtx.Context, obj, opts); err != nil {
 		if namespace == "" {
-			return fmt.Errorf("failed to delete %s: %w", k8sclient.GetObjectType(obj), err)
+			return fmt.Errorf("failed to delete %s: %w", clientwrapper.GetObjectType(obj), err)
 		}
-		return fmt.Errorf("failed to delete %s in %s: %w", k8sclient.GetObjectType(obj), namespace, err)
+		return fmt.Errorf("failed to delete %s in %s: %w", clientwrapper.GetObjectType(obj), namespace, err)
 	}
 
 	return nil
@@ -212,5 +212,5 @@ func isFieldImmutableError(err error) bool {
 }
 
 func getSyncError(obj client.Object, cause error) error {
-	return fmt.Errorf("failed to sync %s %s/%s: %w", k8sclient.GetObjectType(obj), obj.GetNamespace(), obj.GetName(), cause)
+	return fmt.Errorf("failed to sync %s %s/%s: %w", clientwrapper.GetObjectType(obj), obj.GetNamespace(), obj.GetName(), cause)
 }

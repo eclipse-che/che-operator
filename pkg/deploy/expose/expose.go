@@ -17,12 +17,12 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	routev1 "github.com/openshift/api/route/v1"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	networking "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -93,7 +93,7 @@ func exposeWithGateway(cheCtx *chetypes.CheContext,
 	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
 		cheCtx.Context,
 		cfg,
-		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
+		&clientwrapper.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
 	); err != nil {
 		return "", false, fmt.Errorf("failed to sync ConfigMap %s/%s: %w", cfg.Namespace, cfg.Name, err)
 	}

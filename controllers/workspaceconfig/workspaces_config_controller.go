@@ -21,7 +21,6 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
@@ -33,6 +32,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	templatev1 "github.com/openshift/api/template/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -55,8 +55,8 @@ const (
 type WorkspacesConfigReconciler struct {
 	scheme                        *runtime.Scheme
 	client                        client.Client
-	clientWrapper                 *k8sclient.K8sClientWrapper
-	nonCachedClientWrapper        *k8sclient.K8sClientWrapper
+	clientWrapper                 clientwrapper.ClientWrapper
+	nonCachedClientWrapper        clientwrapper.ClientWrapper
 	namespaceCache                *namespacecache.NamespaceCache
 	labelsToRemoveBeforeSync      []*regexp.Regexp
 	annotationsToRemoveBeforeSync []*regexp.Regexp
@@ -121,8 +121,8 @@ func NewWorkspacesConfigReconciler(
 	return &WorkspacesConfigReconciler{
 		scheme:                        scheme,
 		client:                        cli,
-		clientWrapper:                 k8sclient.NewK8sClient(cli, scheme),
-		nonCachedClientWrapper:        k8sclient.NewK8sClient(nonCachedCli, scheme),
+		clientWrapper:                 clientwrapper.New(cli, scheme),
+		nonCachedClientWrapper:        clientwrapper.New(nonCachedCli, scheme),
 		namespaceCache:                namespaceCache,
 		labelsToRemoveBeforeSync:      labelsToRemoveBeforeSync,
 		annotationsToRemoveBeforeSync: annotationsToRemoveBeforeSync,
@@ -513,7 +513,7 @@ func (r *WorkspacesConfigReconciler) doUpdateObject(
 	syncContext *syncContext,
 	dstObj client.Object,
 	existedDstObj runtime.Object,
-	clientWrapper *k8sclient.K8sClientWrapper,
+	clientWrapper clientwrapper.ClientWrapper,
 ) error {
 	if syncContext.object2Sync.hasROSpec() {
 		// Skip updating objects with readonly spec.
@@ -530,7 +530,7 @@ func (r *WorkspacesConfigReconciler) doUpdateObject(
 			if err := clientWrapper.Sync(
 				syncContext.ctx,
 				dstObj,
-				&k8sclient.SyncOptions{MergeAnnotations: true, MergeLabels: true, SuppressDiff: true},
+				&clientwrapper.SyncOptions{MergeAnnotations: true, MergeLabels: true, SuppressDiff: true},
 			); err != nil {
 				return err
 			}
@@ -710,7 +710,7 @@ func (r *WorkspacesConfigReconciler) shouldRetain(
 	ctx context.Context,
 	key client.ObjectKey,
 	gkv schema.GroupVersionKind,
-	clientWrapper *k8sclient.K8sClientWrapper,
+	clientWrapper clientwrapper.ClientWrapper,
 ) (bool, error) {
 	blueprint, err := r.scheme.New(gkv)
 	if err != nil {

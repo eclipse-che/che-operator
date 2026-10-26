@@ -18,8 +18,8 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -59,7 +59,7 @@ func (r *OpenVSXServerReconciler) syncService(cheCtx *chetypes.CheContext) error
 	return cheCtx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
 		service,
-		&k8sclient.SyncOptions{
+		&clientwrapper.SyncOptions{
 			DiffOpts: diffs.Service,
 		})
 }

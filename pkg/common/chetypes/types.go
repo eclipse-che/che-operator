@@ -16,7 +16,7 @@ import (
 	"context"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,8 +38,8 @@ type ClusterAPI struct {
 	NonCachingClient        client.Client // We should NonCachingClientWrapper instead wherever it possible
 	DiscoveryClient         discovery.DiscoveryInterface
 	Scheme                  *runtime.Scheme
-	ClientWrapper           *k8sclient.K8sClientWrapper
-	NonCachingClientWrapper *k8sclient.K8sClientWrapper
+	ClientWrapper           clientwrapper.ClientWrapper
+	NonCachingClientWrapper clientwrapper.ClientWrapper
 }
 
 type Authentication struct {

@@ -23,9 +23,8 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	containercapabilties "github.com/eclipse-che/che-operator/pkg/deploy/container-capabilities"
-	"github.com/eclipse-che/che-operator/pkg/provision"
+	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/utils/ptr"
 
@@ -36,6 +35,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -70,8 +70,8 @@ type CheUserNamespaceReconciler struct {
 	scheme                 *runtime.Scheme
 	client                 client.Client
 	nonCachedClient        client.Client
-	clientWrapper          *k8sclient.K8sClientWrapper
-	nonCachedClientWrapper *k8sclient.K8sClientWrapper
+	clientWrapper          *clientwrapper.K8sClientWrapper
+	nonCachedClientWrapper *clientwrapper.K8sClientWrapper
 	namespaceCache         *namespacecache.NamespaceCache
 
 	dwoNamespace   string
@@ -90,8 +90,8 @@ func NewCheUserNamespaceReconciler(
 		scheme:                 scheme,
 		client:                 client,
 		nonCachedClient:        noncachedClient,
-		clientWrapper:          k8sclient.NewK8sClient(client, scheme),
-		nonCachedClientWrapper: k8sclient.NewK8sClient(noncachedClient, scheme),
+		clientWrapper:          clientwrapper.New(client, scheme),
+		nonCachedClientWrapper: clientwrapper.New(noncachedClient, scheme),
 		namespaceCache:         namespaceCache,
 	}
 }
@@ -304,7 +304,7 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	if infrastructure.IsOpenShift() {
 		// Removes legacy network policies previously provisioned by Che Operator,
 		// as DevWorkspace Operator now manages network policy provisioning for DevWorkspaces.
-		if err := provision.NetworkPolicy.DeleteAll(cheCtx, req.Name); err != nil {
+		if err := resources.NetworkPolicy.DeleteAll(cheCtx, req.Name); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to delete legacy NetworkPolicy in namespace %s: %w", req.Name, err)
 		}
 	}
@@ -366,7 +366,7 @@ func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context
 	if err := r.nonCachedClientWrapper.Sync(
 		ctx,
 		targetCert,
-		&k8sclient.SyncOptions{DiffOpts: deploy.SecretDiffOpts},
+		&clientwrapper.SyncOptions{DiffOpts: deploy.SecretDiffOpts},
 	); err != nil {
 		return fmt.Errorf("failed to sync Secret %s/%s: %w", targetCert.Namespace, targetCert.Name, err)
 	}
@@ -505,7 +505,7 @@ func (r *CheUserNamespaceReconciler) reconcileUserSettings(
 	if err := r.nonCachedClientWrapper.Sync(
 		cheCtx.Context,
 		cm,
-		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
+		&clientwrapper.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
 	); err != nil {
 		return fmt.Errorf("failed to sync ConfigMap %s/%s: %w", cm.Namespace, cm.Name, err)
 	}
@@ -569,7 +569,7 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 	if err := r.nonCachedClientWrapper.Sync(
 		ctx,
 		&target,
-		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
+		&clientwrapper.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
 	); err != nil {
 		return fmt.Errorf("failed to sync ConfigMap %s/%s: %w", target.Namespace, target.Name, err)
 	}
@@ -671,7 +671,7 @@ func (r *CheUserNamespaceReconciler) reconcileSCCPrivileges(
 	return r.clientWrapper.Sync(
 		context.TODO(),
 		rb,
-		&k8sclient.SyncOptions{DiffOpts: diffs.RoleBinding},
+		&clientwrapper.SyncOptions{DiffOpts: diffs.RoleBinding},
 	)
 }
 
@@ -701,6 +701,6 @@ func deleteLegacyObject(name string, objectMeta client.Object, targetNs string, 
 		return err
 	}
 
-	logrus.Infof("Deleted legacy workspace object: %s name: %s, namespace: %s", k8sclient.GetObjectType(objectMeta), legacyPrefixedName, targetNs)
+	logrus.Infof("Deleted legacy workspace object: %s name: %s, namespace: %s", clientwrapper.GetObjectType(objectMeta), legacyPrefixedName, targetNs)
 	return nil
 }

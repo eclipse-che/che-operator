@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package k8s_client
+package clientwrapper
 
 import (
 	"context"
@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type K8sClient interface {
+type ClientWrapper interface {
 	// Sync ensures that the object is up to date in the cluster.
 	// Object is created if it does not exist and updated if it exists but is different.
 	// Returns nil if object is in sync.
@@ -57,7 +57,7 @@ type SyncTarget struct {
 }
 
 type SyncOption interface {
-	ApplyToList(*SyncOptions)
+	ApplyToSync(*SyncOptions)
 }
 
 type SyncOptions struct {
@@ -76,7 +76,7 @@ type SyncOptions struct {
 	ForceRecreate bool
 }
 
-func (o *SyncOptions) ApplyToList(so *SyncOptions) {
+func (o *SyncOptions) ApplyToSync(so *SyncOptions) {
 	if o.MergeLabels {
 		so.MergeLabels = o.MergeLabels
 	}
@@ -104,6 +104,6 @@ func (o *SyncOptions) ApplyToList(so *SyncOptions) {
 
 func (o *SyncOptions) ApplyOptions(opts []SyncOption) {
 	for _, opt := range opts {
-		opt.ApplyToList(o)
+		opt.ApplyToSync(o)
 	}
 }

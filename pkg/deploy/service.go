@@ -17,7 +17,7 @@ import (
 	"reflect"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	corev1 "k8s.io/api/core/v1"
@@ -56,7 +56,7 @@ func SyncServiceSpecToCluster(cheCtx *chetypes.CheContext, serviceSpec *corev1.S
 	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
 		cheCtx.Context,
 		serviceSpec,
-		&k8sclient.SyncOptions{DiffOpts: ServiceDefaultDiffOpts},
+		&clientwrapper.SyncOptions{DiffOpts: ServiceDefaultDiffOpts},
 	); err != nil {
 		return fmt.Errorf("failed to sync Service %s/%s: %w", serviceSpec.Namespace, serviceSpec.Name, err)
 	}

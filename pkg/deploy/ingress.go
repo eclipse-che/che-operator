@@ -17,11 +17,11 @@ import (
 	"reflect"
 	"sort"
 
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	"k8s.io/utils/ptr"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -67,7 +67,7 @@ func SyncIngressToCluster(
 	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
 		cheCtx.Context,
 		ingressSpec,
-		&k8sclient.SyncOptions{DiffOpts: IngressDiffOpts},
+		&clientwrapper.SyncOptions{DiffOpts: IngressDiffOpts},
 	); err != nil {
 		return "", fmt.Errorf("failed to sync Ingress %s/%s: %w", ingressSpec.Namespace, ingressSpec.Name, err)
 	}

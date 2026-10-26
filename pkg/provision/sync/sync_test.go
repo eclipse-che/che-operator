@@ -12,7 +12,7 @@
 
 //go:build integration
 
-package provision
+package sync
 
 import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
@@ -55,13 +55,13 @@ var _ = Describe("syncObject", Ordered, func() {
 		}
 
 		emptyCheClusterContext := env.NewCheCtxBuilder().Build()
-		Expect(syncObject(emptyCheClusterContext, testCm, cmDiffs, false, false)).To(Succeed())
+		Expect(SyncObject(emptyCheClusterContext, testCm, cmDiffs, false, false)).To(Succeed())
 
 		actualCm := &corev1.ConfigMap{}
 		Expect(env.Client.Get(cheCtx.Context, types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actualCm)).To(Succeed())
 		Expect(actualCm.OwnerReferences).To(BeEmpty())
 
-		Expect(syncObject(cheCtx, testCm, cmDiffs, false, false)).To(Succeed())
+		Expect(SyncObject(cheCtx, testCm, cmDiffs, false, false)).To(Succeed())
 
 		actualCm = &corev1.ConfigMap{}
 		Expect(env.Client.Get(cheCtx.Context, types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actualCm)).To(Succeed())
@@ -79,7 +79,7 @@ var _ = Describe("syncObject", Ordered, func() {
 			Immutable: new(true),
 		}
 
-		Expect(syncObject(cheCtx, testCm, cmDiffs, false, true)).To(Succeed())
+		Expect(SyncObject(cheCtx, testCm, cmDiffs, false, true)).To(Succeed())
 
 		actualCm := &corev1.ConfigMap{}
 		Expect(env.Client.Get(cheCtx.Context, types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actualCm)).To(Succeed())
@@ -94,7 +94,7 @@ var _ = Describe("syncObject", Ordered, func() {
 			Immutable: new(true),
 		}
 
-		Expect(syncObject(cheCtx, testCm, cmDiffs, false, true)).To(Succeed())
+		Expect(SyncObject(cheCtx, testCm, cmDiffs, false, true)).To(Succeed())
 
 		actualCm = &corev1.ConfigMap{}
 		Expect(env.Client.Get(cheCtx.Context, types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actualCm)).To(Succeed())
@@ -111,7 +111,7 @@ var _ = Describe("syncObject", Ordered, func() {
 			Immutable: new(true),
 		}
 
-		Expect(syncObject(cheCtx, testCm, cmDiffs, false, false)).To(Succeed())
+		Expect(SyncObject(cheCtx, testCm, cmDiffs, false, false)).To(Succeed())
 
 		testCm = &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
@@ -122,7 +122,7 @@ var _ = Describe("syncObject", Ordered, func() {
 			Immutable: new(true),
 		}
 
-		Expect(syncObject(cheCtx, testCm, cmDiffs, false, false)).To(Not(Succeed()))
+		Expect(SyncObject(cheCtx, testCm, cmDiffs, false, false)).To(Not(Succeed()))
 	})
 
 	It("should respect metadata", func(ctx SpecContext) {
@@ -141,7 +141,7 @@ var _ = Describe("syncObject", Ordered, func() {
 			},
 		}
 
-		Expect(syncObject(cheCtx, testCm, cmDiffs, false, false)).To(Succeed())
+		Expect(SyncObject(cheCtx, testCm, cmDiffs, false, false)).To(Succeed())
 
 		testCm = &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
@@ -158,7 +158,7 @@ var _ = Describe("syncObject", Ordered, func() {
 			},
 		}
 
-		Expect(syncObject(cheCtx, testCm, cmDiffs, false, false)).To(Succeed())
+		Expect(SyncObject(cheCtx, testCm, cmDiffs, false, false)).To(Succeed())
 
 		actualCm := &corev1.ConfigMap{}
 		Expect(env.Client.Get(cheCtx.Context, types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actualCm)).To(Succeed())
@@ -182,7 +182,7 @@ var _ = Describe("syncObject", Ordered, func() {
 			},
 		}
 
-		Expect(syncObject(cheCtx, testCm, cmDiffs, false, false)).To(Succeed())
+		Expect(SyncObject(cheCtx, testCm, cmDiffs, false, false)).To(Succeed())
 
 		actualCm = &corev1.ConfigMap{}
 		Expect(env.Client.Get(cheCtx.Context, types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actualCm)).To(Succeed())

@@ -16,11 +16,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -49,7 +49,7 @@ func SyncSecretToCluster(
 	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
 		cheCtx.Context,
 		secretSpec,
-		&k8sclient.SyncOptions{DiffOpts: SecretDiffOpts},
+		&clientwrapper.SyncOptions{DiffOpts: SecretDiffOpts},
 	); err != nil {
 		return fmt.Errorf("failed to sync Secret %s/%s: %w", secretSpec.Namespace, name, err)
 	}

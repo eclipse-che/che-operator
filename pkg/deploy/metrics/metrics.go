@@ -19,13 +19,13 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	"github.com/pkg/errors"
 	rbacv1 "k8s.io/api/rbac/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -141,7 +141,7 @@ func syncResources(cheCtx *chetypes.CheContext, prometheusResourceProvider Prome
 		if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
 			context.TODO(),
 			resource.Object,
-			&k8sclient.SyncOptions{
+			&clientwrapper.SyncOptions{
 				DiffOpts: resource.DiffOpts,
 			},
 		); err != nil {
@@ -174,8 +174,8 @@ func deleteResources(cheCtx *chetypes.CheContext, prometheusResourceProvider Pro
 	return nil
 }
 
-func collectPrometheusResources(cheCtx *chetypes.CheContext, prometheusResourceProvider PrometheusResourceProvider) ([]k8sclient.SyncTarget, error) {
-	var prometheusResources []k8sclient.SyncTarget
+func collectPrometheusResources(cheCtx *chetypes.CheContext, prometheusResourceProvider PrometheusResourceProvider) ([]clientwrapper.SyncTarget, error) {
+	var prometheusResources []clientwrapper.SyncTarget
 
 	role, err := prometheusResourceProvider.GetPrometheusRole(cheCtx)
 	if err != nil {
@@ -190,9 +190,9 @@ func collectPrometheusResources(cheCtx *chetypes.CheContext, prometheusResourceP
 		return prometheusResources, err
 	}
 
-	prometheusResources = append(prometheusResources, k8sclient.SyncTarget{Object: role, DiffOpts: diffs.Role})
-	prometheusResources = append(prometheusResources, k8sclient.SyncTarget{Object: roleBinding, DiffOpts: diffs.RoleBinding})
-	prometheusResources = append(prometheusResources, k8sclient.SyncTarget{Object: serviceMonitor, DiffOpts: getServiceMonitorWithIgnoredIntervalDiffs()})
+	prometheusResources = append(prometheusResources, clientwrapper.SyncTarget{Object: role, DiffOpts: diffs.Role})
+	prometheusResources = append(prometheusResources, clientwrapper.SyncTarget{Object: roleBinding, DiffOpts: diffs.RoleBinding})
+	prometheusResources = append(prometheusResources, clientwrapper.SyncTarget{Object: serviceMonitor, DiffOpts: getServiceMonitorWithIgnoredIntervalDiffs()})
 
 	return prometheusResources, nil
 }
@@ -230,7 +230,7 @@ func deleteAbandonedResources(cheCtx *chetypes.CheContext) error {
 		return err
 	}
 
-	syncObjects := []k8sclient.SyncTarget{
+	syncObjects := []clientwrapper.SyncTarget{
 		{
 			Object: &monitoringv1.ServiceMonitor{},
 			Key:    types.NamespacedName{Name: "che-host", Namespace: cheCtx.CheCluster.Namespace},

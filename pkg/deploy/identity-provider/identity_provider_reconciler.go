@@ -16,9 +16,9 @@ import (
 	"fmt"
 	"time"
 
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -111,7 +111,7 @@ func syncOAuthClient(cheCtx *chetypes.CheContext) error {
 	if err := cheCtx.ClusterAPI.NonCachingClientWrapper.Sync(
 		cheCtx.Context,
 		oauthClientSpec,
-		&k8sclient.SyncOptions{DiffOpts: oAuthClientDiffOpts, SuppressDiff: true},
+		&clientwrapper.SyncOptions{DiffOpts: oAuthClientDiffOpts, SuppressDiff: true},
 	); err != nil {
 		return fmt.Errorf("failed to sync OAuthClient %s: %w", oauthClientSpec.Name, err)
 	}

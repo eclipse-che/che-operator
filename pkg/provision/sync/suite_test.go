@@ -12,7 +12,7 @@
 
 //go:build integration
 
-package provision
+package sync
 
 import (
 	"testing"
