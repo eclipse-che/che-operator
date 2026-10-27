@@ -171,7 +171,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	var toOperatorManagedObjRequestMapper handler.MapFunc = func(ctx context.Context, obj client.Object) []reconcile.Request {
-		isOperatorManagedObj, reconcileRequest := IsOperatorManagedObj(r.client, r.namespace, obj)
+		isOperatorManagedObj, reconcileRequest := IsOperatorManaged(r.client, r.namespace, obj)
 		if isOperatorManagedObj {
 			return []reconcile.Request{reconcileRequest}
 		}

@@ -58,7 +58,7 @@ func (c *ConsoleLinkReconciler) deleteAll(cheCtx *chetypes.CheContext) error {
 
 func buildConsoleLink(cheCtx *chetypes.CheContext) *consolev1.ConsoleLink {
 	href := fmt.Sprintf("https://%s", cheCtx.CheHost)
-	imageUrl := fmt.Sprintf("https://%s%s", cheCtx.CheHost, defaults.GetConsoleLinkImage())
+	imageURL := fmt.Sprintf("https://%s%s", cheCtx.CheHost, defaults.GetConsoleLinkImage())
 
 	return &consolev1.ConsoleLink{
 		TypeMeta: metav1.TypeMeta{
@@ -67,7 +67,7 @@ func buildConsoleLink(cheCtx *chetypes.CheContext) *consolev1.ConsoleLink {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   defaults.GetConsoleLinkName(),
-			Labels: chelabels.GetAll(defaults.GetCheFlavor()),
+			Labels: chelabels.GetStandardLabels(defaults.GetCheFlavor()),
 		},
 		Spec: consolev1.ConsoleLinkSpec{
 			Link: consolev1.Link{
@@ -76,7 +76,7 @@ func buildConsoleLink(cheCtx *chetypes.CheContext) *consolev1.ConsoleLink {
 			Location: consolev1.ApplicationMenu,
 			ApplicationMenu: &consolev1.ApplicationMenuSpec{
 				Section:  defaults.GetConsoleLinkSection(),
-				ImageURL: imageUrl,
+				ImageURL: imageURL,
 			},
 		},
 	}

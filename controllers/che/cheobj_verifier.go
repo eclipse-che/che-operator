@@ -60,16 +60,16 @@ func IsTrustedBundleConfigMap(cl client.Client, watchNamespace string, obj clien
 	}
 }
 
-func IsOperatorManagedObj(cl client.Client, watchNamespace string, obj client.Object) (bool, ctrl.Request) {
+func IsOperatorManaged(cl client.Client, watchNamespace string, obj client.Object) (bool, ctrl.Request) {
 	checluster, _ := deploy.FindCheClusterCRInNamespace(cl, watchNamespace)
 	if checluster == nil {
 		return false, ctrl.Request{}
 	}
 
-	m := labels.SelectorFromSet(chelabels.GetOperatorManaged(defaults.GetCheFlavor()))
+	managedSelector := labels.SelectorFromSet(chelabels.GetOperatorManagedLabels(defaults.GetCheFlavor()))
 
 	// Check whether the object is managed by the operator
-	if !m.Matches(labels.Set(obj.GetLabels())) {
+	if !managedSelector.Matches(labels.Set(obj.GetLabels())) {
 		return false, ctrl.Request{}
 	}
 

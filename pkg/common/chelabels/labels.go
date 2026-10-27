@@ -17,7 +17,7 @@ import (
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 )
 
-func GetAll(component string) map[string]string {
+func GetStandardLabels(component string) map[string]string {
 	return map[string]string{
 		constants.KubernetesComponentLabelKey: component,
 		constants.KubernetesManagedByLabelKey: defaults.GetOperatorName(),
@@ -27,7 +27,7 @@ func GetAll(component string) map[string]string {
 	}
 }
 
-func GetOperatorManaged(component string) map[string]string {
+func GetOperatorManagedLabels(component string) map[string]string {
 	return map[string]string{
 		constants.KubernetesComponentLabelKey: component,
 		constants.KubernetesManagedByLabelKey: defaults.GetOperatorName(),
