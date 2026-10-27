@@ -17,8 +17,8 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	rbac "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -40,7 +40,7 @@ func SyncRoleBindingToCluster(
 	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
 		cheCtx.Context,
 		rbSpec,
-		&k8sclient.SyncOptions{DiffOpts: diffs.RoleBinding},
+		&clientwrapper.SyncOptions{DiffOpts: diffs.RoleBinding},
 	); err != nil {
 		return fmt.Errorf("failed to sync RoleBinding %s/%s: %w", rbSpec.Namespace, rbSpec.Name, err)
 	}

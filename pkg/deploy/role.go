@@ -16,8 +16,8 @@ import (
 	"fmt"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	rbac "k8s.io/api/rbac/v1"
@@ -44,7 +44,7 @@ func SyncRoleToCluster(
 	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
 		cheCtx.Context,
 		roleSpec,
-		&k8sclient.SyncOptions{DiffOpts: roleDiffOpts},
+		&clientwrapper.SyncOptions{DiffOpts: roleDiffOpts},
 	); err != nil {
 		return fmt.Errorf("failed to sync Role %s/%s: %w", roleSpec.Namespace, roleSpec.Name, err)
 	}

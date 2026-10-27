@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
@@ -33,7 +34,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -90,7 +90,7 @@ func SyncDeploymentSpecToCluster(
 	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
 		cheCtx.Context,
 		deploymentSpec,
-		&k8sclient.SyncOptions{DiffOpts: deploymentDiffOpts},
+		&clientwrapper.SyncOptions{DiffOpts: deploymentDiffOpts},
 	); err != nil {
 		// Failed to sync (update), let's delete it, so it is created from scratch on the next reconcile loop
 		if strings.Contains(err.Error(), "field is immutable") {

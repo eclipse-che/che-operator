@@ -15,7 +15,7 @@ package envtest
 import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -81,8 +81,8 @@ func (b *CheContextBuilder) Build() *chetypes.CheContext {
 			NonCachingClient:        b.env.Client,
 			DiscoveryClient:         b.env.DiscoveryClient,
 			Scheme:                  b.env.Scheme,
-			ClientWrapper:           k8sclient.NewK8sClient(b.env.Client, b.env.Scheme),
-			NonCachingClientWrapper: k8sclient.NewK8sClient(b.env.Client, b.env.Scheme),
+			ClientWrapper:           clientwrapper.New(b.env.Client, b.env.Scheme),
+			NonCachingClientWrapper: clientwrapper.New(b.env.Client, b.env.Scheme),
 		},
 		Context: b.env.Context,
 	}

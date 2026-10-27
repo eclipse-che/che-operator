@@ -18,10 +18,10 @@ import (
 	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	agentsandbox "github.com/eclipse-che/che-operator/pkg/deploy/agent-sandbox"
 	"github.com/eclipse-che/che-operator/pkg/deploy/metrics"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/networkpolicy"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"k8s.io/utils/ptr"
@@ -227,8 +227,8 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		NonCachingClient:        r.nonCachedClient,
 		DiscoveryClient:         r.discoveryClient,
 		Scheme:                  r.Scheme,
-		ClientWrapper:           k8sclient.NewK8sClient(r.client, r.Scheme),
-		NonCachingClientWrapper: k8sclient.NewK8sClient(r.nonCachedClient, r.Scheme),
+		ClientWrapper:           clientwrapper.New(r.client, r.Scheme),
+		NonCachingClientWrapper: clientwrapper.New(r.nonCachedClient, r.Scheme),
 	}
 
 	// Fetch the CheCluster instance

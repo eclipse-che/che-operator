@@ -17,13 +17,13 @@ import (
 	"fmt"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func GetDevWorkspaceOperatorNamespace(context context.Context, clientWrapper *k8sclient.K8sClientWrapper) (string, error) {
+func GetDevWorkspaceOperatorNamespace(context context.Context, clientWrapper clientwrapper.ClientWrapper) (string, error) {
 	selector := labels.SelectorFromSet(
 		labels.Set{
 			constants.KubernetesNameLabelKey:   constants.DevWorkspaceControllerName,

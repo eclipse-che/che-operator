@@ -17,8 +17,8 @@ import (
 	"time"
 
 	"github.com/devfile/devworkspace-operator/pkg/constants"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers"
@@ -42,7 +42,7 @@ var (
 type CheRoutingSolver struct {
 	client        client.Client
 	scheme        *runtime.Scheme
-	clientWrapper *k8sclient.K8sClientWrapper
+	clientWrapper clientwrapper.ClientWrapper
 }
 
 // Magic to ensure we get compile time error right here if our struct doesn't support the interface.
@@ -69,7 +69,7 @@ func (g *CheRouterGetter) GetSolver(client client.Client, routingClass controlle
 	if !isSupported(routingClass) {
 		return nil, solvers.RoutingNotSupported
 	}
-	return &CheRoutingSolver{client, g.scheme, k8sclient.NewK8sClient(client, g.scheme)}, nil
+	return &CheRoutingSolver{client, g.scheme, clientwrapper.New(client, g.scheme)}, nil
 }
 
 func (g *CheRouterGetter) SetupControllerManager(mgr *builder.Builder) error {

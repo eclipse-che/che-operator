@@ -17,10 +17,10 @@ import (
 	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	consolev1 "github.com/openshift/api/console/v1"
@@ -87,7 +87,7 @@ func (c *ConsoleLinkReconciler) syncConsoleLink(cheCtx *chetypes.CheContext) err
 	if err := cheCtx.ClusterAPI.NonCachingClientWrapper.Sync(
 		cheCtx.Context,
 		consoleLinkSpec,
-		&k8sclient.SyncOptions{DiffOpts: consoleLinkDiffOpts},
+		&clientwrapper.SyncOptions{DiffOpts: consoleLinkDiffOpts},
 	); err != nil {
 		return fmt.Errorf("failed to sync ConsoleLink %s: %w", consoleLinkSpec.Name, err)
 	}

@@ -20,7 +20,7 @@ import (
 	"strings"
 
 	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -139,7 +139,7 @@ func (c *CheRoutingSolver) provisionRouting(objs *solvers.RoutingObjects, cheClu
 		if err = c.clientWrapper.Sync(
 			context.TODO(),
 			&cm,
-			&k8sclient.SyncOptions{MergeLabels: true, MergeAnnotations: true}); err != nil {
+			&clientwrapper.SyncOptions{MergeLabels: true, MergeAnnotations: true}); err != nil {
 			return err
 		}
 	}

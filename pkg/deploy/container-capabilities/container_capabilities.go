@@ -18,9 +18,9 @@ import (
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -116,7 +116,7 @@ func (r *ContainerCapabilitiesReconciler) sync(cheCtx *chetypes.CheContext, cc C
 			sccName,
 			cc.getDWOClusterRoleName(),
 		),
-		&k8sclient.SyncOptions{DiffOpts: diffs.ClusterRole},
+		&clientwrapper.SyncOptions{DiffOpts: diffs.ClusterRole},
 	); err != nil {
 		return err
 	}
@@ -128,7 +128,7 @@ func (r *ContainerCapabilitiesReconciler) sync(cheCtx *chetypes.CheContext, cc C
 			cc.getDWOClusterRoleName(),
 			cc.getDWOClusterRoleBindingName(),
 		),
-		&k8sclient.SyncOptions{DiffOpts: diffs.ClusterRoleBinding},
+		&clientwrapper.SyncOptions{DiffOpts: diffs.ClusterRoleBinding},
 	); err != nil {
 		return err
 	}
@@ -139,7 +139,7 @@ func (r *ContainerCapabilitiesReconciler) sync(cheCtx *chetypes.CheContext, cc C
 			sccName,
 			cc.GetUserRoleName(),
 		),
-		&k8sclient.SyncOptions{DiffOpts: diffs.ClusterRole},
+		&clientwrapper.SyncOptions{DiffOpts: diffs.ClusterRole},
 	); err != nil {
 		return err
 	}
@@ -159,7 +159,7 @@ func (r *ContainerCapabilitiesReconciler) sync(cheCtx *chetypes.CheContext, cc C
 			if err := cheCtx.ClusterAPI.NonCachingClientWrapper.Sync(
 				context.TODO(),
 				scc,
-				&k8sclient.SyncOptions{DiffOpts: diffs.SecurityContextConstraints},
+				&clientwrapper.SyncOptions{DiffOpts: diffs.SecurityContextConstraints},
 			); err != nil {
 				return err
 			}

@@ -23,8 +23,8 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
@@ -174,7 +174,7 @@ func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(cheCtx *chety
 	err = cheCtx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
 		openShiftCaBundleCM,
-		&k8sclient.SyncOptions{
+		&clientwrapper.SyncOptions{
 			DiffOpts: diffs.ConfigMap(mandatoryLabelKeys, nil),
 		})
 
@@ -208,7 +208,7 @@ func (c *CertificatesReconciler) syncKubernetesCABundleCertificates(cheCtx *chet
 	err = cheCtx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
 		kubernetesCaBundleCM,
-		&k8sclient.SyncOptions{
+		&clientwrapper.SyncOptions{
 			DiffOpts: diffs.ConfigMap(deploy.GetLabelKeys(), nil),
 		},
 	)
@@ -248,7 +248,7 @@ func (c *CertificatesReconciler) syncGitTrustedCertificates(cheCtx *chetypes.Che
 		err = cheCtx.ClusterAPI.ClientWrapper.Sync(
 			context.TODO(),
 			gitTrustedCertsCM,
-			&k8sclient.SyncOptions{
+			&clientwrapper.SyncOptions{
 				DiffOpts: diffs.ConfigMap(
 					[]string{
 						constants.KubernetesPartOfLabelKey,
@@ -300,7 +300,7 @@ func (c *CertificatesReconciler) syncSelfSignedCertificates(cheCtx *chetypes.Che
 		err = cheCtx.ClusterAPI.ClientWrapper.Sync(
 			context.TODO(),
 			selfSignedCertCM,
-			&k8sclient.SyncOptions{
+			&clientwrapper.SyncOptions{
 				DiffOpts: diffs.ConfigMap(deploy.GetLabelKeys(), nil),
 			})
 	}
@@ -333,7 +333,7 @@ func (c *CertificatesReconciler) syncKubernetesRootCertificates(cheCtx *chetypes
 	err = cheCtx.ClusterAPI.NonCachingClientWrapper.Sync(
 		context.TODO(),
 		kubeRootCertsCM,
-		&k8sclient.SyncOptions{
+		&clientwrapper.SyncOptions{
 			DiffOpts: diffs.ConfigMap(
 				[]string{
 					constants.KubernetesPartOfLabelKey,
@@ -368,7 +368,7 @@ func (c *CertificatesReconciler) syncOIDCIssuerCertificate(cheCtx *chetypes.CheC
 	err := cheCtx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
 		cm,
-		&k8sclient.SyncOptions{
+		&clientwrapper.SyncOptions{
 			DiffOpts: diffs.ConfigMap(deploy.GetLabelKeys(), nil),
 		},
 	)
@@ -451,7 +451,7 @@ func (c *CertificatesReconciler) syncCheCABundleCerts(cheCtx *chetypes.CheContex
 	err = cheCtx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
 		mergedCABundlesCM,
-		&k8sclient.SyncOptions{
+		&clientwrapper.SyncOptions{
 			DiffOpts: diffs.ConfigMap(deploy.GetLabelsAndAnnotations(mergedCABundlesCM)),
 		},
 	)

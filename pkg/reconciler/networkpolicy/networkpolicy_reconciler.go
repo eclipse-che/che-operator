@@ -17,7 +17,7 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
-	"github.com/eclipse-che/che-operator/pkg/provision"
+	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	networkingv1 "k8s.io/api/networking/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -55,7 +55,7 @@ func (r *NetworkPoliciesReconciler) syncAll(cheCtx *chetypes.CheContext) error {
 	}
 
 	for _, networkPolicy := range networkPolicies {
-		if err := provision.NetworkPolicy.Sync(cheCtx, networkPolicy); err != nil {
+		if err := resources.NetworkPolicy.Sync(cheCtx, networkPolicy); err != nil {
 			return err
 		}
 	}
@@ -64,7 +64,7 @@ func (r *NetworkPoliciesReconciler) syncAll(cheCtx *chetypes.CheContext) error {
 }
 
 func (r *NetworkPoliciesReconciler) deleteAll(cheCtx *chetypes.CheContext) error {
-	return provision.NetworkPolicy.DeleteAll(cheCtx, cheCtx.CheCluster.Namespace)
+	return resources.NetworkPolicy.DeleteAll(cheCtx, cheCtx.CheCluster.Namespace)
 }
 
 func (r *NetworkPoliciesReconciler) buildNetworkPolicies(cheCtx *chetypes.CheContext) ([]*networkingv1.NetworkPolicy, error) {

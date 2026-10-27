@@ -27,10 +27,10 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/google/go-cmp/cmp"
@@ -189,7 +189,7 @@ func syncAll(
 
 // syncGatewayObject syncs the given object into the CheCluster namespace.
 func syncGatewayObject(cheCtx *chetypes.CheContext, obj client.Object, diffOpts ...cmp.Option) error {
-	kind := k8sclient.GetObjectType(obj)
+	kind := clientwrapper.GetObjectType(obj)
 
 	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, obj, cheCtx.ClusterAPI.Scheme); err != nil {
 		return fmt.Errorf("failed to set owner reference for %s %s/%s: %w", kind, obj.GetNamespace(), obj.GetName(), err)
@@ -198,7 +198,7 @@ func syncGatewayObject(cheCtx *chetypes.CheContext, obj client.Object, diffOpts 
 	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
 		cheCtx.Context,
 		obj,
-		&k8sclient.SyncOptions{DiffOpts: diffOpts},
+		&clientwrapper.SyncOptions{DiffOpts: diffOpts},
 	); err != nil {
 		return fmt.Errorf("failed to sync %s %s/%s: %w", kind, obj.GetNamespace(), obj.GetName(), err)
 	}

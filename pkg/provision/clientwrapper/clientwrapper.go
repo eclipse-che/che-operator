@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package k8s_client
+package clientwrapper
 
 import (
 	"context"
@@ -22,7 +22,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -34,7 +33,7 @@ var (
 	logger = ctrl.Log.WithName("k8s")
 )
 
-func NewK8sClient(cli client.Client, scheme *runtime.Scheme) *K8sClientWrapper {
+func New(cli client.Client, scheme *runtime.Scheme) *K8sClientWrapper {
 	return &K8sClientWrapper{cli: cli, scheme: scheme}
 }
 
@@ -62,10 +61,7 @@ func (k K8sClientWrapper) Sync(
 		return err
 	}
 
-	key := types.NamespacedName{
-		Name:      obj.GetName(),
-		Namespace: obj.GetNamespace(),
-	}
+	key := client.ObjectKeyFromObject(obj)
 	if exists, err := k.doGetIgnoreNotFound(ctx, key, actual.(client.Object)); exists {
 		return k.doSync(ctx, actual.(client.Object), obj, opts...)
 	} else if err == nil {
@@ -88,7 +84,6 @@ func (k K8sClientWrapper) CreateIfNotExists(
 	if err := k.ensureGVK(obj); err != nil {
 		return err
 	}
-
 	return k.doCreate(ctx, obj, true, opts...)
 }
 
@@ -105,7 +100,6 @@ func (k K8sClientWrapper) Create(
 	if err := k.ensureGVK(obj); err != nil {
 		return err
 	}
-
 	return k.doCreate(ctx, obj, false, opts...)
 }
 
@@ -143,7 +137,6 @@ func (k K8sClientWrapper) DeleteIgnoreNotFound(
 	if err := k.ensureGVK(obj); err != nil {
 		return err
 	}
-
 	return k.doDeleteIgnoreIfNotFound(ctx, obj, opts...)
 }
 
@@ -163,7 +156,6 @@ func (k K8sClientWrapper) List(ctx context.Context, list client.ObjectList, opts
 			return nil, err
 		}
 	}
-
 	return items, nil
 }
 
@@ -183,8 +175,6 @@ func (k K8sClientWrapper) deleteByKeyIgnoreNotFound(
 	actual := runtimeObject.DeepCopyObject().(client.Object)
 	if exists, err := k.doGetIgnoreNotFound(ctx, key, actual); exists {
 		return k.doDeleteIgnoreIfNotFound(ctx, actual, opts...)
-	} else if err == nil {
-		return nil
 	} else {
 		return err
 	}
@@ -199,14 +189,13 @@ func (k K8sClientWrapper) doDeleteIgnoreIfNotFound(
 ) error {
 	if err := k.cli.Delete(ctx, obj, opts...); err != nil {
 		if errors.IsNotFound(err) {
-			logger.Info("Object not found", "namespace", obj.GetNamespace(), "kind", GetObjectType(obj), "name", obj.GetName())
+			logger.Info("Object already deleted", "kind", GetObjectType(obj), "namespace", obj.GetNamespace(), "name", obj.GetName())
 			return nil
-		} else {
-			return err
 		}
+		return err
 	}
 
-	logger.Info("Object deleted", "namespace", obj.GetNamespace(), "kind", GetObjectType(obj), "name", obj.GetName())
+	logger.Info("Object deleted", "kind", GetObjectType(obj), "namespace", obj.GetNamespace(), "name", obj.GetName())
 	return nil
 }
 
@@ -223,12 +212,9 @@ func (k K8sClientWrapper) doGetIgnoreNotFound(
 		if err = k.ensureGVK(obj); err != nil {
 			return false, err
 		}
-
 		return true, nil
-	} else if errors.IsNotFound(err) {
-		return false, nil
 	} else {
-		return false, err
+		return false, client.IgnoreNotFound(err)
 	}
 }
 
@@ -241,14 +227,10 @@ func (k K8sClientWrapper) doCreate(
 	opts ...client.CreateOption,
 ) error {
 	if err := k.cli.Create(ctx, obj, opts...); err == nil {
-		logger.Info("Object created", "namespace", obj.GetNamespace(), "kind", GetObjectType(obj), "name", obj.GetName())
+		logger.Info("Object created", "kind", GetObjectType(obj), "namespace", obj.GetNamespace(), "name", obj.GetName())
 		return nil
-	} else if errors.IsAlreadyExists(err) {
-		if ignoreIfAlreadyExists {
-			return nil
-		} else {
-			return err
-		}
+	} else if ignoreIfAlreadyExists {
+		return client.IgnoreAlreadyExists(err)
 	} else {
 		return err
 	}
@@ -290,7 +272,7 @@ func (k K8sClientWrapper) doSync(
 
 			err := k.cli.Update(ctx, obj)
 			if err == nil {
-				logger.Info("Object updated", "namespace", actual.GetNamespace(), "kind", GetObjectType(actual), "name", actual.GetName())
+				logger.Info("Object updated", "kind", GetObjectType(actual), "namespace", actual.GetNamespace(), "name", actual.GetName())
 			}
 			return err
 		}

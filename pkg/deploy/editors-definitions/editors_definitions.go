@@ -19,8 +19,8 @@ import (
 	"regexp"
 
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	corev1 "k8s.io/api/core/v1"
@@ -165,7 +165,7 @@ func syncEditorDefinitions(cheCtx *chetypes.CheContext, editorDefinitions map[st
 	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
 		cheCtx.Context,
 		cm,
-		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
+		&clientwrapper.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
 	); err != nil {
 		return fmt.Errorf("failed to sync ConfigMap %s/%s: %w", cm.Namespace, cm.Name, err)
 	}

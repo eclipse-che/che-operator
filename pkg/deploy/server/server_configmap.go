@@ -26,10 +26,10 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -83,7 +83,7 @@ func (s *CheServerReconciler) syncConfigMap(cheCtx *chetypes.CheContext) (bool, 
 	err = cheCtx.ClusterAPI.ClientWrapper.Sync(
 		context.TODO(),
 		cm,
-		&k8sclient.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
+		&clientwrapper.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
 	)
 
 	return err == nil, err

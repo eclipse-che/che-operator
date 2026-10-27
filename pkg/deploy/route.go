@@ -20,10 +20,10 @@ import (
 	"strings"
 
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	k8sclient "github.com/eclipse-che/che-operator/pkg/common/k8s-client"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -64,7 +64,7 @@ func SyncRouteToCluster(
 	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
 		cheCtx.Context,
 		routeSpec,
-		&k8sclient.SyncOptions{DiffOpts: routeDiffOpts},
+		&clientwrapper.SyncOptions{DiffOpts: routeDiffOpts},
 	); err != nil {
 		return fmt.Errorf("failed to sync Route %s/%s: %w", routeSpec.Namespace, routeSpec.Name, err)
 	}
