@@ -18,18 +18,13 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
-	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
+	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-)
-
-var (
-	logger = ctrl.Log.WithName("agentsandbox")
 )
 
 type AgentSandboxReconciler struct {
@@ -54,13 +49,8 @@ func (r *AgentSandboxReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconci
 	return reconcile.Result{}, true, nil
 }
 
-func (r *AgentSandboxReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
-	if err := r.delete(cheCtx); err != nil {
-		logger.Error(err, "failed to finalize resources")
-		return false
-	}
-
-	return true
+func (r *AgentSandboxReconciler) Finalize(cheCtx *chetypes.CheContext) error {
+	return r.delete(cheCtx)
 }
 
 func (r *AgentSandboxReconciler) sync(cheCtx *chetypes.CheContext) error {

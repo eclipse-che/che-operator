@@ -68,8 +68,8 @@ func TestReconcile(t *testing.T) {
 	assert.NotEmpty(t, cheCtx.CheCluster.Status.CheVersion)
 	assert.NotEmpty(t, cheCtx.CheCluster.Status.CheURL)
 
-	done := server.Finalize(cheCtx)
-	assert.True(t, done)
+	err = server.Finalize(cheCtx)
+	assert.Nil(t, err)
 
 	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "test-role"}, &rbac.ClusterRoleBinding{}))
 }

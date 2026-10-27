@@ -86,7 +86,7 @@ metadata:
     categories: Developer Tools
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:next
-    createdAt: "2026-10-27T10:02:13Z"
+    createdAt: "2026-10-27T10:19:17Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
     features.operators.openshift.io/cnf: "false"

@@ -16,9 +16,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
+	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -58,11 +58,10 @@ func (ip *IdentityProviderReconciler) Reconcile(cheCtx *chetypes.CheContext) (re
 	return reconcile.Result{}, true, nil
 }
 
-func (ip *IdentityProviderReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
+func (ip *IdentityProviderReconciler) Finalize(cheCtx *chetypes.CheContext) error {
 	oauthClient, err := GetOAuthClient(cheCtx)
 	if err != nil {
-		logger.Error(err, "Failed to get OAuthClient")
-		return false
+		return fmt.Errorf("failed to get OAuthClient: %w", err)
 	}
 
 	if oauthClient != nil {
@@ -77,11 +76,10 @@ func (ip *IdentityProviderReconciler) Finalize(cheCtx *chetypes.CheContext) bool
 	}
 
 	if err := deploy.DeleteFinalizer(cheCtx, OAuthFinalizerName); err != nil {
-		logger.Error(err, "Failed to delete finalizer", "finalizer", OAuthFinalizerName)
-		return false
+		return fmt.Errorf("failed to delete finalizer %s: %w", OAuthFinalizerName, err)
 	}
 
-	return true
+	return nil
 }
 
 func syncOAuthClient(cheCtx *chetypes.CheContext) error {

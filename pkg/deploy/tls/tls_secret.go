@@ -16,7 +16,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
-	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
+	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -55,6 +55,6 @@ func (t *TlsSecretReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.
 	return reconcile.Result{}, true, nil
 }
 
-func (t *TlsSecretReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
-	return true
+func (t *TlsSecretReconciler) Finalize(cheCtx *chetypes.CheContext) error {
+	return nil
 }

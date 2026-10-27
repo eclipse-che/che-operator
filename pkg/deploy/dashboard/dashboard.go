@@ -16,7 +16,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
+	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -25,7 +25,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
-	"github.com/sirupsen/logrus"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -96,15 +95,13 @@ func (d *DashboardReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.
 	return reconcile.Result{}, true, nil
 }
 
-func (d *DashboardReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
-	done := true
+func (d *DashboardReconciler) Finalize(cheCtx *chetypes.CheContext) error {
 	if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
 		cheCtx.Context,
 		types.NamespacedName{Name: d.getClusterRoleName(cheCtx)},
 		&rbacv1.ClusterRole{},
 	); err != nil {
-		done = false
-		logrus.Errorf("Failed to delete ClusterRole %s, cause: %v", d.getClusterRoleName(cheCtx), err)
+		return fmt.Errorf("failed to delete ClusterRole %s: %w", d.getClusterRoleName(cheCtx), err)
 	}
 
 	if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
@@ -112,15 +109,14 @@ func (d *DashboardReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
 		types.NamespacedName{Name: d.getClusterRoleBindingName(cheCtx)},
 		&rbacv1.ClusterRoleBinding{},
 	); err != nil {
-		done = false
-		logrus.Errorf("Failed to delete ClusterRoleBinding %s, cause: %v", d.getClusterRoleBindingName(cheCtx), err)
+		return fmt.Errorf("failed to delete ClusterRoleBinding %s: %w", d.getClusterRoleBindingName(cheCtx), err)
 	}
 
 	if err := deploy.DeleteFinalizer(cheCtx, ClusterPermissionsDashboardFinalizer); err != nil {
-		done = false
-		logrus.Errorf("Error deleting finalizer: %v", err)
+		return fmt.Errorf("failed to delete finalizer %s: %w", ClusterPermissionsDashboardFinalizer, err)
 	}
-	return done
+
+	return nil
 }
 
 func (d *DashboardReconciler) createGatewayConfig(cheCtx *chetypes.CheContext) *gateway.TraefikConfig {

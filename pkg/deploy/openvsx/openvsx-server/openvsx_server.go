@@ -18,9 +18,9 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
+	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -216,6 +216,6 @@ func (r *OpenVSXServerReconciler) isServerReady(cheCtx *chetypes.CheContext) boo
 	return actual.Status.AvailableReplicas > 0 && actual.Status.UnavailableReplicas == 0
 }
 
-func (r *OpenVSXServerReconciler) Finalize(_ *chetypes.CheContext) bool {
-	return true
+func (r *OpenVSXServerReconciler) Finalize(_ *chetypes.CheContext) error {
+	return nil
 }

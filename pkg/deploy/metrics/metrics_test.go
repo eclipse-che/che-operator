@@ -242,8 +242,8 @@ func TestFinalizeMetrics(t *testing.T) {
 	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: cheServerRoleBindingName, Namespace: "eclipse-che"}, &rbacv1.RoleBinding{}))
 	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: cheServerServiceMonitorName, Namespace: "eclipse-che"}, &monitoringv1.ServiceMonitor{}))
 
-	done := reconciler.Finalize(cheCtx)
-	assert.True(t, done)
+	err := reconciler.Finalize(cheCtx)
+	assert.Nil(t, err)
 
 	// Verify all resources are deleted
 	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: dwoPrometheusRoleName, Namespace: "openshift-operators"}, &rbacv1.Role{}))

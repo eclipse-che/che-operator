@@ -24,9 +24,9 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
-	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
+	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -85,25 +85,21 @@ func (ip *ImagePuller) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result,
 			return reconcile.Result{RequeueAfter: time.Second}, false, err
 		}
 	} else {
-		if done, err := ip.uninstallImagePuller(cheCtx); !done {
-			return reconcile.Result{RequeueAfter: time.Second}, false, err
+		if err := ip.uninstallImagePuller(cheCtx); err != nil {
+			return reconcile.Result{}, false, err
 		}
 	}
 	return reconcile.Result{}, true, nil
 }
 
-func (ip *ImagePuller) Finalize(cheCtx *chetypes.CheContext) bool {
-	done, err := ip.uninstallImagePuller(cheCtx)
-	if err != nil {
-		logger.Error(err, "Failed to uninstall Kubernetes Image Puller")
-	}
-	return done
+func (ip *ImagePuller) Finalize(cheCtx *chetypes.CheContext) error {
+	return ip.uninstallImagePuller(cheCtx)
 }
 
-func (ip *ImagePuller) uninstallImagePuller(cheCtx *chetypes.CheContext) (bool, error) {
+func (ip *ImagePuller) uninstallImagePuller(cheCtx *chetypes.CheContext) error {
 	// Keep it here for backward compatibility
 	if err := deploy.DeleteFinalizer(cheCtx, finalizerName); err != nil {
-		return false, err
+		return err
 	}
 
 	if infrastructure.IsKubernetesImagePullerEnabled(cheCtx.ClusterAPI.DiscoveryClient) {
@@ -118,11 +114,11 @@ func (ip *ImagePuller) uninstallImagePuller(cheCtx *chetypes.CheContext) (bool, 
 			&chev1alpha1.KubernetesImagePuller{},
 		)
 		if err != nil {
-			return false, fmt.Errorf("failed to delete KubernetesImagePuller %s/%s: %w", key.Namespace, key.Name, err)
+			return fmt.Errorf("failed to delete KubernetesImagePuller %s/%s: %w", key.Namespace, key.Name, err)
 		}
 	}
 
-	return true, nil
+	return nil
 }
 
 func (ip *ImagePuller) syncKubernetesImagePuller(externalImages []string, cheCtx *chetypes.CheContext) (bool, error) {

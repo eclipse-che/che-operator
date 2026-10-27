@@ -17,8 +17,8 @@ import (
 	"encoding/json"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
+	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -104,8 +104,8 @@ func (dc *CheClusterDefaultsCleaner) Reconcile(cheCtx *chetypes.CheContext) (rec
 	return reconcile.Result{}, true, nil
 }
 
-func (dc *CheClusterDefaultsCleaner) Finalize(_ *chetypes.CheContext) bool {
-	return true
+func (dc *CheClusterDefaultsCleaner) Finalize(_ *chetypes.CheContext) error {
+	return nil
 }
 
 func (dc *CheClusterDefaultsCleaner) isFieldProcessed(cheCtx *chetypes.CheContext, field string) bool {

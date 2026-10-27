@@ -67,8 +67,8 @@ func TestDashboardClusterRBACFinalizerOnKubernetes(t *testing.T) {
 	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getClusterRoleName(cheCtx)}, &rbacv1.ClusterRole{}))
 	assert.True(t, utils.Contains(cheCtx.CheCluster.Finalizers, ClusterPermissionsDashboardFinalizer))
 
-	done := dashboard.Finalize(cheCtx)
-	assert.True(t, done)
+	err := dashboard.Finalize(cheCtx)
+	assert.Nil(t, err)
 
 	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getClusterRoleBindingName(cheCtx)}, &rbacv1.ClusterRoleBinding{}))
 	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getClusterRoleName(cheCtx)}, &rbacv1.ClusterRole{}))

@@ -24,9 +24,9 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
-	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
+	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -86,8 +86,8 @@ func (d *DevWorkspaceConfigReconciler) Reconcile(cheCtx *chetypes.CheContext) (r
 	return reconcile.Result{}, true, nil
 }
 
-func (d *DevWorkspaceConfigReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
-	return true
+func (d *DevWorkspaceConfigReconciler) Finalize(cheCtx *chetypes.CheContext) error {
+	return nil
 }
 
 func updateWorkspaceConfig(cheCtx *chetypes.CheContext, operatorConfig *controllerv1alpha1.OperatorConfiguration) error {

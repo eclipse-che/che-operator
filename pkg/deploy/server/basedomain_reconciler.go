@@ -21,9 +21,9 @@ import (
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
-	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	routev1 "github.com/openshift/api/route/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -73,8 +73,8 @@ func (r *BaseDomainReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile
 	return reconcile.Result{}, true, nil
 }
 
-func (r *BaseDomainReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
-	return true
+func (r *BaseDomainReconciler) Finalize(cheCtx *chetypes.CheContext) error {
+	return nil
 }
 
 // Tries to autodetect the route base domain.

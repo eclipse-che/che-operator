@@ -16,9 +16,9 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
-	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
+	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	routev1 "github.com/openshift/api/route/v1"
 	networking "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -48,8 +48,8 @@ func (s *CheHostReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Re
 	return reconcile.Result{}, true, nil
 }
 
-func (s *CheHostReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
-	return true
+func (s *CheHostReconciler) Finalize(cheCtx *chetypes.CheContext) error {
+	return nil
 }
 
 func (s *CheHostReconciler) syncCheService(cheCtx *chetypes.CheContext) error {

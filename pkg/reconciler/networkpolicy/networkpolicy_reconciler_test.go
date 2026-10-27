@@ -52,7 +52,7 @@ var _ = Describe("NetworkPoliciesReconciler", func() {
 		})
 
 		It("should report the component as finalized", func() {
-			Expect(reconciler.Finalize(cheCtx)).To(BeTrue())
+			Expect(reconciler.Finalize(cheCtx)).To(Succeed())
 		})
 	})
 

@@ -428,6 +428,7 @@ func getCacheFunc() (cache.NewCacheFunc, error) {
 	if infrastructure.IsOpenShift() {
 		selectors[&routev1.Route{}] = cache.ByObject{Label: partOfEclipseChe}
 		selectors[&templatev1.Template{}] = cache.ByObject{Label: partOfEclipseChe}
+		selectors[&consolev1.ConsoleLink{}] = cache.ByObject{Label: partOfEclipseChe}
 	}
 
 	if infrastructure.IsServiceMonitorEnabled() {

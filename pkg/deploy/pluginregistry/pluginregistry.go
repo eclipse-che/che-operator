@@ -17,7 +17,8 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
-	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
+	"github.com/eclipse-che/che-operator/pkg/reconciler"
+
 	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -96,8 +97,8 @@ func (p *PluginRegistryReconciler) Reconcile(cheCtx *chetypes.CheContext) (recon
 	return reconcile.Result{}, true, nil
 }
 
-func (p *PluginRegistryReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
-	return true
+func (p *PluginRegistryReconciler) Finalize(cheCtx *chetypes.CheContext) error {
+	return nil
 }
 
 func (p *PluginRegistryReconciler) syncService(cheCtx *chetypes.CheContext) error {

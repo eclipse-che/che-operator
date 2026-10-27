@@ -18,7 +18,7 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
+	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -84,8 +84,8 @@ func (p *OpenVSXDatabaseReconciler) Reconcile(cheCtx *chetypes.CheContext) (reco
 	return reconcile.Result{}, true, nil
 }
 
-func (p *OpenVSXDatabaseReconciler) Finalize(_ *chetypes.CheContext) bool {
-	return true
+func (p *OpenVSXDatabaseReconciler) Finalize(_ *chetypes.CheContext) error {
+	return nil
 }
 
 func (p *OpenVSXDatabaseReconciler) deleteResources(cheCtx *chetypes.CheContext) {
