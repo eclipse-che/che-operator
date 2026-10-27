@@ -108,7 +108,9 @@ func addPartOfCheLabeltoUserDefinedObjects(cheCtx *chetypes.CheContext) error {
 	}
 
 	if infrastructure.IsOpenShift() {
-		return addPartOfCheLabelToObject(cheCtx, "", defaults.GetConsoleLinkName(), &consolev1.ConsoleLink{})
+		if err := addPartOfCheLabelToObject(cheCtx, "", defaults.GetConsoleLinkName(), &consolev1.ConsoleLink{}); err != nil {
+			return err
+		}
 	}
 
 	// TLS
