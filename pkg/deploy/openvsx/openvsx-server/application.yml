@@ -47,7 +47,10 @@ server:
   port: 8080
   servlet:
     context-path: /openvsx
-  forward-headers-strategy: native
+  # Must be 'none': Spring Boot turns the native strategy on by itself on Kubernetes, and that
+  # rewrites remoteAddr from X-Forwarded-For before OpenVSX's trusted-proxy filter runs, so the
+  # filter would check the end client rather than the gateway in front of it.
+  forward-headers-strategy: none
 
 management:
   health:
@@ -80,6 +83,13 @@ bucket4j:
   enabled: false
 
 ovsx:
+  # The absolute URLs OpenVSX puts in its responses are built from this. Setting it makes the
+  # server ignore X-Forwarded-Host/-Proto/-Prefix entirely. Without it those headers are read
+  # from any peer in the trusted ranges, and the gateway passes a client-supplied
+  # X-Forwarded-Prefix straight through, which lets an unauthenticated caller poison the
+  # cached URLs. Empty falls back to the header-based resolution.
+  server:
+    url: ${OVSX_SERVER_URL:}
   databasesearch:
     enabled: true
   elasticsearch:

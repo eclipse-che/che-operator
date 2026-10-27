@@ -183,6 +183,10 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(ctx *chetypes.DeployContext)
 									Value: openvsx.GetOpenVSXServerServiceURL(ctx),
 								},
 								{
+									Name:  "OVSX_SERVER_URL",
+									Value: openvsx.GetOpenVSXServerPublicURL(ctx),
+								},
+								{
 									Name:  "CONFIG_REVISION",
 									Value: configRevision,
 								},
