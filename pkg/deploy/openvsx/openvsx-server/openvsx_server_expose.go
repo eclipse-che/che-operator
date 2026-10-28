@@ -20,6 +20,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
+	"github.com/eclipse-che/che-operator/pkg/deploy/openvsx"
 )
 
 func (r *OpenVSXServerReconciler) exposeEndpoint(ctx *chetypes.DeployContext) (string, bool, error) {
@@ -44,7 +45,7 @@ func (r *OpenVSXServerReconciler) createGatewayConfig(ctx *chetypes.DeployContex
 }
 
 func (r *OpenVSXServerReconciler) syncOpenVSXURLStatus(ctx *chetypes.DeployContext) error {
-	openVSXURL := "https://" + ctx.CheHost + "/" + constants.OpenVSXServerGatewayPath
+	openVSXURL := openvsx.GetOpenVSXServerPublicURL(ctx)
 
 	if openVSXURL != ctx.CheCluster.Status.OpenVSXURL {
 		ctx.CheCluster.Status.OpenVSXURL = openVSXURL

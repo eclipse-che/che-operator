@@ -27,3 +27,7 @@ func GetOpenVSXServerServiceURL(ctx *chetypes.DeployContext) string {
 		constants.OpenVSXServerGatewayPath,
 	)
 }
+
+func GetOpenVSXServerPublicURL(ctx *chetypes.DeployContext) string {
+	return fmt.Sprintf("https://%s/%s", ctx.CheHost, constants.OpenVSXServerGatewayPath)
+}
