@@ -31,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/sirupsen/logrus"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
@@ -54,7 +53,7 @@ const (
 	// so the first requests may fail until it is actually reachable.
 	tlsCrtChainRequestAttempts      = 10
 	tlsCrtChainRequestRetryInterval = time.Second * 3
-	tlsCrtChainRequestTimeoutPerTry = time.Second * 2
+	tlsCrtChainRequestTimeoutPerTry = time.Second * 3
 )
 
 // IsSelfSignedCASecretExists checks if CheTLSSelfSignedCertificateSecretName exists so depending components can mount it
@@ -176,7 +175,9 @@ func doRequestForTLSCrtChain(cheCtx *chetypes.CheContext, requestURL string, ski
 				"attempt", attempt,
 				"maxAttempts", tlsCrtChainRequestAttempts,
 				"error", err.Error())
-			time.Sleep(tlsCrtChainRequestRetryInterval)
+			if attempt < tlsCrtChainRequestAttempts {
+				time.Sleep(tlsCrtChainRequestRetryInterval)
+			}
 			continue
 		}
 
@@ -239,14 +240,14 @@ func K8sHandleCheTLSSecrets(cheCtx *chetypes.CheContext) (reconcile.Result, erro
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			// Error reading secret info
-			logrus.Errorf("Error getting Che TLS secert \"%s\": %v", cheTLSSecretName, err)
+			logger.Error(err, "Failed to get Che TLS Secret", "secret", cheTLSSecretName)
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 
 		// Check if a job is already running for TLS secrets creation
 		if jobExists {
 			if job.Status.Succeeded == 0 && job.Status.Failed == 0 {
-				logrus.Infof("Waiting on job '%s' to be finished", CheTLSJobName)
+				logger.Info("Waiting on job to be finished", "job", CheTLSJobName)
 				return reconcile.Result{RequeueAfter: 2 * time.Second}, nil
 			} else if job.Status.Succeeded > 0 {
 				// Secrets are ready, restart reconciliation loop
@@ -262,14 +263,14 @@ func K8sHandleCheTLSSecrets(cheCtx *chetypes.CheContext) (reconcile.Result, erro
 		if err != nil {
 			if !errors.IsNotFound(err) {
 				// Error reading secret info
-				logrus.Errorf("Error getting Che self-signed certificate secert \"%s\": %v", constants.DefaultSelfSignedCertificateSecretName, err)
+				logger.Error(err, "Failed to get Che self-signed certificate Secret", "secret", constants.DefaultSelfSignedCertificateSecretName)
 				return reconcile.Result{RequeueAfter: time.Second}, err
 			}
 			// Che CA certificate doesn't exists (that's expected at this point), do nothing
 		} else {
 			// Remove Che CA secret because Che TLS secret is missing (they should be generated together).
 			if err = cheCtx.ClusterAPI.Client.Delete(context.TODO(), cheCASelfSignedCertificateSecret); err != nil {
-				logrus.Errorf("Error deleting Che self-signed certificate secret \"%s\": %v", constants.DefaultSelfSignedCertificateSecretName, err)
+				logger.Error(err, "Failed to delete Che self-signed certificate Secret", "secret", constants.DefaultSelfSignedCertificateSecretName)
 				return reconcile.Result{RequeueAfter: time.Second}, err
 			}
 		}
@@ -308,7 +309,7 @@ func K8sHandleCheTLSSecrets(cheCtx *chetypes.CheContext) (reconcile.Result, erro
 
 		err = deploy.SyncJobToCluster(cheCtx, CheTLSJobName, CheTLSJobComponentName, cheTLSSecretsCreationJobImage, CheTLSJobServiceAccountName, jobEnvVars)
 		if err != nil {
-			logrus.Error(err)
+			logger.Error(err, "Failed to sync TLS secrets creation Job")
 		}
 		return reconcile.Result{RequeueAfter: time.Second}, err
 	}
@@ -317,7 +318,7 @@ func K8sHandleCheTLSSecrets(cheCtx *chetypes.CheContext) (reconcile.Result, erro
 	if jobExists {
 		// The job object is present
 		if job.Status.Succeeded > 0 {
-			logrus.Infof("Import public part of Eclipse Che self-signed CA certificate from \"%s\" secret into your browser.", constants.DefaultSelfSignedCertificateSecretName)
+			logger.Info("Import public part of Eclipse Che self-signed CA certificate from secret into your browser", "secret", constants.DefaultSelfSignedCertificateSecretName)
 			deleteJob(cheCtx, job)
 		} else if job.Status.Failed > 0 {
 			// The job failed, but the certificate is present, shouldn't happen
@@ -331,10 +332,10 @@ func K8sHandleCheTLSSecrets(cheCtx *chetypes.CheContext) (reconcile.Result, erro
 	// Che TLS certificate exists, check for required data fields
 	if !isCheTLSSecretValid(cheTLSSecret) {
 		// The secret is invalid because required field(s) missing.
-		logrus.Infof("Che TLS secret \"%s\" is invalid. Recreating...", cheTLSSecretName)
+		logger.Info("Che TLS Secret is invalid. Recreating", "secret", cheTLSSecretName)
 		// Delete old invalid secret
 		if err = cheCtx.ClusterAPI.Client.Delete(context.TODO(), cheTLSSecret); err != nil {
-			logrus.Errorf("Error deleting Che TLS secret \"%s\": %v", cheTLSSecretName, err)
+			logger.Error(err, "Failed to delete Che TLS Secret", "secret", cheTLSSecretName)
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 		// Recreate the secret
@@ -345,11 +346,11 @@ func K8sHandleCheTLSSecrets(cheCtx *chetypes.CheContext) (reconcile.Result, erro
 	if cheTLSSecret.OwnerReferences == nil {
 		// Set owner Che cluster as Che TLS secret owner
 		if err := controllerutil.SetControllerReference(cheCtx.CheCluster, cheTLSSecret, cheCtx.ClusterAPI.Scheme); err != nil {
-			logrus.Errorf("Failed to set owner for Che TLS secret \"%s\". Error: %s", cheTLSSecretName, err)
+			logger.Error(err, "Failed to set owner reference for Che TLS Secret", "secret", cheTLSSecretName)
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 		if err := cheCtx.ClusterAPI.Client.Update(context.TODO(), cheTLSSecret); err != nil {
-			logrus.Errorf("Failed to update owner for Che TLS secret \"%s\". Error: %s", cheTLSSecretName, err)
+			logger.Error(err, "Failed to update owner reference for Che TLS Secret", "secret", cheTLSSecretName)
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 	}
@@ -361,7 +362,7 @@ func K8sHandleCheTLSSecrets(cheCtx *chetypes.CheContext) (reconcile.Result, erro
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			// Error reading Che self-signed secret info
-			logrus.Errorf("Error getting Che self-signed certificate secert \"%s\": %v", constants.DefaultSelfSignedCertificateSecretName, err)
+			logger.Error(err, "Failed to get Che self-signed certificate Secret", "secret", constants.DefaultSelfSignedCertificateSecretName)
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 		// Che CA self-signed cetificate secret doesn't exist.
@@ -369,16 +370,16 @@ func K8sHandleCheTLSSecrets(cheCtx *chetypes.CheContext) (reconcile.Result, erro
 	} else {
 		// Che CA self-signed certificate secret exists, check for required data fields
 		if !isCheCASecretValid(cheTLSSelfSignedCertificateSecret) {
-			logrus.Infof("Che self-signed certificate secret \"%s\" is invalid. Recrating...", constants.DefaultSelfSignedCertificateSecretName)
+			logger.Info("Che self-signed certificate Secret is invalid. Recreating", "secret", constants.DefaultSelfSignedCertificateSecretName)
 			// Che CA self-signed certificate secret is invalid, delete it
 			if err = cheCtx.ClusterAPI.Client.Delete(context.TODO(), cheTLSSelfSignedCertificateSecret); err != nil {
-				logrus.Errorf("Error deleting Che self-signed certificate secret \"%s\": %v", constants.DefaultSelfSignedCertificateSecretName, err)
+				logger.Error(err, "Failed to delete Che self-signed certificate Secret", "secret", constants.DefaultSelfSignedCertificateSecretName)
 				return reconcile.Result{RequeueAfter: time.Second}, err
 			}
 			// Also delete Che TLS as the certificates should be created together
 			// Here it is not mandatory to check Che TLS secret existence as it is handled above
 			if err = cheCtx.ClusterAPI.Client.Delete(context.TODO(), cheTLSSecret); err != nil {
-				logrus.Errorf("Error deleting Che TLS secret \"%s\": %v", cheTLSSecretName, err)
+				logger.Error(err, "Failed to delete Che TLS Secret", "secret", cheTLSSecretName)
 				return reconcile.Result{RequeueAfter: time.Second}, err
 			}
 			// Regenerate Che TLS certicates and recreate secrets
@@ -389,11 +390,11 @@ func K8sHandleCheTLSSecrets(cheCtx *chetypes.CheContext) (reconcile.Result, erro
 		if cheTLSSelfSignedCertificateSecret.OwnerReferences == nil {
 			// Set owner Che cluster as Che TLS secret owner
 			if err := controllerutil.SetControllerReference(cheCtx.CheCluster, cheTLSSelfSignedCertificateSecret, cheCtx.ClusterAPI.Scheme); err != nil {
-				logrus.Errorf("Failed to set owner for Che self-signed certificate secret \"%s\". Error: %s", constants.DefaultSelfSignedCertificateSecretName, err)
+				logger.Error(err, "Failed to set owner reference for Che self-signed certificate Secret", "secret", constants.DefaultSelfSignedCertificateSecretName)
 				return reconcile.Result{RequeueAfter: time.Second}, err
 			}
 			if err := cheCtx.ClusterAPI.Client.Update(context.TODO(), cheTLSSelfSignedCertificateSecret); err != nil {
-				logrus.Errorf("Failed to update owner for Che self-signed certificate secret \"%s\". Error: %s", constants.DefaultSelfSignedCertificateSecretName, err)
+				logger.Error(err, "Failed to update owner reference for Che self-signed certificate Secret", "secret", constants.DefaultSelfSignedCertificateSecretName)
 				return reconcile.Result{RequeueAfter: time.Second}, err
 			}
 		}
@@ -429,13 +430,13 @@ func deleteJob(cheCtx *chetypes.CheContext, job *batchv1.Job) {
 		if err == nil {
 			// Delete pod (for some reasons pod isn't removed when job is removed)
 			if err = cheCtx.ClusterAPI.Client.Delete(context.TODO(), pod); err != nil {
-				logrus.Errorf("Error deleting pod: '%s', error: %v", podName, err)
+				logger.Error(err, "Failed to delete pod", "pod", podName)
 			}
 		}
 	}
 
 	if err := cheCtx.ClusterAPI.Client.Delete(context.TODO(), job); err != nil {
-		logrus.Errorf("Error deleting job: '%s', error: %v", CheTLSJobName, err)
+		logger.Error(err, "Failed to delete job", "job", CheTLSJobName)
 	}
 }
 
@@ -479,7 +480,7 @@ func CreateTLSSecret(cheCtx *chetypes.CheContext, name string) (err error) {
 	if err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: cheCtx.CheCluster.Namespace}, secret); err != nil && errors.IsNotFound(err) {
 		crtBytes, err := GetTLSCrtBytes(cheCtx)
 		if err != nil {
-			logrus.Errorf("Failed to extract certificate for secret %s. Failed to create a secret with a self signed crt: %s", name, err)
+			logger.Error(err, "Failed to extract certificate for Secret", "secret", name)
 			return err
 		}
 
