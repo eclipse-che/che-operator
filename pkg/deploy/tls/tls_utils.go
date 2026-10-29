@@ -24,7 +24,6 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -32,11 +31,9 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	networking "k8s.io/api/networking/v1"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -51,6 +48,13 @@ const (
 	CheTLSJobRoleBindingName    = "che-tls-job-role-binding"
 	CheTLSJobName               = "che-tls-job"
 	CheTLSJobComponentName      = "che-create-tls-secret-job"
+
+	// Number of attempts to get the certificate chain from the Che route/ingress endpoint.
+	// The endpoint may not respond immediately after the route/ingress is synced,
+	// so the first requests may fail until it is actually reachable.
+	tlsCrtChainRequestAttempts      = 10
+	tlsCrtChainRequestRetryInterval = time.Second * 10
+	tlsCrtChainRequestTimeoutPerTry = time.Second * 2
 )
 
 // IsSelfSignedCASecretExists checks if CheTLSSelfSignedCertificateSecretName exists so depending components can mount it
@@ -116,106 +120,15 @@ func IsSelfSignedCertificateUsed(cheCtx *chetypes.CheContext) (bool, error) {
 	return false, nil
 }
 
-// GetTLSCrtChain retrieves TLS certificates chain from a test route/ingress.
+// GetTLSCrtChain retrieves TLS certificates chain from the Che route/ingress endpoint.
+// The Che route/ingress must be already synced (cheCtx.CheHost is set).
 func GetTLSCrtChain(cheCtx *chetypes.CheContext) ([]*x509.Certificate, error) {
-	var requestURL string
-	if infrastructure.IsOpenShift() {
-		// Create test route to get certificates chain.
-		// Note, it is not possible to use SyncRouteToCluster here as it may cause infinite reconcile loop.
-		routeSpec, err := deploy.GetRouteSpec(
-			cheCtx,
-			"test",
-			"",
-			"test",
-			8080,
-			defaults.GetCheFlavor())
-		if err != nil {
-			return nil, err
-		}
-		// Remove controller reference to prevent queueing new reconcile loop
-		routeSpec.SetOwnerReferences(nil)
-		// Create route manually
-		if err := cheCtx.ClusterAPI.Client.Create(context.TODO(), routeSpec); err != nil {
-			if !errors.IsAlreadyExists(err) {
-				logrus.Errorf("Failed to create test route 'test': %s", err)
-				return nil, err
-			}
-		}
-
-		// Schedule test route cleanup after the job done.
-		defer func() {
-			if err := cheCtx.ClusterAPI.Client.Delete(context.TODO(), routeSpec); err != nil {
-				logrus.Errorf("Failed to delete test route %s: %s", routeSpec.Name, err)
-			}
-		}()
-
-		// Wait till the route is ready
-		route := &routev1.Route{}
-		for {
-			time.Sleep(time.Duration(1) * time.Second)
-			exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-				cheCtx.Context,
-				types.NamespacedName{Name: routeSpec.Name, Namespace: cheCtx.CheCluster.Namespace},
-				route,
-			)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get Route %s/%s: %w", cheCtx.CheCluster.Namespace, routeSpec.Name, err)
-			} else if exists {
-				break
-			}
-		}
-
-		requestURL = "https://" + route.Spec.Host
-	} else {
-		// Kubernetes
-
-		// Create test ingress to get certificates chain.
-		// Note, it is not possible to use SyncIngressToCluster here as it may cause infinite reconcile loop.
-		_, ingressSpec := deploy.GetIngressSpec(
-			cheCtx,
-			"test",
-			"",
-			"test",
-			8080,
-			defaults.GetCheFlavor())
-		// Create ingress manually
-		if err := cheCtx.ClusterAPI.Client.Create(context.TODO(), ingressSpec); err != nil {
-			if !errors.IsAlreadyExists(err) {
-				logrus.Errorf("Failed to create test ingress 'test': %s", err)
-				return nil, err
-			}
-		}
-
-		// Schedule test ingress cleanup after the job done.
-		defer func() {
-			if err := cheCtx.ClusterAPI.Client.Delete(context.TODO(), ingressSpec); err != nil {
-				logrus.Errorf("Failed to delete test ingress %s: %s", ingressSpec.Name, err)
-			}
-		}()
-
-		// Wait till the ingress is ready
-		ingress := &networking.Ingress{}
-		for {
-			time.Sleep(time.Duration(1) * time.Second)
-			exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-				cheCtx.Context,
-				types.NamespacedName{Name: ingressSpec.Name, Namespace: cheCtx.CheCluster.Namespace},
-				ingress,
-			)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get Ingress %s/%s: %w", cheCtx.CheCluster.Namespace, ingressSpec.Name, err)
-			} else if exists {
-				break
-			}
-		}
-
-		requestURL = "https://" + ingress.Spec.Rules[0].Host
-	}
+	requestURL := "https://" + cheCtx.CheHost
 
 	certificates, err := doRequestForTLSCrtChain(cheCtx, requestURL, true)
 	if err != nil {
 		if cheCtx.Proxy.HttpProxy != "" {
-			// Fetching certificates from the test route without proxy failed. Probably non-proxy connections are blocked.
+			// Fetching certificates from the Che endpoint without proxy failed. Probably non-proxy connections are blocked.
 			// Retrying with proxy configuration, however it might cause retreiving of wrong certificate in case of TLS interception by proxy.
 			logrus.Warn("Failed to get certificate chain of trust of the OpenShift Ingress bypassing the proxy")
 
@@ -230,7 +143,8 @@ func GetTLSCrtChain(cheCtx *chetypes.CheContext) ([]*x509.Certificate, error) {
 func doRequestForTLSCrtChain(cheCtx *chetypes.CheContext, requestURL string, skipProxy bool) ([]*x509.Certificate, error) {
 	transport := &http.Transport{}
 	// Adding the proxy settings to the Transport object.
-	// However, in case of test route we need to reach cluter directly in order to get the right certificate.
+	// However, the cluster must be reached directly (bypassing the proxy)
+	// in order to get the right certificate.
 	if cheCtx.Proxy.HttpProxy != "" && !skipProxy {
 		logrus.Infof("Configuring proxy to extract certificate chain from the following URL: %s", requestURL)
 		deploy.ConfigureProxy(cheCtx, transport)
@@ -238,27 +152,39 @@ func doRequestForTLSCrtChain(cheCtx *chetypes.CheContext, requestURL string, ski
 	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	client := &http.Client{
 		Transport: transport,
-		Timeout:   time.Second * 3,
+		Timeout:   tlsCrtChainRequestTimeoutPerTry,
 	}
 
-	req, err := http.NewRequest("GET", requestURL, nil)
-	if err != nil {
-		return nil, err
-	}
+	// The Che route/ingress endpoint may not respond immediately after being synced,
+	// so retry until the request succeeds or attempts run out.
+	var lastErr error
+	for attempt := 1; attempt <= tlsCrtChainRequestAttempts; attempt++ {
+		req, err := http.NewRequest("GET", requestURL, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create request to %s: %w", requestURL, err)
+		}
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
+		resp, err := client.Do(req)
+		if err != nil {
+			lastErr = err
+			logrus.Infof(
+				"Failed to get certificate chain from %s (attempt %d/%d): %s",
+				requestURL, attempt, tlsCrtChainRequestAttempts, err)
+			time.Sleep(tlsCrtChainRequestRetryInterval)
+			continue
+		}
 
-	defer func() {
 		_ = resp.Body.Close()
-	}()
 
-	return resp.TLS.PeerCertificates, nil
+		return resp.TLS.PeerCertificates, nil
+	}
+
+	return nil, fmt.Errorf(
+		"failed to get certificate chain from %s after %d attempts: %w",
+		requestURL, tlsCrtChainRequestAttempts, lastErr)
 }
 
-// GetTLSCrtBytes extracts certificate chain of trust from the test route/ingress.
+// GetTLSCrtBytes extracts certificate chain of trust from the Che route/ingress endpoint.
 func GetTLSCrtBytes(cheCtx *chetypes.CheContext) (certificates []byte, err error) {
 	peerCertificates, err := GetTLSCrtChain(cheCtx)
 	if err != nil {
