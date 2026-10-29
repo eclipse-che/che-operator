@@ -131,6 +131,9 @@ func NewReconciler(
 
 	if infrastructure.IsOpenShift() {
 		reconcilerManager.AddReconciler(containerbuild.NewContainerCapabilitiesReconciler())
+	}
+
+	if infrastructure.IsConsoleLinkEnabled() {
 		reconcilerManager.AddReconciler(consolelink.NewReconciler())
 	}
 

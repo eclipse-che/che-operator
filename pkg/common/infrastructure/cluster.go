@@ -39,6 +39,7 @@ var (
 	isOpenShiftOAuthEnabled bool
 	isLeaderElectionEnabled bool
 	isServiceMonitorEnabled bool
+	isConsoleLinkEnabled    bool
 
 	operatorNamespace string
 
@@ -46,6 +47,7 @@ var (
 	serviceMonitor        = schema.GroupKind{Group: "monitoring.coreos.com", Kind: "ServiceMonitor"}
 	kubernetesImagePuller = schema.GroupKind{Group: "che.eclipse.org", Kind: "KubernetesImagePuller"}
 	oAuthClient           = schema.GroupKind{Group: "oauth.openshift.io", Kind: "OAuthClient"}
+	consoleLink           = schema.GroupKind{Group: "console.openshift.io", Kind: "ConsoleLink"}
 	leaseCoordination     = schema.GroupKind{Group: "coordination.k8s.io", Kind: "Lease"}
 
 	logger = ctrl.Log.WithName("infrastructure")
@@ -119,6 +121,11 @@ func IsServiceMonitorEnabled() bool {
 	return isServiceMonitorEnabled
 }
 
+func IsConsoleLinkEnabled() bool {
+	initializeIfNeeded()
+	return isConsoleLinkEnabled
+}
+
 func SetOpenShiftOAuthEnabledForTesting(enabled bool) {
 	isOpenShiftOAuthEnabled = enabled
 }
@@ -127,15 +134,15 @@ func InitializeForTesting(desiredInfrastructure Type) {
 	infrastructure = desiredInfrastructure
 
 	if IsOpenShift() {
-		isOpenShiftOAuthEnabled = true
 		operatorNamespace = "openshift-operators"
 	} else {
-		isOpenShiftOAuthEnabled = false
 		operatorNamespace = "eclipse-che"
 	}
 
 	isLeaderElectionEnabled = true
 	isServiceMonitorEnabled = true
+	isOpenShiftOAuthEnabled = IsOpenShift()
+	isConsoleLinkEnabled = IsOpenShift()
 }
 
 func initializeIfNeeded() {
@@ -168,6 +175,7 @@ func initializeIfNeeded() {
 
 	isLeaderElectionEnabled = hasAPIResource(apiResources, leaseCoordination)
 	isServiceMonitorEnabled = hasAPIResource(apiResources, serviceMonitor)
+	isConsoleLinkEnabled = hasAPIResource(apiResources, consoleLink)
 }
 
 func hasAPIGroup(source []*metav1.APIGroup, apiName string) bool {

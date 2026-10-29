@@ -431,6 +431,10 @@ func getCacheFunc() (cache.NewCacheFunc, error) {
 		selectors[&consolev1.ConsoleLink{}] = cache.ByObject{Label: partOfEclipseChe}
 	}
 
+	if infrastructure.IsConsoleLinkEnabled() {
+		selectors[&consolev1.ConsoleLink{}] = cache.ByObject{Label: partOfEclipseChe}
+	}
+
 	if infrastructure.IsServiceMonitorEnabled() {
 		selectors[&monitoringv1.ServiceMonitor{}] = cache.ByObject{Label: partOfEclipseChe}
 	}
