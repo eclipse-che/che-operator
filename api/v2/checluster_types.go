@@ -536,7 +536,7 @@ type OpenVSXRegistry struct {
 	// Enables internal OpenVSX registry.
 	// When set to false, the OpenVSX registry resources are deleted, including the database PVC.
 	// +optional
-	// +kubebuilder:default:=false
+	// +kubebuilder:default:=true
 	Enable bool `json:"enable,omitempty"`
 	// The name of the Kubernetes Secret that contains credentials for the OpenVSX registry database and server.
 	// The Secret must contain the following keys:

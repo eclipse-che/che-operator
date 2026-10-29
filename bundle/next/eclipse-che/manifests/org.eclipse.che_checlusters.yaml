@@ -15241,10 +15241,11 @@ spec:
                               type: object
                           type: object
                         enable:
-                          default: false
+                          default: true
                           description: |-
                             Enables internal OpenVSX registry.
                             When set to false, the OpenVSX registry resources are deleted, including the database PVC.
+                            Defaults to true for new installations. Existing installations retain their previous value on upgrade.
                           type: boolean
                         extensionAutoUpdate:
                           default:
