@@ -15,11 +15,8 @@ package tls
 import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
-
-var logger = ctrl.Log.WithName("tls")
 
 type SelfSignedCertificateReconciler struct {
 	reconciler.Reconcilable

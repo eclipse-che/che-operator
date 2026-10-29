@@ -29,6 +29,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
+	ctrl "sigs.k8s.io/controller-runtime"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	batchv1 "k8s.io/api/batch/v1"
@@ -54,6 +55,10 @@ const (
 	tlsCrtChainRequestAttempts      = 10
 	tlsCrtChainRequestRetryInterval = time.Second * 3
 	tlsCrtChainRequestTimeoutPerTry = time.Second * 3
+)
+
+var (
+	logger = ctrl.Log.WithName("tls")
 )
 
 // IsSelfSignedCASecretExists checks if CheTLSSelfSignedCertificateSecretName exists so depending components can mount it
@@ -99,9 +104,6 @@ func IsSelfSignedCertificateUsed(cheCtx *chetypes.CheContext) (bool, error) {
 		return false, nil
 	}
 
-	// Empty secret name means using of default ingress certificate.
-	// Retrieve the info about certificate chain from test ingress below.
-
 	// Get route/ingress TLS certificates chain
 	peerCertificates, err := GetTLSCrtChain(cheCtx)
 	if err != nil {
@@ -131,7 +133,7 @@ func GetTLSCrtChain(cheCtx *chetypes.CheContext) ([]*x509.Certificate, error) {
 	if err != nil {
 		if cheCtx.Proxy.HttpProxy != "" {
 			// Fetching certificates from the Che endpoint without proxy failed. Probably non-proxy connections are blocked.
-			// Retrying with proxy configuration, however it might cause retreiving of wrong certificate in case of TLS interception by proxy.
+			// Retrying with proxy configuration, however it might cause retrieving of wrong certificate in case of TLS interception by proxy.
 			logger.Info("Failed to get certificate chain bypassing the proxy, retrying through the proxy", "url", requestURL, "error", err.Error())
 
 			return doRequestForTLSCrtChain(cheCtx, requestURL, false)
