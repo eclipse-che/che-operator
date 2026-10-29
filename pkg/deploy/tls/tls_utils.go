@@ -53,7 +53,7 @@ const (
 	// The endpoint may not respond immediately after the route/ingress is synced,
 	// so the first requests may fail until it is actually reachable.
 	tlsCrtChainRequestAttempts      = 10
-	tlsCrtChainRequestRetryInterval = time.Second * 10
+	tlsCrtChainRequestRetryInterval = time.Second * 3
 	tlsCrtChainRequestTimeoutPerTry = time.Second * 2
 )
 
@@ -123,6 +123,9 @@ func IsSelfSignedCertificateUsed(cheCtx *chetypes.CheContext) (bool, error) {
 // GetTLSCrtChain retrieves TLS certificates chain from the Che route/ingress endpoint.
 // The Che route/ingress must be already synced (cheCtx.CheHost is set).
 func GetTLSCrtChain(cheCtx *chetypes.CheContext) ([]*x509.Certificate, error) {
+	if cheCtx.CheHost == "" {
+		return nil, fmt.Errorf("failed to get certificate chain: Che host is not set yet")
+	}
 	requestURL := "https://" + cheCtx.CheHost
 
 	certificates, err := doRequestForTLSCrtChain(cheCtx, requestURL, true)
@@ -130,7 +133,7 @@ func GetTLSCrtChain(cheCtx *chetypes.CheContext) ([]*x509.Certificate, error) {
 		if cheCtx.Proxy.HttpProxy != "" {
 			// Fetching certificates from the Che endpoint without proxy failed. Probably non-proxy connections are blocked.
 			// Retrying with proxy configuration, however it might cause retreiving of wrong certificate in case of TLS interception by proxy.
-			logrus.Warn("Failed to get certificate chain of trust of the OpenShift Ingress bypassing the proxy")
+			logger.Info("Failed to get certificate chain bypassing the proxy, retrying through the proxy", "url", requestURL, "error", err.Error())
 
 			return doRequestForTLSCrtChain(cheCtx, requestURL, false)
 		}
@@ -146,7 +149,7 @@ func doRequestForTLSCrtChain(cheCtx *chetypes.CheContext, requestURL string, ski
 	// However, the cluster must be reached directly (bypassing the proxy)
 	// in order to get the right certificate.
 	if cheCtx.Proxy.HttpProxy != "" && !skipProxy {
-		logrus.Infof("Configuring proxy to extract certificate chain from the following URL: %s", requestURL)
+		logger.Info("Configuring proxy to extract certificate chain", "url", requestURL)
 		deploy.ConfigureProxy(cheCtx, transport)
 	}
 	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
@@ -167,14 +170,21 @@ func doRequestForTLSCrtChain(cheCtx *chetypes.CheContext, requestURL string, ski
 		resp, err := client.Do(req)
 		if err != nil {
 			lastErr = err
-			logrus.Infof(
-				"Failed to get certificate chain from %s (attempt %d/%d): %s",
-				requestURL, attempt, tlsCrtChainRequestAttempts, err)
+			logger.Info(
+				"Failed to get certificate chain",
+				"url", requestURL,
+				"attempt", attempt,
+				"maxAttempts", tlsCrtChainRequestAttempts,
+				"error", err.Error())
 			time.Sleep(tlsCrtChainRequestRetryInterval)
 			continue
 		}
 
 		_ = resp.Body.Close()
+
+		if resp.TLS == nil {
+			return nil, fmt.Errorf("no TLS connection info in response from %s", requestURL)
+		}
 
 		return resp.TLS.PeerCertificates, nil
 	}

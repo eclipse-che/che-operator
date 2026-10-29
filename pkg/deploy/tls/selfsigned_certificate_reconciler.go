@@ -13,18 +13,14 @@
 package tls
 
 import (
-	"time"
-
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-// SelfSignedCertificateReconciler detects whether endpoints are secured
-// by a self-signed certificate and sets cheCtx.IsSelfSignedCertificate accordingly.
-//
-// It must be registered after the Che host is reconciled (the Che route/ingress is exposed),
-// since the certificate chain is retrieved from the Che endpoint.
+var logger = ctrl.Log.WithName("tls")
+
 type SelfSignedCertificateReconciler struct {
 	reconciler.Reconcilable
 }
@@ -36,7 +32,7 @@ func NewSelfSignedCertificateReconciler() *SelfSignedCertificateReconciler {
 func (s *SelfSignedCertificateReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
 	isSelfSignedCertificate, err := IsSelfSignedCertificateUsed(cheCtx)
 	if err != nil {
-		return reconcile.Result{RequeueAfter: time.Second}, false, err
+		return reconcile.Result{}, false, err
 	}
 
 	cheCtx.IsSelfSignedCertificate = isSelfSignedCertificate
