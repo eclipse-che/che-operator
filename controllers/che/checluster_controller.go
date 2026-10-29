@@ -112,12 +112,12 @@ func NewReconciler(
 	// detect whether a self-signed certificate is used right after the che endpoint
 	// is exposed since the che route/ingress is used to get the certificates chain
 	reconcilerManager.AddReconciler(tls.NewSelfSignedCertificateReconciler())
+	reconcilerManager.AddReconciler(tls.NewCertificatesReconciler())
+	reconcilerManager.AddReconciler(tls.NewTlsSecretReconciler())
 
 	reconcilerManager.AddReconciler(devworkspace.NewDevWorkspaceConfigReconciler())
 	reconcilerManager.AddReconciler(rbac.NewGatewayPermissionsReconciler())
 	reconcilerManager.AddReconciler(&networkpolicy.NetworkPoliciesReconciler{})
-	reconcilerManager.AddReconciler(tls.NewCertificatesReconciler())
-	reconcilerManager.AddReconciler(tls.NewTlsSecretReconciler())
 	reconcilerManager.AddReconciler(server.NewBaseDomainReconciler())
 	if infrastructure.IsOpenShiftOAuthEnabled() {
 		reconcilerManager.AddReconciler(identityprovider.NewIdentityProviderReconciler())

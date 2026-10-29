@@ -162,7 +162,7 @@ func doRequestForTLSCrtChain(cheCtx *chetypes.CheContext, requestURL string, ski
 	// so retry until the request succeeds or attempts run out.
 	var lastErr error
 	for attempt := 1; attempt <= tlsCrtChainRequestAttempts; attempt++ {
-		req, err := http.NewRequest("GET", requestURL, nil)
+		req, err := http.NewRequestWithContext(cheCtx.Context, http.MethodGet, requestURL, nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create request to %s: %w", requestURL, err)
 		}
