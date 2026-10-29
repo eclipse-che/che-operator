@@ -16,6 +16,7 @@ import (
 	"fmt"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/chelabels"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -51,6 +52,43 @@ var _ = Describe("ConsoleLinkReconciler", func() {
 			Expect(cheCtx.ClusterAPI.Client.Get(cheCtx.Context, key, consoleLink)).To(Succeed())
 			Expect(consoleLink.Spec.Href).To(Equal("https://che-host"))
 			Expect(consoleLink.Spec.ApplicationMenu.ImageURL).To(Equal(fmt.Sprintf("https://che-host%s", defaults.GetConsoleLinkImage())))
+		})
+	})
+
+	Context("when the ConsoleLink exists without labels", func() {
+		BeforeEach(func() {
+			cheCtx = test.NewCtxBuilder().Build()
+
+			consoleLink := &consolev1.ConsoleLink{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "ConsoleLink",
+					APIVersion: consolev1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: defaults.GetConsoleLinkName(),
+				},
+				Spec: consolev1.ConsoleLinkSpec{
+					Link: consolev1.Link{
+						Href: "https://che-host",
+						Text: defaults.GetConsoleLinkDisplayName()},
+					Location: consolev1.ApplicationMenu,
+					ApplicationMenu: &consolev1.ApplicationMenuSpec{
+						Section:  defaults.GetConsoleLinkSection(),
+						ImageURL: fmt.Sprintf("https://%s%s", "che-host", defaults.GetConsoleLinkImage()),
+					},
+				},
+			}
+
+			Expect(cheCtx.ClusterAPI.Client.Create(cheCtx.Context, consoleLink)).To(Succeed())
+		})
+
+		It("should add the standard labels on sync", func() {
+			test.Reconcile(cheCtx, reconciler.Reconcile)
+
+			consoleLink := &consolev1.ConsoleLink{}
+			key := types.NamespacedName{Name: defaults.GetConsoleLinkName()}
+			Expect(cheCtx.ClusterAPI.Client.Get(cheCtx.Context, key, consoleLink)).To(Succeed())
+			Expect(consoleLink.Labels).To(Equal(chelabels.GetStandardLabels(defaults.GetCheFlavor())))
 		})
 	})
 
