@@ -204,11 +204,14 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	if infrastructure.IsOpenShift() {
 		bld.Owns(&routev1.Route{})
+	} else {
+		bld.Owns(&networking.Ingress{})
+	}
+
+	if infrastructure.IsConsoleLinkEnabled() {
 		bld.Watches(&consolev1.ConsoleLink{},
 			handler.EnqueueRequestsFromMapFunc(toOperatorManagedObjRequestMapper),
 		)
-	} else {
-		bld.Owns(&networking.Ingress{})
 	}
 
 	if infrastructure.IsServiceMonitorEnabled() {

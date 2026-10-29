@@ -107,7 +107,7 @@ func addPartOfCheLabeltoUserDefinedObjects(cheCtx *chetypes.CheContext) error {
 		}
 	}
 
-	if infrastructure.IsOpenShift() {
+	if infrastructure.IsConsoleLinkEnabled() {
 		if err := addPartOfCheLabelToObject(cheCtx, "", defaults.GetConsoleLinkName(), &consolev1.ConsoleLink{}); err != nil {
 			return err
 		}
