@@ -292,7 +292,7 @@ type CheClusterComponents struct {
 	Dashboard Dashboard `json:"dashboard"`
 	// OpenVSX registry configuration.
 	// +optional
-	// +kubebuilder:default:={enable: false, extensionAutoUpdate: {enable: false, schedule: "0 0 * * 0"}}
+	// +kubebuilder:default:={enable: true, extensionAutoUpdate: {enable: false, schedule: "0 0 * * 0"}}
 	OpenVSXRegistry OpenVSXRegistry `json:"openVSXRegistry"`
 	// Kubernetes Image Puller configuration.
 	// +optional
@@ -537,7 +537,7 @@ type OpenVSXRegistry struct {
 	// When set to false, the OpenVSX registry resources are deleted, including the database PVC.
 	// +optional
 	// +kubebuilder:default:=true
-	Enable bool `json:"enable,omitempty"`
+	Enable bool `json:"enable"`
 	// The name of the Kubernetes Secret that contains credentials for the OpenVSX registry database and server.
 	// The Secret must contain the following keys:
 	//   - `database-user`				: PostgreSQL username.

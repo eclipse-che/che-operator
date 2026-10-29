@@ -12473,7 +12473,7 @@ spec:
                     type: object
                   openVSXRegistry:
                     default:
-                      enable: false
+                      enable: true
                       extensionAutoUpdate:
                         enable: false
                         schedule: 0 0 * * 0
