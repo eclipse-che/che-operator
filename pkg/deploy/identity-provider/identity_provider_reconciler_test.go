@@ -34,9 +34,8 @@ func TestFinalizeDefaultOAuthClientName(t *testing.T) {
 
 	checluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:       "eclipse-che",
-			Namespace:  "eclipse-che",
-			Finalizers: []string{OAuthFinalizerName},
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
 		},
 	}
 
@@ -57,9 +56,8 @@ func TestFinalizeOAuthClient(t *testing.T) {
 
 	checluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:       "eclipse-che",
-			Namespace:  "eclipse-che",
-			Finalizers: []string{OAuthFinalizerName},
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
 		},
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{

@@ -15,6 +15,7 @@
 package syncher
 
 import (
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
@@ -67,6 +68,16 @@ var _ = Describe("syncObject", Ordered, func() {
 		Expect(env.Client.Get(cheCtx.Context, types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actualCm)).To(Succeed())
 		Expect(actualCm.OwnerReferences).To(HaveLen(1))
 		Expect(actualCm.OwnerReferences[0].UID).To(Equal(cheCtx.CheCluster.UID))
+	})
+
+	It("should not set owner reference when syncing the CheCluster itself", func(ctx SpecContext) {
+		cheClusterDiffs := cmp.Options{cmpopts.IgnoreFields(chev2.CheCluster{}, "TypeMeta", "Status")}
+		Expect(SyncObject(cheCtx, cheCtx.CheCluster, cheClusterDiffs, false, false)).To(Succeed())
+
+		actualCheCluster := &chev2.CheCluster{}
+		key := types.NamespacedName{Name: cheCtx.CheCluster.Name, Namespace: cheCtx.CheCluster.Namespace}
+		Expect(env.Client.Get(cheCtx.Context, key, actualCheCluster)).To(Succeed())
+		Expect(actualCheCluster.OwnerReferences).To(BeEmpty())
 	})
 
 	It("should sync immutable object", func(ctx SpecContext) {

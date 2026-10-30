@@ -21,6 +21,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -31,9 +32,7 @@ import (
 )
 
 const (
-	crb                   = ".crb."
-	cheCRBFinalizerSuffix = crb + constants.FinalizerSuffix
-	configMapName         = "che"
+	configMapName = "che"
 )
 
 var log = ctrl.Log.WithName("server")
@@ -111,40 +110,23 @@ func (s *CheServerReconciler) syncActiveChePhase(cheCtx *chetypes.CheContext) (b
 
 	if exists {
 		if cheDeployment.Status.AvailableReplicas == 0 {
-			if cheCtx.CheCluster.Status.ChePhase != chev2.ClusterPhaseInactive {
-				cheCtx.CheCluster.Status.ChePhase = chev2.ClusterPhaseInactive
-				err := deploy.UpdateCheCRStatus(cheCtx, "Phase", chev2.ClusterPhaseInactive)
-				return false, err
-			}
+			cheCtx.CheCluster.Status.ChePhase = chev2.ClusterPhaseInactive
+			err := resources.CheCluster.SyncStatus(cheCtx)
+			return false, err
 		} else if cheDeployment.Status.Replicas != cheDeployment.Status.AvailableReplicas {
-			if cheCtx.CheCluster.Status.ChePhase != chev2.RollingUpdate {
-				cheCtx.CheCluster.Status.ChePhase = chev2.RollingUpdate
-				err := deploy.UpdateCheCRStatus(cheCtx, "Phase", chev2.RollingUpdate)
-				return false, err
-			}
+			cheCtx.CheCluster.Status.ChePhase = chev2.RollingUpdate
+			err := resources.CheCluster.SyncStatus(cheCtx)
+			return false, err
 		} else {
-			if cheCtx.CheCluster.Status.ChePhase != chev2.ClusterPhaseActive {
-				cheCtx.CheCluster.Status.ChePhase = chev2.ClusterPhaseActive
-				err := deploy.UpdateCheCRStatus(cheCtx, "Phase", chev2.ClusterPhaseActive)
-				return err == nil, err
-			}
+			cheCtx.CheCluster.Status.ChePhase = chev2.ClusterPhaseActive
+			err := resources.CheCluster.SyncStatus(cheCtx)
+			return err == nil, err
 		}
 	} else {
 		cheCtx.CheCluster.Status.ChePhase = chev2.ClusterPhaseInactive
-		err := deploy.UpdateCheCRStatus(cheCtx, "Phase", chev2.ClusterPhaseInactive)
+		err := resources.CheCluster.SyncStatus(cheCtx)
 		return false, err
 	}
-
-	return true, nil
-}
-
-func (s *CheServerReconciler) getCRBFinalizerName(crbName string) string {
-	finalizer := crbName + cheCRBFinalizerSuffix
-	diff := len(finalizer) - 63
-	if diff > 0 {
-		return finalizer[:len(finalizer)-diff]
-	}
-	return finalizer
 }
 
 func (s *CheServerReconciler) syncDeployment(cheCtx *chetypes.CheContext) (bool, error) {
@@ -157,25 +139,19 @@ func (s *CheServerReconciler) syncDeployment(cheCtx *chetypes.CheContext) (bool,
 }
 
 func (s CheServerReconciler) syncCheVersion(cheCtx *chetypes.CheContext) (bool, error) {
-	cheVersion := defaults.GetCheVersion()
-	if cheCtx.CheCluster.Status.CheVersion != cheVersion {
-		cheCtx.CheCluster.Status.CheVersion = cheVersion
-		err := deploy.UpdateCheCRStatus(cheCtx, "version", cheVersion)
-		return err == nil, err
-	}
-	return true, nil
+	cheCtx.CheCluster.Status.CheVersion = defaults.GetCheVersion()
+	err := resources.CheCluster.SyncStatus(cheCtx)
+	return err == nil, err
 }
 
 func (s CheServerReconciler) syncCheURL(cheCtx *chetypes.CheContext) (bool, error) {
-	var cheUrl = "https://" + cheCtx.CheHost
-	if cheCtx.CheCluster.Status.CheURL != cheUrl {
+	expectedCheUrl := "https://" + cheCtx.CheHost
+	if cheCtx.CheCluster.Status.CheURL != expectedCheUrl {
 		product := map[bool]string{true: "Red Hat OpenShift Dev Spaces", false: "Eclipse Che"}[defaults.GetCheFlavor() == "devspaces"]
-		logrus.Infof("%s is now available at: %s", product, cheUrl)
-
-		cheCtx.CheCluster.Status.CheURL = cheUrl
-		err := deploy.UpdateCheCRStatus(cheCtx, getComponentName()+" server URL", cheUrl)
-		return err == nil, err
+		logrus.Infof("%s is now available at: %s", product, expectedCheUrl)
 	}
 
-	return true, nil
+	cheCtx.CheCluster.Status.CheURL = expectedCheUrl
+	err := resources.CheCluster.SyncStatus(cheCtx)
+	return err == nil, err
 }

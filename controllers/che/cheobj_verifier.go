@@ -13,10 +13,12 @@
 package che
 
 import (
+	"context"
+
 	"github.com/eclipse-che/che-operator/pkg/common/chelabels"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -30,7 +32,7 @@ func IsTrustedBundleConfigMap(cl client.Client, watchNamespace string, obj clien
 		return false, ctrl.Request{}
 	}
 
-	checluster, _ := deploy.FindCheClusterCRInNamespace(cl, watchNamespace)
+	checluster, _ := resources.CheCluster.Find(context.TODO(), cl, watchNamespace)
 	if checluster == nil {
 		return false, ctrl.Request{}
 	}
@@ -61,7 +63,7 @@ func IsTrustedBundleConfigMap(cl client.Client, watchNamespace string, obj clien
 }
 
 func IsOperatorManaged(cl client.Client, watchNamespace string, obj client.Object) (bool, ctrl.Request) {
-	checluster, _ := deploy.FindCheClusterCRInNamespace(cl, watchNamespace)
+	checluster, _ := resources.CheCluster.Find(context.TODO(), cl, watchNamespace)
 	if checluster == nil {
 		return false, ctrl.Request{}
 	}
@@ -90,7 +92,7 @@ func IsEclipseCheRelatedObj(cl client.Client, watchNamespace string, obj client.
 		return false, ctrl.Request{}
 	}
 
-	checluster, _ := deploy.FindCheClusterCRInNamespace(cl, watchNamespace)
+	checluster, _ := resources.CheCluster.Find(context.TODO(), cl, watchNamespace)
 	if checluster == nil {
 		return false, ctrl.Request{}
 	}

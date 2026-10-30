@@ -217,7 +217,7 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, nil
 	}
 
-	checluster, err := deploy.FindCheClusterCRInNamespace(r.client, "")
+	checluster, err := resources.CheCluster.Find(ctx, r.client, "")
 	if checluster == nil || err != nil {
 		// CheCluster is not found or error occurred, requeue the request
 		return ctrl.Result{}, err

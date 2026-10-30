@@ -23,15 +23,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	oauth "github.com/openshift/api/oauth/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
-)
-
-const (
-	OAuthFinalizerName = "oauthclients.finalizers.che.eclipse.org"
 )
 
 var logger = ctrl.Log.WithName("identity-provider")
@@ -75,10 +70,6 @@ func (ip *IdentityProviderReconciler) Finalize(cheCtx *chetypes.CheContext) erro
 		}
 	}
 
-	if err := deploy.DeleteFinalizer(cheCtx, OAuthFinalizerName); err != nil {
-		return fmt.Errorf("failed to delete finalizer %s: %w", OAuthFinalizerName, err)
-	}
-
 	return nil
 }
 
@@ -112,10 +103,6 @@ func syncOAuthClient(cheCtx *chetypes.CheContext) error {
 		&clientwrapper.SyncOptions{DiffOpts: oAuthClientDiffOpts, SuppressDiff: true},
 	); err != nil {
 		return fmt.Errorf("failed to sync OAuthClient %s: %w", oauthClientSpec.Name, err)
-	}
-
-	if err := deploy.AppendFinalizer(cheCtx, OAuthFinalizerName); err != nil {
-		return fmt.Errorf("failed to append finalizer %s: %w", OAuthFinalizerName, err)
 	}
 
 	return nil

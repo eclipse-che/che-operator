@@ -72,10 +72,6 @@ func (r *ContainerBuild) getDWOClusterRoleBindingName() string {
 	return "dev-workspace-container-build"
 }
 
-func (r *ContainerBuild) getFinalizer() string {
-	return constants.ContainerBuildFinalizer
-}
-
 func (r *ContainerBuild) getSCCName(cheCluster *chev2.CheCluster) string {
 	if cheCluster.Spec.DevEnvironments.ContainerBuildConfiguration != nil {
 		return cheCluster.Spec.DevEnvironments.ContainerBuildConfiguration.OpenShiftSecurityContextConstraint
