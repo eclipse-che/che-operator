@@ -4417,6 +4417,8 @@ spec:
                       logLevel: INFO
                     metrics:
                       enable: true
+                    openVSXRegistry:
+                      enable: true
                   description: Che components configuration.
                   properties:
                     cheServer:

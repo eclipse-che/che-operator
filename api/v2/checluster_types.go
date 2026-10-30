@@ -53,7 +53,7 @@ type CheClusterSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=2
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Components"
-	// +kubebuilder:default:={cheServer: {logLevel: INFO, debug: false}, metrics: {enable: true}}
+	// +kubebuilder:default:={cheServer: {logLevel: INFO, debug: false}, metrics: {enable: true}, openVSXRegistry: {enable: true}}
 	Components CheClusterComponents `json:"components"`
 	// A configuration that allows users to work with remote Git repositories.
 	// +optional
