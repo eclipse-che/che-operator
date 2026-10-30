@@ -80,6 +80,33 @@ var _ = Describe("syncObject", Ordered, func() {
 		Expect(actualCheCluster.OwnerReferences).To(BeEmpty())
 	})
 
+	It("should sync finalizers", func(ctx SpecContext) {
+		cheClusterDiffs := cmp.Options{cmpopts.IgnoreFields(chev2.CheCluster{}, "TypeMeta", "Status")}
+		key := types.NamespacedName{Name: cheCtx.CheCluster.Name, Namespace: cheCtx.CheCluster.Namespace}
+
+		cheCtx.CheCluster.Finalizers = []string{"a.finalizers.che.eclipse.org", "b.finalizers.che.eclipse.org"}
+		Expect(SyncObject(cheCtx, cheCtx.CheCluster, cheClusterDiffs, false, false)).To(Succeed())
+
+		actualCheCluster := &chev2.CheCluster{}
+		Expect(env.Client.Get(cheCtx.Context, key, actualCheCluster)).To(Succeed())
+		Expect(actualCheCluster.Finalizers).To(ConsistOf("a.finalizers.che.eclipse.org", "b.finalizers.che.eclipse.org"))
+
+		// the same finalizers in a different order should not produce an update
+		cheCtx.CheCluster.Finalizers = []string{"b.finalizers.che.eclipse.org", "a.finalizers.che.eclipse.org"}
+		Expect(SyncObject(cheCtx, cheCtx.CheCluster, cheClusterDiffs, false, false)).To(Succeed())
+
+		actualCheCluster = &chev2.CheCluster{}
+		Expect(env.Client.Get(cheCtx.Context, key, actualCheCluster)).To(Succeed())
+		Expect(actualCheCluster.Finalizers).To(ConsistOf("a.finalizers.che.eclipse.org", "b.finalizers.che.eclipse.org"))
+
+		cheCtx.CheCluster.Finalizers = nil
+		Expect(SyncObject(cheCtx, cheCtx.CheCluster, cheClusterDiffs, false, false)).To(Succeed())
+
+		actualCheCluster = &chev2.CheCluster{}
+		Expect(env.Client.Get(cheCtx.Context, key, actualCheCluster)).To(Succeed())
+		Expect(actualCheCluster.Finalizers).To(BeEmpty())
+	})
+
 	It("should sync immutable object", func(ctx SpecContext) {
 		testCm := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{

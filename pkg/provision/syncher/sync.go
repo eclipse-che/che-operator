@@ -46,7 +46,8 @@ import (
 //   - sets the CheCluster as the controller owner if the object lives in the same namespace as the CR
 //     (cross-namespace owner references are not supported by Kubernetes);
 //   - builds the sync options: existing labels and annotations are merged rather than replaced,
-//     and only the labels and annotations defined on the given object participate in the diff;
+//     and only the labels and annotations defined on the given object participate in the diff,
+//     together with the finalizers and the controller owner reference;
 //     should not be used with `pkg/common/diffs/diffs.go`.
 //   - retries the sync with recreation if the update failed because an immutable field has changed,
 //     but only when `allowForceRecreate` is set.
@@ -189,10 +190,12 @@ func DeleteAllManaged(
 	return nil
 }
 
-// cmpMetadata compares only the labels and annotations under the given keys, plus the controller owner
-// reference. Everything else in the metadata - resourceVersion, uid, managedFields, timestamps and any
-// label or annotation set by another actor - is ignored, which is what lets the merge semantics of
-// `MergeLabels`/`MergeAnnotations` converge instead of producing a diff on every reconcile.
+// cmpMetadata compares only the labels and annotations under the given keys, the finalizers,
+// and the controller owner reference. Everything else in the metadata - resourceVersion, uid,
+// managedFields, timestamps and any label or annotation set by another actor - is ignored,
+// which is what lets the merge semantics of `MergeLabels`/`MergeAnnotations` converge instead
+// of producing a diff on every reconcile. Finalizers are compared as a set: Kubernetes treats
+// them as unordered, and the order on the desired object is an implementation detail.
 //
 // It is wired as a `metav1.ObjectMeta` comparer behind `cmp.FilterPath`, so it only takes effect for
 // types that embed `metav1.ObjectMeta` at the top level. It is silently a no-op for `*unstructured.Unstructured`.
@@ -211,6 +214,13 @@ func cmpMetadata(
 			if x.Annotations[key] != y.Annotations[key] {
 				return false
 			}
+		}
+
+		if !slices.Equal(
+			slices.Sorted(slices.Values(x.Finalizers)),
+			slices.Sorted(slices.Values(y.Finalizers)),
+		) {
+			return false
 		}
 
 		return equality.Semantic.DeepEqual(
