@@ -26,6 +26,27 @@ spec:
         limits:
           cpu: '20m'
   components:
+    openVSXRegistry:
+      server:
+        deployment:
+          containers:
+            - resources:
+                request:
+                  cpu: '20m'
+                  memory: '512Mi'
+                limits:
+                  cpu: '500m'
+                  memory: '512Mi'
+      database:
+        deployment:
+          containers:
+            - resources:
+                request:
+                  cpu: '20m'
+                  memory: '128Mi'
+                limits:
+                  cpu: '200m'
+                  memory: '256Mi'
     pluginRegistry:
       openVSXURL: https://open-vsx.org
       deployment:
