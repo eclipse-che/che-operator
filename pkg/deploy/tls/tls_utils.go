@@ -53,8 +53,8 @@ const (
 	// The endpoint may not respond immediately after the route/ingress is synced,
 	// so the first requests may fail until it is actually reachable.
 	tlsCrtChainRequestAttempts      = 10
-	tlsCrtChainRequestRetryInterval = time.Second * 3
-	tlsCrtChainRequestTimeoutPerTry = time.Second * 3
+	tlsCrtChainRequestRetryInterval = time.Second * 10
+	tlsCrtChainRequestTimeoutPerTry = time.Second * 5
 )
 
 var (
