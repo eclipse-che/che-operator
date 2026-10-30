@@ -20,7 +20,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
-	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	securityv1 "github.com/openshift/api/security/v1"
 	"github.com/stretchr/testify/assert"
@@ -71,13 +70,11 @@ func TestContainerBuildReconciler(t *testing.T) {
 	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerBuildCapability.getDWOClusterRoleName()}, &rbacv1.ClusterRole{}))
 	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerBuildCapability.getDWOClusterRoleBindingName()}, &rbacv1.ClusterRoleBinding{}))
 	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerBuildCapability.GetUserRoleName()}, &rbacv1.ClusterRole{}))
-	assert.True(t, utils.Contains(cheCtx.CheCluster.Finalizers, containerBuildReconciler.containerBuildCapability.getFinalizer()))
 
 	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "scc-run"}, &securityv1.SecurityContextConstraints{}))
 	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerRunCapability.getDWOClusterRoleName()}, &rbacv1.ClusterRole{}))
 	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerRunCapability.getDWOClusterRoleBindingName()}, &rbacv1.ClusterRoleBinding{}))
 	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerRunCapability.GetUserRoleName()}, &rbacv1.ClusterRole{}))
-	assert.True(t, utils.Contains(cheCtx.CheCluster.Finalizers, containerBuildReconciler.containerRunCapability.getFinalizer()))
 
 	crb := &rbacv1.ClusterRoleBinding{}
 	_, err = cheCtx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(
@@ -110,13 +107,11 @@ func TestContainerBuildReconciler(t *testing.T) {
 	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerBuildCapability.getDWOClusterRoleName()}, &rbacv1.ClusterRole{}))
 	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerBuildCapability.getDWOClusterRoleBindingName()}, &rbacv1.ClusterRoleBinding{}))
 	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerBuildCapability.GetUserRoleName()}, &rbacv1.ClusterRole{}))
-	assert.False(t, utils.Contains(cheCtx.CheCluster.Finalizers, containerBuildReconciler.containerBuildCapability.getFinalizer()))
 
 	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "scc-run"}, &securityv1.SecurityContextConstraints{}))
 	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerRunCapability.getDWOClusterRoleName()}, &rbacv1.ClusterRole{}))
 	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerRunCapability.getDWOClusterRoleBindingName()}, &rbacv1.ClusterRoleBinding{}))
 	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: containerBuildReconciler.containerRunCapability.GetUserRoleName()}, &rbacv1.ClusterRole{}))
-	assert.False(t, utils.Contains(cheCtx.CheCluster.Finalizers, containerBuildReconciler.containerRunCapability.getFinalizer()))
 }
 
 func TestShouldUpdateManagedSCCOnReconcile(t *testing.T) {

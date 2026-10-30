@@ -18,6 +18,7 @@ import (
 	"slices"
 	"strings"
 
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chelabels"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -58,13 +59,14 @@ func SyncObject(
 
 	var cw clientwrapper.ClientWrapper
 
-	if obj.GetLabels()[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg {
+	if isCheCluster(obj) || obj.GetLabels()[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg {
 		cw = cheCtx.ClusterAPI.ClientWrapper
 	} else {
 		cw = cheCtx.ClusterAPI.NonCachingClientWrapper
 	}
 
-	if cheCtx.CheCluster != nil {
+	// the CheCluster cannot own itself
+	if cheCtx.CheCluster != nil && !isCheCluster(obj) {
 		if obj.GetNamespace() == cheCtx.CheCluster.Namespace {
 			if err := controllerutil.SetControllerReference(cheCtx.CheCluster, obj, cheCtx.ClusterAPI.Scheme); err != nil {
 				return getSyncError(obj, err)
@@ -100,6 +102,37 @@ func SyncObject(
 			return nil
 		}
 
+		return getSyncError(obj, err)
+	}
+
+	return nil
+}
+
+// SyncObjectStatus ensures that the status subresource of the object is up to date in the cluster.
+// It mirrors `SyncObject` but syncs only the status: the spec and the metadata are not touched.
+// The object must already exist, otherwise an error is returned.
+func SyncObjectStatus(
+	cheCtx *chetypes.CheContext,
+	obj client.Object,
+	diff cmp.Options,
+	suppressDiff bool) error {
+
+	var cw clientwrapper.ClientWrapper
+
+	if isCheCluster(obj) || obj.GetLabels()[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg {
+		cw = cheCtx.ClusterAPI.ClientWrapper
+	} else {
+		cw = cheCtx.ClusterAPI.NonCachingClientWrapper
+	}
+
+	opts := &clientwrapper.SyncOptions{
+		SuppressDiff:  suppressDiff,
+		DiffOpts:      cmp.Options{diff},
+		ForceRecreate: false,
+	}
+
+	err := cw.SyncStatus(cheCtx.Context, obj, opts)
+	if err != nil {
 		return getSyncError(obj, err)
 	}
 
@@ -213,4 +246,9 @@ func isFieldImmutableError(err error) bool {
 
 func getSyncError(obj client.Object, cause error) error {
 	return fmt.Errorf("failed to sync %s %s/%s: %w", clientwrapper.GetObjectType(obj), obj.GetNamespace(), obj.GetName(), cause)
+}
+
+func isCheCluster(obj client.Object) bool {
+	_, ok := obj.(*chev2.CheCluster)
+	return ok
 }
