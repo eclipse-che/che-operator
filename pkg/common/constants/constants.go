@@ -41,14 +41,16 @@ const (
 	OpenVSXCredentialsSecret = "openvsx-credentials"
 
 	// OpenVSXRegistry Server
-	OpenVSXServerComponentName = "openvsx-server"
-	OpenVSXServerGatewayPath   = "openvsx"
-	OpenVSXServerMemoryLimit   = "4Gi"
-	OpenVSXServerMemoryRequest = "1Gi"
-	OpenVSXServerCpuLimit      = "1"
-	OpenVSXServerCpuRequest    = "100m"
-	OpenVSXServerClaimSize     = "3Gi"
-	OpenVSXServerServicePort   = int32(8080)
+	// OpenVSXServerOriginalApplicationConfig stores the operator-generated application.yml in a ConfigMap annotation.
+	OpenVSXServerOriginalApplicationConfig = "che.eclipse.org/original-config"
+	OpenVSXServerComponentName             = "openvsx-server"
+	OpenVSXServerGatewayPath               = "openvsx"
+	OpenVSXServerMemoryLimit               = "4Gi"
+	OpenVSXServerMemoryRequest             = "1Gi"
+	OpenVSXServerCpuLimit                  = "1"
+	OpenVSXServerCpuRequest                = "100m"
+	OpenVSXServerClaimSize                 = "3Gi"
+	OpenVSXServerServicePort               = int32(8080)
 
 	// OpenVSXRegistry Server extensions
 	OpenVSXServerExtensionPublishJobName    = "openvsx-server-publisher"

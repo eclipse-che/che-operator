@@ -4399,6 +4399,8 @@ spec:
                     logLevel: INFO
                   metrics:
                     enable: true
+                  openVSXRegistry:
+                    enable: true
                 description: Che components configuration.
                 properties:
                   cheServer:
@@ -12473,7 +12475,7 @@ spec:
                     type: object
                   openVSXRegistry:
                     default:
-                      enable: false
+                      enable: true
                       extensionAutoUpdate:
                         enable: false
                         schedule: 0 0 * * 0
@@ -15176,7 +15178,7 @@ spec:
                             type: object
                         type: object
                       enable:
-                        default: false
+                        default: true
                         description: |-
                           Enables internal OpenVSX registry.
                           When set to false, the OpenVSX registry resources are deleted, including the database PVC.
