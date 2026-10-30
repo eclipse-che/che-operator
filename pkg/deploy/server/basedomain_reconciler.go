@@ -23,6 +23,7 @@ import (
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	routev1 "github.com/openshift/api/route/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -63,11 +64,9 @@ func (r *BaseDomainReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile
 		return reconcile.Result{}, false, fmt.Errorf("unable to detect base domain")
 	}
 
-	if cheCtx.CheCluster.Status.WorkspaceBaseDomain != workspaceBaseDomain {
-		cheCtx.CheCluster.Status.WorkspaceBaseDomain = workspaceBaseDomain
-		if err := deploy.UpdateCheCRStatus(cheCtx, "WorkspaceBaseDomain", workspaceBaseDomain); err != nil {
-			return reconcile.Result{}, false, err
-		}
+	cheCtx.CheCluster.Status.WorkspaceBaseDomain = workspaceBaseDomain
+	if err := resources.CheCluster.SyncStatus(cheCtx); err != nil {
+		return reconcile.Result{}, false, err
 	}
 
 	return reconcile.Result{}, true, nil

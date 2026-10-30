@@ -18,6 +18,7 @@ import (
 	"slices"
 	"strings"
 
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chelabels"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -45,7 +46,8 @@ import (
 //   - sets the CheCluster as the controller owner if the object lives in the same namespace as the CR
 //     (cross-namespace owner references are not supported by Kubernetes);
 //   - builds the sync options: existing labels and annotations are merged rather than replaced,
-//     and only the labels and annotations defined on the given object participate in the diff;
+//     and only the labels and annotations defined on the given object participate in the diff,
+//     together with the finalizers and the controller owner reference;
 //     should not be used with `pkg/common/diffs/diffs.go`.
 //   - retries the sync with recreation if the update failed because an immutable field has changed,
 //     but only when `allowForceRecreate` is set.
@@ -58,13 +60,14 @@ func SyncObject(
 
 	var cw clientwrapper.ClientWrapper
 
-	if obj.GetLabels()[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg {
+	if isCheCluster(obj) || obj.GetLabels()[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg {
 		cw = cheCtx.ClusterAPI.ClientWrapper
 	} else {
 		cw = cheCtx.ClusterAPI.NonCachingClientWrapper
 	}
 
-	if cheCtx.CheCluster != nil {
+	// the CheCluster cannot own itself
+	if cheCtx.CheCluster != nil && !isCheCluster(obj) {
 		if obj.GetNamespace() == cheCtx.CheCluster.Namespace {
 			if err := controllerutil.SetControllerReference(cheCtx.CheCluster, obj, cheCtx.ClusterAPI.Scheme); err != nil {
 				return getSyncError(obj, err)
@@ -100,6 +103,37 @@ func SyncObject(
 			return nil
 		}
 
+		return getSyncError(obj, err)
+	}
+
+	return nil
+}
+
+// SyncObjectStatus ensures that the status subresource of the object is up to date in the cluster.
+// It mirrors `SyncObject` but syncs only the status: the spec and the metadata are not touched.
+// The object must already exist, otherwise an error is returned.
+func SyncObjectStatus(
+	cheCtx *chetypes.CheContext,
+	obj client.Object,
+	diff cmp.Options,
+	suppressDiff bool) error {
+
+	var cw clientwrapper.ClientWrapper
+
+	if isCheCluster(obj) || obj.GetLabels()[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg {
+		cw = cheCtx.ClusterAPI.ClientWrapper
+	} else {
+		cw = cheCtx.ClusterAPI.NonCachingClientWrapper
+	}
+
+	opts := &clientwrapper.SyncOptions{
+		SuppressDiff:  suppressDiff,
+		DiffOpts:      cmp.Options{diff},
+		ForceRecreate: false,
+	}
+
+	err := cw.SyncStatus(cheCtx.Context, obj, opts)
+	if err != nil {
 		return getSyncError(obj, err)
 	}
 
@@ -156,10 +190,12 @@ func DeleteAllManaged(
 	return nil
 }
 
-// cmpMetadata compares only the labels and annotations under the given keys, plus the controller owner
-// reference. Everything else in the metadata - resourceVersion, uid, managedFields, timestamps and any
-// label or annotation set by another actor - is ignored, which is what lets the merge semantics of
-// `MergeLabels`/`MergeAnnotations` converge instead of producing a diff on every reconcile.
+// cmpMetadata compares only the labels and annotations under the given keys, the finalizers,
+// and the controller owner reference. Everything else in the metadata - resourceVersion, uid,
+// managedFields, timestamps and any label or annotation set by another actor - is ignored,
+// which is what lets the merge semantics of `MergeLabels`/`MergeAnnotations` converge instead
+// of producing a diff on every reconcile. Finalizers are compared as a set: Kubernetes treats
+// them as unordered, and the order on the desired object is an implementation detail.
 //
 // It is wired as a `metav1.ObjectMeta` comparer behind `cmp.FilterPath`, so it only takes effect for
 // types that embed `metav1.ObjectMeta` at the top level. It is silently a no-op for `*unstructured.Unstructured`.
@@ -178,6 +214,13 @@ func cmpMetadata(
 			if x.Annotations[key] != y.Annotations[key] {
 				return false
 			}
+		}
+
+		if !slices.Equal(
+			slices.Sorted(slices.Values(x.Finalizers)),
+			slices.Sorted(slices.Values(y.Finalizers)),
+		) {
+			return false
 		}
 
 		return equality.Semantic.DeepEqual(
@@ -213,4 +256,9 @@ func isFieldImmutableError(err error) bool {
 
 func getSyncError(obj client.Object, cause error) error {
 	return fmt.Errorf("failed to sync %s %s/%s: %w", clientwrapper.GetObjectType(obj), obj.GetNamespace(), obj.GetName(), cause)
+}
+
+func isCheCluster(obj client.Object) bool {
+	_, ok := obj.(*chev2.CheCluster)
+	return ok
 }

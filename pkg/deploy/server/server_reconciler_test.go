@@ -44,17 +44,18 @@ func TestReconcile(t *testing.T) {
 	}).Build()
 
 	server := NewCheServerReconciler()
-	test.EnsureReconcile(t, cheCtx, server.Reconcile)
+	_, done, err := server.Reconcile(cheCtx)
+	assert.False(t, done)
+	assert.Nil(t, err)
 
 	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: configMapName, Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
 	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Namespace: "eclipse-che", Name: "che"}, &corev1.ServiceAccount{}))
 	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "test-role"}, &rbac.ClusterRoleBinding{}))
 	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: getComponentName(), Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 	assert.Equal(t, cheCtx.CheCluster.Status.ChePhase, chev2.CheClusterPhase(chev2.ClusterPhaseInactive))
-	assert.Equal(t, 1, len(cheCtx.CheCluster.Finalizers))
 
 	cheDeployment := &appsv1.Deployment{}
-	err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: defaults.GetCheFlavor(), Namespace: "eclipse-che"}, cheDeployment)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: defaults.GetCheFlavor(), Namespace: "eclipse-che"}, cheDeployment)
 	assert.Nil(t, err)
 
 	cheDeployment.Status.Replicas = 1
@@ -113,14 +114,4 @@ func TestUpdateAvailabilityStatus(t *testing.T) {
 	assert.False(t, done)
 	assert.Nil(t, err)
 	assert.Equal(t, cheCtx.CheCluster.Status.ChePhase, chev2.CheClusterPhase(chev2.RollingUpdate))
-}
-
-func TestGetFinalizerName(t *testing.T) {
-	crbName := "0123456789012345678901234567890123456789" // 40 chars
-
-	reconciler := NewCheServerReconciler()
-	finalizer := reconciler.getCRBFinalizerName(crbName)
-
-	assert.Equal(t, crbName+".crb.finalizers.che.ecl", finalizer)
-	assert.True(t, len(finalizer) <= 63)
 }

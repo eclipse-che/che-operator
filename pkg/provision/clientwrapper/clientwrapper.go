@@ -71,6 +71,33 @@ func (k K8sClientWrapper) Sync(
 	}
 }
 
+func (k K8sClientWrapper) SyncStatus(
+	ctx context.Context,
+	obj client.Object,
+	opts ...SyncOption,
+) error {
+	defer func() {
+		// ensure GVK is set (for original object) when function returns
+		_ = k.ensureGVK(obj)
+	}()
+
+	if err := k.ensureGVK(obj); err != nil {
+		return err
+	}
+
+	actual, err := k.scheme.New(obj.GetObjectKind().GroupVersionKind())
+	if err != nil {
+		return err
+	}
+
+	key := client.ObjectKeyFromObject(obj)
+	if err := k.doGet(ctx, key, actual.(client.Object)); err == nil {
+		return k.doSyncStatus(ctx, actual.(client.Object), obj, opts...)
+	} else {
+		return err
+	}
+}
+
 func (k K8sClientWrapper) CreateIfNotExists(
 	ctx context.Context,
 	obj client.Object,
@@ -218,6 +245,24 @@ func (k K8sClientWrapper) doGetIgnoreNotFound(
 	}
 }
 
+// doGet gets object.
+// Returns nil if object is retrieved otherwise returns error.
+func (k K8sClientWrapper) doGet(
+	ctx context.Context,
+	key client.ObjectKey,
+	obj client.Object,
+	opts ...client.GetOption,
+) error {
+	if err := k.cli.Get(ctx, key, obj, opts...); err == nil {
+		if err = k.ensureGVK(obj); err != nil {
+			return err
+		}
+		return nil
+	} else {
+		return err
+	}
+}
+
 // doCreate creates object.
 // Returns nil if object is created otherwise returns error.
 func (k K8sClientWrapper) doCreate(
@@ -276,6 +321,41 @@ func (k K8sClientWrapper) doSync(
 			}
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (k K8sClientWrapper) doSyncStatus(
+	ctx context.Context,
+	actual client.Object,
+	obj client.Object,
+	opts ...SyncOption,
+) error {
+	syncOptions := SyncOptions{}
+	syncOptions.ApplyOptions(opts)
+
+	diff := cmp.Diff(actual, obj, syncOptions.DiffOpts...)
+	if len(diff) > 0 {
+		// don't print difference if there are no DiffOpts mainly to avoid huge output
+		if !syncOptions.SuppressDiff && len(syncOptions.DiffOpts) != 0 {
+			fmt.Printf("Difference:\n%s", diff)
+		}
+
+		// 'obj' already carries a resourceVersion: either it was set when the object
+		// was fetched, or it was refreshed by the API server response of a previous
+		// update (controller-runtime decodes the response back into the object).
+		// 'actual' comes from the informer cache, which may lag behind our own
+		// writes — overwriting 'obj' with a stale RV causes conflicts.
+		if obj.(metav1.Object).GetResourceVersion() == "" {
+			obj.(metav1.Object).SetResourceVersion(actual.GetResourceVersion())
+		}
+
+		err := k.cli.Status().Update(ctx, obj)
+		if err == nil {
+			logger.Info("Object updated", "kind", GetObjectType(actual), "namespace", actual.GetNamespace(), "name", actual.GetName())
+		}
+		return err
 	}
 
 	return nil

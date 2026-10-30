@@ -19,8 +19,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 )
 
-const ClusterPermissionsDashboardFinalizer = "dashboard.clusterpermissions.finalizers.che.eclipse.org"
-
 const DashboardSA = "che-dashboard"
 const DashboardSAClusterRoleTemplate = "%s-che-dashboard"
 const DashboardSAClusterRoleBindingTemplate = "%s-che-dashboard"

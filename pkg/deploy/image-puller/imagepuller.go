@@ -44,8 +44,6 @@ var (
 )
 
 const (
-	finalizerName = "kubernetesimagepullers.finalizers.che.eclipse.org"
-
 	defaultConfigMapName  = "k8s-image-puller"
 	defaultDeploymentName = "kubernetes-image-puller"
 )
@@ -97,11 +95,6 @@ func (ip *ImagePuller) Finalize(cheCtx *chetypes.CheContext) error {
 }
 
 func (ip *ImagePuller) uninstallImagePuller(cheCtx *chetypes.CheContext) error {
-	// Keep it here for backward compatibility
-	if err := deploy.DeleteFinalizer(cheCtx, finalizerName); err != nil {
-		return err
-	}
-
 	if infrastructure.IsKubernetesImagePullerEnabled(cheCtx.ClusterAPI.DiscoveryClient) {
 		key := types.NamespacedName{
 			Namespace: cheCtx.CheCluster.Namespace,
