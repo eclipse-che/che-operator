@@ -18,10 +18,11 @@ import (
 	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	agentsandbox "github.com/eclipse-che/che-operator/pkg/deploy/agent-sandbox"
 	"github.com/eclipse-che/che-operator/pkg/deploy/metrics"
 	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
+	"github.com/eclipse-che/che-operator/pkg/reconciler"
+	"github.com/eclipse-che/che-operator/pkg/reconciler/consolelink"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/networkpolicy"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"k8s.io/utils/ptr"
@@ -38,7 +39,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/deploy/consolelink"
 	containerbuild "github.com/eclipse-che/che-operator/pkg/deploy/container-capabilities"
 	"github.com/eclipse-che/che-operator/pkg/deploy/dashboard"
 	"github.com/eclipse-che/che-operator/pkg/deploy/devfileregistry"
@@ -49,13 +49,13 @@ import (
 	openvsxdatabase "github.com/eclipse-che/che-operator/pkg/deploy/openvsx/openvsx-database"
 	openvsxserver "github.com/eclipse-che/che-operator/pkg/deploy/openvsx/openvsx-server"
 	"github.com/eclipse-che/che-operator/pkg/deploy/pluginregistry"
-	"github.com/eclipse-che/che-operator/pkg/deploy/postgres"
 	"github.com/eclipse-che/che-operator/pkg/deploy/rbac"
 	"github.com/eclipse-che/che-operator/pkg/deploy/server"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/go-logr/logr"
+	consolev1 "github.com/openshift/api/console/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -115,7 +115,6 @@ func NewReconciler(
 	// resources since che host is used for dashboard deployment and che config map
 	reconcilerManager.AddReconciler(server.NewCheHostReconciler())
 	reconcilerManager.AddReconciler(server.NewBaseDomainReconciler())
-	reconcilerManager.AddReconciler(postgres.NewPostgresReconciler())
 	if infrastructure.IsOpenShiftOAuthEnabled() {
 		reconcilerManager.AddReconciler(identityprovider.NewIdentityProviderReconciler())
 	}
@@ -132,7 +131,10 @@ func NewReconciler(
 
 	if infrastructure.IsOpenShift() {
 		reconcilerManager.AddReconciler(containerbuild.NewContainerCapabilitiesReconciler())
-		reconcilerManager.AddReconciler(consolelink.NewConsoleLinkReconciler())
+	}
+
+	if infrastructure.IsConsoleLinkEnabled() {
+		reconcilerManager.AddReconciler(consolelink.NewReconciler())
 	}
 
 	reconcilerManager.AddReconciler(agentsandbox.NewAgentSandboxReconciler())
@@ -171,6 +173,14 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return []reconcile.Request{}
 	}
 
+	var toOperatorManagedObjRequestMapper handler.MapFunc = func(ctx context.Context, obj client.Object) []reconcile.Request {
+		isOperatorManagedObj, reconcileRequest := IsOperatorManaged(r.client, r.namespace, obj)
+		if isOperatorManagedObj {
+			return []reconcile.Request{reconcileRequest}
+		}
+		return []reconcile.Request{}
+	}
+
 	bld := ctrl.NewControllerManagedBy(mgr).
 		For(&chev2.CheCluster{}).
 		Owns(&corev1.Service{}).
@@ -196,6 +206,12 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		bld.Owns(&routev1.Route{})
 	} else {
 		bld.Owns(&networking.Ingress{})
+	}
+
+	if infrastructure.IsConsoleLinkEnabled() {
+		bld.Watches(&consolev1.ConsoleLink{},
+			handler.EnqueueRequestsFromMapFunc(toOperatorManagedObjRequestMapper),
+		)
 	}
 
 	if infrastructure.IsServiceMonitorEnabled() {
@@ -305,15 +321,14 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrl.Result{}, err
 		}
 
-		done := r.reconcilerManager.FinalizeAll(cheCtx)
-		if done {
-			// Removes remaining finalizers, which prevent CheCluster from deletion
-			if err := deploy.CleanUpAllFinalizers(cheCtx); err != nil {
-				return ctrl.Result{}, err
-			}
-			return ctrl.Result{}, nil
-		} else {
-			return ctrl.Result{RequeueAfter: time.Second}, nil
+		if err := r.reconcilerManager.FinalizeAll(cheCtx); err != nil {
+			return ctrl.Result{}, err
 		}
+
+		// Removes remaining finalizers, which prevent CheCluster from deletion
+		if err := deploy.CleanUpAllFinalizers(cheCtx); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
 	}
 }

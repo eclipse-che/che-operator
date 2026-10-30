@@ -18,7 +18,7 @@ import (
 	"os"
 
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
-	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
+	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	"sigs.k8s.io/yaml"
@@ -87,8 +87,8 @@ func (p *GatewayReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Re
 	return reconcile.Result{}, true, nil
 }
 
-func (p *GatewayReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
-	return true
+func (p *GatewayReconciler) Finalize(cheCtx *chetypes.CheContext) error {
+	return nil
 }
 
 // SyncGatewayToCluster installs or deletes the gateway based on the custom resource configuration

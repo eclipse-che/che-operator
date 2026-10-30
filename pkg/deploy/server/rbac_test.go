@@ -74,8 +74,8 @@ func TestSyncPermissions(t *testing.T) {
 			}
 			assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "test-role"}, &rbac.ClusterRoleBinding{}))
 
-			done = reconciler.deletePermissions(cheCtx)
-			assert.True(t, done)
+			err = reconciler.deletePermissions(cheCtx)
+			assert.NoError(t, err)
 
 			for _, name := range names {
 				assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: name}, &rbac.ClusterRole{}))

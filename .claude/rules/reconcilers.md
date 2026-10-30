@@ -1,7 +1,8 @@
 # Reconciler Rules
 
-- Every component reconciler implements the `Reconcilable` interface (`pkg/common/reconciler/reconcile_manager.go`): `Reconcile()` and `Finalize()`.
+- Every component reconciler implements the `Reconcilable` interface (`../../pkg/reconciler/reconcile_manager.go`): `Reconcile()` and `Finalize()`.
 - `Reconcile()` returns `(result, done, err)` — return `done=true` only when the component is fully reconciled. The pipeline stops at the first `done=false`. Use `RequeueAfter: time.Second` in `result` for error recovery and when dealing with cluster-scoped objects.
+- `Finalize()` returns only `error` — return `nil` when cleanup succeeded. `FinalizeAll` runs all finalizers even if one fails and joins the errors; failed finalizers are retried on the next reconcile, so `Finalize` must be idempotent.
 - Registration order in `controllers/che/checluster_controller.go` matters — reconcilers run sequentially and may depend on earlier ones having completed.
 - All reconcilers receive `CheContext` (`pkg/common/chetypes/types.go`) — use its `ClusterAPI` clients for k8s operations, not standalone clients.
 - Some reconcilers are OpenShift-only (consolelink, container-capabilities) — guard with `infrastructure.IsOpenShift()`.

@@ -13,16 +13,13 @@
 package metrics
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
-	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
-	"github.com/pkg/errors"
+	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	rbacv1 "k8s.io/api/rbac/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
@@ -40,7 +37,6 @@ const (
 )
 
 var (
-	log                         = ctrl.Log.WithName("metrics")
 	isAbandonedResourcesDeleted = false
 )
 
@@ -95,40 +91,37 @@ func (r *MetricsReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Re
 	return reconcile.Result{}, true, nil
 }
 
-func (r *MetricsReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
+func (r *MetricsReconciler) Finalize(cheCtx *chetypes.CheContext) error {
 	// Do not remove the openshift.io/cluster-monitoring label,
 	// as it may have already existed.
 
 	cheServerPrometheusResources, err := collectPrometheusResources(cheCtx, &CheServerPrometheusResourceProvider{})
 	if err != nil {
-		log.Error(err, "Failed to collect Prometheus resources")
-		return false
+		return fmt.Errorf("failed to collect Prometheus resources: %w", err)
 	}
 
 	dwoPrometheusResources, err := collectPrometheusResources(cheCtx, &DWOPrometheusResourceProvider{})
 	if err != nil {
-		log.Error(err, "Failed to collect Prometheus resources")
-		return false
+		return fmt.Errorf("failed to collect Prometheus resources: %w", err)
 	}
 
 	prometheusResources := append(cheServerPrometheusResources, dwoPrometheusResources...)
 
-	done := true
 	for _, resource := range prometheusResources {
 		if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
-			context.TODO(),
+			cheCtx.Context,
 			types.NamespacedName{
 				Name:      resource.Object.GetName(),
 				Namespace: resource.Object.GetNamespace(),
 			},
 			resource.Object,
 		); err != nil {
-			log.Error(err, "Failed to delete resource", "name", resource.Object.GetName(), "namespace", resource.Object.GetNamespace())
-			done = false
+			return fmt.Errorf("failed to delete resource %s/%s: %w",
+				resource.Object.GetNamespace(), resource.Object.GetName(), err)
 		}
 	}
 
-	return done
+	return nil
 }
 
 func syncResources(cheCtx *chetypes.CheContext, prometheusResourceProvider PrometheusResourceProvider) error {
@@ -139,13 +132,13 @@ func syncResources(cheCtx *chetypes.CheContext, prometheusResourceProvider Prome
 
 	for _, resource := range prometheusResources {
 		if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
-			context.TODO(),
+			cheCtx.Context,
 			resource.Object,
 			&clientwrapper.SyncOptions{
 				DiffOpts: resource.DiffOpts,
 			},
 		); err != nil {
-			return errors.Wrap(err, "Failed to sync resource")
+			return fmt.Errorf("failed to sync resource: %w", err)
 		}
 	}
 
@@ -160,14 +153,14 @@ func deleteResources(cheCtx *chetypes.CheContext, prometheusResourceProvider Pro
 
 	for _, resource := range prometheusResources {
 		if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
-			context.TODO(),
+			cheCtx.Context,
 			types.NamespacedName{
 				Name:      resource.Object.GetName(),
 				Namespace: resource.Object.GetNamespace(),
 			},
 			resource.Object,
 		); err != nil {
-			return errors.Wrap(err, "Failed to delete resource")
+			return fmt.Errorf("failed to delete resource: %w", err)
 		}
 	}
 
@@ -200,7 +193,7 @@ func collectPrometheusResources(cheCtx *chetypes.CheContext, prometheusResourceP
 func addOpenShiftMonitoringLabel(cheCtx *chetypes.CheContext) error {
 	namespace := &corev1.Namespace{}
 	if err := cheCtx.ClusterAPI.NonCachingClient.Get(
-		context.TODO(),
+		cheCtx.Context,
 		types.NamespacedName{Name: cheCtx.CheCluster.Namespace},
 		namespace,
 	); err != nil {
@@ -213,7 +206,7 @@ func addOpenShiftMonitoringLabel(cheCtx *chetypes.CheContext) error {
 
 	patch := []byte(fmt.Sprintf(`{"metadata":{"labels":{"%s":"true"}}}`, openshiftMonitoringLabel))
 	if err := cheCtx.ClusterAPI.NonCachingClient.Patch(
-		context.TODO(),
+		cheCtx.Context,
 		namespace,
 		client.RawPatch(types.MergePatchType, patch),
 	); err != nil {
@@ -267,12 +260,12 @@ func deleteAbandonedResources(cheCtx *chetypes.CheContext) error {
 
 	for _, syncObject := range syncObjects {
 		err := cheCtx.ClusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(
-			context.TODO(),
+			cheCtx.Context,
 			syncObject.Key,
 			syncObject.Object,
 		)
 		if err != nil {
-			return errors.Wrap(err, "Failed to delete resource")
+			return fmt.Errorf("failed to delete resource: %w", err)
 		}
 	}
 

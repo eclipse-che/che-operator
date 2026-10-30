@@ -134,7 +134,7 @@ func DeleteAllManaged(
 	component string,
 ) error {
 	cw := cheCtx.ClusterAPI.ClientWrapper
-	cheLabels := chelabels.OperatorManaged(component)
+	cheLabels := chelabels.GetOperatorManagedLabels(component)
 
 	opts := &client.DeleteAllOfOptions{
 		ListOptions: client.ListOptions{

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -13,8 +13,11 @@
 package che
 
 import (
+	"github.com/eclipse-che/che-operator/pkg/common/chelabels"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -46,6 +49,27 @@ func IsTrustedBundleConfigMap(cl client.Client, watchNamespace string, obj clien
 	// Check for part-of
 	if value, exists := obj.GetLabels()[constants.KubernetesPartOfLabelKey]; !exists || value != constants.CheEclipseOrg {
 		// ignore not matched labels
+		return false, ctrl.Request{}
+	}
+
+	return true, ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: checluster.Namespace,
+			Name:      checluster.Name,
+		},
+	}
+}
+
+func IsOperatorManaged(cl client.Client, watchNamespace string, obj client.Object) (bool, ctrl.Request) {
+	checluster, _ := deploy.FindCheClusterCRInNamespace(cl, watchNamespace)
+	if checluster == nil {
+		return false, ctrl.Request{}
+	}
+
+	managedSelector := labels.SelectorFromSet(chelabels.GetOperatorManagedLabels(defaults.GetCheFlavor()))
+
+	// Check whether the object is managed by the operator
+	if !managedSelector.Matches(labels.Set(obj.GetLabels())) {
 		return false, ctrl.Request{}
 	}
 

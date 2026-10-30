@@ -23,8 +23,8 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
-	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
+	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
@@ -100,8 +100,8 @@ func (c *CertificatesReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconci
 	return reconcile.Result{}, true, nil
 }
 
-func (c *CertificatesReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
-	return true
+func (c *CertificatesReconciler) Finalize(cheCtx *chetypes.CheContext) error {
+	return nil
 }
 
 func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(cheCtx *chetypes.CheContext) (bool, error) {

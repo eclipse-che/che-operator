@@ -45,8 +45,8 @@ func TestFinalizeDefaultOAuthClientName(t *testing.T) {
 	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "eclipse-che-client"}, &oauthv1.OAuthClient{}))
 
 	identityProviderReconciler := NewIdentityProviderReconciler()
-	done := identityProviderReconciler.Finalize(cheCtx)
-	assert.True(t, done)
+	err := identityProviderReconciler.Finalize(cheCtx)
+	assert.Nil(t, err)
 	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "eclipse-che-client"}, &oauthv1.OAuthClient{}))
 	assert.Equal(t, 0, len(checluster.Finalizers))
 }
@@ -75,8 +75,8 @@ func TestFinalizeOAuthClient(t *testing.T) {
 	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "test"}, &oauthv1.OAuthClient{}))
 
 	identityProviderReconciler := NewIdentityProviderReconciler()
-	done := identityProviderReconciler.Finalize(cheCtx)
-	assert.True(t, done)
+	err := identityProviderReconciler.Finalize(cheCtx)
+	assert.Nil(t, err)
 	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "test"}, &oauthv1.OAuthClient{}))
 	assert.Equal(t, 0, len(checluster.Finalizers))
 }

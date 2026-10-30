@@ -18,9 +18,9 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -61,8 +61,8 @@ func (r *OpenVSXSecretReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconc
 	return reconcile.Result{}, true, nil
 }
 
-func (r *OpenVSXSecretReconciler) Finalize(_ *chetypes.CheContext) bool {
-	return true
+func (r *OpenVSXSecretReconciler) Finalize(_ *chetypes.CheContext) error {
+	return nil
 }
 
 func (p *OpenVSXSecretReconciler) syncSecret(cheCtx *chetypes.CheContext) error {

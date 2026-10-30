@@ -19,8 +19,8 @@ import (
 	"regexp"
 
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
-	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
+	"github.com/eclipse-che/che-operator/pkg/reconciler"
 
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	corev1 "k8s.io/api/core/v1"
@@ -62,8 +62,8 @@ func (p *EditorsDefinitionsReconciler) Reconcile(cheCtx *chetypes.CheContext) (r
 	return reconcile.Result{}, true, nil
 }
 
-func (p *EditorsDefinitionsReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
-	return true
+func (p *EditorsDefinitionsReconciler) Finalize(cheCtx *chetypes.CheContext) error {
+	return nil
 }
 
 func (p *EditorsDefinitionsReconciler) syncEditors(cheCtx *chetypes.CheContext) error {

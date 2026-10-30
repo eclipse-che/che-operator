@@ -14,14 +14,14 @@ package containercapabilities
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
-	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
-	ctrl "sigs.k8s.io/controller-runtime"
+	"github.com/eclipse-che/che-operator/pkg/reconciler"
 
 	"k8s.io/apimachinery/pkg/types"
 
@@ -33,10 +33,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-)
-
-var (
-	logger = ctrl.Log.WithName("containercapabilities")
 )
 
 type ContainerCapability interface {
@@ -90,18 +86,16 @@ func (r *ContainerCapabilitiesReconciler) Reconcile(cheCtx *chetypes.CheContext)
 	return reconcile.Result{}, true, nil
 }
 
-func (r *ContainerCapabilitiesReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
+func (r *ContainerCapabilitiesReconciler) Finalize(cheCtx *chetypes.CheContext) error {
 	if err := r.delete(cheCtx, r.containerBuildCapability); err != nil {
-		logger.Error(err, "Failed to delete container build capability resources")
-		return false
+		return fmt.Errorf("failed to delete container build capability resources: %w", err)
 	}
 
 	if err := r.delete(cheCtx, r.containerRunCapability); err != nil {
-		logger.Error(err, "Failed to delete container run capability resources")
-		return false
+		return fmt.Errorf("failed to delete container run capability resources: %w", err)
 	}
 
-	return true
+	return nil
 }
 
 func (r *ContainerCapabilitiesReconciler) sync(cheCtx *chetypes.CheContext, cc ContainerCapability) error {

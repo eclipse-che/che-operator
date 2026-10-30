@@ -18,7 +18,7 @@ import (
 
 	v2 "github.com/eclipse-che/che-operator/api/v2"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
-	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
+	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -99,6 +99,6 @@ func (d *DevfileRegistryReconciler) Reconcile(cheCtx *chetypes.CheContext) (reco
 	return reconcile.Result{}, true, nil
 }
 
-func (d *DevfileRegistryReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
-	return true
+func (d *DevfileRegistryReconciler) Finalize(cheCtx *chetypes.CheContext) error {
+	return nil
 }

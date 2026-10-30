@@ -44,8 +44,8 @@ func (r *NetworkPoliciesReconciler) Reconcile(cheCtx *chetypes.CheContext) (reco
 	return reconcile.Result{}, true, nil
 }
 
-func (r *NetworkPoliciesReconciler) Finalize(_ *chetypes.CheContext) bool {
-	return true
+func (r *NetworkPoliciesReconciler) Finalize(_ *chetypes.CheContext) error {
+	return nil
 }
 
 func (r *NetworkPoliciesReconciler) syncAll(cheCtx *chetypes.CheContext) error {

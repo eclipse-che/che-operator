@@ -21,9 +21,10 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
-	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
+	"github.com/eclipse-che/che-operator/pkg/reconciler"
+	consolev1 "github.com/openshift/api/console/v1"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
@@ -68,8 +69,8 @@ func (m *Migrator) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, boo
 	return reconcile.Result{}, done, err
 }
 
-func (m *Migrator) Finalize(cheCtx *chetypes.CheContext) bool {
-	return true
+func (m *Migrator) Finalize(cheCtx *chetypes.CheContext) error {
+	return nil
 }
 
 func (m *Migrator) migrate(cheCtx *chetypes.CheContext) (bool, error) {
@@ -106,6 +107,12 @@ func addPartOfCheLabeltoUserDefinedObjects(cheCtx *chetypes.CheContext) error {
 		}
 	}
 
+	if infrastructure.IsConsoleLinkEnabled() {
+		if err := addPartOfCheLabelToObject(cheCtx, "", defaults.GetConsoleLinkName(), &consolev1.ConsoleLink{}); err != nil {
+			return err
+		}
+	}
+
 	// TLS
 	if err := addPartOfCheLabelToSecret(cheCtx, constants.DefaultSelfSignedCertificateSecretName); err != nil {
 		return err
@@ -136,19 +143,19 @@ func addPartOfCheLabeltoUserDefinedObjects(cheCtx *chetypes.CheContext) error {
 }
 
 func addPartOfCheLabelToSecret(cheCtx *chetypes.CheContext, secretName string) error {
-	return addPartOfCheLabelToObject(cheCtx, secretName, &corev1.Secret{})
+	return addPartOfCheLabelToObject(cheCtx, cheCtx.CheCluster.Namespace, secretName, &corev1.Secret{})
 }
 
 func addPartOfCheLabelToConfigMap(cheCtx *chetypes.CheContext, configMapName string) error {
-	return addPartOfCheLabelToObject(cheCtx, configMapName, &corev1.ConfigMap{})
+	return addPartOfCheLabelToObject(cheCtx, cheCtx.CheCluster.Namespace, configMapName, &corev1.ConfigMap{})
 }
 
 // addPartOfCheLabelToObject adds 'app.kubernetes.io/part-of=che.eclipse.org' label to the object with given name to be cached by operator's k8s client.
 // As the function doesn't know the kind of the object with given name an empty object should be passed,
 // for example: addPartOfCheLabelToObject(ctx, "my-secret", &corev1.Secret{})
-func addPartOfCheLabelToObject(cheCtx *chetypes.CheContext, objectName string, obj client.Object) error {
+func addPartOfCheLabelToObject(cheCtx *chetypes.CheContext, namespace, name string, obj client.Object) error {
 	// Check if the object is already migrated
-	key := types.NamespacedName{Namespace: cheCtx.CheCluster.Namespace, Name: objectName}
+	key := types.NamespacedName{Namespace: namespace, Name: name}
 	if exists, _ := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(cheCtx.Context, key, obj); exists {
 		// Default client sees the object in cache, no need in adding anything
 		return nil

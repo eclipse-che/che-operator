@@ -18,7 +18,6 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	util "github.com/eclipse-che/che-operator/pkg/common/utils"
-	"github.com/sirupsen/logrus"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -89,14 +88,12 @@ func (s *CheServerReconciler) syncPermissions(cheCtx *chetypes.CheContext) (bool
 	return true, nil
 }
 
-func (s *CheServerReconciler) deletePermissions(cheCtx *chetypes.CheContext) bool {
+func (s *CheServerReconciler) deletePermissions(cheCtx *chetypes.CheContext) error {
 	names := []string{
 		fmt.Sprintf(userCommonPermissionsTemplateName, cheCtx.CheCluster.Namespace),
 		fmt.Sprintf(cheSASpecificPermissionsTemplateName, cheCtx.CheCluster.Namespace),
 		fmt.Sprintf(userDevWorkspacePermissionsTemplateName, cheCtx.CheCluster.Namespace),
 	}
-
-	done := true
 
 	for _, name := range names {
 		if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
@@ -104,8 +101,7 @@ func (s *CheServerReconciler) deletePermissions(cheCtx *chetypes.CheContext) boo
 			types.NamespacedName{Name: name},
 			&rbacv1.ClusterRole{},
 		); err != nil {
-			done = false
-			logrus.Errorf("Failed to delete ClusterRole '%s', cause: %v", name, err)
+			return fmt.Errorf("failed to delete ClusterRole %s: %w", name, err)
 		}
 
 		if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
@@ -113,8 +109,7 @@ func (s *CheServerReconciler) deletePermissions(cheCtx *chetypes.CheContext) boo
 			types.NamespacedName{Name: name},
 			&rbacv1.ClusterRoleBinding{},
 		); err != nil {
-			done = false
-			logrus.Errorf("Failed to delete ClusterRoleBinding '%s', cause: %v", name, err)
+			return fmt.Errorf("failed to delete ClusterRoleBinding %s: %w", name, err)
 		}
 	}
 
@@ -126,8 +121,7 @@ func (s *CheServerReconciler) deletePermissions(cheCtx *chetypes.CheContext) boo
 				types.NamespacedName{Name: name},
 				&rbacv1.ClusterRoleBinding{},
 			); err != nil {
-				done = false
-				logrus.Errorf("Failed to delete ClusterRoleBinding '%s', cause: %v", name, err)
+				return fmt.Errorf("failed to delete ClusterRoleBinding %s: %w", name, err)
 			}
 
 			// Removes any legacy CRB https://github.com/eclipse/che/issues/19506
@@ -137,13 +131,12 @@ func (s *CheServerReconciler) deletePermissions(cheCtx *chetypes.CheContext) boo
 				types.NamespacedName{Name: legacyName},
 				&rbacv1.ClusterRoleBinding{},
 			); err != nil {
-				done = false
-				logrus.Errorf("Failed to delete ClusterRoleBinding '%s', cause: %v", legacyName, err)
+				return fmt.Errorf("failed to delete ClusterRoleBinding %s: %w", legacyName, err)
 			}
 		}
 	}
 
-	return done
+	return nil
 }
 
 func (s *CheServerReconciler) getUserDevWorkspacePolicies() []rbacv1.PolicyRule {

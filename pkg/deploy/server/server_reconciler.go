@@ -20,8 +20,8 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
-	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -94,7 +94,7 @@ func (s *CheServerReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.
 	return reconcile.Result{}, true, nil
 }
 
-func (c *CheServerReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
+func (c *CheServerReconciler) Finalize(cheCtx *chetypes.CheContext) error {
 	return c.deletePermissions(cheCtx)
 }
 
