@@ -14,7 +14,7 @@ package tls
 
 import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	"github.com/eclipse-che/che-operator/pkg/common/reconciler"
+	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -37,6 +37,6 @@ func (s *SelfSignedCertificateReconciler) Reconcile(cheCtx *chetypes.CheContext)
 	return reconcile.Result{}, true, nil
 }
 
-func (s *SelfSignedCertificateReconciler) Finalize(cheCtx *chetypes.CheContext) bool {
-	return true
+func (s *SelfSignedCertificateReconciler) Finalize(cheCtx *chetypes.CheContext) error {
+	return nil
 }
