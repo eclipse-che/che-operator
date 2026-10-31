@@ -112,7 +112,7 @@ func (r *OpenVSXServerReconciler) syncExtensions(cheCtx *chetypes.CheContext) (b
 									ReadOnly:  true,
 								},
 							},
-							Env: []corev1.EnvVar{
+							Env: append([]corev1.EnvVar{
 								{
 									Name:  "OVSX_REGISTRY_URL",
 									Value: openvsx.GetOpenVSXServerServiceURL(cheCtx),
@@ -122,7 +122,7 @@ func (r *OpenVSXServerReconciler) syncExtensions(cheCtx *chetypes.CheContext) (b
 									Value: cheCtx.CheHost,
 								},
 								utils.EnvVarFromSecret("OVSX_PAT", credentialsSecret, "openvsx-publisher-token"),
-							},
+							}, deploy.GetProxyEnvVars(cheCtx.Proxy)...),
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceMemory: resource.MustParse(constants.OpenVSXExtensionJobMemoryRequest),
