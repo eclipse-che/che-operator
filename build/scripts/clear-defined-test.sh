@@ -107,8 +107,6 @@ declare -A replaced_modules=(
   ["github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.33.0"]="github.com/GoogleCloudPlatform/opentelemetry-operations-go 059f723244364dd67f86051b38d67c66094651bd"
   # https://github.com/sirupsen/logrus/commit/6d6a132bc03324d4ceb78e1b927f995d014cda20
   ["github.com/sirupsen/logrus v1.10.2"]="github.com/sirupsen/logrus 6d6a132bc03324d4ceb78e1b927f995d014cda20"
-  # https://github.com/golang/tools/commit/9b68bc9966ee62cbe4704dea268ca17f0d2cd8a7
-  ["golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated"]="golang/tools 9b68bc9966ee62cbe4704dea268ca17f0d2cd8a7"
   # https://github.com/grpc/grpc-go/commit/030ee8becb20ce4315d6bf2dfa26bdd876169dc4
   ["google.golang.org/grpc v1.83.2"]="grpc/grpc-go 030ee8becb20ce4315d6bf2dfa26bdd876169dc4"
   # https://github.com/kubernetes/api/commit/34b5cc4a2603a1cdcad4aced5c83808fb7df7bb8
@@ -184,8 +182,6 @@ declare -A ignored_paths=(
   ["go.etcd.io/etcd/pkg/v3"]="Harvesting is in progress"
   ["go.etcd.io/etcd/server/v3"]="Harvesting is in progress"
   ["go.etcd.io/raft/v3"]="Harvesting is in progress"
-  ["golang.org/x/crypto"]="Harvesting is in progress"
-  ["golang.org/x/net"]="Harvesting is in progress"
   ["go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"]="Harvesting is in progress"
   ["go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"]="Harvesting is in progress"
   ["k8s.io/apiextensions-apiserver"]="Harvesting is in progress"
@@ -223,8 +219,6 @@ declare -A ignored_paths_licenses=(
   ["go.etcd.io/etcd/pkg/v3"]="Apache-2.0"
   ["go.etcd.io/etcd/server/v3"]="Apache-2.0"
   ["go.etcd.io/raft/v3"]="Apache-2.0"
-  ["golang.org/x/crypto"]="BSD-3-Clause"
-  ["golang.org/x/net"]="BSD-3-Clause"
   ["go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"]="Apache-2.0"
   ["go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"]="Apache-2.0"
   ["k8s.io/apiextensions-apiserver"]="Apache-2.0"
@@ -302,6 +296,10 @@ for ((i = 1; i <= max_iterations; i++)); do
   for module in "${modules[@]}"; do
       # ignore the first dependency which is the current module
       if [[ "$module" == "github.com/eclipse-che/che-operator" ]]; then
+          continue
+      fi
+
+     if [[ "$module" == golang.org* ]]; then
           continue
       fi
 

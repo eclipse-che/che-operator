@@ -24,6 +24,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
+	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	configv1 "github.com/openshift/api/config/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -237,7 +238,7 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(cheCtx *chetypes.CheCon
 		},
 	}
 
-	deploy.EnsurePodSecurityStandards(
+	resources.Pod.EnsureSecurityStandards(
 		&deployment.Spec.Template.Spec,
 		constants.DefaultSecurityContextRunAsUser,
 		constants.DefaultSecurityContextFsGroup,
@@ -270,7 +271,7 @@ func (d *DashboardReconciler) provisionCheSelfSignedCA(volumes []corev1.Volume, 
 		Name: "che-self-signed-ca",
 		VolumeSource: corev1.VolumeSource{
 			Secret: &corev1.SecretVolumeSource{
-				SecretName: constants.DefaultSelfSignedCertificateSecretName,
+				SecretName: constants.SelfSignedCertificateSecretName,
 				Items: []corev1.KeyToPath{
 					{
 						Key:  "ca.crt",

@@ -429,7 +429,7 @@ func TestWatchRulesForSecretsInOtherNamespaces(t *testing.T) {
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.DefaultSelfSignedCertificateSecretName,
+			Name:      constants.SelfSignedCertificateSecretName,
 			Namespace: "eclipse-che",
 		},
 	}

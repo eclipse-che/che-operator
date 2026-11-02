@@ -316,7 +316,7 @@ func TestDashboardDeploymentVolumes(t *testing.T) {
 			initObjects: []client.Object{
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      constants.DefaultSelfSignedCertificateSecretName,
+						Name:      constants.SelfSignedCertificateSecretName,
 						Namespace: "eclipse-che",
 					},
 				},

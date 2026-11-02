@@ -107,7 +107,7 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, cheNam
 	// also create the self-signed-certificate secret to pretend we have TLS set up
 	cert := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.DefaultSelfSignedCertificateSecretName,
+			Name:      constants.SelfSignedCertificateSecretName,
 			Namespace: cheNamespaceName,
 		},
 		Data: map[string][]byte{

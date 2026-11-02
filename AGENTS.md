@@ -40,7 +40,7 @@ at the first `done=false`. Registration order in `controllers/che/checluster_con
 - `CheCluster` — the CR being reconciled
 - `ClusterAPI` — cached and non-cached k8s clients, discovery client, `ClientWrapper` / `NonCachingClientWrapper`
 - `Proxy`, `Authentication` — resolved configuration
-- `IsSelfSignedCertificate`, `CheHost`, `DwoNamespace`
+- `CheHost`, `DwoNamespace`
 
 ### Component Packages (`pkg/deploy/`)
 

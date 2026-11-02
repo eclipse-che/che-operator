@@ -154,9 +154,9 @@ const (
 	OpenShiftCreateKubernetesNamespaces = false
 
 	// Ingress
-	DefaultSelfSignedCertificateSecretName = "self-signed-certificate"
-	DefaultCheTLSSecretName                = "che-tls"
-	DefaultIngressClass                    = "nginx"
+	SelfSignedCertificateSecretName = "self-signed-certificate"
+	DefaultCheTLSSecretName         = "che-tls"
+	DefaultIngressClass             = "nginx"
 
 	// components name
 	DevfileRegistryName                = "devfile-registry"

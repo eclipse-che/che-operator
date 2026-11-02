@@ -25,6 +25,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/consolelink"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/networkpolicy"
+	"github.com/eclipse-che/che-operator/pkg/reconciler/selfsignedcert"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -111,9 +112,8 @@ func NewReconciler(
 	reconcilerManager.AddReconciler(server.NewCheHostReconciler())
 	// detect whether a self-signed certificate is used right after the che endpoint
 	// is exposed since the che route/ingress is used to get the certificates chain
-	reconcilerManager.AddReconciler(tls.NewSelfSignedCertificateReconciler())
+	reconcilerManager.AddReconciler(selfsignedcert.NewReconciler())
 	reconcilerManager.AddReconciler(tls.NewCertificatesReconciler())
-	reconcilerManager.AddReconciler(tls.NewTlsSecretReconciler())
 
 	reconcilerManager.AddReconciler(devworkspace.NewDevWorkspaceConfigReconciler())
 	reconcilerManager.AddReconciler(rbac.NewGatewayPermissionsReconciler())
