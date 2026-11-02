@@ -115,3 +115,13 @@ func TestUpdateAvailabilityStatus(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, cheCtx.CheCluster.Status.ChePhase, chev2.CheClusterPhase(chev2.RollingUpdate))
 }
+
+func TestGetFinalizerName(t *testing.T) {
+	crbName := "0123456789012345678901234567890123456789" // 40 chars
+
+	reconciler := NewCheServerReconciler()
+	finalizer := reconciler.getCRBFinalizerName(crbName)
+
+	assert.Equal(t, crbName+".crb.finalizers.che.ecl", finalizer)
+	assert.True(t, len(finalizer) <= 63)
+}

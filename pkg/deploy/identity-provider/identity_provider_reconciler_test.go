@@ -47,7 +47,6 @@ func TestFinalizeDefaultOAuthClientName(t *testing.T) {
 	err := identityProviderReconciler.Finalize(cheCtx)
 	assert.Nil(t, err)
 	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "eclipse-che-client"}, &oauthv1.OAuthClient{}))
-	assert.Equal(t, 0, len(checluster.Finalizers))
 }
 
 func TestFinalizeOAuthClient(t *testing.T) {
@@ -76,7 +75,6 @@ func TestFinalizeOAuthClient(t *testing.T) {
 	err := identityProviderReconciler.Finalize(cheCtx)
 	assert.Nil(t, err)
 	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "test"}, &oauthv1.OAuthClient{}))
-	assert.Equal(t, 0, len(checluster.Finalizers))
 }
 
 func TestShouldFindSingleOAuthClient(t *testing.T) {

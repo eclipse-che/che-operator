@@ -14,13 +14,14 @@ package server
 
 import (
 	"fmt"
+	"slices"
 	"strings"
-
-	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -29,6 +30,9 @@ const (
 	userCommonPermissionsTemplateName       = "%s-cheworkspaces-clusterrole"
 	userDevWorkspacePermissionsTemplateName = "%s-cheworkspaces-devworkspace-clusterrole"
 	cheSASpecificPermissionsTemplateName    = "%s-cheworkspaces-namespaces-clusterrole"
+
+	crb                   = ".crb."
+	cheCRBFinalizerSuffix = crb + "finalizers." + constants.CheEclipseOrg
 )
 
 // Create ClusterRole and ClusterRoleBinding for "che" service account.
@@ -56,10 +60,51 @@ func (s *CheServerReconciler) syncPermissions(cheCtx *chetypes.CheContext) (bool
 			if err := deploy.SyncClusterRoleBindingToCluster(cheCtx, cheClusterRole, constants.DefaultCheServiceAccountName, cheClusterRole); err != nil {
 				return false, err
 			}
+
+			finalizer := s.getCRBFinalizerName(cheClusterRole)
+			if err := resources.CheCluster.AddFinalizer(cheCtx, finalizer); err != nil {
+				return false, fmt.Errorf("failed to add finalizer %s: %w", finalizer, err)
+			}
+		}
+	}
+
+	// Delete abandoned CRBs
+	clusterRoles := make([]string, 0, len(cheCtx.CheCluster.Spec.Components.CheServer.ClusterRoles))
+	for _, cheClusterRole := range cheCtx.CheCluster.Spec.Components.CheServer.ClusterRoles {
+		if cheClusterRole = strings.TrimSpace(cheClusterRole); cheClusterRole != "" {
+			clusterRoles = append(clusterRoles, cheClusterRole)
+		}
+	}
+
+	for _, finalizer := range cheCtx.CheCluster.Finalizers {
+		if strings.HasSuffix(finalizer, cheCRBFinalizerSuffix) {
+			cheClusterRole := strings.TrimSuffix(finalizer, cheCRBFinalizerSuffix)
+			if !slices.Contains(clusterRoles, cheClusterRole) {
+				if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
+					cheCtx.Context,
+					types.NamespacedName{Name: cheClusterRole},
+					&rbacv1.ClusterRoleBinding{},
+				); err != nil {
+					return false, fmt.Errorf("failed to delete ClusterRoleBinding %s: %w", cheClusterRole, err)
+				}
+
+				if err := resources.CheCluster.RemoveFinalizer(cheCtx, finalizer); err != nil {
+					return false, fmt.Errorf("failed to delete finalizer %s: %w", finalizer, err)
+				}
+			}
 		}
 	}
 
 	return true, nil
+}
+
+func (s *CheServerReconciler) getCRBFinalizerName(crbName string) string {
+	finalizer := crbName + cheCRBFinalizerSuffix
+	diff := len(finalizer) - 63
+	if diff > 0 {
+		return finalizer[:len(finalizer)-diff]
+	}
+	return finalizer
 }
 
 func (s *CheServerReconciler) deletePermissions(cheCtx *chetypes.CheContext) error {

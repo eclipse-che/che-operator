@@ -53,7 +53,7 @@ func (ch cheClusterHandler) Find(
 ) (*chev2.CheCluster, error) {
 	cheClusters := &chev2.CheClusterList{}
 	if err := k8sClient.List(ctx, cheClusters, client.InNamespace(namespace)); err != nil {
-		return nil, fmt.Errorf("failed to list CheClusters in %s: %w", namespace, err)
+		return nil, fmt.Errorf("failed to list CheClusters: %w", err)
 	}
 
 	switch len(cheClusters.Items) {
@@ -67,6 +67,13 @@ func (ch cheClusterHandler) Find(
 
 func (ch cheClusterHandler) AddFinalizer(cheCtx *chetypes.CheContext, finalizer string) error {
 	if !controllerutil.AddFinalizer(cheCtx.CheCluster, finalizer) {
+		return nil
+	}
+	return ch.Sync(cheCtx)
+}
+
+func (ch cheClusterHandler) RemoveFinalizer(cheCtx *chetypes.CheContext, finalizer string) error {
+	if !controllerutil.RemoveFinalizer(cheCtx.CheCluster, finalizer) {
 		return nil
 	}
 	return ch.Sync(cheCtx)
