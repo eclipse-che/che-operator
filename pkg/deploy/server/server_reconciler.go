@@ -23,7 +23,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	"github.com/eclipse-che/che-operator/pkg/reconciler"
-	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -148,7 +147,7 @@ func (s CheServerReconciler) syncCheURL(cheCtx *chetypes.CheContext) (bool, erro
 	expectedCheUrl := "https://" + cheCtx.CheHost
 	if cheCtx.CheCluster.Status.CheURL != expectedCheUrl {
 		product := map[bool]string{true: "Red Hat OpenShift Dev Spaces", false: "Eclipse Che"}[defaults.GetCheFlavor() == "devspaces"]
-		logrus.Infof("%s is now available at: %s", product, expectedCheUrl)
+		log.Info(fmt.Sprintf("%s is now available at: %s", product, expectedCheUrl))
 	}
 
 	cheCtx.CheCluster.Status.CheURL = expectedCheUrl

@@ -789,7 +789,7 @@ func (c *CheRoutingSolver) cheRoutingFinalize(routing *dwo.DevWorkspaceRouting) 
 		return err
 	}
 
-	cheCluster, err := resources.CheCluster.Find(context.TODO(), c.client)
+	cheCluster, err := resources.CheCluster.Find(context.TODO(), c.client, "")
 	if err != nil {
 		return err
 	}

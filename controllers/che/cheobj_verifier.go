@@ -26,13 +26,13 @@ import (
 )
 
 // IsTrustedBundleConfigMap detects whether given config map is the config map with additional CA certificates to be trusted by Che
-func IsTrustedBundleConfigMap(cl client.Client, obj client.Object) (bool, ctrl.Request) {
+func IsTrustedBundleConfigMap(cl client.Client, watchNamespace string, obj client.Object) (bool, ctrl.Request) {
 	if obj.GetNamespace() == "" {
 		// ignore cluster scope objects
 		return false, ctrl.Request{}
 	}
 
-	checluster, _ := resources.CheCluster.Find(context.TODO(), cl)
+	checluster, _ := resources.CheCluster.Find(context.TODO(), cl, watchNamespace)
 	if checluster == nil {
 		return false, ctrl.Request{}
 	}
@@ -62,8 +62,8 @@ func IsTrustedBundleConfigMap(cl client.Client, obj client.Object) (bool, ctrl.R
 	}
 }
 
-func IsOperatorManaged(cl client.Client, obj client.Object) (bool, ctrl.Request) {
-	checluster, _ := resources.CheCluster.Find(context.TODO(), cl)
+func IsOperatorManaged(cl client.Client, watchNamespace string, obj client.Object) (bool, ctrl.Request) {
+	checluster, _ := resources.CheCluster.Find(context.TODO(), cl, watchNamespace)
 	if checluster == nil {
 		return false, ctrl.Request{}
 	}
@@ -86,13 +86,13 @@ func IsOperatorManaged(cl client.Client, obj client.Object) (bool, ctrl.Request)
 // isEclipseCheRelatedObj indicates if there is an object in a che namespace with the labels:
 // - 'app.kubernetes.io/part-of=che.eclipse.org'
 // - 'app.kubernetes.io/instance=che'
-func IsEclipseCheRelatedObj(cl client.Client, obj client.Object) (bool, ctrl.Request) {
+func IsEclipseCheRelatedObj(cl client.Client, watchNamespace string, obj client.Object) (bool, ctrl.Request) {
 	if obj.GetNamespace() == "" {
 		// ignore cluster scope objects
 		return false, ctrl.Request{}
 	}
 
-	checluster, _ := resources.CheCluster.Find(context.TODO(), cl)
+	checluster, _ := resources.CheCluster.Find(context.TODO(), cl, watchNamespace)
 	if checluster == nil {
 		return false, ctrl.Request{}
 	}

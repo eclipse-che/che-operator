@@ -109,6 +109,7 @@ func TestSyncPermissionsWhenCheClusterUpdated(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "test-role"}, &rbac.ClusterRoleBinding{}))
+	assert.Equal(t, cheCtx.CheCluster.Finalizers, []string{"test-role.crb.finalizers.che.eclipse.org"})
 
 	cheCtx.CheCluster.Spec.Components.CheServer.ClusterRoles = []string{}
 	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), cheCtx.CheCluster)

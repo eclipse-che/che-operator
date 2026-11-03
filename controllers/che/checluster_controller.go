@@ -163,7 +163,7 @@ func NewReconciler(
 // SetupWithManager sets up the controller with the Manager.
 func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	var toTrustedBundleConfigMapRequestMapper handler.MapFunc = func(ctx context.Context, obj client.Object) []reconcile.Request {
-		isTrusted, reconcileRequest := IsTrustedBundleConfigMap(r.client, obj)
+		isTrusted, reconcileRequest := IsTrustedBundleConfigMap(r.client, r.namespace, obj)
 		if isTrusted {
 			return []reconcile.Request{reconcileRequest}
 		}
@@ -171,7 +171,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	var toEclipseCheRelatedObjRequestMapper handler.MapFunc = func(ctx context.Context, obj client.Object) []reconcile.Request {
-		isEclipseCheRelatedObj, reconcileRequest := IsEclipseCheRelatedObj(r.client, obj)
+		isEclipseCheRelatedObj, reconcileRequest := IsEclipseCheRelatedObj(r.client, r.namespace, obj)
 		if isEclipseCheRelatedObj {
 			return []reconcile.Request{reconcileRequest}
 		}
@@ -179,7 +179,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	var toOperatorManagedObjRequestMapper handler.MapFunc = func(ctx context.Context, obj client.Object) []reconcile.Request {
-		isOperatorManagedObj, reconcileRequest := IsOperatorManaged(r.client, obj)
+		isOperatorManagedObj, reconcileRequest := IsOperatorManaged(r.client, r.namespace, obj)
 		if isOperatorManagedObj {
 			return []reconcile.Request{reconcileRequest}
 		}

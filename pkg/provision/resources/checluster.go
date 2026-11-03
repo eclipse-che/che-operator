@@ -46,13 +46,19 @@ type cheClusterHandler struct {
 	allowForceRecreate bool
 }
 
+// Find returns the single CheCluster instance in the given namespace,
+// or nil if none exists. An error is returned if multiple instances are found.
+// Providing the namespace ensures the CheCluster is looked up in the same
+// namespace as the object being verified; an empty namespace searches across
+// all namespaces.
 func (ch cheClusterHandler) Find(
 	ctx context.Context,
 	k8sClient client.Client,
+	namespace string,
 ) (*chev2.CheCluster, error) {
 	cheClusters := &chev2.CheClusterList{}
-	if err := k8sClient.List(ctx, cheClusters); err != nil {
-		return nil, fmt.Errorf("failed to list CheClusters: %w", err)
+	if err := k8sClient.List(ctx, cheClusters, client.InNamespace(namespace)); err != nil {
+		return nil, fmt.Errorf("failed to list CheClusters in namespace %s: %w", namespace, err)
 	}
 
 	switch len(cheClusters.Items) {
