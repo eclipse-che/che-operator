@@ -217,6 +217,7 @@ func (s *SelfSignedCertificateReconciler) syncTLSJob(cheCtx *chetypes.CheContext
 					ServiceAccountName:            cheTLSJobServiceAccountName,
 					RestartPolicy:                 "Never",
 					TerminationGracePeriodSeconds: new(int64(30)),
+					DNSPolicy:                     corev1.DNSClusterFirst,
 					Containers: []corev1.Container{
 						{
 							Name:            cheTLSJobName + "-job-container",

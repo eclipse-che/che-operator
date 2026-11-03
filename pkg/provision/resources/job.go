@@ -29,7 +29,7 @@ var Job = &jobHandler{
 	diff: cmp.Options{
 		cmpopts.IgnoreFields(batchv1.Job{}, "TypeMeta", "Status"),
 		cmpopts.IgnoreFields(corev1.Container{}, "TerminationMessagePath", "TerminationMessagePolicy"),
-		cmpopts.IgnoreFields(corev1.PodSpec{}, "DNSPolicy", "SchedulerName"),
+		cmpopts.IgnoreFields(corev1.PodSpec{}, "SchedulerName"),
 	},
 }
 
