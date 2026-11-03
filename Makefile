@@ -876,6 +876,7 @@ create-checluster-cr: ## Creates CheCluster Custom Resource V2
 			CLUSTER_API_URL=$$(oc whoami --show-server=true) || true;
 			CLUSTER_DOMAIN=$$(echo $${CLUSTER_API_URL} | sed -E 's/https:\/\/(.*):.*/\1/g')
 			yq -riY  '.spec.networking.domain = "'$${CLUSTER_DOMAIN}'.nip.io"' $${CHECLUSTER_CR_2_APPLY}
+			yq -riY  '.spec.networking.tlsSecretName = "che-tls"' $${CHECLUSTER_CR_2_APPLY}
 		fi
 		$(K8S_CLI) apply -f $${CHECLUSTER_CR_2_APPLY} -n $${ECLIPSE_CHE_NAMESPACE}
 	fi

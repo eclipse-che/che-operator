@@ -223,13 +223,6 @@ func (s *SelfSignedCertificateReconciler) syncTLSJob(cheCtx *chetypes.CheContext
 							Name:            cheTLSJobName + "-job-container",
 							Image:           image,
 							ImagePullPolicy: imagePullPolicy,
-							SecurityContext: &corev1.SecurityContext{
-								AllowPrivilegeEscalation: new(false),
-								Capabilities: &corev1.Capabilities{
-									Drop: []corev1.Capability{"ALL"},
-								},
-								RunAsNonRoot: new(true),
-							},
 							Env: []corev1.EnvVar{
 								{
 									Name:  "DOMAIN",
@@ -262,6 +255,8 @@ func (s *SelfSignedCertificateReconciler) syncTLSJob(cheCtx *chetypes.CheContext
 			Completions:             new(int32(1)),
 		},
 	}
+	// This job is not supposed to be run in production,
+	// `resources.Pod.EnsureSecurityStandards` is not required
 	if err := resources.Job.Sync(cheCtx, job); err != nil {
 		return err
 	}
