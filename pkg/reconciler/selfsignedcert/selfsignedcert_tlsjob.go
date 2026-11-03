@@ -71,12 +71,6 @@ func (s *SelfSignedCertificateReconciler) triggerTLSJob(cheCtx *chetypes.CheCont
 			return reconcile.Result{RequeueAfter: time.Second}, false, nil
 		}
 
-		// Remove the failed Job first, so that a new one can be started on the
-		// next reconcile.
-		if err := resources.Job.Delete(cheCtx, cheTLSJobName, cheCtx.CheCluster.Namespace); err != nil {
-			return reconcile.Result{}, false, err
-		}
-
 		return reconcile.Result{},
 			false,
 			fmt.Errorf("job %s/%s failed: %s", cheCtx.CheCluster.Namespace, cheTLSJobName, resources.Job.GetFailureReason(job))
