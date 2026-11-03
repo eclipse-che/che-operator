@@ -223,6 +223,13 @@ func (s *SelfSignedCertificateReconciler) syncTLSJob(cheCtx *chetypes.CheContext
 							Name:            cheTLSJobName + "-job-container",
 							Image:           image,
 							ImagePullPolicy: imagePullPolicy,
+							SecurityContext: &corev1.SecurityContext{
+								AllowPrivilegeEscalation: new(false),
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{"ALL"},
+								},
+								RunAsNonRoot: new(true),
+							},
 							Env: []corev1.EnvVar{
 								{
 									Name:  "DOMAIN",
