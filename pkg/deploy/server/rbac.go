@@ -69,7 +69,7 @@ func (s *CheServerReconciler) syncPermissions(cheCtx *chetypes.CheContext) (bool
 	}
 
 	// Delete abandoned CRBs
-	for _, finalizer := range cheCtx.CheCluster.Finalizers {
+	for _, finalizer := range slices.Clone(cheCtx.CheCluster.Finalizers) {
 		if strings.HasSuffix(finalizer, cheCRBFinalizerSuffix) {
 			cheClusterRole := strings.TrimSuffix(finalizer, cheCRBFinalizerSuffix)
 			if !slices.Contains(cheCtx.CheCluster.Spec.Components.CheServer.ClusterRoles, cheClusterRole) {

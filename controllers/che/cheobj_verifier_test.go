@@ -128,7 +128,6 @@ func TestIsEclipseCheRelatedObj(t *testing.T) {
 		name                    string
 		initObjects             []client.Object
 		objNamespace            string
-		watchNamespace          string
 		expectedIsEclipseCheObj bool
 	}
 
@@ -151,42 +150,36 @@ func TestIsEclipseCheRelatedObj(t *testing.T) {
 			name:                    "Cluster scope object",
 			initObjects:             []client.Object{},
 			objNamespace:            "",
-			watchNamespace:          "eclipse-che",
 			expectedIsEclipseCheObj: false,
 		},
 		{
 			name:                    "Object in 'eclipse-che' namespace",
 			initObjects:             []client.Object{},
 			objNamespace:            "eclipse-che",
-			watchNamespace:          "eclipse-che",
 			expectedIsEclipseCheObj: true,
 		},
 		{
 			name:                    "Object in another namespace than 'eclipse-che'",
 			initObjects:             []client.Object{},
 			objNamespace:            "test-eclipse-che",
-			watchNamespace:          "eclipse-che",
 			expectedIsEclipseCheObj: false,
 		},
 		{
 			name:                    "Cluster scope object, all-namespaces mode",
 			initObjects:             []client.Object{},
 			objNamespace:            "",
-			watchNamespace:          "eclipse-che",
 			expectedIsEclipseCheObj: false,
 		},
 		{
 			name:                    "Object in 'eclipse-che' namespace, all-namespaces mode",
 			initObjects:             []client.Object{},
 			objNamespace:            "eclipse-che",
-			watchNamespace:          "",
 			expectedIsEclipseCheObj: true,
 		},
 		{
 			name:                    "Object in another namespace than 'eclipse-che', all-namespaces mode",
 			initObjects:             []client.Object{},
 			objNamespace:            "test-eclipse-che",
-			watchNamespace:          "",
 			expectedIsEclipseCheObj: false,
 		},
 	}

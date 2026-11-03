@@ -131,21 +131,20 @@ func NewWorkspacesConfigReconciler(
 }
 
 func (r *WorkspacesConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	ctx := context.Background()
 	bld := ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.Namespace{}).
-		Watches(&corev1.PersistentVolumeClaim{}, r.watchRules(ctx, true, true)).
-		Watches(&corev1.Secret{}, r.watchRules(ctx, true, true)).
-		Watches(&corev1.ConfigMap{}, r.watchRules(ctx, true, true)).
-		Watches(&corev1.ResourceQuota{}, r.watchRules(ctx, false, true)).
-		Watches(&corev1.LimitRange{}, r.watchRules(ctx, false, true)).
-		Watches(&corev1.ServiceAccount{}, r.watchRules(ctx, false, true)).
-		Watches(&rbacv1.Role{}, r.watchRules(ctx, false, true)).
-		Watches(&rbacv1.RoleBinding{}, r.watchRules(ctx, false, true)).
-		Watches(&networkingv1.NetworkPolicy{}, r.watchRules(ctx, false, true))
+		Watches(&corev1.PersistentVolumeClaim{}, r.watchRules(true, true)).
+		Watches(&corev1.Secret{}, r.watchRules(true, true)).
+		Watches(&corev1.ConfigMap{}, r.watchRules(true, true)).
+		Watches(&corev1.ResourceQuota{}, r.watchRules(false, true)).
+		Watches(&corev1.LimitRange{}, r.watchRules(false, true)).
+		Watches(&corev1.ServiceAccount{}, r.watchRules(false, true)).
+		Watches(&rbacv1.Role{}, r.watchRules(false, true)).
+		Watches(&rbacv1.RoleBinding{}, r.watchRules(false, true)).
+		Watches(&networkingv1.NetworkPolicy{}, r.watchRules(false, true))
 
 	if infrastructure.IsOpenShift() {
-		bld.Watches(&templatev1.Template{}, r.watchRules(ctx, true, false))
+		bld.Watches(&templatev1.Template{}, r.watchRules(true, false))
 	}
 
 	// Use controller.TypedOptions to allow to configure 2 controllers for same object being reconciled
@@ -194,11 +193,7 @@ func (r *WorkspacesConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 // Establish watch rules for object.
 // cheNamespaceRule - if true, then watch changes in che namespace (source namespace)
 // userNamespaceRule - if true, then watch changes in user namespaces (destination namespaces)
-func (r *WorkspacesConfigReconciler) watchRules(
-	ctx context.Context,
-	cheNamespaceRule bool,
-	userNamespaceRule bool,
-) handler.EventHandler {
+func (r *WorkspacesConfigReconciler) watchRules(cheNamespaceRule bool, userNamespaceRule bool) handler.EventHandler {
 	return handler.EnqueueRequestsFromMapFunc(
 		func(context context.Context, obj client.Object) []reconcile.Request {
 			var eventRules []namespacecache.EventRule
@@ -209,7 +204,7 @@ func (r *WorkspacesConfigReconciler) watchRules(
 						// reconcile rule when workspace config is modified in a che namespace
 						// to update the config in all users` namespaces
 						Check: func(o metav1.Object) bool {
-							cheCluster, _ := resources.CheCluster.Find(ctx, r.client)
+							cheCluster, _ := resources.CheCluster.Find(context, r.client)
 							return hasWSConfigComponentLabels(o) && cheCluster != nil && o.GetNamespace() == cheCluster.Namespace
 						},
 						Namespaces: func(o metav1.Object) []string { return r.namespaceCache.GetAllKnownNamespaces() },
@@ -223,7 +218,7 @@ func (r *WorkspacesConfigReconciler) watchRules(
 						// reconcile rule when workspace config is modified in a user namespace
 						// to revert the config
 						Check: func(o metav1.Object) bool {
-							workspaceInfo, _ := r.namespaceCache.GetNamespaceInfo(ctx, o.GetNamespace())
+							workspaceInfo, _ := r.namespaceCache.GetNamespaceInfo(context, o.GetNamespace())
 							return hasWSConfigComponentLabels(o) &&
 								o.GetName() != syncedWorkspacesConfig &&
 								workspaceInfo != nil &&
