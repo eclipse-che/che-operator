@@ -32,7 +32,7 @@ func IsTrustedBundleConfigMap(cl client.Client, obj client.Object) (bool, ctrl.R
 		return false, ctrl.Request{}
 	}
 
-	checluster, _ := resources.CheCluster.Find(context.TODO(), cl, "")
+	checluster, _ := resources.CheCluster.Find(context.TODO(), cl)
 	if checluster == nil {
 		return false, ctrl.Request{}
 	}
@@ -63,7 +63,7 @@ func IsTrustedBundleConfigMap(cl client.Client, obj client.Object) (bool, ctrl.R
 }
 
 func IsOperatorManaged(cl client.Client, obj client.Object) (bool, ctrl.Request) {
-	checluster, _ := resources.CheCluster.Find(context.TODO(), cl, "")
+	checluster, _ := resources.CheCluster.Find(context.TODO(), cl)
 	if checluster == nil {
 		return false, ctrl.Request{}
 	}
@@ -92,7 +92,7 @@ func IsEclipseCheRelatedObj(cl client.Client, obj client.Object) (bool, ctrl.Req
 		return false, ctrl.Request{}
 	}
 
-	checluster, _ := resources.CheCluster.Find(context.TODO(), cl, "")
+	checluster, _ := resources.CheCluster.Find(context.TODO(), cl)
 	if checluster == nil {
 		return false, ctrl.Request{}
 	}
