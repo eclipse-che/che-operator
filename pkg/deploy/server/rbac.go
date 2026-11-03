@@ -69,17 +69,10 @@ func (s *CheServerReconciler) syncPermissions(cheCtx *chetypes.CheContext) (bool
 	}
 
 	// Delete abandoned CRBs
-	clusterRoles := make([]string, 0, len(cheCtx.CheCluster.Spec.Components.CheServer.ClusterRoles))
-	for _, cheClusterRole := range cheCtx.CheCluster.Spec.Components.CheServer.ClusterRoles {
-		if cheClusterRole = strings.TrimSpace(cheClusterRole); cheClusterRole != "" {
-			clusterRoles = append(clusterRoles, cheClusterRole)
-		}
-	}
-
 	for _, finalizer := range cheCtx.CheCluster.Finalizers {
 		if strings.HasSuffix(finalizer, cheCRBFinalizerSuffix) {
 			cheClusterRole := strings.TrimSuffix(finalizer, cheCRBFinalizerSuffix)
-			if !slices.Contains(clusterRoles, cheClusterRole) {
+			if !slices.Contains(cheCtx.CheCluster.Spec.Components.CheServer.ClusterRoles, cheClusterRole) {
 				if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
 					cheCtx.Context,
 					types.NamespacedName{Name: cheClusterRole},

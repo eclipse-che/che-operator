@@ -49,10 +49,9 @@ type cheClusterHandler struct {
 func (ch cheClusterHandler) Find(
 	ctx context.Context,
 	k8sClient client.Client,
-	namespace string,
 ) (*chev2.CheCluster, error) {
 	cheClusters := &chev2.CheClusterList{}
-	if err := k8sClient.List(ctx, cheClusters, client.InNamespace(namespace)); err != nil {
+	if err := k8sClient.List(ctx, cheClusters); err != nil {
 		return nil, fmt.Errorf("failed to list CheClusters: %w", err)
 	}
 

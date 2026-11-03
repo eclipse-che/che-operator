@@ -159,7 +159,7 @@ func isSupported(routingClass controllerv1alpha1.DevWorkspaceRoutingClass) bool 
 }
 
 func (c *CheRoutingSolver) getCheClusterReady() (*chev2.CheCluster, error) {
-	cheCluster, err := resources.CheCluster.Find(context.TODO(), c.client, "")
+	cheCluster, err := resources.CheCluster.Find(context.TODO(), c.client)
 	if err != nil {
 		return nil, err
 	}
