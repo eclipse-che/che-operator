@@ -17,7 +17,6 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
@@ -81,16 +80,6 @@ func TestIsTrustedBundleConfigMap(t *testing.T) {
 			expectedIsEclipseCheObj: false,
 		},
 		{
-			name: "Object in 'eclipse-che' namespace, several checluster CR",
-			initObjects: []client.Object{
-				// checluster CR in `default` namespace
-				&chev2.CheCluster{ObjectMeta: metav1.ObjectMeta{Name: "eclipse-che", Namespace: "default"}},
-			},
-			objNamespace:            "eclipse-che",
-			watchNamespace:          "eclipse-che",
-			expectedIsEclipseCheObj: true,
-		},
-		{
 			name:                    "Cluster scope object, all-namespaces mode",
 			initObjects:             []client.Object{},
 			objNamespace:            "",
@@ -123,7 +112,7 @@ func TestIsTrustedBundleConfigMap(t *testing.T) {
 				newTestObject.Labels = testCase.objLabels
 			}
 
-			isEclipseCheObj, req := IsTrustedBundleConfigMap(cheCtx.ClusterAPI.Client, testCase.watchNamespace, newTestObject)
+			isEclipseCheObj, req := IsTrustedBundleConfigMap(cheCtx.ClusterAPI.Client, newTestObject)
 
 			assert.Equal(t, testCase.expectedIsEclipseCheObj, isEclipseCheObj)
 			if isEclipseCheObj {
@@ -180,16 +169,6 @@ func TestIsEclipseCheRelatedObj(t *testing.T) {
 			expectedIsEclipseCheObj: false,
 		},
 		{
-			name: "Object in 'eclipse-che' namespace, several checluster CR",
-			initObjects: []client.Object{
-				// checluster CR in `default` namespace
-				&chev2.CheCluster{ObjectMeta: metav1.ObjectMeta{Name: "eclipse-che", Namespace: "default"}},
-			},
-			objNamespace:            "eclipse-che",
-			watchNamespace:          "eclipse-che",
-			expectedIsEclipseCheObj: true,
-		},
-		{
 			name:                    "Cluster scope object, all-namespaces mode",
 			initObjects:             []client.Object{},
 			objNamespace:            "",
@@ -217,7 +196,7 @@ func TestIsEclipseCheRelatedObj(t *testing.T) {
 			cheCtx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
 
 			testObject.Namespace = testCase.objNamespace
-			isEclipseCheObj, req := IsEclipseCheRelatedObj(cheCtx.ClusterAPI.Client, testCase.watchNamespace, testObject)
+			isEclipseCheObj, req := IsEclipseCheRelatedObj(cheCtx.ClusterAPI.Client, testObject)
 
 			assert.Equal(t, testCase.expectedIsEclipseCheObj, isEclipseCheObj)
 			if isEclipseCheObj {
