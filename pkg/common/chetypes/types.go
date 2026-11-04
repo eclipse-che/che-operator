@@ -23,14 +23,13 @@ import (
 )
 
 type CheContext struct {
-	CheCluster              *chev2.CheCluster
-	ClusterAPI              ClusterAPI
-	Proxy                   *Proxy
-	Authentication          *Authentication
-	IsSelfSignedCertificate bool
-	CheHost                 string
-	DWONamespace            string
-	Context                 context.Context
+	CheCluster     *chev2.CheCluster
+	ClusterAPI     ClusterAPI
+	Proxy          *Proxy
+	Authentication *Authentication
+	CheHost        string
+	DWONamespace   string
+	Context        context.Context
 }
 
 type ClusterAPI struct {

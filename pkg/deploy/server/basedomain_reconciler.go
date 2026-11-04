@@ -13,7 +13,6 @@
 package server
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -95,7 +94,7 @@ func (r *BaseDomainReconciler) detectOpenShiftRouteBaseDomain(cheCtx *chetypes.C
 	}
 
 	// We don't use ClientWrapper here not to print logs (improve in the future)
-	if err := cheCtx.ClusterAPI.Client.Create(context.TODO(), testRoute); err != nil {
+	if err := cheCtx.ClusterAPI.Client.Create(cheCtx.Context, testRoute); err != nil {
 		if !errors.IsAlreadyExists(err) {
 			return "", err
 		}
@@ -104,7 +103,7 @@ func (r *BaseDomainReconciler) detectOpenShiftRouteBaseDomain(cheCtx *chetypes.C
 	// Re-read the route to get the Host field populated by the OpenShift router
 	route := &routev1.Route{}
 	routeKey := types.NamespacedName{Name: name, Namespace: cheCtx.CheCluster.Namespace}
-	if err := cheCtx.ClusterAPI.Client.Get(context.TODO(), routeKey, route); err != nil {
+	if err := cheCtx.ClusterAPI.Client.Get(cheCtx.Context, routeKey, route); err != nil {
 		if errors.IsNotFound(err) {
 			// Route is not ready
 			return "", nil
@@ -114,8 +113,13 @@ func (r *BaseDomainReconciler) detectOpenShiftRouteBaseDomain(cheCtx *chetypes.C
 	}
 
 	defer func() {
-		if err := cheCtx.ClusterAPI.Client.Delete(context.TODO(), route); err != nil {
-			log.Error(err, "unable to delete test route %s", name)
+		if err := cheCtx.ClusterAPI.Client.Delete(cheCtx.Context, route); err != nil {
+			if errors.IsNotFound(err) {
+				// Route is already deleted or still terminating from a previous reconcile
+				return
+			}
+
+			log.Error(err, "failed to delete test Route", "name", name)
 		}
 	}()
 

@@ -18,6 +18,7 @@ import (
 	"os"
 
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	"k8s.io/apimachinery/pkg/api/resource"
 
@@ -503,7 +504,7 @@ func getGatewayDeploymentSpec(cheCtx *chetypes.CheContext) (*appsv1.Deployment, 
 		},
 	}
 
-	deploy.EnsurePodSecurityStandards(
+	resources.Pod.EnsureSecurityStandards(
 		&deployment.Spec.Template.Spec,
 		constants.DefaultSecurityContextRunAsUser,
 		constants.DefaultSecurityContextFsGroup,

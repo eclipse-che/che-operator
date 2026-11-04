@@ -196,7 +196,7 @@ func TestSyncGitTrustedCertificates(t *testing.T) {
 func TestSyncSelfSignedCertificates(t *testing.T) {
 	selfSignedCerts := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.DefaultSelfSignedCertificateSecretName,
+			Name:      constants.SelfSignedCertificateSecretName,
 			Namespace: "eclipse-che",
 		},
 		Data: map[string][]byte{
@@ -211,7 +211,7 @@ func TestSyncSelfSignedCertificates(t *testing.T) {
 	assert.NoError(t, err)
 
 	cm := &corev1.ConfigMap{}
-	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.DefaultSelfSignedCertificateSecretName, Namespace: "eclipse-che"}, cm)
+	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.SelfSignedCertificateSecretName, Namespace: "eclipse-che"}, cm)
 	assert.NoError(t, err)
 	assert.Equal(t, cm.Labels[constants.KubernetesPartOfLabelKey], constants.CheEclipseOrg)
 	assert.Equal(t, cm.Labels[constants.KubernetesComponentLabelKey], constants.CheCABundle)

@@ -124,7 +124,7 @@ func (r *CheUserNamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *CheUserNamespaceReconciler) watchRulesForSecrets(ctx context.Context) handler.EventHandler {
-	rules := r.commonRules(ctx, constants.DefaultSelfSignedCertificateSecretName)
+	rules := r.commonRules(ctx, constants.SelfSignedCertificateSecretName)
 	return handler.EnqueueRequestsFromMapFunc(
 		handler.MapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
 			return namespacecache.AsReconcileRequestsForNamespaces(obj, rules)
@@ -327,7 +327,7 @@ func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context
 	}
 
 	cheCert := &corev1.Secret{}
-	if err := r.client.Get(ctx, client.ObjectKey{Name: constants.DefaultSelfSignedCertificateSecretName, Namespace: checluster.Namespace}, cheCert); err != nil {
+	if err := r.client.Get(ctx, client.ObjectKey{Name: constants.SelfSignedCertificateSecretName, Namespace: checluster.Namespace}, cheCert); err != nil {
 		if !errors.IsNotFound(err) {
 			return err
 		}

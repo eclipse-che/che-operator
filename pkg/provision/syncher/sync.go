@@ -106,6 +106,26 @@ func SyncObject(
 	return nil
 }
 
+// GetObject fetches the object with the given name and namespace into obj.
+// It returns false without an error if the object does not exist.
+func GetObject(
+	cheCtx *chetypes.CheContext,
+	name string,
+	namespace string,
+	obj client.Object,
+	opts ...client.GetOption,
+) (bool, error) {
+	cw := cheCtx.ClusterAPI.ClientWrapper
+	key := types.NamespacedName{Name: name, Namespace: namespace}
+
+	exists, err := cw.GetIgnoreNotFound(cheCtx.Context, key, obj, opts...)
+	if err != nil {
+		return false, fmt.Errorf("failed to get %s %s: %w", clientwrapper.GetObjectType(obj), key.String(), err)
+	}
+
+	return exists, nil
+}
+
 // DeleteObject ensures that the object is deleted in the cluster.
 func DeleteObject(
 	cheCtx *chetypes.CheContext,

@@ -114,7 +114,7 @@ func addPartOfCheLabeltoUserDefinedObjects(cheCtx *chetypes.CheContext) error {
 	}
 
 	// TLS
-	if err := addPartOfCheLabelToSecret(cheCtx, constants.DefaultSelfSignedCertificateSecretName); err != nil {
+	if err := addPartOfCheLabelToSecret(cheCtx, constants.SelfSignedCertificateSecretName); err != nil {
 		return err
 	}
 

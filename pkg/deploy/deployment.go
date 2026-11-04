@@ -351,44 +351,6 @@ func OverrideContainer(
 	return nil
 }
 
-// EnsurePodSecurityStandards sets SecurityContext accordingly
-// to standards https://kubernetes.io/docs/concepts/security/pod-security-standards/#restricted
-func EnsurePodSecurityStandards(podSpec *corev1.PodSpec, userId int64, groupId int64) {
-	for i := range podSpec.Containers {
-		if podSpec.Containers[i].SecurityContext == nil {
-			podSpec.Containers[i].SecurityContext = &corev1.SecurityContext{}
-		}
-
-		podSpec.Containers[i].SecurityContext.AllowPrivilegeEscalation = ptr.To(false)
-		podSpec.Containers[i].SecurityContext.Capabilities = &corev1.Capabilities{Drop: []corev1.Capability{"ALL"}}
-		podSpec.Containers[i].SecurityContext.RunAsNonRoot = ptr.To(true)
-	}
-
-	for i := range podSpec.InitContainers {
-		if podSpec.InitContainers[i].SecurityContext == nil {
-			podSpec.InitContainers[i].SecurityContext = &corev1.SecurityContext{}
-		}
-
-		podSpec.InitContainers[i].SecurityContext.AllowPrivilegeEscalation = ptr.To(false)
-		podSpec.InitContainers[i].SecurityContext.Capabilities = &corev1.Capabilities{Drop: []corev1.Capability{"ALL"}}
-		podSpec.InitContainers[i].SecurityContext.RunAsNonRoot = ptr.To(true)
-	}
-
-	if podSpec.SecurityContext == nil {
-		podSpec.SecurityContext = &corev1.PodSecurityContext{}
-	}
-
-	if !infrastructure.IsOpenShift() {
-		podSpec.SecurityContext.RunAsUser = ptr.To(userId)
-		podSpec.SecurityContext.FSGroup = ptr.To(groupId)
-	} else {
-		if podSpec.SecurityContext.SeccompProfile == nil {
-			podSpec.SecurityContext.SeccompProfile = &corev1.SeccompProfile{}
-		}
-		podSpec.SecurityContext.SeccompProfile.Type = corev1.SeccompProfileTypeRuntimeDefault
-	}
-}
-
 // MountSecrets mounts secrets into a container as a file or as environment variable.
 // Secrets are selected by the following labels:
 // - app.kubernetes.io/part-of=che.eclipse.org

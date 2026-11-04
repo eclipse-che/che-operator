@@ -81,10 +81,8 @@ func (c *CertificatesReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconci
 		return reconcile.Result{}, false, err
 	}
 
-	if cheCtx.IsSelfSignedCertificate {
-		if done, err := c.syncSelfSignedCertificates(cheCtx); !done {
-			return reconcile.Result{}, false, err
-		}
+	if done, err := c.syncSelfSignedCertificates(cheCtx); !done {
+		return reconcile.Result{}, false, err
 	}
 
 	if cheCtx.Authentication.IssuerCA != "" {
@@ -269,11 +267,11 @@ func (c *CertificatesReconciler) syncGitTrustedCertificates(cheCtx *chetypes.Che
 func (c *CertificatesReconciler) syncSelfSignedCertificates(cheCtx *chetypes.CheContext) (bool, error) {
 	selfSignedCertSecret := &corev1.Secret{}
 	selfSignedCertSecretKey := types.NamespacedName{
-		Name:      constants.DefaultSelfSignedCertificateSecretName,
+		Name:      constants.SelfSignedCertificateSecretName,
 		Namespace: cheCtx.CheCluster.Namespace,
 	}
 
-	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(context.TODO(), selfSignedCertSecretKey, selfSignedCertSecret)
+	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(cheCtx.Context, selfSignedCertSecretKey, selfSignedCertSecret)
 	if !exists {
 		return err == nil, err
 	}
@@ -285,7 +283,7 @@ func (c *CertificatesReconciler) syncSelfSignedCertificates(cheCtx *chetypes.Che
 				APIVersion: "v1",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:        constants.DefaultSelfSignedCertificateSecretName,
+				Name:        constants.SelfSignedCertificateSecretName,
 				Namespace:   cheCtx.CheCluster.Namespace,
 				Labels:      deploy.GetLabels(constants.CheCABundle),
 				Annotations: map[string]string{},
@@ -298,7 +296,7 @@ func (c *CertificatesReconciler) syncSelfSignedCertificates(cheCtx *chetypes.Che
 		}
 
 		err = cheCtx.ClusterAPI.ClientWrapper.Sync(
-			context.TODO(),
+			cheCtx.Context,
 			selfSignedCertCM,
 			&clientwrapper.SyncOptions{
 				DiffOpts: diffs.ConfigMap(deploy.GetLabelKeys(), nil),

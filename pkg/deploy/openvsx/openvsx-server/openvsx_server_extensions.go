@@ -22,6 +22,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/openvsx"
 	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
+	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -160,7 +161,7 @@ func (r *OpenVSXServerReconciler) syncExtensions(cheCtx *chetypes.CheContext) (b
 		},
 	}
 
-	deploy.EnsurePodSecurityStandards(
+	resources.Pod.EnsureSecurityStandards(
 		&job.Spec.Template.Spec,
 		constants.DefaultSecurityContextRunAsUser,
 		constants.DefaultSecurityContextFsGroup,

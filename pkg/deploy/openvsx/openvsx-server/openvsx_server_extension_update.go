@@ -24,6 +24,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/openvsx"
 	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
+	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -179,7 +180,7 @@ func (r *OpenVSXServerReconciler) getExtensionUpdateCronJobSpec(cheCtx *chetypes
 		},
 	}
 
-	deploy.EnsurePodSecurityStandards(
+	resources.Pod.EnsureSecurityStandards(
 		&cronJob.Spec.JobTemplate.Spec.Template.Spec,
 		constants.DefaultSecurityContextRunAsUser,
 		constants.DefaultSecurityContextFsGroup,

@@ -19,6 +19,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/registry"
+	k8sresources "github.com/eclipse-che/che-operator/pkg/provision/resources"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -62,7 +63,7 @@ func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(cheCtx *chety
 		deployment.Spec.Template.Spec.Containers[0].LivenessProbe.FailureThreshold = 30
 	}
 
-	deploy.EnsurePodSecurityStandards(
+	k8sresources.Pod.EnsureSecurityStandards(
 		&deployment.Spec.Template.Spec,
 		constants.DefaultSecurityContextRunAsUser,
 		constants.DefaultSecurityContextFsGroup,

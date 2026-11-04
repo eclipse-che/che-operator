@@ -15,10 +15,12 @@ package migration
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/reconciler"
+	"k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -97,6 +99,9 @@ func (dc *CheClusterDefaultsCleaner) Reconcile(cheCtx *chetypes.CheContext) (rec
 		dc.setFieldProcessed(cheCtx, actionTask.field)
 		err := cheCtx.ClusterAPI.Client.Update(context.TODO(), cheCtx.CheCluster)
 		if err != nil {
+			if errors.IsConflict(err) {
+				return reconcile.Result{RequeueAfter: time.Second}, false, nil
+			}
 			return reconcile.Result{}, false, err
 		}
 	}
