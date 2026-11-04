@@ -42,7 +42,7 @@ const (
 
 	// OpenVSXRegistry Server
 	// OpenVSXServerOriginalApplicationConfig stores the operator-generated application.yml in a ConfigMap annotation.
-	OpenVSXServerOriginalApplicationConfig = "che.eclipse.org/original-config"
+	OpenVSXServerOriginalApplicationConfig = "che.eclipse.org/last-applied-configuration"
 	OpenVSXServerComponentName             = "openvsx-server"
 	OpenVSXServerGatewayPath               = "openvsx"
 	OpenVSXServerMemoryLimit               = "4Gi"
