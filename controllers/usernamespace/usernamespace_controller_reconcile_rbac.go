@@ -19,8 +19,8 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	agentsandbox "github.com/eclipse-che/che-operator/pkg/deploy/agent-sandbox"
 	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
+	"github.com/eclipse-che/che-operator/pkg/reconciler/agentsandbox"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -56,7 +56,7 @@ func (r *CheUserNamespaceReconciler) reconcileAgentSandboxRbac(
 	// Check ClusterRole existence before RoleBinding creation in order not to produce
 	// unnecessary error in the console. When AgentSandbox integration enabled in the CheCluster,
 	// the main controller requires some time to provision ClusterRole resource.
-	// See pkg/deploy/agent-sandbox/agent_sandbox.go
+	// See pkg/deploy/agent-sandbox/agentsandbox.go
 	exists, err := r.clientWrapper.GetIgnoreNotFound(
 		cheCtx.Context,
 		types.NamespacedName{Name: agentsandbox.GetUserClusterRoleName()},

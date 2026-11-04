@@ -18,12 +18,13 @@ import (
 	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	agentsandbox "github.com/eclipse-che/che-operator/pkg/deploy/agent-sandbox"
 	"github.com/eclipse-che/che-operator/pkg/deploy/metrics"
 	"github.com/eclipse-che/che-operator/pkg/deploy/rbac"
 	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	"github.com/eclipse-che/che-operator/pkg/reconciler"
+	"github.com/eclipse-che/che-operator/pkg/reconciler/agentsandbox"
+	"github.com/eclipse-che/che-operator/pkg/reconciler/checlustervalidator"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/consolelink"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/networkpolicy"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/selfsignedcert"
@@ -106,7 +107,7 @@ func NewReconciler(
 	// order does matter
 	reconcilerManager.AddReconciler(migration.NewMigrator())
 	reconcilerManager.AddReconciler(migration.NewCheClusterDefaultsCleaner())
-	reconcilerManager.AddReconciler(NewCheClusterValidator())
+	reconcilerManager.AddReconciler(checlustervalidator.NewReconciler())
 
 	// we have to expose che endpoint independently of syncing other server
 	// resources since che host is used for dashboard deployment and che config map
@@ -142,7 +143,7 @@ func NewReconciler(
 		reconcilerManager.AddReconciler(consolelink.NewReconciler())
 	}
 
-	reconcilerManager.AddReconciler(agentsandbox.NewAgentSandboxReconciler())
+	reconcilerManager.AddReconciler(agentsandbox.NewReconciler())
 
 	if infrastructure.IsServiceMonitorEnabled() {
 		reconcilerManager.AddReconciler(metrics.NewMetricsReconciler())

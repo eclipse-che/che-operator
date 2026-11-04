@@ -13,17 +13,14 @@
 package agentsandbox
 
 import (
-	"fmt"
-
+	"github.com/eclipse-che/che-operator/pkg/common/chelabels"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/eclipse-che/che-operator/pkg/common/diffs"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -31,17 +28,17 @@ type AgentSandboxReconciler struct {
 	reconciler.Reconcilable
 }
 
-func NewAgentSandboxReconciler() *AgentSandboxReconciler {
+func NewReconciler() *AgentSandboxReconciler {
 	return &AgentSandboxReconciler{}
 }
 
 func (r *AgentSandboxReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
 	if cheCtx.CheCluster.IsAgentSandboxEnabled() {
-		if err := r.sync(cheCtx); err != nil {
+		if err := r.syncAll(cheCtx); err != nil {
 			return reconcile.Result{}, false, err
 		}
 	} else {
-		if err := r.delete(cheCtx); err != nil {
+		if err := r.deleteAll(cheCtx); err != nil {
 			return reconcile.Result{}, false, err
 		}
 	}
@@ -50,10 +47,10 @@ func (r *AgentSandboxReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconci
 }
 
 func (r *AgentSandboxReconciler) Finalize(cheCtx *chetypes.CheContext) error {
-	return r.delete(cheCtx)
+	return r.deleteAll(cheCtx)
 }
 
-func (r *AgentSandboxReconciler) sync(cheCtx *chetypes.CheContext) error {
+func (r *AgentSandboxReconciler) syncAll(cheCtx *chetypes.CheContext) error {
 	clusterRole := &rbacv1.ClusterRole{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ClusterRole",
@@ -61,7 +58,7 @@ func (r *AgentSandboxReconciler) sync(cheCtx *chetypes.CheContext) error {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   GetUserClusterRoleName(),
-			Labels: deploy.GetLabels(constants.AgentSandboxComponentName),
+			Labels: chelabels.GetStandardLabels(constants.AgentSandboxComponentName),
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -83,28 +80,17 @@ func (r *AgentSandboxReconciler) sync(cheCtx *chetypes.CheContext) error {
 			},
 		},
 	}
-
-	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
-		cheCtx.Context,
-		clusterRole,
-		&clientwrapper.SyncOptions{DiffOpts: diffs.ClusterRole},
-	); err != nil {
-		return fmt.Errorf("failed to sync ClusterRole %s: %w", clusterRole.Name, err)
-	}
-
-	return nil
+	return resources.ClusterRole.Sync(cheCtx, clusterRole)
 }
 
-func (r *AgentSandboxReconciler) delete(cheCtx *chetypes.CheContext) error {
-	clusterRoleKey := types.NamespacedName{Name: GetUserClusterRoleName()}
+func (r *AgentSandboxReconciler) deleteAll(cheCtx *chetypes.CheContext) error {
+	return resources.ClusterRole.Delete(cheCtx, GetUserClusterRoleName())
+}
 
-	if err := cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
-		cheCtx.Context,
-		clusterRoleKey,
-		&rbacv1.ClusterRole{},
-	); err != nil {
-		return fmt.Errorf("failed to delete ClusterRole %s: %w", clusterRoleKey.String(), err)
-	}
+func GetUserClusterRoleName() string {
+	return defaults.GetCheFlavor() + "-user-agent-sandbox"
+}
 
-	return nil
+func GetUserRoleBindingName() string {
+	return defaults.GetCheFlavor() + "-user-agent-sandbox"
 }
