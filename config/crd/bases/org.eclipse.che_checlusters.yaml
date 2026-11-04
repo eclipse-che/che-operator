@@ -26325,6 +26325,10 @@ spec:
                     type: object
                 type: object
               gitServices:
+                default:
+                  tokenRefresh:
+                    enabled: false
+                    periodSec: 600
                 description: A configuration that allows users to work with remote
                   Git repositories.
                 properties:
@@ -26417,6 +26421,30 @@ spec:
                       - secretName
                       type: object
                     type: array
+                  tokenRefresh:
+                    default:
+                      enabled: false
+                      periodSec: 600
+                    description: Configuration of the background job that refreshes
+                      OAuth tokens before they expire.
+                    properties:
+                      enabled:
+                        default: false
+                        description: Enables the background job that refreshes OAuth
+                          tokens before they expire.
+                        type: boolean
+                      periodSec:
+                        default: 600
+                        description: |-
+                          How often the refresh job runs, in seconds. Each run scans the personal
+                          access token Secrets in all user namespaces.
+                        exclusiveMinimum: true
+                        format: int32
+                        minimum: 0
+                        type: integer
+                    required:
+                    - enabled
+                    type: object
                 type: object
               networking:
                 default:

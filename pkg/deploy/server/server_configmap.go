@@ -197,6 +197,9 @@ func (s *CheServerReconciler) getConfigMapData(cheCtx *chetypes.CheContext) (che
 		return nil, err
 	}
 
+	// Updates `CHE_OAUTH_TOKEN__REFRESH_<...>`
+	s.updateTokenRefreshEnv(cheCtx, cheEnv)
+
 	if infrastructure.IsOpenShiftExternalAuth() {
 		s.updateOIDCClaimMappings(cheCtx, cheEnv)
 	}
@@ -315,6 +318,22 @@ func (s *CheServerReconciler) updateServerEndpointsEnv(cheCtx *chetypes.CheConte
 	}
 
 	return nil
+}
+
+// updateTokenRefreshEnv propagates `spec.gitServices.tokenRefresh` to the Che server
+// as the `che.oauth.token_refresh.<...>` properties. Optional fields that are not set are
+// omitted, so that the Che server applies its own defaults.
+func (s *CheServerReconciler) updateTokenRefreshEnv(cheCtx *chetypes.CheContext, cheEnv map[string]string) {
+	tokenRefresh := cheCtx.CheCluster.Spec.GitServices.TokenRefresh
+	if tokenRefresh == nil {
+		return
+	}
+
+	cheEnv["CHE_OAUTH_TOKEN__REFRESH_ENABLED"] = strconv.FormatBool(tokenRefresh.Enabled)
+
+	if tokenRefresh.PeriodSec != nil {
+		cheEnv["CHE_OAUTH_TOKEN__REFRESH_PERIOD__SEC"] = strconv.FormatInt(int64(*tokenRefresh.PeriodSec), 10)
+	}
 }
 
 func (s *CheServerReconciler) updateOIDCClaimMappings(cheCtx *chetypes.CheContext, cheEnv map[string]string) {

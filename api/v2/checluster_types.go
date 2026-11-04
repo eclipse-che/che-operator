@@ -59,6 +59,7 @@ type CheClusterSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=3
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Git Services"
+	// +kubebuilder:default:={tokenRefresh: {enabled: false, periodSec: 600}}
 	GitServices CheClusterGitServices `json:"gitServices"`
 	// Networking, Che authentication, and TLS configuration.
 	// +optional
@@ -1092,6 +1093,26 @@ type CheClusterGitServices struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Azure"
 	AzureDevOps []AzureDevOpsService `json:"azure,omitempty"`
+	// Configuration of the background job that refreshes OAuth tokens before they expire.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="OAuth token refresh"
+	// +kubebuilder:default:={enabled: false, periodSec: 600}
+	TokenRefresh *TokenRefresh `json:"tokenRefresh,omitempty"`
+}
+
+// TokenRefresh configures the background job that refreshes OAuth tokens before they expire.
+type TokenRefresh struct {
+	// Enables the background job that refreshes OAuth tokens before they expire.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:default:=false
+	Enabled bool `json:"enabled"`
+	// How often the refresh job runs, in seconds. Each run scans the personal
+	// access token Secrets in all user namespaces.
+	// +optional
+	// +kubebuilder:default:=600
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:ExclusiveMinimum=true
+	PeriodSec *int32 `json:"periodSec,omitempty"`
 }
 
 // GitHubService enables users to work with repositories hosted on GitHub (GitHub.com or GitHub Enterprise).

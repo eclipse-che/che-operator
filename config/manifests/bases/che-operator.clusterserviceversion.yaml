@@ -147,6 +147,10 @@ spec:
         path: gitServices.gitlab[0].secretName
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes:Secret
+      - description: Configuration of the background job that refreshes OAuth tokens
+          before they expire.
+        displayName: OAuth token refresh
+        path: gitServices.tokenRefresh
       statusDescriptors:
       - description: Specifies the current phase of the Che deployment.
         displayName: ChePhase

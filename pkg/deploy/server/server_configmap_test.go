@@ -18,6 +18,7 @@ import (
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/eclipse-che/che-operator/pkg/common/test"
@@ -545,6 +546,93 @@ func TestUpdateAdvancedAuthorizationEnv(t *testing.T) {
 				for k, v := range testCase.expectedData {
 					assert.Equal(t, v, cheEnv[k], "key: %s", k)
 				}
+			}
+		})
+	}
+}
+
+func TestUpdateTokenRefreshEnv(t *testing.T) {
+	type testCase struct {
+		name          string
+		cheCluster    *chev2.CheCluster
+		expectedData  map[string]string
+		absentEnvVars []string
+	}
+
+	testCases := []testCase{
+		{
+			name: "Test token refresh is fully configured",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					GitServices: chev2.CheClusterGitServices{
+						TokenRefresh: &chev2.TokenRefresh{
+							Enabled:   true,
+							PeriodSec: ptr.To(int32(300)),
+						},
+					},
+				},
+			},
+			expectedData: map[string]string{
+				"CHE_OAUTH_TOKEN__REFRESH_ENABLED":     "true",
+				"CHE_OAUTH_TOKEN__REFRESH_PERIOD__SEC": "300",
+			},
+		},
+		{
+			name: "Test token refresh is disabled",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					GitServices: chev2.CheClusterGitServices{
+						TokenRefresh: &chev2.TokenRefresh{
+							Enabled: false,
+						},
+					},
+				},
+			},
+			expectedData: map[string]string{
+				"CHE_OAUTH_TOKEN__REFRESH_ENABLED": "false",
+			},
+			absentEnvVars: []string{
+				"CHE_OAUTH_TOKEN__REFRESH_PERIOD__SEC",
+			},
+		},
+		{
+			name: "Test token refresh nil does nothing",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+			},
+			absentEnvVars: []string{
+				"CHE_OAUTH_TOKEN__REFRESH_ENABLED",
+				"CHE_OAUTH_TOKEN__REFRESH_PERIOD__SEC",
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+
+			serverReconciler := NewCheServerReconciler()
+			cheEnv, err := serverReconciler.getConfigMapData(cheCtx)
+
+			assert.NoError(t, err)
+
+			for k, v := range testCase.expectedData {
+				assert.Equal(t, v, cheEnv[k], "key: %s", k)
+			}
+
+			for _, k := range testCase.absentEnvVars {
+				assert.NotContains(t, cheEnv, k)
 			}
 		})
 	}
