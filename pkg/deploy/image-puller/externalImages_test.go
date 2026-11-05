@@ -19,11 +19,8 @@ import (
 	"strings"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
-	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"testing"
@@ -32,27 +29,6 @@ import (
 )
 
 const testProjectCloneImage = "quay.io/devfile/project-clone:next"
-
-func newDWOPod() *corev1.Pod {
-	return &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "devworkspace-controller",
-			Namespace: "devworkspace-controller",
-			Labels: map[string]string{
-				constants.KubernetesNameLabelKey:   constants.DevWorkspaceControllerName,
-				constants.KubernetesPartOfLabelKey: constants.DevWorkspaceOperatorName,
-			},
-		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name: "devworkspace-controller",
-					Env:  []corev1.EnvVar{{Name: "RELATED_IMAGE_project_clone", Value: testProjectCloneImage}},
-				},
-			},
-		},
-	}
-}
 
 func TestGetExternalImages(t *testing.T) {
 	type testCase struct {
@@ -70,14 +46,14 @@ func TestGetExternalImages(t *testing.T) {
 			name:           "both editors and samples images",
 			editorsFile:    "image-puller-resources-test/editors.json",
 			samplesFile:    "image-puller-resources-test/samples.json",
-			initObjects:    []client.Object{newDWOPod()},
+			initObjects:    []client.Object{test.NewDWOPod("devworkspace-controller", testProjectCloneImage)},
 			expectedImages: []string{"image_1", "image_2", "image_3", testProjectCloneImage, gatewayImage},
 		},
 		{
 			name:           "no editors and samples images",
 			editorsFile:    "image-puller-resources-test/empty.json",
 			samplesFile:    "image-puller-resources-test/empty.json",
-			initObjects:    []client.Object{newDWOPod()},
+			initObjects:    []client.Object{test.NewDWOPod("devworkspace-controller", testProjectCloneImage)},
 			expectedImages: []string{testProjectCloneImage, gatewayImage},
 		},
 		{

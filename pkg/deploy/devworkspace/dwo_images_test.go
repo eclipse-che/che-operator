@@ -16,11 +16,8 @@ import (
 	"testing"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
-	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -32,37 +29,16 @@ func TestGetProjectCloneImage(t *testing.T) {
 		expectedImage         string
 	}
 
-	newDWOPod := func(namespace string) *corev1.Pod {
-		return &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "devworkspace-controller",
-				Namespace: namespace,
-				Labels: map[string]string{
-					constants.KubernetesNameLabelKey:   constants.DevWorkspaceControllerName,
-					constants.KubernetesPartOfLabelKey: constants.DevWorkspaceOperatorName,
-				},
-			},
-			Spec: corev1.PodSpec{
-				Containers: []corev1.Container{
-					{
-						Name: "devworkspace-controller",
-						Env:  []corev1.EnvVar{{Name: "RELATED_IMAGE_project_clone", Value: "project-clone:dwo"}},
-					},
-				},
-			},
-		}
-	}
-
 	testCases := []testCase{
 		{
 			name:          "Image from DevWorkspace Operator pod",
-			initObjects:   []client.Object{newDWOPod("devworkspace-controller")},
+			initObjects:   []client.Object{test.NewDWOPod("devworkspace-controller", "project-clone:dwo")},
 			expectedImage: "project-clone:dwo",
 		},
 		{
 			name:                  "Image from CheCluster",
 			projectCloneContainer: &chev2.Container{Image: "project-clone:che"},
-			initObjects:           []client.Object{newDWOPod("devworkspace-controller")},
+			initObjects:           []client.Object{test.NewDWOPod("devworkspace-controller", "project-clone:dwo")},
 			expectedImage:         "project-clone:che",
 		},
 		{
@@ -71,7 +47,7 @@ func TestGetProjectCloneImage(t *testing.T) {
 		},
 		{
 			name:          "DevWorkspace Operator pod in another namespace",
-			initObjects:   []client.Object{newDWOPod("other-namespace")},
+			initObjects:   []client.Object{test.NewDWOPod("other-namespace", "project-clone:dwo")},
 			expectedImage: "",
 		},
 	}
