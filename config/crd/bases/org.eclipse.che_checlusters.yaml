@@ -26425,8 +26425,11 @@ spec:
                     default:
                       enabled: false
                       periodSec: 600
-                    description: Configuration of the background job that refreshes
-                      OAuth tokens before they expire.
+                    description: |-
+                      Configuration for automatically refreshing Git provider OAuth tokens
+                      before they expire, so workspace Git operations don't fail due to
+                      expired tokens. Only tokens obtained through Che's OAuth integration
+                      are refreshed; manually created personal access tokens are not affected.
                     properties:
                       enabled:
                         default: false

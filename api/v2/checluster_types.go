@@ -1093,7 +1093,10 @@ type CheClusterGitServices struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Azure"
 	AzureDevOps []AzureDevOpsService `json:"azure,omitempty"`
-	// Configuration of the background job that refreshes OAuth tokens before they expire.
+	// Configuration for automatically refreshing Git provider OAuth tokens
+	// before they expire, so workspace Git operations don't fail due to
+	// expired tokens. Only tokens obtained through Che's OAuth integration
+	// are refreshed; manually created personal access tokens are not affected.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="OAuth token refresh"
 	// +kubebuilder:default:={enabled: false, periodSec: 600}
