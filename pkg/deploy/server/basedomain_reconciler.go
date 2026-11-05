@@ -22,6 +22,7 @@ import (
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	routev1 "github.com/openshift/api/route/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -39,9 +40,9 @@ func NewBaseDomainReconciler() *BaseDomainReconciler {
 }
 
 func (r *BaseDomainReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
-	workspaceBaseDomain := utils.GetValue(
+	workspaceBaseDomain := utils.ValueOrDef(
 		cheCtx.CheCluster.Spec.Components.CheServer.ExtraProperties["CHE_INFRA_OPENSHIFT_ROUTE_HOST_DOMAIN__SUFFIX"],
-		cheCtx.CheCluster.Spec.Networking.Domain, // must be set for Kubernetes, see CheClusterValidator
+		cheCtx.CheCluster.Spec.Networking.Domain, // must be set for Kubernetes, validated by the CheCluster webhook
 	)
 
 	if workspaceBaseDomain == "" {
@@ -62,11 +63,9 @@ func (r *BaseDomainReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile
 		return reconcile.Result{}, false, fmt.Errorf("unable to detect base domain")
 	}
 
-	if cheCtx.CheCluster.Status.WorkspaceBaseDomain != workspaceBaseDomain {
-		cheCtx.CheCluster.Status.WorkspaceBaseDomain = workspaceBaseDomain
-		if err := deploy.UpdateCheCRStatus(cheCtx, "WorkspaceBaseDomain", workspaceBaseDomain); err != nil {
-			return reconcile.Result{}, false, err
-		}
+	cheCtx.CheCluster.Status.WorkspaceBaseDomain = workspaceBaseDomain
+	if err := resources.CheCluster.SyncStatus(cheCtx); err != nil {
+		return reconcile.Result{}, false, err
 	}
 
 	return reconcile.Result{}, true, nil

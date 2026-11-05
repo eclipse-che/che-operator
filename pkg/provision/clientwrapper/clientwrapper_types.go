@@ -26,6 +26,10 @@ type ClientWrapper interface {
 	// Object is created if it does not exist and updated if it exists but is different.
 	// Returns nil if object is in sync.
 	Sync(ctx context.Context, blueprint client.Object, opts ...SyncOption) error
+	// SyncStatus ensures that the status subresource of the object is up to date in the cluster.
+	// Object must exist, otherwise an error is returned.
+	// Returns nil if object is in sync.
+	SyncStatus(ctx context.Context, blueprint client.Object, opts ...SyncOption) error
 	// Create creates object.
 	// Returns nil if object is created otherwise returns error.
 	Create(ctx context.Context, blueprint client.Object, opts ...client.CreateOption) error
@@ -40,6 +44,8 @@ type ClientWrapper interface {
 	// Returns nil if object is deleted or not found otherwise returns error.
 	DeleteIgnoreNotFound(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error
 	// DeleteByKeyIgnoreNotFound deletes object by key.
+	// The object is fetched from the cluster first, so the object passed in
+	// only needs to carry the type, not the actual content.
 	// Returns nil if object is deleted or not found otherwise returns error.
 	DeleteByKeyIgnoreNotFound(ctx context.Context, key client.ObjectKey, objectMeta client.Object, opts ...client.DeleteOption) error
 	// DeleteAllOf deletes all objects of the given type.

@@ -15,39 +15,7 @@ package utils
 import (
 	"reflect"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
-
-func TestGeneratePasswd(t *testing.T) {
-	chars := 12
-	passwd := GeneratePassword(chars)
-	expectedCharsNumber := 12
-
-	if !reflect.DeepEqual(len(passwd), expectedCharsNumber) {
-		t.Errorf("Test failed. Expected %v chars, got %v chars", expectedCharsNumber, len(passwd))
-	}
-
-	passwd1 := GeneratePassword(12)
-	if reflect.DeepEqual(passwd, passwd1) {
-		t.Errorf("Test failed. Passwords are identical, %s: %s", passwd, passwd1)
-	}
-}
-
-func TestGetValue(t *testing.T) {
-	key := "myvalue"
-	defaultValue := "myDefaultValue"
-	var1 := GetValue(key, defaultValue)
-	var2 := GetValue("", defaultValue)
-
-	if !reflect.DeepEqual(var1, key) {
-		t.Errorf("Test failed. Expected '%s', but got '%s'", key, var1)
-	}
-
-	if !reflect.DeepEqual(var2, defaultValue) {
-		t.Errorf("Test failed. Expected '%s', but got '%s'", var2, defaultValue)
-	}
-}
 
 func TestGetImageNameAndTag(t *testing.T) {
 	var tests = []struct {
@@ -84,24 +52,4 @@ func TestWhitelist(t *testing.T) {
 			t.Errorf("Test Failed. Expected '%s', but got '%s'", test.whitelistedHost, actual)
 		}
 	}
-}
-
-func TestMergeMaps(t *testing.T) {
-	map1 := map[string]string{
-		"key1": "value1",
-		"key2": "value2",
-	}
-	map2 := map[string]string{
-		"key3": "value3",
-		"key4": "value4",
-	}
-	expected := map[string]string{
-		"key1": "value1",
-		"key2": "value2",
-		"key3": "value3",
-		"key4": "value4",
-	}
-
-	actual := MergeMaps([]map[string]string{nil, map1, nil, map2, make(map[string]string)})
-	assert.Equal(t, expected, actual)
 }

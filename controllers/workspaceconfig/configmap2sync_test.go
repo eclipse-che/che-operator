@@ -14,6 +14,7 @@ package workspace_config
 
 import (
 	"context"
+	"maps"
 	"sync"
 	"testing"
 
@@ -24,7 +25,6 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
-	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -150,7 +150,7 @@ func TestSyncConfigMap(t *testing.T) {
 	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.Nil(t, err)
 	cm.Annotations = map[string]string{"new-annotation": "new-test"}
-	utils.AddMap(cm.Labels, map[string]string{"new-label": "new-test"})
+	maps.Copy(cm.Labels, map[string]string{"new-label": "new-test"})
 	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), cm)
 	assert.Nil(t, err)
 
@@ -266,8 +266,8 @@ func TestSyncConfigMapShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 	cm = &corev1.ConfigMap{}
 	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.Nil(t, err)
-	utils.AddMap(cm.Labels, map[string]string{"new-label": "new-label-value"})
-	utils.AddMap(cm.Annotations, map[string]string{"new-annotation": "new-annotation-value"})
+	maps.Copy(cm.Labels, map[string]string{"new-label": "new-label-value"})
+	maps.Copy(cm.Annotations, map[string]string{"new-annotation": "new-annotation-value"})
 	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), cm)
 	assert.Nil(t, err)
 
@@ -294,8 +294,8 @@ func TestSyncConfigMapShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInCheNs, cm)
 	assert.Nil(t, err)
 	cm.Data["a"] = "c"
-	utils.AddMap(cm.Labels, map[string]string{"label": "label-value-2"})
-	utils.AddMap(cm.Annotations, map[string]string{"annotation": "annotation-value-2"})
+	maps.Copy(cm.Labels, map[string]string{"label": "label-value-2"})
+	maps.Copy(cm.Annotations, map[string]string{"annotation": "annotation-value-2"})
 	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), cm)
 	assert.Nil(t, err)
 
@@ -380,7 +380,7 @@ func TestSyncConfigMapShouldRespectDWOLabels(t *testing.T) {
 	cm = &corev1.ConfigMap{}
 	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, cm)
 	assert.Nil(t, err)
-	utils.AddMap(cm.Labels, map[string]string{
+	maps.Copy(cm.Labels, map[string]string{
 		dwconstants.DevWorkspaceWatchConfigMapLabel: "true",
 		dwconstants.DevWorkspaceMountLabel:          "true",
 	})
@@ -403,7 +403,7 @@ func TestSyncConfigMapShouldRespectDWOLabels(t *testing.T) {
 	cm = &corev1.ConfigMap{}
 	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInCheNs, cm)
 	assert.Nil(t, err)
-	utils.AddMap(cm.Labels, map[string]string{
+	maps.Copy(cm.Labels, map[string]string{
 		dwconstants.DevWorkspaceWatchConfigMapLabel: "true",
 		dwconstants.DevWorkspaceMountLabel:          "true",
 	})

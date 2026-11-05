@@ -21,8 +21,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/labels"
-
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/yaml"
@@ -30,40 +28,21 @@ import (
 
 var delimiters = []string{",", "|", ";", ":", "#", "\t"}
 
-func Contains(list []string, s string) bool {
-	for _, v := range list {
-		if v == s {
-			return true
-		}
+func RandomString(length int) string {
+	const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+
+	result := make([]byte, length)
+	for i := range length {
+		result[i] = chars[rand.Intn(len(chars))]
 	}
-	return false
+
+	return string(result)
 }
 
-func Remove(list []string, s string) []string {
-	for i, v := range list {
-		if v == s {
-			list = append(list[:i], list[i+1:]...)
-		}
-	}
-	return list
-}
-
-func GeneratePassword(stringLength int) (passwd string) {
-	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-		"abcdefghijklmnopqrstuvwxyz" +
-		"0123456789")
-	length := stringLength
-	buf := make([]rune, length)
-	for i := range buf {
-		buf[i] = chars[rand.Intn(len(chars))]
-	}
-	passwd = string(buf)
-	return passwd
-}
-
-func GetValue(value string, defaultValue string) string {
-	if value == "" {
-		value = defaultValue
+func ValueOrDef[T comparable](value, defaultValue T) T {
+	var zero T
+	if value == zero {
+		return defaultValue
 	}
 	return value
 }
@@ -132,15 +111,6 @@ func GetPullPolicyFromDockerImage(dockerImage string) string {
 	return "IfNotPresent"
 }
 
-func GetMapOrDefault(value map[string]string, defaultValue map[string]string) map[string]string {
-	ret := value
-	if len(value) < 1 {
-		ret = defaultValue
-	}
-
-	return ret
-}
-
 func InNamespaceEventFilter(namespace string) predicate.Predicate {
 	return predicate.Funcs{
 		CreateFunc: func(ce event.CreateEvent) bool {
@@ -156,69 +126,6 @@ func InNamespaceEventFilter(namespace string) predicate.Predicate {
 			return namespace == ge.Object.GetNamespace()
 		},
 	}
-}
-
-func ParseMap(src string) map[string]string {
-	if src == "" {
-		return nil
-	}
-
-	m := map[string]string{}
-	for _, item := range strings.Split(src, ",") {
-		keyValuePair := strings.Split(item, "=")
-		if len(keyValuePair) == 1 {
-			continue
-		}
-
-		key := strings.TrimSpace(keyValuePair[0])
-		value := strings.TrimSpace(keyValuePair[1])
-		if key != "" && value != "" {
-			m[keyValuePair[0]] = keyValuePair[1]
-		}
-	}
-
-	return m
-}
-
-func CloneMap(m map[string]string) map[string]string {
-	if m == nil {
-		return nil
-	}
-
-	result := make(map[string]string)
-	for k, v := range m {
-		result[k] = v
-	}
-	return result
-}
-
-func AddMap(a map[string]string, b map[string]string) {
-	if len(b) > 0 {
-		for k, v := range b {
-			a[k] = v
-		}
-	}
-}
-
-// MergeMaps merges maps into a single one.
-// If a key is present in multiple maps, the value from the last map is used.
-func MergeMaps(maps []map[string]string) map[string]string {
-	result := make(map[string]string)
-	for _, m := range maps {
-		for k, v := range m {
-			result[k] = v
-		}
-	}
-	return result
-}
-
-// Converts label map into plain string
-func FormatLabels(m map[string]string) string {
-	if len(m) == 0 {
-		return ""
-	}
-
-	return labels.FormatLabels(m)
 }
 
 // FindAvailableDelimiter returns the first delimiter from a predefined list (comma, pipe, semicolon,

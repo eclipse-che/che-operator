@@ -13,8 +13,9 @@
 package workspace_config
 
 import (
+	"maps"
+
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
-	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -40,16 +41,15 @@ func (p *secret2Sync) newDstObject() client.Object {
 	dst := p.secret.DeepCopyObject()
 	// We have to set the ObjectMeta fields explicitly, because
 	// existed object contains unnecessary fields that we don't want to copy
+	dstLabels := map[string]string{
+		dwconstants.DevWorkspaceWatchSecretLabel: "true",
+		dwconstants.DevWorkspaceMountLabel:       "true",
+	}
+	maps.Copy(dstLabels, p.secret.GetLabels())
 	dst.(*corev1.Secret).ObjectMeta = metav1.ObjectMeta{
 		Name:        p.secret.GetName(),
 		Annotations: p.secret.GetAnnotations(),
-		Labels: utils.MergeMaps([]map[string]string{
-			{
-				dwconstants.DevWorkspaceWatchSecretLabel: "true",
-				dwconstants.DevWorkspaceMountLabel:       "true",
-			},
-			p.secret.GetLabels(),
-		}),
+		Labels:      dstLabels,
 	}
 
 	return dst.(client.Object)

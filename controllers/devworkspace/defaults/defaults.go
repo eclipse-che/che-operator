@@ -25,16 +25,6 @@ const (
 	ConfigAnnotationComponentName                = configAnnotationPrefix + "component-name"
 )
 
-var (
-	// If this looks weirdly out of place to you from all other labels, then you're completely right!
-	// These labels are the default ones used by che-operator and Che7. Let's keep the defaults
-	// the same for the ease of translation...
-	defaultGatewayConfigLabels = map[string]string{
-		"app":       "che",
-		"component": "che-gateway-config",
-	}
-)
-
 func GetGatewayWorkspaceConfigMapName(workspaceID string) string {
 	return workspaceID + "-route"
 }
@@ -62,5 +52,5 @@ func GetGatewayWorkspaceConfigMapLabels(cluster *chev2.CheCluster) map[string]st
 	if len(cluster.Spec.Networking.Auth.Gateway.ConfigLabels) > 0 {
 		return cluster.Spec.Networking.Auth.Gateway.ConfigLabels
 	}
-	return defaultGatewayConfigLabels
+	return constants.DefaultSingleHostGatewayConfigMapLabels
 }

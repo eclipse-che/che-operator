@@ -67,5 +67,5 @@ func GetOAuthClient(cheCtx *chetypes.CheContext) (*oauth.OAuthClient, error) {
 }
 
 func GetOAuthClientName(cheCtx *chetypes.CheContext) string {
-	return utils.GetValue(cheCtx.Authentication.ClientId, cheCtx.CheCluster.Namespace+"-client")
+	return utils.ValueOrDef(cheCtx.Authentication.ClientId, cheCtx.CheCluster.Namespace+"-client")
 }

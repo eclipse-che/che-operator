@@ -178,7 +178,6 @@ const (
 	CheEclipseOrg         = "che.eclipse.org"
 	WorkspacesConfig      = "workspaces-config"
 	InstallOrUpdateFailed = "InstallOrUpdateFailed"
-	FinalizerSuffix       = "finalizers.che.eclipse.org"
 	PublicCertsDir        = "/public-certs"
 
 	// DevWorkspace
@@ -196,9 +195,7 @@ const (
 	AgentSandboxEnabled       = false
 	AgentSandboxComponentName = "agent-sandbox"
 
-	// Finalizers
-	ContainerBuildFinalizer = "container-build.finalizers.che.eclipse.org"
-	ContainerRunFinalizer   = "che.eclipse.org/container-run"
+	Finalizer = "che.eclipse.org/checluster-controller"
 )
 
 var (
