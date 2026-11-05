@@ -321,19 +321,22 @@ func (s *CheServerReconciler) updateServerEndpointsEnv(cheCtx *chetypes.CheConte
 }
 
 // updateOauthTokenRefreshEnv propagates `spec.gitServices.oauthTokenRefresh` to the Che server
-// as the `che.oauth.token_refresh.<...>` properties. Optional fields that are not set are
-// omitted, so that the Che server applies its own defaults.
+// as the `che.oauth.token_refresh.<...>` properties. Fields that are not set fall back to the
+// operator defaults, so that the properties are always present in the ConfigMap.
 func (s *CheServerReconciler) updateOauthTokenRefreshEnv(cheCtx *chetypes.CheContext, cheEnv map[string]string) {
-	oauthTokenRefresh := cheCtx.CheCluster.Spec.GitServices.OauthTokenRefresh
-	if oauthTokenRefresh == nil {
-		return
+	enabled := constants.DefaultOauthTokenRefreshEnabled
+	periodSec := constants.DefaultOauthTokenRefreshPeriodSec
+
+	if oauthTokenRefresh := cheCtx.CheCluster.Spec.GitServices.OauthTokenRefresh; oauthTokenRefresh != nil {
+		enabled = oauthTokenRefresh.Enabled
+
+		if oauthTokenRefresh.PeriodSec != nil {
+			periodSec = *oauthTokenRefresh.PeriodSec
+		}
 	}
 
-	cheEnv["CHE_OAUTH_TOKEN__REFRESH_ENABLED"] = strconv.FormatBool(oauthTokenRefresh.Enabled)
-
-	if oauthTokenRefresh.PeriodSec != nil {
-		cheEnv["CHE_OAUTH_TOKEN__REFRESH_PERIOD__SEC"] = strconv.FormatInt(int64(*oauthTokenRefresh.PeriodSec), 10)
-	}
+	cheEnv["CHE_OAUTH_TOKEN__REFRESH_ENABLED"] = strconv.FormatBool(enabled)
+	cheEnv["CHE_OAUTH_TOKEN__REFRESH_PERIOD__SEC"] = strconv.FormatInt(int64(periodSec), 10)
 }
 
 func (s *CheServerReconciler) updateOIDCClaimMappings(cheCtx *chetypes.CheContext, cheEnv map[string]string) {

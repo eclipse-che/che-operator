@@ -86,6 +86,8 @@ func TestGetConfigMapData(t *testing.T) {
 				"CHE_OIDC_AUTH__SERVER__URL":                          "http://identity-provider",
 				"CHE_INFRA_OPENSHIFT_OAUTH__ENABLED":                  "true",
 				"CHE_INFRA_OPENSHIFT__KUBERNETES_NAMESPACES_CREATION": "false",
+				"CHE_OAUTH_TOKEN__REFRESH_ENABLED":                    "false",
+				"CHE_OAUTH_TOKEN__REFRESH_PERIOD__SEC":                "600",
 			},
 		},
 	}
@@ -553,15 +555,14 @@ func TestUpdateAdvancedAuthorizationEnv(t *testing.T) {
 
 func TestUpdateOauthTokenRefreshEnv(t *testing.T) {
 	type testCase struct {
-		name          string
-		cheCluster    *chev2.CheCluster
-		expectedData  map[string]string
-		absentEnvVars []string
+		name         string
+		cheCluster   *chev2.CheCluster
+		expectedData map[string]string
 	}
 
 	testCases := []testCase{
 		{
-			name: "Test token refresh is fully configured",
+			name: "Test OAuth token refresh is fully configured",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -582,7 +583,27 @@ func TestUpdateOauthTokenRefreshEnv(t *testing.T) {
 			},
 		},
 		{
-			name: "Test token refresh is disabled",
+			name: "Test OAuth token refresh period defaults when not set",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					GitServices: chev2.CheClusterGitServices{
+						OauthTokenRefresh: &chev2.OauthTokenRefresh{
+							Enabled: true,
+						},
+					},
+				},
+			},
+			expectedData: map[string]string{
+				"CHE_OAUTH_TOKEN__REFRESH_ENABLED":     "true",
+				"CHE_OAUTH_TOKEN__REFRESH_PERIOD__SEC": "600",
+			},
+		},
+		{
+			name: "Test OAuth token refresh is disabled",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -597,23 +618,21 @@ func TestUpdateOauthTokenRefreshEnv(t *testing.T) {
 				},
 			},
 			expectedData: map[string]string{
-				"CHE_OAUTH_TOKEN__REFRESH_ENABLED": "false",
-			},
-			absentEnvVars: []string{
-				"CHE_OAUTH_TOKEN__REFRESH_PERIOD__SEC",
+				"CHE_OAUTH_TOKEN__REFRESH_ENABLED":     "false",
+				"CHE_OAUTH_TOKEN__REFRESH_PERIOD__SEC": "600",
 			},
 		},
 		{
-			name: "Test token refresh nil does nothing",
+			name: "Test OAuth token refresh defaults when not configured",
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 					Name:      "eclipse-che",
 				},
 			},
-			absentEnvVars: []string{
-				"CHE_OAUTH_TOKEN__REFRESH_ENABLED",
-				"CHE_OAUTH_TOKEN__REFRESH_PERIOD__SEC",
+			expectedData: map[string]string{
+				"CHE_OAUTH_TOKEN__REFRESH_ENABLED":     "false",
+				"CHE_OAUTH_TOKEN__REFRESH_PERIOD__SEC": "600",
 			},
 		},
 	}
@@ -629,10 +648,6 @@ func TestUpdateOauthTokenRefreshEnv(t *testing.T) {
 
 			for k, v := range testCase.expectedData {
 				assert.Equal(t, v, cheEnv[k], "key: %s", k)
-			}
-
-			for _, k := range testCase.absentEnvVars {
-				assert.NotContains(t, cheEnv, k)
 			}
 		})
 	}

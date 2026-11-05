@@ -86,6 +86,10 @@ const (
 	DefaultSecurityContextRunAsUser = 1724
 	DefaultCheServiceAccountName    = "che"
 
+	// GitServices
+	DefaultOauthTokenRefreshEnabled   = false
+	DefaultOauthTokenRefreshPeriodSec = int32(600)
+
 	// Certificates
 	DefaultCaBundleCertsCMName             = "ca-certs"
 	DefaultGitSelfSignedCertsConfigMapName = "che-git-self-signed-cert"
