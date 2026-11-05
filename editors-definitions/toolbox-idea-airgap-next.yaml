@@ -85,7 +85,7 @@ commands:
   - id: copy-tbx-config
     exec:
       component: user-container
-      commandLine: /idea-server/copy-tbx-config.sh
+      commandLine: ( /idea-server/copy-tbx-config.sh & )
 events:
   preStart:
     - inject-editor
@@ -106,6 +106,9 @@ components:
       volumeMounts:
         - name: idea-server
           path: /idea-server
+      env:
+        - name: EDITOR_DOWNLOAD_URL_CHE_INCUBATOR_JETBRAINS_SSHD_LATEST
+          value: https://download.jetbrains.com/toolbox/agent/tbcli-linux-x64-${cli_version}.tar.gz
       memoryLimit: 256Mi
       memoryRequest: 32Mi
       cpuLimit: 500m
@@ -156,4 +159,3 @@ components:
 
   - name: sshd-folder
     volume: {}
-
