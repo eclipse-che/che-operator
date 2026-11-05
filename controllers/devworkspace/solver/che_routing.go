@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -153,14 +153,7 @@ func (c *CheRoutingSolver) provisionPodAdditions(objs *solvers.RoutingObjects, c
 		Volumes:    []corev1.Volume{},
 	}
 
-	image := defaults.GetGatewayImage(cheCluster)
-	if cheCluster.Spec.Networking.Auth.Gateway.Deployment != nil {
-		for _, c := range cheCluster.Spec.Networking.Auth.Gateway.Deployment.Containers {
-			if c.Name == constants.GatewayContainerName {
-				image = utils.GetValue(c.Image, image)
-			}
-		}
-	}
+	image := gateway.GetWorkspaceGatewayImage(cheCluster)
 
 	gatewayContainer := &corev1.Container{
 		Name:            wsGatewayName,

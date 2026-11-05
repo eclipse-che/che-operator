@@ -25,7 +25,9 @@ import (
 	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy/devworkspace"
+	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"sigs.k8s.io/yaml"
 
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -215,7 +217,14 @@ func (p *ExternalImagesProvider) parseEditor(rawData []byte) ([]string, error) {
 // 1. the gateway sidecar
 // 2. the project clone init container
 func (p *ExternalImagesProvider) fetchWorkspaceInfrastructureImages(cheCtx *chetypes.CheContext) ([]string, error) {
-	images := []string{defaults.GetGatewayImage(cheCtx.CheCluster)}
+	gatewayImage := gateway.GetWorkspaceGatewayImage(cheCtx.CheCluster)
+
+	// Workspaces get this override applied by deploy.OverrideContainer in the routing solver.
+	if gatewayContainer := cheCtx.CheCluster.Spec.DevEnvironments.GatewayContainer; gatewayContainer != nil {
+		gatewayImage = utils.GetValue(gatewayContainer.Image, gatewayImage)
+	}
+
+	images := []string{gatewayImage}
 
 	projectCloneImage, err := devworkspace.GetProjectCloneImage(cheCtx)
 	if err != nil {

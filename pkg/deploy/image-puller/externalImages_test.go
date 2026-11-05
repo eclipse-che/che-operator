@@ -32,11 +32,12 @@ const testProjectCloneImage = "quay.io/devfile/project-clone:next"
 
 func TestGetExternalImages(t *testing.T) {
 	type testCase struct {
-		name           string
-		editorsFile    string
-		samplesFile    string
-		initObjects    []client.Object
-		expectedImages []string
+		name             string
+		editorsFile      string
+		samplesFile      string
+		initObjects      []client.Object
+		gatewayContainer *chev2.Container
+		expectedImages   []string
 	}
 
 	gatewayImage := defaults.GetGatewayImage(&chev2.CheCluster{})
@@ -62,11 +63,19 @@ func TestGetExternalImages(t *testing.T) {
 			samplesFile:    "image-puller-resources-test/empty.json",
 			expectedImages: []string{gatewayImage},
 		},
+		{
+			name:             "devEnvironments gateway container image",
+			editorsFile:      "image-puller-resources-test/empty.json",
+			samplesFile:      "image-puller-resources-test/empty.json",
+			gatewayContainer: &chev2.Container{Image: "gateway:devenvironments"},
+			expectedImages:   []string{"gateway:devenvironments"},
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			cheCtx := test.NewCtxBuilder().WithObjects(tc.initObjects...).Build()
+			cheCtx.CheCluster.Spec.DevEnvironments.GatewayContainer = tc.gatewayContainer
 
 			editorsEndpointUrl := getDashboardEditorsInternalAPIUrl(cheCtx)
 			samplesEndpointUrl := getDashboardSamplesInternalAPIUrl(cheCtx)
