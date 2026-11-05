@@ -1108,7 +1108,7 @@ type OauthTokenRefresh struct {
 	// Enables the background job that refreshes OAuth tokens before they expire.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:default:=false
-	Enabled bool `json:"enabled"`
+	Enabled *bool `json:"enabled"`
 	// How often the refresh job runs, in seconds. Each run scans the personal
 	// access token Secrets in all user namespaces.
 	// +optional
