@@ -261,7 +261,7 @@ func OverrideContainer(
 	}
 
 	// Image
-	container.Image = utils.GetValue(overrideSettings.Image, container.Image)
+	container.Image = utils.ValueOrDef(overrideSettings.Image, container.Image)
 	if overrideSettings.ImagePullPolicy != "" {
 		container.ImagePullPolicy = overrideSettings.ImagePullPolicy
 	} else if overrideSettings.Image != "" || container.ImagePullPolicy == "" {

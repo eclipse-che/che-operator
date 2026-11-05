@@ -15,6 +15,7 @@ package v1
 import (
 	"context"
 	"fmt"
+	"maps"
 	"strconv"
 	"strings"
 
@@ -143,7 +144,7 @@ func (src *CheCluster) convertTo_DevEnvironments(dst *chev2.CheCluster) error {
 
 	dst.Spec.DevEnvironments.DefaultNamespace.Template = src.Spec.Server.WorkspaceNamespaceDefault
 	dst.Spec.DevEnvironments.DefaultNamespace.AutoProvision = src.Spec.Server.AllowAutoProvisionUserNamespace
-	dst.Spec.DevEnvironments.NodeSelector = utils.CloneMap(src.Spec.Server.WorkspacePodNodeSelector)
+	dst.Spec.DevEnvironments.NodeSelector = maps.Clone(src.Spec.Server.WorkspacePodNodeSelector)
 
 	dst.Spec.DevEnvironments.Tolerations = append(dst.Spec.DevEnvironments.Tolerations, src.Spec.Server.WorkspacePodTolerations...)
 
@@ -183,7 +184,7 @@ func (src *CheCluster) convertTo_Networking(dst *chev2.CheCluster) error {
 	if infrastructure.IsOpenShift() {
 		dst.Spec.Networking = chev2.CheClusterSpecNetworking{
 			Labels:        utils.ParseMap(src.Spec.Server.CheServerRoute.Labels),
-			Annotations:   utils.CloneMap(src.Spec.Server.CheServerRoute.Annotations),
+			Annotations:   maps.Clone(src.Spec.Server.CheServerRoute.Annotations),
 			Hostname:      src.Spec.Server.CheHost,
 			Domain:        src.Spec.Server.CheServerRoute.Domain,
 			TlsSecretName: src.Spec.Server.CheHostTLSSecret,
@@ -232,7 +233,7 @@ func (src *CheCluster) convertTo_Networking_Auth(dst *chev2.CheCluster) error {
 }
 
 func (src *CheCluster) convertTo_Networking_Auth_Gateway(dst *chev2.CheCluster) error {
-	dst.Spec.Networking.Auth.Gateway.ConfigLabels = utils.CloneMap(src.Spec.Server.SingleHostGatewayConfigMapLabels)
+	dst.Spec.Networking.Auth.Gateway.ConfigLabels = maps.Clone(src.Spec.Server.SingleHostGatewayConfigMapLabels)
 
 	containers2add := append([]*chev2.Container{},
 		toCheV2ContainerWithImageAndEnv(constants.GatewayContainerName, src.Spec.Server.SingleHostGatewayImage, src.Spec.Auth.GatewayEnv),
@@ -304,7 +305,7 @@ func (src *CheCluster) convertTo_Components_Metrics(dst *chev2.CheCluster) error
 }
 
 func (src *CheCluster) convertTo_Components_CheServer(dst *chev2.CheCluster) error {
-	dst.Spec.Components.CheServer.ExtraProperties = utils.CloneMap(src.Spec.Server.CustomCheProperties)
+	dst.Spec.Components.CheServer.ExtraProperties = maps.Clone(src.Spec.Server.CustomCheProperties)
 	dst.Spec.Components.CheServer.LogLevel = src.Spec.Server.CheLogLevel
 	if src.Spec.Server.CheClusterRoles != "" {
 		dst.Spec.Components.CheServer.ClusterRoles = strings.Split(src.Spec.Server.CheClusterRoles, ",")

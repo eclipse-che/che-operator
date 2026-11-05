@@ -51,11 +51,11 @@ func getServiceMonitorInterval(cheCtx *chetypes.CheContext, name, namespace stri
 }
 
 func getOpenShiftMonitoringNamespace() string {
-	return utils.GetValue(os.Getenv("CHE_OPERATOR__OPENSHIFT_MONITORING_NAMESPACE"), openShiftMonitoringNamespace)
+	return utils.ValueOrDef(os.Getenv("CHE_OPERATOR__OPENSHIFT_MONITORING_NAMESPACE"), openShiftMonitoringNamespace)
 }
 
 func getPrometheusServiceAccount() string {
-	return utils.GetValue(os.Getenv("CHE_OPERATOR__PROMETHEUS_SERVICE_ACCOUNT"), prometheusServiceAccount)
+	return utils.ValueOrDef(os.Getenv("CHE_OPERATOR__PROMETHEUS_SERVICE_ACCOUNT"), prometheusServiceAccount)
 }
 
 func getServiceMonitorWithIgnoredIntervalDiffs() cmp.Options {

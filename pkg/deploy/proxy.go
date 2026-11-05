@@ -88,7 +88,7 @@ func ReadCheClusterProxyConfiguration(cheCtx *chetypes.CheContext) (*chetypes.Pr
 	proxyUser := ""
 	proxyPassword := ""
 
-	proxyCredentialsSecretName := utils.GetValue(cheCtx.CheCluster.Spec.Components.CheServer.Proxy.CredentialsSecretName, constants.DefaultProxyCredentialsSecret)
+	proxyCredentialsSecretName := utils.ValueOrDef(cheCtx.CheCluster.Spec.Components.CheServer.Proxy.CredentialsSecretName, constants.DefaultProxyCredentialsSecret)
 	proxyCredentialsSecret := &corev1.Secret{}
 	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
 		cheCtx.Context,

@@ -44,8 +44,6 @@ var (
 )
 
 const (
-	finalizerName = "kubernetesimagepullers.finalizers.che.eclipse.org"
-
 	defaultConfigMapName  = "k8s-image-puller"
 	defaultDeploymentName = "kubernetes-image-puller"
 )
@@ -97,11 +95,6 @@ func (ip *ImagePuller) Finalize(cheCtx *chetypes.CheContext) error {
 }
 
 func (ip *ImagePuller) uninstallImagePuller(cheCtx *chetypes.CheContext) error {
-	// Keep it here for backward compatibility
-	if err := deploy.DeleteFinalizer(cheCtx, finalizerName); err != nil {
-		return err
-	}
-
 	if infrastructure.IsKubernetesImagePullerEnabled(cheCtx.ClusterAPI.DiscoveryClient) {
 		key := types.NamespacedName{
 			Namespace: cheCtx.CheCluster.Namespace,
@@ -141,8 +134,8 @@ func (ip *ImagePuller) syncKubernetesImagePuller(externalImages []string, cheCtx
 
 	// Set default values to avoid syncing object on every loop
 	// See https://github.com/che-incubator/kubernetes-image-puller-operator/blob/main/controllers/kubernetesimagepuller_controller.go
-	imagePuller.Spec.ConfigMapName = utils.GetValue(imagePuller.Spec.ConfigMapName, defaultConfigMapName)
-	imagePuller.Spec.DeploymentName = utils.GetValue(imagePuller.Spec.DeploymentName, defaultDeploymentName)
+	imagePuller.Spec.ConfigMapName = utils.ValueOrDef(imagePuller.Spec.ConfigMapName, defaultConfigMapName)
+	imagePuller.Spec.DeploymentName = utils.ValueOrDef(imagePuller.Spec.DeploymentName, defaultDeploymentName)
 	if strings.TrimSpace(imagePuller.Spec.Images) == "" {
 		imagePuller.Spec.Images = convertToSpecField(externalImages)
 	}

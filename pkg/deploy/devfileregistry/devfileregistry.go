@@ -13,11 +13,11 @@
 package devfileregistry
 
 import (
-	"context"
 	"encoding/json"
 
 	v2 "github.com/eclipse-che/che-operator/api/v2"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -27,7 +27,6 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -81,7 +80,7 @@ func (d *DevfileRegistryReconciler) Reconcile(cheCtx *chetypes.CheContext) (reco
 				}
 			}
 
-			if err := cheCtx.ClusterAPI.Client.Update(context.TODO(), cheCtx.CheCluster); err != nil {
+			if err := resources.CheCluster.Sync(cheCtx); err != nil {
 				return reconcile.Result{}, false, err
 			}
 		} else {
@@ -93,7 +92,7 @@ func (d *DevfileRegistryReconciler) Reconcile(cheCtx *chetypes.CheContext) (reco
 		}
 
 		cheCtx.CheCluster.Status.DevfileRegistryURL = ""
-		_ = deploy.UpdateCheCRStatus(cheCtx, "DevfileRegistryURL", "")
+		_ = resources.CheCluster.SyncStatus(cheCtx)
 	}
 
 	return reconcile.Result{}, true, nil
