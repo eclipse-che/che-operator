@@ -22,8 +22,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const projectCloneImageEnvName = "RELATED_IMAGE_project_clone"
-
 // GetProjectCloneImage returns the image of the project clone init container that the
 // DevWorkspace Operator adds to workspace pods. Unless overridden in the CheCluster, the image
 // is read from the running DevWorkspace Operator. Returns an empty string if it is not found.
@@ -61,7 +59,7 @@ func GetProjectCloneImage(cheCtx *chetypes.CheContext) (string, error) {
 
 		for _, container := range pod.Spec.Containers {
 			for _, env := range container.Env {
-				if env.Name == projectCloneImageEnvName && env.Value != "" {
+				if env.Name == constants.DevWorkspaceProjectCloneImageEnvName && env.Value != "" {
 					return env.Value, nil
 				}
 			}

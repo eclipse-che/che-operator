@@ -183,6 +183,7 @@ const (
 	DevWorkspaceControllerName             = "devworkspace-controller"
 	DevWorkspaceOperatorName               = "devworkspace-operator"
 	DevWorkspaceServiceAccountName         = "devworkspace-controller-serviceaccount"
+	DevWorkspaceProjectCloneImageEnvName   = "RELATED_IMAGE_project_clone"
 	DefaultContainerBuildSccName           = "container-build"
 	DefaultContainerRunSccName             = "container-run"
 	DefaultDisableContainerRunCapabilities = true

@@ -52,7 +52,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 				Enable: true,
 			}),
 			testCaseFilePath: "image-puller-resources-test/imagepuller_testcase_1.json",
-			initObjects:      []client.Object{newDWOPod()},
+			initObjects:      []client.Object{test.NewDWOPod("devworkspace-controller", testProjectCloneImage)},
 			expectedImagePuller: InitImagePuller(chev1alpha1.KubernetesImagePullerSpec{
 				DeploymentName: defaultDeploymentName,
 				ConfigMapName:  defaultConfigMapName,
@@ -90,7 +90,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 					DeploymentName: defaultDeploymentName,
 					ConfigMapName:  defaultConfigMapName,
 				}),
-				newDWOPod(),
+				test.NewDWOPod("devworkspace-controller", testProjectCloneImage),
 			},
 			expectedImagePuller: InitImagePuller(chev1alpha1.KubernetesImagePullerSpec{
 				DeploymentName: defaultDeploymentName,
