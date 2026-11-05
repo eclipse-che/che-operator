@@ -551,7 +551,7 @@ func TestUpdateAdvancedAuthorizationEnv(t *testing.T) {
 	}
 }
 
-func TestUpdateTokenRefreshEnv(t *testing.T) {
+func TestUpdateOauthTokenRefreshEnv(t *testing.T) {
 	type testCase struct {
 		name          string
 		cheCluster    *chev2.CheCluster
@@ -569,7 +569,7 @@ func TestUpdateTokenRefreshEnv(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					GitServices: chev2.CheClusterGitServices{
-						TokenRefresh: &chev2.TokenRefresh{
+						OauthTokenRefresh: &chev2.OauthTokenRefresh{
 							Enabled:   true,
 							PeriodSec: ptr.To(int32(300)),
 						},
@@ -590,7 +590,7 @@ func TestUpdateTokenRefreshEnv(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					GitServices: chev2.CheClusterGitServices{
-						TokenRefresh: &chev2.TokenRefresh{
+						OauthTokenRefresh: &chev2.OauthTokenRefresh{
 							Enabled: false,
 						},
 					},

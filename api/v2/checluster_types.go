@@ -59,7 +59,7 @@ type CheClusterSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=3
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Git Services"
-	// +kubebuilder:default:={tokenRefresh: {enabled: false, periodSec: 600}}
+	// +kubebuilder:default:={oauthTokenRefresh: {enabled: false, periodSec: 600}}
 	GitServices CheClusterGitServices `json:"gitServices"`
 	// Networking, Che authentication, and TLS configuration.
 	// +optional
@@ -1097,11 +1097,11 @@ type CheClusterGitServices struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="OAuth token refresh"
 	// +kubebuilder:default:={enabled: false, periodSec: 600}
-	TokenRefresh *TokenRefresh `json:"tokenRefresh,omitempty"`
+	OauthTokenRefresh *OauthTokenRefresh `json:"oauthTokenRefresh,omitempty"`
 }
 
-// TokenRefresh configures the background job that refreshes OAuth tokens before they expire.
-type TokenRefresh struct {
+// OauthTokenRefresh configures the background job that refreshes OAuth tokens before they expire.
+type OauthTokenRefresh struct {
 	// Enables the background job that refreshes OAuth tokens before they expire.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:default:=false

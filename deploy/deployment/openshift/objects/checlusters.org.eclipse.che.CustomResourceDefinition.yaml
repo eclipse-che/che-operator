@@ -26342,7 +26342,7 @@ spec:
                 type: object
               gitServices:
                 default:
-                  tokenRefresh:
+                  oauthTokenRefresh:
                     enabled: false
                     periodSec: 600
                 description: A configuration that allows users to work with remote
@@ -26437,7 +26437,7 @@ spec:
                       - secretName
                       type: object
                     type: array
-                  tokenRefresh:
+                  oauthTokenRefresh:
                     default:
                       enabled: false
                       periodSec: 600

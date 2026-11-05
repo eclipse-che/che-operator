@@ -150,7 +150,7 @@ spec:
       - description: Configuration of the background job that refreshes OAuth tokens
           before they expire.
         displayName: OAuth token refresh
-        path: gitServices.tokenRefresh
+        path: gitServices.oauthTokenRefresh
       statusDescriptors:
       - description: Specifies the current phase of the Che deployment.
         displayName: ChePhase
