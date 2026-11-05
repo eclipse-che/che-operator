@@ -23,6 +23,7 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
@@ -63,7 +64,16 @@ func (r *CheClusterDefaulter) Default(_ context.Context, cheCluster *CheCluster)
 	r.setDisableContainerBuildCapabilities(cheCluster)
 	r.setContainerBuildConfiguration(cheCluster)
 
+	r.setOpenVSXRegistryDefault(cheCluster)
+
 	return nil
+}
+
+func (r *CheClusterDefaulter) setOpenVSXRegistryDefault(cheCluster *CheCluster) {
+	if cheCluster.Spec.Components.OpenVSXRegistry.Enable == nil {
+		enabled := defaults.IsOpenVSXRegistryEnabledByDefault()
+		cheCluster.Spec.Components.OpenVSXRegistry.Enable = &enabled
+	}
 }
 
 func (r *CheClusterDefaulter) setDisableContainerBuildCapabilities(cheCluster *CheCluster) {

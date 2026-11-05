@@ -53,7 +53,7 @@ type CheClusterSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=2
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Components"
-	// +kubebuilder:default:={cheServer: {logLevel: INFO, debug: false}, metrics: {enable: true}, openVSXRegistry: {enable: true}}
+	// +kubebuilder:default:={cheServer: {logLevel: INFO, debug: false}, metrics: {enable: true}}
 	Components CheClusterComponents `json:"components"`
 	// A configuration that allows users to work with remote Git repositories.
 	// +optional
@@ -292,7 +292,7 @@ type CheClusterComponents struct {
 	Dashboard Dashboard `json:"dashboard"`
 	// OpenVSX registry configuration.
 	// +optional
-	// +kubebuilder:default:={enable: true, extensionAutoUpdate: {enable: false, schedule: "0 0 * * 0"}}
+	// +kubebuilder:default:={extensionAutoUpdate: {enable: false, schedule: "0 0 * * 0"}}
 	OpenVSXRegistry OpenVSXRegistry `json:"openVSXRegistry"`
 	// Kubernetes Image Puller configuration.
 	// +optional
@@ -535,9 +535,9 @@ type PluginRegistry struct {
 type OpenVSXRegistry struct {
 	// Enables internal OpenVSX registry.
 	// When set to false, the OpenVSX registry resources are deleted, including the database PVC.
+	// Defaults to the value of the CHE_DEFAULT_SPEC_COMPONENTS_OPENVSX_REGISTRY_ENABLED operator environment variable.
 	// +optional
-	// +kubebuilder:default:=true
-	Enable bool `json:"enable"`
+	Enable *bool `json:"enable,omitempty"`
 	// The name of the Kubernetes Secret that contains credentials for the OpenVSX registry database and server.
 	// The Secret must contain the following keys:
 	//   - `database-user`				: PostgreSQL username.
@@ -1405,7 +1405,7 @@ func (c *CheCluster) IsExternalOpenVSXRegistryEnabled() bool {
 }
 
 func (c *CheCluster) IsInternalOpenVSXRegistryEnabled() bool {
-	return c.Spec.Components.OpenVSXRegistry.Enable
+	return ptr.Deref(c.Spec.Components.OpenVSXRegistry.Enable, false)
 }
 
 func (c *CheCluster) IsExtensionAutoUpdateEnabled() bool {

@@ -170,7 +170,7 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 						DisableInternalRegistry: true,
 					},
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
-						Enable: true,
+						Enable: ptr.To(true),
 					},
 				}},
 		}).Build()
