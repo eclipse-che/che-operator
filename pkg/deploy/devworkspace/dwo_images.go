@@ -51,17 +51,29 @@ func GetProjectCloneImage(cheCtx *chetypes.CheContext) (string, error) {
 		return "", fmt.Errorf("failed to list DevWorkspace operator pods in %s: %w", cheCtx.DWONamespace, err)
 	}
 
+	// During a rolling update old and new pods coexist, so the newest active pod is used.
+	var newestPod *corev1.Pod
+
 	for _, item := range items {
 		pod, ok := item.(*corev1.Pod)
-		if !ok {
+		if !ok || pod.DeletionTimestamp != nil ||
+			pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed {
 			continue
 		}
 
-		for _, container := range pod.Spec.Containers {
-			for _, env := range container.Env {
-				if env.Name == constants.DevWorkspaceProjectCloneImageEnvName && env.Value != "" {
-					return env.Value, nil
-				}
+		if newestPod == nil || newestPod.CreationTimestamp.Before(&pod.CreationTimestamp) {
+			newestPod = pod
+		}
+	}
+
+	if newestPod == nil {
+		return "", nil
+	}
+
+	for _, container := range newestPod.Spec.Containers {
+		for _, env := range container.Env {
+			if env.Name == constants.DevWorkspaceProjectCloneImageEnvName && env.Value != "" {
+				return env.Value, nil
 			}
 		}
 	}

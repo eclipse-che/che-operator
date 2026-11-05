@@ -14,10 +14,13 @@ package devworkspace
 
 import (
 	"testing"
+	"time"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -28,6 +31,22 @@ func TestGetProjectCloneImage(t *testing.T) {
 		initObjects           []client.Object
 		expectedImage         string
 	}
+
+	now := time.Now()
+
+	newDWOPod := func(name string, namespace string, image string, created time.Time) *corev1.Pod {
+		pod := test.NewDWOPod(namespace, image)
+		pod.Name = name
+		pod.CreationTimestamp = metav1.NewTime(created)
+		return pod
+	}
+
+	terminatingPod := newDWOPod("dwo-a", "devworkspace-controller", "project-clone:new", now)
+	terminatingPod.DeletionTimestamp = &metav1.Time{Time: now}
+	terminatingPod.Finalizers = []string{"test"}
+
+	failedPod := newDWOPod("dwo-a", "devworkspace-controller", "project-clone:new", now)
+	failedPod.Status.Phase = corev1.PodFailed
 
 	testCases := []testCase{
 		{
@@ -49,6 +68,30 @@ func TestGetProjectCloneImage(t *testing.T) {
 			name:          "DevWorkspace Operator pod in another namespace",
 			initObjects:   []client.Object{test.NewDWOPod("other-namespace", "project-clone:dwo")},
 			expectedImage: "",
+		},
+		{
+			name: "Image from the newest pod during a rolling update",
+			initObjects: []client.Object{
+				newDWOPod("dwo-a", "devworkspace-controller", "project-clone:old", now.Add(-time.Hour)),
+				newDWOPod("dwo-b", "devworkspace-controller", "project-clone:new", now),
+			},
+			expectedImage: "project-clone:new",
+		},
+		{
+			name: "Terminating pod is skipped",
+			initObjects: []client.Object{
+				terminatingPod,
+				newDWOPod("dwo-b", "devworkspace-controller", "project-clone:old", now.Add(-time.Hour)),
+			},
+			expectedImage: "project-clone:old",
+		},
+		{
+			name: "Failed pod is skipped",
+			initObjects: []client.Object{
+				failedPod,
+				newDWOPod("dwo-b", "devworkspace-controller", "project-clone:old", now.Add(-time.Hour)),
+			},
+			expectedImage: "project-clone:old",
 		},
 	}
 
