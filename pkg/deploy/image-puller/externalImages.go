@@ -76,7 +76,7 @@ func (p *ExternalImagesProvider) read(cheCtx *chetypes.CheContext) ([]string, er
 
 	workspaceInfrastructureImages, err := p.fetchWorkspaceInfrastructureImages(cheCtx)
 	if err != nil {
-		return []string{}, err
+		return []string{}, fmt.Errorf("failed to fetch workspace infrastructure images: %w", err)
 	}
 
 	var images []string
