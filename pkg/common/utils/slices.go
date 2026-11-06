@@ -12,6 +12,8 @@
 
 package utils
 
+import "slices"
+
 // Map applies the transform function to each element of the input slice
 // and returns a new slice containing the transformed elements.
 func Map[T any, R any](items []T, transform func(T) R) []R {
@@ -21,4 +23,14 @@ func Map[T any, R any](items []T, transform func(T) R) []R {
 	}
 
 	return result
+}
+
+// AppendUnique appends values to a slice only if they do not already exist.
+func AppendUnique[S ~[]E, E comparable](s S, values ...E) S {
+	for _, v := range values {
+		if !slices.Contains(s, v) {
+			s = append(s, v)
+		}
+	}
+	return s
 }

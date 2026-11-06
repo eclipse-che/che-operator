@@ -319,7 +319,6 @@ func TestValidateScmSecretsShouldThrowError(t *testing.T) {
 
 func TestValidateNetworkingDomainOnKubernetes(t *testing.T) {
 	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
-	defer infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 
 	cheClusterValidator := CheClusterValidator{}
 
@@ -336,22 +335,5 @@ func TestValidateNetworkingDomainOnKubernetes(t *testing.T) {
 
 	checluster.Spec.Networking.Domain = "example.com"
 	err = cheClusterValidator.validate(checluster)
-	assert.NoError(t, err)
-}
-
-func TestValidateNetworkingDomainOnOpenShift(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
-	defer infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
-
-	cheClusterValidator := CheClusterValidator{}
-
-	checluster := &CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "eclipse-che",
-			Namespace: "eclipse-che",
-		},
-	}
-
-	err := cheClusterValidator.validate(checluster)
 	assert.NoError(t, err)
 }

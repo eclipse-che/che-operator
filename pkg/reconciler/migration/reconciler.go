@@ -45,33 +45,23 @@ var (
 //
 // Early versions of this migration also ran broad label-selector sweeps (by 'app.kubernetes.io/instance'
 // and 'app' labels) across many resource types to relabel objects from very old installations. Those phases
-// were dropped: they existed only to cover clusters upgrading from those first versions, and such
-// upgrades are no longer supported, so the sweeps are not needed anymore. Only named objects known
-// to the current operator are migrated.
+// were dropped: they existed only to cover clusters upgrading from those first versions.
+// Only named objects known to the current operator are migrated.
 type MigrationReconciler struct {
 	reconciler.Reconcilable
-	completed bool
 }
 
 func NewReconciler() *MigrationReconciler {
-	return &MigrationReconciler{
-		completed: false,
-	}
+	return &MigrationReconciler{}
 }
 
 func (r *MigrationReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
-	if r.completed {
-		return reconcile.Result{}, true, nil
-	}
-
 	err := r.migrateKnownObjects(cheCtx)
 	if err != nil {
 		return reconcile.Result{},
 			false,
 			fmt.Errorf("failed to migrate labels: %w", err)
 	}
-
-	r.completed = true
 
 	return reconcile.Result{}, true, nil
 }
@@ -185,10 +175,17 @@ func (r *MigrationReconciler) migrateObject(cheCtx *chetypes.CheContext, key cli
 	}
 
 	labels := utils.NonNilMap(obj.GetLabels())
+	if labels[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg {
+		return nil
+	}
+
 	labels[constants.KubernetesPartOfLabelKey] = constants.CheEclipseOrg
 	obj.SetLabels(labels)
 
-	if err := cw.Sync(cheCtx.Context, obj); err != nil {
+	opts := &clientwrapper.SyncOptions{
+		SuppressDiff: true,
+	}
+	if err := cw.Sync(cheCtx.Context, obj, opts); err != nil {
 		return err
 	}
 
