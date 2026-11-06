@@ -42,6 +42,12 @@ var (
 // only watches objects labeled with 'app.kubernetes.io/part-of=che.eclipse.org'. Objects created
 // before this labeling scheme was introduced are invisible to the cached client, and thus to the
 // operator, until the label is added.
+//
+// Early versions of this migration also ran broad label-selector sweeps (by 'app.kubernetes.io/instance'
+// and 'app' labels) across many resource types to relabel objects from very old installations. Those phases
+// were dropped: they existed only to cover clusters upgrading from those first versions, and such
+// upgrades are no longer supported, so the sweeps are not needed anymore. Only named objects known
+// to the current operator are migrated.
 type MigrationReconciler struct {
 	reconciler.Reconcilable
 	completed bool

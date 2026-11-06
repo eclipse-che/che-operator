@@ -19,7 +19,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestDefaultsCleaner(t *testing.T) {
+func TestDefaultsUpdater(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "DefaultsCleaner Reconciler Suite")
+	RunSpecs(t, "DefaultsUpdater Reconciler Suite")
 }
