@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package defaultsupdater
+package specmigration
 
 import (
 	"testing"
@@ -19,7 +19,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestDefaultsUpdater(t *testing.T) {
+func TestSpecMigration(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "DefaultsUpdater Reconciler Suite")
+	RunSpecs(t, "SpecMigration Reconciler Suite")
 }
