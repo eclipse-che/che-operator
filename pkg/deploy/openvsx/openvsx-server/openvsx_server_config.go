@@ -13,7 +13,7 @@
 package openvsx_server
 
 import (
-	"context"
+	"fmt"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -34,6 +34,9 @@ func (r *OpenVSXServerReconciler) syncConfigMap(cheCtx *chetypes.CheContext) err
 			Name:      constants.OpenVSXServerComponentName,
 			Namespace: cheCtx.CheCluster.Namespace,
 			Labels:    deploy.GetLabels(constants.OpenVSXServerComponentName),
+			Annotations: map[string]string{
+				constants.OpenVSXServerOriginalApplicationConfig: applicationConfig,
+			},
 		},
 		Data: map[string]string{
 			"application.yml": applicationConfig,
@@ -44,13 +47,49 @@ func (r *OpenVSXServerReconciler) syncConfigMap(cheCtx *chetypes.CheContext) err
 		return err
 	}
 
-	return cheCtx.ClusterAPI.ClientWrapper.CreateIfNotExists(context.TODO(), cm)
+	if err := cheCtx.ClusterAPI.ClientWrapper.CreateIfNotExists(cheCtx.Context, cm); err != nil {
+		return err
+	}
+
+	return r.syncOriginalApplicationConfigAnnotation(cheCtx)
+}
+
+// syncOriginalApplicationConfigAnnotation keeps the original-config annotation up to date
+// on existing ConfigMaps (e.g. after an operator upgrade that changes application.yml).
+func (r *OpenVSXServerReconciler) syncOriginalApplicationConfigAnnotation(cheCtx *chetypes.CheContext) error {
+	cm := &corev1.ConfigMap{}
+	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
+		cheCtx.Context,
+		types.NamespacedName{
+			Name:      constants.OpenVSXServerComponentName,
+			Namespace: cheCtx.CheCluster.Namespace,
+		},
+		cm,
+	)
+	if err != nil || !exists {
+		return err
+	}
+
+	if cm.Annotations[constants.OpenVSXServerOriginalApplicationConfig] == applicationConfig {
+		return nil
+	}
+
+	if cm.Annotations == nil {
+		cm.Annotations = map[string]string{}
+	}
+	cm.Annotations[constants.OpenVSXServerOriginalApplicationConfig] = applicationConfig
+
+	if err := cheCtx.ClusterAPI.Client.Update(cheCtx.Context, cm); err != nil {
+		return fmt.Errorf("failed to update ConfigMap %s/%s: %w", cm.Namespace, cm.Name, err)
+	}
+
+	return nil
 }
 
 func (r *OpenVSXServerReconciler) getConfigRevision(cheCtx *chetypes.CheContext) (string, error) {
 	cm := &corev1.ConfigMap{}
 	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-		context.TODO(),
+		cheCtx.Context,
 		types.NamespacedName{
 			Name:      constants.OpenVSXServerComponentName,
 			Namespace: cheCtx.CheCluster.Namespace,

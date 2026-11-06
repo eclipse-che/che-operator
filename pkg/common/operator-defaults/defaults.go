@@ -49,6 +49,7 @@ var (
 	defaultPluginRegistryOpenVSXURL                         string
 	defaultOpenVSXImage                                     string
 	defaultOpenVSXDatabaseImage                             string
+	defaultOpenVSXRegistryEnabled                           string
 	defaultDashboardHeaderMessageText                       string
 	defaultDevfileRegistryExternalDevfileRegistries         string
 
@@ -114,6 +115,7 @@ func Initialize() {
 
 	defaultOpenVSXImage = os.Getenv(utils.GetArchitectureDependentEnvName("RELATED_IMAGE_openvsx"))
 	defaultOpenVSXDatabaseImage = os.Getenv(utils.GetArchitectureDependentEnvName("RELATED_IMAGE_openvsx_postgres"))
+	defaultOpenVSXRegistryEnabled = os.Getenv("CHE_DEFAULT_SPEC_COMPONENTS_OPENVSX_REGISTRY_ENABLED")
 
 	// Don't get some k8s specific env
 	if !infrastructure.IsOpenShift() {
@@ -187,6 +189,14 @@ func GetOpenVSXDatabaseImage(checluster interface{}) string {
 	}
 
 	return PatchDefaultImageName(checluster, defaultOpenVSXDatabaseImage)
+}
+
+func GetOpenVSXRegistryEnabled() string {
+	if !initialized {
+		Initialize()
+	}
+
+	return defaultOpenVSXRegistryEnabled
 }
 
 func GetGatewayImage(checluster interface{}) string {

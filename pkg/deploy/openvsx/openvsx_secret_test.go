@@ -22,6 +22,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 )
 
 func TestOpenVSXSecretReconciler_CreatesSecretWhenEnabled(t *testing.T) {
@@ -34,7 +35,7 @@ func TestOpenVSXSecretReconciler_CreatesSecretWhenEnabled(t *testing.T) {
 			Spec: chev2.CheClusterSpec{
 				Components: chev2.CheClusterComponents{
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
-						Enable: true,
+						Enable: ptr.To(true),
 					},
 				},
 			},
@@ -46,7 +47,7 @@ func TestOpenVSXSecretReconciler_CreatesSecretWhenEnabled(t *testing.T) {
 
 	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXCredentialsSecret, Namespace: "eclipse-che"}, &corev1.Secret{}))
 
-	cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Enable = false
+	cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Enable = ptr.To(false)
 	test.EnsureReconcile(t, cheCtx, reconciler.Reconcile)
 
 	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXCredentialsSecret, Namespace: "eclipse-che"}, &corev1.Secret{}))

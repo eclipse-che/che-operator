@@ -72,7 +72,7 @@ func TestExtensionAutoUpdateCronJobCreated(t *testing.T) {
 			Spec: chev2.CheClusterSpec{
 				Components: chev2.CheClusterComponents{
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
-						Enable: true,
+						Enable: ptr.To(true),
 						ExtensionAutoUpdate: &chev2.ExtensionAutoUpdate{
 							Enable: ptr.To(true),
 						},
@@ -101,7 +101,7 @@ func TestExtensionAutoUpdateCronJobNotCreatedWhenDisabled(t *testing.T) {
 			Spec: chev2.CheClusterSpec{
 				Components: chev2.CheClusterComponents{
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
-						Enable: true,
+						Enable: ptr.To(true),
 					},
 				},
 			},
@@ -127,7 +127,7 @@ func TestExtensionAutoUpdateCronJobCleanedUpOnDisable(t *testing.T) {
 			Spec: chev2.CheClusterSpec{
 				Components: chev2.CheClusterComponents{
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
-						Enable: true,
+						Enable: ptr.To(true),
 						ExtensionAutoUpdate: &chev2.ExtensionAutoUpdate{
 							Enable: ptr.To(true),
 						},
@@ -165,7 +165,7 @@ func TestExtensionAutoUpdateCronJobSpec(t *testing.T) {
 			Spec: chev2.CheClusterSpec{
 				Components: chev2.CheClusterComponents{
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
-						Enable: true,
+						Enable: ptr.To(true),
 						ExtensionAutoUpdate: &chev2.ExtensionAutoUpdate{
 							Enable:              ptr.To(true),
 							Schedule:            ptr.To(customSchedule),
@@ -222,7 +222,7 @@ func TestExtensionAutoUpdateCronJobNoExcludedExtensions(t *testing.T) {
 			Spec: chev2.CheClusterSpec{
 				Components: chev2.CheClusterComponents{
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
-						Enable: true,
+						Enable: ptr.To(true),
 						ExtensionAutoUpdate: &chev2.ExtensionAutoUpdate{
 							Enable: ptr.To(true),
 						},
@@ -257,7 +257,7 @@ func TestExtensionAutoUpdateCronJobDefaultSchedule(t *testing.T) {
 			Spec: chev2.CheClusterSpec{
 				Components: chev2.CheClusterComponents{
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
-						Enable: true,
+						Enable: ptr.To(true),
 						ExtensionAutoUpdate: &chev2.ExtensionAutoUpdate{
 							Enable: ptr.To(true),
 						},
@@ -286,7 +286,7 @@ func TestExtensionAutoUpdateCronJobNoEngineVersion(t *testing.T) {
 			Spec: chev2.CheClusterSpec{
 				Components: chev2.CheClusterComponents{
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
-						Enable: true,
+						Enable: ptr.To(true),
 						ExtensionAutoUpdate: &chev2.ExtensionAutoUpdate{
 							Enable: ptr.To(true),
 						},
@@ -321,7 +321,7 @@ func TestExtensionAutoUpdateCronJobCleanedUpWhenRegistryDisabled(t *testing.T) {
 			Spec: chev2.CheClusterSpec{
 				Components: chev2.CheClusterComponents{
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
-						Enable: true,
+						Enable: ptr.To(true),
 						ExtensionAutoUpdate: &chev2.ExtensionAutoUpdate{
 							Enable: ptr.To(true),
 						},
@@ -339,7 +339,7 @@ func TestExtensionAutoUpdateCronJobCleanedUpWhenRegistryDisabled(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, exists, "CronJob should exist")
 
-	cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Enable = false
+	cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Enable = ptr.To(false)
 	test.EnsureReconcile(t, cheCtx, reconcileWithReadyDeployment(reconciler))
 
 	assert.False(t,
