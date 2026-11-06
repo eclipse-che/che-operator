@@ -1098,7 +1098,6 @@ type CheClusterGitServices struct {
 	// are refreshed; manually created personal access tokens are not affected.
 	// If not specified, the defaults from the `OauthTokenRefresh` fields are used.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="OAuth token refresh"
 	OauthTokenRefresh *OauthTokenRefresh `json:"oauthTokenRefresh,omitempty"`
 }
 
