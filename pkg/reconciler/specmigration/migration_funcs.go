@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package defaultsupdater
+package specmigration
 
 import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"

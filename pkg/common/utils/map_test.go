@@ -97,6 +97,11 @@ func TestFormatMap(t *testing.T) {
 			m:    map[string]string{"b": "2", "a": "1", "c": "3"},
 			want: "a=1,b=2,c=3",
 		},
+		{
+			name: "with empty values",
+			m:    map[string]string{"a": "", "b": "2", "c": ""},
+			want: "a=,b=2,c=",
+		},
 	}
 
 	for _, tt := range tests {

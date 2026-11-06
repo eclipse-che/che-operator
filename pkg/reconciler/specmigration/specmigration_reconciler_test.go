@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package defaultsupdater
+package specmigration
 
 import (
 	"encoding/json"
@@ -25,7 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("DefaultsUpdaterReconciler", func() {
+var _ = Describe("SpecMigrationReconciler", func() {
 	var cheCtx *chetypes.CheContext
 
 	BeforeEach(func() {
@@ -67,7 +67,7 @@ var _ = Describe("DefaultsUpdaterReconciler", func() {
 
 		// the task is recorded as done in the annotation
 		fields := map[string]string{}
-		Expect(json.Unmarshal([]byte(cheCtx.CheCluster.GetAnnotations()[cheClusterDefaultsUpdateAnnotation]), &fields)).To(Succeed())
+		Expect(json.Unmarshal([]byte(cheCtx.CheCluster.GetAnnotations()[cheClusterSpecMigrationAnnotation]), &fields)).To(Succeed())
 		Expect(fields["spec.devEnvironments.containerRunConfiguration.containerSecurityContext.capabilities.add"]).To(Equal("true"))
 
 		// the second reconcile does not append CHOWN again

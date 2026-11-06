@@ -25,10 +25,10 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/agentsandbox"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/consolelink"
-	"github.com/eclipse-che/che-operator/pkg/reconciler/defaultsupdater"
-	"github.com/eclipse-che/che-operator/pkg/reconciler/migration"
+	"github.com/eclipse-che/che-operator/pkg/reconciler/labelbackfill"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/networkpolicy"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/selfsignedcert"
+	"github.com/eclipse-che/che-operator/pkg/reconciler/specmigration"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/utils/ptr"
@@ -105,8 +105,8 @@ func NewReconciler(
 	reconcilerManager := reconciler.NewReconcilerManager()
 
 	// order does matter
-	reconcilerManager.AddReconciler(migration.NewReconciler())
-	reconcilerManager.AddReconciler(defaultsupdater.NewReconciler())
+	reconcilerManager.AddReconciler(labelbackfill.NewReconciler())
+	reconcilerManager.AddReconciler(specmigration.NewReconciler())
 
 	// we have to expose che endpoint independently of syncing other server
 	// resources since che host is used for dashboard deployment and che config map
