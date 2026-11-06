@@ -270,8 +270,23 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// cleans up all related resources
 	if cheCtx.CheCluster.DeletionTimestamp.IsZero() {
 		if err := resources.CheCluster.AddFinalizer(cheCtx, constants.Finalizer); err != nil {
-			return ctrl.Result{}, err
+			return r.requeueOnConflict(err)
 		}
+	} else {
+		cheCtx.CheCluster.Status.ChePhase = chev2.ClusterPhasePendingDeletion
+		if err := resources.CheCluster.SyncStatus(cheCtx); err != nil {
+			return r.requeueOnConflict(err)
+		}
+		if err := r.reconcilerManager.FinalizeAll(cheCtx); err != nil {
+			return r.requeueOnConflict(err)
+		}
+
+		// Removes remaining finalizers, which prevent CheCluster from deletion
+		if err := resources.CheCluster.RemoveAllFinalizers(cheCtx); err != nil {
+			return r.requeueOnConflict(err)
+		}
+
+		return ctrl.Result{}, nil
 	}
 
 	// Resolve proxy configuration
@@ -297,52 +312,35 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
-	if cheCtx.CheCluster.DeletionTimestamp.IsZero() {
-		result, done, err := r.reconcilerManager.ReconcileAll(cheCtx)
-		if err != nil {
-			if errors.IsConflict(err) {
-				return ctrl.Result{RequeueAfter: time.Second}, nil
-			}
-
-			errMsg := "Failed to reconcile CheCluster resources. The installation is not completed. Check operator logs for details."
-
-			cheCtx.CheCluster.Status.Message = errMsg
-			cheCtx.CheCluster.Status.Reason = constants.InstallOrUpdateFailed
-			if err := resources.CheCluster.SyncStatus(cheCtx); err != nil {
-				return r.requeueOnConflict(err)
-			}
-
-			return result, err
+	result, done, err := r.reconcilerManager.ReconcileAll(cheCtx)
+	if err != nil {
+		if errors.IsConflict(err) {
+			return ctrl.Result{RequeueAfter: time.Second}, nil
 		}
 
-		cheCtx.CheCluster.Status.Reason = ""
-		cheCtx.CheCluster.Status.Message = ""
+		errMsg := "Failed to reconcile CheCluster resources. The installation is not completed. Check operator logs for details."
+
+		cheCtx.CheCluster.Status.Message = errMsg
+		cheCtx.CheCluster.Status.Reason = constants.InstallOrUpdateFailed
 		if err := resources.CheCluster.SyncStatus(cheCtx); err != nil {
 			return r.requeueOnConflict(err)
 		}
 
-		if done {
-			r.Log.Info("Successfully reconciled.")
-			return ctrl.Result{}, nil
-		}
-
-		return result, nil
+		return result, err
 	}
 
-	cheCtx.CheCluster.Status.ChePhase = chev2.ClusterPhasePendingDeletion
+	cheCtx.CheCluster.Status.Reason = ""
+	cheCtx.CheCluster.Status.Message = ""
 	if err := resources.CheCluster.SyncStatus(cheCtx); err != nil {
 		return r.requeueOnConflict(err)
 	}
-	if err := r.reconcilerManager.FinalizeAll(cheCtx); err != nil {
-		return r.requeueOnConflict(err)
+
+	if done {
+		r.Log.Info("Successfully reconciled.")
+		return ctrl.Result{}, nil
 	}
 
-	// Removes remaining finalizers, which prevent CheCluster from deletion
-	if err := resources.CheCluster.RemoveAllFinalizers(cheCtx); err != nil {
-		return r.requeueOnConflict(err)
-	}
-
-	return ctrl.Result{}, nil
+	return result, nil
 }
 
 // requeueOnConflict converts a conflict error into a short requeue,

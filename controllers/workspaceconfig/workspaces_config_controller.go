@@ -677,7 +677,6 @@ func (r *WorkspacesConfigReconciler) getSyncConfig(ctx context.Context, namespac
 		}
 	} else {
 		if err == nil {
-			// wsConfigComponentLabels is a shared package-level map, clone before modifying
 			syncCMLabels := maps.Clone(wsConfigComponentLabels)
 			maps.Copy(syncCMLabels, map[string]string{
 				constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel(),

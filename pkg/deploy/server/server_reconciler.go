@@ -108,6 +108,11 @@ func (s *CheServerReconciler) syncActiveChePhase(cheCtx *chetypes.CheContext) (b
 	}
 
 	if exists {
+		// Returning false here (and in the RollingUpdate branch below) is intentional:
+		// the reconciler is not done until the Che server Deployment is fully available.
+		// This blocks the rest of the pipeline — e.g. setting CheVersion and CheURL —
+		// until Che is actually reachable, so those status fields are only published
+		// once the server is up and serving requests.
 		if cheDeployment.Status.AvailableReplicas == 0 {
 			cheCtx.CheCluster.Status.ChePhase = chev2.ClusterPhaseInactive
 			err := resources.CheCluster.SyncStatus(cheCtx)

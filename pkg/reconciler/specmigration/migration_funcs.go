@@ -17,9 +17,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 )
 
-// addChownCapability appends the `CHOWN` capability to
-// `spec.devEnvironments.containerRunConfiguration.containerSecurityContext.capabilities.add`.
-// The capability is required for workspace containers to run on OpenShift.
+// addChownCapability appends the `CHOWN` capability.
 // Reference issue: https://github.com/eclipse-che/che/issues/23748
 func addChownCapability(cheCtx *chetypes.CheContext) error {
 	runConfiguration := cheCtx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration
