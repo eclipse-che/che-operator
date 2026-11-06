@@ -535,7 +535,6 @@ type PluginRegistry struct {
 type OpenVSXRegistry struct {
 	// Enables internal OpenVSX registry.
 	// When set to false, the OpenVSX registry resources are deleted, including the database PVC.
-	// Defaults to the value of the CHE_DEFAULT_SPEC_COMPONENTS_OPENVSX_REGISTRY_ENABLED operator environment variable.
 	// +optional
 	Enable *bool `json:"enable,omitempty"`
 	// The name of the Kubernetes Secret that contains credentials for the OpenVSX registry database and server.
