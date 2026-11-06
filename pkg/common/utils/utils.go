@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -42,6 +42,13 @@ func RandomString(length int) string {
 func ValueOrDef[T comparable](value, defaultValue T) T {
 	var zero T
 	if value == zero {
+		return defaultValue
+	}
+	return value
+}
+
+func DefaultIfEmpty[K comparable, V any](value, defaultValue map[K]V) map[K]V {
+	if len(value) == 0 {
 		return defaultValue
 	}
 	return value

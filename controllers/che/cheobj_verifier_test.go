@@ -30,7 +30,6 @@ func TestIsTrustedBundleConfigMap(t *testing.T) {
 		initObjects             []client.Object
 		objNamespace            string
 		objLabels               map[string]string
-		watchNamespace          string
 		expectedIsEclipseCheObj bool
 	}
 
@@ -54,14 +53,12 @@ func TestIsTrustedBundleConfigMap(t *testing.T) {
 			name:                    "Cluster scope object",
 			initObjects:             []client.Object{},
 			objNamespace:            "",
-			watchNamespace:          "eclipse-che",
 			expectedIsEclipseCheObj: false,
 		},
 		{
 			name:                    "Object in 'eclipse-che' namespace",
 			initObjects:             []client.Object{},
 			objNamespace:            "eclipse-che",
-			watchNamespace:          "eclipse-che",
 			expectedIsEclipseCheObj: true,
 		},
 		{
@@ -69,35 +66,30 @@ func TestIsTrustedBundleConfigMap(t *testing.T) {
 			initObjects:             []client.Object{},
 			objLabels:               map[string]string{"app.kubernetes.io/part-of": "che.eclipse.org"},
 			objNamespace:            "eclipse-che",
-			watchNamespace:          "eclipse-che",
 			expectedIsEclipseCheObj: false,
 		},
 		{
 			name:                    "Object in another namespace than 'eclipse-che'",
 			initObjects:             []client.Object{},
 			objNamespace:            "test-eclipse-che",
-			watchNamespace:          "eclipse-che",
 			expectedIsEclipseCheObj: false,
 		},
 		{
 			name:                    "Cluster scope object, all-namespaces mode",
 			initObjects:             []client.Object{},
 			objNamespace:            "",
-			watchNamespace:          "eclipse-che",
 			expectedIsEclipseCheObj: false,
 		},
 		{
 			name:                    "Object in 'eclipse-che' namespace, all-namespaces mode",
 			initObjects:             []client.Object{},
 			objNamespace:            "eclipse-che",
-			watchNamespace:          "",
 			expectedIsEclipseCheObj: true,
 		},
 		{
 			name:                    "Object in another namespace than 'eclipse-che', all-namespaces mode",
 			initObjects:             []client.Object{},
 			objNamespace:            "test-eclipse-che",
-			watchNamespace:          "",
 			expectedIsEclipseCheObj: false,
 		},
 	}
@@ -112,7 +104,7 @@ func TestIsTrustedBundleConfigMap(t *testing.T) {
 				newTestObject.Labels = testCase.objLabels
 			}
 
-			isEclipseCheObj, req := IsTrustedBundleConfigMap(cheCtx.ClusterAPI.Client, newTestObject)
+			isEclipseCheObj, req := IsTrustedBundleConfigMap(cheCtx.Context, cheCtx.ClusterAPI.Client, newTestObject)
 
 			assert.Equal(t, testCase.expectedIsEclipseCheObj, isEclipseCheObj)
 			if isEclipseCheObj {
@@ -189,7 +181,7 @@ func TestIsEclipseCheRelatedObj(t *testing.T) {
 			cheCtx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
 
 			testObject.Namespace = testCase.objNamespace
-			isEclipseCheObj, req := IsEclipseCheRelatedObj(cheCtx.ClusterAPI.Client, testObject)
+			isEclipseCheObj, req := IsEclipseCheRelatedObj(cheCtx.Context, cheCtx.ClusterAPI.Client, testObject)
 
 			assert.Equal(t, testCase.expectedIsEclipseCheObj, isEclipseCheObj)
 			if isEclipseCheObj {

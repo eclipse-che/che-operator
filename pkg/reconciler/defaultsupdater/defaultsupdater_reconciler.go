@@ -43,32 +43,32 @@ type updateTask struct {
 var updateTasks = []updateTask{
 	{
 		// No cleanup needed anymore: it was performed long ago.
-		// The entry is kept only to preserve the annotation record.
+		// The entry is kept only for history.
 		field: "spec.devEnvironments.defaultEditor",
 	},
 	{
 		// No cleanup needed anymore: it was performed long ago.
-		// The entry is kept only to preserve the annotation record.
+		// The entry is kept only for history.
 		field: "spec.devEnvironments.defaultComponents",
 	},
 	{
 		// No cleanup needed anymore: it was performed long ago.
-		// The entry is kept only to preserve the annotation record.
+		// The entry is kept only for history.
 		field: "spec.devEnvironments.disableContainerBuildCapabilities",
 	},
 	{
 		// No cleanup needed anymore: it was performed long ago.
-		// The entry is kept only to preserve the annotation record.
+		// The entry is kept only for history.
 		field: "spec.components.dashboard.headerMessage",
 	},
 	{
 		// No cleanup needed anymore: it was performed long ago.
-		// The entry is kept only to preserve the annotation record.
+		// The entry is kept only for history.
 		field: "spec.components.pluginRegistry.openVSXURL",
 	},
 	{
 		// No cleanup needed anymore: it was performed long ago.
-		// The entry is kept only to preserve the annotation record.
+		// The entry is kept only for history.
 		field: "containers.resources",
 	},
 	{
@@ -97,6 +97,9 @@ func (r *DefaultsUpdaterReconciler) Finalize(_ *chetypes.CheContext) error {
 }
 
 func (r *DefaultsUpdaterReconciler) runUpdateTasks(cheCtx *chetypes.CheContext) error {
+	// All updateFunc implementations are idempotent, so it is safe to batch
+	// all tasks into a single sync. A crash before the sync causes a retry on
+	// the next reconcile; no task needs per-task persistence.
 	updated := false
 	fields := r.getCompletedFields(cheCtx)
 

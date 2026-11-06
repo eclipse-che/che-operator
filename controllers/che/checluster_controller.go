@@ -163,7 +163,7 @@ func NewReconciler(
 // SetupWithManager sets up the controller with the Manager.
 func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	var toTrustedBundleConfigMapRequestMapper handler.MapFunc = func(ctx context.Context, obj client.Object) []reconcile.Request {
-		isTrusted, reconcileRequest := IsTrustedBundleConfigMap(r.client, obj)
+		isTrusted, reconcileRequest := IsTrustedBundleConfigMap(ctx, r.client, obj)
 		if isTrusted {
 			return []reconcile.Request{reconcileRequest}
 		}
@@ -171,7 +171,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	var toEclipseCheRelatedObjRequestMapper handler.MapFunc = func(ctx context.Context, obj client.Object) []reconcile.Request {
-		isEclipseCheRelatedObj, reconcileRequest := IsEclipseCheRelatedObj(r.client, obj)
+		isEclipseCheRelatedObj, reconcileRequest := IsEclipseCheRelatedObj(ctx, r.client, obj)
 		if isEclipseCheRelatedObj {
 			return []reconcile.Request{reconcileRequest}
 		}
@@ -179,7 +179,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	var toOperatorManagedObjRequestMapper handler.MapFunc = func(ctx context.Context, obj client.Object) []reconcile.Request {
-		isOperatorManagedObj, reconcileRequest := IsOperatorManaged(r.client, obj)
+		isOperatorManagedObj, reconcileRequest := IsOperatorManaged(ctx, r.client, obj)
 		if isOperatorManagedObj {
 			return []reconcile.Request{reconcileRequest}
 		}
@@ -309,7 +309,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			cheCtx.CheCluster.Status.Message = errMsg
 			cheCtx.CheCluster.Status.Reason = constants.InstallOrUpdateFailed
 			if err := resources.CheCluster.SyncStatus(cheCtx); err != nil {
-				return requeueOnConflict(err)
+				return r.requeueOnConflict(err)
 			}
 
 			return result, err
@@ -318,7 +318,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		cheCtx.CheCluster.Status.Reason = ""
 		cheCtx.CheCluster.Status.Message = ""
 		if err := resources.CheCluster.SyncStatus(cheCtx); err != nil {
-			return requeueOnConflict(err)
+			return r.requeueOnConflict(err)
 		}
 
 		if done {
@@ -331,15 +331,15 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	cheCtx.CheCluster.Status.ChePhase = chev2.ClusterPhasePendingDeletion
 	if err := resources.CheCluster.SyncStatus(cheCtx); err != nil {
-		return requeueOnConflict(err)
+		return r.requeueOnConflict(err)
 	}
 	if err := r.reconcilerManager.FinalizeAll(cheCtx); err != nil {
-		return requeueOnConflict(err)
+		return r.requeueOnConflict(err)
 	}
 
 	// Removes remaining finalizers, which prevent CheCluster from deletion
 	if err := resources.CheCluster.RemoveAllFinalizers(cheCtx); err != nil {
-		return requeueOnConflict(err)
+		return r.requeueOnConflict(err)
 	}
 
 	return ctrl.Result{}, nil
@@ -347,8 +347,9 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 // requeueOnConflict converts a conflict error into a short requeue,
 // and passes any other error through unchanged.
-func requeueOnConflict(err error) (ctrl.Result, error) {
+func (r *CheClusterReconciler) requeueOnConflict(err error) (ctrl.Result, error) {
 	if errors.IsConflict(err) {
+		r.Log.Info("Update conflict, requeuing shortly", "error", err.Error())
 		return ctrl.Result{RequeueAfter: time.Second}, nil
 	}
 	return ctrl.Result{}, err
