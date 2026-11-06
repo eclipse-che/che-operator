@@ -78,4 +78,45 @@ var _ = Describe("SpecMigrationReconciler", func() {
 		capabilities = cheCtx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration.ContainerSecurityContext.Capabilities.Add
 		Expect(capabilities).To(Equal([]corev1.Capability{"NET_BIND_SERVICE", "CHOWN"}))
 	})
+
+	It("should treat a corrupted annotation as empty and rewrite it", func() {
+		// CheURL and CheVersion are set, so Che is being upgraded, not installed
+		cheCluster := &chev2.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   "eclipse-che",
+				Name:        "eclipse-che",
+				Annotations: map[string]string{cheClusterSpecMigrationAnnotation: "{corrupted"},
+			},
+			Status: chev2.CheClusterStatus{
+				CheURL:     "https://che-host",
+				CheVersion: "7.50.0",
+			},
+			Spec: chev2.CheClusterSpec{
+				DevEnvironments: chev2.CheClusterDevEnvironments{
+					ContainerRunConfiguration: &chev2.ContainerRunConfiguration{
+						ContainerSecurityContext: &corev1.SecurityContext{
+							Capabilities: &corev1.Capabilities{
+								Add: []corev1.Capability{"NET_BIND_SERVICE"},
+							},
+						},
+					},
+				},
+			},
+		}
+		cheCtx = test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
+
+		reconciler := NewReconciler()
+		_, done, err := reconciler.Reconcile(cheCtx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(done).To(BeTrue())
+
+		// the tasks are re-evaluated
+		capabilities := cheCtx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration.ContainerSecurityContext.Capabilities.Add
+		Expect(capabilities).To(Equal([]corev1.Capability{"NET_BIND_SERVICE", "CHOWN"}))
+
+		// the annotation is rewritten with valid data
+		fields := map[string]string{}
+		Expect(json.Unmarshal([]byte(cheCtx.CheCluster.GetAnnotations()[cheClusterSpecMigrationAnnotation]), &fields)).To(Succeed())
+		Expect(fields["spec.devEnvironments.containerRunConfiguration.containerSecurityContext.capabilities.add"]).To(Equal("true"))
+	})
 })

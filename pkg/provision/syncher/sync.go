@@ -141,6 +141,13 @@ func SyncObjectStatus(
 
 // GetObject fetches the object with the given name and namespace into obj.
 // It returns false without an error if the object does not exist.
+//
+// It always uses the cached ClientWrapper, and the operator's cache only watches
+// objects labeled with `app.kubernetes.io/part-of: che.eclipse.org` (see `getCacheFunc`
+// in `cmd/main.go`). So it is only correct for objects the operator manages or has
+// backfilled; for arbitrary objects the non-caching client must be used directly.
+// Note that unlike `SyncObject`, the client cannot be selected from the object's
+// labels here: they are only known after the object is fetched.
 func GetObject(
 	cheCtx *chetypes.CheContext,
 	name string,
@@ -160,6 +167,11 @@ func GetObject(
 }
 
 // DeleteObject ensures that the object is deleted in the cluster.
+//
+// It always uses the cached ClientWrapper, and the operator's cache only watches
+// objects labeled with `app.kubernetes.io/part-of: che.eclipse.org` (see `getCacheFunc`
+// in `cmd/main.go`). So it is only correct for objects the operator manages or has
+// backfilled; for arbitrary objects the non-caching client must be used directly.
 func DeleteObject(
 	cheCtx *chetypes.CheContext,
 	name string,

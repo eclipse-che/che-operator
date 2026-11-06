@@ -575,7 +575,6 @@ spec:
                 - patch
                 - watch
                 - list
-                - deletecollection
             - apiGroups:
                 - user.openshift.io
               resources:
