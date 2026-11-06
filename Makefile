@@ -277,6 +277,7 @@ fmt: download-addlicense ## Run go fmt against code.
 		-not -path "./bin/testbin/*" \
 		-not -path "./bundle/stable/*" \
 		-not -path "./config/manager/controller_manager_config.yaml" \
+		-not -path "./pkg/deploy/openvsx/openvsx-server/application.yml" \
 		-not -path "./header-rewrite-traefik-plugin/*" \
 		\( -name '*.sh' -o -name "*.go" -o -name "*.yaml" -o -name "*.yml" \))
 

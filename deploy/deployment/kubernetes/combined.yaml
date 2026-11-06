@@ -12478,7 +12478,6 @@ spec:
                     type: object
                   openVSXRegistry:
                     default:
-                      enable: false
                       extensionAutoUpdate:
                         enable: false
                         schedule: 0 0 * * 0
@@ -15181,7 +15180,6 @@ spec:
                             type: object
                         type: object
                       enable:
-                        default: false
                         description: |-
                           Enables internal OpenVSX registry.
                           When set to false, the OpenVSX registry resources are deleted, including the database PVC.
@@ -30451,6 +30449,8 @@ spec:
           value: che-incubator/che-code/latest
         - name: CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTCOMPONENTS
           value: '[{"name": "universal-developer-image", "container": {"image": "quay.io/devfile/universal-developer-image:ubi9-latest"}}]'
+        - name: CHE_DEFAULT_SPEC_COMPONENTS_OPENVSX_REGISTRY_ENABLED
+          value: "false"
         - name: CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL
           value: https://open-vsx.org
         - name: CHE_DEFAULT_SPEC_COMPONENTS_DEVFILEREGISTRY_EXTERNAL_DEVFILE_REGISTRIES
