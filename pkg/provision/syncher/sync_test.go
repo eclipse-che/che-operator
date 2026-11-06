@@ -90,6 +90,7 @@ var _ = Describe("syncObject", Ordered, func() {
 		actualCheCluster := &chev2.CheCluster{}
 		Expect(env.Client.Get(cheCtx.Context, key, actualCheCluster)).To(Succeed())
 		Expect(actualCheCluster.Finalizers).To(ConsistOf("a.finalizers.che.eclipse.org", "b.finalizers.che.eclipse.org"))
+		resourceVersion := actualCheCluster.ResourceVersion
 
 		// the same finalizers in a different order should not produce an update
 		cheCtx.CheCluster.Finalizers = []string{"b.finalizers.che.eclipse.org", "a.finalizers.che.eclipse.org"}
@@ -98,6 +99,7 @@ var _ = Describe("syncObject", Ordered, func() {
 		actualCheCluster = &chev2.CheCluster{}
 		Expect(env.Client.Get(cheCtx.Context, key, actualCheCluster)).To(Succeed())
 		Expect(actualCheCluster.Finalizers).To(ConsistOf("a.finalizers.che.eclipse.org", "b.finalizers.che.eclipse.org"))
+		Expect(actualCheCluster.ResourceVersion).To(Equal(resourceVersion))
 
 		cheCtx.CheCluster.Finalizers = nil
 		Expect(SyncObject(cheCtx, cheCtx.CheCluster, cheClusterDiffs, false, false)).To(Succeed())
