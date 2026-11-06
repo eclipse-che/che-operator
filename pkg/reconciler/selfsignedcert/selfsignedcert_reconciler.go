@@ -89,8 +89,8 @@ func (s *SelfSignedCertificateReconciler) syncSelfSignedCertificateSecretIfNeede
 	// The certificate chain is not fetched yet, fetch it now.
 	certificateChain, err := s.fetchTLSCertificateChain(cheCtx)
 	if err != nil {
-		if isTimeoutError(err) {
-			logger.Info("Timed out fetching certificate chain from the Che endpoint, retrying")
+		if isRetryableFetchError(err) {
+			logger.Info("Failed to fetch certificate chain from the Che endpoint, retrying", "error", err)
 			return reconcile.Result{RequeueAfter: time.Second}, false, nil
 		}
 

@@ -162,5 +162,5 @@ func (r *SpecMigrationReconciler) getCompletedFields(cheCtx *chetypes.CheContext
 		logger.Error(err, "Failed to unmarshal annotation", "annotation", cheClusterSpecMigrationAnnotation)
 	}
 
-	return fields
+	return utils.NonNilMap(fields)
 }

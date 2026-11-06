@@ -151,11 +151,20 @@ func buildHTTPTransport(cheProxy *chetypes.Proxy) *http.Transport {
 	return httpTransport
 }
 
-func isTimeoutError(err error) bool {
+// isRetryableFetchError reports whether the certificate chain fetch failed with an
+// error that is expected to resolve on its own after the Che endpoint is reachable,
+// e.g. a timeout or a DNS resolution failure while the endpoint route is not
+// propagated yet.
+func isRetryableFetchError(err error) bool {
 	if errors.Is(err, context.DeadlineExceeded) {
 		return true
 	}
 
 	var netErr net.Error
-	return errors.As(err, &netErr) && netErr.Timeout()
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return true
+	}
+
+	var dnsErr *net.DNSError
+	return errors.As(err, &dnsErr)
 }
