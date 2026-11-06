@@ -26325,10 +26325,6 @@ spec:
                     type: object
                 type: object
               gitServices:
-                default:
-                  oauthTokenRefresh:
-                    enabled: false
-                    periodSec: 600
                 description: A configuration that allows users to work with remote
                   Git repositories.
                 properties:
@@ -26422,31 +26418,27 @@ spec:
                       type: object
                     type: array
                   oauthTokenRefresh:
-                    default:
-                      enabled: false
-                      periodSec: 600
                     description: |-
                       Configuration for automatically refreshing Git provider OAuth tokens
                       before they expire, so workspace Git operations don't fail due to
                       expired tokens. Only tokens obtained through Che's OAuth integration
                       are refreshed; manually created personal access tokens are not affected.
+                      If not specified, the defaults from the `OauthTokenRefresh` fields are used.
                     properties:
                       enabled:
-                        default: false
-                        description: Enables the background job that refreshes OAuth
-                          tokens before they expire.
+                        description: |-
+                          Enables the background job that refreshes OAuth tokens before they expire.
+                          The default value is `false`.
                         type: boolean
                       periodSec:
-                        default: 600
                         description: |-
                           How often the refresh job runs, in seconds. Each run scans the personal
                           access token Secrets in all user namespaces.
+                          The default value is `600`.
                         exclusiveMinimum: true
                         format: int32
                         minimum: 0
                         type: integer
-                    required:
-                    - enabled
                     type: object
                 type: object
               networking:

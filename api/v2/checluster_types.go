@@ -59,7 +59,6 @@ type CheClusterSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=3
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Git Services"
-	// +kubebuilder:default:={oauthTokenRefresh: {enabled: false, periodSec: 600}}
 	GitServices CheClusterGitServices `json:"gitServices"`
 	// Networking, Che authentication, and TLS configuration.
 	// +optional
@@ -1097,22 +1096,22 @@ type CheClusterGitServices struct {
 	// before they expire, so workspace Git operations don't fail due to
 	// expired tokens. Only tokens obtained through Che's OAuth integration
 	// are refreshed; manually created personal access tokens are not affected.
+	// If not specified, the defaults from the `OauthTokenRefresh` fields are used.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="OAuth token refresh"
-	// +kubebuilder:default:={enabled: false, periodSec: 600}
 	OauthTokenRefresh *OauthTokenRefresh `json:"oauthTokenRefresh,omitempty"`
 }
 
 // OauthTokenRefresh configures the background job that refreshes OAuth tokens before they expire.
 type OauthTokenRefresh struct {
 	// Enables the background job that refreshes OAuth tokens before they expire.
-	// +kubebuilder:validation:Required
-	// +kubebuilder:default:=false
-	Enabled *bool `json:"enabled"`
+	// The default value is `false`.
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 	// How often the refresh job runs, in seconds. Each run scans the personal
 	// access token Secrets in all user namespaces.
+	// The default value is `600`.
 	// +optional
-	// +kubebuilder:default:=600
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:ExclusiveMinimum=true
 	PeriodSec *int32 `json:"periodSec,omitempty"`
