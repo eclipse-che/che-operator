@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2024 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -13,8 +13,9 @@
 package workspace_config
 
 import (
+	"maps"
+
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
-	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -40,16 +41,15 @@ func (p *configMap2Sync) newDstObject() client.Object {
 	dst := p.cm.DeepCopyObject()
 	// We have to set the ObjectMeta fields explicitly, because
 	// existed object contains unnecessary fields that we don't want to copy
+	dstLabels := map[string]string{
+		dwconstants.DevWorkspaceWatchConfigMapLabel: "true",
+		dwconstants.DevWorkspaceMountLabel:          "true",
+	}
+	maps.Copy(dstLabels, p.cm.GetLabels())
 	dst.(*corev1.ConfigMap).ObjectMeta = metav1.ObjectMeta{
 		Name:        p.cm.GetName(),
 		Annotations: p.cm.GetAnnotations(),
-		Labels: utils.MergeMaps([]map[string]string{
-			{
-				dwconstants.DevWorkspaceWatchConfigMapLabel: "true",
-				dwconstants.DevWorkspaceMountLabel:          "true",
-			},
-			p.cm.GetLabels(),
-		}),
+		Labels:      dstLabels,
 	}
 
 	return dst.(client.Object)

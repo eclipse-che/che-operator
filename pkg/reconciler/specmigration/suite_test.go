@@ -10,16 +10,16 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package agentsandbox
+package specmigration
 
 import (
-	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func GetUserClusterRoleName() string {
-	return defaults.GetCheFlavor() + "-user-agent-sandbox"
-}
-
-func GetUserRoleBindingName() string {
-	return defaults.GetCheFlavor() + "-user-agent-sandbox"
+func TestSpecMigration(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "SpecMigration Reconciler Suite")
 }

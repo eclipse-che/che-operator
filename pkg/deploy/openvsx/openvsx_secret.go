@@ -80,11 +80,11 @@ func (p *OpenVSXSecretReconciler) syncSecret(cheCtx *chetypes.CheContext) error 
 		Data: map[string][]byte{
 			"database-name":           []byte("openvsx"),
 			"database-user":           []byte("openvsx"),
-			"database-password":       []byte(utils.GeneratePassword(16)),
+			"database-password":       []byte(utils.RandomString(16)),
 			"openvsx-publisher-name":  []byte("openvsx-publisher"),
-			"openvsx-publisher-token": []byte(utils.GeneratePassword(32)),
+			"openvsx-publisher-token": []byte(utils.RandomString(32)),
 			"openvsx-admin-name":      []byte("openvsx-admin"),
-			"openvsx-admin-token":     []byte(utils.GeneratePassword(32)),
+			"openvsx-admin-token":     []byte(utils.RandomString(32)),
 		},
 	}
 

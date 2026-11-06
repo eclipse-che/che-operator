@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
@@ -66,6 +67,33 @@ func (k K8sClientWrapper) Sync(
 		return k.doSync(ctx, actual.(client.Object), obj, opts...)
 	} else if err == nil {
 		return k.doSync(ctx, nil, obj, opts...)
+	} else {
+		return err
+	}
+}
+
+func (k K8sClientWrapper) SyncStatus(
+	ctx context.Context,
+	obj client.Object,
+	opts ...SyncOption,
+) error {
+	defer func() {
+		// ensure GVK is set (for original object) when function returns
+		_ = k.ensureGVK(obj)
+	}()
+
+	if err := k.ensureGVK(obj); err != nil {
+		return err
+	}
+
+	actual, err := k.scheme.New(obj.GetObjectKind().GroupVersionKind())
+	if err != nil {
+		return err
+	}
+
+	key := client.ObjectKeyFromObject(obj)
+	if err := k.doGet(ctx, key, actual.(client.Object)); err == nil {
+		return k.doSyncStatus(ctx, actual.(client.Object), obj, opts...)
 	} else {
 		return err
 	}
@@ -218,6 +246,24 @@ func (k K8sClientWrapper) doGetIgnoreNotFound(
 	}
 }
 
+// doGet gets object.
+// Returns nil if object is retrieved otherwise returns error.
+func (k K8sClientWrapper) doGet(
+	ctx context.Context,
+	key client.ObjectKey,
+	obj client.Object,
+	opts ...client.GetOption,
+) error {
+	if err := k.cli.Get(ctx, key, obj, opts...); err == nil {
+		if err = k.ensureGVK(obj); err != nil {
+			return err
+		}
+		return nil
+	} else {
+		return err
+	}
+}
+
 // doCreate creates object.
 // Returns nil if object is created otherwise returns error.
 func (k K8sClientWrapper) doCreate(
@@ -265,9 +311,14 @@ func (k K8sClientWrapper) doSync(
 
 			return k.doCreate(ctx, obj, false)
 		} else {
-			// to be able to update, we need to set the resource version of the object that we know of
-			obj.(metav1.Object).SetResourceVersion(actual.GetResourceVersion())
-
+			// 'obj' already carries a resourceVersion: either it was set when the object
+			// was fetched, or it was refreshed by the API server response of a previous
+			// update (controller-runtime decodes the response back into the object).
+			// 'actual' comes from the informer cache, which may lag behind our own
+			// writes — overwriting 'obj' with a stale RV causes conflicts.
+			if obj.GetResourceVersion() == "" {
+				obj.SetResourceVersion(actual.GetResourceVersion())
+			}
 			mergeMetadata(syncOptions, obj, actual)
 
 			err := k.cli.Update(ctx, obj)
@@ -281,29 +332,48 @@ func (k K8sClientWrapper) doSync(
 	return nil
 }
 
-func mergeMetadata(syncOptions SyncOptions, obj client.Object, actual client.Object) {
-	if syncOptions.MergeLabels {
-		if obj.GetLabels() == nil {
-			obj.SetLabels(map[string]string{})
+func (k K8sClientWrapper) doSyncStatus(
+	ctx context.Context,
+	actual client.Object,
+	obj client.Object,
+	opts ...SyncOption,
+) error {
+	syncOptions := SyncOptions{}
+	syncOptions.ApplyOptions(opts)
+
+	diff := cmp.Diff(actual, obj, syncOptions.DiffOpts...)
+	if len(diff) > 0 {
+		// don't print difference if there are no DiffOpts mainly to avoid huge output
+		if !syncOptions.SuppressDiff && len(syncOptions.DiffOpts) != 0 {
+			fmt.Printf("Difference:\n%s", diff)
 		}
 
-		for k, v := range actual.GetLabels() {
-			if _, exists := obj.GetLabels()[k]; !exists {
-				obj.GetLabels()[k] = v
-			}
+		// 'obj' already carries a resourceVersion: either it was set when the object
+		// was fetched, or it was refreshed by the API server response of a previous
+		// update (controller-runtime decodes the response back into the object).
+		// 'actual' comes from the informer cache, which may lag behind our own
+		// writes — overwriting 'obj' with a stale RV causes conflicts.
+		if obj.(metav1.Object).GetResourceVersion() == "" {
+			obj.(metav1.Object).SetResourceVersion(actual.GetResourceVersion())
 		}
+
+		err := k.cli.Status().Update(ctx, obj)
+		if err == nil {
+			logger.Info("Object updated", "kind", GetObjectType(actual), "namespace", actual.GetNamespace(), "name", actual.GetName())
+		}
+		return err
+	}
+
+	return nil
+}
+
+func mergeMetadata(syncOptions SyncOptions, obj client.Object, actual client.Object) {
+	if syncOptions.MergeLabels {
+		obj.SetLabels(utils.MergeMapsMissingKeys(obj.GetLabels(), actual.GetLabels()))
 	}
 
 	if syncOptions.MergeAnnotations {
-		if obj.GetAnnotations() == nil {
-			obj.SetAnnotations(map[string]string{})
-		}
-
-		for k, v := range actual.GetAnnotations() {
-			if _, exists := obj.GetAnnotations()[k]; !exists {
-				obj.GetAnnotations()[k] = v
-			}
-		}
+		obj.SetAnnotations(utils.MergeMapsMissingKeys(obj.GetAnnotations(), actual.GetAnnotations()))
 	}
 }
 

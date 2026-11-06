@@ -34,6 +34,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	dwdefaults "github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	appsv1 "k8s.io/api/apps/v1"
@@ -288,7 +289,7 @@ func GetConfigmapForGatewayConfig(
 			Namespace: cheCtx.CheCluster.Namespace,
 			Labels: labels.Merge(
 				deploy.GetLabels(gatewayConfigComponentName),
-				utils.GetMapOrDefault(cheCtx.CheCluster.Spec.Networking.Auth.Gateway.ConfigLabels, constants.DefaultSingleHostGatewayConfigMapLabels)),
+				dwdefaults.GetGatewayWorkspaceConfigMapLabels(cheCtx.CheCluster)),
 		},
 		Data: map[string]string{
 			componentName + ".yml": string(gatewayConfigContent),
@@ -364,7 +365,7 @@ func getGatewayRoleBindingSpec(instance *chev2.CheCluster) rbac.RoleBinding {
 }
 
 func generateRandomCookieSecret() []byte {
-	return []byte(base64.StdEncoding.EncodeToString([]byte(utils.GeneratePassword(16))))
+	return []byte(base64.StdEncoding.EncodeToString([]byte(utils.RandomString(16))))
 }
 
 func getGatewayHeaderRewritePluginConfigSpec(
@@ -401,7 +402,7 @@ func getGatewayTraefikConfigSpec(instance *chev2.CheCluster) corev1.ConfigMap {
 	traefikPort := 8081
 	logLevel := constants.DefaultTraefikLogLevel
 	if instance.Spec.Networking.Auth.Gateway.Traefik != nil {
-		logLevel = utils.GetValue(instance.Spec.Networking.Auth.Gateway.Traefik.LogLevel, logLevel)
+		logLevel = utils.ValueOrDef(instance.Spec.Networking.Auth.Gateway.Traefik.LogLevel, logLevel)
 	}
 	data := fmt.Sprintf(`
 entrypoints:
@@ -518,7 +519,7 @@ func getGatewayDeploymentSpec(cheCtx *chetypes.CheContext) (*appsv1.Deployment, 
 }
 
 func getContainersSpec(cheCtx *chetypes.CheContext) []corev1.Container {
-	configLabelsMap := utils.GetMapOrDefault(cheCtx.CheCluster.Spec.Networking.Auth.Gateway.ConfigLabels, constants.DefaultSingleHostGatewayConfigMapLabels)
+	configLabelsMap := dwdefaults.GetGatewayWorkspaceConfigMapLabels(cheCtx.CheCluster)
 	gatewayImage := defaults.GetGatewayImage(cheCtx.CheCluster)
 	configSidecarImage := defaults.GetGatewayConfigSidecarImage(cheCtx.CheCluster)
 	configLabels := labels.FormatLabels(configLabelsMap)

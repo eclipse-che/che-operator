@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -15,12 +15,14 @@ package workspace_config
 import (
 	"context"
 	"fmt"
+	"maps"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
+	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
@@ -130,21 +132,20 @@ func NewWorkspacesConfigReconciler(
 }
 
 func (r *WorkspacesConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	ctx := context.Background()
 	bld := ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.Namespace{}).
-		Watches(&corev1.PersistentVolumeClaim{}, r.watchRules(ctx, true, true)).
-		Watches(&corev1.Secret{}, r.watchRules(ctx, true, true)).
-		Watches(&corev1.ConfigMap{}, r.watchRules(ctx, true, true)).
-		Watches(&corev1.ResourceQuota{}, r.watchRules(ctx, false, true)).
-		Watches(&corev1.LimitRange{}, r.watchRules(ctx, false, true)).
-		Watches(&corev1.ServiceAccount{}, r.watchRules(ctx, false, true)).
-		Watches(&rbacv1.Role{}, r.watchRules(ctx, false, true)).
-		Watches(&rbacv1.RoleBinding{}, r.watchRules(ctx, false, true)).
-		Watches(&networkingv1.NetworkPolicy{}, r.watchRules(ctx, false, true))
+		Watches(&corev1.PersistentVolumeClaim{}, r.watchRules(true, true)).
+		Watches(&corev1.Secret{}, r.watchRules(true, true)).
+		Watches(&corev1.ConfigMap{}, r.watchRules(true, true)).
+		Watches(&corev1.ResourceQuota{}, r.watchRules(false, true)).
+		Watches(&corev1.LimitRange{}, r.watchRules(false, true)).
+		Watches(&corev1.ServiceAccount{}, r.watchRules(false, true)).
+		Watches(&rbacv1.Role{}, r.watchRules(false, true)).
+		Watches(&rbacv1.RoleBinding{}, r.watchRules(false, true)).
+		Watches(&networkingv1.NetworkPolicy{}, r.watchRules(false, true))
 
 	if infrastructure.IsOpenShift() {
-		bld.Watches(&templatev1.Template{}, r.watchRules(ctx, true, false))
+		bld.Watches(&templatev1.Template{}, r.watchRules(true, false))
 	}
 
 	// Use controller.TypedOptions to allow to configure 2 controllers for same object being reconciled
@@ -160,7 +161,7 @@ func (r *WorkspacesConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, nil
 	}
 
-	checluster, err := deploy.FindCheClusterCRInNamespace(r.client, "")
+	checluster, err := resources.CheCluster.Find(ctx, r.client)
 	if err != nil || checluster == nil {
 		return ctrl.Result{}, err
 	}
@@ -193,11 +194,7 @@ func (r *WorkspacesConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 // Establish watch rules for object.
 // cheNamespaceRule - if true, then watch changes in che namespace (source namespace)
 // userNamespaceRule - if true, then watch changes in user namespaces (destination namespaces)
-func (r *WorkspacesConfigReconciler) watchRules(
-	ctx context.Context,
-	cheNamespaceRule bool,
-	userNamespaceRule bool,
-) handler.EventHandler {
+func (r *WorkspacesConfigReconciler) watchRules(cheNamespaceRule bool, userNamespaceRule bool) handler.EventHandler {
 	return handler.EnqueueRequestsFromMapFunc(
 		func(context context.Context, obj client.Object) []reconcile.Request {
 			var eventRules []namespacecache.EventRule
@@ -208,8 +205,8 @@ func (r *WorkspacesConfigReconciler) watchRules(
 						// reconcile rule when workspace config is modified in a che namespace
 						// to update the config in all users` namespaces
 						Check: func(o metav1.Object) bool {
-							cheCluster, _ := deploy.FindCheClusterCRInNamespace(r.client, o.GetNamespace())
-							return hasWSConfigComponentLabels(o) && cheCluster != nil
+							cheCluster, _ := resources.CheCluster.Find(context, r.client)
+							return hasWSConfigComponentLabels(o) && cheCluster != nil && o.GetNamespace() == cheCluster.Namespace
 						},
 						Namespaces: func(o metav1.Object) []string { return r.namespaceCache.GetAllKnownNamespaces() },
 					},
@@ -222,7 +219,7 @@ func (r *WorkspacesConfigReconciler) watchRules(
 						// reconcile rule when workspace config is modified in a user namespace
 						// to revert the config
 						Check: func(o metav1.Object) bool {
-							workspaceInfo, _ := r.namespaceCache.GetNamespaceInfo(ctx, o.GetNamespace())
+							workspaceInfo, _ := r.namespaceCache.GetNamespaceInfo(context, o.GetNamespace())
 							return hasWSConfigComponentLabels(o) &&
 								o.GetName() != syncedWorkspacesConfig &&
 								workspaceInfo != nil &&
@@ -426,15 +423,13 @@ func (r *WorkspacesConfigReconciler) syncObject(syncContext *syncContext) error 
 	// ensure the name is the same as the source object
 	dstObj.SetName(syncContext.object2Sync.getSrcObject().GetName())
 	// set mandatory labels
-	dstObj.SetLabels(utils.MergeMaps(
-		[]map[string]string{
-			dstObj.GetLabels(),
-			{
-				constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
-				constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
-				constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel(),
-			},
-		}))
+	dstLabels := utils.NonNilMap(dstObj.GetLabels())
+	maps.Copy(dstLabels, map[string]string{
+		constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+		constants.KubernetesComponentLabelKey: constants.WorkspacesConfig,
+		constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel(),
+	})
+	dstObj.SetLabels(dstLabels)
 
 	// Removes labels that are not needed in the destination namespace
 	for _, l := range r.labelsToRemoveBeforeSync {
@@ -682,6 +677,10 @@ func (r *WorkspacesConfigReconciler) getSyncConfig(ctx context.Context, namespac
 		}
 	} else {
 		if err == nil {
+			syncCMLabels := maps.Clone(wsConfigComponentLabels)
+			maps.Copy(syncCMLabels, map[string]string{
+				constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel(),
+			})
 			syncCM = &corev1.ConfigMap{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "ConfigMap",
@@ -690,9 +689,7 @@ func (r *WorkspacesConfigReconciler) getSyncConfig(ctx context.Context, namespac
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      syncedWorkspacesConfig,
 					Namespace: namespace,
-					Labels: utils.MergeMaps([]map[string]string{
-						wsConfigComponentLabels,
-						{constants.KubernetesManagedByLabelKey: deploy.GetManagedByLabel()}}),
+					Labels:    syncCMLabels,
 				},
 				Data: map[string]string{},
 			}

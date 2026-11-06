@@ -13,10 +13,12 @@
 package che
 
 import (
+	"context"
+
 	"github.com/eclipse-che/che-operator/pkg/common/chelabels"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -24,13 +26,13 @@ import (
 )
 
 // IsTrustedBundleConfigMap detects whether given config map is the config map with additional CA certificates to be trusted by Che
-func IsTrustedBundleConfigMap(cl client.Client, watchNamespace string, obj client.Object) (bool, ctrl.Request) {
+func IsTrustedBundleConfigMap(ctx context.Context, cl client.Client, obj client.Object) (bool, ctrl.Request) {
 	if obj.GetNamespace() == "" {
 		// ignore cluster scope objects
 		return false, ctrl.Request{}
 	}
 
-	checluster, _ := deploy.FindCheClusterCRInNamespace(cl, watchNamespace)
+	checluster, _ := resources.CheCluster.Find(ctx, cl)
 	if checluster == nil {
 		return false, ctrl.Request{}
 	}
@@ -60,8 +62,8 @@ func IsTrustedBundleConfigMap(cl client.Client, watchNamespace string, obj clien
 	}
 }
 
-func IsOperatorManaged(cl client.Client, watchNamespace string, obj client.Object) (bool, ctrl.Request) {
-	checluster, _ := deploy.FindCheClusterCRInNamespace(cl, watchNamespace)
+func IsOperatorManaged(ctx context.Context, cl client.Client, obj client.Object) (bool, ctrl.Request) {
+	checluster, _ := resources.CheCluster.Find(ctx, cl)
 	if checluster == nil {
 		return false, ctrl.Request{}
 	}
@@ -84,13 +86,13 @@ func IsOperatorManaged(cl client.Client, watchNamespace string, obj client.Objec
 // isEclipseCheRelatedObj indicates if there is an object in a che namespace with the labels:
 // - 'app.kubernetes.io/part-of=che.eclipse.org'
 // - 'app.kubernetes.io/instance=che'
-func IsEclipseCheRelatedObj(cl client.Client, watchNamespace string, obj client.Object) (bool, ctrl.Request) {
+func IsEclipseCheRelatedObj(ctx context.Context, cl client.Client, obj client.Object) (bool, ctrl.Request) {
 	if obj.GetNamespace() == "" {
 		// ignore cluster scope objects
 		return false, ctrl.Request{}
 	}
 
-	checluster, _ := deploy.FindCheClusterCRInNamespace(cl, watchNamespace)
+	checluster, _ := resources.CheCluster.Find(ctx, cl)
 	if checluster == nil {
 		return false, ctrl.Request{}
 	}

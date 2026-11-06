@@ -14,6 +14,7 @@ package workspace_config
 
 import (
 	"context"
+	"maps"
 	"sync"
 	"testing"
 
@@ -21,8 +22,6 @@ import (
 	"k8s.io/utils/ptr"
 
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
-
-	"github.com/eclipse-che/che-operator/pkg/common/utils"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 
@@ -147,8 +146,8 @@ func TestSyncSecrets(t *testing.T) {
 	secret = &corev1.Secret{}
 	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
 	assert.Nil(t, err)
-	utils.AddMap(secret.Annotations, map[string]string{"new-annotation": "new-test"})
-	utils.AddMap(secret.Labels, map[string]string{"new-label": "new-test"})
+	maps.Copy(secret.Annotations, map[string]string{"new-annotation": "new-test"})
+	maps.Copy(secret.Labels, map[string]string{"new-label": "new-test"})
 	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), secret)
 	assert.Nil(t, err)
 
@@ -267,8 +266,8 @@ func TestSyncSecretShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 	secret = &corev1.Secret{}
 	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
 	assert.Nil(t, err)
-	utils.AddMap(secret.Labels, map[string]string{"new-label": "new-label-value"})
-	utils.AddMap(secret.Annotations, map[string]string{"new-annotation": "new-annotation-value"})
+	maps.Copy(secret.Labels, map[string]string{"new-label": "new-label-value"})
+	maps.Copy(secret.Annotations, map[string]string{"new-annotation": "new-annotation-value"})
 	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), secret)
 	assert.Nil(t, err)
 
@@ -295,8 +294,8 @@ func TestSyncSecretShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInCheNs, secret)
 	assert.Nil(t, err)
 	secret.StringData["a"] = "c"
-	utils.AddMap(secret.Labels, map[string]string{"label": "label-value-2"})
-	utils.AddMap(secret.Annotations, map[string]string{"annotation": "annotation-value-2"})
+	maps.Copy(secret.Labels, map[string]string{"label": "label-value-2"})
+	maps.Copy(secret.Annotations, map[string]string{"annotation": "annotation-value-2"})
 	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), secret)
 	assert.Nil(t, err)
 
@@ -371,7 +370,7 @@ func TestSyncSecretShouldRespectDWOLabels(t *testing.T) {
 	secret = &corev1.Secret{}
 	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, secret)
 	assert.Nil(t, err)
-	utils.AddMap(secret.Labels, map[string]string{
+	maps.Copy(secret.Labels, map[string]string{
 		dwconstants.DevWorkspaceWatchSecretLabel: "true",
 		dwconstants.DevWorkspaceMountLabel:       "true",
 	})
@@ -396,7 +395,7 @@ func TestSyncSecretShouldRespectDWOLabels(t *testing.T) {
 	secret = &corev1.Secret{}
 	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInCheNs, secret)
 	assert.Nil(t, err)
-	utils.AddMap(secret.Labels, map[string]string{
+	maps.Copy(secret.Labels, map[string]string{
 		dwconstants.DevWorkspaceWatchSecretLabel: "true",
 		dwconstants.DevWorkspaceMountLabel:       "true",
 	})
