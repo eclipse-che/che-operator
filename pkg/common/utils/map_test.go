@@ -50,9 +50,9 @@ func TestParseMap(t *testing.T) {
 			want: map[string]string{"key1": "value1", "key2": "value2"},
 		},
 		{
-			name: "skips empty key or value",
+			name: "don't skips empty value",
 			src:  "=value1,key2=,=,key3=value3",
-			want: map[string]string{"key3": "value3"},
+			want: map[string]string{"key2": "", "key3": "value3"},
 		},
 		{
 			name: "value containing separator",

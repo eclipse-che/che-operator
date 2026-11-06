@@ -38,7 +38,7 @@ func ParseMap(src string) map[string]string {
 		}
 
 		key, value = strings.TrimSpace(key), strings.TrimSpace(value)
-		if key != "" && value != "" {
+		if key != "" {
 			m[key] = value
 		}
 	}

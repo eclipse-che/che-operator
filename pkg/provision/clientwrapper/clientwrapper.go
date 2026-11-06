@@ -316,8 +316,8 @@ func (k K8sClientWrapper) doSync(
 			// update (controller-runtime decodes the response back into the object).
 			// 'actual' comes from the informer cache, which may lag behind our own
 			// writes — overwriting 'obj' with a stale RV causes conflicts.
-			if obj.(metav1.Object).GetResourceVersion() == "" {
-				obj.(metav1.Object).SetResourceVersion(actual.GetResourceVersion())
+			if obj.GetResourceVersion() == "" {
+				obj.SetResourceVersion(actual.GetResourceVersion())
 			}
 			mergeMetadata(syncOptions, obj, actual)
 

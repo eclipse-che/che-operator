@@ -13,17 +13,15 @@
 package defaultsupdater
 
 import (
-	"slices"
-
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 )
 
-// ensureChownCapability appends the `CHOWN` capability to
-// `spec.devEnvironments.containerRunConfiguration.containerSecurityContext.capabilities.add`
-// when a user has already configured a custom list of added capabilities.
+// addChownCapability appends the `CHOWN` capability to
+// `spec.devEnvironments.containerRunConfiguration.containerSecurityContext.capabilities.add`.
 // The capability is required for workspace containers to run on OpenShift.
 // Reference issue: https://github.com/eclipse-che/che/issues/23748
-func ensureChownCapability(cheCtx *chetypes.CheContext) error {
+func addChownCapability(cheCtx *chetypes.CheContext) error {
 	runConfiguration := cheCtx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration
 	if runConfiguration == nil ||
 		runConfiguration.ContainerSecurityContext == nil ||
@@ -31,18 +29,14 @@ func ensureChownCapability(cheCtx *chetypes.CheContext) error {
 		return nil
 	}
 
-	// Not default empty list.
-	// Probably configured by a user.
+	// Do nothing, it is overridden by a user.
 	if len(runConfiguration.ContainerSecurityContext.Capabilities.Add) == 0 {
 		return nil
 	}
 
-	if slices.Contains(runConfiguration.ContainerSecurityContext.Capabilities.Add, "CHOWN") {
-		return nil
-	}
-
-	runConfiguration.ContainerSecurityContext.Capabilities.Add =
-		append(runConfiguration.ContainerSecurityContext.Capabilities.Add, "CHOWN")
-
+	runConfiguration.ContainerSecurityContext.Capabilities.Add = utils.AppendUnique(
+		runConfiguration.ContainerSecurityContext.Capabilities.Add,
+		"CHOWN",
+	)
 	return nil
 }

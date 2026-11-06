@@ -29,7 +29,7 @@ var logger = ctrl.Log.WithName("defaultsupdater")
 const cheClusterDefaultsUpdateAnnotation = "che.eclipse.org/checluster-defaults-cleanup"
 
 // DefaultsUpdaterReconciler is a migration tool that ensures CheCluster CR fields carry
-// required defaults (e.g. the CHOWN capability) and removes values that were set by
+// required defaults and removes values that were set by
 // the operator in the past as defaults but are not relevant anymore.
 type DefaultsUpdaterReconciler struct {
 	reconciler.Reconcilable
@@ -73,7 +73,7 @@ var updateTasks = []updateTask{
 	},
 	{
 		field:      "spec.devEnvironments.containerRunConfiguration.containerSecurityContext.capabilities.add",
-		updateFunc: ensureChownCapability,
+		updateFunc: addChownCapability,
 	},
 }
 
@@ -124,22 +124,26 @@ func (r *DefaultsUpdaterReconciler) runUpdateTasks(cheCtx *chetypes.CheContext) 
 	}
 
 	if updated {
-		r.setCompletedFields(cheCtx, fields)
+		if err := r.setCompletedFields(cheCtx, fields); err != nil {
+			return err
+		}
 		return resources.CheCluster.Sync(cheCtx)
 	}
 
 	return nil
 }
 
-func (r *DefaultsUpdaterReconciler) setCompletedFields(cheCtx *chetypes.CheContext, fields map[string]string) {
+func (r *DefaultsUpdaterReconciler) setCompletedFields(cheCtx *chetypes.CheContext, fields map[string]string) error {
 	data, err := json.Marshal(fields)
 	if err != nil {
-		logger.Error(err, "Failed to marshal annotation", "annotation", cheClusterDefaultsUpdateAnnotation)
+		return fmt.Errorf("could not marshal fields: %w", err)
 	}
 
 	annotations := utils.NonNilMap(cheCtx.CheCluster.GetAnnotations())
 	annotations[cheClusterDefaultsUpdateAnnotation] = string(data)
 	cheCtx.CheCluster.SetAnnotations(annotations)
+
+	return nil
 }
 
 func (r *DefaultsUpdaterReconciler) getCompletedFields(cheCtx *chetypes.CheContext) map[string]string {
@@ -152,6 +156,9 @@ func (r *DefaultsUpdaterReconciler) getCompletedFields(cheCtx *chetypes.CheConte
 
 	fields := map[string]string{}
 	if err := json.Unmarshal([]byte(data), &fields); err != nil {
+		// Don't break the reconciler on a corrupted annotation: treat it as empty
+		// so the update tasks are simply re-evaluated and the annotation is
+		// rewritten with valid data on the next sync.
 		logger.Error(err, "Failed to unmarshal annotation", "annotation", cheClusterDefaultsUpdateAnnotation)
 	}
 

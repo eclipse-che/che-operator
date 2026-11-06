@@ -92,7 +92,9 @@ func (d *DevfileRegistryReconciler) Reconcile(cheCtx *chetypes.CheContext) (reco
 		}
 
 		cheCtx.CheCluster.Status.DevfileRegistryURL = ""
-		_ = resources.CheCluster.SyncStatus(cheCtx)
+		if err := resources.CheCluster.SyncStatus(cheCtx); err != nil {
+			return reconcile.Result{}, false, err
+		}
 	}
 
 	return reconcile.Result{}, true, nil
