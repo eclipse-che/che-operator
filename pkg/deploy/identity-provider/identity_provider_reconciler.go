@@ -16,20 +16,19 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	"github.com/eclipse-che/che-operator/pkg/reconciler"
-	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/labels"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	oauth "github.com/openshift/api/oauth/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
-
-var logger = ctrl.Log.WithName("identity-provider")
 
 var (
 	oAuthClientDiffOpts = cmp.Options{
@@ -54,23 +53,12 @@ func (ip *IdentityProviderReconciler) Reconcile(cheCtx *chetypes.CheContext) (re
 }
 
 func (ip *IdentityProviderReconciler) Finalize(cheCtx *chetypes.CheContext) error {
-	oauthClient, err := GetOAuthClient(cheCtx)
-	if err != nil {
-		return fmt.Errorf("failed to get OAuthClient: %w", err)
+	opts := &client.DeleteAllOfOptions{
+		ListOptions: client.ListOptions{
+			LabelSelector: labels.SelectorFromSet(map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg}),
+		},
 	}
-
-	if oauthClient != nil {
-		if err := cheCtx.ClusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(
-			cheCtx.Context,
-			types.NamespacedName{Name: oauthClient.Name},
-			&oauth.OAuthClient{},
-		); err != nil {
-			// failed to delete OAuthClient, but it shouldn't prevent us from removing the finalizer
-			logger.Error(err, "Failed to delete OAuthClient", "name", oauthClient.Name)
-		}
-	}
-
-	return nil
+	return cheCtx.ClusterAPI.ClientWrapper.DeleteAllOf(cheCtx.Context, &oauth.OAuthClient{}, opts)
 }
 
 func syncOAuthClient(cheCtx *chetypes.CheContext) error {

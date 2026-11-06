@@ -30,7 +30,6 @@ import (
 
 func TestFinalizeDefaultOAuthClientName(t *testing.T) {
 	oauthClient := GetOAuthClientSpec("eclipse-che-client", "secret", []string{"https://che-host/oauth/callback"}, nil, nil)
-	oauthClient.Labels = map[string]string{}
 
 	checluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -51,7 +50,6 @@ func TestFinalizeDefaultOAuthClientName(t *testing.T) {
 
 func TestFinalizeOAuthClient(t *testing.T) {
 	oauthClient := GetOAuthClientSpec("test", "secret", []string{"https://che-host/oauth/callback"}, nil, nil)
-	oauthClient.Labels = map[string]string{}
 
 	checluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
