@@ -1392,7 +1392,7 @@ spec:
                     description: Maximum number of the running workspaces per user.
                     type: string
                   secondsOfInactivityBeforeIdling:
-                    default: 1800
+                    default: 3600
                     description: |-
                       Idle timeout for workspaces in seconds.
                       This timeout is the duration after which a workspace will be idled if there is no activity.
@@ -20576,7 +20576,7 @@ spec:
                   maxNumberOfWorkspacesPerUser: -1
                   persistUserHome:
                     enabled: true
-                  secondsOfInactivityBeforeIdling: 1800
+                  secondsOfInactivityBeforeIdling: 3600
                   secondsOfRunBeforeIdling: -1
                   startTimeoutSeconds: 300
                   storage:
@@ -25691,7 +25691,7 @@ spec:
                       for workspace pods.
                     type: string
                   secondsOfInactivityBeforeIdling:
-                    default: 1800
+                    default: 3600
                     description: |-
                       Idle timeout for workspaces in seconds.
                       This timeout is the duration after which a workspace will be idled if there is no activity.
