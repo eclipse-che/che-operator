@@ -328,7 +328,9 @@ func (s *CheServerReconciler) updateOauthTokenRefreshEnv(cheCtx *chetypes.CheCon
 	periodSec := constants.DefaultOauthTokenRefreshPeriodSec
 
 	if oauthTokenRefresh := cheCtx.CheCluster.Spec.GitServices.OauthTokenRefresh; oauthTokenRefresh != nil {
-		enabled = oauthTokenRefresh.Enabled
+		if oauthTokenRefresh.Enabled != nil {
+			enabled = *oauthTokenRefresh.Enabled
+		}
 
 		if oauthTokenRefresh.PeriodSec != nil {
 			periodSec = *oauthTokenRefresh.PeriodSec

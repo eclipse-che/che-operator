@@ -571,7 +571,7 @@ func TestUpdateOauthTokenRefreshEnv(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					GitServices: chev2.CheClusterGitServices{
 						OauthTokenRefresh: &chev2.OauthTokenRefresh{
-							Enabled:   true,
+							Enabled:   ptr.To(true),
 							PeriodSec: ptr.To(int32(300)),
 						},
 					},
@@ -592,7 +592,7 @@ func TestUpdateOauthTokenRefreshEnv(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					GitServices: chev2.CheClusterGitServices{
 						OauthTokenRefresh: &chev2.OauthTokenRefresh{
-							Enabled: true,
+							Enabled: ptr.To(true),
 						},
 					},
 				},
@@ -612,7 +612,7 @@ func TestUpdateOauthTokenRefreshEnv(t *testing.T) {
 				Spec: chev2.CheClusterSpec{
 					GitServices: chev2.CheClusterGitServices{
 						OauthTokenRefresh: &chev2.OauthTokenRefresh{
-							Enabled: false,
+							Enabled: ptr.To(false),
 						},
 					},
 				},
