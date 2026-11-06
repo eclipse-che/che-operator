@@ -27,10 +27,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	oauth "github.com/openshift/api/oauth/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
-
-var logger = ctrl.Log.WithName("identity-provider")
 
 var (
 	oAuthClientDiffOpts = cmp.Options{
@@ -59,7 +56,10 @@ func (ip *IdentityProviderReconciler) Finalize(cheCtx *chetypes.CheContext) erro
 		return nil
 	}
 
-	clientName := utils.ValueOrDef(cheCtx.CheCluster.Spec.Networking.Auth.OAuthClientName, cheCtx.CheCluster.Namespace+"-client")
+	clientName := utils.ValueOrDef(
+		cheCtx.CheCluster.Spec.Networking.Auth.OAuthClientName,
+		cheCtx.CheCluster.Namespace+"-client",
+	)
 
 	return cheCtx.ClusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(
 		cheCtx.Context,
