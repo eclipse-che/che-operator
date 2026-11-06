@@ -16,19 +16,21 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	"github.com/eclipse-che/che-operator/pkg/reconciler"
-	"k8s.io/apimachinery/pkg/labels"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	oauth "github.com/openshift/api/oauth/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
+
+var logger = ctrl.Log.WithName("identity-provider")
 
 var (
 	oAuthClientDiffOpts = cmp.Options{
@@ -53,12 +55,17 @@ func (ip *IdentityProviderReconciler) Reconcile(cheCtx *chetypes.CheContext) (re
 }
 
 func (ip *IdentityProviderReconciler) Finalize(cheCtx *chetypes.CheContext) error {
-	opts := &client.DeleteAllOfOptions{
-		ListOptions: client.ListOptions{
-			LabelSelector: labels.SelectorFromSet(map[string]string{constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg}),
-		},
+	if infrastructure.IsOpenShiftExternalAuth() {
+		return nil
 	}
-	return cheCtx.ClusterAPI.ClientWrapper.DeleteAllOf(cheCtx.Context, &oauth.OAuthClient{}, opts)
+
+	clientName := utils.ValueOrDef(cheCtx.CheCluster.Spec.Networking.Auth.OAuthClientName, cheCtx.CheCluster.Namespace+"-client")
+
+	return cheCtx.ClusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(
+		cheCtx.Context,
+		types.NamespacedName{Name: clientName},
+		&oauth.OAuthClient{},
+	)
 }
 
 func syncOAuthClient(cheCtx *chetypes.CheContext) error {

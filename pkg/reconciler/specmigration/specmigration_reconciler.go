@@ -113,7 +113,6 @@ func (r *SpecMigrationReconciler) runMigrationTasks(cheCtx *chetypes.CheContext)
 		}
 
 		if !cheCtx.CheCluster.IsCheBeingInstalled() {
-			// In case of upgrades only
 			if err := task.migrationFunc(cheCtx); err != nil {
 				return err
 			}

@@ -141,6 +141,10 @@ func (r *CheClusterValidator) ensureSingletonCheCluster() error {
 }
 
 func (r *CheClusterValidator) validate(checluster *CheCluster) error {
+	if !checluster.DeletionTimestamp.IsZero() {
+		return nil
+	}
+
 	if err := r.validateOpenVSXRegistry(checluster); err != nil {
 		return err
 	}
