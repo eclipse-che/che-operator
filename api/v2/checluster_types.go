@@ -1098,7 +1098,6 @@ type CheClusterGitServices struct {
 	// expired tokens. Only tokens obtained through Che's OAuth integration
 	// are refreshed; manually created personal access tokens are not affected.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="OAuth token refresh"
 	// +kubebuilder:default:={enabled: false, periodSec: 600}
 	OauthTokenRefresh *OauthTokenRefresh `json:"oauthTokenRefresh,omitempty"`
 }
