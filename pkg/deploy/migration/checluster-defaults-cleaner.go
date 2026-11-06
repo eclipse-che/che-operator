@@ -68,10 +68,6 @@ func NewCheClusterDefaultsCleaner() *CheClusterDefaultsCleaner {
 				doUpdate: cleanUpPluginRegistryOpenVSXURL,
 			},
 			{
-				field:    "spec.components.openVSXRegistry.enable",
-				doUpdate: migrateOpenVSXRegistryEnable,
-			},
-			{
 				field:    "containers.resources",
 				doUpdate: cleanUpContainersResources,
 			},

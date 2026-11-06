@@ -204,17 +204,3 @@ func updateDevEnvironmentsContainerRunConfiguration(cheCtx *chetypes.CheContext)
 
 	return true, nil
 }
-
-// migrateOpenVSXRegistryEnable sets Enable to ptr.To(false) for existing CheCluster CRs where the
-// field was never explicitly stored (nil). This prevents the webhook from inadvertently enabling the
-// internal registry on upgrade when the downstream operator sets
-// CHE_DEFAULT_SPEC_COMPONENTS_OPENVSX_REGISTRY_ENABLED=true.
-// Objects created after the upgrade already receive the webhook value at create time and are not nil.
-func migrateOpenVSXRegistryEnable(cheCtx *chetypes.CheContext) (bool, error) {
-	if cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Enable == nil {
-		cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Enable = ptr.To(false)
-		return true, nil
-	}
-
-	return false, nil
-}

@@ -191,12 +191,12 @@ func GetOpenVSXDatabaseImage(checluster interface{}) string {
 	return PatchDefaultImageName(checluster, defaultOpenVSXDatabaseImage)
 }
 
-func IsOpenVSXRegistryEnabledByDefault() bool {
+func GetOpenVSXRegistryEnabled() string {
 	if !initialized {
 		Initialize()
 	}
 
-	return defaultOpenVSXRegistryEnabled == "true"
+	return defaultOpenVSXRegistryEnabled
 }
 
 func GetGatewayImage(checluster interface{}) string {

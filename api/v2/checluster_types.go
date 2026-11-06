@@ -1405,7 +1405,7 @@ func (c *CheCluster) IsExternalOpenVSXRegistryEnabled() bool {
 }
 
 func (c *CheCluster) IsInternalOpenVSXRegistryEnabled() bool {
-	return ptr.Deref(c.Spec.Components.OpenVSXRegistry.Enable, false)
+	return ptr.Deref(c.Spec.Components.OpenVSXRegistry.Enable, defaults.GetOpenVSXRegistryEnabled() == "true")
 }
 
 func (c *CheCluster) IsExtensionAutoUpdateEnabled() bool {
