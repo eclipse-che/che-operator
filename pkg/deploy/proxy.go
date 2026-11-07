@@ -172,6 +172,41 @@ func removeProtocolPrefix(url string) string {
 	return url
 }
 
+// GetProxyEnvVars returns HTTP proxy environment variables for operand containers.
+// Values come from the resolved CheContext proxy (cluster-wide and/or CheCluster override),
+// matching the variables injected into other components such as the dashboard.
+func GetProxyEnvVars(proxy *chetypes.Proxy) []corev1.EnvVar {
+	if proxy == nil {
+		proxy = &chetypes.Proxy{}
+	}
+	return []corev1.EnvVar{
+		{
+			Name:  "http_proxy",
+			Value: proxy.HttpProxy,
+		},
+		{
+			Name:  "https_proxy",
+			Value: proxy.HttpsProxy,
+		},
+		{
+			Name:  "no_proxy",
+			Value: proxy.NoProxy,
+		},
+		{
+			Name:  "HTTP_PROXY",
+			Value: proxy.HttpProxy,
+		},
+		{
+			Name:  "HTTPS_PROXY",
+			Value: proxy.HttpsProxy,
+		},
+		{
+			Name:  "NO_PROXY",
+			Value: proxy.NoProxy,
+		},
+	}
+}
+
 // ConfigureProxy adds existing proxy configuration into provided transport object.
 func ConfigureProxy(cheCtx *chetypes.CheContext, transport *http.Transport) {
 	config := httpproxy.Config{
