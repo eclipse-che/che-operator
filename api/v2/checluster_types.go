@@ -1226,6 +1226,15 @@ const (
 	RollingUpdate               = "RollingUpdate"
 )
 
+const (
+	// InstallOrUpdateFailed is the Reason indicating that the reconciliation failed
+	// and the installation or update is not completed.
+	InstallOrUpdateFailed = "InstallOrUpdateFailed"
+	// InstallOrUpdateRetrying is the Reason indicating that the reconciliation failed
+	// with a retryable error and will be requeued.
+	InstallOrUpdateRetrying = "InstallOrUpdateRetrying"
+)
+
 // CheClusterStatus defines the observed state of Che installation.
 type CheClusterStatus struct {
 	// Deprecated.

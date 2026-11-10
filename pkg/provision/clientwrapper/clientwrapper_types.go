@@ -71,6 +71,9 @@ type SyncOptions struct {
 	MergeLabels bool
 	// MergeAnnotations can be used to merge annotations from existing object to the new one
 	MergeAnnotations bool
+	// PreserveFinalizers can be used to keep the finalizers of the existing object on update,
+	// so that finalizers owned by other controllers are not stripped
+	PreserveFinalizers bool
 	// SuppressDiff can be used to suppress printing diff when object is not in sync
 	SuppressDiff bool
 	// DiffOpts can be used to customize comparison when object is not in sync
@@ -89,6 +92,10 @@ func (o *SyncOptions) ApplyToSync(so *SyncOptions) {
 
 	if o.MergeAnnotations {
 		so.MergeAnnotations = o.MergeAnnotations
+	}
+
+	if o.PreserveFinalizers {
+		so.PreserveFinalizers = o.PreserveFinalizers
 	}
 
 	if o.SuppressDiff {

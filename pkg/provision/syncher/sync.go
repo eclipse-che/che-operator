@@ -40,14 +40,11 @@ import (
 // SyncObject ensures that the object is up to date in the cluster.
 // Besides the actual sync it:
 //   - selects the client to use: the cached one for objects labeled with
-//     `app.kubernetes.io/part-of: che.eclipse.org` (they are watched by the operator),
-//     the non-caching one otherwise; see `getCacheFunc` in `cmd/main.go`.
-//   - sets the CheCluster as the controller owner if the object lives in the same namespace as the CR
-//     (cross-namespace owner references are not supported by Kubernetes);
+//     `app.kubernetes.io/part-of: che.eclipse.org`; see `getCacheFunc` in `cmd/main.go`.
+//   - sets the CheCluster as the controller owner if the object lives in the same namespace as the CR.
 //   - builds the sync options: existing labels and annotations are merged rather than replaced,
 //     and only the labels and annotations defined on the given object participate in the diff,
-//     together with the finalizers and the controller owner reference;
-//     should not be used with `pkg/common/diffs/diffs.go`.
+//     together with the controller owner reference and the finalizers (for the CheCluster itself).
 //   - retries the sync with recreation if the update failed because an immutable field has changed,
 //     but only when `allowForceRecreate` is set.
 func SyncObject(
@@ -74,15 +71,22 @@ func SyncObject(
 		}
 	}
 
+	// The operator fully owns the finalizers of the CheCluster itself, so they are synced
+	// and compared. On every other object, finalizers set by other controllers must be
+	// preserved and kept out of the comparison.
+	preserveFinalizers := !isCheCluster(obj)
+
 	opts := &clientwrapper.SyncOptions{
-		MergeAnnotations: true,
-		MergeLabels:      true,
-		SuppressDiff:     suppressDiff,
+		MergeAnnotations:   true,
+		MergeLabels:        true,
+		PreserveFinalizers: preserveFinalizers,
+		SuppressDiff:       suppressDiff,
 		DiffOpts: cmp.Options{
 			diff,
 			cmpMetadata(
 				slices.Collect(maps.Keys(obj.GetLabels())),
 				slices.Collect(maps.Keys(obj.GetAnnotations())),
+				preserveFinalizers,
 			),
 		},
 	}
@@ -221,20 +225,18 @@ func DeleteAllManaged(
 	return nil
 }
 
-// cmpMetadata compares only the labels and annotations under the given keys, the finalizers,
-// and the controller owner reference. Everything else in the metadata - resourceVersion, uid,
-// managedFields, timestamps and any label or annotation set by another actor - is ignored,
-// which is what lets the merge semantics of `MergeLabels`/`MergeAnnotations` converge instead
-// of producing a diff on every reconcile. Finalizers are compared as a set: Kubernetes treats
-// them as unordered, and the order on the desired object is an implementation detail.
+// cmpMetadata compares only the specified labels and annotations, finalizers (unless
+// preserveFinalizers is false), and the controller owner reference. All other metadata is
+// ignored. Finalizers are compared as a set, since their order is not significant.
 //
-// It is wired as a `metav1.ObjectMeta` transformer behind `cmp.FilterPath`, so it only takes effect
-// for types that embed `metav1.ObjectMeta` at the top level. It is silently a no-op for
-// `*unstructured.Unstructured`. A transformer is used instead of a comparer so that when the
-// metadata differs, the diff output shows only the compared fields rather than the whole ObjectMeta.
+// It is applied as a metav1.ObjectMeta transformer via cmp.FilterPath. It only works
+// with types embedding metav1.ObjectMeta at the top level; it has no effect on
+// *unstructured.Unstructured. Using a transformer ensures diffs show only the
+// compared metadata fields.
 func cmpMetadata(
 	labelKeys []string,
 	annotationKeys []string,
+	preserveFinalizers bool,
 ) cmp.Option {
 	transform := cmp.Transformer("cmpMetadata", func(m metav1.ObjectMeta) comparableMetadata {
 		labels := make(map[string]string, len(labelKeys))
@@ -247,10 +249,15 @@ func cmpMetadata(
 			annotations[key] = m.Annotations[key]
 		}
 
+		var finalizers []string
+		if !preserveFinalizers {
+			finalizers = slices.Sorted(slices.Values(m.Finalizers))
+		}
+
 		return comparableMetadata{
 			Labels:      labels,
 			Annotations: annotations,
-			Finalizers:  slices.Sorted(slices.Values(m.Finalizers)),
+			Finalizers:  finalizers,
 			Controller:  metav1.GetControllerOf(&m),
 		}
 	})

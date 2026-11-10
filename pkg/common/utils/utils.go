@@ -13,10 +13,10 @@
 package utils
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,14 +26,37 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-var delimiters = []string{",", "|", ";", ":", "#", "\t"}
+const (
+	randomStringCharset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+)
 
+var (
+	delimiters = []string{",", "|", ";", ":", "#", "\t"}
+)
+
+// RandomString returns a cryptographically secure random string of the given length,
+// consisting of uppercase and lowercase letters and digits.
 func RandomString(length int) string {
-	const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+	if length <= 0 {
+		return ""
+	}
 
-	result := make([]byte, length)
-	for i := range length {
-		result[i] = chars[rand.Intn(len(chars))]
+	result := make([]byte, 0, length)
+	buf := make([]byte, length)
+	for len(result) < length {
+		// crypto/rand.Read is guaranteed to never fail and to fill the whole buffer
+		_, _ = rand.Read(buf)
+
+		for _, b := range buf {
+			if len(result) == length {
+				break
+			}
+
+			// Rejection sampling to avoid modulo bias
+			if int(b) < len(randomStringCharset)*(256/len(randomStringCharset)) {
+				result = append(result, randomStringCharset[int(b)%len(randomStringCharset)])
+			}
+		}
 	}
 
 	return string(result)

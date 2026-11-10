@@ -174,11 +174,10 @@ const (
 	WorkspacesNamespaceComponentName   = "workspaces-namespace"
 
 	// common
-	CheFlavor             = "che"
-	CheEclipseOrg         = "che.eclipse.org"
-	WorkspacesConfig      = "workspaces-config"
-	InstallOrUpdateFailed = "InstallOrUpdateFailed"
-	PublicCertsDir        = "/public-certs"
+	CheFlavor        = "che"
+	CheEclipseOrg    = "che.eclipse.org"
+	WorkspacesConfig = "workspaces-config"
+	PublicCertsDir   = "/public-certs"
 
 	// DevWorkspace
 	DevWorkspaceControllerName             = "devworkspace-controller"

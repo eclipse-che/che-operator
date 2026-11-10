@@ -167,11 +167,22 @@ func (r *LabelBackfillReconciler) backfillGitTrustedCertsConfigMap(cheCtx *chety
 }
 
 func (r *LabelBackfillReconciler) backfillPartOfLabel(cheCtx *chetypes.CheContext, key client.ObjectKey, obj client.Object) error {
-	cw := cheCtx.ClusterAPI.NonCachingClientWrapper
+	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(cheCtx.Context, key, obj)
+	if err != nil {
+		return fmt.Errorf("failed to get %s %s: %w", clientwrapper.GetObjectType(obj), key.String(), err)
+	} else if exists && obj.GetLabels()[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg {
+		// The cached client only watches objects labeled with 'app.kubernetes.io/part-of=che.eclipse.org',
+		// so in production a cache hit means the object is already labeled and visible to the operator.
+		// The label is still verified explicitly, since the cached client is not label-filtered in tests.
+		return nil
+	}
 
-	exists, err := cw.GetIgnoreNotFound(cheCtx.Context, key, obj)
+	exists, err = cheCtx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(cheCtx.Context, key, obj)
+	if err != nil {
+		return fmt.Errorf("failed to get %s %s: %w", clientwrapper.GetObjectType(obj), key.String(), err)
+	}
 	if !exists {
-		return err
+		return nil
 	}
 
 	labels := utils.NonNilMap(obj.GetLabels())
@@ -185,7 +196,7 @@ func (r *LabelBackfillReconciler) backfillPartOfLabel(cheCtx *chetypes.CheContex
 	opts := &clientwrapper.SyncOptions{
 		SuppressDiff: true,
 	}
-	if err := cw.Sync(cheCtx.Context, obj, opts); err != nil {
+	if err := cheCtx.ClusterAPI.NonCachingClientWrapper.Sync(cheCtx.Context, obj, opts); err != nil {
 		return err
 	}
 

@@ -301,7 +301,7 @@ func (k K8sClientWrapper) doSync(
 	if len(diff) > 0 {
 		// don't print difference if there are no DiffOpts mainly to avoid huge output
 		if !syncOptions.SuppressDiff && len(syncOptions.DiffOpts) != 0 {
-			fmt.Printf("Difference:\n%s", diff)
+			logger.Info(fmt.Sprintf("Difference:\n%s", diff))
 		}
 
 		if syncOptions.ForceRecreate || k.isRecreate(actual.GetObjectKind().GroupVersionKind().Kind) {
@@ -345,7 +345,7 @@ func (k K8sClientWrapper) doSyncStatus(
 	if len(diff) > 0 {
 		// don't print difference if there are no DiffOpts mainly to avoid huge output
 		if !syncOptions.SuppressDiff && len(syncOptions.DiffOpts) != 0 {
-			fmt.Printf("Difference:\n%s", diff)
+			logger.Info(fmt.Sprintf("Difference:\n%s", diff))
 		}
 
 		// 'obj' already carries a resourceVersion: either it was set when the object
@@ -374,6 +374,10 @@ func mergeMetadata(syncOptions SyncOptions, obj client.Object, actual client.Obj
 
 	if syncOptions.MergeAnnotations {
 		obj.SetAnnotations(utils.MergeMapsMissingKeys(obj.GetAnnotations(), actual.GetAnnotations()))
+	}
+
+	if syncOptions.PreserveFinalizers {
+		obj.SetFinalizers(actual.GetFinalizers())
 	}
 }
 

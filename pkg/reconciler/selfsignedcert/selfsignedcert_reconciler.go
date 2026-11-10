@@ -14,7 +14,6 @@ package selfsignedcert
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chelabels"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
@@ -89,11 +88,6 @@ func (s *SelfSignedCertificateReconciler) syncSelfSignedCertificateSecretIfNeede
 	// The certificate chain is not fetched yet, fetch it now.
 	certificateChain, err := s.fetchTLSCertificateChain(cheCtx)
 	if err != nil {
-		if isRetryableFetchError(err) {
-			logger.Info("Failed to fetch certificate chain from the Che endpoint, retrying", "error", err)
-			return reconcile.Result{RequeueAfter: time.Second}, false, nil
-		}
-
 		return reconcile.Result{}, false, err
 	}
 

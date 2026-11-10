@@ -14,9 +14,11 @@ package che
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/eclipse-che/che-operator/pkg/common/cheerrors"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/deploy/metrics"
 	"github.com/eclipse-che/che-operator/pkg/deploy/rbac"
@@ -30,7 +32,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/reconciler/selfsignedcert"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/specmigration"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
@@ -246,7 +248,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	cheCluster := &chev2.CheCluster{}
 	err := r.client.Get(ctx, req.NamespacedName, cheCluster)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if k8serrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
 		r.Log.Error(err, "Failed to get CheCluster")
@@ -312,21 +314,35 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
-	result, done, err := r.reconcilerManager.ReconcileAll(cheCtx)
-	if err != nil {
-		if errors.IsConflict(err) {
-			return ctrl.Result{RequeueAfter: time.Second}, nil
+	result, done, recErr := r.reconcilerManager.ReconcileAll(cheCtx)
+	if recErr != nil {
+		var retryErr *cheerrors.RetryError
+		if errors.As(recErr, &retryErr) {
+			r.Log.Info("Reconcile failed with a retryable error, requeuing", "error", recErr.Error())
+
+			cheCtx.CheCluster.Status.Reason = chev2.InstallOrUpdateRetrying
+			cheCtx.CheCluster.Status.Message = retryErr.Message
+
+			recErr = nil
+			result = ctrl.Result{RequeueAfter: utils.ValueOrDef(retryErr.RequeueAfter, time.Second)}
+		} else if k8serrors.IsConflict(recErr) {
+			r.Log.Info("Reconcile failed with a conflict error, requeuing", "error", recErr.Error())
+
+			// Conflicts are frequent and harmless. Setting InstallOrUpdateRetrying here costs one status write now
+			// and another on the next pass to clear it, so the status flickers.
+
+			recErr = nil
+			result = ctrl.Result{RequeueAfter: time.Second}
+		} else {
+			cheCtx.CheCluster.Status.Reason = chev2.InstallOrUpdateFailed
+			cheCtx.CheCluster.Status.Message = "Failed to reconcile CheCluster, the installation is not completed. Check logs for details."
 		}
 
-		errMsg := "Failed to reconcile CheCluster resources. The installation is not completed. Check operator logs for details."
-
-		cheCtx.CheCluster.Status.Message = errMsg
-		cheCtx.CheCluster.Status.Reason = constants.InstallOrUpdateFailed
 		if err := resources.CheCluster.SyncStatus(cheCtx); err != nil {
-			return r.requeueOnConflict(err)
+			r.Log.Error(err, "Failed to update CheCluster status")
 		}
 
-		return result, err
+		return result, recErr
 	}
 
 	cheCtx.CheCluster.Status.Reason = ""
@@ -346,8 +362,8 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 // requeueOnConflict converts a conflict error into a short requeue,
 // and passes any other error through unchanged.
 func (r *CheClusterReconciler) requeueOnConflict(err error) (ctrl.Result, error) {
-	if errors.IsConflict(err) {
-		r.Log.Info("Update conflict, requeuing shortly", "error", err.Error())
+	if k8serrors.IsConflict(err) {
+		r.Log.Info("Update conflict, requeuing", "error", err.Error())
 		return ctrl.Result{RequeueAfter: time.Second}, nil
 	}
 	return ctrl.Result{}, err

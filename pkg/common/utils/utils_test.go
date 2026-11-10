@@ -14,6 +14,7 @@ package utils
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -31,6 +32,31 @@ func TestGetImageNameAndTag(t *testing.T) {
 	for _, test := range tests {
 		if actualName, actualTag := GetImageNameAndTag(test.input); actualName != test.expectedName || actualTag != test.expectedTag {
 			t.Errorf("Test Failed. Expected '%s' and '%s', but got '%s' and '%s'", test.expectedName, test.expectedTag, actualName, actualTag)
+		}
+	}
+}
+
+func TestRandomString(t *testing.T) {
+	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+
+	if actual := RandomString(0); actual != "" {
+		t.Errorf("Test Failed. Expected empty string for length 0, but got '%s'", actual)
+	}
+
+	if actual := RandomString(-5); actual != "" {
+		t.Errorf("Test Failed. Expected empty string for negative length, but got '%s'", actual)
+	}
+
+	for _, length := range []int{1, 12, 32, 256} {
+		actual := RandomString(length)
+		if len(actual) != length {
+			t.Errorf("Test Failed. Expected string of length %d, but got length %d", length, len(actual))
+		}
+
+		for _, c := range actual {
+			if !strings.ContainsRune(charset, c) {
+				t.Errorf("Test Failed. Expected only charset characters, but got '%c'", c)
+			}
 		}
 	}
 }

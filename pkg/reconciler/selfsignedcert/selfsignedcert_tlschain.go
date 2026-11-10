@@ -25,6 +25,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/eclipse-che/che-operator/pkg/common/cheerrors"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"golang.org/x/net/http/httpproxy"
 )
@@ -49,7 +50,22 @@ func (s *SelfSignedCertificateReconciler) fetchTLSCertificateChain(cheCtx *chety
 
 	if cheCtx.Proxy != nil && cheCtx.Proxy.HttpProxy != "" {
 		httpClient = buildHTTPClientWithProxy(cheCtx.Proxy)
-		return s.fetchPeerCertificates(cheCtx.Context, httpClient, requestURL)
+		proxyCertificates, proxyErr := s.fetchPeerCertificates(cheCtx.Context, httpClient, requestURL)
+		if proxyErr == nil {
+			return proxyCertificates, nil
+		}
+
+		// The proxy attempt is the last one, so its error decides whether to retry.
+		var retryErr *cheerrors.RetryError
+		if errors.As(proxyErr, &retryErr) {
+			return nil, &cheerrors.RetryError{
+				Err:          errors.Join(err, proxyErr),
+				Message:      retryErr.Message,
+				RequeueAfter: retryErr.RequeueAfter,
+			}
+		}
+
+		return nil, fmt.Errorf("failed to fetch certificate chain: direct fetch: %w; proxy fetch: %w", err, proxyErr)
 	}
 
 	return nil, err
@@ -69,7 +85,15 @@ func (s *SelfSignedCertificateReconciler) fetchPeerCertificates(
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get certificate chain from %s: %w", requestURL, err)
+		if isRetryableFetchError(err) {
+			return nil, &cheerrors.RetryError{
+				Err:          err,
+				Message:      fmt.Sprintf("failed to fetch certificate chain from %s", requestURL),
+				RequeueAfter: 3 * time.Second,
+			}
+		}
+
+		return nil, fmt.Errorf("failed to fetch certificate chain from %s: %w", requestURL, err)
 	}
 
 	defer func() {
