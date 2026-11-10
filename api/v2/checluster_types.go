@@ -1095,7 +1095,6 @@ type CheClusterGitServices struct {
 	// before they expire, so workspace Git operations don't fail due to
 	// expired tokens. Only tokens obtained through Che's OAuth integration
 	// are refreshed; manually created personal access tokens are not affected.
-	// If not specified, the defaults from the `OauthTokenRefresh` fields are used.
 	// +optional
 	OauthTokenRefresh *OauthTokenRefresh `json:"oauthTokenRefresh,omitempty"`
 }
