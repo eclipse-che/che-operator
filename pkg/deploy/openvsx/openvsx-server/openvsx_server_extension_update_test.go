@@ -222,7 +222,7 @@ func TestExtensionAutoUpdateCronJobIncludesProxyEnv(t *testing.T) {
 			Spec: chev2.CheClusterSpec{
 				Components: chev2.CheClusterComponents{
 					OpenVSXRegistry: chev2.OpenVSXRegistry{
-						Enable: true,
+						Enable: ptr.To(true),
 						ExtensionAutoUpdate: &chev2.ExtensionAutoUpdate{
 							Enable: ptr.To(true),
 						},

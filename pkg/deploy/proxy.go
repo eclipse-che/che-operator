@@ -177,8 +177,9 @@ func removeProtocolPrefix(url string) string {
 // matching the variables injected into other components such as the dashboard.
 func GetProxyEnvVars(proxy *chetypes.Proxy) []corev1.EnvVar {
 	if proxy == nil {
-		proxy = &chetypes.Proxy{}
+		return []corev1.EnvVar{}
 	}
+
 	return []corev1.EnvVar{
 		{
 			Name:  "http_proxy",
