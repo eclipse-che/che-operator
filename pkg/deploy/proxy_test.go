@@ -346,9 +346,5 @@ func TestGetProxyEnvVars(t *testing.T) {
 }
 
 func TestGetProxyEnvVarsNilProxy(t *testing.T) {
-	envVars := GetProxyEnvVars(nil)
-	assert.Len(t, envVars, 6)
-	for _, env := range envVars {
-		assert.Empty(t, env.Value)
-	}
+	assert.Empty(t, GetProxyEnvVars(nil))
 }
