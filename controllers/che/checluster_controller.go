@@ -34,6 +34,7 @@ import (
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -180,6 +181,17 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return []reconcile.Request{}
 	}
 
+	var toDevWorkspaceOperatorPodRequestMapper handler.MapFunc = func(
+		ctx context.Context,
+		obj client.Object,
+	) []reconcile.Request {
+		isDevWorkspaceOperatorPod, reconcileRequest := IsDevWorkspaceOperatorPod(ctx, r.client, obj)
+		if isDevWorkspaceOperatorPod {
+			return []reconcile.Request{reconcileRequest}
+		}
+		return []reconcile.Request{}
+	}
+
 	var toOperatorManagedObjRequestMapper handler.MapFunc = func(ctx context.Context, obj client.Object) []reconcile.Request {
 		isOperatorManagedObj, reconcileRequest := IsOperatorManaged(ctx, r.client, obj)
 		if isOperatorManagedObj {
@@ -207,6 +219,12 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		).
 		Watches(&corev1.ConfigMap{},
 			handler.EnqueueRequestsFromMapFunc(toEclipseCheRelatedObjRequestMapper),
+		).
+		// Reconcile when the DevWorkspace Operator controller pod changes, e.g. on a DevWorkspace Operator update,
+		// so that the image puller pre-pulls its current project clone image.
+		Watches(&corev1.Pod{},
+			handler.EnqueueRequestsFromMapFunc(toDevWorkspaceOperatorPodRequestMapper),
+			builder.WithPredicates(devWorkspaceOperatorPodPredicates),
 		)
 
 	if infrastructure.IsOpenShift() {
@@ -226,7 +244,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	if r.namespace != "" {
-		bld = bld.WithEventFilter(utils.InNamespaceEventFilter(r.namespace))
+		bld = bld.WithEventFilter(inNamespaceEventFilter(r.namespace))
 	}
 
 	// Use controller.TypedOptions to allow to configure 2 controllers for same object being reconciled
