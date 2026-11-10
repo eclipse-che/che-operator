@@ -1099,14 +1099,13 @@ type CheClusterGitServices struct {
 	OauthTokenRefresh *OauthTokenRefresh `json:"oauthTokenRefresh,omitempty"`
 }
 
-// OauthTokenRefresh configures the background job that refreshes OAuth tokens before they expire.
+// OauthTokenRefresh configures automatic refreshing of OAuth tokens before they expire.
 type OauthTokenRefresh struct {
-	// Enables the background job that refreshes OAuth tokens before they expire.
+	// Enables automatic refreshing of OAuth tokens before they expire.
 	// The default value is `false`.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// How often the refresh job runs, in seconds. Each run scans the personal
-	// access token Secrets in all user namespaces.
+	// How often OAuth tokens are checked and refreshed, in seconds.
 	// The default value is `600`.
 	// +optional
 	// +kubebuilder:validation:Minimum=0
