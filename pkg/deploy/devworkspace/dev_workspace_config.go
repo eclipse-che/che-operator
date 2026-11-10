@@ -105,6 +105,8 @@ func updateWorkspaceConfig(cheCtx *chetypes.CheContext, operatorConfig *controll
 
 	updateWorkspacePodSchedulerNameConfig(devEnvironments, operatorConfig.Workspace)
 
+	updateScheduling(cheCtx, operatorConfig.Workspace)
+
 	updateWorkspaceRuntimeClassNameConfig(devEnvironments, operatorConfig.Workspace)
 
 	updateProjectCloneConfig(devEnvironments, operatorConfig.Workspace)

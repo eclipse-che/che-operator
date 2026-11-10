@@ -115,6 +115,18 @@ type CheClusterDevEnvironments struct {
 	// The pod tolerations of the workspace pods limit where the workspace pods can run.
 	// +optional
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+	// The pod affinity of the workspace pods affects where the workspace pods are scheduled.
+	// It is applied to workspace pods, PVC cleanup pods and backup pods.
+	// +optional
+	PodAffinity *corev1.PodAffinity `json:"podAffinity,omitempty"`
+	// The pod anti-affinity of the workspace pods affects where the workspace pods are scheduled.
+	// It is applied to workspace pods, PVC cleanup pods and backup pods.
+	// +optional
+	PodAntiAffinity *corev1.PodAntiAffinity `json:"podAntiAffinity,omitempty"`
+	// The topology spread constraints of the workspace pods affect where the workspace pods are scheduled.
+	// They are applied to workspace pods, PVC cleanup pods and backup pods.
+	// +optional
+	TopologySpreadConstraints []corev1.TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
 	// User's default namespace.
 	// +optional
 	// +kubebuilder:default:={template: <username>-che, autoProvision: true}
