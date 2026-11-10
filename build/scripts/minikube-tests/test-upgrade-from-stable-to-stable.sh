@@ -36,9 +36,6 @@ runTest() {
 
   createDevWorkspace
 
-  # Free up some cpu resources
-  kubectl scale deployment che --replicas=0 -n eclipse-che
-
   chectl server:update --templates ${LAST_OPERATOR_VERSION_TEMPLATE_PATH} --batch
 
   # Wait until Eclipse Che is deployed
@@ -46,14 +43,6 @@ runTest() {
     make wait-devworkspace-running NAMESPACE="devworkspace-controller"
     make wait-eclipseche-version VERSION="${LAST_PACKAGE_VERSION}" NAMESPACE=${NAMESPACE}
   popd
-
-  # Free up some resources
-  minikube image rm quay.io/eclipse/che-dashboard:${PREVIOUS_PACKAGE_VERSION}
-  minikube image rm quay.io/eclipse/che-server:${PREVIOUS_PACKAGE_VERSION}
-  minikube image rm quay.io/eclipse/che-operator:${PREVIOUS_PACKAGE_VERSION}
-
-  # Free up some cpu resources
-  kubectl scale deployment che --replicas=0 -n eclipse-che
 
   startAndWaitDevWorkspace
   stopAndWaitDevWorkspace
