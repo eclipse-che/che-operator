@@ -323,3 +323,28 @@ func TestReadClusterWideProxyConfigurationNoPort(t *testing.T) {
 		t.Errorf("Test failed. Expected '%v', but got '%v'", expectedProxy, actualProxy)
 	}
 }
+
+func TestGetProxyEnvVars(t *testing.T) {
+	proxy := &chetypes.Proxy{
+		HttpProxy:  "http://proxy.example.com:3128",
+		HttpsProxy: "http://proxy.example.com:3128",
+		NoProxy:    "localhost,.svc",
+	}
+
+	envVars := GetProxyEnvVars(proxy)
+	envMap := make(map[string]string, len(envVars))
+	for _, env := range envVars {
+		envMap[env.Name] = env.Value
+	}
+
+	assert.Equal(t, proxy.HttpProxy, envMap["http_proxy"])
+	assert.Equal(t, proxy.HttpsProxy, envMap["https_proxy"])
+	assert.Equal(t, proxy.NoProxy, envMap["no_proxy"])
+	assert.Equal(t, proxy.HttpProxy, envMap["HTTP_PROXY"])
+	assert.Equal(t, proxy.HttpsProxy, envMap["HTTPS_PROXY"])
+	assert.Equal(t, proxy.NoProxy, envMap["NO_PROXY"])
+}
+
+func TestGetProxyEnvVarsNilProxy(t *testing.T) {
+	assert.Empty(t, GetProxyEnvVars(nil))
+}
