@@ -30,6 +30,7 @@ import (
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -51,10 +52,13 @@ func TestImagePullerConfiguration(t *testing.T) {
 				Enable: true,
 			}),
 			testCaseFilePath: "image-puller-resources-test/imagepuller_testcase_1.json",
+			initObjects:      []client.Object{test.NewDWOPod("devworkspace-controller", testProjectCloneImage)},
 			expectedImagePuller: InitImagePuller(chev1alpha1.KubernetesImagePullerSpec{
 				DeploymentName: defaultDeploymentName,
 				ConfigMapName:  defaultConfigMapName,
-				Images:         "image-1-0=image_1;image-2-1=image_2;",
+				Images: "image-1-0=image_1;image-2-1=image_2;" +
+					"project-clone-2=" + testProjectCloneImage + ";" +
+					"che--traefik-3=" + defaults.GetGatewayImage(&chev2.CheCluster{}) + ";",
 			}),
 		},
 		{
@@ -86,11 +90,14 @@ func TestImagePullerConfiguration(t *testing.T) {
 					DeploymentName: defaultDeploymentName,
 					ConfigMapName:  defaultConfigMapName,
 				}),
+				test.NewDWOPod("devworkspace-controller", testProjectCloneImage),
 			},
 			expectedImagePuller: InitImagePuller(chev1alpha1.KubernetesImagePullerSpec{
 				DeploymentName: defaultDeploymentName,
 				ConfigMapName:  defaultConfigMapName,
-				Images:         "image-1-0=image_1;image-2-1=image_2;image-3-2=image_3;",
+				Images: "image-1-0=image_1;image-2-1=image_2;image-3-2=image_3;" +
+					"project-clone-3=" + testProjectCloneImage + ";" +
+					"che--traefik-4=" + defaults.GetGatewayImage(&chev2.CheCluster{}) + ";",
 			}),
 		},
 		{

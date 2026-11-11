@@ -112,3 +112,22 @@ func IsEclipseCheRelatedObj(cl client.Client, watchNamespace string, obj client.
 		},
 	}
 }
+
+// IsDevWorkspaceOperatorPod detects whether given object is a DevWorkspace Operator controller pod.
+func IsDevWorkspaceOperatorPod(cl client.Client, watchNamespace string, obj client.Object) (bool, ctrl.Request) {
+	if !isDevWorkspaceOperatorPod(obj) {
+		return false, ctrl.Request{}
+	}
+
+	checluster, _ := deploy.FindCheClusterCRInNamespace(cl, watchNamespace)
+	if checluster == nil {
+		return false, ctrl.Request{}
+	}
+
+	return true, ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: checluster.Namespace,
+			Name:      checluster.Name,
+		},
+	}
+}

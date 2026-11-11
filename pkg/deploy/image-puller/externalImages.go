@@ -25,6 +25,9 @@ import (
 	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
+	"github.com/eclipse-che/che-operator/pkg/deploy/devworkspace"
+	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"sigs.k8s.io/yaml"
 
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -73,9 +76,15 @@ func (p *ExternalImagesProvider) read(cheCtx *chetypes.CheContext) ([]string, er
 		return []string{}, err
 	}
 
+	workspaceInfrastructureImages, err := p.fetchWorkspaceInfrastructureImages(cheCtx)
+	if err != nil {
+		return []string{}, fmt.Errorf("failed to fetch workspace infrastructure images: %w", err)
+	}
+
 	var images []string
 	images = append(images, editorsImages...)
 	images = append(images, samplesImages...)
+	images = append(images, workspaceInfrastructureImages...)
 	sort.Strings(images)
 	images = slices.Compact(images)
 
@@ -198,6 +207,32 @@ func (p *ExternalImagesProvider) parseEditor(rawData []byte) ([]string, error) {
 		}
 
 		images = append(images, p.extractContainerImages(devfile)...)
+	}
+
+	return images, nil
+}
+
+// fetchWorkspaceInfrastructureImages fetches list of images that are added to every workspace pod
+// and therefore are not referenced by any editor or sample devfile:
+// 1. the gateway sidecar
+// 2. the project clone init container
+func (p *ExternalImagesProvider) fetchWorkspaceInfrastructureImages(cheCtx *chetypes.CheContext) ([]string, error) {
+	gatewayImage := gateway.GetWorkspaceGatewayImage(cheCtx.CheCluster)
+
+	// Workspaces get this override applied by deploy.OverrideContainer in the routing solver.
+	if gatewayContainer := cheCtx.CheCluster.Spec.DevEnvironments.GatewayContainer; gatewayContainer != nil {
+		gatewayImage = utils.GetValue(gatewayContainer.Image, gatewayImage)
+	}
+
+	images := []string{gatewayImage}
+
+	projectCloneImage, err := devworkspace.GetProjectCloneImage(cheCtx)
+	if err != nil {
+		return []string{}, fmt.Errorf("failed to get project clone image: %w", err)
+	}
+
+	if projectCloneImage != "" {
+		images = append(images, projectCloneImage)
 	}
 
 	return images, nil
