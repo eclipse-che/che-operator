@@ -26436,6 +26436,27 @@ spec:
                       - secretName
                       type: object
                     type: array
+                  oauthTokenRefresh:
+                    description: |-
+                      Configuration for automatically refreshing Git provider OAuth tokens
+                      before they expire, so workspace Git operations don't fail due to
+                      expired tokens. Only tokens obtained through Che's OAuth integration
+                      are refreshed; manually created personal access tokens are not affected.
+                    properties:
+                      enabled:
+                        description: |-
+                          Enables automatic refreshing of OAuth tokens before they expire.
+                          The default value is `false`.
+                        type: boolean
+                      periodSec:
+                        description: |-
+                          How often OAuth tokens are checked and refreshed, in seconds.
+                          The default value is `600`.
+                        exclusiveMinimum: true
+                        format: int32
+                        minimum: 0
+                        type: integer
+                    type: object
                 type: object
               networking:
                 default:
