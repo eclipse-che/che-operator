@@ -16,25 +16,16 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func GetDevWorkspaceOperatorNamespace(context context.Context, clientWrapper clientwrapper.ClientWrapper) (string, error) {
-	selector := labels.SelectorFromSet(
-		labels.Set{
-			constants.KubernetesNameLabelKey:   constants.DevWorkspaceControllerName,
-			constants.KubernetesPartOfLabelKey: constants.DevWorkspaceOperatorName,
-		},
-	)
-
 	items, err := clientWrapper.List(
 		context,
 		&corev1.PodList{},
-		&client.ListOptions{LabelSelector: selector},
+		&client.ListOptions{LabelSelector: devWorkspaceOperatorPodSelector},
 	)
 	if err != nil {
 		return "", fmt.Errorf("failed to list DevWorkspace operator pods: %w", err)
@@ -44,16 +35,14 @@ func GetDevWorkspaceOperatorNamespace(context context.Context, clientWrapper cli
 
 	for _, item := range items {
 		pod, ok := item.(*corev1.Pod)
-		if !ok {
+		if !ok || !IsDevWorkspaceOperatorPod(pod) {
 			continue
 		}
 
-		if pod.Spec.ServiceAccountName == constants.DevWorkspaceServiceAccountName {
-			if devWorkspaceOperatorNamespace != "" && devWorkspaceOperatorNamespace != pod.Namespace {
-				return "", fmt.Errorf("multiple DevWorkspace Operator pods were found across different namespaces")
-			}
-			devWorkspaceOperatorNamespace = pod.Namespace
+		if devWorkspaceOperatorNamespace != "" && devWorkspaceOperatorNamespace != pod.Namespace {
+			return "", fmt.Errorf("multiple DevWorkspace Operator pods were found across different namespaces")
 		}
+		devWorkspaceOperatorNamespace = pod.Namespace
 	}
 
 	return devWorkspaceOperatorNamespace, nil

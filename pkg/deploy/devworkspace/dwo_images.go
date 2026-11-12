@@ -18,7 +18,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -35,17 +34,10 @@ func GetProjectCloneImage(cheCtx *chetypes.CheContext) (string, error) {
 		return "", nil
 	}
 
-	selector := labels.SelectorFromSet(
-		labels.Set{
-			constants.KubernetesNameLabelKey:   constants.DevWorkspaceControllerName,
-			constants.KubernetesPartOfLabelKey: constants.DevWorkspaceOperatorName,
-		},
-	)
-
 	items, err := cheCtx.ClusterAPI.ClientWrapper.List(
 		cheCtx.Context,
 		&corev1.PodList{},
-		&client.ListOptions{LabelSelector: selector, Namespace: cheCtx.DWONamespace},
+		&client.ListOptions{LabelSelector: devWorkspaceOperatorPodSelector, Namespace: cheCtx.DWONamespace},
 	)
 	if err != nil {
 		return "", fmt.Errorf("failed to list DevWorkspace operator pods in %s: %w", cheCtx.DWONamespace, err)
@@ -56,7 +48,7 @@ func GetProjectCloneImage(cheCtx *chetypes.CheContext) (string, error) {
 
 	for _, item := range items {
 		pod, ok := item.(*corev1.Pod)
-		if !ok || pod.DeletionTimestamp != nil ||
+		if !ok || !IsDevWorkspaceOperatorPod(pod) || pod.DeletionTimestamp != nil ||
 			pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed {
 			continue
 		}

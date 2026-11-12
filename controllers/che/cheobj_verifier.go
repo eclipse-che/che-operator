@@ -18,6 +18,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chelabels"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/deploy/devworkspace"
 	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
@@ -117,7 +118,7 @@ func IsEclipseCheRelatedObj(ctx context.Context, cl client.Client, obj client.Ob
 
 // IsDevWorkspaceOperatorPod detects whether given object is a DevWorkspace Operator controller pod.
 func IsDevWorkspaceOperatorPod(ctx context.Context, cl client.Client, obj client.Object) (bool, ctrl.Request) {
-	if !isDevWorkspaceOperatorPod(obj) {
+	if !devworkspace.IsDevWorkspaceOperatorPod(obj) {
 		return false, ctrl.Request{}
 	}
 

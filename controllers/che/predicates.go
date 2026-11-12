@@ -14,9 +14,8 @@ package che
 
 import (
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy/devworkspace"
 	corev1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
@@ -24,9 +23,9 @@ import (
 // devWorkspaceOperatorPodPredicates lets through only the DevWorkspace Operator controller pod events
 // that can change which pod the project clone image is read from.
 var devWorkspaceOperatorPodPredicates = predicate.Funcs{
-	CreateFunc:  func(e event.CreateEvent) bool { return isDevWorkspaceOperatorPod(e.Object) },
-	DeleteFunc:  func(e event.DeleteEvent) bool { return isDevWorkspaceOperatorPod(e.Object) },
-	GenericFunc: func(e event.GenericEvent) bool { return isDevWorkspaceOperatorPod(e.Object) },
+	CreateFunc:  func(e event.CreateEvent) bool { return devworkspace.IsDevWorkspaceOperatorPod(e.Object) },
+	DeleteFunc:  func(e event.DeleteEvent) bool { return devworkspace.IsDevWorkspaceOperatorPod(e.Object) },
+	GenericFunc: func(e event.GenericEvent) bool { return devworkspace.IsDevWorkspaceOperatorPod(e.Object) },
 	UpdateFunc: func(e event.UpdateEvent) bool {
 		oldPod, ok := e.ObjectOld.(*corev1.Pod)
 		if !ok {
@@ -34,7 +33,7 @@ var devWorkspaceOperatorPodPredicates = predicate.Funcs{
 		}
 
 		newPod, ok := e.ObjectNew.(*corev1.Pod)
-		if !ok || !isDevWorkspaceOperatorPod(newPod) {
+		if !ok || !devworkspace.IsDevWorkspaceOperatorPod(newPod) {
 			return false
 		}
 
@@ -48,11 +47,6 @@ var devWorkspaceOperatorPodPredicates = predicate.Funcs{
 func inNamespaceEventFilter(namespace string) predicate.Predicate {
 	return predicate.Or(
 		utils.InNamespaceEventFilter(namespace),
-		predicate.NewPredicateFuncs(isDevWorkspaceOperatorPod),
+		predicate.NewPredicateFuncs(devworkspace.IsDevWorkspaceOperatorPod),
 	)
-}
-
-func isDevWorkspaceOperatorPod(obj client.Object) bool {
-	_, ok := obj.(*corev1.Pod)
-	return ok && deploy.IsDevWorkspaceComponent(obj.GetLabels())
 }

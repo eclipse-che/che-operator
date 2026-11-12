@@ -48,6 +48,9 @@ func TestGetProjectCloneImage(t *testing.T) {
 	failedPod := newDWOPod("dwo-a", "devworkspace-controller", "project-clone:new", now)
 	failedPod.Status.Phase = corev1.PodFailed
 
+	otherServiceAccountPod := newDWOPod("dwo-a", "devworkspace-controller", "project-clone:new", now)
+	otherServiceAccountPod.Spec.ServiceAccountName = "default"
+
 	testCases := []testCase{
 		{
 			name:          "Image from DevWorkspace Operator pod",
@@ -81,6 +84,14 @@ func TestGetProjectCloneImage(t *testing.T) {
 			name: "Terminating pod is skipped",
 			initObjects: []client.Object{
 				terminatingPod,
+				newDWOPod("dwo-b", "devworkspace-controller", "project-clone:old", now.Add(-time.Hour)),
+			},
+			expectedImage: "project-clone:old",
+		},
+		{
+			name: "Pod with another service account is skipped",
+			initObjects: []client.Object{
+				otherServiceAccountPod,
 				newDWOPod("dwo-b", "devworkspace-controller", "project-clone:old", now.Add(-time.Hour)),
 			},
 			expectedImage: "project-clone:old",

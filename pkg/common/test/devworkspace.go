@@ -31,6 +31,7 @@ func NewDWOPod(namespace string, projectCloneImage string) *corev1.Pod {
 			},
 		},
 		Spec: corev1.PodSpec{
+			ServiceAccountName: constants.DevWorkspaceServiceAccountName,
 			Containers: []corev1.Container{
 				{
 					Name: "devworkspace-controller",
