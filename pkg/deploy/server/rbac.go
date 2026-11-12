@@ -264,7 +264,7 @@ func (s *CheServerReconciler) getUserCommonPolicies() []rbacv1.PolicyRule {
 		{
 			APIGroups: []string{"networking.k8s.io"},
 			Resources: []string{"ingresses"},
-			Verbs:     []string{"get", "list", "watch", "create", "delete"},
+			Verbs:     []string{"get", "list", "create", "update", "patch", "delete"},
 		},
 		{
 			APIGroups: []string{"metrics.k8s.io"},
@@ -286,7 +286,7 @@ func (s *CheServerReconciler) getUserCommonPolicies() []rbacv1.PolicyRule {
 		{
 			APIGroups: []string{"route.openshift.io"},
 			Resources: []string{"routes"},
-			Verbs:     []string{"get", "list", "create", "delete"},
+			Verbs:     []string{"get", "list", "create", "update", "patch", "delete"},
 		},
 		{
 			APIGroups: []string{"project.openshift.io"},
