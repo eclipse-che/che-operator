@@ -524,11 +524,8 @@ func exposeAllEndpoints(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceR
 	}
 
 	wsConfigMap.Data["workspace.yml"] = string(contents)
-	// 'aliasHeadersStrategy: "keep"' is the default behavior; it is set explicitly to suppress
-	// the Traefik startup warning "aliasHeadersStrategy is not configured" (introduced in
-	// Traefik v3.7.12). 'delete'/'reject' would harden against header aliasing (e.g.
-	// X_Forwarded_For spoofing on CGI/WSGI-like backends) but would also drop/reject
-	// legitimately-used underscore headers.
+	// See getGatewayTraefikConfigSpec in pkg/deploy/gateway/gateway.go for why
+	// 'aliasHeadersStrategy: "keep"' is set explicitly.
 	wsConfigMap.Data["traefik.yml"] = fmt.Sprintf(`
 entrypoints:
   http:

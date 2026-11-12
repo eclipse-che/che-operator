@@ -97,7 +97,7 @@ func (cfg *TraefikConfig) AddOpenShiftTokenCheck(componentName string) {
 			// "trustForwardHeader is not configured" (introduced in Traefik v3.6.14). It is consistent
 			// with the gateway entrypoints, which are configured with 'forwardedHeaders.insecure: true',
 			// so X-Forwarded-* headers are always trusted.
-			TrustForwardHeader:  ptr.To(true),
+			TrustForwardHeader:  true,
 			MaxResponseBodySize: ptr.To(16384), // 16KB
 			TLS: &TraefikConfigTLS{
 				InsecureSkipVerify: true,
@@ -113,7 +113,7 @@ func (cfg *TraefikConfig) AddAuth(componentName string, authAddress string) {
 		ForwardAuth: &TraefikConfigForwardAuth{
 			Address: authAddress,
 			// See AddOpenShiftTokenCheck for why 'trustForwardHeader' is set explicitly.
-			TrustForwardHeader:  ptr.To(true),
+			TrustForwardHeader:  true,
 			MaxResponseBodySize: ptr.To(16384), // 16KB
 		},
 	}
