@@ -62,7 +62,7 @@ make docker-build IMG=<YOUR_OPERATOR_IMAGE>
 For OpenShift cluster:
 
 ```bash
-build/scripts/oc-tests/oc-test.sh --install-from sources=next
+build/scripts/oc-tests/oc-test.sh --install-from sources
 ```
 
 For Kubernetes cluster:

@@ -19,6 +19,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -30,6 +31,7 @@ var Job = &jobHandler{
 		cmpopts.IgnoreFields(batchv1.Job{}, "TypeMeta", "Status"),
 		cmpopts.IgnoreFields(corev1.Container{}, "TerminationMessagePath", "TerminationMessagePolicy"),
 		cmpopts.IgnoreFields(corev1.PodSpec{}, "SchedulerName"),
+		cmp.Comparer(func(x, y resource.Quantity) bool { return x.Cmp(y) == 0 }),
 	},
 }
 

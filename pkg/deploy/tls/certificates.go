@@ -126,8 +126,8 @@ func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(cheCtx *chety
 		}
 	}
 
-	openShiftCaBundleCM.Labels = utils.GetMapOrDefault(openShiftCaBundleCM.Labels, map[string]string{})
-	utils.AddMap(openShiftCaBundleCM.Labels, deploy.GetLabels(constants.CheCABundle))
+	openShiftCaBundleCM.Labels = utils.NonNilMap(openShiftCaBundleCM.Labels)
+	maps.Copy(openShiftCaBundleCM.Labels, deploy.GetLabels(constants.CheCABundle))
 
 	if cheCtx.CheCluster.IsDisableWorkspaceCaBundleMount() {
 		// Remove annotation to stop OpenShift network operator from injecting certificates
@@ -149,7 +149,7 @@ func (c *CertificatesReconciler) syncOpenShiftCABundleCertificates(cheCtx *chety
 
 			trustedCACM := &corev1.ConfigMap{}
 			if exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(context.TODO(), trustedCACMKey, trustedCACM); exists {
-				openShiftCaBundleCM.Data = utils.GetMapOrDefault(openShiftCaBundleCM.Data, map[string]string{})
+				openShiftCaBundleCM.Data = utils.NonNilMap(openShiftCaBundleCM.Data)
 				openShiftCaBundleCM.Data["ca-bundle.crt"] = trustedCACM.Data["ca-bundle.crt"]
 			} else if err != nil {
 				return false, err

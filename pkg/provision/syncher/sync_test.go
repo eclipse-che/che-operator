@@ -15,6 +15,7 @@
 package syncher
 
 import (
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
@@ -67,6 +68,95 @@ var _ = Describe("syncObject", Ordered, func() {
 		Expect(env.Client.Get(cheCtx.Context, types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actualCm)).To(Succeed())
 		Expect(actualCm.OwnerReferences).To(HaveLen(1))
 		Expect(actualCm.OwnerReferences[0].UID).To(Equal(cheCtx.CheCluster.UID))
+	})
+
+	It("should not set owner reference when syncing the CheCluster itself", func(ctx SpecContext) {
+		cheClusterDiffs := cmp.Options{cmpopts.IgnoreFields(chev2.CheCluster{}, "TypeMeta", "Status")}
+		Expect(SyncObject(cheCtx, cheCtx.CheCluster, cheClusterDiffs, false, false)).To(Succeed())
+
+		actualCheCluster := &chev2.CheCluster{}
+		key := types.NamespacedName{Name: cheCtx.CheCluster.Name, Namespace: cheCtx.CheCluster.Namespace}
+		Expect(env.Client.Get(cheCtx.Context, key, actualCheCluster)).To(Succeed())
+		Expect(actualCheCluster.OwnerReferences).To(BeEmpty())
+	})
+
+	It("should sync finalizers", func(ctx SpecContext) {
+		cheClusterDiffs := cmp.Options{cmpopts.IgnoreFields(chev2.CheCluster{}, "TypeMeta", "Status")}
+		key := types.NamespacedName{Name: cheCtx.CheCluster.Name, Namespace: cheCtx.CheCluster.Namespace}
+
+		cheCtx.CheCluster.Finalizers = []string{"a.finalizers.che.eclipse.org", "b.finalizers.che.eclipse.org"}
+		Expect(SyncObject(cheCtx, cheCtx.CheCluster, cheClusterDiffs, false, false)).To(Succeed())
+
+		actualCheCluster := &chev2.CheCluster{}
+		Expect(env.Client.Get(cheCtx.Context, key, actualCheCluster)).To(Succeed())
+		Expect(actualCheCluster.Finalizers).To(ConsistOf("a.finalizers.che.eclipse.org", "b.finalizers.che.eclipse.org"))
+		resourceVersion := actualCheCluster.ResourceVersion
+
+		// the same finalizers in a different order should not produce an update
+		cheCtx.CheCluster.Finalizers = []string{"b.finalizers.che.eclipse.org", "a.finalizers.che.eclipse.org"}
+		Expect(SyncObject(cheCtx, cheCtx.CheCluster, cheClusterDiffs, false, false)).To(Succeed())
+
+		actualCheCluster = &chev2.CheCluster{}
+		Expect(env.Client.Get(cheCtx.Context, key, actualCheCluster)).To(Succeed())
+		Expect(actualCheCluster.Finalizers).To(ConsistOf("a.finalizers.che.eclipse.org", "b.finalizers.che.eclipse.org"))
+		Expect(actualCheCluster.ResourceVersion).To(Equal(resourceVersion))
+
+		cheCtx.CheCluster.Finalizers = nil
+		Expect(SyncObject(cheCtx, cheCtx.CheCluster, cheClusterDiffs, false, false)).To(Succeed())
+
+		actualCheCluster = &chev2.CheCluster{}
+		Expect(env.Client.Get(cheCtx.Context, key, actualCheCluster)).To(Succeed())
+		Expect(actualCheCluster.Finalizers).To(BeEmpty())
+	})
+
+	It("should not diff or strip finalizers set by other controllers", func(ctx SpecContext) {
+		testCm := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: "eclipse-che",
+			},
+			Data: map[string]string{"a": "b"},
+		}
+
+		Expect(SyncObject(cheCtx, testCm, cmDiffs, false, false)).To(Succeed())
+
+		// a foreign finalizer is added to the existing object by another controller;
+		// finalizers on built-in types are validated as label keys, so the name needs the 'domain/name' form
+		actualCm := &corev1.ConfigMap{}
+		key := types.NamespacedName{Name: "test", Namespace: "eclipse-che"}
+		Expect(env.Client.Get(cheCtx.Context, key, actualCm)).To(Succeed())
+		actualCm.Finalizers = []string{"example.org/foreign-finalizer"}
+		Expect(env.Client.Update(cheCtx.Context, actualCm)).To(Succeed())
+
+		DeferCleanup(
+			func(ctx SpecContext) {
+				cm := &corev1.ConfigMap{}
+				Expect(env.Client.Get(ctx, key, cm)).To(Succeed())
+				cm.Finalizers = nil
+				Expect(env.Client.Update(ctx, cm)).To(Succeed())
+			},
+		)
+
+		// syncing an object without finalizers neither produces an update nor strips the finalizer
+		resourceVersion := actualCm.ResourceVersion
+		Expect(SyncObject(cheCtx, testCm, cmDiffs, false, false)).To(Succeed())
+
+		actualCm = &corev1.ConfigMap{}
+		Expect(env.Client.Get(cheCtx.Context, key, actualCm)).To(Succeed())
+		Expect(actualCm.Finalizers).To(ConsistOf("example.org/foreign-finalizer"))
+		Expect(actualCm.ResourceVersion).To(Equal(resourceVersion))
+
+		// an update triggered by a spec change preserves the finalizer as well;
+		// the desired object is built fresh on each reconcile and carries no resource
+		// version, so the sync adopts the latest one from the cluster
+		testCm.ResourceVersion = ""
+		testCm.Data = map[string]string{"a": "c"}
+		Expect(SyncObject(cheCtx, testCm, cmDiffs, false, false)).To(Succeed())
+
+		Expect(env.Client.Get(cheCtx.Context, key, actualCm)).To(Succeed())
+		Expect(actualCm.Data).To(Equal(map[string]string{"a": "c"}))
+		Expect(actualCm.Finalizers).To(ConsistOf("example.org/foreign-finalizer"))
+		Expect(actualCm.ResourceVersion).ToNot(Equal(resourceVersion))
 	})
 
 	It("should sync immutable object", func(ctx SpecContext) {

@@ -10,16 +10,29 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package agentsandbox
+package cheerrors
 
 import (
-	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"fmt"
+	"time"
 )
 
-func GetUserClusterRoleName() string {
-	return defaults.GetCheFlavor() + "-user-agent-sandbox"
+type RetryError struct {
+	Err          error
+	Message      string
+	RequeueAfter time.Duration
 }
 
-func GetUserRoleBindingName() string {
-	return defaults.GetCheFlavor() + "-user-agent-sandbox"
+func (e *RetryError) Error() string {
+	if e.Err != nil {
+		if e.Message != "" {
+			return fmt.Sprintf("%s: %s", e.Message, e.Err)
+		}
+		return e.Err.Error()
+	}
+	return e.Message
+}
+
+func (e *RetryError) Unwrap() error {
+	return e.Err
 }

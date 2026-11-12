@@ -119,7 +119,7 @@ func (s *CheServerReconciler) getConfigMapData(cheCtx *chetypes.CheContext) (che
 		javaOpts += deploy.GenerateProxyJavaOpts(cheCtx.Proxy, cheCtx.Proxy.NoProxy)
 	}
 
-	cheLogLevel := utils.GetValue(
+	cheLogLevel := utils.ValueOrDef(
 		cheCtx.CheCluster.Spec.Components.CheServer.LogLevel,
 		constants.DefaultServerLogLevel,
 	)

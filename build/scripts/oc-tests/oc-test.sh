@@ -132,11 +132,12 @@ init() {
 # Arguments:
 #   $1 - option name, used in error messages, e.g. '--install-from'
 #   $2 - variable prefix, e.g. 'FROM'
-#   $3 - option value, e.g. 'pr', 'pr=2225', 'pr=current', 'next', 'sources=next'
+#   $3 - option value, e.g. 'pr', 'pr=2225', 'pr=current', 'next', 'sources', 'sources=next'
 # Sets:
 #   <prefix>                 - the target type: pr, next, stable, sources or none
 #   <prefix>_PR_NUMBER       - the pull request number, for the 'pr' target
 #   <prefix>_SOURCES_CHANNEL - the channel to build from, for the 'sources' target
+#                              (defaults to 'next')
 parseOptionValue() {
   local option="$1"
   local prefix="$2"
@@ -177,8 +178,13 @@ parseOptionValue() {
       printf -v "${prefix}_PR_NUMBER" '%s' "${argument}"
       ;;
     sources)
-      if [[ ! " ${SUPPORTED_CHANNELS[*]} " =~ " ${argument} " || -z "${argument}" ]]; then
-        echo "[ERROR] Invalid '${option}' value: '${value}'. Expected 'sources=<channel>', where <channel> is one of: $(supportedChannelsList)."
+      # The channel defaults to 'next'.
+      if [[ -z "${argument}" ]]; then
+        argument="next"
+      fi
+
+      if [[ ! " ${SUPPORTED_CHANNELS[*]} " =~ " ${argument} " ]]; then
+        echo "[ERROR] Invalid '${option}' value: '${value}'. Expected 'sources', 'sources=<channel>', where <channel> is one of: $(supportedChannelsList)."
         printUsage
         exit 1
       fi
@@ -193,7 +199,7 @@ parseOptionValue() {
       fi
       ;;
     *)
-      echo "[ERROR] Unknown '${option}' value: '${value}'. Must be one of: pr, pr=<number>, pr=current, next, stable, sources=<channel>, none"
+      echo "[ERROR] Unknown '${option}' value: '${value}'. Must be one of: pr, pr=<number>, pr=current, next, stable, sources, sources=<channel>, none"
       printUsage
       exit 1
       ;;
@@ -254,23 +260,25 @@ printUsage() {
   echo -e "  stable            - the Eclipse Che build from the stable channel; with"
   echo -e "                      '--install-from stable --update-to stable' the previous stable version is"
   echo -e "                      installed and then updated to the latest one"
-  echo -e "  sources=<channel> - the Eclipse Che build created from the local sources of the"
-  echo -e "                      given channel and pushed to the image registry of the"
+  echo -e "  sources,          - the Eclipse Che build created from the local sources of the"
+  echo -e "  sources=<channel>   given channel and pushed to the image registry of the"
   echo -e "                      cluster, where <channel> is one of: $(supportedChannelsList)"
+  echo -e "                      (default: next)"
   echo -e "  none              - --install-from: the Eclipse Che installation that is already"
   echo -e "                      deployed on the cluster; --update-to: do not update Eclipse Che"
   echo
   echo "Examples:"
-  echo -e "  $0 --install-from pr=2225 --update-to sources=next"
-  echo -e "  $0 --install-from pr --update-to sources=next"
+  echo -e "  $0 --install-from pr=2225 --update-to sources"
+  echo -e "  $0 --install-from pr --update-to sources"
   echo -e "  $0 --install-from pr --update-to pr=1900"
   echo -e "  $0 --install-from next --update-to pr"
   echo -e "  $0 --install-from next --update-to stable"
   echo -e "  $0 --install-from next --update-to next"
   echo -e "  $0 --install-from stable --update-to next"
   echo -e "  $0 --install-from stable --update-to stable"
-  echo -e "  $0 --install-from sources=next --update-to sources=stable"
+  echo -e "  $0 --install-from sources --update-to sources=stable"
   echo -e "  $0 --install-from sources=stable --update-to pr=2225"
+  echo -e "  $0 --update-to sources"
   echo -e "  $0 --update-to pr=2225"
   echo -e "  $0 --install-from pr=2225"
 }
@@ -500,7 +508,7 @@ install() {
       echo "[INFO] Skipping Eclipse Che install"
       ;;
     *)
-      echo "[ERROR] Unknown '--install-from' value: '${FROM}'. Must be one of: pr, pr=<number>, pr=current, next, stable, sources=<channel>, none"
+      echo "[ERROR] Unknown '--install-from' value: '${FROM}'. Must be one of: pr, pr=<number>, pr=current, next, stable, sources, sources=<channel>, none"
       printUsage
       exit 1
       ;;
@@ -525,7 +533,7 @@ upgrade() {
       echo "[INFO] Skipping Eclipse Che upgrade"
       ;;
     *)
-      echo "[ERROR] Unknown '--update-to' value: '${TO}'. Must be one of: pr, pr=<number>, pr=current, next, stable, sources=<channel>, none"
+      echo "[ERROR] Unknown '--update-to' value: '${TO}'. Must be one of: pr, pr=<number>, pr=current, next, stable, sources, sources=<channel>, none"
       printUsage
       exit 1
       ;;

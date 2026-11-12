@@ -178,12 +178,10 @@ const (
 	WorkspacesNamespaceComponentName   = "workspaces-namespace"
 
 	// common
-	CheFlavor             = "che"
-	CheEclipseOrg         = "che.eclipse.org"
-	WorkspacesConfig      = "workspaces-config"
-	InstallOrUpdateFailed = "InstallOrUpdateFailed"
-	FinalizerSuffix       = "finalizers.che.eclipse.org"
-	PublicCertsDir        = "/public-certs"
+	CheFlavor        = "che"
+	CheEclipseOrg    = "che.eclipse.org"
+	WorkspacesConfig = "workspaces-config"
+	PublicCertsDir   = "/public-certs"
 
 	// DevWorkspace
 	DevWorkspaceControllerName             = "devworkspace-controller"
@@ -200,9 +198,7 @@ const (
 	AgentSandboxEnabled       = false
 	AgentSandboxComponentName = "agent-sandbox"
 
-	// Finalizers
-	ContainerBuildFinalizer = "container-build.finalizers.che.eclipse.org"
-	ContainerRunFinalizer   = "che.eclipse.org/container-run"
+	Finalizer = "che.eclipse.org/checluster-controller"
 )
 
 var (

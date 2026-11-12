@@ -20,6 +20,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/reconciler"
 
 	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
+	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -62,13 +63,9 @@ func (p *PluginRegistryReconciler) Reconcile(cheCtx *chetypes.CheContext) (recon
 			_ = cheCtx.ClusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(cheCtx.Context, key, object.obj)
 		}
 
-		if cheCtx.CheCluster.Status.PluginRegistryURL != "" {
-			cheCtx.CheCluster.Status.PluginRegistryURL = ""
-			err := deploy.UpdateCheCRStatus(cheCtx, "PluginRegistryURL", "")
-			return reconcile.Result{}, err == nil, err
-		}
-
-		return reconcile.Result{}, true, nil
+		cheCtx.CheCluster.Status.PluginRegistryURL = ""
+		err := resources.CheCluster.SyncStatus(cheCtx)
+		return reconcile.Result{}, err == nil, err
 	}
 
 	if err := p.syncService(cheCtx); err != nil {
@@ -162,11 +159,9 @@ func (p *PluginRegistryReconciler) updateStatus(endpoint string, cheCtx *chetype
 		pluginRegistryURL = pluginRegistryURL + "v3"
 	}
 
-	if pluginRegistryURL != cheCtx.CheCluster.Status.PluginRegistryURL {
-		cheCtx.CheCluster.Status.PluginRegistryURL = pluginRegistryURL
-		if err := deploy.UpdateCheCRStatus(cheCtx, "status: Plugin Registry URL", pluginRegistryURL); err != nil {
-			return false, err
-		}
+	cheCtx.CheCluster.Status.PluginRegistryURL = pluginRegistryURL
+	if err := resources.CheCluster.SyncStatus(cheCtx); err != nil {
+		return false, err
 	}
 
 	return true, nil

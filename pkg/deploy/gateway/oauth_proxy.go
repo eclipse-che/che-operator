@@ -93,7 +93,7 @@ skip_provider_button = false
 		cheCtx.CheHost,
 		oauthClientName,
 		oauthSecret,
-		utils.GetValue(cheCtx.CheCluster.Spec.Networking.Auth.OAuthScope, constants.OpenShiftOAuthScope),
+		utils.ValueOrDef(cheCtx.CheCluster.Spec.Networking.Auth.OAuthScope, constants.OpenShiftOAuthScope),
 		GatewayServiceName,
 		cookieSecret,
 		cookieExpireAsString(cheCtx.CheCluster),

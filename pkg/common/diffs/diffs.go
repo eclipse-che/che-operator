@@ -23,7 +23,6 @@ import (
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	networking "k8s.io/api/networking/v1"
 	rbac "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -67,23 +66,12 @@ var KubernetesImagePullerDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(chev1alpha1.KubernetesImagePullerSpec{}, "ImagePullerImage"),
 }
 
-func Ingress(labels []string, annotations []string) cmp.Options {
-	return cmp.Options{
-		cmpopts.IgnoreFields(networking.Ingress{}, "TypeMeta", "Status"),
-		cmpMetadata(labels, annotations),
-	}
-}
-
 // ConfigMap respects existed labels and annotations
 func ConfigMap(labelKeys []string, annotationKeys []string) cmp.Options {
 	return cmp.Options{
 		cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
 		cmpMetadata(labelKeys, annotationKeys),
 	}
-}
-
-var NetworkPolicy = cmp.Options{
-	cmpopts.IgnoreFields(networking.NetworkPolicy{}, "TypeMeta", "ObjectMeta"),
 }
 
 var ServiceMonitor = cmp.Options{

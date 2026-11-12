@@ -37,9 +37,6 @@ runTest() {
 
   createDevWorkspace
 
-  # Free up some cpu resources
-  kubectl scale deployment che --replicas=0 -n eclipse-che
-
   # Update to next version
   buildAndCopyCheOperatorImageToMinikube
   yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH}/che-operator/kubernetes/operator.yaml
@@ -51,14 +48,6 @@ runTest() {
     make wait-devworkspace-running NAMESPACE="devworkspace-controller"
     make wait-eclipseche-version VERSION="next" NAMESPACE=${NAMESPACE}
   popd
-
-  # Free up some resources
-  minikube image rm quay.io/eclipse/che-dashboard:${LAST_PACKAGE_VERSION}
-  minikube image rm quay.io/eclipse/che-server:${LAST_PACKAGE_VERSION}
-  minikube image rm quay.io/eclipse/che-operator:${LAST_PACKAGE_VERSION}
-
-  # Free up some cpu resources
-  kubectl scale deployment che --replicas=0 -n eclipse-che
 
   startAndWaitDevWorkspace
   stopAndWaitDevWorkspace

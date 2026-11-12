@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -13,8 +13,11 @@
 package defaults
 
 import (
+	"maps"
+
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 )
 
 const (
@@ -23,16 +26,6 @@ const (
 	ConfigAnnotationDevWorkspaceRoutingNamespace = configAnnotationPrefix + "devworkspacerouting-namespace"
 	ConfigAnnotationEndpointName                 = configAnnotationPrefix + "endpoint-name"
 	ConfigAnnotationComponentName                = configAnnotationPrefix + "component-name"
-)
-
-var (
-	// If this looks weirdly out of place to you from all other labels, then you're completely right!
-	// These labels are the default ones used by che-operator and Che7. Let's keep the defaults
-	// the same for the ease of translation...
-	defaultGatewayConfigLabels = map[string]string{
-		"app":       "che",
-		"component": "che-gateway-config",
-	}
 )
 
 func GetGatewayWorkspaceConfigMapName(workspaceID string) string {
@@ -59,8 +52,10 @@ func AddStandardLabelsFromNames(appName string, component string, labels map[str
 }
 
 func GetGatewayWorkspaceConfigMapLabels(cluster *chev2.CheCluster) map[string]string {
-	if len(cluster.Spec.Networking.Auth.Gateway.ConfigLabels) > 0 {
-		return cluster.Spec.Networking.Auth.Gateway.ConfigLabels
-	}
-	return defaultGatewayConfigLabels
+	return maps.Clone(
+		utils.DefaultIfEmpty(
+			cluster.Spec.Networking.Auth.Gateway.ConfigLabels,
+			constants.DefaultSingleHostGatewayConfigMapLabels,
+		),
+	)
 }

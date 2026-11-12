@@ -11,9 +11,6 @@
 #
 
 apiVersion: org.eclipse.che/v2
-metadata:
-  annotations:
-    che.eclipse.org/checluster-defaults-cleanup: '{"spec.components.pluginRegistry.openVSXURL":"true"}'
 spec:
   devEnvironments:
     storage:
@@ -22,9 +19,9 @@ spec:
     gatewayContainer:
       resources:
         request:
-          cpu: '20m'
+          cpu: '50m'
         limits:
-          cpu: '20m'
+          cpu: '50m'
   components:
     pluginRegistry:
       openVSXURL: https://open-vsx.org
@@ -32,25 +29,25 @@ spec:
         containers:
           - resources:
               request:
-                cpu: '20m'
+                cpu: '50m'
               limits:
-                cpu: '20m'
+                cpu: '50m'
     cheServer:
       deployment:
         containers:
           - resources:
               limits:
-                cpu: '300m'
+                cpu: '500m'
               request:
-                cpu: '300m'
+                cpu: '500m'
     dashboard:
       deployment:
         containers:
           - resources:
               request:
-                cpu: '40m'
+                cpu: '50m'
               limits:
-                cpu: '40m'
+                cpu: '50m'
   networking:
     auth:
       gateway:
@@ -59,24 +56,24 @@ spec:
             - name: gateway
               resources:
                 request:
-                  cpu: '20m'
+                  cpu: '50m'
                 limits:
-                  cpu: '20m'
+                  cpu: '50m'
             - name: configbump
               resources:
                 request:
-                  cpu: '20m'
+                  cpu: '50m'
                 limits:
-                  cpu: '20m'
+                  cpu: '50m'
             - name: oauth-proxy
               resources:
                 request:
-                  cpu: '20m'
+                  cpu: '50m'
                 limits:
-                  cpu: '20m'
+                  cpu: '50m'
             - name: kube-rbac-proxy
               resources:
                 request:
-                  cpu: '20m'
+                  cpu: '50m'
                 limits:
-                  cpu: '20m'
+                  cpu: '50m'
