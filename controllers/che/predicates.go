@@ -42,9 +42,10 @@ var devWorkspaceOperatorPodPredicates = predicate.Funcs{
 	},
 }
 
-// inNamespaceEventFilter lets through events of objects in the watched namespace, and of the
-// DevWorkspace Operator controller pods, which run in the DevWorkspace Operator namespace.
-func inNamespaceEventFilter(namespace string) predicate.Predicate {
+// inNamespaceOrDevWorkspaceOperatorPodEventFilter lets through events of objects in the watched namespace,
+// and of the DevWorkspace Operator controller pods, which run in the DevWorkspace Operator namespace.
+// It is applied with WithEventFilter, so it filters the events of all watches of the controller.
+func inNamespaceOrDevWorkspaceOperatorPodEventFilter(namespace string) predicate.Predicate {
 	return predicate.Or(
 		utils.InNamespaceEventFilter(namespace),
 		predicate.NewPredicateFuncs(devworkspace.IsDevWorkspaceOperatorPod),

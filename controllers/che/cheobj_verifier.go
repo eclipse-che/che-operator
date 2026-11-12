@@ -116,8 +116,13 @@ func IsEclipseCheRelatedObj(ctx context.Context, cl client.Client, obj client.Ob
 	}
 }
 
-// IsDevWorkspaceOperatorPod detects whether given object is a DevWorkspace Operator controller pod.
-func IsDevWorkspaceOperatorPod(ctx context.Context, cl client.Client, obj client.Object) (bool, ctrl.Request) {
+// mapDevWorkspaceOperatorPodToCheCluster returns the CheCluster reconcile request if given object
+// is a DevWorkspace Operator controller pod.
+func mapDevWorkspaceOperatorPodToCheCluster(
+	ctx context.Context,
+	cl client.Client,
+	obj client.Object,
+) (bool, ctrl.Request) {
 	if !devworkspace.IsDevWorkspaceOperatorPod(obj) {
 		return false, ctrl.Request{}
 	}

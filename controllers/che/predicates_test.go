@@ -60,8 +60,8 @@ func TestDevWorkspaceOperatorPodPredicates(t *testing.T) {
 	})
 }
 
-func TestInNamespaceEventFilter(t *testing.T) {
-	filter := inNamespaceEventFilter("eclipse-che")
+func TestInNamespaceOrDevWorkspaceOperatorPodEventFilter(t *testing.T) {
+	filter := inNamespaceOrDevWorkspaceOperatorPodEventFilter("eclipse-che")
 
 	inWatchedNamespace := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "eclipse-che"}}
 	inAnotherNamespace := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"}}

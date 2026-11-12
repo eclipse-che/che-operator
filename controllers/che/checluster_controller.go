@@ -185,7 +185,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		ctx context.Context,
 		obj client.Object,
 	) []reconcile.Request {
-		isDevWorkspaceOperatorPod, reconcileRequest := IsDevWorkspaceOperatorPod(ctx, r.client, obj)
+		isDevWorkspaceOperatorPod, reconcileRequest := mapDevWorkspaceOperatorPodToCheCluster(ctx, r.client, obj)
 		if isDevWorkspaceOperatorPod {
 			return []reconcile.Request{reconcileRequest}
 		}
@@ -244,7 +244,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	if r.namespace != "" {
-		bld = bld.WithEventFilter(inNamespaceEventFilter(r.namespace))
+		bld = bld.WithEventFilter(inNamespaceOrDevWorkspaceOperatorPodEventFilter(r.namespace))
 	}
 
 	// Use controller.TypedOptions to allow to configure 2 controllers for same object being reconciled

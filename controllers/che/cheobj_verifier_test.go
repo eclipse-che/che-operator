@@ -194,7 +194,7 @@ func TestIsEclipseCheRelatedObj(t *testing.T) {
 	}
 }
 
-func TestIsDevWorkspaceOperatorPod(t *testing.T) {
+func TestMapDevWorkspaceOperatorPodToCheCluster(t *testing.T) {
 	type testCase struct {
 		name                              string
 		obj                               client.Object
@@ -232,7 +232,7 @@ func TestIsDevWorkspaceOperatorPod(t *testing.T) {
 			}
 			cheCtx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
 
-			isDevWorkspaceOperatorPod, request := IsDevWorkspaceOperatorPod(
+			isDevWorkspaceOperatorPod, request := mapDevWorkspaceOperatorPodToCheCluster(
 				cheCtx.Context,
 				cheCtx.ClusterAPI.Client,
 				testCase.obj,
@@ -247,10 +247,10 @@ func TestIsDevWorkspaceOperatorPod(t *testing.T) {
 	}
 }
 
-func TestIsDevWorkspaceOperatorPodWithoutCheCluster(t *testing.T) {
+func TestMapDevWorkspaceOperatorPodToCheClusterWithoutCheCluster(t *testing.T) {
 	cheCtx := test.NewCtxBuilder().WithCheCluster(nil).Build()
 
-	isDevWorkspaceOperatorPod, _ := IsDevWorkspaceOperatorPod(
+	isDevWorkspaceOperatorPod, _ := mapDevWorkspaceOperatorPodToCheCluster(
 		cheCtx.Context,
 		cheCtx.ClusterAPI.Client,
 		test.NewDWOPod("devworkspace-controller", "project-clone:dwo"),
