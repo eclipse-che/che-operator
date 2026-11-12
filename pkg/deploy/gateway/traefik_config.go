@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -63,7 +63,6 @@ type TraefikConfigStripPrefix struct {
 
 type TraefikConfigForwardAuth struct {
 	Address             string            `json:"address"`
-	TrustForwardHeader  bool              `json:"trustForwardHeader"`
 	TLS                 *TraefikConfigTLS `json:"tls,omitempty"`
 	MaxResponseBodySize *int              `json:"maxResponseBodySize,omitempty"`
 }

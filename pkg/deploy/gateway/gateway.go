@@ -410,6 +410,12 @@ entrypoints:
     address: ":%d"
     forwardedHeaders:
       insecure: true
+    http:
+      # 'keep' is the default behavior; set explicitly to suppress the Traefik startup warning
+      # "aliasHeadersStrategy is not configured" (introduced in Traefik v3.7.12).
+      # 'delete'/'reject' would harden against header aliasing (e.g. X_Forwarded_For spoofing
+      # on CGI/WSGI-like backends) but would also drop/reject legitimately-used underscore headers.
+      aliasHeadersStrategy: "keep"
   sink:
     address: ":8090"
 ping:

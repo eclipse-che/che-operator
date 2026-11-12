@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -530,6 +530,12 @@ entrypoints:
     address: ":%d"
     forwardedHeaders:
       insecure: true
+    http:
+      # 'keep' is the default behavior; set explicitly to suppress the Traefik startup warning
+      # "aliasHeadersStrategy is not configured" (introduced in Traefik v3.7.12).
+      # 'delete'/'reject' would harden against header aliasing (e.g. X_Forwarded_For spoofing
+      # on CGI/WSGI-like backends) but would also drop/reject legitimately-used underscore headers.
+      aliasHeadersStrategy: "keep"
 global:
   checkNewVersion: false
   sendAnonymousUsage: false
