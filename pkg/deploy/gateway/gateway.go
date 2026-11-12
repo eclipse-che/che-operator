@@ -404,6 +404,11 @@ func getGatewayTraefikConfigSpec(instance *chev2.CheCluster) corev1.ConfigMap {
 	if instance.Spec.Networking.Auth.Gateway.Traefik != nil {
 		logLevel = utils.ValueOrDef(instance.Spec.Networking.Auth.Gateway.Traefik.LogLevel, logLevel)
 	}
+	// 'aliasHeadersStrategy: "keep"' is the default behavior; it is set explicitly to suppress
+	// the Traefik startup warning "aliasHeadersStrategy is not configured" (introduced in
+	// Traefik v3.7.12). 'delete'/'reject' would harden against header aliasing (e.g.
+	// X_Forwarded_For spoofing on CGI/WSGI-like backends) but would also drop/reject
+	// legitimately-used underscore headers.
 	data := fmt.Sprintf(`
 entrypoints:
   http:
@@ -411,10 +416,6 @@ entrypoints:
     forwardedHeaders:
       insecure: true
     http:
-      # 'keep' is the default behavior; set explicitly to suppress the Traefik startup warning
-      # "aliasHeadersStrategy is not configured" (introduced in Traefik v3.7.12).
-      # 'delete'/'reject' would harden against header aliasing (e.g. X_Forwarded_For spoofing
-      # on CGI/WSGI-like backends) but would also drop/reject legitimately-used underscore headers.
       aliasHeadersStrategy: "keep"
   sink:
     address: ":8090"
