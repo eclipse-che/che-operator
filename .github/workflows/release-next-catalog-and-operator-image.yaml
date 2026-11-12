@@ -85,7 +85,8 @@ jobs:
             --channel next \
             --image-tool docker \
             --multi-arch \
-            --catalog-image quay.io/eclipse/eclipse-che-olm-catalog:next
+            --catalog-image quay.io/eclipse/eclipse-che-olm-catalog:next \
+            --force
 
   build-catalog-with-digest:
     runs-on: ubuntu-24.04
@@ -121,4 +122,5 @@ jobs:
             --image-tool docker \
             --multi-arch \
             --catalog-image quay.io/eclipse/eclipse-che-olm-catalog:next-digest \
-            --bundle-image quay.io/eclipse/eclipse-che-olm-bundle:$(make bundle-version CHANNEL=next)-digest
+            --bundle-image quay.io/eclipse/eclipse-che-olm-bundle:$(make bundle-version CHANNEL=next)-digest \
+            --force
