@@ -419,6 +419,8 @@ entrypoints:
       aliasHeadersStrategy: "keep"
   sink:
     address: ":8090"
+    http:
+      aliasHeadersStrategy: "keep"
 ping:
   entryPoint: "sink"
 global:

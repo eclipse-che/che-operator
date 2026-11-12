@@ -93,10 +93,11 @@ func (cfg *TraefikConfig) AddOpenShiftTokenCheck(componentName string) {
 	cfg.HTTP.Middlewares[middlewareName] = &TraefikConfigMiddleware{
 		ForwardAuth: &TraefikConfigForwardAuth{
 			Address: "https://kubernetes.default.svc/apis/user.openshift.io/v1/users/~",
-			// Note: 'trustForwardHeader' is intentionally not set. It is deprecated since Traefik v3.6.14
-			// in favor of entrypoint-level 'forwardedHeaders.trustedIPs' (see https://doc.traefik.io/traefik/migrate/v3/),
-			// and is redundant here anyway: the gateway entrypoints are already configured with
-			// 'forwardedHeaders.insecure: true', so X-Forwarded-* headers are always trusted.
+			// 'trustForwardHeader' is set explicitly to suppress the per-request Traefik warning
+			// "trustForwardHeader is not configured" (introduced in Traefik v3.6.14). It is consistent
+			// with the gateway entrypoints, which are configured with 'forwardedHeaders.insecure: true',
+			// so X-Forwarded-* headers are always trusted.
+			TrustForwardHeader:  ptr.To(true),
 			MaxResponseBodySize: ptr.To(16384), // 16KB
 			TLS: &TraefikConfigTLS{
 				InsecureSkipVerify: true,
@@ -110,7 +111,9 @@ func (cfg *TraefikConfig) AddAuth(componentName string, authAddress string) {
 	cfg.HTTP.Routers[componentName].Middlewares = append(cfg.HTTP.Routers[componentName].Middlewares, middlewareName)
 	cfg.HTTP.Middlewares[middlewareName] = &TraefikConfigMiddleware{
 		ForwardAuth: &TraefikConfigForwardAuth{
-			Address:             authAddress,
+			Address: authAddress,
+			// See AddOpenShiftTokenCheck for why 'trustForwardHeader' is set explicitly.
+			TrustForwardHeader:  ptr.To(true),
 			MaxResponseBodySize: ptr.To(16384), // 16KB
 		},
 	}

@@ -65,6 +65,7 @@ type TraefikConfigForwardAuth struct {
 	Address             string            `json:"address"`
 	TLS                 *TraefikConfigTLS `json:"tls,omitempty"`
 	MaxResponseBodySize *int              `json:"maxResponseBodySize,omitempty"`
+	TrustForwardHeader  *bool             `json:"trustForwardHeader,omitempty"`
 }
 
 type TraefikConfigErrors struct {
