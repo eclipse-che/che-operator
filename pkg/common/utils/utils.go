@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -13,57 +13,66 @@
 package utils
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"k8s.io/apimachinery/pkg/labels"
 
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/yaml"
 )
 
-var delimiters = []string{",", "|", ";", ":", "#", "\t"}
+const (
+	randomStringCharset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+)
 
-func Contains(list []string, s string) bool {
-	for _, v := range list {
-		if v == s {
-			return true
+var (
+	delimiters = []string{",", "|", ";", ":", "#", "\t"}
+)
+
+// RandomString returns a cryptographically secure random string of the given length,
+// consisting of uppercase and lowercase letters and digits.
+func RandomString(length int) string {
+	if length <= 0 {
+		return ""
+	}
+
+	result := make([]byte, 0, length)
+	buf := make([]byte, length)
+	for len(result) < length {
+		// crypto/rand.Read is guaranteed to never fail and to fill the whole buffer
+		_, _ = rand.Read(buf)
+
+		for _, b := range buf {
+			if len(result) == length {
+				break
+			}
+
+			// Rejection sampling to avoid modulo bias
+			if int(b) < len(randomStringCharset)*(256/len(randomStringCharset)) {
+				result = append(result, randomStringCharset[int(b)%len(randomStringCharset)])
+			}
 		}
 	}
-	return false
+
+	return string(result)
 }
 
-func Remove(list []string, s string) []string {
-	for i, v := range list {
-		if v == s {
-			list = append(list[:i], list[i+1:]...)
-		}
+func ValueOrDef[T comparable](value, defaultValue T) T {
+	var zero T
+	if value == zero {
+		return defaultValue
 	}
-	return list
+	return value
 }
 
-func GeneratePassword(stringLength int) (passwd string) {
-	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-		"abcdefghijklmnopqrstuvwxyz" +
-		"0123456789")
-	length := stringLength
-	buf := make([]rune, length)
-	for i := range buf {
-		buf[i] = chars[rand.Intn(len(chars))]
-	}
-	passwd = string(buf)
-	return passwd
-}
-
-func GetValue(value string, defaultValue string) string {
-	if value == "" {
-		value = defaultValue
+func DefaultIfEmpty[K comparable, V any](value, defaultValue map[K]V) map[K]V {
+	if len(value) == 0 {
+		return defaultValue
 	}
 	return value
 }
@@ -132,15 +141,6 @@ func GetPullPolicyFromDockerImage(dockerImage string) string {
 	return "IfNotPresent"
 }
 
-func GetMapOrDefault(value map[string]string, defaultValue map[string]string) map[string]string {
-	ret := value
-	if len(value) < 1 {
-		ret = defaultValue
-	}
-
-	return ret
-}
-
 func InNamespaceEventFilter(namespace string) predicate.Predicate {
 	return predicate.Funcs{
 		CreateFunc: func(ce event.CreateEvent) bool {
@@ -156,69 +156,6 @@ func InNamespaceEventFilter(namespace string) predicate.Predicate {
 			return namespace == ge.Object.GetNamespace()
 		},
 	}
-}
-
-func ParseMap(src string) map[string]string {
-	if src == "" {
-		return nil
-	}
-
-	m := map[string]string{}
-	for _, item := range strings.Split(src, ",") {
-		keyValuePair := strings.Split(item, "=")
-		if len(keyValuePair) == 1 {
-			continue
-		}
-
-		key := strings.TrimSpace(keyValuePair[0])
-		value := strings.TrimSpace(keyValuePair[1])
-		if key != "" && value != "" {
-			m[keyValuePair[0]] = keyValuePair[1]
-		}
-	}
-
-	return m
-}
-
-func CloneMap(m map[string]string) map[string]string {
-	if m == nil {
-		return nil
-	}
-
-	result := make(map[string]string)
-	for k, v := range m {
-		result[k] = v
-	}
-	return result
-}
-
-func AddMap(a map[string]string, b map[string]string) {
-	if len(b) > 0 {
-		for k, v := range b {
-			a[k] = v
-		}
-	}
-}
-
-// MergeMaps merges maps into a single one.
-// If a key is present in multiple maps, the value from the last map is used.
-func MergeMaps(maps []map[string]string) map[string]string {
-	result := make(map[string]string)
-	for _, m := range maps {
-		for k, v := range m {
-			result[k] = v
-		}
-	}
-	return result
-}
-
-// Converts label map into plain string
-func FormatLabels(m map[string]string) string {
-	if len(m) == 0 {
-		return ""
-	}
-
-	return labels.FormatLabels(m)
 }
 
 // FindAvailableDelimiter returns the first delimiter from a predefined list (comma, pipe, semicolon,

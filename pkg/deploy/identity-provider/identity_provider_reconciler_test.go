@@ -34,9 +34,8 @@ func TestFinalizeDefaultOAuthClientName(t *testing.T) {
 
 	checluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:       "eclipse-che",
-			Namespace:  "eclipse-che",
-			Finalizers: []string{OAuthFinalizerName},
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
 		},
 	}
 
@@ -48,7 +47,6 @@ func TestFinalizeDefaultOAuthClientName(t *testing.T) {
 	err := identityProviderReconciler.Finalize(cheCtx)
 	assert.Nil(t, err)
 	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "eclipse-che-client"}, &oauthv1.OAuthClient{}))
-	assert.Equal(t, 0, len(checluster.Finalizers))
 }
 
 func TestFinalizeOAuthClient(t *testing.T) {
@@ -57,9 +55,8 @@ func TestFinalizeOAuthClient(t *testing.T) {
 
 	checluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:       "eclipse-che",
-			Namespace:  "eclipse-che",
-			Finalizers: []string{OAuthFinalizerName},
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
 		},
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
@@ -78,7 +75,6 @@ func TestFinalizeOAuthClient(t *testing.T) {
 	err := identityProviderReconciler.Finalize(cheCtx)
 	assert.Nil(t, err)
 	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "test"}, &oauthv1.OAuthClient{}))
-	assert.Equal(t, 0, len(checluster.Finalizers))
 }
 
 func TestShouldFindSingleOAuthClient(t *testing.T) {

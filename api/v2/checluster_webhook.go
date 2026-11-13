@@ -141,11 +141,19 @@ func (r *CheClusterValidator) ensureSingletonCheCluster() error {
 }
 
 func (r *CheClusterValidator) validate(checluster *CheCluster) error {
+	if !checluster.DeletionTimestamp.IsZero() {
+		return nil
+	}
+
 	if err := r.validateOpenVSXRegistry(checluster); err != nil {
 		return err
 	}
 
 	if err := r.validateAgentSandbox(checluster); err != nil {
+		return err
+	}
+
+	if err := r.validateNetworkingDomain(checluster); err != nil {
 		return err
 	}
 
@@ -337,6 +345,16 @@ func (r *CheClusterValidator) validateSecretDataKeys(secret *corev1.Secret, keys
 	for _, key := range keys {
 		if value, ok := secret.Data[key]; !ok || len(value) == 0 {
 			return fmt.Errorf("mandatory keys [%s] not found in secret %s", strings.Join(keys, ", "), secret.Name)
+		}
+	}
+
+	return nil
+}
+
+func (r *CheClusterValidator) validateNetworkingDomain(cheCluster *CheCluster) error {
+	if !infrastructure.IsOpenShift() {
+		if cheCluster.Spec.Networking.Domain == "" {
+			return fmt.Errorf("required field `spec.networking.domain` is not set; set it to the base domain of the cluster ingress")
 		}
 	}
 

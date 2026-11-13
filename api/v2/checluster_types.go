@@ -1103,6 +1103,26 @@ type CheClusterGitServices struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Azure"
 	AzureDevOps []AzureDevOpsService `json:"azure,omitempty"`
+	// Configuration for automatically refreshing Git provider OAuth tokens
+	// before they expire, so workspace Git operations don't fail due to
+	// expired tokens. Only tokens obtained through Che's OAuth integration
+	// are refreshed; manually created personal access tokens are not affected.
+	// +optional
+	OauthTokenRefresh *OauthTokenRefresh `json:"oauthTokenRefresh,omitempty"`
+}
+
+// OauthTokenRefresh configures automatic refreshing of OAuth tokens before they expire.
+type OauthTokenRefresh struct {
+	// Enables automatic refreshing of OAuth tokens before they expire.
+	// The default value is `false`.
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// How often OAuth tokens are checked and refreshed, in seconds.
+	// The default value is `600`.
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:ExclusiveMinimum=true
+	PeriodSec *int32 `json:"periodSec,omitempty"`
 }
 
 // GitHubService enables users to work with repositories hosted on GitHub (GitHub.com or GitHub Enterprise).
@@ -1236,6 +1256,15 @@ const (
 	ClusterPhaseInactive        = "Inactive"
 	ClusterPhasePendingDeletion = "PendingDeletion"
 	RollingUpdate               = "RollingUpdate"
+)
+
+const (
+	// InstallOrUpdateFailed is the Reason indicating that the reconciliation failed
+	// and the installation or update is not completed.
+	InstallOrUpdateFailed = "InstallOrUpdateFailed"
+	// InstallOrUpdateRetrying is the Reason indicating that the reconciliation failed
+	// with a retryable error and will be requeued.
+	InstallOrUpdateRetrying = "InstallOrUpdateRetrying"
 )
 
 // CheClusterStatus defines the observed state of Che installation.

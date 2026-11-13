@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -74,6 +75,7 @@ func TestValidateScmSecrets(t *testing.T) {
 			Namespace: "eclipse-che",
 		},
 		Spec: CheClusterSpec{
+			Networking: CheClusterSpecNetworking{Domain: "example.com"},
 			GitServices: CheClusterGitServices{
 				GitHub: []GitHubService{
 					{
@@ -132,6 +134,7 @@ func TestValidateOpenVSXClaimSize(t *testing.T) {
 			Namespace: "eclipse-che",
 		},
 		Spec: CheClusterSpec{
+			Networking: CheClusterSpecNetworking{Domain: "example.com"},
 			Components: CheClusterComponents{
 				OpenVSXRegistry: OpenVSXRegistry{
 					Database: &OpenVSXDatabase{
@@ -158,6 +161,7 @@ func TestValidateOpenVSXServerClaimSizeInvalid(t *testing.T) {
 			Namespace: "eclipse-che",
 		},
 		Spec: CheClusterSpec{
+			Networking: CheClusterSpecNetworking{Domain: "example.com"},
 			Components: CheClusterComponents{
 				OpenVSXRegistry: OpenVSXRegistry{
 					Server: &OpenVSXServer{
@@ -181,6 +185,7 @@ func TestValidateOpenVSXSDatabaseClaimSizeInvalid(t *testing.T) {
 			Namespace: "eclipse-che",
 		},
 		Spec: CheClusterSpec{
+			Networking: CheClusterSpecNetworking{Domain: "example.com"},
 			Components: CheClusterComponents{
 				OpenVSXRegistry: OpenVSXRegistry{
 					Database: &OpenVSXDatabase{
@@ -224,6 +229,7 @@ func TestValidateOpenVSXCredentialsSecret(t *testing.T) {
 			Namespace: "eclipse-che",
 		},
 		Spec: CheClusterSpec{
+			Networking: CheClusterSpecNetworking{Domain: "example.com"},
 			Components: CheClusterComponents{
 				OpenVSXRegistry: OpenVSXRegistry{
 					CredentialsSecretName: &credentialsSecretName,
@@ -259,6 +265,7 @@ func TestValidateOpenVSXCredentialsSecretMissingKeys(t *testing.T) {
 			Namespace: "eclipse-che",
 		},
 		Spec: CheClusterSpec{
+			Networking: CheClusterSpecNetworking{Domain: "example.com"},
 			Components: CheClusterComponents{
 				OpenVSXRegistry: OpenVSXRegistry{
 					CredentialsSecretName: &credentialsSecretName,
@@ -278,6 +285,7 @@ func TestValidateScmSecretsShouldThrowError(t *testing.T) {
 			Namespace: "eclipse-che",
 		},
 		Spec: CheClusterSpec{
+			Networking: CheClusterSpecNetworking{Domain: "example.com"},
 			GitServices: CheClusterGitServices{
 				GitHub: []GitHubService{
 					{
@@ -307,4 +315,25 @@ func TestValidateScmSecretsShouldThrowError(t *testing.T) {
 	_, err = cheClusterValidator.ValidateCreate(context.TODO(), checluster)
 	assert.Error(t, err)
 	assert.Equal(t, "mandatory keys [id, secret] not found in secret github-scm-secret-with-errors", err.Error())
+}
+
+func TestValidateNetworkingDomainOnKubernetes(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
+	cheClusterValidator := CheClusterValidator{}
+
+	checluster := &CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+	}
+
+	err := cheClusterValidator.validate(checluster)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "spec.networking.domain")
+
+	checluster.Spec.Networking.Domain = "example.com"
+	err = cheClusterValidator.validate(checluster)
+	assert.NoError(t, err)
 }

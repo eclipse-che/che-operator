@@ -27322,6 +27322,27 @@ spec:
                       - secretName
                       type: object
                     type: array
+                  oauthTokenRefresh:
+                    description: |-
+                      Configuration for automatically refreshing Git provider OAuth tokens
+                      before they expire, so workspace Git operations don't fail due to
+                      expired tokens. Only tokens obtained through Che's OAuth integration
+                      are refreshed; manually created personal access tokens are not affected.
+                    properties:
+                      enabled:
+                        description: |-
+                          Enables automatic refreshing of OAuth tokens before they expire.
+                          The default value is `false`.
+                        type: boolean
+                      periodSec:
+                        description: |-
+                          How often OAuth tokens are checked and refreshed, in seconds.
+                          The default value is `600`.
+                        exclusiveMinimum: true
+                        format: int32
+                        minimum: 0
+                        type: integer
+                    type: object
                 type: object
               networking:
                 default:
@@ -31279,7 +31300,7 @@ spec:
         - name: RELATED_IMAGE_che_tls_secrets_creation_job
           value: quay.io/eclipse/che-tls-secret-creator:9f9d4a6
         - name: RELATED_IMAGE_single_host_gateway
-          value: quay.io/eclipse/che--traefik:v3.7.13-24841fe2de7304c149343d877d2923b4c8800a38ba015dea9174c23b20e344a0
+          value: quay.io/eclipse/che--traefik:v3.7.18-9c437ac4f09ce6f4980a8544902d3475fdf70a1a7c578729581d2535dfa7d635
         - name: RELATED_IMAGE_single_host_gateway_config_sidecar
           value: quay.io/che-incubator/configbump:next
         - name: RELATED_IMAGE_gateway_authentication_sidecar
@@ -31291,7 +31312,7 @@ spec:
         - name: RELATED_IMAGE_gateway_header_sidecar
           value: quay.io/che-incubator/header-rewrite-proxy:latest
         - name: RELATED_IMAGE_openvsx
-          value: quay.io/che-incubator/che-openvsx:v1.3.0
+          value: quay.io/che-incubator/che-openvsx:v1.4.0
         - name: RELATED_IMAGE_openvsx_postgres
           value: quay.io/sclorg/postgresql-16-c9s:20260319
         - name: CHE_FLAVOR

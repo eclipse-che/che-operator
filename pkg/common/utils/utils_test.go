@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -14,40 +14,9 @@ package utils
 
 import (
 	"reflect"
+	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
-
-func TestGeneratePasswd(t *testing.T) {
-	chars := 12
-	passwd := GeneratePassword(chars)
-	expectedCharsNumber := 12
-
-	if !reflect.DeepEqual(len(passwd), expectedCharsNumber) {
-		t.Errorf("Test failed. Expected %v chars, got %v chars", expectedCharsNumber, len(passwd))
-	}
-
-	passwd1 := GeneratePassword(12)
-	if reflect.DeepEqual(passwd, passwd1) {
-		t.Errorf("Test failed. Passwords are identical, %s: %s", passwd, passwd1)
-	}
-}
-
-func TestGetValue(t *testing.T) {
-	key := "myvalue"
-	defaultValue := "myDefaultValue"
-	var1 := GetValue(key, defaultValue)
-	var2 := GetValue("", defaultValue)
-
-	if !reflect.DeepEqual(var1, key) {
-		t.Errorf("Test failed. Expected '%s', but got '%s'", key, var1)
-	}
-
-	if !reflect.DeepEqual(var2, defaultValue) {
-		t.Errorf("Test failed. Expected '%s', but got '%s'", var2, defaultValue)
-	}
-}
 
 func TestGetImageNameAndTag(t *testing.T) {
 	var tests = []struct {
@@ -63,6 +32,31 @@ func TestGetImageNameAndTag(t *testing.T) {
 	for _, test := range tests {
 		if actualName, actualTag := GetImageNameAndTag(test.input); actualName != test.expectedName || actualTag != test.expectedTag {
 			t.Errorf("Test Failed. Expected '%s' and '%s', but got '%s' and '%s'", test.expectedName, test.expectedTag, actualName, actualTag)
+		}
+	}
+}
+
+func TestRandomString(t *testing.T) {
+	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+
+	if actual := RandomString(0); actual != "" {
+		t.Errorf("Test Failed. Expected empty string for length 0, but got '%s'", actual)
+	}
+
+	if actual := RandomString(-5); actual != "" {
+		t.Errorf("Test Failed. Expected empty string for negative length, but got '%s'", actual)
+	}
+
+	for _, length := range []int{1, 12, 32, 256} {
+		actual := RandomString(length)
+		if len(actual) != length {
+			t.Errorf("Test Failed. Expected string of length %d, but got length %d", length, len(actual))
+		}
+
+		for _, c := range actual {
+			if !strings.ContainsRune(charset, c) {
+				t.Errorf("Test Failed. Expected only charset characters, but got '%c'", c)
+			}
 		}
 	}
 }
@@ -84,24 +78,4 @@ func TestWhitelist(t *testing.T) {
 			t.Errorf("Test Failed. Expected '%s', but got '%s'", test.whitelistedHost, actual)
 		}
 	}
-}
-
-func TestMergeMaps(t *testing.T) {
-	map1 := map[string]string{
-		"key1": "value1",
-		"key2": "value2",
-	}
-	map2 := map[string]string{
-		"key3": "value3",
-		"key4": "value4",
-	}
-	expected := map[string]string{
-		"key1": "value1",
-		"key2": "value2",
-		"key3": "value3",
-		"key4": "value4",
-	}
-
-	actual := MergeMaps([]map[string]string{nil, map1, nil, map2, make(map[string]string)})
-	assert.Equal(t, expected, actual)
 }

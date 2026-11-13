@@ -359,20 +359,23 @@ install-che-operands: generate manifests download-kustomize copy-editors-definit
 		echo "[INFO] DevWorkspace operator is already installed"
 	fi
 
+	OPERATOR_NAMESPACE=$$($(MAKE) get_operator_namespace)
+	if [[ -n "$$($(K8S_CLI) get deploy che-operator -n "$${OPERATOR_NAMESPACE}" --ignore-not-found -o name)" ]]; then
+		$(K8S_CLI) scale deploy che-operator -n "$${OPERATOR_NAMESPACE}" --replicas=0
+	fi
+
 	if [[ "$$($(K8S_CLI) get crd | grep "checlusters.org.eclipse.che" | wc -l)" == "0" ]]; then
-		$(KUSTOMIZE) build config/$${PLATFORM} | $(K8S_CLI) apply --server-side -f -
+		# The Deployment is excluded since the operator is meant to run locally
+		$(KUSTOMIZE) build config/$${PLATFORM} | yq -r 'select(.kind != "Deployment")' | $(K8S_CLI) apply --server-side -f -
 	else
 		echo "[INFO] Che operator is already installed"
 	fi
 
-	OPERATOR_NAMESPACE=$$($(MAKE) get_operator_namespace)
-	$(K8S_CLI) scale deploy che-operator -n "$${OPERATOR_NAMESPACE}" --replicas=0
-
 	# Delete Webhooks since che operator pod is scaled down
 	# It allows creating/updating CheCluster custom resource
 	if [[ ! "$(DELETE_WEBHOOKS)" == "false" ]]; then
-		$(K8S_CLI) delete validatingwebhookconfiguration org.eclipse.che
-		$(K8S_CLI) delete mutatingwebhookconfiguration org.eclipse.che
+		$(K8S_CLI) delete validatingwebhookconfiguration org.eclipse.che --ignore-not-found
+		$(K8S_CLI) delete mutatingwebhookconfiguration org.eclipse.che --ignore-not-found
 		$(K8S_CLI) patch crd checlusters.org.eclipse.che --patch '{"spec": {"conversion": null}}' --type=merge
 	fi
 
@@ -395,15 +398,12 @@ store_tls_cert:
 
 get_operator_namespace: SHELL := /bin/bash
 get_operator_namespace:
-	PLATFORM=$$($(MAKE) get_platform)
-	if [[ $$($(K8S_CLI) get deployments.apps -l app.kubernetes.io/component=che-operator -A -o go-template='{{len .items}}') == 0 ]]; then
-		if [[ "$${PLATFORM}" == "kubernetes" ]]; then
-			echo "eclipse-che"
-		else
-			echo "openshift-operators"
-		fi
-	else
+	if [[ $$($(K8S_CLI) get deployments.apps -l app.kubernetes.io/component=che-operator -A -o go-template='{{len .items}}') != 0 ]]; then
 		echo $$($(K8S_CLI) get deployments.apps -l app.kubernetes.io/component=che-operator -A -o "jsonpath={.items[0].metadata.namespace}")
+	elif [[ $$($(K8S_CLI) get service -A --field-selector metadata.name=che-operator-service -o go-template='{{len .items}}') != 0 ]]; then
+		echo $$($(K8S_CLI) get service -A --field-selector metadata.name=che-operator-service -o "jsonpath={.items[0].metadata.namespace}")
+	else
+		echo "eclipse-che"
 	fi
 
 get_che_namespace: SHELL := /bin/bash

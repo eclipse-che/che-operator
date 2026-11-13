@@ -152,7 +152,7 @@ func updateWorkspaceConfig(cheCtx *chetypes.CheContext, operatorConfig *controll
 		disableDWOProxy(operatorConfig.Routing)
 	}
 
-	operatorConfig.Workspace.DeploymentStrategy = v1.DeploymentStrategyType(utils.GetValue(string(devEnvironments.DeploymentStrategy), constants.DefaultDeploymentStrategy))
+	operatorConfig.Workspace.DeploymentStrategy = v1.DeploymentStrategyType(utils.ValueOrDef(string(devEnvironments.DeploymentStrategy), constants.DefaultDeploymentStrategy))
 	return nil
 }
 
@@ -199,7 +199,7 @@ func updateStartTimeout(operatorConfig *controllerv1alpha1.OperatorConfiguration
 }
 
 func updateWorkspaceStorageConfig(devEnvironments *chev2.CheClusterDevEnvironments, workspaceConfig *controllerv1alpha1.WorkspaceConfig) error {
-	pvcStrategy := utils.GetValue(devEnvironments.Storage.PvcStrategy, constants.DefaultPvcStorageStrategy)
+	pvcStrategy := utils.ValueOrDef(devEnvironments.Storage.PvcStrategy, constants.DefaultPvcStorageStrategy)
 	isPerWorkspacePVCStorageStrategy := pvcStrategy == constants.PerWorkspacePVCStorageStrategy
 	pvc := map[string]*chev2.PVC{
 		constants.PerUserPVCStorageStrategy:      devEnvironments.Storage.PerUserStrategyPvcConfig,

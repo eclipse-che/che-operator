@@ -15,6 +15,7 @@ package solver
 import (
 	"context"
 	"fmt"
+	"maps"
 
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
@@ -134,14 +135,14 @@ func (e *RouteExposer) getRouteForService(
 	cheCluster *chev2.CheCluster,
 ) (*routev1.Route, error) {
 	annotations := map[string]string{}
-	utils.AddMap(annotations, endpoint.annotations)
-	utils.AddMap(annotations, map[string]string{
+	maps.Copy(annotations, endpoint.annotations)
+	maps.Copy(annotations, map[string]string{
 		defaults.ConfigAnnotationEndpointName:  endpoint.endpointName,
 		defaults.ConfigAnnotationComponentName: endpoint.componentName,
 	})
 
 	labels := map[string]string{}
-	utils.AddMap(labels, map[string]string{
+	maps.Copy(labels, map[string]string{
 		dwconstants.DevWorkspaceIDLabel:    e.devWorkspaceID,
 		constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
 	})
@@ -149,17 +150,17 @@ func (e *RouteExposer) getRouteForService(
 	if cheCluster.IsDevEnvironmentExternalTLSConfigEnabled() && isSecureScheme(endpoint.scheme) {
 		// set labels and annotations only for secure endpoints
 		// otherwise it might trigger external tool to set up TLS for insecure endpoints
-		utils.AddMap(labels, cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Labels)
-		utils.AddMap(annotations, cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Annotations)
+		maps.Copy(labels, cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Labels)
+		maps.Copy(annotations, cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Annotations)
 	} else {
 		// TODO it is needed to apply custom annotations as well
 		// https://github.com/eclipse-che/che/issues/23118
 		// To be compatible from CheCluster API v1 configuration
 		routeLabels := cheCluster.Spec.Components.CheServer.ExtraProperties["CHE_INFRA_OPENSHIFT_ROUTE_LABELS"]
 		if routeLabels != "" {
-			utils.AddMap(labels, utils.ParseMap(routeLabels))
+			maps.Copy(labels, utils.ParseMap(routeLabels))
 		}
-		utils.AddMap(labels, cheCluster.Spec.Networking.Labels)
+		maps.Copy(labels, cheCluster.Spec.Networking.Labels)
 	}
 
 	targetEndpoint := intstr.FromInt32(endpoint.port)
@@ -215,14 +216,14 @@ func (e *IngressExposer) getIngressForService(
 	cheCluster *chev2.CheCluster,
 ) networkingv1.Ingress {
 	annotations := map[string]string{}
-	utils.AddMap(annotations, endpoint.annotations)
-	utils.AddMap(annotations, map[string]string{
+	maps.Copy(annotations, endpoint.annotations)
+	maps.Copy(annotations, map[string]string{
 		defaults.ConfigAnnotationEndpointName:  endpoint.endpointName,
 		defaults.ConfigAnnotationComponentName: endpoint.componentName,
 	})
 
 	labels := map[string]string{}
-	utils.AddMap(labels, map[string]string{
+	maps.Copy(labels, map[string]string{
 		dwconstants.DevWorkspaceIDLabel:    e.devWorkspaceID,
 		constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
 	})
@@ -230,15 +231,15 @@ func (e *IngressExposer) getIngressForService(
 	if cheCluster.IsDevEnvironmentExternalTLSConfigEnabled() && isSecureScheme(endpoint.scheme) {
 		// set labels and annotations only for secure endpoints
 		// otherwise it might trigger external tool to set up TLS for insecure endpoints
-		utils.AddMap(labels, cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Labels)
-		utils.AddMap(annotations, cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Annotations)
+		maps.Copy(labels, cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Labels)
+		maps.Copy(annotations, cheCluster.Spec.DevEnvironments.Networking.ExternalTLSConfig.Annotations)
 	} else {
 		// TODO it is needed to apply custom labels as well
 		// https://github.com/eclipse-che/che/issues/23118
 		if len(cheCluster.Spec.Networking.Annotations) > 0 {
-			utils.AddMap(annotations, cheCluster.Spec.Networking.Annotations)
+			maps.Copy(annotations, cheCluster.Spec.Networking.Annotations)
 		} else {
-			utils.AddMap(annotations, deploy.DefaultIngressAnnotations)
+			maps.Copy(annotations, deploy.DefaultIngressAnnotations)
 		}
 	}
 

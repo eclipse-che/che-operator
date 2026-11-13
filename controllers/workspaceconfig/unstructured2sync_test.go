@@ -14,6 +14,7 @@ package workspace_config
 
 import (
 	"context"
+	"maps"
 	"sync"
 	"testing"
 
@@ -24,7 +25,6 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
-	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -173,7 +173,7 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), objectKeyInUserNs, lr)
 	assert.Nil(t, err)
 	lr.Annotations = map[string]string{"new-annotation": "new-test"}
-	utils.AddMap(lr.Labels, map[string]string{"new-label": "new-test"})
+	maps.Copy(lr.Labels, map[string]string{"new-label": "new-test"})
 	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), lr)
 	assert.Nil(t, err)
 

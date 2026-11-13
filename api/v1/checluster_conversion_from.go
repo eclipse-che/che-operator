@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -14,6 +14,7 @@ package v1
 
 import (
 	"context"
+	"maps"
 	"strconv"
 	"strings"
 
@@ -111,7 +112,7 @@ func (dst *CheCluster) convertFrom_Server(src *chev2.CheCluster) error {
 	if src.Spec.DevEnvironments.User != nil {
 		dst.Spec.Server.CheWorkspaceClusterRole = strings.Join(src.Spec.DevEnvironments.User.ClusterRoles, ",")
 	}
-	dst.Spec.Server.CustomCheProperties = utils.CloneMap(src.Spec.Components.CheServer.ExtraProperties)
+	dst.Spec.Server.CustomCheProperties = maps.Clone(src.Spec.Components.CheServer.ExtraProperties)
 	if src.Spec.Components.CheServer.Debug != nil {
 		dst.Spec.Server.CheDebug = strconv.FormatBool(*src.Spec.Components.CheServer.Debug)
 	}
@@ -124,7 +125,7 @@ func (dst *CheCluster) convertFrom_Server(src *chev2.CheCluster) error {
 	}
 	dst.Spec.Server.AllowAutoProvisionUserNamespace = src.Spec.DevEnvironments.DefaultNamespace.AutoProvision
 	dst.Spec.Server.WorkspaceNamespaceDefault = src.Spec.DevEnvironments.DefaultNamespace.Template
-	dst.Spec.Server.WorkspacePodNodeSelector = utils.CloneMap(src.Spec.DevEnvironments.NodeSelector)
+	dst.Spec.Server.WorkspacePodNodeSelector = maps.Clone(src.Spec.DevEnvironments.NodeSelector)
 
 	dst.Spec.Server.WorkspacePodTolerations = append(dst.Spec.Server.WorkspacePodTolerations, src.Spec.DevEnvironments.Tolerations...)
 
@@ -162,14 +163,14 @@ func (dst *CheCluster) convertFrom_Server(src *chev2.CheCluster) error {
 
 	if infrastructure.IsOpenShift() {
 		dst.Spec.Server.CheHost = src.Spec.Networking.Hostname
-		dst.Spec.Server.CheServerRoute.Labels = utils.FormatLabels(src.Spec.Networking.Labels)
-		dst.Spec.Server.CheServerRoute.Annotations = utils.CloneMap(src.Spec.Networking.Annotations)
+		dst.Spec.Server.CheServerRoute.Labels = utils.FormatMap(src.Spec.Networking.Labels)
+		dst.Spec.Server.CheServerRoute.Annotations = maps.Clone(src.Spec.Networking.Annotations)
 		dst.Spec.Server.CheServerRoute.Domain = src.Spec.Networking.Domain
 		dst.Spec.Server.CheHostTLSSecret = src.Spec.Networking.TlsSecretName
 	} else {
 		dst.Spec.Server.CheHost = src.Spec.Networking.Hostname
-		dst.Spec.Server.CheServerIngress.Labels = utils.FormatLabels(src.Spec.Networking.Labels)
-		dst.Spec.Server.CheServerIngress.Annotations = utils.CloneMap(src.Spec.Networking.Annotations)
+		dst.Spec.Server.CheServerIngress.Labels = utils.FormatMap(src.Spec.Networking.Labels)
+		dst.Spec.Server.CheServerIngress.Annotations = maps.Clone(src.Spec.Networking.Annotations)
 		delete(dst.Spec.Server.CheServerIngress.Annotations, "kubernetes.io/ingress.class")
 	}
 
@@ -184,7 +185,7 @@ func (dst *CheCluster) convertFrom_Server(src *chev2.CheCluster) error {
 		}
 	}
 
-	dst.Spec.Server.SingleHostGatewayConfigMapLabels = utils.CloneMap(src.Spec.Networking.Auth.Gateway.ConfigLabels)
+	dst.Spec.Server.SingleHostGatewayConfigMapLabels = maps.Clone(src.Spec.Networking.Auth.Gateway.ConfigLabels)
 
 	trustStoreConfigMap, err := findTrustStoreConfigMap(src.Namespace)
 	if err != nil {
