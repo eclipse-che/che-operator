@@ -114,10 +114,7 @@ func (s *CheServerReconciler) getConfigMapData(cheCtx *chetypes.CheContext) (che
 		cheInfrastructure = "kubernetes"
 	}
 
-	javaOpts := constants.DefaultJavaOpts
-	if cheCtx.Proxy.HttpProxy != "" {
-		javaOpts += deploy.GenerateProxyJavaOpts(cheCtx.Proxy, cheCtx.Proxy.NoProxy)
-	}
+	javaOpts := constants.DefaultJavaOpts + cheCtx.Proxy.AsJavaOpts()
 
 	cheLogLevel := utils.ValueOrDef(
 		cheCtx.CheCluster.Spec.Components.CheServer.LogLevel,

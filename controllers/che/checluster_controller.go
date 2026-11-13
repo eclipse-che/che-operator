@@ -29,6 +29,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/reconciler/consolelink"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/labelbackfill"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/networkpolicy"
+	"github.com/eclipse-che/che-operator/pkg/reconciler/proxyconfig"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/selfsignedcert"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/specmigration"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -60,6 +61,7 @@ import (
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/go-logr/logr"
+	configv1 "github.com/openshift/api/config/v1"
 	consolev1 "github.com/openshift/api/console/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -109,6 +111,7 @@ func NewReconciler(
 	// order does matter
 	reconcilerManager.AddReconciler(labelbackfill.NewReconciler())
 	reconcilerManager.AddReconciler(specmigration.NewReconciler())
+	reconcilerManager.AddReconciler(proxyconfig.NewReconciler())
 
 	// we have to expose che endpoint independently of syncing other server
 	// resources since che host is used for dashboard deployment and che config map
@@ -188,6 +191,14 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return []reconcile.Request{}
 	}
 
+	var toClusterProxyRequestMapper handler.MapFunc = func(ctx context.Context, obj client.Object) []reconcile.Request {
+		isClusterProxy, reconcileRequest := IsClusterProxy(ctx, r.client, obj)
+		if isClusterProxy {
+			return []reconcile.Request{reconcileRequest}
+		}
+		return []reconcile.Request{}
+	}
+
 	bld := ctrl.NewControllerManagedBy(mgr).
 		For(&chev2.CheCluster{}).
 		Owns(&corev1.Service{}).
@@ -211,6 +222,9 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	if infrastructure.IsOpenShift() {
 		bld.Owns(&routev1.Route{})
+		bld.Watches(&configv1.Proxy{},
+			handler.EnqueueRequestsFromMapFunc(toClusterProxyRequestMapper),
+		)
 	} else {
 		bld.Owns(&networking.Ingress{})
 	}
@@ -289,13 +303,6 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 
 		return ctrl.Result{}, nil
-	}
-
-	// Resolve proxy configuration
-	cheCtx.Proxy, err = GetProxyConfiguration(cheCtx)
-	if err != nil {
-		r.Log.Error(err, "Error on reading proxy configuration")
-		return ctrl.Result{}, err
 	}
 
 	// Resolve authentication configuration

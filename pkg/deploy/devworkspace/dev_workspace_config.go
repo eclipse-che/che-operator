@@ -143,7 +143,7 @@ func updateWorkspaceConfig(cheCtx *chetypes.CheContext, operatorConfig *controll
 	// we need to disable automatic proxy handling in the DevWorkspace Operator as its implementation collides
 	// with ours -- they set environment variables the deployment spec explicitly, which overrides the proxy-settings
 	// automount configmap.
-	if cheCtx.Proxy.HttpProxy != "" || cheCtx.Proxy.HttpsProxy != "" {
+	if cheCtx.Proxy.IsPresent() {
 		if operatorConfig.Routing == nil {
 			operatorConfig.Routing = &controllerv1alpha1.RoutingConfig{}
 		}

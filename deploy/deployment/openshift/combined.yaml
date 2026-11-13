@@ -29724,6 +29724,14 @@ rules:
   - cluster
   resources:
   - proxies
+  verbs:
+  - get
+  - watch
+- apiGroups:
+  - config.openshift.io
+  resourceNames:
+  - cluster
+  resources:
   - authentications
   verbs:
   - get
