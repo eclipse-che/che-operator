@@ -21,6 +21,7 @@ import (
 	dwInfra "github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
+	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -51,6 +52,7 @@ import (
 	"k8s.io/client-go/discovery"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
@@ -429,6 +431,9 @@ func getCacheFunc() (cache.NewCacheFunc, error) {
 		selectors[&routev1.Route{}] = cache.ByObject{Label: partOfEclipseChe}
 		selectors[&templatev1.Template{}] = cache.ByObject{Label: partOfEclipseChe}
 		selectors[&consolev1.ConsoleLink{}] = cache.ByObject{Label: partOfEclipseChe}
+		selectors[&configv1.Proxy{}] = cache.ByObject{
+			Field: fields.OneTermEqualSelector("metadata.name", resources.ProxyResourceName),
+		}
 	}
 
 	if infrastructure.IsConsoleLinkEnabled() {

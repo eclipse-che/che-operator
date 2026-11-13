@@ -59,6 +59,10 @@ func (p *Proxy) IsPresent() bool {
 	return p.HttpProxy != "" || p.HttpsProxy != ""
 }
 
+// AsEnvVars returns lower- and upper-case http_proxy/https_proxy/no_proxy env vars,
+// or an empty slice when no proxy is present. All six vars are always declared, even
+// with empty values: an explicit empty value overrides whatever the container would
+// otherwise inherit, so an HTTPS-only proxy does not fall back to an inherited HTTP proxy.
 func (p *Proxy) AsEnvVars() []corev1.EnvVar {
 	if !p.IsPresent() {
 		return []corev1.EnvVar{}
@@ -92,6 +96,9 @@ func (p *Proxy) AsEnvVars() []corev1.EnvVar {
 	}
 }
 
+// AsMap returns the same six proxy settings as AsEnvVars as a map, or an empty
+// map when no proxy is present. Like AsEnvVars, all keys are always declared,
+// even empty, so an unset protocol is explicitly cleared.
 func (p *Proxy) AsMap() map[string]string {
 	if !p.IsPresent() {
 		return make(map[string]string)

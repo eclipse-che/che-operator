@@ -142,14 +142,9 @@ func GetPullPolicyFromDockerImage(dockerImage string) string {
 	return "IfNotPresent"
 }
 
-// InNamespaceEventFilter returns a predicate that lets through events for objects
-// in the given namespace. Cluster-scoped objects have no namespace and pass through
-// as well: without this, watches on cluster-scoped types (e.g. Proxy, ConsoleLink)
-// would receive no events on installs where WATCH_NAMESPACE is set. This is only
-// needed for non-OLM installs and namespace-scoped OLM modes, because OLM sets
-// WATCH_NAMESPACE to the empty string in AllNamespaces mode, where the filter is
-// not installed at all. Relevance of cluster-scoped objects is decided by their
-// watch mappers, so no type check is needed here.
+// InNamespaceEventFilter passes events for objects in the given namespace and for
+// cluster-scoped objects (empty namespace). Watch mappers decide whether a
+// cluster-scoped object is relevant.
 func InNamespaceEventFilter(namespace string) predicate.Predicate {
 	inScope := func(obj client.Object) bool {
 		return obj.GetNamespace() == "" || obj.GetNamespace() == namespace
