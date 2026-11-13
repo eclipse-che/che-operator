@@ -95,6 +95,8 @@ init() {
   unset TO_PR_NUMBER
   unset TO_SOURCES_CHANNEL
 
+  SKIP_DWO="false"
+
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
       --install-from)
@@ -106,6 +108,9 @@ init() {
         TO_OPTION="$2"
         parseOptionValue "$1" TO "$2"
         shift
+        ;;
+      --skip-dwo)
+        SKIP_DWO="true"
         ;;
       --help|-h)
         printUsage
@@ -246,6 +251,8 @@ printUsage() {
   echo -e "                         (default: none)"
   echo -e "  --update-to TARGET     Eclipse Che installation to update the source to"
   echo -e "                         (default: none)"
+  echo -e "  --skip-dwo             Skip DevWorkspace operator installation; use the one"
+  echo -e "                         already deployed on the cluster"
   echo -e "  -h, --help             Show this help message"
   echo
   echo "TARGETS:"
@@ -399,7 +406,9 @@ installFrom() {
 
   echo "[INFO] Installing Eclipse Che '${desired_csv}'"
 
-  if [[ "$FROM" == "next" ]] || [[ "$FROM" == "pr" ]] || [[ "$FROM" == "sources" && "$FROM_SOURCES_CHANNEL" == "next" ]]; then
+  if [[ "${SKIP_DWO}" == "true" ]]; then
+    echo "[INFO] Skipping DevWorkspace operator install"
+  elif [[ "$FROM" == "next" ]] || [[ "$FROM" == "pr" ]] || [[ "$FROM" == "sources" && "$FROM_SOURCES_CHANNEL" == "next" ]]; then
     # Install DWO next version
     "$MAKE_BIN" install-devworkspace CHANNEL="next" NAMESPACE="$OPERATOR_NAMESPACE"
   else
