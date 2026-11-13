@@ -25,6 +25,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -595,6 +596,177 @@ func TestReconcileDevWorkspaceConfigDeploymentStrategy(t *testing.T) {
 
 			assert.NoError(t, err)
 			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.DeploymentStrategy, dwoc.Config.Workspace.DeploymentStrategy)
+		})
+	}
+}
+
+func TestReconcileDevWorkspaceConfigScheduling(t *testing.T) {
+	podAffinity := &corev1.PodAffinity{
+		RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+			{
+				LabelSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": "test"},
+				},
+				TopologyKey: "kubernetes.io/hostname",
+			},
+		},
+	}
+	podAntiAffinity := &corev1.PodAntiAffinity{
+		PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+			{
+				Weight: 100,
+				PodAffinityTerm: corev1.PodAffinityTerm{
+					LabelSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{"app": "test"},
+					},
+					TopologyKey: "topology.kubernetes.io/zone",
+				},
+			},
+		},
+	}
+	topologySpreadConstraints := []corev1.TopologySpreadConstraint{
+		{
+			MaxSkew:           1,
+			TopologyKey:       "topology.kubernetes.io/zone",
+			WhenUnsatisfiable: corev1.ScheduleAnyway,
+			LabelSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": "test"},
+			},
+		},
+	}
+
+	type testCase struct {
+		name                   string
+		cheCluster             *chev2.CheCluster
+		existedObjects         []client.Object
+		expectedOperatorConfig *controllerv1alpha1.OperatorConfiguration
+	}
+
+	testCases := []testCase{
+		{
+			name: "Create DevWorkspaceOperatorConfig with scheduling configuration",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						PodAffinity:               podAffinity,
+						PodAntiAffinity:           podAntiAffinity,
+						TopologySpreadConstraints: topologySpreadConstraints,
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					PodAffinity:               podAffinity,
+					PodAntiAffinity:           podAntiAffinity,
+					TopologySpreadConstraints: topologySpreadConstraints,
+				},
+			},
+		},
+		{
+			name: "Update existing DevWorkspaceOperatorConfig by overwriting scheduling configuration",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{
+					DevEnvironments: chev2.CheClusterDevEnvironments{
+						PodAffinity:               podAffinity,
+						PodAntiAffinity:           podAntiAffinity,
+						TopologySpreadConstraints: topologySpreadConstraints,
+					},
+				},
+			},
+			existedObjects: []client.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							PodAffinity: &corev1.PodAffinity{},
+							PodAntiAffinity: &corev1.PodAntiAffinity{
+								RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+									{
+										TopologyKey: "kubernetes.io/hostname",
+									},
+								},
+							},
+							TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
+								{
+									MaxSkew:     2,
+									TopologyKey: "kubernetes.io/hostname",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{
+					PodAffinity:               podAffinity,
+					PodAntiAffinity:           podAntiAffinity,
+					TopologySpreadConstraints: topologySpreadConstraints,
+				},
+			},
+		},
+		{
+			name: "Update existing DevWorkspaceOperatorConfig by removing scheduling configuration",
+			cheCluster: &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: chev2.CheClusterSpec{},
+			},
+			existedObjects: []client.Object{
+				&controllerv1alpha1.DevWorkspaceOperatorConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      devWorkspaceConfigName,
+						Namespace: "eclipse-che",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "DevWorkspaceOperatorConfig",
+						APIVersion: controllerv1alpha1.GroupVersion.String(),
+					},
+					Config: &controllerv1alpha1.OperatorConfiguration{
+						Workspace: &controllerv1alpha1.WorkspaceConfig{
+							PodAffinity:               podAffinity,
+							PodAntiAffinity:           podAntiAffinity,
+							TopologySpreadConstraints: topologySpreadConstraints,
+						},
+					},
+				},
+			},
+			expectedOperatorConfig: &controllerv1alpha1.OperatorConfiguration{
+				Workspace: &controllerv1alpha1.WorkspaceConfig{},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.existedObjects...).Build()
+
+			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
+			test.EnsureReconcile(t, cheCtx, devWorkspaceConfigReconciler.Reconcile)
+
+			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
+			err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
+
+			assert.NoError(t, err)
+			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.PodAffinity, dwoc.Config.Workspace.PodAffinity)
+			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.PodAntiAffinity, dwoc.Config.Workspace.PodAntiAffinity)
+			assert.Equal(t, testCase.expectedOperatorConfig.Workspace.TopologySpreadConstraints, dwoc.Config.Workspace.TopologySpreadConstraints)
 		})
 	}
 }

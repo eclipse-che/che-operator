@@ -304,6 +304,23 @@ func (in *CheClusterDevEnvironments) DeepCopyInto(out *CheClusterDevEnvironments
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.PodAffinity != nil {
+		in, out := &in.PodAffinity, &out.PodAffinity
+		*out = new(v1.PodAffinity)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.PodAntiAffinity != nil {
+		in, out := &in.PodAntiAffinity, &out.PodAntiAffinity
+		*out = new(v1.PodAntiAffinity)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.TopologySpreadConstraints != nil {
+		in, out := &in.TopologySpreadConstraints, &out.TopologySpreadConstraints
+		*out = make([]v1.TopologySpreadConstraint, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	in.DefaultNamespace.DeepCopyInto(&out.DefaultNamespace)
 	if in.TrustedCerts != nil {
 		in, out := &in.TrustedCerts, &out.TrustedCerts
