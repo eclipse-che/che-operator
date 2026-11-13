@@ -26,8 +26,8 @@ import (
 	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/common/cheerrors"
+	"github.com/eclipse-che/che-operator/pkg/common/cheproxy"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	"golang.org/x/net/http/httpproxy"
 )
 
 const tlsEndpointTimeout = 3 * time.Second
@@ -48,7 +48,7 @@ func (s *SelfSignedCertificateReconciler) fetchTLSCertificateChain(cheCtx *chety
 		return certificates, nil
 	}
 
-	if cheCtx.Proxy != nil && cheCtx.Proxy.HttpProxy != "" {
+	if cheCtx.Proxy.IsPresent() {
 		httpClient = buildHTTPClientWithProxy(cheCtx.Proxy)
 		proxyCertificates, proxyErr := s.fetchPeerCertificates(cheCtx.Context, httpClient, requestURL)
 		if proxyErr == nil {
@@ -142,23 +142,19 @@ func buildHTTPClient() *http.Client {
 	}
 }
 
-func buildHTTPClientWithProxy(cheProxy *chetypes.Proxy) *http.Client {
+func buildHTTPClientWithProxy(cheProxy *cheproxy.Proxy) *http.Client {
 	return &http.Client{
 		Transport: buildHTTPTransport(cheProxy),
 		Timeout:   tlsEndpointTimeout,
 	}
 }
 
-func buildHTTPTransport(cheProxy *chetypes.Proxy) *http.Transport {
+func buildHTTPTransport(cheProxy *cheproxy.Proxy) *http.Transport {
 	httpTransport := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 
-	config := httpproxy.Config{
-		HTTPProxy:  cheProxy.HttpProxy,
-		HTTPSProxy: cheProxy.HttpsProxy,
-		NoProxy:    cheProxy.NoProxy,
-	}
+	config := cheProxy.AsHttpProxyConfig()
 	proxyFunc := config.ProxyFunc()
 
 	httpTransport.Proxy = func(r *http.Request) (*url.URL, error) {

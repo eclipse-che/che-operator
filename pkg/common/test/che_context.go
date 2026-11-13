@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/cheproxy"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	testclient "github.com/eclipse-che/che-operator/pkg/common/test/test-client"
 	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
@@ -75,7 +76,7 @@ func (f *CheContextBuild) Build() *chetypes.CheContext {
 			ClientWrapper:           clientwrapper.New(fakeClient, scheme),
 			NonCachingClientWrapper: clientwrapper.New(fakeClient, scheme),
 		},
-		Proxy:          &chetypes.Proxy{},
+		Proxy:          &cheproxy.Proxy{},
 		Authentication: buildAuthentication(f.cheCluster),
 		DWONamespace:   "devworkspace-controller",
 		Context:        context.Background(),
