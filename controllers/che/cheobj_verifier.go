@@ -87,7 +87,7 @@ func IsOperatorManaged(ctx context.Context, cl client.Client, obj client.Object)
 // that the operator reads proxy settings from.
 func IsClusterProxy(ctx context.Context, cl client.Client, obj client.Object) (bool, ctrl.Request) {
 	if obj.GetName() != resources.ProxyResourceName {
-		// only the 'cluster' proxy configuration is watched
+		// only the 'cluster' Proxy is relevant, ignore others
 		return false, ctrl.Request{}
 	}
 

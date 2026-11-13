@@ -110,6 +110,33 @@ var _ = Describe("buildFromCheConfig", func() {
 		}))
 	})
 
+	It("should url-encode credentials with reserved characters in the proxy URL", func() {
+		cheCtx.WithObjects(&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.DefaultProxyCredentialsSecret,
+				Namespace: "eclipse-che",
+			},
+			Data: map[string][]byte{
+				"user":     []byte(("us@r")),
+				"password": []byte(("p#ss:w/rd")),
+			},
+		})
+		cheProxy := &chev2.Proxy{
+			Url:  "http://myproxy.com",
+			Port: "3128",
+		}
+
+		proxy, err := buildFromCheConfig(cheCtx.Build(), cheProxy)
+
+		Expect(err).ToNot(HaveOccurred())
+		// credentials are percent-encoded in the proxy URL...
+		Expect(proxy.HttpProxy).To(Equal("http://us%40r:p%23ss%3Aw%2Frd@myproxy.com:3128"))
+		Expect(proxy.HttpsProxy).To(Equal("http://us%40r:p%23ss%3Aw%2Frd@myproxy.com:3128"))
+		// ...but stay raw in the dedicated fields, e.g. for AsJavaOpts
+		Expect(proxy.HttpUser).To(Equal("us@r"))
+		Expect(proxy.HttpPassword).To(Equal("p#ss:w/rd"))
+	})
+
 	It("should apply credentials from custom secret", func() {
 		cheCtx.WithObjects(&corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
