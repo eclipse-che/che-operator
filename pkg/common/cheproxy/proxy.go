@@ -50,6 +50,8 @@ type Proxy struct {
 	TrustedCAMapName string
 }
 
+// IsPresent reports whether an HTTP or HTTPS proxy URL is configured.
+// NoProxy and TrustedCAMapName alone do not count as a configured proxy.
 func (p *Proxy) IsPresent() bool {
 	if p == nil {
 		return false
@@ -118,30 +120,55 @@ func (p *Proxy) AsJavaOpts() string {
 		noProxy = "*" + noProxy
 	}
 
-	proxyAuthOptions := ""
-	if len(p.HttpUser) > 1 && len(p.HttpPassword) > 1 {
-		proxyAuthOptions = fmt.Sprintf(
-			" -Dhttp.proxyUser=%s -Dhttps.proxyUser=%s"+
-				" -Dhttp.proxyPassword=%s -Dhttps.proxyPassword=%s"+
-				" -Djdk.http.auth.tunneling.disabledSchemes="+
-				" -Djdk.http.auth.proxying.disabledSchemes=",
-			p.HttpUser, p.HttpsUser, p.HttpPassword, p.HttpsPassword,
+	opts := []string{}
+	if p.HttpProxy != "" {
+		opts = append(opts,
+			"-Dhttp.proxyHost="+stripURLScheme(p.HttpHost),
+			"-Dhttp.proxyPort="+p.HttpPort,
 		)
 	}
 
-	return fmt.Sprintf(
-		" -Dhttp.proxyHost=%s"+
-			" -Dhttp.proxyPort=%s"+
-			" -Dhttps.proxyHost=%s"+
-			" -Dhttps.proxyPort=%s"+
-			" -Dhttp.nonProxyHosts='%s'%s",
-		stripURLScheme(p.HttpHost), p.HttpPort,
-		stripURLScheme(p.HttpsHost), p.HttpsPort,
-		noProxy, proxyAuthOptions,
-	)
+	if p.HttpsProxy != "" {
+		opts = append(opts,
+			"-Dhttps.proxyHost="+stripURLScheme(p.HttpsHost),
+			"-Dhttps.proxyPort="+p.HttpsPort,
+		)
+	}
+
+	opts = append(opts, fmt.Sprintf("-Dhttp.nonProxyHosts='%s'", noProxy))
+
+	if p.HttpUser != "" && p.HttpPassword != "" {
+		opts = append(opts,
+			"-Dhttp.proxyUser="+p.HttpUser,
+			"-Dhttp.proxyPassword="+p.HttpPassword,
+		)
+	}
+	if p.HttpsUser != "" && p.HttpsPassword != "" {
+		opts = append(opts,
+			"-Dhttps.proxyUser="+p.HttpsUser,
+			"-Dhttps.proxyPassword="+p.HttpsPassword,
+		)
+	}
+	if p.hasCredentials() {
+		opts = append(opts,
+			"-Djdk.http.auth.tunneling.disabledSchemes=",
+			"-Djdk.http.auth.proxying.disabledSchemes=",
+		)
+	}
+
+	return " " + strings.Join(opts, " ")
+}
+
+func (p *Proxy) hasCredentials() bool {
+	return (p.HttpUser != "" && p.HttpPassword != "") ||
+		(p.HttpsUser != "" && p.HttpsPassword != "")
 }
 
 func (p *Proxy) AsHttpProxyConfig() *httpproxy.Config {
+	if !p.IsPresent() {
+		return &httpproxy.Config{}
+	}
+
 	return &httpproxy.Config{
 		HTTPProxy:  p.HttpProxy,
 		HTTPSProxy: p.HttpsProxy,

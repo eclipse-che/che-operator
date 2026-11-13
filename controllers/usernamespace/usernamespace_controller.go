@@ -42,6 +42,7 @@ import (
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	configv1 "github.com/openshift/api/config/v1"
 	projectv1 "github.com/openshift/api/project/v1"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -116,6 +117,10 @@ func (r *CheUserNamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&corev1.ConfigMap{}, r.watchRulesForConfigMaps(ctx)).
 		Watches(&chev2.CheCluster{}, r.triggerAllNamespaces())
 
+	if infrastructure.IsOpenShift() {
+		bld.Watches(&configv1.Proxy{}, r.watchClusterProxy())
+	}
+
 	// Use controller.TypedOptions to allow to configure 2 controllers for same object being reconciled
 	return bld.WithOptions(
 		controller.TypedOptions[reconcile.Request]{
@@ -176,21 +181,39 @@ func (r *CheUserNamespaceReconciler) isInManagedNamespace(ctx context.Context, o
 	return err == nil && info != nil && info.IsWorkspaceNamespace
 }
 
+// watchClusterProxy only reacts to the cluster-wide proxy configuration named
+// 'cluster'; any other Proxy object must not trigger reconciliation of user namespaces.
+func (r *CheUserNamespaceReconciler) watchClusterProxy() handler.EventHandler {
+	return handler.EnqueueRequestsFromMapFunc(
+		handler.MapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
+			if obj.GetName() != resources.ProxyResourceName {
+				return []reconcile.Request{}
+			}
+
+			return r.allNamespacesRequests()
+		}),
+	)
+}
+
 func (r *CheUserNamespaceReconciler) triggerAllNamespaces() handler.EventHandler {
 	return handler.EnqueueRequestsFromMapFunc(
 		handler.MapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
-			nss := r.namespaceCache.GetAllKnownNamespaces()
-			ret := make([]reconcile.Request, 0, len(nss))
-
-			for _, ns := range nss {
-				ret = append(ret, reconcile.Request{
-					NamespacedName: types.NamespacedName{Name: ns},
-				})
-			}
-
-			return ret
+			return r.allNamespacesRequests()
 		}),
 	)
+}
+
+func (r *CheUserNamespaceReconciler) allNamespacesRequests() []reconcile.Request {
+	nss := r.namespaceCache.GetAllKnownNamespaces()
+	ret := make([]reconcile.Request, 0, len(nss))
+
+	for _, ns := range nss {
+		ret = append(ret, reconcile.Request{
+			NamespacedName: types.NamespacedName{Name: ns},
+		})
+	}
+
+	return ret
 }
 
 func (r *CheUserNamespaceReconciler) hasCheCluster(ctx context.Context, namespace string) bool {

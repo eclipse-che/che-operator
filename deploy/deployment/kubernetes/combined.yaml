@@ -29726,6 +29726,7 @@ rules:
   - proxies
   verbs:
   - get
+  - list
   - watch
 - apiGroups:
   - config.openshift.io

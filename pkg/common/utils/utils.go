@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/yaml"
@@ -141,19 +142,31 @@ func GetPullPolicyFromDockerImage(dockerImage string) string {
 	return "IfNotPresent"
 }
 
+// InNamespaceEventFilter returns a predicate that lets through events for objects
+// in the given namespace. Cluster-scoped objects have no namespace and pass through
+// as well: without this, watches on cluster-scoped types (e.g. Proxy, ConsoleLink)
+// would receive no events on installs where WATCH_NAMESPACE is set. This is only
+// needed for non-OLM installs and namespace-scoped OLM modes, because OLM sets
+// WATCH_NAMESPACE to the empty string in AllNamespaces mode, where the filter is
+// not installed at all. Relevance of cluster-scoped objects is decided by their
+// watch mappers, so no type check is needed here.
 func InNamespaceEventFilter(namespace string) predicate.Predicate {
+	inScope := func(obj client.Object) bool {
+		return obj.GetNamespace() == "" || obj.GetNamespace() == namespace
+	}
+
 	return predicate.Funcs{
 		CreateFunc: func(ce event.CreateEvent) bool {
-			return namespace == ce.Object.GetNamespace()
+			return inScope(ce.Object)
 		},
 		DeleteFunc: func(de event.DeleteEvent) bool {
-			return namespace == de.Object.GetNamespace()
+			return inScope(de.Object)
 		},
 		UpdateFunc: func(ue event.UpdateEvent) bool {
-			return namespace == ue.ObjectOld.GetNamespace()
+			return inScope(ue.ObjectOld)
 		},
 		GenericFunc: func(ge event.GenericEvent) bool {
-			return namespace == ge.Object.GetNamespace()
+			return inScope(ge.Object)
 		},
 	}
 }

@@ -146,4 +146,32 @@ var _ = Describe("buildFromCheConfig", func() {
 		Expect(proxy.HttpUser).To(BeEmpty())
 		Expect(proxy.HttpPassword).To(BeEmpty())
 	})
+
+	It("should keep proxy URLs empty when url is not set, even with port and credentials", func() {
+		cheCtx.WithObjects(&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.DefaultProxyCredentialsSecret,
+				Namespace: "eclipse-che",
+			},
+			Data: map[string][]byte{
+				"user":     []byte(("user")),
+				"password": []byte(("password")),
+			},
+		})
+		cheProxy := &chev2.Proxy{
+			Port:          "3128",
+			NonProxyHosts: []string{"host1"},
+		}
+
+		proxy, err := buildFromCheConfig(cheCtx.Build(), cheProxy)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(proxy.IsPresent()).To(BeFalse())
+		Expect(proxy.HttpProxy).To(BeEmpty())
+		Expect(proxy.HttpsProxy).To(BeEmpty())
+		Expect(proxy.HttpHost).To(BeEmpty())
+		Expect(proxy.HttpPort).To(BeEmpty())
+		// non proxy hosts are preserved so they can extend the cluster bypass list
+		Expect(proxy.NoProxy).To(Equal("host1"))
+	})
 })
