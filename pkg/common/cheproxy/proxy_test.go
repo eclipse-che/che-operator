@@ -121,7 +121,7 @@ var _ = Describe("Proxy", func() {
 			javaOpts := newTestProxy().AsJavaOpts()
 			expectedJavaOpts := " -Dhttp.proxyHost=myproxy.com -Dhttp.proxyPort=1234 -Dhttps.proxyHost=myproxy.com " +
 				"-Dhttps.proxyPort=1234 -Dhttp.nonProxyHosts='localhost|myhost.com' -Dhttp.proxyUser=user " +
-				"-Dhttps.proxyUser=user -Dhttp.proxyPassword=password -Dhttps.proxyPassword=password " +
+				"-Dhttp.proxyPassword=password -Dhttps.proxyUser=user -Dhttps.proxyPassword=password " +
 				"-Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes="
 			Expect(javaOpts).To(Equal(expectedJavaOpts))
 		})
@@ -130,6 +130,8 @@ var _ = Describe("Proxy", func() {
 			proxy := newTestProxy()
 			proxy.HttpUser = ""
 			proxy.HttpPassword = ""
+			proxy.HttpsUser = ""
+			proxy.HttpsPassword = ""
 
 			javaOpts := proxy.AsJavaOpts()
 			expectedJavaOpts := " -Dhttp.proxyHost=myproxy.com -Dhttp.proxyPort=1234 -Dhttps.proxyHost=myproxy.com " +
@@ -137,10 +139,31 @@ var _ = Describe("Proxy", func() {
 			Expect(javaOpts).To(Equal(expectedJavaOpts))
 		})
 
+		It("should emit only HTTPS flags for HTTPS-only proxy", func() {
+			proxy := newTestProxy()
+			proxy.HttpProxy = ""
+			proxy.HttpHost = ""
+			proxy.HttpPort = ""
+			proxy.HttpUser = ""
+			proxy.HttpPassword = ""
+
+			javaOpts := proxy.AsJavaOpts()
+			Expect(javaOpts).ToNot(ContainSubstring("http.proxyHost"))
+			Expect(javaOpts).ToNot(ContainSubstring("http.proxyPort"))
+			Expect(javaOpts).ToNot(ContainSubstring("http.proxyUser"))
+			Expect(javaOpts).To(ContainSubstring("-Dhttps.proxyHost=myproxy.com"))
+			Expect(javaOpts).To(ContainSubstring("-Dhttps.proxyPort=1234"))
+			Expect(javaOpts).To(ContainSubstring("-Dhttps.proxyUser=user"))
+			Expect(javaOpts).To(ContainSubstring("-Dhttps.proxyPassword=password"))
+			Expect(javaOpts).To(ContainSubstring("-Dhttp.nonProxyHosts='localhost|myhost.com'"))
+		})
+
 		It("should handle wildcards and spaces in NoProxy", func() {
 			proxy := newTestProxy()
 			proxy.HttpUser = ""
 			proxy.HttpPassword = ""
+			proxy.HttpsUser = ""
+			proxy.HttpsPassword = ""
 			proxy.NoProxy = ".example.com,localhost, *.wildcard.domain.com ,myhost.com , .wildcard.net , 127.* "
 
 			javaOpts := proxy.AsJavaOpts()

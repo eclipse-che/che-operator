@@ -55,7 +55,7 @@ var _ = Describe("buildFromClusterConfig", func() {
 		}))
 	})
 
-	It("should not build proxy from HTTPS proxy", func() {
+	It("should build HTTPS-only proxy and leave HTTP fields empty", func() {
 		clusterConfig := &configv1.Proxy{
 			Status: configv1.ProxyStatus{
 				HTTPSProxy: "https://myproxy.com:3128",
@@ -128,6 +128,6 @@ var _ = Describe("buildFromClusterConfig", func() {
 		_, err := buildFromClusterConfig(clusterConfig)
 
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("failed to parse proxy config"))
+		Expect(err.Error()).To(ContainSubstring("failed to parse HTTP proxy URL from Proxy cluster status"))
 	})
 })

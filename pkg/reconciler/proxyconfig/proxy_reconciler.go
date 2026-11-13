@@ -81,18 +81,19 @@ func (r *ProxyConfigReconciler) discoverOnOpenShift(cheCtx *chetypes.CheContext)
 		return err
 	}
 
-	// If proxy configuration exists in CR then cluster wide proxy configuration is ignored.
+	// The CheCluster CR proxy takes precedence over the cluster-wide proxy.
+	// NoProxy lists from both sources are still merged below.
 	if cheProxy.IsPresent() {
 		cheCtx.Proxy = cheProxy
 	} else if clusterProxy.IsPresent() {
 		cheCtx.Proxy = clusterProxy
 	}
 
-	// Always store certificate ConfigMap, see `certificates.go`
+	// Always propagate the cluster TrustedCA ConfigMap name, even without a proxy:
+	// `pkg/deploy/tls/certificates.go` uses it to build the CA bundle.
 	cheCtx.Proxy.TrustedCAMapName = clusterConfig.Spec.TrustedCA.Name
 
 	if cheCtx.Proxy.IsPresent() {
-		// Merge all non-proxy hosts lists
 		cheCtx.Proxy.NoProxy = mergeNoProxyHosts(os.Getenv("KUBERNETES_SERVICE_HOST"), ".svc", cheProxy.NoProxy, clusterConfig.Status.NoProxy)
 	}
 
@@ -119,6 +120,12 @@ func (r *ProxyConfigReconciler) discoverOnKubernetes(cheCtx *chetypes.CheContext
 func buildFromCheConfig(cheCtx *chetypes.CheContext, cheConfig *chev2.Proxy) (*cheproxy.Proxy, error) {
 	if cheConfig == nil {
 		return &cheproxy.Proxy{}, nil
+	}
+
+	if cheConfig.Url == "" {
+		return &cheproxy.Proxy{
+			NoProxy: strings.Join(cheConfig.NonProxyHosts, ","),
+		}, nil
 	}
 
 	var host string
@@ -152,7 +159,7 @@ func buildFromCheConfig(cheCtx *chetypes.CheContext, cheConfig *chev2.Proxy) (*c
 		proxyURL = fmt.Sprintf("%s:%s", proxyURL, cheConfig.Port)
 	}
 	if username != "" && password != "" {
-		proxyURL = fmt.Sprintf("%s:%s@%s", username, password, proxyURL)
+		proxyURL = fmt.Sprintf("%s@%s", url.UserPassword(username, password).String(), proxyURL)
 	}
 	if protocol != "" {
 		proxyURL = fmt.Sprintf("%s://%s", protocol, proxyURL)
@@ -185,11 +192,11 @@ func buildFromClusterConfig(clusterConfig *configv1.Proxy) (*cheproxy.Proxy, err
 
 	httpProxyURL, err := url.Parse(httpProxy)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse proxy config: %w", err)
+		return nil, fmt.Errorf("failed to parse HTTP proxy URL from Proxy cluster status")
 	}
 	httpsProxyURL, err := url.Parse(httpsProxy)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse proxy config: %w", err)
+		return nil, fmt.Errorf("failed to parse HTTPS proxy URL from Proxy cluster status")
 	}
 
 	getPwd := func(ui *url.Userinfo) string {
