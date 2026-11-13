@@ -88,7 +88,7 @@ func (r *OpenVSXServerReconciler) getExtensionUpdateCronJobSpec(cheCtx *chetypes
 		},
 		utils.EnvVarFromSecret("OVSX_PAT", credentialsSecret, "openvsx-publisher-token"),
 	}
-	env = append(env, deploy.GetProxyEnvVars(cheCtx.Proxy)...)
+	env = append(env, cheCtx.Proxy.AsEnvVars()...)
 
 	if autoUpdate.VSCodeEngineVersion != nil && *autoUpdate.VSCodeEngineVersion != "" {
 		env = append(env, corev1.EnvVar{

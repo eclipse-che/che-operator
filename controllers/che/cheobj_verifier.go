@@ -83,6 +83,27 @@ func IsOperatorManaged(ctx context.Context, cl client.Client, obj client.Object)
 	}
 }
 
+// IsClusterProxy detects whether given object is the cluster-scoped proxy configuration
+// that the operator reads proxy settings from.
+func IsClusterProxy(ctx context.Context, cl client.Client, obj client.Object) (bool, ctrl.Request) {
+	if obj.GetName() != resources.ProxyResourceName {
+		// only the 'cluster' Proxy is relevant, ignore others
+		return false, ctrl.Request{}
+	}
+
+	checluster, _ := resources.CheCluster.Find(ctx, cl)
+	if checluster == nil {
+		return false, ctrl.Request{}
+	}
+
+	return true, ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: checluster.Namespace,
+			Name:      checluster.Name,
+		},
+	}
+}
+
 // isEclipseCheRelatedObj indicates if there is an object in a che namespace with the labels:
 // - 'app.kubernetes.io/part-of=che.eclipse.org'
 // - 'app.kubernetes.io/instance=che'

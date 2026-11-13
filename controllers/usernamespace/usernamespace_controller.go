@@ -16,6 +16,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,6 +26,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	containercapabilties "github.com/eclipse-che/che-operator/pkg/deploy/container-capabilities"
 	"github.com/eclipse-che/che-operator/pkg/provision/resources"
+	"github.com/eclipse-che/che-operator/pkg/reconciler/proxyconfig"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/utils/ptr"
 
@@ -39,8 +41,8 @@ import (
 
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
-	"github.com/eclipse-che/che-operator/controllers/che"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	configv1 "github.com/openshift/api/config/v1"
 	projectv1 "github.com/openshift/api/project/v1"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -115,6 +117,10 @@ func (r *CheUserNamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&corev1.ConfigMap{}, r.watchRulesForConfigMaps(ctx)).
 		Watches(&chev2.CheCluster{}, r.triggerAllNamespaces())
 
+	if infrastructure.IsOpenShift() {
+		bld.Watches(&configv1.Proxy{}, r.watchClusterProxy())
+	}
+
 	// Use controller.TypedOptions to allow to configure 2 controllers for same object being reconciled
 	return bld.WithOptions(
 		controller.TypedOptions[reconcile.Request]{
@@ -175,21 +181,39 @@ func (r *CheUserNamespaceReconciler) isInManagedNamespace(ctx context.Context, o
 	return err == nil && info != nil && info.IsWorkspaceNamespace
 }
 
+// watchClusterProxy only reacts to the cluster-wide proxy configuration named
+// 'cluster'; any other Proxy object must not trigger reconciliation of user namespaces.
+func (r *CheUserNamespaceReconciler) watchClusterProxy() handler.EventHandler {
+	return handler.EnqueueRequestsFromMapFunc(
+		handler.MapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
+			if obj.GetName() != resources.ProxyResourceName {
+				return []reconcile.Request{}
+			}
+
+			return r.allNamespacesRequests()
+		}),
+	)
+}
+
 func (r *CheUserNamespaceReconciler) triggerAllNamespaces() handler.EventHandler {
 	return handler.EnqueueRequestsFromMapFunc(
 		handler.MapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
-			nss := r.namespaceCache.GetAllKnownNamespaces()
-			ret := make([]reconcile.Request, 0, len(nss))
-
-			for _, ns := range nss {
-				ret = append(ret, reconcile.Request{
-					NamespacedName: types.NamespacedName{Name: ns},
-				})
-			}
-
-			return ret
+			return r.allNamespacesRequests()
 		}),
 	)
+}
+
+func (r *CheUserNamespaceReconciler) allNamespacesRequests() []reconcile.Request {
+	nss := r.namespaceCache.GetAllKnownNamespaces()
+	ret := make([]reconcile.Request, 0, len(nss))
+
+	for _, ns := range nss {
+		ret = append(ret, reconcile.Request{
+			NamespacedName: types.NamespacedName{Name: ns},
+		})
+	}
+
+	return ret
 }
 
 func (r *CheUserNamespaceReconciler) hasCheCluster(ctx context.Context, namespace string) bool {
@@ -235,6 +259,12 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		},
 		Context:      ctx,
 		DWONamespace: r.getDWONamespace(),
+	}
+
+	// Ensures proxy config is set in CheContext
+	result, done, err := proxyconfig.NewReconciler().Reconcile(cheCtx)
+	if !done {
+		return result, err
 	}
 
 	// Deprecated [CRW-6792].
@@ -470,22 +500,8 @@ func (r *CheUserNamespaceReconciler) reconcileUserSettings(
 		}
 	}
 
-	// proxy settings
-	if proxyConfig, err := che.GetProxyConfiguration(cheCtx); err != nil {
-		return err
-	} else if proxyConfig != nil {
-		if proxyConfig.HttpProxy != "" {
-			data["HTTP_PROXY"] = proxyConfig.HttpProxy
-			data["http_proxy"] = proxyConfig.HttpProxy
-		}
-		if proxyConfig.HttpsProxy != "" {
-			data["HTTPS_PROXY"] = proxyConfig.HttpsProxy
-			data["https_proxy"] = proxyConfig.HttpsProxy
-		}
-		if proxyConfig.NoProxy != "" {
-			data["NO_PROXY"] = proxyConfig.NoProxy
-			data["no_proxy"] = proxyConfig.NoProxy
-		}
+	if cheCtx.Proxy.IsPresent() {
+		maps.Copy(data, cheCtx.Proxy.AsMap())
 	}
 
 	cm := &corev1.ConfigMap{

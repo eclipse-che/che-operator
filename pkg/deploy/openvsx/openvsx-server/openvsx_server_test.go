@@ -194,10 +194,9 @@ func TestPublishJobResyncsOnProxyChange(t *testing.T) {
 	if !assert.NoError(t, err) || !assert.True(t, exists, "publisher Job should exist") {
 		return
 	}
-	httpProxyEnv := findEnvVar(job.Spec.Template.Spec.Containers[0].Env, "HTTP_PROXY")
-	if assert.NotNil(t, httpProxyEnv) {
-		assert.Empty(t, httpProxyEnv.Value)
-	}
+	assert.Nil(t, findEnvVar(job.Spec.Template.Spec.Containers[0].Env, "HTTP_PROXY"))
+	assert.Nil(t, findEnvVar(job.Spec.Template.Spec.Containers[0].Env, "HTTPS_PROXY"))
+	assert.Nil(t, findEnvVar(job.Spec.Template.Spec.Containers[0].Env, "NO_PROXY"))
 
 	cheCtx.Proxy.HttpProxy = "http://proxy.example.com:3128"
 	cheCtx.Proxy.HttpsProxy = "http://proxy.example.com:3128"

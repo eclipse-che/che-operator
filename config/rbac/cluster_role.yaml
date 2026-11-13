@@ -267,6 +267,15 @@ rules:
       - config.openshift.io
     resources:
       - proxies
+    resourceNames:
+      - cluster
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - config.openshift.io
+    resources:
       - authentications
     resourceNames:
       - cluster

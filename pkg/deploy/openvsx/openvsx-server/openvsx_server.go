@@ -16,6 +16,7 @@ import (
 	_ "embed"
 	"fmt"
 
+	"github.com/eclipse-che/che-operator/pkg/common/cheproxy"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
@@ -135,7 +136,7 @@ func (r *OpenVSXServerReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconc
 }
 
 // getProxyFingerprint returns a stable string for the proxy settings injected into the publisher Job.
-func getProxyFingerprint(proxy *chetypes.Proxy) string {
+func getProxyFingerprint(proxy *cheproxy.Proxy) string {
 	if proxy == nil {
 		return ""
 	}

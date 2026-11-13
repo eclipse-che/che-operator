@@ -56,31 +56,8 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(cheCtx *chetypes.CheCon
 	// Get all env vars that are related to the sample components and add them to the deployment.
 	// They are used to replace images with tags on images with digests.
 	envVars := utils.GetGetArchitectureDependentEnvsByRegExp("^RELATED_IMAGE_sample_.*$")
+	envVars = append(envVars, cheCtx.Proxy.AsEnvVars()...)
 	envVars = append(envVars,
-		corev1.EnvVar{
-			Name:  "http_proxy",
-			Value: cheCtx.Proxy.HttpProxy,
-		},
-		corev1.EnvVar{
-			Name:  "https_proxy",
-			Value: cheCtx.Proxy.HttpsProxy,
-		},
-		corev1.EnvVar{
-			Name:  "no_proxy",
-			Value: cheCtx.Proxy.NoProxy,
-		},
-		corev1.EnvVar{
-			Name:  "HTTP_PROXY",
-			Value: cheCtx.Proxy.HttpProxy,
-		},
-		corev1.EnvVar{
-			Name:  "HTTPS_PROXY",
-			Value: cheCtx.Proxy.HttpsProxy,
-		},
-		corev1.EnvVar{
-			Name:  "NO_PROXY",
-			Value: cheCtx.Proxy.NoProxy,
-		},
 		// CHE_HOST is here for backward compatibility. Replaced with CHE_URL
 		corev1.EnvVar{
 			Name:  "CHE_HOST",

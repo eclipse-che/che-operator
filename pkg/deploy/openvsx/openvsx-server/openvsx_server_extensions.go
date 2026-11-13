@@ -123,7 +123,7 @@ func (r *OpenVSXServerReconciler) syncExtensions(cheCtx *chetypes.CheContext) (b
 									Value: cheCtx.CheHost,
 								},
 								utils.EnvVarFromSecret("OVSX_PAT", credentialsSecret, "openvsx-publisher-token"),
-							}, deploy.GetProxyEnvVars(cheCtx.Proxy)...),
+							}, cheCtx.Proxy.AsEnvVars()...),
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceMemory: resource.MustParse(constants.OpenVSXExtensionJobMemoryRequest),

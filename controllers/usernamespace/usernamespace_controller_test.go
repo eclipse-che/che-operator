@@ -132,11 +132,6 @@ func TestCreatesDataInNamespace(t *testing.T) {
 		assert.False(t, hasMaxProcessAge, "CLI_ACTIVITY_TRACKER_MAX_PROCESS_AGE should not be set when not configured (nil)")
 		assert.Equal(t, "true", userSettings.Data["CLI_ACTIVITY_TRACKER_VERBOSE"], "Unexpected CLI Activity Tracker verbose setting")
 
-		if infraType != infrastructure.Kubernetes {
-			assert.Equal(t, userSettings.Data["NO_PROXY"], ".svc")
-			assert.Equal(t, userSettings.Data["no_proxy"], ".svc")
-		}
-
 		cert := corev1.Secret{}
 		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-server-cert", Namespace: namespace.GetName()}, &cert))
 
