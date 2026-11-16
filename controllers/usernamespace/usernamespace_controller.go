@@ -266,7 +266,7 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	// Ensures proxy config is set in CheContext
 	result, done, err := proxyconfig.NewReconciler().Reconcile(cheCtx)
 	if !done {
-		return result, fmt.Errorf("failed to reconcile proxy config: %w", err)
+		return result, err
 	}
 
 	// Deprecated [CRW-6792].
