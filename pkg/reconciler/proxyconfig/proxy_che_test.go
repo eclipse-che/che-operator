@@ -117,8 +117,8 @@ var _ = Describe("buildFromCheConfig", func() {
 				Namespace: "eclipse-che",
 			},
 			Data: map[string][]byte{
-				"user":     []byte(("us@r")),
-				"password": []byte(("p#ss:w/rd")),
+				"user":     []byte("us@r"),
+				"password": []byte("p#ss:w/rd"),
 			},
 		})
 		cheProxy := &chev2.Proxy{

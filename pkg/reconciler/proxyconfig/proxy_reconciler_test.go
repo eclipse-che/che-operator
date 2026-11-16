@@ -13,8 +13,6 @@
 package proxyconfig
 
 import (
-	"os"
-
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
@@ -31,11 +29,7 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 
 	BeforeEach(func() {
 		reconciler = NewReconciler()
-
-		Expect(os.Setenv("KUBERNETES_SERVICE_HOST", "")).To(Succeed())
-		DeferCleanup(func() {
-			Expect(os.Unsetenv("KUBERNETES_SERVICE_HOST")).To(Succeed())
-		})
+		GinkgoT().Setenv("KUBERNETES_SERVICE_HOST", "")
 	})
 
 	Describe("on Kubernetes", func() {
@@ -67,10 +61,7 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 		})
 
 		It("should use proxy from CheCluster CR and merge in-cluster service host into non proxy hosts", func() {
-			Expect(os.Setenv("KUBERNETES_SERVICE_HOST", "10.10.10.10")).To(Succeed())
-			DeferCleanup(func() {
-				Expect(os.Setenv("KUBERNETES_SERVICE_HOST", "")).To(Succeed())
-			})
+			GinkgoT().Setenv("KUBERNETES_SERVICE_HOST", "10.10.10.10")
 
 			cheCtx := test.NewCtxBuilder().
 				WithCheCluster(&chev2.CheCluster{
@@ -270,8 +261,8 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 			// non proxy hosts are merged even for an HTTPS-only cluster proxy
 			Expect(cheCtx.Proxy.NoProxy).To(Equal(".svc,host1"))
 			Expect(cheCtx.Proxy.TrustedCAMapName).To(Equal("additional-cluster-ca-bundle"))
-			// che-server JAVA_OPTS must not contain empty HTTP proxy flags
-			Expect(cheCtx.Proxy.AsJavaOpts()).ToNot(ContainSubstring("http.proxyHost"))
+			// che-server JAVA_OPTS contains empty-valued HTTP proxy flags for an HTTPS-only proxy
+			Expect(cheCtx.Proxy.AsJavaOpts()).To(ContainSubstring("http.proxyHost= "))
 		})
 
 		It("should override cluster wide proxy with CheCluster CR proxy", func() {

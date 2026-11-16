@@ -45,7 +45,7 @@ func (r *ProxyConfigReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcil
 	if err := r.discover(cheCtx); err != nil {
 		return reconcile.Result{},
 			false,
-			fmt.Errorf("failed to discover proxy config: %w", err)
+			fmt.Errorf("failed to reconcile proxy config: %w", err)
 	}
 
 	return reconcile.Result{}, true, nil

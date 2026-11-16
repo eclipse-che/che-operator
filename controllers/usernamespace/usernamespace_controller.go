@@ -22,6 +22,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/eclipse-che/che-operator/pkg/common/cheproxy"
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	containercapabilties "github.com/eclipse-che/che-operator/pkg/deploy/container-capabilities"
@@ -257,6 +258,7 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			NonCachingClientWrapper: r.nonCachedClientWrapper,
 			Scheme:                  r.scheme,
 		},
+		Proxy:        &cheproxy.Proxy{},
 		Context:      ctx,
 		DWONamespace: r.getDWONamespace(),
 	}
@@ -264,7 +266,7 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	// Ensures proxy config is set in CheContext
 	result, done, err := proxyconfig.NewReconciler().Reconcile(cheCtx)
 	if !done {
-		return result, err
+		return result, fmt.Errorf("failed to reconcile proxy config: %w", err)
 	}
 
 	// Deprecated [CRW-6792].

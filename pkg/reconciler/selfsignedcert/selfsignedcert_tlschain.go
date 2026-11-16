@@ -163,7 +163,7 @@ func buildHTTPTransport(cheProxy *cheproxy.Proxy) *http.Transport {
 			logger.Error(err, "Failed to get proxy to access TLS endpoint URL", "url", r.URL)
 		}
 		if proxyURL != nil {
-			logger.Info("Using proxy to access TLS endpoint URL", "proxy", proxyURL, "url", r.URL)
+			logger.Info("Using proxy to access TLS endpoint URL", "proxy", proxyURL.Redacted(), "url", r.URL)
 		}
 		return proxyURL, err
 	}

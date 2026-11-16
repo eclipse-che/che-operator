@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/common/cheerrors"
+	"github.com/eclipse-che/che-operator/pkg/common/cheproxy"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/deploy/metrics"
 	"github.com/eclipse-che/che-operator/pkg/deploy/rbac"
@@ -290,6 +291,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	cheCtx := &chetypes.CheContext{
 		Context:    ctx,
 		CheCluster: cheCluster,
+		Proxy:      &cheproxy.Proxy{},
 		ClusterAPI: chetypes.ClusterAPI{
 			Client:                  r.client,
 			NonCachingClient:        r.nonCachedClient,

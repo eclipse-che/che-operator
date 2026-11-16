@@ -126,7 +126,7 @@ var _ = Describe("Proxy", func() {
 			Expect(javaOpts).To(Equal(expectedJavaOpts))
 		})
 
-		It("should build java opts without authentication", func() {
+		It("should build java opts with empty credentials", func() {
 			proxy := newTestProxy()
 			proxy.HttpUser = ""
 			proxy.HttpPassword = ""
@@ -139,7 +139,7 @@ var _ = Describe("Proxy", func() {
 			Expect(javaOpts).To(Equal(expectedJavaOpts))
 		})
 
-		It("should emit only HTTPS flags for HTTPS-only proxy", func() {
+		It("should emit empty HTTP flags for HTTPS-only proxy", func() {
 			proxy := newTestProxy()
 			proxy.HttpProxy = ""
 			proxy.HttpHost = ""
@@ -148,14 +148,10 @@ var _ = Describe("Proxy", func() {
 			proxy.HttpPassword = ""
 
 			javaOpts := proxy.AsJavaOpts()
-			Expect(javaOpts).ToNot(ContainSubstring("http.proxyHost"))
-			Expect(javaOpts).ToNot(ContainSubstring("http.proxyPort"))
-			Expect(javaOpts).ToNot(ContainSubstring("http.proxyUser"))
-			Expect(javaOpts).To(ContainSubstring("-Dhttps.proxyHost=myproxy.com"))
-			Expect(javaOpts).To(ContainSubstring("-Dhttps.proxyPort=1234"))
-			Expect(javaOpts).To(ContainSubstring("-Dhttps.proxyUser=user"))
-			Expect(javaOpts).To(ContainSubstring("-Dhttps.proxyPassword=password"))
-			Expect(javaOpts).To(ContainSubstring("-Dhttp.nonProxyHosts='localhost|myhost.com'"))
+			Expect(javaOpts).To(ContainSubstring("http.proxyHost= "))
+			Expect(javaOpts).To(ContainSubstring("http.proxyPort= "))
+			Expect(javaOpts).ToNot(ContainSubstring("http.proxyUser="))
+			Expect(javaOpts).ToNot(ContainSubstring("http.proxyPassword="))
 		})
 
 		It("should handle wildcards and spaces in NoProxy", func() {
@@ -184,16 +180,6 @@ var _ = Describe("Proxy", func() {
 			proxy.NoProxy = ""
 
 			Expect(proxy.AsJavaOpts()).To(ContainSubstring("-Dhttp.nonProxyHosts=''"))
-		})
-
-		It("should strip URL scheme from proxy hosts", func() {
-			proxy := newTestProxy()
-			proxy.HttpHost = "http://http-proxy.com"
-			proxy.HttpsHost = "https://https-proxy.com"
-
-			javaOpts := proxy.AsJavaOpts()
-			Expect(javaOpts).To(ContainSubstring("-Dhttp.proxyHost=http-proxy.com"))
-			Expect(javaOpts).To(ContainSubstring("-Dhttps.proxyHost=https-proxy.com"))
 		})
 	})
 

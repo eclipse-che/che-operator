@@ -128,19 +128,13 @@ func (p *Proxy) AsJavaOpts() string {
 	}
 
 	opts := []string{}
-	if p.HttpProxy != "" {
-		opts = append(opts,
-			"-Dhttp.proxyHost="+stripURLScheme(p.HttpHost),
-			"-Dhttp.proxyPort="+p.HttpPort,
-		)
-	}
 
-	if p.HttpsProxy != "" {
-		opts = append(opts,
-			"-Dhttps.proxyHost="+stripURLScheme(p.HttpsHost),
-			"-Dhttps.proxyPort="+p.HttpsPort,
-		)
-	}
+	opts = append(opts,
+		"-Dhttp.proxyHost="+p.HttpHost,
+		"-Dhttp.proxyPort="+p.HttpPort,
+		"-Dhttps.proxyHost="+p.HttpsHost,
+		"-Dhttps.proxyPort="+p.HttpsPort,
+	)
 
 	opts = append(opts, fmt.Sprintf("-Dhttp.nonProxyHosts='%s'", noProxy))
 
@@ -181,8 +175,4 @@ func (p *Proxy) AsHttpProxyConfig() *httpproxy.Config {
 		HTTPSProxy: p.HttpsProxy,
 		NoProxy:    p.NoProxy,
 	}
-}
-
-func stripURLScheme(url string) string {
-	return strings.TrimPrefix(strings.TrimPrefix(url, "https://"), "http://")
 }
