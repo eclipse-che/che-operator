@@ -18,39 +18,64 @@ import (
 	"path/filepath"
 	"strings"
 
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
+const testProjectCloneImage = "quay.io/devfile/project-clone:next"
+
 func TestGetExternalImages(t *testing.T) {
 	type testCase struct {
-		name           string
-		editorsFile    string
-		samplesFile    string
-		expectedImages []string
+		name             string
+		editorsFile      string
+		samplesFile      string
+		initObjects      []client.Object
+		gatewayContainer *chev2.Container
+		expectedImages   []string
 	}
+
+	gatewayImage := defaults.GetGatewayImage(&chev2.CheCluster{})
 
 	testCases := []testCase{
 		{
 			name:           "both editors and samples images",
 			editorsFile:    "image-puller-resources-test/editors.json",
 			samplesFile:    "image-puller-resources-test/samples.json",
-			expectedImages: []string{"image_1", "image_2", "image_3"},
+			initObjects:    []client.Object{test.NewDWOPod("devworkspace-controller", testProjectCloneImage)},
+			expectedImages: []string{"image_1", "image_2", "image_3", testProjectCloneImage, gatewayImage},
 		},
 		{
-			name:           "no external images",
+			name:           "no editors and samples images",
 			editorsFile:    "image-puller-resources-test/empty.json",
 			samplesFile:    "image-puller-resources-test/empty.json",
-			expectedImages: nil,
+			initObjects:    []client.Object{test.NewDWOPod("devworkspace-controller", testProjectCloneImage)},
+			expectedImages: []string{testProjectCloneImage, gatewayImage},
+		},
+		{
+			name:           "no DevWorkspace Operator pod",
+			editorsFile:    "image-puller-resources-test/empty.json",
+			samplesFile:    "image-puller-resources-test/empty.json",
+			expectedImages: []string{gatewayImage},
+		},
+		{
+			name:             "devEnvironments gateway container image",
+			editorsFile:      "image-puller-resources-test/empty.json",
+			samplesFile:      "image-puller-resources-test/empty.json",
+			gatewayContainer: &chev2.Container{Image: "gateway:devenvironments"},
+			expectedImages:   []string{"gateway:devenvironments"},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().Build()
+			cheCtx := test.NewCtxBuilder().WithObjects(tc.initObjects...).Build()
+			cheCtx.CheCluster.Spec.DevEnvironments.GatewayContainer = tc.gatewayContainer
 
 			editorsEndpointUrl := getDashboardEditorsInternalAPIUrl(cheCtx)
 			samplesEndpointUrl := getDashboardSamplesInternalAPIUrl(cheCtx)

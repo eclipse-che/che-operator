@@ -18,6 +18,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chelabels"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/deploy/devworkspace"
 	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
@@ -104,6 +105,30 @@ func IsEclipseCheRelatedObj(ctx context.Context, cl client.Client, obj client.Ob
 
 	// Check for part-of label
 	if value, exists := obj.GetLabels()[constants.KubernetesPartOfLabelKey]; !exists || value != constants.CheEclipseOrg {
+		return false, ctrl.Request{}
+	}
+
+	return true, ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: checluster.Namespace,
+			Name:      checluster.Name,
+		},
+	}
+}
+
+// mapDevWorkspaceOperatorPodToCheCluster returns the CheCluster reconcile request if given object
+// is a DevWorkspace Operator controller pod.
+func mapDevWorkspaceOperatorPodToCheCluster(
+	ctx context.Context,
+	cl client.Client,
+	obj client.Object,
+) (bool, ctrl.Request) {
+	if !devworkspace.IsDevWorkspaceOperatorPod(obj) {
+		return false, ctrl.Request{}
+	}
+
+	checluster, _ := resources.CheCluster.Find(ctx, cl)
+	if checluster == nil {
 		return false, ctrl.Request{}
 	}
 

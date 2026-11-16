@@ -15,8 +15,6 @@ package usernamespace
 import (
 	"context"
 
-	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/devworkspace"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -40,8 +38,7 @@ func (r *CheUserNamespaceReconciler) watchRuleForDevWorkspacePod() handler.Event
 				return
 			}
 
-			if !deploy.IsDevWorkspaceComponent(pod.GetLabels()) ||
-				pod.Spec.ServiceAccountName != constants.DevWorkspaceServiceAccountName {
+			if !devworkspace.IsDevWorkspaceOperatorPod(pod) {
 				return
 			}
 
@@ -72,8 +69,7 @@ func (r *CheUserNamespaceReconciler) watchRuleForDevWorkspacePod() handler.Event
 				return
 			}
 
-			if !deploy.IsDevWorkspaceComponent(pod.GetLabels()) ||
-				pod.Spec.ServiceAccountName != constants.DevWorkspaceServiceAccountName {
+			if !devworkspace.IsDevWorkspaceOperatorPod(pod) {
 				return
 			}
 
