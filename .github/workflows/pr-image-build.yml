@@ -61,6 +61,7 @@ jobs:
           platforms: linux/${{ matrix.arch }}
           push: true
           provenance: false
+          labels: quay.expires-after=2w
           tags: ${{ env.OPERATOR_IMAGE }}
 
   build-catalog:
@@ -105,6 +106,12 @@ jobs:
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
           registry: quay.io
+
+      - name: Add expiration label to bundle and catalog Dockerfiles
+        run: |
+          BUNDLE_PATH=$(make bundle-path CHANNEL=next)
+          sed -i '/^FROM/a LABEL quay.expires-after=2w' "${BUNDLE_PATH}/bundle.Dockerfile"
+          sed -i '/^FROM/a LABEL quay.expires-after=2w' olm-catalog/index.Dockerfile
 
       - name: Build catalog source
         run: |
