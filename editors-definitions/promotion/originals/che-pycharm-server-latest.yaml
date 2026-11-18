@@ -14,16 +14,16 @@ schemaVersion: 2.3.0
 metadata:
   name: che-pycharm-server
   displayName: JetBrains PyCharm Professional Edition (desktop)
-  description: JetBrains PyCharm Professional Edition for Eclipse Che - next
+  description: JetBrains PyCharm Professional Edition for Eclipse Che - latest
   tags:
   attributes:
     arch:
       - x86_64
       - arm64
     publisher: che-incubator
-    version: next
+    version: latest
     provider: Provided by [JetBrains](https://www.jetbrains.com/) under [License](https://www.jetbrains.com/legal/docs/toolbox/user/)
-    title: JetBrains PyCharm Professional Edition for Eclipse Che - next
+    title: JetBrains PyCharm Professional Edition for Eclipse Che - latest
     repository: https://github.com/che-incubator/che-idea-dev-server
     firstPublicationDate: '2024-18-09'
     iconMediatype: image/svg+xml
@@ -70,8 +70,8 @@ components:
     volume: {}
   - name: editor-injector
     container:
-      image: quay.io/che-incubator/che-idea-dev-server:next
-      command: ['/entrypoint-init-container.sh', 'pycharm', 'che-incubator/che-pycharm-server/next']
+      image: quay.io/che-incubator/che-idea-dev-server:latest
+      command: ['/entrypoint-init-container.sh', 'pycharm', 'che-incubator/che-pycharm-server/latest']
       volumeMounts:
         - name: idea-server
           path: /idea-server

@@ -1,0 +1,32 @@
+--- a/editors-definitions/che-code-sshd-next.yaml
++++ b/editors-definitions/che-code-sshd-latest.yaml
+@@ -14,7 +14,7 @@
+ metadata:
+   name: che-code-sshd
+   displayName: Visual Studio Code (desktop) (SSH)
+-  description: Visual Studio Code server for Eclipse Che over SSH - next
++  description: Visual Studio Code server for Eclipse Che over SSH - latest
+   tags:
+     - ssh
+     - CLI
+@@ -26,9 +26,9 @@
+       - s390x
+       - ppc64le
+     publisher: che-incubator
+-    version: next
++    version: latest
+     provider: Provided by [Microsoft](https://www.microsoft.com/) under [License](https://code.visualstudio.com/License)
+-    title: Visual Studio Code server for Eclipse Che over SSH - next
++    title: Visual Studio Code server for Eclipse Che over SSH - latest
+     repository: https://github.com/che-incubator/che-code
+     firstPublicationDate: '2025-09-17'
+     iconMediatype: image/svg+xml
+@@ -88,7 +88,7 @@
+ 
+   - name: che-code-sshd-page
+     container:
+-      image: quay.io/che-incubator/che-code-sshd:next
++      image: quay.io/che-incubator/che-code-sshd:7.125.0
+       memoryLimit: 256Mi
+       memoryRequest: 32Mi
+       cpuLimit: 500m

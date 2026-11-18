@@ -14,16 +14,16 @@ schemaVersion: 2.2.2
 metadata:
   name: che-goland-server
   displayName: JetBrains GoLand (desktop)
-  description: JetBrains GoLand dev server for Eclipse Che - next
+  description: JetBrains GoLand dev server for Eclipse Che - latest
   tags:
   attributes:
     arch:
       - x86_64
       - arm64
     publisher: che-incubator
-    version: next
+    version: latest
     provider: Provided by [Jet Brains](https://www.jetbrains.com/) under [License](https://www.jetbrains.com/legal/docs/toolbox/user/)
-    title: JetBrains GoLand for Eclipse Che - next
+    title: JetBrains GoLand for Eclipse Che - latest
     repository: https://github.com/che-incubator/che-idea-dev-server
     firstPublicationDate: '2025-15-08'
     iconMediatype: image/svg+xml
@@ -65,8 +65,8 @@ components:
     volume: {}
   - name: editor-injector
     container:
-      image: quay.io/che-incubator/che-idea-dev-server:next
-      command: ['/entrypoint-init-container.sh', 'goland', 'che-incubator/che-goland-server/next']
+      image: quay.io/che-incubator/che-idea-dev-server:latest
+      command: ['/entrypoint-init-container.sh', 'goland', 'che-incubator/che-goland-server/latest']
       volumeMounts:
         - name: idea-server
           path: /idea-server

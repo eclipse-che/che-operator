@@ -1,0 +1,29 @@
+--- a/editors-definitions/che-chemuxer-next.yaml
++++ b/editors-definitions/che-chemuxer-latest.yaml
+@@ -23,7 +23,7 @@
+       - x86_64
+       - arm64
+     publisher: che-incubator
+-    version: next
++    version: latest
+     title: Chemuxer - Terminal Multiplexer for Eclipse Che
+     repository: https://github.com/che-incubator/chemuxer
+     firstPublicationDate: '2026-07-20'
+@@ -59,7 +59,7 @@
+ components:
+   - name: chemuxer-injector
+     container:
+-      image: quay.io/che-incubator/chemuxer:next
++      image: quay.io/che-incubator/chemuxer:7.125.0
+       command:
+         - sh
+         - -c
+@@ -77,7 +77,7 @@
+       app.kubernetes.io/part-of: chemuxer.eclipse.org
+       controller.devfile.io/container-contribution: true
+     container:
+-      image: quay.io/che-incubator/chemuxer:next
++      image: quay.io/che-incubator/chemuxer:7.125.0
+       memoryLimit: 512Mi
+       memoryRequest: 128Mi
+       cpuLimit: 500m

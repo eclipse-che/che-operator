@@ -14,18 +14,18 @@ schemaVersion: 2.3.0
 metadata:
   name: che-rider-server
   displayName: JetBrains Rider (desktop)
-  description: JetBrains Rider for Eclipse Che - next
+  description: JetBrains Rider for Eclipse Che - latest
   tags:
   attributes:
     arch:
       - x86_64
       - arm64
     publisher: che-incubator
-    version: next
+    version: latest
     provider: Provided by [JetBrains](https://www.jetbrains.com/) under [License](https://www.jetbrains.com/legal/docs/toolbox/user/)
-    title: JetBrains Rider for Eclipse Che - next
+    title: JetBrains Rider for Eclipse Che - latest
     repository: https://github.com/che-incubator/che-idea-dev-server
-    firstPublicationDate: '2025-18-08'
+    firstPublicationDate: '2024-18-09'
     iconMediatype: image/svg+xml
     iconData: |
       <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -71,8 +71,8 @@ components:
     volume: {}
   - name: editor-injector
     container:
-      image: quay.io/che-incubator/che-idea-dev-server:next
-      command: ['/entrypoint-init-container.sh', 'rider', 'che-incubator/che-rider-server/next']
+      image: quay.io/che-incubator/che-idea-dev-server:latest
+      command: ['/entrypoint-init-container.sh', 'rider', 'che-incubator/che-rider-server/latest']
       volumeMounts:
         - name: idea-server
           path: /idea-server

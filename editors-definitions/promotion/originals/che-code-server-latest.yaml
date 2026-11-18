@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2024 Red Hat, Inc.
+# Copyright (c) 2025 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -12,12 +12,12 @@
 
 schemaVersion: 2.3.0
 metadata:
-  name: che-code
-  displayName: VS Code - Open Source
-  description: Microsoft Visual Studio Code - Open Source IDE for Eclipse Che - Insiders
-    build
+  name: che-code-server
+  displayName: Visual Studio Code (desktop)
+  description: Visual Studio Code server for Eclipse Che - latest
   tags:
-    - Tech-Preview
+    - CLI
+    - vscode
   attributes:
     arch:
       - x86_64
@@ -25,11 +25,11 @@ metadata:
       - s390x
       - ppc64le
     publisher: che-incubator
-    version: insiders
-    title: Microsoft Visual Studio Code - Open Source IDE for Eclipse Che - Insiders
-      build
-    repository: https://github.com/che-incubator/che-code
-    firstPublicationDate: '2021-10-31'
+    version: latest
+    provider: Provided by [Microsoft](https://www.microsoft.com/) under [License](https://code.visualstudio.com/License)
+    title: Visual Studio Code server for Eclipse Che - latest
+    repository: https://github.com/che-incubator/che-code-server
+    firstPublicationDate: '2025-31-01'
     iconMediatype: image/svg+xml
     iconData: |
       <svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -73,78 +73,60 @@ metadata:
       </linearGradient>
       </defs>
       </svg>
+
 commands:
-  - id: init-container-command
+  - id: inject-editor
     apply:
-      component: che-code-injector
-  - id: init-che-code-command
+      component: editor-injector
+  - id: start-che-code-server
     exec:
-      component: che-code-runtime-description
-      commandLine: nohup /checode/entrypoint-volume.sh > /checode/entrypoint-logs.txt
+      component: editor-runtime
+      commandLine: nohup /che-code-server/entrypoint-volume.sh > /che-code-server/entrypoint-volume.log
         2>&1 &
+
 events:
   preStart:
-    - init-container-command
+    - inject-editor
   postStart:
-    - init-che-code-command
+    - start-che-code-server
+
 components:
-  - name: che-code-injector
+  - name: che-code-server
+    volume: {}
+  - name: editor-injector
     container:
-      image: quay.io/che-incubator/che-code:insiders
+      image: quay.io/che-incubator/che-code-server:latest
       command:
         - /entrypoint-init-container.sh
       volumeMounts:
-        - name: checode
-          path: /checode
+        - name: che-code-server
+          path: /che-code-server
       memoryLimit: 256Mi
       memoryRequest: 32Mi
       cpuLimit: 500m
       cpuRequest: 30m
-  - name: che-code-runtime-description
+  - name: editor-runtime
     container:
       image: quay.io/devfile/universal-developer-image:latest
-      memoryLimit: 1024Mi
-      memoryRequest: 256Mi
-      cpuLimit: 500m
-      cpuRequest: 30m
+      memoryLimit: 6144Mi
+      memoryRequest: 2048Mi
+      cpuLimit: 2000m
+      cpuRequest: 1500m
       volumeMounts:
-        - name: checode
-          path: /checode
+        - name: che-code-server
+          path: /che-code-server
       endpoints:
-        - name: che-code
+        - name: che-code-server
           attributes:
             type: main
             cookiesAuthEnabled: true
             discoverable: false
             urlRewriteSupported: true
-          targetPort: 3100
+          targetPort: 3400
           exposure: public
           secure: true
           protocol: https
-        - name: code-redirect-1
-          targetPort: 13131
-          exposure: public
-          protocol: https
-          attributes:
-            discoverable: false
-            urlRewriteSupported: false
-        - name: code-redirect-2
-          targetPort: 13132
-          exposure: public
-          protocol: https
-          attributes:
-            discoverable: false
-            urlRewriteSupported: false
-        - name: code-redirect-3
-          targetPort: 13133
-          exposure: public
-          protocol: https
-          attributes:
-            discoverable: false
-            urlRewriteSupported: false
     attributes:
-      app.kubernetes.io/component: che-code-runtime
-      app.kubernetes.io/part-of: che-code.eclipse.org
+      app.kubernetes.io/component: editor-runtime
+      app.kubernetes.io/part-of: che-code-server.eclipse.org
       controller.devfile.io/container-contribution: true
-  - name: checode
-    volume: {}
