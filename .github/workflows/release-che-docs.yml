@@ -12,6 +12,7 @@
 
 # This Workflow creates PRs for the release of the latest che-docs
 name: Release che docs
+run-name: Release che docs ${{ inputs.version || github.ref_name }} @ ${{ github.sha }}
 on:
   # manual trigger if required
   workflow_dispatch:
@@ -37,6 +38,23 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+
+      - name: Display release parameters
+        env:
+          VERSION: ${{ inputs.version }}
+          FORCE_FLAG: ${{ inputs.forceflag }}
+          REF_NAME: ${{ github.ref_name }}
+          COMMIT_SHA: ${{ github.sha }}
+          TRIGGERED_BY: ${{ github.actor }}
+        run: |
+          echo "=== Release Parameters ==="
+          echo "Version (input): ${VERSION}"
+          echo "Force flag: ${FORCE_FLAG}"
+          echo "Branch: ${REF_NAME}"
+          echo "Commit SHA: ${COMMIT_SHA}"
+          echo "Triggered by: ${TRIGGERED_BY}"
+          echo "=========================="
+
       - name: Set up environment
         run: |
           sudo apt-get update -y || true
@@ -50,16 +68,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install yq
       - name: Release che docs PRs
+        env:
+          GITHUB_TOKEN: ${{ secrets.CHE_BOT_GITHUB_TOKEN }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
         run: |
           git config --global user.name "Mykhailo Kuznietsov"
           git config --global user.email "mkuznets@redhat.com"
-          export GITHUB_TOKEN=${{ secrets.CHE_BOT_GITHUB_TOKEN }}
           set -e
           # if not run manually, need to compute che docs version from latest released CSV
-          if [[ "${{ github.event.inputs.version }}" == "" ]] || [[ "${{ github.event.inputs.version }}" == "7.y.z" ]]; then
+          if [[ "${INPUT_VERSION}" == "" ]] || [[ "${INPUT_VERSION}" == "7.y.z" ]]; then
             chedocsVersion=$(grep Version version/version.go | cut -d \" -f2)
           else
-            chedocsVersion="${{ github.event.inputs.version }}"
+            chedocsVersion="${INPUT_VERSION}"
           fi
 
           # generic method to call a GH action and pass in a single var=val parameter

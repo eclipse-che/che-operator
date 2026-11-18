@@ -115,7 +115,7 @@ releaseManagerYaml() {
   echo "[INFO] releaseManagerYaml :: Commit changes"
   if git status --porcelain; then
     git add -A || true
-    git commit -am "ci: Update manager.yaml to $RELEASE" --signoff
+    git commit -am "chore(release): Update manager.yaml to $RELEASE" --signoff
   fi
 }
 
@@ -133,7 +133,7 @@ updateVersionFile() {
   sed -i version/version.go -r -e 's#(Version = ")([0-9.]+)(")#\1'"${RELEASE}"'\3#g'
   if git status --porcelain; then
     git add -A || true
-    git commit -am "ci: Update version.go to $RELEASE" --signoff
+    git commit -am "chore(release): Update version.go to $RELEASE" --signoff
   fi
 }
 
@@ -143,7 +143,7 @@ releaseHelmPackage() {
   make update-helmcharts CHANNEL=stable
   if git status --porcelain; then
     git add -A || true
-    git commit -am "ci: Update Helm Charts to $RELEASE" --signoff
+    git commit -am "chore(release): Update Helm Charts to $RELEASE" --signoff
   fi
 }
 
@@ -153,7 +153,7 @@ releaseDeploymentFiles() {
 
   if git status --porcelain; then
     git add -A || true
-    git commit -am "ci: Update Kubernetes resources to $RELEASE" --signoff
+    git commit -am "chore(release): Update Kubernetes resources to $RELEASE" --signoff
   fi
 }
 
@@ -167,7 +167,7 @@ releaseEditorsDefinitions() {
   echo "[INFO] releaseEditorsDefinitions :: Commit changes"
   if git status --porcelain; then
     git add -A || true
-    git commit -am "ci: Release editors definitions to $RELEASE" --signoff
+    git commit -am "chore(release): Release editors definitions to $RELEASE" --signoff
   fi
 }
 
@@ -188,7 +188,7 @@ releaseOlmFiles() {
   echo "[INFO] releaseOlmFiles :: Commit changes"
   if git status --porcelain; then
     git add -A || true
-    git commit -am "ci: New OLM $RELEASE bundle" --signoff
+    git commit -am "chore(release): New OLM $RELEASE bundle" --signoff
   fi
 }
 
@@ -203,7 +203,7 @@ addDigests() {
   echo "[INFO] addDigests :: Commit changes"
   if git status --porcelain; then
     git add -A || true
-    git commit -am "ci: Pin images to digests" --signoff
+    git commit -am "chore(release): Pin images to digests" --signoff
   fi
 }
 
@@ -216,7 +216,7 @@ pushOlmBundlesToQuayIo() {
 
   if git status --porcelain; then
     git add -A || true
-    git commit -am "ci: Add new $RELEASE bundle to a catalog" --signoff
+    git commit -am "chore(release): Add new $RELEASE bundle to a catalog" --signoff
   fi
 }
 
@@ -256,7 +256,7 @@ createPRToMainBranch() {
   git diff refs/heads/${BRANCH}...refs/heads/${RELEASE_BRANCH} ':(exclude)config/manager/manager.yaml' ':(exclude)deploy' ':(exclude)editors-definitions' ':(exclude)Dockerfile' | git apply -3
   if git status --porcelain; then
     git add -A || true # add new generated files
-    git commit -am "ci: Copy "$RELEASE" csv to main" --signoff
+    git commit -am "chore(release): Copy $RELEASE CSV to main" --signoff
   fi
   git push origin $tmpBranch -f
   if [[ $FORCE_UPDATE == "--force" ]]; then set +e; fi  # don't fail if PR already exists (just force push commits into it)

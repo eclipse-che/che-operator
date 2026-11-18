@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2025 Red Hat, Inc.
+# Copyright (c) 2019-2026 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -12,6 +12,7 @@
 
 # This Workflow performs a full release of che-operator
 name: Release Che Operator
+run-name: Release Che Operator ${{ inputs.version }} on ${{ github.ref_name }}
 on:
   workflow_dispatch:
     inputs:
@@ -34,11 +35,34 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+
+      - name: Display release parameters
+        env:
+          VERSION: ${{ inputs.version }}
+          FORCE_RECREATE_TAGS: ${{ inputs.forceRecreateTags }}
+          DRY_RUN: ${{ inputs.dryRun }}
+          REF_NAME: ${{ github.ref_name }}
+          COMMIT_SHA: ${{ github.sha }}
+          TRIGGERED_BY: ${{ github.actor }}
+        run: |
+          echo "=== Release Parameters ==="
+          echo "Version: ${VERSION}"
+          echo "Force recreate tags: ${FORCE_RECREATE_TAGS}"
+          echo "Dry run: ${DRY_RUN}"
+          echo "Branch: ${REF_NAME}"
+          echo "Commit SHA: ${COMMIT_SHA}"
+          echo "Triggered by: ${TRIGGERED_BY}"
+          echo "=========================="
+
+          # Validate version format
+          [[ "${VERSION}" =~ ^7\.[0-9]+\.[0-9]+$ ]] || { echo "[ERROR] Invalid version: ${VERSION}"; exit 1; }
+
       - name: Check existing tags
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+          RECREATE_TAGS: ${{ github.event.inputs.forceRecreateTags }}
         run: |
           set +e
-          RECREATE_TAGS=${{ github.event.inputs.forceRecreateTags }}
-          VERSION=${{ github.event.inputs.version }}
           EXISTING_TAG=$(git ls-remote --exit-code origin refs/tags/${VERSION})
           if [[ -n ${EXISTING_TAG} ]]; then
             if [[ ${RECREATE_TAGS} == "true" ]]; then
@@ -49,7 +73,7 @@ jobs:
               exit 1
             fi
           else
-            echo "[INFO] No existing tags detected for $VERSION"
+            echo "[INFO] No existing tags detected for ${VERSION}"
           fi
       - name: Set up QEMU
         uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
@@ -78,25 +102,31 @@ jobs:
           go-version: 1.26.5
       - name: Release operator
         env:
-          IMAGE_REGISTRY_HOST: quay.io
-          IMAGE_REGISTRY_USER_NAME: eclipse
+          CHE_VERSION: ${{ github.event.inputs.version }}
+          DRY_RUN: ${{ github.event.inputs.dryRun }}
+          FORCE_RECREATE_TAGS: ${{ github.event.inputs.forceRecreateTags }}
+          GITHUB_TOKEN: ${{ secrets.CHE_BOT_GITHUB_TOKEN }}
+          QUAY_ECLIPSE_CHE_USERNAME: ${{ secrets.QUAY_USERNAME }}
+          QUAY_ECLIPSE_CHE_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+          QUAY_CHE_INCUBATOR_USERNAME: ${{ secrets.QUAY_CHE_INCUBATOR_USERNAME }}
+          QUAY_CHE_INCUBATOR_PASSWORD: ${{ secrets.QUAY_CHE_INCUBATOR_PASSWORD }}
+          QUAY_USERNAME_K8S: ${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_KUBERNETES_USERNAME }}
+          QUAY_PASSWORD_K8S: ${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_KUBERNETES_PASSWORD }}
+          QUAY_USERNAME_OS: ${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_OPENSHIFT_USERNAME }}
+          QUAY_PASSWORD_OS: ${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_OPENSHIFT_PASSWORD }}
         run: |
-          CHE_VERSION=${{ github.event.inputs.version }}
-          if [[ ${{ github.event.inputs.dryRun }} == "true" ]]; then DRY_RUN_FLAG="--dry-run"; fi
+          if [[ ${DRY_RUN} == "true" ]]; then DRY_RUN_FLAG="--dry-run"; fi
           echo "CHE_VERSION=${CHE_VERSION}"
           echo "DRY_RUN_FLAG=${DRY_RUN_FLAG}"
           BRANCH=${CHE_VERSION%.*}.x
           echo "BRANCH=${BRANCH}"
           git config --global user.name "Mykhailo Kuznietsov"
           git config --global user.email "mkuznets@redhat.com"
-          export GITHUB_TOKEN=${{ secrets.CHE_BOT_GITHUB_TOKEN }}
           set -e
 
           go install golang.org/x/tools/cmd/goimports@latest
 
           export PATH="$PATH:$OP_SDK_DIR"
-          export QUAY_ECLIPSE_CHE_USERNAME=${{ secrets.QUAY_USERNAME }}
-          export QUAY_ECLIPSE_CHE_PASSWORD=${{ secrets.QUAY_PASSWORD }}
 
           if [[ ${CHE_VERSION} == *".0" ]]; then
             build/scripts/release/make-release.sh ${CHE_VERSION} --release --check-resources --release-olm-files ${DRY_RUN_FLAG}
@@ -107,13 +137,6 @@ jobs:
 
           # default robot account on quay does not have permissions for application repos
           # so we provide credentials for accounts that do
-          export QUAY_USERNAME_K8S=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_KUBERNETES_USERNAME }}
-          export QUAY_PASSWORD_K8S=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_KUBERNETES_PASSWORD }}
-          export QUAY_USERNAME_OS=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_OPENSHIFT_USERNAME }}
-          export QUAY_PASSWORD_OS=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_OPENSHIFT_PASSWORD }}
-          # echo "[DEBUG] Using credentials:"
-          # echo "[DEBUG] QUAY_USERNAME_K8S = ${QUAY_USERNAME_K8S} and"
-          # echo "[DEBUG] QUAY_USERNAME_OS = ${QUAY_USERNAME_OS}"
 
           git checkout ${CHE_VERSION}-release
           build/scripts/release/make-release.sh ${CHE_VERSION} --push-olm-bundles ${DRY_RUN_FLAG}
@@ -122,7 +145,7 @@ jobs:
           git checkout ${BRANCH}
           git checkout ${CHE_VERSION}-release
           force_update=""
-          if [[ ${{ github.event.inputs.forceRecreateTags }} == "true" ]]; then force_update="--force"; fi
+          if [[ ${FORCE_RECREATE_TAGS} == "true" ]]; then force_update="--force"; fi
           build/scripts/release/make-release.sh ${CHE_VERSION} --push-git-changes --pull-requests ${force_update} ${DRY_RUN_FLAG}
       #- name: Create failure MM message
         #if: ${{ failure() }}

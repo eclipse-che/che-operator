@@ -127,7 +127,7 @@ do
   echo "   - Commit changes"
   cd "${communityOperatorsLocalGitFolder}"
   git add --all
-  commitMsg="Update eclipse-che operator to release ${LAST_PACKAGE_VERSION}"
+  commitMsg="chore(release): Update eclipse-che operator to ${LAST_PACKAGE_VERSION}"
   git commit -s -m "${commitMsg}"
   echo
   echo "   - Push branch ${branch} to ${GIT_REMOTE_FORK_CLEAN}"

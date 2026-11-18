@@ -12,6 +12,7 @@
 
 # This Workflow creates PRs for the release of the latest che-operator to the community operators in OperatorHub
 name: Release community operator PRs
+run-name: Release community operator PRs for ${{ github.ref_name }} @ ${{ github.sha }}
 on:
   # manual trigger if required
   workflow_dispatch:
@@ -33,6 +34,21 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+
+      - name: Display release parameters
+        env:
+          FORCE_FLAG: ${{ inputs.forceflag }}
+          REF_NAME: ${{ github.ref_name }}
+          COMMIT_SHA: ${{ github.sha }}
+          TRIGGERED_BY: ${{ github.actor }}
+        run: |
+          echo "=== Release Parameters ==="
+          echo "Force flag: ${FORCE_FLAG}"
+          echo "Branch: ${REF_NAME}"
+          echo "Commit SHA: ${COMMIT_SHA}"
+          echo "Triggered by: ${TRIGGERED_BY}"
+          echo "=========================="
+
       - name: Set up environment
         run: |
           sudo apt-get update -y || true
@@ -46,20 +62,21 @@ jobs:
           python -m pip install --upgrade pip
           pip install yq
       - name: Release community operator PR
+        env:
+          GITHUB_TOKEN: ${{ secrets.CHE_INCUBATOR_BOT_GITHUB_TOKEN }}
+          QUAY_ECLIPSE_CHE_USERNAME: ${{ secrets.QUAY_USERNAME }}
+          QUAY_ECLIPSE_CHE_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+          QUAY_USERNAME_K8S: ${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_KUBERNETES_USERNAME }}
+          QUAY_PASSWORD_K8S: ${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_KUBERNETES_PASSWORD }}
+          QUAY_USERNAME_OS: ${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_OPENSHIFT_USERNAME }}
+          QUAY_PASSWORD_OS: ${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_OPENSHIFT_PASSWORD }}
+          FORCE_FLAG: ${{ github.event.inputs.forceflag }}
         run: |
           git config --global user.name "Mykhailo Kuznietsov"
           git config --global user.email "mkuznets@redhat.com"
-          export GITHUB_TOKEN=${{ secrets.CHE_INCUBATOR_BOT_GITHUB_TOKEN }}
           set -e
           export PATH="$PATH:$OP_SDK_DIR"
-          export QUAY_ECLIPSE_CHE_USERNAME=${{ secrets.QUAY_USERNAME }}
-          export QUAY_ECLIPSE_CHE_PASSWORD=${{ secrets.QUAY_PASSWORD }}
-
-          export QUAY_USERNAME_K8S=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_KUBERNETES_USERNAME }}
-          export QUAY_PASSWORD_K8S=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_KUBERNETES_PASSWORD }}
-          export QUAY_USERNAME_OS=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_OPENSHIFT_USERNAME }}
-          export QUAY_PASSWORD_OS=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_OPENSHIFT_PASSWORD }}
-          build/scripts/release/make-release.sh --prepare-community-operators-update ${{ github.event.inputs.forceflag }}
+          build/scripts/release/make-release.sh --prepare-community-operators-update ${FORCE_FLAG}
       # - name: Create failure MM message
       #   if: ${{ failure() }}
       #   run: |

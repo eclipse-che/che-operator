@@ -11,6 +11,7 @@
 #
 
 name: Release helm charts
+run-name: Release helm charts for ${{ github.ref_name }} @ ${{ github.sha }}
 
 on:
   # manual trigger if required
@@ -40,6 +41,8 @@ jobs:
           version: v3.4.0
 
       - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.CHE_BOT_GITHUB_TOKEN }}
         run: |
           helm version
           cp -rf "${GITHUB_WORKSPACE}"/helmcharts/stable /tmp/charts
@@ -56,9 +59,8 @@ jobs:
 
           git config --global user.name "Mykhailo Kuznietsov"
           git config --global user.email "mkuznets@redhat.com"
-          export GITHUB_TOKEN=${{ secrets.CHE_BOT_GITHUB_TOKEN }}
 
           git add .
-          git commit -am "Add new chart package." --signoff
+          git commit -am "chore(release): Add new chart package" --signoff
 
           git push origin gh-pages

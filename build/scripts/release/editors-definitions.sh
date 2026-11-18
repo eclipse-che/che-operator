@@ -187,14 +187,14 @@ tagEditorDefinitionImages() {
       if [[ "${DRY_RUN:-}" == "true" ]]; then
         echo "[INFO] tagEditorDefinitionImages :: Dry run is enabled. Skipping tagging of ${IMAGE} as ${VERSIONED_IMAGE}."
       else
-        if [[ -z "${QUAY_ECLIPSE_CHE_USERNAME}" || -z "${QUAY_ECLIPSE_CHE_PASSWORD}" ]]; then
-          echo "[ERROR] tagEditorDefinitionImages :: QUAY_ECLIPSE_CHE_USERNAME and QUAY_ECLIPSE_CHE_PASSWORD must be set to push ${VERSIONED_IMAGE}. Aborting."
+        if [[ -z "${QUAY_CHE_INCUBATOR_USERNAME}" || -z "${QUAY_CHE_INCUBATOR_PASSWORD}" ]]; then
+          echo "[ERROR] tagEditorDefinitionImages :: QUAY_CHE_INCUBATOR_USERNAME and QUAY_CHE_INCUBATOR_PASSWORD must be set to push ${VERSIONED_IMAGE}. Aborting."
           exit 1
         fi
 
         echo "[INFO] tagEditorDefinitionImages :: Tagging ${IMAGE} as ${VERSIONED_IMAGE}"
         skopeo copy --all --preserve-digests  \
-          --dest-creds "${QUAY_ECLIPSE_CHE_USERNAME}:${QUAY_ECLIPSE_CHE_PASSWORD}" \
+          --dest-creds "${QUAY_CHE_INCUBATOR_USERNAME}:${QUAY_CHE_INCUBATOR_PASSWORD}" \
           "docker://${IMAGE}" "docker://${VERSIONED_IMAGE}"
       fi
     fi
