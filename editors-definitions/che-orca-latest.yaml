@@ -1,0 +1,100 @@
+#
+# Copyright (c) 2026 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Red Hat, Inc. - initial API and implementation
+#
+
+schemaVersion: 2.3.0
+metadata:
+  name: che-orca
+  displayName: Orca
+  description: Agent development environment for Eclipse Che
+  tags:
+    - orca
+    - agents
+    - ide
+  attributes:
+    arch:
+      - x86_64
+      - arm64
+    publisher: che-incubator
+    version: latest
+    provider: Provided by [Stably AI](https://www.onorca.dev/) under the [MIT License](https://github.com/stablyai/orca/blob/main/LICENSE)
+    title: Orca - Agent Development Environment for Eclipse Che
+    repository: https://github.com/che-incubator/che-orca
+    firstPublicationDate: '2026-10-06'
+    iconMediatype: image/svg+xml
+    iconData: |
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+        <rect width="64" height="64" rx="14" fill="#0d1b2a"/>
+        <path d="M28 27 L34 11 L39 27 Z" fill="#e8eef3"/>
+        <path d="M47 36 L61 25 L57.5 36 L61 47 Z" fill="#e8eef3"/>
+        <ellipse cx="29" cy="36" rx="20" ry="9.5" fill="#e8eef3"/>
+        <ellipse cx="29" cy="40" rx="17" ry="5" fill="#b9c7d2"/>
+        <ellipse cx="17" cy="33" rx="3.6" ry="2.1" fill="#0d1b2a"/>
+        <circle cx="12" cy="37" r="1.6" fill="#0d1b2a"/>
+        <circle cx="50" cy="19" r="4" fill="#4fc3f7"/>
+      </svg>
+
+commands:
+  - id: init-orca-command
+    apply:
+      component: orca-injector
+  - id: start-orca-command
+    exec:
+      component: orca-runtime
+      commandLine: >-
+        nohup /orca/entrypoint.sh > /orca/entrypoint-logs.txt 2>&1 &
+events:
+  preStart:
+    - init-orca-command
+  postStart:
+    - start-orca-command
+components:
+  - name: orca-injector
+    container:
+      image: quay.io/che-incubator/che-orca:7.125.0
+      command:
+        - /entrypoint-init-container.sh
+      volumeMounts:
+        - name: orca
+          path: /orca
+      memoryLimit: 512Mi
+      memoryRequest: 32Mi
+      cpuLimit: 500m
+      cpuRequest: 30m
+  - name: orca-runtime
+    attributes:
+      app.kubernetes.io/component: orca-runtime
+      app.kubernetes.io/part-of: orca.eclipse.org
+      controller.devfile.io/container-contribution: true
+    container:
+      image: quay.io/che-incubator/che-orca:7.125.0
+      mountSources: true
+      memoryLimit: 2048Mi
+      memoryRequest: 512Mi
+      cpuLimit: 1000m
+      cpuRequest: 100m
+      volumeMounts:
+        - name: orca
+          path: /orca
+      endpoints:
+        - name: orca
+          targetPort: 6768
+          path: /web-index.html
+          exposure: public
+          protocol: https
+          secure: true
+          attributes:
+            type: main
+            cookiesAuthEnabled: true
+            discoverable: false
+            urlRewriteSupported: true
+  - name: orca
+    volume: {}

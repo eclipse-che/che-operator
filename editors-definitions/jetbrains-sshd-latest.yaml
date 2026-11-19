@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024-2025 Red Hat, Inc.
+# Copyright (c) 2026 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -12,20 +12,21 @@
 
 schemaVersion: 2.3.0
 metadata:
-  name: che-idea-server
-  displayName: JetBrains IntelliJ IDEA Ultimate (desktop)
-  description: JetBrains IntelliJ IDEA Ultimate dev server for Eclipse Che - next
+  name: jetbrains-sshd
+  displayName: JetBrains Toolbox App (desktop)
+  description: JetBrains Toolbox App integration for Eclipse Che - latest
   tags:
+    - jetbrains
+    - ssh
   attributes:
     arch:
       - x86_64
-      - arm64
     publisher: che-incubator
-    version: next
-    provider: Provided by [JetBrains](https://www.jetbrains.com/) under [License](https://www.jetbrains.com/legal/docs/toolbox/user/)
-    title: JetBrains IntelliJ IDEA Ultimate dev server for Eclipse Che - next
-    repository: https://github.com/che-incubator/che-idea-dev-server
-    firstPublicationDate: '2023-30-11'
+    version: latest
+    provider: Provided by [Jet Brains](https://www.jetbrains.com/) under [License](https://www.jetbrains.com/legal/docs/toolbox/user/)
+    title: JetBrains IDE for Eclipse Che over Toolbox - latest
+    repository: https://github.com/che-incubator/che-code
+    firstPublicationDate: '2026-03-10'
     iconMediatype: image/svg+xml
     iconData: |
       <svg xmlns="http://www.w3.org/2000/svg" width="70" height="70" fill="none" viewBox="0 0 70 70">
@@ -74,55 +75,56 @@ metadata:
         </g>
       </svg>
 commands:
-  - id: inject-editor
-    apply:
-      component: editor-injector
-  - id: start-idea-server
+  - id: start-sshd
     exec:
-      component: editor-runtime
-      commandLine: nohup /idea-server/entrypoint-volume.sh > /idea-server/std.out
-        2>&1 &
+      component: jetbrains-sshd
+      commandLine: ( /sshd/sshd.start & )
 events:
-  preStart:
-    - inject-editor
   postStart:
-    - start-idea-server
+    - start-sshd
+
 components:
-  - name: idea-server
-    volume: {}
-  - name: editor-injector
+
+  - name: jetbrains-sshd-page
     container:
-      image: quay.io/che-incubator/che-idea-dev-server:next
-      command: ['/entrypoint-init-container.sh', 'idea', 'che-incubator/che-idea-server/next']
-      volumeMounts:
-        - name: idea-server
-          path: /idea-server
+      image: quay.io/che-incubator/che-code-sshd:7.125.0
       memoryLimit: 256Mi
       memoryRequest: 32Mi
       cpuLimit: 500m
       cpuRequest: 30m
-  - name: editor-runtime
-    container:
-      image: quay.io/devfile/universal-developer-image:latest
-      memoryLimit: 6144Mi
-      memoryRequest: 2048Mi
-      cpuLimit: 2000m
-      cpuRequest: 1500m
-      volumeMounts:
-        - name: idea-server
-          path: /idea-server
+      command: ['/sshd-staging/sshd.init', 'jetbrains']
       endpoints:
-        - name: idea-server
+        - name: jetbrains-sshd
           attributes:
             type: main
-            cookiesAuthEnabled: true
             discoverable: false
             urlRewriteSupported: true
           targetPort: 3400
           exposure: public
           secure: true
           protocol: https
+      volumeMounts:
+        - name: sshd-folder
+          path: /sshd
     attributes:
-      app.kubernetes.io/component: editor-runtime
-      app.kubernetes.io/part-of: idea-server.eclipse.org
+      app.kubernetes.io/component: jetbrains-sshd-page
+      app.kubernetes.io/part-of: jetbrains-server.eclipse.org
+
+  - name: jetbrains-sshd
+    container:
+      image: registry.access.redhat.com/ubi9-minimal:9.7
+      memoryLimit: 4096Mi
+      memoryRequest: 256Mi
+      cpuLimit: 1000m
+      cpuRequest: 500m
+      volumeMounts:
+        - name: sshd-folder
+          path: /sshd
+    attributes:
+      app.kubernetes.io/component: jetbrains-sshd
+      app.kubernetes.io/part-of: jetbrains-server.eclipse.org
       controller.devfile.io/container-contribution: true
+
+  - name: sshd-folder
+    volume: {}
+

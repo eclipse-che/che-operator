@@ -1,0 +1,32 @@
+--- a/editors-definitions/jetbrains-sshd-next.yaml
++++ b/editors-definitions/jetbrains-sshd-latest.yaml
+@@ -14,7 +14,7 @@
+ metadata:
+   name: jetbrains-sshd
+   displayName: JetBrains Toolbox App (desktop)
+-  description: JetBrains Toolbox App integration for Eclipse Che - next
++  description: JetBrains Toolbox App integration for Eclipse Che - latest
+   tags:
+     - jetbrains
+     - ssh
+@@ -22,9 +22,9 @@
+     arch:
+       - x86_64
+     publisher: che-incubator
+-    version: next
++    version: latest
+     provider: Provided by [Jet Brains](https://www.jetbrains.com/) under [License](https://www.jetbrains.com/legal/docs/toolbox/user/)
+-    title: JetBrains IDE for Eclipse Che over Toolbox - next
++    title: JetBrains IDE for Eclipse Che over Toolbox - latest
+     repository: https://github.com/che-incubator/che-code
+     firstPublicationDate: '2026-03-10'
+     iconMediatype: image/svg+xml
+@@ -87,7 +87,7 @@
+ 
+   - name: jetbrains-sshd-page
+     container:
+-      image: quay.io/che-incubator/che-code-sshd:next
++      image: quay.io/che-incubator/che-code-sshd:7.125.0
+       memoryLimit: 256Mi
+       memoryRequest: 32Mi
+       cpuLimit: 500m

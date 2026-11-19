@@ -1,0 +1,100 @@
+#
+# Copyright (c) 2026 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Red Hat, Inc. - initial API and implementation
+#
+
+schemaVersion: 2.3.0
+metadata:
+  name: che-web-terminal
+  displayName: Web Terminal
+  description: Web-based terminal using ttyd for Eclipse Che
+  tags:
+    - terminal
+    - ttyd
+  attributes:
+    arch:
+      - x86_64
+      - arm64
+      - s390x
+      - ppc64le
+    publisher: che-incubator
+    version: latest
+    title: Web Terminal for Eclipse Che
+    repository: https://github.com/tsl0922/ttyd
+    firstPublicationDate: '2026-04-01'
+    iconMediatype: image/svg+xml
+    iconData: |
+      <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+        <rect width="100" height="100" rx="10" fill="#1a1a1a"/>
+        <text x="10" y="35" font-family="monospace" font-size="14" fill="#00ff00">$</text>
+        <rect x="20" y="25" width="10" height="2" fill="#00ff00"/>
+        <text x="10" y="55" font-family="monospace" font-size="14" fill="#00ff00">$</text>
+        <rect x="20" y="45" width="10" height="2" fill="#00ff00"/>
+        <text x="10" y="75" font-family="monospace" font-size="14" fill="#00ff00">$</text>
+        <rect x="20" y="65" width="10" height="2" fill="#00ff00" class="blink">
+          <animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/>
+        </rect>
+      </svg>
+
+commands:
+  - id: init-ttyd-command
+    apply:
+      component: ttyd-injector
+  - id: start-ttyd-command
+    exec:
+      component: ttyd-runtime
+      commandLine: nohup /ttyd-vol/ttyd -W -p 7681 -t titleFixed=Terminal /bin/sh -c 'cd "${PROJECT_SOURCE:-.}" && exec /bin/sh' > /ttyd-vol/ttyd.log 2>&1 &
+events:
+  preStart:
+    - init-ttyd-command
+  postStart:
+    - start-ttyd-command
+components:
+  - name: ttyd-injector
+    container:
+      image: docker.io/tsl0922/ttyd:1.7.7-alpine
+      command:
+        - sh
+        - -c
+        - cp /usr/bin/ttyd /ttyd-vol/ttyd && chmod +x /ttyd-vol/ttyd
+      volumeMounts:
+        - name: ttyd-volume
+          path: /ttyd-vol
+      memoryLimit: 64Mi
+      memoryRequest: 16Mi
+      cpuLimit: 500m
+      cpuRequest: 30m
+  - name: ttyd-runtime
+    attributes:
+      app.kubernetes.io/component: web-terminal-runtime
+      app.kubernetes.io/part-of: web-terminal.eclipse.org
+      controller.devfile.io/container-contribution: true
+    container:
+      image: docker.io/tsl0922/ttyd:1.7.7-alpine
+      memoryLimit: 256Mi
+      memoryRequest: 64Mi
+      cpuLimit: 500m
+      cpuRequest: 30m
+      volumeMounts:
+        - name: ttyd-volume
+          path: /ttyd-vol
+      endpoints:
+        - name: web-terminal
+          targetPort: 7681
+          exposure: public
+          protocol: https
+          attributes:
+            type: main
+            cookiesAuthEnabled: true
+            discoverable: false
+            urlRewriteSupported: true
+            secure: true
+  - name: ttyd-volume
+    volume: {}
