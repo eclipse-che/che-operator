@@ -15,6 +15,7 @@ package proxyconfig
 import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	configv1 "github.com/openshift/api/config/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,7 +35,7 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 
 	Describe("on Kubernetes", func() {
 		BeforeEach(func() {
-			infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+			test.StartOn(infrastructure.Kubernetes)
 		})
 
 		It("should set empty proxy when nothing is configured", func() {
@@ -97,7 +98,7 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 
 	Describe("on OpenShift", func() {
 		BeforeEach(func() {
-			infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+			test.StartOn(infrastructure.OpenShiftV4)
 		})
 
 		It("should set empty proxy when nothing is configured", func() {

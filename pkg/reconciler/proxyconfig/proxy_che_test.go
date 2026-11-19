@@ -16,6 +16,8 @@ import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/cheproxy"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,6 +30,7 @@ var _ = Describe("buildFromCheConfig", func() {
 	var cheCtx *checontext.Builder
 
 	BeforeEach(func() {
+		test.StartOn(infrastructure.Kubernetes)
 		cheCtx = checontext.NewBuilder()
 	})
 
