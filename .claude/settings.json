@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo \"$CLAUDE_TOOL_INPUT\" | grep -qE '(rm\\s+-rf\\s+(/|\\./|\\*)|git\\s+push\\s+.*(-f|--force)|git\\s+reset\\s+--hard|git\\s+clean\\s+-f|git\\s+checkout\\s+--\\s+\\.)' && echo 'BLOCK: destructive operation' && exit 1 || true"
+            "command": "grep -qE '(rm\\s+-rf\\s+(/|\\./|\\*)|git\\s+push\\s+.*(-f|--force)|git\\s+reset\\s+--hard|git\\s+clean\\s+-f|git\\s+checkout\\s+--\\s+\\.)' && { echo 'BLOCK: destructive operation' >&2; exit 2; } || true"
           }
         ]
       }
