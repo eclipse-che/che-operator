@@ -18,6 +18,7 @@ import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	"github.com/google/go-cmp/cmp"
 	configv1 "github.com/openshift/api/config/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -483,18 +484,13 @@ func TestResolveOIDCAuthentication(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.isOpenShift {
-				infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+				test.StartOn(infrastructure.OpenShiftV4)
 				infrastructure.SetOpenShiftOAuthEnabledForTesting(tc.oAuthEnabled)
 			} else {
-				infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+				test.StartOn(infrastructure.Kubernetes)
 			}
 
-			defer func() {
-				infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
-				infrastructure.SetOpenShiftOAuthEnabledForTesting(true)
-			}()
-
-			cheCtx := test.NewCtxBuilder().
+			cheCtx := checontext.NewBuilder().
 				WithCheCluster(tc.cheCluster).
 				WithObjects(tc.initObjects...).
 				Build()

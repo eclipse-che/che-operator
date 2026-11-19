@@ -18,7 +18,9 @@ import (
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -26,7 +28,9 @@ import (
 )
 
 func TestPVCSync(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().Build()
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().Build()
 	reconciler := NewOpenVSXDatabaseReconciler()
 
 	err := reconciler.syncPVC(cheCtx)

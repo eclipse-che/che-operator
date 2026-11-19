@@ -15,12 +15,10 @@ package defaults
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
-	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -57,33 +55,6 @@ var (
 
 	log = ctrl.Log.WithName("defaults")
 )
-
-func InitializeForTesting() {
-	projectRoot, err := utils.FindProjectRoot()
-	if err != nil {
-		log.Error(err, "Failed to find project root")
-		os.Exit(1)
-	}
-
-	operatorDeploymentFilePath := filepath.Join(projectRoot, "config", "manager", "manager.yaml")
-
-	operatorDeployment := &appsv1.Deployment{}
-	if err := utils.ReadObjectInto(operatorDeploymentFilePath, operatorDeployment); err != nil {
-		log.Error(err, "Error reading operator deployment")
-		os.Exit(1)
-	}
-
-	for _, container := range operatorDeployment.Spec.Template.Spec.Containers {
-		for _, env := range container.Env {
-			err := os.Setenv(env.Name, env.Value)
-			if err != nil {
-				panic(fmt.Sprintf("Error setting env var %s=%s", env.Name, env.Value))
-			}
-		}
-	}
-
-	Initialize()
-}
 
 func Initialize() {
 	defaultCheVersion = ensureEnv("CHE_VERSION")

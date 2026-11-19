@@ -20,7 +20,6 @@ import (
 
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers"
-	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
 
 	dwCommon "github.com/devfile/devworkspace-operator/pkg/common"
@@ -28,6 +27,8 @@ import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	corev1 "k8s.io/api/core/v1"
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -44,7 +45,12 @@ var (
 )
 
 func getSpecObjectsForManager(t *testing.T, mgr *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, additionalInitialObjects ...client.Object) (client.Client, solvers.RoutingSolver, solvers.RoutingObjects) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(mgr).WithObjects(routing).WithObjects(additionalInitialObjects...).Build()
+	cheCtx := checontext.NewBuilder().
+		WithCheCluster(mgr).
+		WithObjects(routing).
+		WithObjects(additionalInitialObjects...).
+		Build()
+
 	scheme := cheCtx.ClusterAPI.Scheme
 	cl := cheCtx.ClusterAPI.Client
 
@@ -317,7 +323,7 @@ func userProfileSecret(username string) *corev1.Secret {
 }
 
 func TestCreateRelocatedObjectsK8S(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
 	cl, _, objs := getSpecObjects(t, relocatableDevWorkspaceRouting())
 
 	t.Run("noIngresses", func(t *testing.T) {
@@ -474,7 +480,7 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 }
 
 func TestCreateRelocatedObjectsK8SLegacy(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
 
 	cl, _, objs := getSpecObjectsForManager(t, &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -613,7 +619,7 @@ func TestCreateRelocatedObjectsK8SLegacy(t *testing.T) {
 }
 
 func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+	test.StartOn(infrastructure.OpenShiftV4)
 
 	cl, _, objs := getSpecObjects(t, relocatableDevWorkspaceRouting())
 
@@ -717,7 +723,7 @@ func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 }
 
 func TestCreateRelocatedObjectsOpenshiftLegacy(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+	test.StartOn(infrastructure.OpenShiftV4)
 
 	cl, _, objs := getSpecObjectsForManager(t, &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -824,9 +830,9 @@ func TestCreateRelocatedObjectsOpenshiftLegacy(t *testing.T) {
 }
 
 func TestUniqueMainEndpoint(t *testing.T) {
-	wsid := "wsid123"
+	test.StartOn(infrastructure.OpenShiftV4)
 
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+	wsid := "wsid123"
 	cl, _, _ := getSpecObjects(t, &dwo.DevWorkspaceRouting{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "routing",
@@ -907,9 +913,9 @@ func TestUniqueMainEndpoint(t *testing.T) {
 }
 
 func TestUniqueMainEndpointLegacy(t *testing.T) {
-	wsid := "wsid123"
+	test.StartOn(infrastructure.OpenShiftV4)
 
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+	wsid := "wsid123"
 
 	routing := &dwo.DevWorkspaceRouting{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1005,7 +1011,7 @@ func TestUniqueMainEndpointLegacy(t *testing.T) {
 
 func TestCreateSubDomainObjects(t *testing.T) {
 	testCommon := func(infra infrastructure.Type) solvers.RoutingObjects {
-		infrastructure.InitializeForTesting(infra)
+		test.StartOn(infra)
 
 		cl, _, objs := getSpecObjects(t, subdomainDevWorkspaceRouting())
 
@@ -1068,7 +1074,7 @@ func TestCreateSubDomainObjects(t *testing.T) {
 
 func TestCreateSubDomainObjectsLegacy(t *testing.T) {
 	testCommon := func(infra infrastructure.Type) solvers.RoutingObjects {
-		infrastructure.InitializeForTesting(infra)
+		test.StartOn(infra)
 
 		cl, _, objs := getSpecObjectsForManager(t, &chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
@@ -1141,8 +1147,7 @@ func TestCreateSubDomainObjectsLegacy(t *testing.T) {
 }
 
 func TestReportRelocatableExposedEndpoints(t *testing.T) {
-	// kubernetes
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
 
 	routing := relocatableDevWorkspaceRouting()
 	_, solver, objs := getSpecObjects(t, routing)
@@ -1195,8 +1200,7 @@ func TestReportRelocatableExposedEndpoints(t *testing.T) {
 }
 
 func TestReportRelocatableExposedEndpointsLegacy(t *testing.T) {
-	// kubernetes
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
 
 	routing := relocatableDevWorkspaceRouting()
 	_, solver, objs := getSpecObjectsForManager(t, &chev2.CheCluster{
@@ -1260,7 +1264,7 @@ func TestReportRelocatableExposedEndpointsLegacy(t *testing.T) {
 }
 
 func TestExposeEndpoints(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
 
 	routing := &dwo.DevWorkspaceRouting{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1378,7 +1382,7 @@ func TestExposeEndpoints(t *testing.T) {
 }
 
 func TestExposeEndpointsLegacy(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
 
 	routing := &dwo.DevWorkspaceRouting{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1507,7 +1511,8 @@ func TestExposeEndpointsLegacy(t *testing.T) {
 }
 
 func TestReportSubdomainExposedEndpoints(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
+
 	routing := subdomainDevWorkspaceRouting()
 	_, solver, objs := getSpecObjects(t, routing)
 
@@ -1559,7 +1564,8 @@ func TestReportSubdomainExposedEndpoints(t *testing.T) {
 }
 
 func TestReportSubdomainExposedEndpointsLongUsername(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
+
 	routing := subdomainDevWorkspaceRouting()
 	_, solver, objs := getSpecObjectsForManager(t, &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1625,7 +1631,8 @@ func TestReportSubdomainExposedEndpointsLongUsername(t *testing.T) {
 }
 
 func TestReportSubdomainExposedEndpointsLegacy(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
+
 	routing := subdomainDevWorkspaceRouting()
 	_, solver, objs := getSpecObjectsForManager(t, &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1688,7 +1695,8 @@ func TestReportSubdomainExposedEndpointsLegacy(t *testing.T) {
 }
 
 func TestFinalize(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
+
 	routing := relocatableDevWorkspaceRouting()
 	cl, slv, _ := getSpecObjects(t, routing)
 
@@ -1709,7 +1717,8 @@ func TestFinalize(t *testing.T) {
 }
 
 func TestEndpointsAlwaysOnSecureProtocolsWhenExposedThroughGateway(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
+
 	routing := relocatableDevWorkspaceRouting()
 	_, slv, objs := getSpecObjects(t, routing)
 
@@ -1732,7 +1741,7 @@ func TestEndpointsAlwaysOnSecureProtocolsWhenExposedThroughGateway(t *testing.T)
 }
 
 func TestUsesIngressAnnotationsForWorkspaceEndpointIngresses(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
 
 	mgr := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1768,7 +1777,7 @@ func TestUsesIngressAnnotationsForWorkspaceEndpointIngresses(t *testing.T) {
 }
 
 func TestUsesEndpointAnnotationsForWorkspaceEndpointIngresses(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
 
 	mgr := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1815,7 +1824,7 @@ func TestUsesEndpointAnnotationsForWorkspaceEndpointIngresses(t *testing.T) {
 }
 
 func TestUsesEndpointAnnotationsForWorkspaceEndpointRoutes(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+	test.StartOn(infrastructure.OpenShiftV4)
 
 	mgr := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1858,7 +1867,7 @@ func TestUsesEndpointAnnotationsForWorkspaceEndpointRoutes(t *testing.T) {
 }
 
 func TestUsesEndpointServiceWithDiscoverableAttributeSetRoutes(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+	test.StartOn(infrastructure.OpenShiftV4)
 
 	mgr := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1901,7 +1910,7 @@ func TestUsesEndpointServiceWithDiscoverableAttributeSetRoutes(t *testing.T) {
 }
 
 func TestUsesEndpointServiceWithDiscoverableAttributeSetIngresses(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
 
 	mgr := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1952,7 +1961,7 @@ func TestUsesEndpointServiceWithDiscoverableAttributeSetIngresses(t *testing.T) 
 }
 
 func TestUsesCustomCertificateForWorkspaceEndpointIngresses(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
 
 	mgr := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -2035,7 +2044,7 @@ func TestUsesCustomCertificateForWorkspaceEndpointIngresses(t *testing.T) {
 }
 
 func TestUsesCustomCertificateForWorkspaceEndpointRoutes(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+	test.StartOn(infrastructure.OpenShiftV4)
 
 	mgr := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -2094,6 +2103,8 @@ func TestUsesCustomCertificateForWorkspaceEndpointRoutes(t *testing.T) {
 }
 
 func TestOverrideGatewayContainerProvisioning(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	overrideMemoryRequest := resource.MustParse("128Mi")
 	overrideCpuRequest := resource.MustParse("1")
 	overrideMemoryLimit := resource.MustParse("228Mi")
@@ -2126,7 +2137,7 @@ func TestOverrideGatewayContainerProvisioning(t *testing.T) {
 		},
 	}
 
-	cheCtx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
+	cheCtx := checontext.NewBuilder().WithCheCluster(cheCluster).Build()
 	scheme := cheCtx.ClusterAPI.Scheme
 	cl := cheCtx.ClusterAPI.Client
 
@@ -2153,6 +2164,8 @@ func TestOverrideGatewayContainerProvisioning(t *testing.T) {
 }
 
 func TestOverridePartialLimitsGatewayContainerProvisioning(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	overrideMemoryRequest := resource.MustParse("0")
 	overrideCpuRequest := resource.MustParse("0")
 	defaultMemoryLimit := resource.MustParse(constants.DefaultGatewayMemoryLimit)
@@ -2180,7 +2193,7 @@ func TestOverridePartialLimitsGatewayContainerProvisioning(t *testing.T) {
 		},
 	}
 
-	cheCtx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
+	cheCtx := checontext.NewBuilder().WithCheCluster(cheCluster).Build()
 	scheme := cheCtx.ClusterAPI.Scheme
 	cl := cheCtx.ClusterAPI.Client
 
@@ -2207,6 +2220,8 @@ func TestOverridePartialLimitsGatewayContainerProvisioning(t *testing.T) {
 }
 
 func TestOverrideGatewayEmptyContainerProvisioning(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	overrideMemoryRequest := resource.MustParse("0")
 	overrideCpuRequest := resource.MustParse("0")
 	overrideMemoryLimit := resource.MustParse("0")
@@ -2239,7 +2254,7 @@ func TestOverrideGatewayEmptyContainerProvisioning(t *testing.T) {
 		},
 	}
 
-	cheCtx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
+	cheCtx := checontext.NewBuilder().WithCheCluster(cheCluster).Build()
 	scheme := cheCtx.ClusterAPI.Scheme
 	cl := cheCtx.ClusterAPI.Client
 
@@ -2266,6 +2281,8 @@ func TestOverrideGatewayEmptyContainerProvisioning(t *testing.T) {
 }
 
 func TestDefaultGatewayContainerProvisioning(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	defaultMemoryRequest := resource.MustParse(constants.DefaultGatewayMemoryRequest)
 	defaultCpuRequest := resource.MustParse(constants.DefaultGatewayCpuRequest)
 	defaultMemoryLimit := resource.MustParse(constants.DefaultGatewayMemoryLimit)
@@ -2283,7 +2300,7 @@ func TestDefaultGatewayContainerProvisioning(t *testing.T) {
 		},
 	}
 
-	cheCtx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
+	cheCtx := checontext.NewBuilder().WithCheCluster(cheCluster).Build()
 	scheme := cheCtx.ClusterAPI.Scheme
 	cl := cheCtx.ClusterAPI.Client
 

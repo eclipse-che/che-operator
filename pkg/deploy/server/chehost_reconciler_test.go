@@ -18,7 +18,9 @@ import (
 	"k8s.io/utils/ptr"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/stretchr/testify/assert"
@@ -32,7 +34,9 @@ import (
 )
 
 func TestSyncService(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
@@ -66,7 +70,9 @@ func TestSyncService(t *testing.T) {
 }
 
 func TestConfiguringLabelsForRoutes(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
@@ -91,11 +97,19 @@ func TestConfiguringLabelsForRoutes(t *testing.T) {
 }
 
 func TestCheHostReconciler(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().Build()
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().Build()
 
 	cheHostReconciler := NewCheHostReconciler()
-	test.EnsureReconcile(t, cheCtx, cheHostReconciler.Reconcile)
+	test.AssertReconciled(t, cheCtx, cheHostReconciler.Reconcile)
 
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: getComponentName(), Namespace: "eclipse-che"}, &routev1.Route{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: deploy.CheServiceName, Namespace: "eclipse-che"}, &corev1.Service{}))
+	assert.NoError(t, cheCtx.ClusterAPI.Client.Get(
+		cheCtx.Context,
+		types.NamespacedName{Name: getComponentName(), Namespace: "eclipse-che"},
+		&routev1.Route{}))
+	assert.NoError(t, cheCtx.ClusterAPI.Client.Get(
+		cheCtx.Context,
+		types.NamespacedName{Name: deploy.CheServiceName, Namespace: "eclipse-che"},
+		&corev1.Service{}))
 }

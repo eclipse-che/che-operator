@@ -20,13 +20,18 @@ import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	"github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 func TestCookieExpireForOpenShiftOauthProxyConfig(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().WithCheCluster(&chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{Name: "eclipse-che"},
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
 				Auth: chev2.Auth{
@@ -44,7 +49,10 @@ func TestCookieExpireForOpenShiftOauthProxyConfig(t *testing.T) {
 }
 
 func TestCookieExpireKubernetesOauthProxyConfig(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().WithCheCluster(&chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{Name: "eclipse-che"},
 		Spec: chev2.CheClusterSpec{
 			Networking: chev2.CheClusterSpecNetworking{
 				Auth: chev2.Auth{
@@ -64,8 +72,11 @@ func TestCookieExpireKubernetesOauthProxyConfig(t *testing.T) {
 }
 
 func TestKubernetesOauthProxyConfig(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().WithCheCluster(
 		&chev2.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{Name: "eclipse-che"},
 			Spec: chev2.CheClusterSpec{
 				Networking: chev2.CheClusterSpecNetworking{
 					Auth: chev2.Auth{
@@ -87,8 +98,11 @@ func TestKubernetesOauthProxyConfig(t *testing.T) {
 }
 
 func TestScopeDefinedForKubernetesOauthProxyConfig(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().WithCheCluster(
 		&chev2.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{Name: "eclipse-che"},
 			Spec: chev2.CheClusterSpec{
 				Networking: chev2.CheClusterSpecNetworking{
 					Auth: chev2.Auth{
@@ -106,8 +120,11 @@ func TestScopeDefinedForKubernetesOauthProxyConfig(t *testing.T) {
 }
 
 func TestAccessTokenDefinedForKubernetesOauthProxyConfig(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().WithCheCluster(
 		&chev2.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{Name: "eclipse-che"},
 			Spec: chev2.CheClusterSpec{
 				Networking: chev2.CheClusterSpecNetworking{
 					Auth: chev2.Auth{
@@ -128,7 +145,7 @@ func TestAccessTokenDefinedForKubernetesOauthProxyConfig(t *testing.T) {
 // TestResolveOpenShiftOAuthProxyImage_InternalRegistry verifies that the internal registry
 // reference is preferred — this works in both connected and disconnected OCP environments.
 func TestResolveOpenShiftOAuthProxyImage_InternalRegistry(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+	test.StartOn(infrastructure.OpenShiftV4)
 
 	internalRegistryBase := "image-registry.openshift-image-registry.svc:5000/openshift/oauth-proxy"
 	digest := "sha256:503de130e594b7864ab9b63b910d313b4e17cdd09ddd59323729fa221ba1b39c"
@@ -155,7 +172,7 @@ func TestResolveOpenShiftOAuthProxyImage_InternalRegistry(t *testing.T) {
 		},
 	}, "status", "tags")
 
-	cheCtx := test.NewCtxBuilder().WithObjects(imageStream).Build()
+	cheCtx := checontext.NewBuilder().WithObjects(imageStream).Build()
 
 	resolved := resolveOpenShiftOAuthProxyImage(cheCtx)
 	assert.Equal(t, expectedImage, resolved)
@@ -165,7 +182,7 @@ func TestResolveOpenShiftOAuthProxyImage_InternalRegistry(t *testing.T) {
 // returned when the internal registry path is absent, to avoid returning a public image
 // that would fail to pull in disconnected environments.
 func TestResolveOpenShiftOAuthProxyImage_NoInternalRegistry(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+	test.StartOn(infrastructure.OpenShiftV4)
 
 	imageStream := &unstructured.Unstructured{}
 	imageStream.SetGroupVersionKind(schema.GroupVersionKind{
@@ -186,7 +203,7 @@ func TestResolveOpenShiftOAuthProxyImage_NoInternalRegistry(t *testing.T) {
 		},
 	}, "status", "tags")
 
-	cheCtx := test.NewCtxBuilder().WithObjects(imageStream).Build()
+	cheCtx := checontext.NewBuilder().WithObjects(imageStream).Build()
 
 	resolved := resolveOpenShiftOAuthProxyImage(cheCtx)
 	assert.Equal(t, "", resolved)
@@ -195,9 +212,9 @@ func TestResolveOpenShiftOAuthProxyImage_NoInternalRegistry(t *testing.T) {
 // TestResolveOpenShiftOAuthProxyImage_ImageStreamAbsent verifies that an empty string
 // is returned when the ImageStream is not present so the caller falls back to the default.
 func TestResolveOpenShiftOAuthProxyImage_ImageStreamAbsent(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+	test.StartOn(infrastructure.OpenShiftV4)
 
-	cheCtx := test.NewCtxBuilder().Build()
+	cheCtx := checontext.NewBuilder().Build()
 
 	resolved := resolveOpenShiftOAuthProxyImage(cheCtx)
 	assert.Equal(t, "", resolved)

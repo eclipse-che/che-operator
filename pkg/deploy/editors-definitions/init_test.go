@@ -12,16 +12,6 @@
 
 package editorsdefinitions
 
-import (
-	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
-	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
-	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
-)
-
 func init() {
-	k8shelper.InitializeForTesting()
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
-	defaults.InitializeForTesting()
-
 	editorsDefinitionsDir = "./test-editors-definitions"
 }

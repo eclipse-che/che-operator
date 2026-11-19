@@ -74,7 +74,7 @@ func (ip *ImagePuller) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result,
 	}
 
 	if cheCtx.CheCluster.Spec.Components.ImagePuller.Enable {
-		if !infrastructure.IsKubernetesImagePullerEnabled(cheCtx.ClusterAPI.DiscoveryClient) {
+		if !infrastructure.IsKubernetesImagePullerEnabled() {
 			errMsg := "kubernetes Image Puller is not installed, in order to enable the property admin should install the operator first"
 			return reconcile.Result{}, false, errors.New(errMsg)
 		}
@@ -95,7 +95,7 @@ func (ip *ImagePuller) Finalize(cheCtx *chetypes.CheContext) error {
 }
 
 func (ip *ImagePuller) uninstallImagePuller(cheCtx *chetypes.CheContext) error {
-	if infrastructure.IsKubernetesImagePullerEnabled(cheCtx.ClusterAPI.DiscoveryClient) {
+	if infrastructure.IsKubernetesImagePullerEnabled() {
 		key := types.NamespacedName{
 			Namespace: cheCtx.CheCluster.Namespace,
 			Name:      getImagePullerCustomResourceName(cheCtx),

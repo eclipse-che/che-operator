@@ -16,13 +16,17 @@ import (
 	"context"
 	"testing"
 
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
 func TestSyncRoleBindingToCluster(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().Build()
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().Build()
 
 	err := SyncRoleBindingToCluster(cheCtx, "test", "sa", "clusterrole-1", "kind")
 	if err != nil {

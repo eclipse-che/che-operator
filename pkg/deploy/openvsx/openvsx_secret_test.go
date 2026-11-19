@@ -17,7 +17,9 @@ import (
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,7 +28,9 @@ import (
 )
 
 func TestOpenVSXSecretReconciler_CreatesSecretWhenEnabled(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "eclipse-che",
@@ -43,12 +47,18 @@ func TestOpenVSXSecretReconciler_CreatesSecretWhenEnabled(t *testing.T) {
 	).Build()
 
 	reconciler := NewOpenVSXSecretReconciler()
-	test.EnsureReconcile(t, cheCtx, reconciler.Reconcile)
+	test.AssertReconciled(t, cheCtx, reconciler.Reconcile)
 
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXCredentialsSecret, Namespace: "eclipse-che"}, &corev1.Secret{}))
+	assert.NoError(t, cheCtx.ClusterAPI.Client.Get(
+		cheCtx.Context,
+		types.NamespacedName{Name: constants.OpenVSXCredentialsSecret, Namespace: "eclipse-che"},
+		&corev1.Secret{}))
 
 	cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Enable = ptr.To(false)
-	test.EnsureReconcile(t, cheCtx, reconciler.Reconcile)
+	test.AssertReconciled(t, cheCtx, reconciler.Reconcile)
 
-	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXCredentialsSecret, Namespace: "eclipse-che"}, &corev1.Secret{}))
+	assert.Error(t, cheCtx.ClusterAPI.Client.Get(
+		cheCtx.Context,
+		types.NamespacedName{Name: constants.OpenVSXCredentialsSecret, Namespace: "eclipse-che"},
+		&corev1.Secret{}))
 }

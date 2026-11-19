@@ -26,14 +26,18 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestSyncSecrets(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithObjects(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().WithObjects(
 		&corev1.Secret{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Secret",
@@ -57,9 +61,6 @@ func TestSyncSecrets(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
 			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
@@ -208,7 +209,9 @@ func TestSyncSecrets(t *testing.T) {
 }
 
 func TestSyncSecretShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithObjects(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().WithObjects(
 		&corev1.Secret{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Secret",
@@ -232,9 +235,6 @@ func TestSyncSecretShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
 			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
@@ -320,7 +320,9 @@ func TestSyncSecretShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 }
 
 func TestSyncSecretShouldRespectDWOLabels(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithObjects(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().WithObjects(
 		&corev1.Secret{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Secret",
@@ -338,9 +340,6 @@ func TestSyncSecretShouldRespectDWOLabels(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
 			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
@@ -418,7 +417,9 @@ func TestSyncSecretShouldRespectDWOLabels(t *testing.T) {
 }
 
 func TestSyncSecretShouldRemoveSomeLabels(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithObjects(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().WithObjects(
 		&corev1.Secret{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Secret",
@@ -436,9 +437,6 @@ func TestSyncSecretShouldRemoveSomeLabels(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
 			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{

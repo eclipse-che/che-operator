@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package labelbackfill
+package tests
 
 import (
 	"testing"
@@ -20,6 +20,8 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
+	"github.com/eclipse-che/che-operator/pkg/reconciler/labelbackfill"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	consolev1 "github.com/openshift/api/console/v1"
@@ -35,13 +37,11 @@ func TestLabelBackfill(t *testing.T) {
 var _ = Describe("LabelBackfillReconciler ConsoleLink", func() {
 	var (
 		cheCtx     *chetypes.CheContext
-		reconciler *LabelBackfillReconciler
+		reconciler *labelbackfill.LabelBackfillReconciler
 	)
 
 	BeforeEach(func() {
-		test.Initialize(infrastructure.OpenShiftV4)
-		reconciler = NewReconciler()
-		cheCtx = test.NewCtxBuilder().Build()
+		reconciler = labelbackfill.NewReconciler()
 	})
 
 	Context("Reconcile", func() {
@@ -49,6 +49,8 @@ var _ = Describe("LabelBackfillReconciler ConsoleLink", func() {
 			var consoleLink *consolev1.ConsoleLink
 
 			BeforeEach(func() {
+				test.StartOn(infrastructure.OpenShiftV4)
+
 				consoleLink = &consolev1.ConsoleLink{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "ConsoleLink",
@@ -59,7 +61,7 @@ var _ = Describe("LabelBackfillReconciler ConsoleLink", func() {
 					},
 				}
 
-				cheCtx = test.NewCtxBuilder().WithObjects(consoleLink).Build()
+				cheCtx = checontext.NewBuilder().WithObjects(consoleLink).Build()
 			})
 
 			It("should add the part-of label to the ConsoleLink", func() {

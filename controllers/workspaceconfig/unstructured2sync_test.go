@@ -19,12 +19,13 @@ import (
 	"testing"
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
-
 	templatev1 "github.com/openshift/api/template/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,7 +38,9 @@ var (
 )
 
 func TestSyncTemplateWithLimitRange(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithObjects(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().WithObjects(
 		&templatev1.Template{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Template",
@@ -78,9 +81,6 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
 			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
@@ -226,7 +226,9 @@ func TestSyncTemplateWithLimitRange(t *testing.T) {
 }
 
 func TestSyncUnstructuredShouldRetainIfAnnotationSetTrue(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithObjects(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().WithObjects(
 		&templatev1.Template{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Template",
@@ -270,9 +272,6 @@ func TestSyncUnstructuredShouldRetainIfAnnotationSetTrue(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
 			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
@@ -310,7 +309,9 @@ func TestSyncUnstructuredShouldRetainIfAnnotationSetTrue(t *testing.T) {
 }
 
 func TestSyncUnstructuredShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithObjects(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().WithObjects(
 		&templatev1.Template{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Template",
@@ -354,9 +355,6 @@ func TestSyncUnstructuredShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
 			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
@@ -395,7 +393,9 @@ func TestSyncUnstructuredShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 }
 
 func TestSyncUnstructuredShouldNotRetainIfAnnotationIsNotSet(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithObjects(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().WithObjects(
 		&templatev1.Template{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Template",
@@ -436,9 +436,6 @@ func TestSyncUnstructuredShouldNotRetainIfAnnotationIsNotSet(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
 			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{

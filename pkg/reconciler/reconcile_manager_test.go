@@ -17,7 +17,9 @@ import (
 	"testing"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -34,7 +36,8 @@ var _ = Describe("ReconcilerManager", func() {
 	)
 
 	BeforeEach(func() {
-		cheCtx = test.NewCtxBuilder().Build()
+		test.StartOn(infrastructure.OpenShiftV4)
+		cheCtx = checontext.NewBuilder().Build()
 	})
 
 	Context("ReconcileAll", func() {

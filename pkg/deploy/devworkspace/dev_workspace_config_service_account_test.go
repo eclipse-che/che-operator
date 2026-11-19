@@ -21,7 +21,9 @@ import (
 
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -132,10 +134,12 @@ func TestReconcileServiceAccountConfig(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := checontext.NewBuilder().WithCheCluster(testCase.cheCluster).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			test.EnsureReconcile(t, cheCtx, devWorkspaceConfigReconciler.Reconcile)
+			test.AssertReconciled(t, cheCtx, devWorkspaceConfigReconciler.Reconcile)
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
 			err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
@@ -380,10 +384,12 @@ func TestReconcileDevWorkspaceConfigServiceAccountTokens(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.existedObjects...).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := checontext.NewBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.existedObjects...).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			test.EnsureReconcile(t, cheCtx, devWorkspaceConfigReconciler.Reconcile)
+			test.AssertReconciled(t, cheCtx, devWorkspaceConfigReconciler.Reconcile)
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
 			err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)

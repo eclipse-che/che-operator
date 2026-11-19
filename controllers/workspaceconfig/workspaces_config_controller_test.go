@@ -18,13 +18,16 @@ import (
 	"testing"
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
+	"github.com/eclipse-che/che-operator/pkg/common/clusterapi"
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -34,7 +37,9 @@ import (
 )
 
 func TestCreate(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithObjects(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().WithObjects(
 		&corev1.ConfigMap{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "ConfigMap",
@@ -67,11 +72,7 @@ func TestCreate(t *testing.T) {
 		},
 	).Build()
 
-	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Scheme,
-		namespacecache.NewNamespaceCache(cheCtx.ClusterAPI.NonCachingClient))
+	workspaceConfigReconciler := NewWorkspacesConfigReconciler(namespacecache.NewNamespaceCache(clusterapi.Get().Client))
 
 	err := workspaceConfigReconciler.syncNamespace(
 		context.TODO(),
@@ -90,14 +91,10 @@ func TestCreate(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().Build()
+	test.StartOn(infrastructure.OpenShiftV4)
 
-	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Scheme,
-		namespacecache.NewNamespaceCache(cheCtx.ClusterAPI.NonCachingClient),
-	)
+	cheCtx := checontext.NewBuilder().Build()
+	workspaceConfigReconciler := NewWorkspacesConfigReconciler(namespacecache.NewNamespaceCache(clusterapi.Get().Client))
 
 	err := cheCtx.ClusterAPI.Client.Create(
 		context.TODO(),
@@ -197,13 +194,10 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestDeleteIfObjectIsObsolete(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().Build()
+	test.StartOn(infrastructure.OpenShiftV4)
 
-	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Scheme,
-		namespacecache.NewNamespaceCache(cheCtx.ClusterAPI.NonCachingClient))
+	cheCtx := checontext.NewBuilder().Build()
+	workspaceConfigReconciler := NewWorkspacesConfigReconciler(namespacecache.NewNamespaceCache(clusterapi.Get().Client))
 
 	err := cheCtx.ClusterAPI.Client.Create(
 		context.TODO(),
@@ -438,13 +432,10 @@ func TestBuildKey(t *testing.T) {
 }
 
 func TestSyncConfig(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().Build()
+	test.StartOn(infrastructure.OpenShiftV4)
 
-	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Scheme,
-		namespacecache.NewNamespaceCache(cheCtx.ClusterAPI.NonCachingClient))
+	cheCtx := checontext.NewBuilder().Build()
+	workspaceConfigReconciler := NewWorkspacesConfigReconciler(namespacecache.NewNamespaceCache(clusterapi.Get().Client))
 
 	syncCMKey := types.NamespacedName{
 		Name:      syncedWorkspacesConfig,

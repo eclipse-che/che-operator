@@ -30,13 +30,17 @@ import (
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
 func TestImagePullerConfiguration(t *testing.T) {
+	test.InitializeDefaults(infrastructure.OpenShiftV4)
+
 	type testCase struct {
 		name                string
 		cheCluster          *chev2.CheCluster
@@ -141,7 +145,9 @@ func TestImagePullerConfiguration(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := checontext.NewBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
 
 			ip := &ImagePuller{
 				externalImages: &ExternalImagesProvider{
@@ -152,7 +158,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 				},
 			}
 
-			test.EnsureReconcile(t, cheCtx, ip.Reconcile)
+			test.AssertReconciled(t, cheCtx, ip.Reconcile)
 
 			actualImagePuller := &chev1alpha1.KubernetesImagePuller{}
 			err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: "eclipse-che", Name: "eclipse-che-image-puller"}, actualImagePuller)

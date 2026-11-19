@@ -15,6 +15,7 @@ package dashboard
 import (
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -25,47 +26,100 @@ import (
 )
 
 func TestDashboardOpenShift(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().Build()
-	dashboard := NewDashboardReconciler()
-	test.EnsureReconcile(t, cheCtx, dashboard.Reconcile)
+	test.StartOn(infrastructure.OpenShiftV4)
 
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getComponentName(cheCtx), Namespace: "eclipse-che"}, &corev1.Service{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getComponentName(cheCtx), Namespace: "eclipse-che"}, &appsv1.Deployment{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: DashboardSA, Namespace: "eclipse-che"}, &corev1.ServiceAccount{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getComponentName(cheCtx), Namespace: "eclipse-che"}, &appsv1.Deployment{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getComponentName(cheCtx), Namespace: "eclipse-che"}, &appsv1.Deployment{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getClusterRoleBindingName(cheCtx)}, &rbacv1.ClusterRoleBinding{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getClusterRoleName(cheCtx)}, &rbacv1.ClusterRole{}))
+	cheCtx := checontext.NewBuilder().Build()
+	dashboard := NewDashboardReconciler()
+	test.AssertReconciled(t, cheCtx, dashboard.Reconcile)
+
+	assert.NoError(t, cheCtx.ClusterAPI.Client.Get(
+		cheCtx.Context,
+		types.NamespacedName{Name: dashboard.getComponentName(cheCtx), Namespace: "eclipse-che"},
+		&corev1.Service{}))
+	assert.NoError(t, cheCtx.ClusterAPI.Client.Get(
+		cheCtx.Context,
+		types.NamespacedName{Name: dashboard.getComponentName(cheCtx), Namespace: "eclipse-che"},
+		&appsv1.Deployment{}))
+	assert.NoError(t, cheCtx.ClusterAPI.Client.Get(
+		cheCtx.Context,
+		types.NamespacedName{Name: DashboardSA, Namespace: "eclipse-che"},
+		&corev1.ServiceAccount{}))
+	assert.NoError(t, cheCtx.ClusterAPI.Client.Get(
+		cheCtx.Context,
+		types.NamespacedName{Name: dashboard.getComponentName(cheCtx), Namespace: "eclipse-che"},
+		&appsv1.Deployment{}))
+	assert.NoError(t, cheCtx.ClusterAPI.Client.Get(
+		cheCtx.Context,
+		types.NamespacedName{Name: dashboard.getComponentName(cheCtx), Namespace: "eclipse-che"},
+		&appsv1.Deployment{}))
+	assert.NoError(t, cheCtx.ClusterAPI.Client.Get(
+		cheCtx.Context,
+		types.NamespacedName{Name: dashboard.getClusterRoleBindingName(cheCtx)},
+		&rbacv1.ClusterRoleBinding{}))
+	assert.NoError(t, cheCtx.ClusterAPI.Client.Get(
+		cheCtx.Context,
+		types.NamespacedName{Name: dashboard.getClusterRoleName(cheCtx)},
+		&rbacv1.ClusterRole{}))
 }
 
 func TestDashboardKubernetes(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
 
-	cheCtx := test.NewCtxBuilder().Build()
+	cheCtx := checontext.NewBuilder().Build()
 	dashboard := NewDashboardReconciler()
-	test.EnsureReconcile(t, cheCtx, dashboard.Reconcile)
+	test.AssertReconciled(t, cheCtx, dashboard.Reconcile)
 
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getComponentName(cheCtx), Namespace: "eclipse-che"}, &corev1.Service{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getComponentName(cheCtx), Namespace: "eclipse-che"}, &appsv1.Deployment{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: DashboardSA, Namespace: "eclipse-che"}, &corev1.ServiceAccount{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getComponentName(cheCtx), Namespace: "eclipse-che"}, &appsv1.Deployment{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getClusterRoleBindingName(cheCtx)}, &rbacv1.ClusterRoleBinding{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getClusterRoleName(cheCtx)}, &rbacv1.ClusterRole{}))
+	assert.NoError(t, cheCtx.ClusterAPI.Client.Get(
+		cheCtx.Context,
+		types.NamespacedName{Name: dashboard.getComponentName(cheCtx), Namespace: "eclipse-che"},
+		&corev1.Service{}))
+	assert.NoError(t, cheCtx.ClusterAPI.Client.Get(
+		cheCtx.Context,
+		types.NamespacedName{Name: dashboard.getComponentName(cheCtx), Namespace: "eclipse-che"},
+		&appsv1.Deployment{}))
+	assert.NoError(t, cheCtx.ClusterAPI.Client.Get(
+		cheCtx.Context,
+		types.NamespacedName{Name: DashboardSA, Namespace: "eclipse-che"},
+		&corev1.ServiceAccount{}))
+	assert.NoError(t, cheCtx.ClusterAPI.Client.Get(
+		cheCtx.Context,
+		types.NamespacedName{Name: dashboard.getComponentName(cheCtx), Namespace: "eclipse-che"},
+		&appsv1.Deployment{}))
+	assert.NoError(t, cheCtx.ClusterAPI.Client.Get(
+		cheCtx.Context,
+		types.NamespacedName{Name: dashboard.getClusterRoleBindingName(cheCtx)},
+		&rbacv1.ClusterRoleBinding{}))
+	assert.NoError(t, cheCtx.ClusterAPI.Client.Get(
+		cheCtx.Context,
+		types.NamespacedName{Name: dashboard.getClusterRoleName(cheCtx)},
+		&rbacv1.ClusterRole{}))
 }
 
 func TestDashboardClusterRBACFinalizerOnKubernetes(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
 
-	cheCtx := test.NewCtxBuilder().Build()
+	cheCtx := checontext.NewBuilder().Build()
 	dashboard := NewDashboardReconciler()
-	test.EnsureReconcile(t, cheCtx, dashboard.Reconcile)
+	test.AssertReconciled(t, cheCtx, dashboard.Reconcile)
 
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getClusterRoleBindingName(cheCtx)}, &rbacv1.ClusterRoleBinding{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getClusterRoleName(cheCtx)}, &rbacv1.ClusterRole{}))
+	assert.NoError(t, cheCtx.ClusterAPI.Client.Get(
+		cheCtx.Context,
+		types.NamespacedName{Name: dashboard.getClusterRoleBindingName(cheCtx)},
+		&rbacv1.ClusterRoleBinding{}))
+	assert.NoError(t, cheCtx.ClusterAPI.Client.Get(
+		cheCtx.Context,
+		types.NamespacedName{Name: dashboard.getClusterRoleName(cheCtx)},
+		&rbacv1.ClusterRole{}))
 
 	err := dashboard.Finalize(cheCtx)
 	assert.Nil(t, err)
 
-	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getClusterRoleBindingName(cheCtx)}, &rbacv1.ClusterRoleBinding{}))
-	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getClusterRoleName(cheCtx)}, &rbacv1.ClusterRole{}))
+	assert.Error(t, cheCtx.ClusterAPI.Client.Get(
+		cheCtx.Context,
+		types.NamespacedName{Name: dashboard.getClusterRoleBindingName(cheCtx)},
+		&rbacv1.ClusterRoleBinding{}))
+	assert.Error(t, cheCtx.ClusterAPI.Client.Get(
+		cheCtx.Context,
+		types.NamespacedName{Name: dashboard.getClusterRoleName(cheCtx)},
+		&rbacv1.ClusterRole{}))
 }

@@ -16,8 +16,10 @@ import (
 	"context"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	"github.com/stretchr/testify/assert"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -170,7 +172,9 @@ func TestIngressSpec(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := checontext.NewBuilder().WithCheCluster(testCase.cheCluster).Build()
 			_, actualIngress := GetIngressSpec(cheCtx,
 				"test",
 				"",
@@ -184,6 +188,8 @@ func TestIngressSpec(t *testing.T) {
 }
 
 func TestSyncIngressToCluster(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	cheCluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
@@ -196,7 +202,7 @@ func TestSyncIngressToCluster(t *testing.T) {
 		},
 	}
 
-	cheCtx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
+	cheCtx := checontext.NewBuilder().WithCheCluster(cheCluster).Build()
 	_, err := SyncIngressToCluster(cheCtx, "test", "", "service-1", 8080, "component")
 	assert.Nil(t, err)
 

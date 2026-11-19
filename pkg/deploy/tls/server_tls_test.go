@@ -17,16 +17,19 @@ import (
 	cryptotls "crypto/tls"
 	"testing"
 
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
-
-	"github.com/eclipse-che/che-operator/pkg/common/test"
 )
 
 func TestBuildServerTLSOptions_APIServerAbsent(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().Build()
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().Build()
 	log := ctrl.Log.WithName("test")
 
 	got, err := buildServerTLSOptions(context.Background(), cheCtx.ClusterAPI.Client, log)
@@ -44,6 +47,8 @@ func TestBuildServerTLSOptions_APIServerAbsent(t *testing.T) {
 }
 
 func TestBuildServerTLSOptions_StrictWithModernProfile(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	apiServer := &configv1.APIServer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "cluster",
@@ -56,7 +61,7 @@ func TestBuildServerTLSOptions_StrictWithModernProfile(t *testing.T) {
 		},
 	}
 
-	cheCtx := test.NewCtxBuilder().WithObjects(apiServer).Build()
+	cheCtx := checontext.NewBuilder().WithObjects(apiServer).Build()
 	log := ctrl.Log.WithName("test")
 
 	got, err := buildServerTLSOptions(context.Background(), cheCtx.ClusterAPI.Client, log)
@@ -87,7 +92,9 @@ func TestBuildServerTLSOptions_StrictWithOldProfile(t *testing.T) {
 		},
 	}
 
-	cheCtx := test.NewCtxBuilder().WithObjects(apiServer).Build()
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().WithObjects(apiServer).Build()
 	log := ctrl.Log.WithName("test")
 
 	got, err := buildServerTLSOptions(context.Background(), cheCtx.ClusterAPI.Client, log)
@@ -106,6 +113,8 @@ func TestBuildServerTLSOptions_StrictWithOldProfile(t *testing.T) {
 }
 
 func TestBuildServerTLSOptions_NoOpinionUsesDefaultProfile(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	apiServer := &configv1.APIServer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "cluster",
@@ -115,7 +124,7 @@ func TestBuildServerTLSOptions_NoOpinionUsesDefaultProfile(t *testing.T) {
 		},
 	}
 
-	cheCtx := test.NewCtxBuilder().WithObjects(apiServer).Build()
+	cheCtx := checontext.NewBuilder().WithObjects(apiServer).Build()
 	log := ctrl.Log.WithName("test")
 
 	got, err := buildServerTLSOptions(context.Background(), cheCtx.ClusterAPI.Client, log)

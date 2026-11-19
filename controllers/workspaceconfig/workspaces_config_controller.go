@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
+	"github.com/eclipse-che/che-operator/pkg/common/clusterapi"
 	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -55,10 +56,7 @@ const (
 )
 
 type WorkspacesConfigReconciler struct {
-	scheme                        *runtime.Scheme
-	client                        client.Client
-	clientWrapper                 clientwrapper.ClientWrapper
-	nonCachedClientWrapper        clientwrapper.ClientWrapper
+	clusterApi                    *clusterapi.ClusterAPI
 	namespaceCache                *namespacecache.NamespaceCache
 	labelsToRemoveBeforeSync      []*regexp.Regexp
 	annotationsToRemoveBeforeSync []*regexp.Regexp
@@ -95,12 +93,7 @@ var (
 	wsConfigComponentSelector = labels.SelectorFromSet(wsConfigComponentLabels)
 )
 
-func NewWorkspacesConfigReconciler(
-	cli client.Client,
-	nonCachedCli client.Client,
-	scheme *runtime.Scheme,
-	namespaceCache *namespacecache.NamespaceCache) *WorkspacesConfigReconciler {
-
+func NewWorkspacesConfigReconciler(namespaceCache *namespacecache.NamespaceCache) *WorkspacesConfigReconciler {
 	labelsToRemoveBeforeSyncAsString := os.Getenv(envLabelsToRemoveBeforeSync)
 	annotationsToRemoveBeforeSyncAsString := os.Getenv(envAnnotationsToRemoveBeforeSync)
 
@@ -121,10 +114,7 @@ func NewWorkspacesConfigReconciler(
 	}
 
 	return &WorkspacesConfigReconciler{
-		scheme:                        scheme,
-		client:                        cli,
-		clientWrapper:                 clientwrapper.New(cli, scheme),
-		nonCachedClientWrapper:        clientwrapper.New(nonCachedCli, scheme),
+		clusterApi:                    clusterapi.Get(),
 		namespaceCache:                namespaceCache,
 		labelsToRemoveBeforeSync:      labelsToRemoveBeforeSync,
 		annotationsToRemoveBeforeSync: annotationsToRemoveBeforeSync,
@@ -161,7 +151,7 @@ func (r *WorkspacesConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, nil
 	}
 
-	checluster, err := resources.CheCluster.Find(ctx, r.client)
+	checluster, err := resources.CheCluster.Find(ctx, r.clusterApi.Client)
 	if err != nil || checluster == nil {
 		return ctrl.Result{}, err
 	}
@@ -205,7 +195,7 @@ func (r *WorkspacesConfigReconciler) watchRules(cheNamespaceRule bool, userNames
 						// reconcile rule when workspace config is modified in a che namespace
 						// to update the config in all users` namespaces
 						Check: func(o metav1.Object) bool {
-							cheCluster, _ := resources.CheCluster.Find(context, r.client)
+							cheCluster, _ := resources.CheCluster.Find(context, r.clusterApi.Client)
 							return hasWSConfigComponentLabels(o) && cheCluster != nil && o.GetNamespace() == cheCluster.Namespace
 						},
 						Namespaces: func(o metav1.Object) []string { return r.namespaceCache.GetAllKnownNamespaces() },
@@ -252,14 +242,14 @@ func (r *WorkspacesConfigReconciler) syncNamespace(
 		// despite the result of the reconciliation
 		if syncConfig != nil {
 			if syncConfig.GetResourceVersion() == "" {
-				if err = r.clientWrapper.Create(
+				if err = r.clusterApi.ClientWrapper.Create(
 					ctx,
 					syncConfig,
 				); err != nil {
 					logger.Error(err, "Failed to workspace create sync config", "namespace", dstNamespace)
 				}
 			} else {
-				if err = r.clientWrapper.Sync(
+				if err = r.clusterApi.ClientWrapper.Sync(
 					ctx,
 					syncConfig,
 				); err != nil {
@@ -338,7 +328,7 @@ func (r *WorkspacesConfigReconciler) syncObjectsList(
 		LabelSelector: wsConfigComponentSelector,
 	}
 
-	srcObjs, err := r.clientWrapper.List(ctx, srcObjList, opts)
+	srcObjs, err := r.clusterApi.ClientWrapper.List(ctx, srcObjList, opts)
 	if err != nil {
 		return err
 	}
@@ -379,7 +369,7 @@ func (r *WorkspacesConfigReconciler) syncTemplates(
 		LabelSelector: wsConfigComponentSelector,
 	}
 
-	templates, err := r.clientWrapper.List(ctx, templateList, opts)
+	templates, err := r.clusterApi.ClientWrapper.List(ctx, templateList, opts)
 	if err != nil {
 		return nil
 	}
@@ -462,7 +452,7 @@ func (r *WorkspacesConfigReconciler) syncObjectIfDiffers(
 	syncContext *syncContext,
 	dstObj client.Object) error {
 
-	existedDstObj, err := r.scheme.New(syncContext.object2Sync.getGKV())
+	existedDstObj, err := r.clusterApi.Scheme.New(syncContext.object2Sync.getGKV())
 	if err != nil {
 		return err
 	}
@@ -471,7 +461,7 @@ func (r *WorkspacesConfigReconciler) syncObjectIfDiffers(
 		Namespace: dstObj.GetNamespace(),
 	}
 
-	exists, err := r.clientWrapper.GetIgnoreNotFound(syncContext.ctx, existedDstObjKey, existedDstObj.(client.Object))
+	exists, err := r.clusterApi.ClientWrapper.GetIgnoreNotFound(syncContext.ctx, existedDstObjKey, existedDstObj.(client.Object))
 	if exists {
 		srcObj := syncContext.object2Sync.getSrcObject()
 
@@ -484,7 +474,7 @@ func (r *WorkspacesConfigReconciler) syncObjectIfDiffers(
 		if srcHasBeenChanged || dstHasBeenChanged {
 			// destination object exists, and it differs from the source object,
 			// so it will be updated
-			if err := r.doUpdateObject(syncContext, dstObj, existedDstObj, r.clientWrapper); err != nil {
+			if err := r.doUpdateObject(syncContext, dstObj, existedDstObj, r.clusterApi.ClientWrapper); err != nil {
 				return err
 			}
 		}
@@ -545,7 +535,7 @@ func (r *WorkspacesConfigReconciler) doCreateObject(
 	syncContext *syncContext,
 	dstObj client.Object) error {
 
-	err := r.clientWrapper.Create(syncContext.ctx, dstObj)
+	err := r.clusterApi.ClientWrapper.Create(syncContext.ctx, dstObj)
 	if err != nil {
 		if !errors.IsAlreadyExists(err) {
 			return err
@@ -555,12 +545,12 @@ func (r *WorkspacesConfigReconciler) doCreateObject(
 		// `app.kubernetes.io/part-of=che.eclipse.org` label (is not cached)
 		// Use nonCachedClientWrapper for synchronization
 
-		blueprint, err := r.scheme.New(syncContext.object2Sync.getGKV())
+		blueprint, err := r.clusterApi.Scheme.New(syncContext.object2Sync.getGKV())
 		if err != nil {
 			return err
 		}
 
-		exists, err := r.nonCachedClientWrapper.GetIgnoreNotFound(
+		exists, err := r.clusterApi.NonCachingClientWrapper.GetIgnoreNotFound(
 			syncContext.ctx,
 			types.NamespacedName{
 				Name:      dstObj.GetName(),
@@ -570,12 +560,12 @@ func (r *WorkspacesConfigReconciler) doCreateObject(
 		)
 		if exists {
 			// Update using nonCachedClientWrapper
-			if err := r.doUpdateObject(syncContext, dstObj, blueprint, r.nonCachedClientWrapper); err != nil {
+			if err := r.doUpdateObject(syncContext, dstObj, blueprint, r.clusterApi.NonCachingClientWrapper); err != nil {
 				return err
 			}
 		} else if err == nil {
 			// Should not happen, but try to create
-			if err = r.clientWrapper.Create(syncContext.ctx, dstObj); err != nil {
+			if err = r.clusterApi.ClientWrapper.Create(syncContext.ctx, dstObj); err != nil {
 				return err
 			}
 		} else {
@@ -625,20 +615,20 @@ func (r *WorkspacesConfigReconciler) deleteIfObjectIsObsolete(
 			ctx,
 			namespacedName,
 			gkv,
-			r.clientWrapper,
+			r.clusterApi.ClientWrapper,
 		)
 		if err != nil {
 			return err
 		}
 
 		if !retain {
-			blueprint, err := r.scheme.New(gkv)
+			blueprint, err := r.clusterApi.Scheme.New(gkv)
 			if err != nil {
 				return err
 			}
 
 			// delete object from destination namespace
-			if err = r.clientWrapper.DeleteByKeyIgnoreNotFound(
+			if err = r.clusterApi.ClientWrapper.DeleteByKeyIgnoreNotFound(
 				ctx,
 				namespacedName,
 				blueprint.(client.Object)); err != nil {
@@ -670,7 +660,7 @@ func (r *WorkspacesConfigReconciler) getSyncConfig(ctx context.Context, namespac
 		Namespace: namespace,
 	}
 
-	exists, err := r.clientWrapper.GetIgnoreNotFound(ctx, syncCMKey, syncCM)
+	exists, err := r.clusterApi.ClientWrapper.GetIgnoreNotFound(ctx, syncCMKey, syncCM)
 	if exists {
 		if syncCM.Data == nil {
 			syncCM.Data = map[string]string{}
@@ -709,7 +699,7 @@ func (r *WorkspacesConfigReconciler) shouldRetain(
 	gkv schema.GroupVersionKind,
 	clientWrapper clientwrapper.ClientWrapper,
 ) (bool, error) {
-	blueprint, err := r.scheme.New(gkv)
+	blueprint, err := r.clusterApi.Scheme.New(gkv)
 	if err != nil {
 		return false, err
 	}

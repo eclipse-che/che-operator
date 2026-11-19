@@ -19,8 +19,8 @@ import (
 	"time"
 
 	dwInfra "github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/clusterapi"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
-	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
 	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	userv1 "github.com/openshift/api/user/v1"
@@ -30,6 +30,7 @@ import (
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
 	workspaceconfig "github.com/eclipse-che/che-operator/controllers/workspaceconfig"
 
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
@@ -47,9 +48,6 @@ import (
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/signal"
 
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	// to ensure that exec-entrypoint and run can make use of them.
-	"k8s.io/client-go/discovery"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"k8s.io/apimachinery/pkg/fields"
@@ -212,11 +210,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := k8shelper.Initialize(); err != nil {
-		setupLog.Error(err, "Failed to initialize Kubernetes helper")
-		os.Exit(1)
-	}
-
 	watchNamespace, err := getWatchNamespace()
 	if err != nil {
 		setupLog.Error(err, "unable to get WatchNamespace, "+
@@ -239,7 +232,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if !infrastructure.IsLeaderElectionEnabled() {
+	if !infrastructure.IsLeaderElectionEnabled(discoveryClient) {
 		setupLog.Info("Leader election disabled")
 		enableLeaderElection = false
 	}
@@ -291,8 +284,10 @@ func main() {
 		os.Exit(1)
 	}
 
+	clusterapi.Set(mgr.GetClient(), nonCachingClient, discoveryClient, scheme)
+
 	// Setup all Controllers
-	cheReconciler := checontroller.NewReconciler(mgr.GetClient(), nonCachingClient, discoveryClient, mgr.GetScheme(), watchNamespace)
+	cheReconciler := checontroller.NewReconciler(watchNamespace)
 	if err = cheReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to set up controller", "controller", "CheCluster")
 		os.Exit(1)
@@ -311,13 +306,13 @@ func main() {
 
 	namespacecache := namespacecache.NewNamespaceCache(nonCachingClient)
 
-	userNamespaceReconciler := usernamespace.NewCheUserNamespaceReconciler(mgr.GetClient(), nonCachingClient, mgr.GetScheme(), namespacecache)
+	userNamespaceReconciler := usernamespace.NewCheUserNamespaceReconciler(namespacecache)
 	if err = userNamespaceReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to set up controller", "controller", "CheUserReconciler")
 		os.Exit(1)
 	}
 
-	workspacesConfigReconciler := workspaceconfig.NewWorkspacesConfigReconciler(mgr.GetClient(), nonCachingClient, mgr.GetScheme(), namespacecache)
+	workspacesConfigReconciler := workspaceconfig.NewWorkspacesConfigReconciler(namespacecache)
 	if err = workspacesConfigReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to set up controller", "controller", "WorkspacesConfigReconciler")
 		os.Exit(1)

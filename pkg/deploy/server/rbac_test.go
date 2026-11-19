@@ -20,7 +20,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	"github.com/stretchr/testify/assert"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -53,7 +55,9 @@ func TestSyncPermissions(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.checluster).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := checontext.NewBuilder().WithCheCluster(testCase.checluster).Build()
 
 			reconciler := NewCheServerReconciler()
 
@@ -68,19 +72,34 @@ func TestSyncPermissions(t *testing.T) {
 			}
 
 			for _, name := range names {
-				assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: name}, &rbac.ClusterRole{}))
-				assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: name}, &rbac.ClusterRoleBinding{}))
+				assert.NoError(t, cheCtx.ClusterAPI.Client.Get(
+					cheCtx.Context,
+					types.NamespacedName{Name: name},
+					&rbac.ClusterRole{}))
+				assert.NoError(t, cheCtx.ClusterAPI.Client.Get(
+					cheCtx.Context,
+					types.NamespacedName{Name: name},
+					&rbac.ClusterRoleBinding{}))
 			}
-			assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "test-role"}, &rbac.ClusterRoleBinding{}))
+			assert.NoError(t, cheCtx.ClusterAPI.Client.Get(
+				cheCtx.Context,
+				types.NamespacedName{Name: "test-role"},
+				&rbac.ClusterRoleBinding{}))
 
 			err = reconciler.deletePermissions(cheCtx)
 			assert.NoError(t, err)
 
 			for _, name := range names {
-				assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: name}, &rbac.ClusterRole{}))
-				assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: name}, &rbac.ClusterRoleBinding{}))
+				assert.Error(t, cheCtx.ClusterAPI.Client.Get(cheCtx.Context, types.NamespacedName{Name: name}, &rbac.ClusterRole{}))
+				assert.Error(t, cheCtx.ClusterAPI.Client.Get(
+					cheCtx.Context,
+					types.NamespacedName{Name: name},
+					&rbac.ClusterRoleBinding{}))
 			}
-			assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "test-role"}, &rbac.ClusterRoleBinding{}))
+			assert.Error(t, cheCtx.ClusterAPI.Client.Get(
+				cheCtx.Context,
+				types.NamespacedName{Name: "test-role"},
+				&rbac.ClusterRoleBinding{}))
 		})
 	}
 }
@@ -101,14 +120,19 @@ func TestSyncPermissionsWhenCheClusterUpdated(t *testing.T) {
 		},
 	}
 
-	cheCtx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().WithCheCluster(cheCluster).Build()
 	reconciler := NewCheServerReconciler()
 
 	done, err := reconciler.syncPermissions(cheCtx)
 	assert.True(t, done)
 	assert.NoError(t, err)
 
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "test-role"}, &rbac.ClusterRoleBinding{}))
+	assert.NoError(t, cheCtx.ClusterAPI.Client.Get(
+		cheCtx.Context,
+		types.NamespacedName{Name: "test-role"},
+		&rbac.ClusterRoleBinding{}))
 	assert.Equal(t, cheCtx.CheCluster.Finalizers, []string{"test-role.crb.finalizers.che.eclipse.org"})
 
 	cheCtx.CheCluster.Spec.Components.CheServer.ClusterRoles = []string{}
@@ -119,6 +143,9 @@ func TestSyncPermissionsWhenCheClusterUpdated(t *testing.T) {
 	assert.True(t, done)
 	assert.NoError(t, err)
 
-	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "test-role"}, &rbac.ClusterRoleBinding{}))
+	assert.Error(t, cheCtx.ClusterAPI.Client.Get(
+		cheCtx.Context,
+		types.NamespacedName{Name: "test-role"},
+		&rbac.ClusterRoleBinding{}))
 	assert.Empty(t, cheCtx.CheCluster.Finalizers)
 }

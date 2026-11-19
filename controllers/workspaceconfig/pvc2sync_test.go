@@ -21,7 +21,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -29,7 +31,9 @@ import (
 )
 
 func TestSyncPVC(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithObjects(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().WithObjects(
 		&corev1.PersistentVolumeClaim{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "PersistentVolumeClaim",
@@ -53,9 +57,6 @@ func TestSyncPVC(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
 			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
@@ -136,7 +137,9 @@ func TestSyncPVC(t *testing.T) {
 }
 
 func TestSyncPVCShouldRetainIfAnnotationSetTrue(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithObjects(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().WithObjects(
 		&corev1.PersistentVolumeClaim{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "PersistentVolumeClaim",
@@ -156,9 +159,6 @@ func TestSyncPVCShouldRetainIfAnnotationSetTrue(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
 			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
@@ -198,7 +198,9 @@ func TestSyncPVCShouldRetainIfAnnotationSetTrue(t *testing.T) {
 }
 
 func TestSyncPVCShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithObjects(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := checontext.NewBuilder().WithObjects(
 		&corev1.PersistentVolumeClaim{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "PersistentVolumeClaim",
@@ -218,9 +220,6 @@ func TestSyncPVCShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
 			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{

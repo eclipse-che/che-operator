@@ -26,14 +26,15 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/clusterapi"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
-	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
@@ -486,9 +487,9 @@ func parseSecurityContext(cheClusterV1 *CheCluster) (*int64, *int64, error) {
 // Create a secret with a user's credentials
 // Username and password are stored in `user` and `password` fields correspondingly.
 func createCredentialsSecret(username string, password string, secretName string, namespace string) error {
-	k8sHelper := k8shelper.GetInstance()
+	key := client.ObjectKey{Namespace: namespace, Name: secretName}
 
-	_, err := k8sHelper.GetClientSet().CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+	err := clusterapi.Get().NonCachingClient.Get(context.TODO(), key, &corev1.Secret{})
 	if err == nil {
 		// Credentials secret already exists, we can't proceed
 		return fmt.Errorf("secret %s already exists", secretName)
@@ -508,7 +509,7 @@ func createCredentialsSecret(username string, password string, secretName string
 		},
 	}
 
-	if _, err := k8sHelper.GetClientSet().CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{}); err != nil {
+	if err := clusterapi.Get().NonCachingClient.Create(context.TODO(), secret); err != nil {
 		return err
 	}
 
@@ -525,16 +526,18 @@ func renameTrustStoreConfigMapToDefault(trustStoreConfigMapName string, namespac
 		return nil
 	}
 
-	k8sHelper := k8shelper.GetInstance()
+	key := client.ObjectKey{Namespace: namespace, Name: constants.DefaultCaBundleCertsCMName}
 
-	_, err := k8sHelper.GetClientSet().CoreV1().ConfigMaps(namespace).Get(context.TODO(), constants.DefaultCaBundleCertsCMName, metav1.GetOptions{})
+	err := clusterapi.Get().NonCachingClient.Get(context.TODO(), key, &corev1.ConfigMap{})
 	if err == nil {
 		// ConfigMap with a default name already exists, we can't proceed
 		return fmt.Errorf("TrustStore ConfigMap %s already exists", constants.DefaultCaBundleCertsCMName)
 	}
 
-	existedTrustStoreConfigMap, err := k8sHelper.GetClientSet().CoreV1().ConfigMaps(namespace).Get(context.TODO(), trustStoreConfigMapName, metav1.GetOptions{})
-	if err != nil {
+	existedTrustStoreConfigMap := &corev1.ConfigMap{}
+	key = client.ObjectKey{Namespace: namespace, Name: trustStoreConfigMapName}
+
+	if err := clusterapi.Get().NonCachingClient.Get(context.TODO(), key, existedTrustStoreConfigMap); err != nil {
 		if errors.IsNotFound(err) {
 			// ConfigMap not found, nothing to rename
 			return nil
@@ -562,12 +565,12 @@ func renameTrustStoreConfigMapToDefault(trustStoreConfigMapName string, namespac
 	}
 
 	// Create TrustStore ConfigMap with a default name
-	if _, err = k8sHelper.GetClientSet().CoreV1().ConfigMaps(namespace).Create(context.TODO(), newTrustStoreConfigMap, metav1.CreateOptions{}); err != nil {
+	if err := clusterapi.Get().NonCachingClient.Create(context.TODO(), newTrustStoreConfigMap); err != nil {
 		return err
 	}
 
 	// Delete legacy TrustStore ConfigMap
-	if err = k8sHelper.GetClientSet().CoreV1().ConfigMaps(namespace).Delete(context.TODO(), trustStoreConfigMapName, metav1.DeleteOptions{}); err != nil {
+	if err := clusterapi.Get().NonCachingClient.Delete(context.TODO(), existedTrustStoreConfigMap); err != nil {
 		return err
 	}
 

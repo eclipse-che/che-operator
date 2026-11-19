@@ -16,7 +16,7 @@ import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/cheproxy"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -25,10 +25,10 @@ import (
 )
 
 var _ = Describe("buildFromCheConfig", func() {
-	var cheCtx *test.CheContextBuild
+	var cheCtx *checontext.Builder
 
 	BeforeEach(func() {
-		cheCtx = test.NewCtxBuilder()
+		cheCtx = checontext.NewBuilder()
 	})
 
 	It("should return empty proxy when che config is nil", func() {

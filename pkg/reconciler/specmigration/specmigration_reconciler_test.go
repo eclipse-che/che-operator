@@ -19,6 +19,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -29,7 +30,7 @@ var _ = Describe("SpecMigrationReconciler", func() {
 	var cheCtx *chetypes.CheContext
 
 	BeforeEach(func() {
-		test.Initialize(infrastructure.Kubernetes)
+		test.StartOn(infrastructure.Kubernetes)
 	})
 
 	It("should append CHOWN to a user-configured capabilities list and mark the task done", func() {
@@ -55,7 +56,7 @@ var _ = Describe("SpecMigrationReconciler", func() {
 				},
 			},
 		}
-		cheCtx = test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
+		cheCtx = checontext.NewBuilder().WithCheCluster(cheCluster).Build()
 
 		reconciler := NewReconciler()
 		_, done, err := reconciler.Reconcile(cheCtx)
@@ -99,7 +100,7 @@ var _ = Describe("SpecMigrationReconciler", func() {
 				},
 			},
 		}
-		cheCtx = test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
+		cheCtx = checontext.NewBuilder().WithCheCluster(cheCluster).Build()
 
 		reconciler := NewReconciler()
 		_, done, err := reconciler.Reconcile(cheCtx)
@@ -140,7 +141,7 @@ var _ = Describe("SpecMigrationReconciler", func() {
 				},
 			},
 		}
-		cheCtx = test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
+		cheCtx = checontext.NewBuilder().WithCheCluster(cheCluster).Build()
 
 		reconciler := NewReconciler()
 		_, done, err := reconciler.Reconcile(cheCtx)

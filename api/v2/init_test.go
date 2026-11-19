@@ -13,9 +13,9 @@
 package v2
 
 import (
-	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
+	"github.com/eclipse-che/che-operator/pkg/common/test/fakeclusterapi"
 )
 
 func init() {
-	k8shelper.InitializeForTesting()
+	fakeclusterapi.Setup()
 }

@@ -15,7 +15,7 @@ package proxyconfig
 import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
-	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	configv1 "github.com/openshift/api/config/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -38,7 +38,7 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 		})
 
 		It("should set empty proxy when nothing is configured", func() {
-			cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+			cheCtx := checontext.NewBuilder().WithCheCluster(&chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
 					Namespace: "eclipse-che",
@@ -63,7 +63,7 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 		It("should use proxy from CheCluster CR and merge in-cluster service host into non proxy hosts", func() {
 			GinkgoT().Setenv("KUBERNETES_SERVICE_HOST", "10.10.10.10")
 
-			cheCtx := test.NewCtxBuilder().
+			cheCtx := checontext.NewBuilder().
 				WithCheCluster(&chev2.CheCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "eclipse-che",
@@ -101,7 +101,7 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 		})
 
 		It("should set empty proxy when nothing is configured", func() {
-			cheCtx := test.NewCtxBuilder().
+			cheCtx := checontext.NewBuilder().
 				WithObjects(&configv1.Proxy{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "cluster",
@@ -137,7 +137,7 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 		})
 
 		It("should always store trusted CA config map name even when proxy is not present", func() {
-			cheCtx := test.NewCtxBuilder().
+			cheCtx := checontext.NewBuilder().
 				WithObjects(&configv1.Proxy{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "cluster",
@@ -174,7 +174,7 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 		})
 
 		It("should use cluster wide proxy configuration", func() {
-			cheCtx := test.NewCtxBuilder().
+			cheCtx := checontext.NewBuilder().
 				WithObjects(&configv1.Proxy{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "cluster",
@@ -218,7 +218,7 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 		})
 
 		It("should use cluster wide HTTPS-only proxy and keep HTTP fields empty", func() {
-			cheCtx := test.NewCtxBuilder().
+			cheCtx := checontext.NewBuilder().
 				WithObjects(&configv1.Proxy{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "cluster",
@@ -266,7 +266,7 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 		})
 
 		It("should override cluster wide proxy with CheCluster CR proxy", func() {
-			cheCtx := test.NewCtxBuilder().
+			cheCtx := checontext.NewBuilder().
 				WithObjects(&configv1.Proxy{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "cluster",
@@ -315,7 +315,7 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 		})
 
 		It("should use cluster wide proxy when CR has non proxy hosts only", func() {
-			cheCtx := test.NewCtxBuilder().
+			cheCtx := checontext.NewBuilder().
 				WithObjects(&configv1.Proxy{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "cluster",
@@ -356,7 +356,7 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 		})
 
 		It("should merge non proxy hosts from CheCluster CR when cluster proxy is not configured", func() {
-			cheCtx := test.NewCtxBuilder().
+			cheCtx := checontext.NewBuilder().
 				WithObjects(&configv1.Proxy{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "cluster",

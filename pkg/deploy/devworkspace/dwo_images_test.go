@@ -17,7 +17,9 @@ import (
 	"time"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,6 +31,7 @@ func TestGetProjectCloneImage(t *testing.T) {
 		name                  string
 		projectCloneContainer *chev2.Container
 		initObjects           []client.Object
+		terminateAfterCreate  *corev1.Pod
 		expectedImage         string
 	}
 
@@ -41,8 +44,9 @@ func TestGetProjectCloneImage(t *testing.T) {
 		return pod
 	}
 
+	// The fake client strips DeletionTimestamp on create, so termination is
+	// simulated by deleting a pod with finalizers after the context is built.
 	terminatingPod := newDWOPod("dwo-a", "devworkspace-controller", "project-clone:new", now)
-	terminatingPod.DeletionTimestamp = &metav1.Time{Time: now}
 	terminatingPod.Finalizers = []string{"test"}
 
 	failedPod := newDWOPod("dwo-a", "devworkspace-controller", "project-clone:new", now)
@@ -86,7 +90,8 @@ func TestGetProjectCloneImage(t *testing.T) {
 				terminatingPod,
 				newDWOPod("dwo-b", "devworkspace-controller", "project-clone:old", now.Add(-time.Hour)),
 			},
-			expectedImage: "project-clone:old",
+			terminateAfterCreate: terminatingPod,
+			expectedImage:        "project-clone:old",
 		},
 		{
 			name: "Pod with another service account is skipped",
@@ -108,7 +113,13 @@ func TestGetProjectCloneImage(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := checontext.NewBuilder().WithObjects(testCase.initObjects...).Build()
+			if testCase.terminateAfterCreate != nil {
+				assert.NoError(t, cheCtx.ClusterAPI.Client.Delete(cheCtx.Context, testCase.terminateAfterCreate))
+			}
+
 			cheCtx.CheCluster.Spec.DevEnvironments.ProjectCloneContainer = testCase.projectCloneContainer
 
 			image, err := GetProjectCloneImage(cheCtx)

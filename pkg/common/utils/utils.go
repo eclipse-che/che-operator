@@ -24,7 +24,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -108,20 +107,6 @@ func GetImageNameAndTag(image string) (string, string) {
 		}
 	}
 	return imageName, imageTag
-}
-
-func ReadObjectInto(yamlFile string, obj interface{}) error {
-	data, err := os.ReadFile(yamlFile)
-	if err != nil {
-		return err
-	}
-
-	err = yaml.Unmarshal(data, obj)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func ComputeHash256(data []byte) string {

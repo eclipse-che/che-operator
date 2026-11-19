@@ -26,6 +26,7 @@ import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 	configv1 "github.com/openshift/api/config/v1"
 	projectv1 "github.com/openshift/api/project/v1"
@@ -41,8 +42,10 @@ import (
 
 func TestSkipsUnlabeledNamespaces(t *testing.T) {
 	test := func(t *testing.T, infraType infrastructure.Type, namespace metav1.Object) {
+		test.StartOn(infraType)
+
 		ctx := context.TODO()
-		_, cl, r := setup(infraType, namespace.(client.Object))
+		_, cl, r := setup(namespace.(client.Object))
 		setupCheCluster(t, ctx, cl, "che", "che")
 
 		if _, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}}); err != nil {
@@ -82,8 +85,6 @@ func TestSkipsUnlabeledNamespaces(t *testing.T) {
 }
 
 func TestCreatesDataInNamespace(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
-
 	expectedPodTolerations, err := json.Marshal([]corev1.Toleration{
 		{
 			Key:      "a",
@@ -99,9 +100,11 @@ func TestCreatesDataInNamespace(t *testing.T) {
 	assert.NoError(t, err)
 
 	test := func(t *testing.T, infraType infrastructure.Type, namespace client.Object, objs ...client.Object) {
+		test.StartOn(infraType)
+
 		ctx := context.TODO()
 		allObjs := append(objs, namespace)
-		_, cl, r := setup(infraType, allObjs...)
+		_, cl, r := setup(allObjs...)
 		setupCheCluster(t, ctx, cl, "eclipse-che", "che")
 
 		res, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}})
@@ -199,8 +202,6 @@ func TestCreatesDataInNamespace(t *testing.T) {
 }
 
 func TestOptionalFeaturesOmitEnvVars(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
-
 	testCases := []struct {
 		name               string
 		cliActivityTracker *chev2.CliActivityTrackerConfig
@@ -231,6 +232,8 @@ func TestOptionalFeaturesOmitEnvVars(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			test.StartOn(infrastructure.Kubernetes)
+
 			ctx := context.TODO()
 			namespace := &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
@@ -240,7 +243,7 @@ func TestOptionalFeaturesOmitEnvVars(t *testing.T) {
 					},
 				},
 			}
-			scheme, cl, r := setup(infrastructure.Kubernetes, namespace)
+			scheme, cl, r := setup(namespace)
 
 			cheNamespace := &corev1.Namespace{}
 			cheNamespace.SetName("eclipse-che")
@@ -285,7 +288,7 @@ func TestOptionalFeaturesOmitEnvVars(t *testing.T) {
 }
 
 func TestUpdateSccClusterRoleBinding(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+	test.StartOn(infrastructure.OpenShiftV4)
 
 	pr1 := &projectv1.Project{
 		ObjectMeta: metav1.ObjectMeta{
@@ -337,7 +340,7 @@ func TestUpdateSccClusterRoleBinding(t *testing.T) {
 	}
 
 	allObjs := []client.Object{ns1, pr1, cheCluster}
-	_, cl, usernamespaceReconciler := setup(infrastructure.OpenShiftV4, allObjs...)
+	_, cl, usernamespaceReconciler := setup(allObjs...)
 
 	_, err := usernamespaceReconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: ns1.GetName()}})
 	assert.Nil(t, err)
@@ -354,6 +357,8 @@ func TestUpdateSccClusterRoleBinding(t *testing.T) {
 }
 
 func TestWatchRulesForSecretsInSameNamespace(t *testing.T) {
+	test.StartOn(infrastructure.Kubernetes)
+
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "sec",
@@ -362,7 +367,7 @@ func TestWatchRulesForSecretsInSameNamespace(t *testing.T) {
 		},
 	}
 
-	_, _, r := setup(infrastructure.Kubernetes, &corev1.Namespace{
+	_, _, r := setup(&corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "ns",
 			Labels: map[string]string{
@@ -386,6 +391,8 @@ func TestWatchRulesForSecretsInSameNamespace(t *testing.T) {
 }
 
 func TestWatchRulesForConfigMapsInSameNamespace(t *testing.T) {
+	test.StartOn(infrastructure.Kubernetes)
+
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cm",
@@ -394,7 +401,7 @@ func TestWatchRulesForConfigMapsInSameNamespace(t *testing.T) {
 		},
 	}
 
-	_, _, r := setup(infrastructure.Kubernetes, &corev1.Namespace{
+	_, _, r := setup(&corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "ns",
 			Labels: map[string]string{
@@ -418,6 +425,8 @@ func TestWatchRulesForConfigMapsInSameNamespace(t *testing.T) {
 }
 
 func TestWatchRulesForSecretsInOtherNamespaces(t *testing.T) {
+	test.StartOn(infrastructure.Kubernetes)
+
 	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
@@ -429,19 +438,18 @@ func TestWatchRulesForSecretsInOtherNamespaces(t *testing.T) {
 		},
 	}
 
-	_, _, r := setup(infrastructure.Kubernetes,
-		&corev1.Namespace{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Namespace",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "ns1",
-				Labels: map[string]string{
-					constants.WorkspaceNamespaceOwnerUidLabelKey: "uid1",
-				},
+	_, _, r := setup(&corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Namespace",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "ns1",
+			Labels: map[string]string{
+				constants.WorkspaceNamespaceOwnerUidLabelKey: "uid1",
 			},
 		},
+	},
 		&corev1.Namespace{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Namespace",
@@ -495,6 +503,8 @@ func TestWatchRulesForSecretsInOtherNamespaces(t *testing.T) {
 }
 
 func TestWatchRulesForConfigMapsInOtherNamespaces(t *testing.T) {
+	test.StartOn(infrastructure.Kubernetes)
+
 	cm := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
@@ -506,19 +516,18 @@ func TestWatchRulesForConfigMapsInOtherNamespaces(t *testing.T) {
 		},
 	}
 
-	_, _, r := setup(infrastructure.Kubernetes,
-		&corev1.Namespace{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Namespace",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "ns1",
-				Labels: map[string]string{
-					constants.WorkspaceNamespaceOwnerUidLabelKey: "uid1",
-				},
+	_, _, r := setup(&corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Namespace",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "ns1",
+			Labels: map[string]string{
+				constants.WorkspaceNamespaceOwnerUidLabelKey: "uid1",
 			},
 		},
+	},
 		&corev1.Namespace{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Namespace",

@@ -18,9 +18,9 @@ import (
 	"testing"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	"github.com/eclipse-che/che-operator/pkg/common/test"
-
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	"github.com/stretchr/testify/assert"
 
 	projectv1 "github.com/openshift/api/project/v1"
@@ -31,10 +31,10 @@ import (
 
 func TestGetNamespaceInfoReadsFromCache(t *testing.T) {
 	test := func(infraType infrastructure.Type, namespace metav1.Object) {
-		infrastructure.InitializeForTesting(infraType)
-		ns := namespace.GetName()
+		test.StartOn(infraType)
 
-		cheCtx := test.NewCtxBuilder().WithObjects(namespace.(client.Object)).Build()
+		cheCtx := checontext.NewBuilder().WithObjects(namespace.(client.Object)).Build()
+		ns := namespace.GetName()
 		cl := cheCtx.ClusterAPI.Client
 
 		nsc := NamespaceCache{
@@ -63,10 +63,11 @@ func TestGetNamespaceInfoReadsFromCache(t *testing.T) {
 
 func TestExamineUpdatesCache(t *testing.T) {
 	test := func(infraType infrastructure.Type, namespace metav1.Object) {
+		test.StartOn(infraType)
+
+		cheCtx := checontext.NewBuilder().WithObjects(namespace.(client.Object)).Build()
 		nsName := namespace.GetName()
-		cheCtx := test.NewCtxBuilder().WithObjects(namespace.(client.Object)).Build()
 		cl := cheCtx.ClusterAPI.Client
-		infrastructure.InitializeForTesting(infraType)
 
 		nsc := NamespaceCache{
 			Client:          cl,

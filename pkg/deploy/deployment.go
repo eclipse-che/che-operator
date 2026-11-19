@@ -20,9 +20,8 @@ import (
 	"sort"
 	"strings"
 
-	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
+	"github.com/eclipse-che/che-operator/pkg/common/clusterapi"
 	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
 	"k8s.io/apimachinery/pkg/labels"
@@ -248,9 +247,10 @@ func OverrideContainer(
 	// 2. CPU limits is not overridden
 	// See details at https://github.com/eclipse/che/issues/22198
 	if overrideSettings == nil || overrideSettings.Resources == nil || overrideSettings.Resources.Limits == nil || overrideSettings.Resources.Limits.Cpu == nil {
-		// use NonCachedClient to avoid cache LimitRange objects
-		if limitRanges, err := k8shelper.GetInstance().GetClientSet().CoreV1().LimitRanges(namespace).List(context.TODO(), metav1.ListOptions{}); err != nil {
-			return err
+		// use NonCachingClient to avoid cache LimitRange objects
+		limitRanges := &corev1.LimitRangeList{}
+		if err := clusterapi.Get().NonCachingClient.List(context.TODO(), limitRanges, client.InNamespace(namespace)); err != nil {
+			return fmt.Errorf("failed to list LimitRanges in namespace %s: %w", namespace, err)
 		} else if len(limitRanges.Items) == 0 { // no LimitRange in the namespace
 			delete(container.Resources.Limits, corev1.ResourceCPU)
 		}

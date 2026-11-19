@@ -21,6 +21,8 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
+	"github.com/eclipse-che/che-operator/pkg/common/test/envtest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	consolev1 "github.com/openshift/api/console/v1"
@@ -35,17 +37,17 @@ var _ = Describe("ConsoleLinkReconciler", func() {
 	)
 
 	BeforeEach(func() {
-		test.Initialize(infrastructure.OpenShiftV4)
 		reconciler = NewReconciler()
 	})
 
 	Context("Reconcile", func() {
 		BeforeEach(func() {
-			cheCtx = test.NewCtxBuilder().Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+			cheCtx = checontext.NewBuilder().Build()
 		})
 
 		It("should create the ConsoleLink", func() {
-			test.Reconcile(cheCtx, reconciler.Reconcile)
+			envtest.ExpectReconciled(cheCtx, reconciler.Reconcile)
 
 			consoleLink := &consolev1.ConsoleLink{}
 			key := types.NamespacedName{Name: defaults.GetConsoleLinkName()}
@@ -57,7 +59,8 @@ var _ = Describe("ConsoleLinkReconciler", func() {
 
 	Context("when the ConsoleLink exists without labels", func() {
 		BeforeEach(func() {
-			cheCtx = test.NewCtxBuilder().Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+			cheCtx = checontext.NewBuilder().Build()
 
 			consoleLink := &consolev1.ConsoleLink{
 				TypeMeta: metav1.TypeMeta{
@@ -83,7 +86,7 @@ var _ = Describe("ConsoleLinkReconciler", func() {
 		})
 
 		It("should add the standard labels on sync", func() {
-			test.Reconcile(cheCtx, reconciler.Reconcile)
+			envtest.ExpectReconciled(cheCtx, reconciler.Reconcile)
 
 			consoleLink := &consolev1.ConsoleLink{}
 			key := types.NamespacedName{Name: defaults.GetConsoleLinkName()}
@@ -94,6 +97,8 @@ var _ = Describe("ConsoleLinkReconciler", func() {
 
 	Context("when the Che URL changes", func() {
 		BeforeEach(func() {
+			test.StartOn(infrastructure.OpenShiftV4)
+
 			cheCluster := &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -124,11 +129,11 @@ var _ = Describe("ConsoleLinkReconciler", func() {
 				},
 			}
 
-			cheCtx = test.NewCtxBuilder().WithCheCluster(cheCluster).WithObjects(consoleLink).Build()
+			cheCtx = checontext.NewBuilder().WithCheCluster(cheCluster).WithObjects(consoleLink).Build()
 		})
 
 		It("should update the ConsoleLink href and image URL", func() {
-			test.Reconcile(cheCtx, reconciler.Reconcile)
+			envtest.ExpectReconciled(cheCtx, reconciler.Reconcile)
 
 			consoleLink := &consolev1.ConsoleLink{}
 			key := types.NamespacedName{Name: defaults.GetConsoleLinkName()}

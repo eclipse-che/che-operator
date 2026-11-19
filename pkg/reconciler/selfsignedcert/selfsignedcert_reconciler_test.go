@@ -19,6 +19,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -33,7 +34,7 @@ var _ = Describe("SelfSignedCertificateReconciler", func() {
 	var reconciler *SelfSignedCertificateReconciler
 
 	BeforeEach(func() {
-		test.Initialize(infrastructure.Kubernetes)
+		test.StartOn(infrastructure.Kubernetes)
 		reconciler = NewReconciler()
 	})
 
@@ -45,7 +46,7 @@ var _ = Describe("SelfSignedCertificateReconciler", func() {
 			},
 			Data: map[string][]byte{"tls.crt": []byte("crt")},
 		}
-		cheCtx := test.NewCtxBuilder().
+		cheCtx := checontext.NewBuilder().
 			WithCheCluster(
 				&chev2.CheCluster{
 					ObjectMeta: metav1.ObjectMeta{
@@ -72,7 +73,7 @@ var _ = Describe("SelfSignedCertificateReconciler", func() {
 	})
 
 	It("creates TLS creation job when custom TLS secret is missing", func() {
-		cheCtx := test.NewCtxBuilder().
+		cheCtx := checontext.NewBuilder().
 			WithCheCluster(
 				&chev2.CheCluster{
 					ObjectMeta: metav1.ObjectMeta{
@@ -106,7 +107,7 @@ var _ = Describe("SelfSignedCertificateReconciler", func() {
 			},
 			Data: map[string][]byte{"ca.crt": []byte("existing-ca")},
 		}
-		cheCtx := test.NewCtxBuilder().
+		cheCtx := checontext.NewBuilder().
 			WithCheCluster(
 				&chev2.CheCluster{
 					ObjectMeta: metav1.ObjectMeta{

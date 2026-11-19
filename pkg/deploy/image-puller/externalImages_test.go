@@ -19,8 +19,10 @@ import (
 	"strings"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"testing"
@@ -40,6 +42,7 @@ func TestGetExternalImages(t *testing.T) {
 		expectedImages   []string
 	}
 
+	test.InitializeDefaults(infrastructure.OpenShiftV4)
 	gatewayImage := defaults.GetGatewayImage(&chev2.CheCluster{})
 
 	testCases := []testCase{
@@ -74,7 +77,9 @@ func TestGetExternalImages(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().WithObjects(tc.initObjects...).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := checontext.NewBuilder().WithObjects(tc.initObjects...).Build()
 			cheCtx.CheCluster.Spec.DevEnvironments.GatewayContainer = tc.gatewayContainer
 
 			editorsEndpointUrl := getDashboardEditorsInternalAPIUrl(cheCtx)

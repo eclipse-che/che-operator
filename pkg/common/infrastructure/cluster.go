@@ -18,11 +18,11 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/eclipse-che/che-operator/pkg/common/clusterapi"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 type Type int
@@ -37,7 +37,6 @@ var (
 	infrastructure = Unknown
 
 	isOpenShiftOAuthEnabled bool
-	isLeaderElectionEnabled bool
 	isServiceMonitorEnabled bool
 	isConsoleLinkEnabled    bool
 
@@ -91,13 +90,17 @@ func IsOpenShiftExternalAuth() bool {
 	return IsOpenShift() && !IsOpenShiftOAuthEnabled()
 }
 
-func IsLeaderElectionEnabled() bool {
-	initializeIfNeeded()
-	return isLeaderElectionEnabled
+func IsLeaderElectionEnabled(discoveryClient discovery.DiscoveryInterface) bool {
+	_, apiResources, err := discoveryClient.ServerGroupsAndResources()
+	if err != nil {
+		logger.Error(err, "Failed to get API resources list")
+		return false
+	}
+	return hasAPIResource(apiResources, leaseCoordination)
 }
 
-func IsKubernetesImagePullerEnabled(discovery discovery.DiscoveryInterface) bool {
-	_, apiResources, err := discovery.ServerGroupsAndResources()
+func IsKubernetesImagePullerEnabled() bool {
+	_, apiResources, err := clusterapi.Get().DiscoveryClient.ServerGroupsAndResources()
 	if err != nil {
 		logger.Error(err, "Failed to get API resources list")
 		return false
@@ -106,8 +109,8 @@ func IsKubernetesImagePullerEnabled(discovery discovery.DiscoveryInterface) bool
 	return hasAPIResource(apiResources, kubernetesImagePuller)
 }
 
-func IsAgentSandboxEnabled(discovery discovery.DiscoveryInterface) bool {
-	_, apiResources, err := discovery.ServerGroupsAndResources()
+func IsAgentSandboxEnabled() bool {
+	_, apiResources, err := clusterapi.Get().DiscoveryClient.ServerGroupsAndResources()
 	if err != nil {
 		logger.Error(err, "Failed to get API resources list")
 		return false
@@ -139,7 +142,6 @@ func InitializeForTesting(desiredInfrastructure Type) {
 		operatorNamespace = "eclipse-che"
 	}
 
-	isLeaderElectionEnabled = true
 	isServiceMonitorEnabled = true
 	isOpenShiftOAuthEnabled = IsOpenShift()
 	isConsoleLinkEnabled = IsOpenShift()
@@ -150,17 +152,7 @@ func initializeIfNeeded() {
 		return
 	}
 
-	kubeCfg, err := config.GetConfig()
-	if err != nil {
-		panic("Failed to get kubeconfig")
-	}
-
-	discoveryClient, err := discovery.NewDiscoveryClientForConfig(kubeCfg)
-	if err != nil {
-		panic("Failed to create discovery client")
-	}
-
-	apiGroups, apiResources, err := discoveryClient.ServerGroupsAndResources()
+	apiGroups, apiResources, err := clusterapi.Get().DiscoveryClient.ServerGroupsAndResources()
 	if err != nil {
 		panic("Failed to get API Groups and Resources")
 	}
@@ -173,7 +165,6 @@ func initializeIfNeeded() {
 		isOpenShiftOAuthEnabled = false
 	}
 
-	isLeaderElectionEnabled = hasAPIResource(apiResources, leaseCoordination)
 	isServiceMonitorEnabled = hasAPIResource(apiResources, serviceMonitor)
 	isConsoleLinkEnabled = hasAPIResource(apiResources, consoleLink)
 }

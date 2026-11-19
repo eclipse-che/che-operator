@@ -20,6 +20,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/test/checontext"
 	"github.com/eclipse-che/che-operator/pkg/common/test/envtest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -51,20 +52,22 @@ var _ = Describe("LabelBackfillReconciler", func() {
 	)
 
 	BeforeEach(func() {
-		test.Initialize(infrastructure.Kubernetes)
 		reconciler = NewReconciler()
 	})
 
-	AfterEach(func() {
-		Expect(env.Client.DeleteAllOf(env.Context, &corev1.Secret{}, client.InNamespace(cheCtx.CheCluster.Namespace))).To(Succeed())
-		Expect(env.Client.DeleteAllOf(env.Context, &corev1.ConfigMap{}, client.InNamespace(cheCtx.CheCluster.Namespace))).To(Succeed())
-		Expect(env.Client.DeleteAllOf(env.Context, &chev2.CheCluster{}, client.InNamespace(cheCtx.CheCluster.Namespace))).To(Succeed())
-	})
-
 	Context("Reconcile", func() {
+		AfterEach(func() {
+			Expect(env.Client.DeleteAllOf(env.Context, &corev1.Secret{}, client.InNamespace(cheCtx.CheCluster.Namespace))).To(Succeed())
+			Expect(env.Client.DeleteAllOf(env.Context, &corev1.ConfigMap{}, client.InNamespace(cheCtx.CheCluster.Namespace))).To(Succeed())
+			Expect(env.Client.DeleteAllOf(env.Context, &chev2.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "eclipse-che"}}, client.InNamespace(cheCtx.CheCluster.Namespace))).To(Succeed())
+		})
+
 		Context("when known objects exist without the part-of label", func() {
 			BeforeEach(func() {
-				cheCtx = env.NewCheCtxBuilder().
+				test.InitializeDefaults(infrastructure.Kubernetes)
+
+				cheCtx = checontext.NewBuilder().
 					WithCheCluster(&chev2.CheCluster{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "eclipse-che",
@@ -156,7 +159,9 @@ var _ = Describe("LabelBackfillReconciler", func() {
 
 		Context("when a known object has other labels", func() {
 			BeforeEach(func() {
-				cheCtx = env.NewCheCtxBuilder().
+				test.InitializeDefaults(infrastructure.Kubernetes)
+
+				cheCtx = checontext.NewBuilder().
 					WithCheCluster(
 						&chev2.CheCluster{
 							ObjectMeta: metav1.ObjectMeta{
