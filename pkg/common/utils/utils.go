@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/yaml"
@@ -141,19 +142,26 @@ func GetPullPolicyFromDockerImage(dockerImage string) string {
 	return "IfNotPresent"
 }
 
+// InNamespaceEventFilter passes events for objects in the given namespace and for
+// cluster-scoped objects (empty namespace). Watch mappers decide whether a
+// cluster-scoped object is relevant.
 func InNamespaceEventFilter(namespace string) predicate.Predicate {
+	inScope := func(obj client.Object) bool {
+		return obj.GetNamespace() == "" || obj.GetNamespace() == namespace
+	}
+
 	return predicate.Funcs{
 		CreateFunc: func(ce event.CreateEvent) bool {
-			return namespace == ce.Object.GetNamespace()
+			return inScope(ce.Object)
 		},
 		DeleteFunc: func(de event.DeleteEvent) bool {
-			return namespace == de.Object.GetNamespace()
+			return inScope(de.Object)
 		},
 		UpdateFunc: func(ue event.UpdateEvent) bool {
-			return namespace == ue.ObjectOld.GetNamespace()
+			return inScope(ue.ObjectOld)
 		},
 		GenericFunc: func(ge event.GenericEvent) bool {
-			return namespace == ge.Object.GetNamespace()
+			return inScope(ge.Object)
 		},
 	}
 }

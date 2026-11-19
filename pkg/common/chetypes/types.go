@@ -16,6 +16,7 @@ import (
 	"context"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/cheproxy"
 	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
@@ -25,7 +26,7 @@ import (
 type CheContext struct {
 	CheCluster     *chev2.CheCluster
 	ClusterAPI     ClusterAPI
-	Proxy          *Proxy
+	Proxy          *cheproxy.Proxy
 	Authentication *Authentication
 	CheHost        string
 	DWONamespace   string
@@ -52,21 +53,4 @@ type Authentication struct {
 
 	ClientId     string
 	ClientSecret []byte
-}
-
-type Proxy struct {
-	HttpProxy    string
-	HttpUser     string
-	HttpPassword string
-	HttpHost     string
-	HttpPort     string
-
-	HttpsProxy    string
-	HttpsUser     string
-	HttpsPassword string
-	HttpsHost     string
-	HttpsPort     string
-
-	NoProxy          string
-	TrustedCAMapName string
 }

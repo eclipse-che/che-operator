@@ -255,6 +255,14 @@ func getOauthProxyContainerSpec(cheCtx *chetypes.CheContext) corev1.Container {
 		args = append(args, "--ping-path=/ping", "--exclude-logging-path=/ping")
 	}
 
+	env := []corev1.EnvVar{
+		{
+			Name:  "CM_REVISION",
+			Value: configMapRevision,
+		},
+	}
+	env = append(env, cheCtx.Proxy.AsEnvVars()...)
+
 	return corev1.Container{
 		Name:            "oauth-proxy",
 		Image:           image,
@@ -279,24 +287,7 @@ func getOauthProxyContainerSpec(cheCtx *chetypes.CheContext) corev1.Container {
 		Ports: []corev1.ContainerPort{
 			{ContainerPort: GatewayServicePort, Protocol: "TCP"},
 		},
-		Env: []corev1.EnvVar{
-			{
-				Name:  "http_proxy",
-				Value: cheCtx.Proxy.HttpProxy,
-			},
-			{
-				Name:  "https_proxy",
-				Value: cheCtx.Proxy.HttpsProxy,
-			},
-			{
-				Name:  "no_proxy",
-				Value: cheCtx.Proxy.NoProxy,
-			},
-			{
-				Name:  "CM_REVISION",
-				Value: configMapRevision,
-			},
-		},
+		Env: env,
 		ReadinessProbe: &corev1.Probe{
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
