@@ -103,6 +103,8 @@ func (c *WorkspacesOAuthClientReconciler) syncOAuthClient(cheCtx *chetypes.CheCo
 }
 
 func (c *WorkspacesOAuthClientReconciler) deleteAll(cheCtx *chetypes.CheContext) error {
+	// TODO not deleted?
+	// TODO create chectl issue
 	return resources.OAuthClient.Delete(cheCtx, GetOAuthClientName())
 }
 

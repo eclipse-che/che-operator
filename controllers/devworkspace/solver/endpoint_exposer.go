@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -53,9 +53,12 @@ type EndpointInfo struct {
 	componentName string
 	endpointName  string
 	port          int32
-	scheme        string
-	service       *corev1.Service
-	annotations   map[string]string
+	// routeTargetPort is the service port the Route sends traffic to.
+	// It differs from port when the endpoint is protected by the oauth-proxy sidecar.
+	routeTargetPort int32
+	scheme          string
+	service         *corev1.Service
+	annotations     map[string]string
 }
 
 // This method is used compose the object names (both Kubernetes objects and "objects" within Traefik configuration)
@@ -164,6 +167,10 @@ func (e *RouteExposer) getRouteForService(
 	}
 
 	targetEndpoint := intstr.FromInt32(endpoint.port)
+	if endpoint.routeTargetPort != 0 {
+		targetEndpoint = intstr.FromInt32(endpoint.routeTargetPort)
+	}
+
 	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            getEndpointExposingObjectName(endpoint.componentName, e.devWorkspaceID, endpoint.port, endpoint.endpointName),

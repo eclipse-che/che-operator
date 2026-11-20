@@ -17,8 +17,10 @@ package solver
 import (
 	"context"
 	"fmt"
+	"maps"
 	"slices"
 
+	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers"
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
@@ -41,14 +43,15 @@ const (
 	oauthProxyCallbackPath = "/oauth/callback"
 )
 
-// oauthProxyScriptTemplate is the oauth-proxy startup script. Arguments: listen port, OAuth client ID.
+// oauthProxyScriptTemplate is the oauth-proxy startup script.
+// Arguments: listen port, upstream port, OAuth client ID.
 const oauthProxyScriptTemplate = `COOKIE_SECRET=$(openssl rand -base64 32) && \
 OPENSHIFT_SAR="{\"namespace\":\"${DEVWORKSPACE_NAMESPACE}\",\"resource\":\"pods\",\"verb\":\"get\"}" && \
 /usr/bin/oauth-proxy \
   --http-address=:%d \
   --provider=openshift \
   --https-address= \
-  --upstream=http://localhost:8444 \
+  --upstream=http://localhost:%d \
   --cookie-secret=${COOKIE_SECRET} \
   --cookie-secure=true \
   --pass-basic-auth=false \
@@ -73,8 +76,19 @@ func (c *CheRoutingSolver) provisionOAuthProxyPodAdditions(
 	// TODO args
 	// TODO ports
 	// TODO volumes
+	upstreamPort, found := getOAuthProxyUpstreamPort(routing)
+	if !found {
+		// Secure endpoints are served through the Che gateway, which already authenticates the requests.
+		return nil
+	}
+
 	image := "image-registry.openshift-image-registry.svc:5000/openshift/oauth-proxy:v4.4"
-	script := fmt.Sprintf(oauthProxyScriptTemplate, oauthProxyPort, devworkspaceoauthclient.GetOAuthClientName())
+	script := fmt.Sprintf(
+		oauthProxyScriptTemplate,
+		oauthProxyPort,
+		upstreamPort,
+		devworkspaceoauthclient.GetOAuthClientName(),
+	)
 
 	oauthContainer := corev1.Container{
 		Name:            "oauth-proxy",
@@ -266,6 +280,28 @@ func getOAuthRedirectURIs(routing *dwo.DevWorkspaceRouting, routes []routev1.Rou
 	}
 
 	return uris
+}
+
+// isOAuthProxyEndpoint returns true if the endpoint is exposed with a dedicated Route and must be
+// authenticated by the oauth-proxy sidecar. Endpoints supporting URL rewrite are served through the Che gateway instead.
+func isOAuthProxyEndpoint(e dwo.Endpoint) bool {
+	return e.Secure &&
+		dw.EndpointExposure(e.Exposure) == dw.PublicEndpointExposure &&
+		e.Attributes.GetString(urlRewriteSupportedEndpointAttributeName, nil) != "true"
+}
+
+// getOAuthProxyUpstreamPort returns the target port of the endpoint the oauth-proxy forwards authenticated requests to.
+// Components are iterated in a sorted order to get a stable result.
+func getOAuthProxyUpstreamPort(routing *dwo.DevWorkspaceRouting) (int, bool) {
+	for _, componentName := range slices.Sorted(maps.Keys(routing.Spec.Endpoints)) {
+		for _, e := range routing.Spec.Endpoints[componentName] {
+			if isOAuthProxyEndpoint(e) {
+				return e.TargetPort, true
+			}
+		}
+	}
+
+	return 0, false
 }
 
 // hasSecureEndpoint returns true if at least one endpoint of the workspace is marked as secure.

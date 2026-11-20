@@ -104,11 +104,24 @@ func assertSecurePodAdditions(t *testing.T, objs solvers.RoutingObjects) {
 	if assert.Len(t, objs.PodAdditions.Containers, 2) {
 		assert.Equal(t, wsGatewayName, objs.PodAdditions.Containers[0].Name)
 		assert.Equal(t, "oauth-proxy", objs.PodAdditions.Containers[1].Name)
+		// the secure endpoint of the test routings listens on 9999
+		assert.Contains(t, objs.PodAdditions.Containers[1].Args[0], "--upstream=http://localhost:9999")
 	}
 
 	if assert.Len(t, objs.PodAdditions.Volumes, 2) {
 		assert.Equal(t, wsGatewayName, objs.PodAdditions.Volumes[0].Name)
 		assert.Equal(t, "oauth-client-token", objs.PodAdditions.Volumes[1].Name)
+	}
+}
+
+// assertGatewayOnlyPodAdditions checks that only the gateway is added to the workspace pod.
+func assertGatewayOnlyPodAdditions(t *testing.T, objs solvers.RoutingObjects) {
+	if assert.Len(t, objs.PodAdditions.Containers, 1) {
+		assert.Equal(t, wsGatewayName, objs.PodAdditions.Containers[0].Name)
+	}
+
+	if assert.Len(t, objs.PodAdditions.Volumes, 1) {
+		assert.Equal(t, wsGatewayName, objs.PodAdditions.Volumes[0].Name)
 	}
 }
 
@@ -358,8 +371,8 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 	})
 
 	t.Run("testPodAdditions", func(t *testing.T) {
-		// e2 endpoint is secure, so the oauth-proxy is added next to the gateway
-		assertSecurePodAdditions(t, objs)
+		// e2 endpoint is secure, but it is served through the gateway, so the oauth-proxy is not needed
+		assertGatewayOnlyPodAdditions(t, objs)
 
 		if objs.PodAdditions.Containers[0].Resources.Requests.Memory() == nil {
 			t.Error("expected addition pod Container Memory request to be set")
@@ -642,8 +655,8 @@ func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 	assert.Empty(t, objs.Routes)
 
 	t.Run("testPodAdditions", func(t *testing.T) {
-		// e2 endpoint is secure, so the oauth-proxy is added next to the gateway
-		assertSecurePodAdditions(t, objs)
+		// e2 endpoint is secure, but it is served through the gateway, so the oauth-proxy is not needed
+		assertGatewayOnlyPodAdditions(t, objs)
 	})
 
 	t.Run("traefikConfig", func(t *testing.T) {
@@ -1897,7 +1910,11 @@ func TestUsesEndpointServiceWithDiscoverableAttributeSetRoutes(t *testing.T) {
 
 				actualServiceName := route.Spec.To.Name
 				expectedServiceName := dwCommon.ServiceName("wsid")
-				if endpoint.Attributes.GetBoolean(string(dwo.DiscoverableAttribute), nil) {
+				expectedTargetPort := endpoint.TargetPort
+				if endpoint.Secure {
+					// Secure routes point to the oauth-proxy port, exposed on the common service only
+					expectedTargetPort = oauthProxyPort
+				} else if endpoint.Attributes.GetBoolean(string(dwo.DiscoverableAttribute), nil) {
 					// Discoverable routes use the endpoint-specific service instead of the common service
 					expectedServiceName = dwCommon.EndpointName(endpoint.Name)
 				}
@@ -1905,6 +1922,8 @@ func TestUsesEndpointServiceWithDiscoverableAttributeSetRoutes(t *testing.T) {
 				if actualServiceName != expectedServiceName {
 					t.Errorf("Expected service to be '%s' but got '%s'", expectedServiceName, actualServiceName)
 				}
+
+				assert.Equal(t, expectedTargetPort, route.Spec.Port.TargetPort.IntValue())
 			}
 		}
 	}
