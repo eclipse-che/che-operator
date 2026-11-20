@@ -150,7 +150,6 @@ func buildSecret(cheCtx *chetypes.CheContext, clientSecret string) *corev1.Secre
 		Data: map[string][]byte{
 			ClientSecretFile: []byte(clientSecret),
 		},
-		Immutable: new(true),
 	}
 }
 
