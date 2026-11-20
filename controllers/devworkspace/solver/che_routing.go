@@ -73,6 +73,16 @@ func (c *CheRoutingSolver) cheSpecObjects(cheCluster *chev2.CheCluster, routing 
 		return solvers.RoutingObjects{}, err
 	}
 
+	if c.hasSecureEndpoint(routing) {
+		if err := c.provisionOAuthProxyPodAdditions(&objs, cheCluster, routing); err != nil {
+			return solvers.RoutingObjects{}, err
+		}
+
+		if err := c.addOAuthRedirectURIs(&objs, routing); err != nil {
+			return solvers.RoutingObjects{}, err
+		}
+	}
+
 	return objs, nil
 }
 
@@ -97,6 +107,12 @@ func (c *CheRoutingSolver) provisionServices(objs *solvers.RoutingObjects, cheCl
 					Protocol:   corev1.ProtocolTCP,
 					Port:       int32(wsGatewayPort),
 					TargetPort: intstr.FromInt(wsGatewayPort),
+				},
+				{
+					Name:       "oauth-proxy",
+					Protocol:   corev1.ProtocolTCP,
+					Port:       oauthProxyPort,
+					TargetPort: intstr.FromInt(oauthProxyPort),
 				},
 			},
 		},
@@ -481,14 +497,23 @@ func exposeAllEndpoints(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceR
 				if err != nil {
 					return nil, err
 				}
+
+				routeTargetPort := int32(e.TargetPort)
+				if infrastructure.IsOpenShift() && isOAuthProxyEndpoint(e) {
+					// Route the traffic through the oauth-proxy sidecar, exposed on the common service only.
+					service = commonService
+					routeTargetPort = oauthProxyPort
+				}
+
 				err = ingressExpose(&EndpointInfo{
-					order:         order,
-					componentName: componentName,
-					endpointName:  e.Name,
-					port:          int32(e.TargetPort),
-					scheme:        determineEndpointScheme(e),
-					service:       service,
-					annotations:   e.Annotations,
+					order:           order,
+					componentName:   componentName,
+					endpointName:    e.Name,
+					port:            int32(e.TargetPort),
+					routeTargetPort: routeTargetPort,
+					scheme:          determineEndpointScheme(e),
+					service:         service,
+					annotations:     e.Annotations,
 				})
 				if err != nil {
 					return nil, err
@@ -742,12 +767,18 @@ func findIngressForEndpoint(componentName string, endpoint dwo.Endpoint, objs *s
 }
 
 func findRouteForEndpoint(componentName string, endpoint dwo.Endpoint, objs *solvers.RoutingObjects, dwId string) *routeV1.Route {
+	targetPort := endpoint.TargetPort
 	service := findServiceForPort(int32(endpoint.TargetPort), objs)
-	if service == nil {
+	if service == nil || isOAuthProxyEndpoint(endpoint) {
 		service = getCommonService(objs, dwId)
 	}
+
 	if service == nil {
 		return nil
+	}
+
+	if isOAuthProxyEndpoint(endpoint) {
+		targetPort = oauthProxyPort
 	}
 
 	for r := range objs.Routes {
@@ -756,7 +787,7 @@ func findRouteForEndpoint(componentName string, endpoint dwo.Endpoint, objs *sol
 			route.Annotations[dwdefaults.ConfigAnnotationEndpointName] == endpoint.Name &&
 			route.Spec.To.Kind == "Service" &&
 			route.Spec.To.Name == service.Name &&
-			route.Spec.Port.TargetPort.IntValue() == endpoint.TargetPort {
+			route.Spec.Port.TargetPort.IntValue() == targetPort {
 			return route
 		}
 	}

@@ -122,6 +122,11 @@ func (c *CheRoutingSolver) FinalizerRequired(routing *controllerv1alpha1.DevWork
 }
 
 func (c *CheRoutingSolver) Finalize(routing *controllerv1alpha1.DevWorkspaceRouting) error {
+	// Must run before the workspace routes are gone, the redirect URIs are computed from them.
+	if err := c.removeOAuthRedirectURIs(routing); err != nil {
+		return err
+	}
+
 	return c.cheRoutingFinalize(routing)
 }
 

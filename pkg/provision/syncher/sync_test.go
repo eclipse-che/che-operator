@@ -283,4 +283,47 @@ var _ = Describe("syncObject", Ordered, func() {
 		Expect(actualCm.Annotations["annotation2"]).To(Equal("value3"))
 		Expect(actualCm.Annotations["annotation3"]).To(Equal("value2"))
 	})
+
+	It("should create object with owner reference", func(ctx SpecContext) {
+		testCm := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: "eclipse-che",
+			},
+			Data: map[string]string{"a": "b"},
+		}
+
+		Expect(Create(cheCtx, testCm)).To(Succeed())
+
+		actualCm := &corev1.ConfigMap{}
+		Expect(env.Client.Get(cheCtx.Context, types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actualCm)).To(Succeed())
+		Expect(actualCm.Data).To(Equal(map[string]string{"a": "b"}))
+		Expect(actualCm.OwnerReferences).To(HaveLen(1))
+		Expect(actualCm.OwnerReferences[0].UID).To(Equal(cheCtx.CheCluster.UID))
+	})
+
+	It("should not update existing object", func(ctx SpecContext) {
+		testCm := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: "eclipse-che",
+			},
+			Data: map[string]string{"a": "b"},
+		}
+		Expect(env.Client.Create(cheCtx.Context, testCm)).To(Succeed())
+
+		newCm := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: "eclipse-che",
+			},
+			Data: map[string]string{"c": "d"},
+		}
+		Expect(Create(cheCtx, newCm)).To(Succeed())
+
+		actualCm := &corev1.ConfigMap{}
+		Expect(env.Client.Get(cheCtx.Context, types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actualCm)).To(Succeed())
+		Expect(actualCm.Data).To(Equal(map[string]string{"a": "b"}))
+		Expect(actualCm.OwnerReferences).To(BeEmpty())
+	})
 })

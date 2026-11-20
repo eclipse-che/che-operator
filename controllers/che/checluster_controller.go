@@ -28,6 +28,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/agentsandbox"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/consolelink"
+	"github.com/eclipse-che/che-operator/pkg/reconciler/devworkspaceoauthclient"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/labelbackfill"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/networkpolicy"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/proxyconfig"
@@ -129,6 +130,7 @@ func NewReconciler(
 	reconcilerManager.AddReconciler(server.NewBaseDomainReconciler())
 	if infrastructure.IsOpenShiftOAuthEnabled() {
 		reconcilerManager.AddReconciler(identityprovider.NewIdentityProviderReconciler())
+		reconcilerManager.AddReconciler(devworkspaceoauthclient.NewReconciler())
 	}
 	reconcilerManager.AddReconciler(devfileregistry.NewDevfileRegistryReconciler())
 	reconcilerManager.AddReconciler(pluginregistry.NewPluginRegistryReconciler())
