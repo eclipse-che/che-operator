@@ -143,6 +143,33 @@ func SyncObjectStatus(
 	return nil
 }
 
+// Create creates the object in the cluster unless it already exists.
+// An existing object is left untouched: it is neither compared nor updated.
+func Create(cheCtx *chetypes.CheContext, obj client.Object) error {
+	var cw clientwrapper.ClientWrapper
+
+	if isCheCluster(obj) || obj.GetLabels()[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg {
+		cw = cheCtx.ClusterAPI.ClientWrapper
+	} else {
+		cw = cheCtx.ClusterAPI.NonCachingClientWrapper
+	}
+
+	// the CheCluster cannot own itself
+	if cheCtx.CheCluster != nil && !isCheCluster(obj) {
+		if obj.GetNamespace() == cheCtx.CheCluster.Namespace {
+			if err := controllerutil.SetControllerReference(cheCtx.CheCluster, obj, cheCtx.ClusterAPI.Scheme); err != nil {
+				return getCreateError(obj, err)
+			}
+		}
+	}
+
+	if err := cw.CreateIfNotExists(cheCtx.Context, obj); err != nil {
+		return getCreateError(obj, err)
+	}
+
+	return nil
+}
+
 // GetObject fetches the object with the given name and namespace into obj.
 // It returns false without an error if the object does not exist.
 //
@@ -299,6 +326,10 @@ func isFieldImmutableError(err error) bool {
 
 func getSyncError(obj client.Object, cause error) error {
 	return fmt.Errorf("failed to sync %s %s/%s: %w", clientwrapper.GetObjectType(obj), obj.GetNamespace(), obj.GetName(), cause)
+}
+
+func getCreateError(obj client.Object, cause error) error {
+	return fmt.Errorf("failed to create %s %s/%s: %w", clientwrapper.GetObjectType(obj), obj.GetNamespace(), obj.GetName(), cause)
 }
 
 func isCheCluster(obj client.Object) bool {

@@ -44,6 +44,10 @@ func (h secretHandler) Sync(cheCtx *chetypes.CheContext, secret *corev1.Secret) 
 	)
 }
 
+func (h secretHandler) Create(cheCtx *chetypes.CheContext, secret *corev1.Secret) error {
+	return syncher.Create(cheCtx, secret)
+}
+
 func (h secretHandler) Get(cheCtx *chetypes.CheContext, name string, namespace string, secret *corev1.Secret) (bool, error) {
 	return syncher.GetObject(
 		cheCtx,

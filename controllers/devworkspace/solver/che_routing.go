@@ -73,6 +73,16 @@ func (c *CheRoutingSolver) cheSpecObjects(cheCluster *chev2.CheCluster, routing 
 		return solvers.RoutingObjects{}, err
 	}
 
+	if c.hasSecureEndpoint(routing) {
+		if err := c.provisionOAuthProxyPodAdditions(&objs, cheCluster, routing); err != nil {
+			return solvers.RoutingObjects{}, err
+		}
+
+		if err := c.addOAuthRedirectURIs(&objs, routing); err != nil {
+			return solvers.RoutingObjects{}, err
+		}
+	}
+
 	return objs, nil
 }
 
@@ -97,6 +107,12 @@ func (c *CheRoutingSolver) provisionServices(objs *solvers.RoutingObjects, cheCl
 					Protocol:   corev1.ProtocolTCP,
 					Port:       int32(wsGatewayPort),
 					TargetPort: intstr.FromInt(wsGatewayPort),
+				},
+				{
+					Name:       "oauth-proxy",
+					Protocol:   corev1.ProtocolTCP,
+					Port:       oauthProxyPort,
+					TargetPort: intstr.FromInt(oauthProxyPort),
 				},
 			},
 		},
