@@ -442,6 +442,10 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 	# Build default clusterserviceversion file
 	$(OPERATOR_SDK) generate kustomize manifests
 
+	# v1 CheCluster is not served, OLM fails to install CSV if it owns an unserved CRD version.
+	# operator-sdk generates owned CRDs for all versions regardless of served flag, so remove v1 explicitly.
+	yq -riY 'del(.spec.customresourcedefinitions.owned[] | select(.version == "v1"))' "$(PROJECT_DIR)/config/manifests/bases/che-operator.clusterserviceversion.yaml"
+
 	$(KUSTOMIZE) build config/openshift/olm | \
 	$(OPERATOR_SDK) generate bundle \
 	--quiet \

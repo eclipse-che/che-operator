@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -981,6 +981,7 @@ type CheClusterStatus struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:unservedversion
 // +kubebuilder:deprecatedversion:warning="org.eclipse.che/v1 CheCluster is deprecated and will be removed in future releases"
 // +k8s:openapi-gen=true
 // +operator-sdk:csv:customresourcedefinitions:displayName="Eclipse Che instance Specification"
