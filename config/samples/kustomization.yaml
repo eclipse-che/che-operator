@@ -11,5 +11,4 @@
 #
 
 resources:
-- org_v1_checluster.yaml
 - org_v2_checluster.yaml

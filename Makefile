@@ -193,7 +193,6 @@ update-helmcharts: ## Update Helm Charts based on deployment resources
 		# Set CheCluster API version to v2 (TODO: remove in a next release)
 		CRDS=$$(yq -r '.annotations."artifacthub.io/crds"' $${chartYaml} | yq -ry -w 9999 '.[0].version="v2"')
 		yq -rYi --arg crds "$${CRDS}" ".annotations.\"artifacthub.io/crds\" = \$$crds" $${chartYaml}
-		sed -i 's|org_v1_checluster|org_v2_checluster|g' $${HELM_DIR}/README.md
 
 		make license $${chartYaml}
 
@@ -441,6 +440,10 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 
 	# Build default clusterserviceversion file
 	$(OPERATOR_SDK) generate kustomize manifests
+
+	# v1 CheCluster is not served, OLM fails to install CSV if it owns an unserved CRD version.
+	# operator-sdk generates owned CRDs for all versions regardless of served flag, so remove v1 explicitly.
+	yq -riY 'del(.spec.customresourcedefinitions.owned[] | select(.version == "v1"))' "$(PROJECT_DIR)/config/manifests/bases/che-operator.clusterserviceversion.yaml"
 
 	$(KUSTOMIZE) build config/openshift/olm | \
 	$(OPERATOR_SDK) generate bundle \
