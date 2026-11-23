@@ -4,6 +4,7 @@
   - [About](#about)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
+  - [Upgrade](#upgrade)
 
 ## Charts
 
@@ -156,3 +157,19 @@ kubectl get checluster/eclipse-che \
 ```
 
 Eclipse Che is ready to use!
+
+### Upgrade
+
+Helm installs the CRDs from the `crds/` directory only on the first installation
+and never upgrades them (see [Helm limitations on CRDs](https://helm.sh/docs/topics/charts/#limitations-on-crds)).
+Before running `helm upgrade`, apply the CRDs from the new chart version manually:
+
+```sh
+kubectl apply --server-side --force-conflicts -f crds/
+```
+
+Then upgrade the release:
+
+```sh
+helm upgrade che --namespace eclipse-che <CHART>
+```
