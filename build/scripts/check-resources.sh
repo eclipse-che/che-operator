@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2019-2023 Red Hat, Inc.
+# Copyright (c) 2019-2026 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -26,12 +26,12 @@ make update-dev-resources INCREMENT_BUNDLE_VERSION=false
 
 DIFF=0
 
-git diff --name-only | while read -r f; do
+while read -r f; do
     if [[ $(git --no-pager diff --ignore-blank-lines -- "$f" | wc -l) -gt 0 ]]; then
       DIFF=1
       echo "$f"
     fi
-done
+done < <(git diff --name-only)
 
 if [[ $DIFF == 1 ]]; then
   echo "[ERROR] Resources are not up to date."
