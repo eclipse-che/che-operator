@@ -34,14 +34,19 @@ helm install che \
 
 Helm installs the CRDs from the `crds/` directory only on the first installation
 and never upgrades them (see [Helm limitations on CRDs](https://helm.sh/docs/topics/charts/#limitations-on-crds)).
-Before running `helm upgrade`, apply the CRDs from the new chart version manually:
+Before running `helm upgrade`, apply the CRDs from the new chart version manually.
+If the chart is pulled from a remote repository, download it first with `helm pull`
+and apply the CRDs from the unpacked chart directory:
 
 ```sh
-kubectl apply --server-side --force-conflicts -f crds/
+helm pull <CHART> --untar
+kubectl apply --server-side --force-conflicts -f <UNTARRED_CHART_DIR>/crds/
 ```
 
-Then upgrade the release:
+Then upgrade the release. To find the name of the existing release, run
+`helm list --namespace eclipse-che`:
 
 ```sh
-helm upgrade che --namespace eclipse-che <CHART>
+helm list --namespace eclipse-che
+helm upgrade <RELEASE_NAME> --namespace eclipse-che <CHART>
 ```
