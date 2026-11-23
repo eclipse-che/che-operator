@@ -110,7 +110,7 @@ metadata:
     operatorframework.io/arch.ppc64le: supported
     operatorframework.io/arch.s390x: supported
     operatorframework.io/os.linux: supported
-  name: eclipse-che.v7.125.0-1103.next
+  name: eclipse-che.v7.126.0-1104.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1215,7 +1215,7 @@ spec:
       name: openvsx
     - image: quay.io/sclorg/postgresql-16-c9s:20260319
       name: openvsx-postgres
-  version: 7.125.0-1103.next
+  version: 7.126.0-1104.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1
