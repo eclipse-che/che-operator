@@ -196,6 +196,13 @@ addDigests() {
   echo "[INFO] addDigests :: Pin images to digests"
   . "${OPERATOR_REPO}/build/scripts/release/addDigests.sh" -t "${RELEASE}" -s "${CSV_STABLE_PATH}" -o "${MANAGER_YAML}"
 
+  # Fail the release if an image cannot be pinned with an OpenShift PinnedImageSet. This runs
+  # after addDigests.sh, so it checks the final digest-pinned CSV, and before the digest commit
+  # and every later step. The operator image has already been pushed by then; re-running with
+  # FORCE_UPDATE rebuilds and republishes it.
+  echo "[INFO] addDigests :: Check that every image can be pinned with a PinnedImageSet"
+  bash "${OPERATOR_REPO}/build/scripts/release/checkPinnedImages.sh" --csv "${CSV_STABLE_PATH}" --forbid-next-tags
+
   echo "[INFO] addDigests :: Ensure license header"
   make license "${CSV_STABLE_PATH}"
   make license "${MANAGER_YAML}"
@@ -269,6 +276,10 @@ prepareCommunityOperatorsUpdate() {
 }
 
 run() {
+  # The pinned-image gate runs after the operator image is pushed, so fail before any release
+  # work when podman is missing.
+  command -v podman >/dev/null 2>&1 || { echo "[ERROR] podman is not installed. Abort."; exit 1; }
+
   if [[ $CHECK_RESOURCES == "true" ]]; then
     echo "[INFO] Check if resources are up to date"
     . ${OPERATOR_REPO}/build/scripts/check-resources.sh
