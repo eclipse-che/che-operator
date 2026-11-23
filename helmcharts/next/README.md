@@ -38,6 +38,12 @@ Before running `helm upgrade`, apply the CRDs from the new chart version manuall
 If the chart is pulled from a remote repository, download it first with `helm pull`
 and apply the CRDs from the unpacked chart directory:
 
+> [!WARNING]
+> The `org.eclipse.che/v1` CheCluster API is no longer served by this chart version.
+> Before applying the CRDs, re-export your CheCluster resources as `v2`
+> (for example, with `kubectl get checluster -o yaml`) and update any manifests,
+> scripts, or clients that use `org.eclipse.che/v1` to use `org.eclipse.che/v2`.
+
 ```sh
 helm pull <CHART> --untar
 kubectl apply --server-side --force-conflicts -f <UNTARRED_CHART_DIR>/crds/
