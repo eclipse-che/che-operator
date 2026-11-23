@@ -5,7 +5,7 @@ go 1.26.4
 require (
 	github.com/che-incubator/kubernetes-image-puller-operator v0.0.0-20260717080248-21df2985d548
 	github.com/devfile/api/v2 v2.3.1-alpha.0.20261007143616-3c7e2fd6d137
-	github.com/devfile/devworkspace-operator v1.1.0
+	github.com/devfile/devworkspace-operator v1.1.1
 	github.com/go-logr/logr v1.4.4
 	github.com/google/go-cmp v0.7.0
 	github.com/onsi/ginkgo/v2 v2.34.0
@@ -48,7 +48,7 @@ require (
 	github.com/google/pprof v0.0.0-20260402051712-545e8a4df936 // indirect
 	go.opentelemetry.io/contrib/bridges/prometheus v0.70.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.45.0 // indirect
-	go.opentelemetry.io/otel/sdk/metric v1.45.0 // indirect
+	go.opentelemetry.io/otel/sdk/metric v1.47.0 // indirect
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
 	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/tools v0.51.0 // indirect
