@@ -1128,18 +1128,18 @@ type OauthTokenRefresh struct {
 // GitHubService enables users to work with repositories hosted on GitHub (GitHub.com or GitHub Enterprise).
 type GitHubService struct {
 	// Kubernetes secret, that contains Base64-encoded GitHub OAuth Client id and GitHub OAuth Client secret.
-	// See the following page for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.
+	// See the following page for details: https://www.eclipse.org/che/docs/stable/integrate/configuring-oauth-2-for-github/.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:io.kubernetes:Secret"
 	SecretName string `json:"secretName"`
 	// GitHub server endpoint URL.
 	// Deprecated in favor of `che.eclipse.org/scm-server-endpoint` annotation.
-	// See the following page for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.
+	// See the following page for details: https://www.eclipse.org/che/docs/stable/integrate/configuring-oauth-2-for-github/.
 	// +optional
 	Endpoint string `json:"endpoint,omitempty"`
 	// Disables subdomain isolation.
 	// Deprecated in favor of `che.eclipse.org/scm-github-disable-subdomain-isolation` annotation.
-	// See the following page for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-github/.
+	// See the following page for details: https://www.eclipse.org/che/docs/stable/integrate/configuring-oauth-2-for-github/.
 	// +optional
 	DisableSubdomainIsolation *bool `json:"disableSubdomainIsolation,omitempty"`
 }
@@ -1147,13 +1147,13 @@ type GitHubService struct {
 // GitLabService enables users to work with repositories hosted on GitLab (gitlab.com or self-hosted).
 type GitLabService struct {
 	// Kubernetes secret, that contains Base64-encoded GitHub Application id and GitLab Application Client secret.
-	// See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.
+	// See the following page: https://www.eclipse.org/che/docs/stable/integrate/configuring-oauth-2-for-gitlab/.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:io.kubernetes:Secret"
 	SecretName string `json:"secretName"`
 	// GitLab server endpoint URL.
 	// Deprecated in favor of `che.eclipse.org/scm-server-endpoint` annotation.
-	// See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-gitlab/.
+	// See the following page: https://www.eclipse.org/che/docs/stable/integrate/configuring-oauth-2-for-gitlab/.
 	// +optional
 	Endpoint string `json:"endpoint,omitempty"`
 }
@@ -1161,14 +1161,14 @@ type GitLabService struct {
 // BitBucketService enables users to work with repositories hosted on Bitbucket (bitbucket.org or self-hosted).
 type BitBucketService struct {
 	// Kubernetes secret, that contains Base64-encoded Bitbucket OAuth 1.0 or OAuth 2.0 data.
-	// See the following pages for details: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/
-	// and https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-the-bitbucket-cloud/.
+	// See the following pages for details: https://www.eclipse.org/che/docs/stable/integrate/configuring-oauth-1-for-a-bitbucket-server/
+	// and https://www.eclipse.org/che/docs/stable/integrate/configuring-oauth-2-for-the-bitbucket-cloud/.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:io.kubernetes:Secret"
 	SecretName string `json:"secretName"`
 	// Bitbucket server endpoint URL.
 	// Deprecated in favor of `che.eclipse.org/scm-server-endpoint` annotation.
-	// See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-1-for-a-bitbucket-server/.
+	// See the following page: https://www.eclipse.org/che/docs/stable/integrate/configuring-oauth-1-for-a-bitbucket-server/.
 	// +optional
 	Endpoint string `json:"endpoint,omitempty"`
 }
@@ -1176,7 +1176,7 @@ type BitBucketService struct {
 // AzureDevOpsService enables users to work with repositories hosted on Azure DevOps Service (dev.azure.com).
 type AzureDevOpsService struct {
 	// Kubernetes secret, that contains Base64-encoded Azure DevOps Service Application ID and Client Secret.
-	// See the following page: https://www.eclipse.org/che/docs/stable/administration-guide/configuring-oauth-2-for-microsoft-azure-devops-services
+	// See the following page: https://www.eclipse.org/che/docs/stable/integrate/configuring-oauth-2-for-microsoft-azure-devops-services
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:io.kubernetes:Secret"
 	SecretName string `json:"secretName"`
