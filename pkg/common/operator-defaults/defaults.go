@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -15,12 +15,10 @@ package defaults
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
-	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -57,33 +55,6 @@ var (
 
 	log = ctrl.Log.WithName("defaults")
 )
-
-func InitializeForTesting() {
-	projectRoot, err := utils.FindProjectRoot()
-	if err != nil {
-		log.Error(err, "Failed to find project root")
-		os.Exit(1)
-	}
-
-	operatorDeploymentFilePath := filepath.Join(projectRoot, "config", "manager", "manager.yaml")
-
-	operatorDeployment := &appsv1.Deployment{}
-	if err := utils.ReadObjectInto(operatorDeploymentFilePath, operatorDeployment); err != nil {
-		log.Error(err, "Error reading operator deployment")
-		os.Exit(1)
-	}
-
-	for _, container := range operatorDeployment.Spec.Template.Spec.Containers {
-		for _, env := range container.Env {
-			err := os.Setenv(env.Name, env.Value)
-			if err != nil {
-				panic(fmt.Sprintf("Error setting env var %s=%s", env.Name, env.Value))
-			}
-		}
-	}
-
-	Initialize()
-}
 
 func Initialize() {
 	defaultCheVersion = ensureEnv("CHE_VERSION")
@@ -125,6 +96,12 @@ func Initialize() {
 	initialized = true
 }
 
+func checkInitialized() {
+	if !initialized {
+		panic("Defaults are not initialized")
+	}
+}
+
 func ensureEnv(name string) string {
 	value := os.Getenv(name)
 	if value == "" {
@@ -136,114 +113,72 @@ func ensureEnv(name string) string {
 }
 
 func GetCheServerImage(checluster interface{}) string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return PatchDefaultImageName(checluster, defaultCheServerImage)
 }
 
 func GetCheTLSSecretsCreationJobImage() string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return defaultCheTLSSecretsCreationJobImage
 }
 
 func GetCheVersion() string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return defaultCheVersion
 }
 
 func GetDashboardImage(checluster interface{}) string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return PatchDefaultImageName(checluster, defaultDashboardImage)
 }
 
 func GetPluginRegistryImage(checluster interface{}) string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return PatchDefaultImageName(checluster, defaultPluginRegistryImage)
 }
 
 func GetOpenVSXImage(checluster interface{}) string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return PatchDefaultImageName(checluster, defaultOpenVSXImage)
 }
 
 func GetOpenVSXDatabaseImage(checluster interface{}) string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return PatchDefaultImageName(checluster, defaultOpenVSXDatabaseImage)
 }
 
 func GetOpenVSXRegistryEnabled() string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return defaultOpenVSXRegistryEnabled
 }
 
 func GetGatewayImage(checluster interface{}) string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return PatchDefaultImageName(checluster, defaultSingleHostGatewayImage)
 }
 
 func GetGatewayConfigSidecarImage(checluster interface{}) string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return PatchDefaultImageName(checluster, defaultSingleHostGatewayConfigSidecarImage)
 }
 
 func GetGatewayKubernetesAuthenticationSidecarImage(checluster interface{}) string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return PatchDefaultImageName(checluster, defaultGatewayKubernetesAuthenticationSidecarImage)
 }
 
 func GetGatewayOpenShiftAuthenticationSidecarImage(checluster interface{}) string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return PatchDefaultImageName(checluster, defaultGatewayOpenShiftAuthenticationSidecarImage)
 }
 
 func GetGatewayAuthorizationSidecarImage(checluster interface{}) string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return PatchDefaultImageName(checluster, defaultGatewayAuthorizationSidecarImage)
 }
 
 func GetCheFlavor() string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return defaultCheFlavor
 }
 
@@ -252,90 +187,57 @@ func GetOperatorName() string {
 }
 
 func GetConsoleLinkName() string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return defaultConsoleLinkName
 }
 
 func GetConsoleLinkDisplayName() string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return defaultConsoleLinkDisplayName
 }
 
 func GetConsoleLinkSection() string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return defaultConsoleLinkSection
 }
 
 func GetConsoleLinkImage() string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return defaultsConsoleLinkImage
 }
 
 func GetDevfileRegistryExternalDevfileRegistries() string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return defaultDevfileRegistryExternalDevfileRegistries
 }
 
 func GetPluginRegistryOpenVSXURL() string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return defaultPluginRegistryOpenVSXURL
 }
 
 func GetDashboardHeaderMessageText() string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return defaultDashboardHeaderMessageText
 }
 
 func GetDevEnvironmentsDefaultEditor() string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return defaultDevEnvironmentsDefaultEditor
 }
 
 func GetDevEnvironmentsDefaultComponents() string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return defaultDevEnvironmentsDefaultComponents
 }
 
 func GetDevEnvironmentsContainerSecurityContext() string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return defaultDevEnvironmentsContainerSecurityContext
 }
 
 func GetDevEnvironmentsDisableContainerBuildCapabilities() string {
-	if !initialized {
-		Initialize()
-	}
-
+	checkInitialized()
 	return defaultDevEnvironmentsDisableContainerBuildCapabilities
 }
 

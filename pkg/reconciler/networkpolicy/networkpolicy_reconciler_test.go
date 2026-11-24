@@ -26,6 +26,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	networkingv1 "k8s.io/api/networking/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -37,18 +38,18 @@ var _ = Describe("NetworkPoliciesReconciler", func() {
 	)
 
 	BeforeEach(func() {
-		reconciler = &NetworkPoliciesReconciler{}
-		cheCtx = env.NewCheCtxBuilder().WithEmptyCheCluster().Build()
+		cheCtx = test.NewCheContextBuilder().WithEmptyCheCluster().Build()
 	})
 
 	AfterEach(func() {
 		Expect(env.Client.DeleteAllOf(env.Context, &networkingv1.NetworkPolicy{}, client.InNamespace(cheCtx.CheCluster.Namespace))).To(Succeed())
-		Expect(env.Client.DeleteAllOf(env.Context, &chev2.CheCluster{}, client.InNamespace(cheCtx.CheCluster.Namespace))).To(Succeed())
+		Expect(env.Client.DeleteAllOf(env.Context, &chev2.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{Name: "eclipse-che"}}, client.InNamespace(cheCtx.CheCluster.Namespace))).To(Succeed())
 	})
 
 	Context("Finalize", func() {
 		BeforeEach(func() {
-			test.Initialize(infrastructure.Kubernetes)
+			test.InitializeDefaults(infrastructure.Kubernetes)
 		})
 
 		It("should report the component as finalized", func() {
@@ -58,7 +59,7 @@ var _ = Describe("NetworkPoliciesReconciler", func() {
 
 	Context("when NetworkPolicy is disabled", func() {
 		BeforeEach(func() {
-			test.Initialize(infrastructure.Kubernetes)
+			test.InitializeDefaults(infrastructure.Kubernetes)
 			cheCtx.CheCluster.Spec.Networking.NetworkPolicy = &chev2.NetworkPolicy{Enabled: new(false)}
 		})
 
@@ -72,7 +73,7 @@ var _ = Describe("NetworkPoliciesReconciler", func() {
 			Expect(npList.Items).To(Not(BeEmpty()))
 
 			By("reconciling")
-			test.Reconcile(cheCtx, reconciler.Reconcile)
+			Expect(test.ReconcileTwice(cheCtx, reconciler.Reconcile)).To(Succeed())
 
 			By("confirming the NetworkPolicies are gone")
 			npList = &networkingv1.NetworkPolicyList{}
@@ -90,7 +91,7 @@ var _ = Describe("NetworkPoliciesReconciler", func() {
 			var expectedPolicyNames []string
 
 			BeforeEach(func() {
-				test.Initialize(infrastructure.OpenShiftV4)
+				test.InitializeDefaults(infrastructure.OpenShiftV4)
 
 				expectedPolicyNames = []string{
 					"allow-from-same-namespace",
@@ -104,7 +105,7 @@ var _ = Describe("NetworkPoliciesReconciler", func() {
 			})
 
 			It("should create the scoped OpenShift ingress policies and allow-all egress", func() {
-				test.Reconcile(cheCtx, reconciler.Reconcile)
+				Expect(test.ReconcileTwice(cheCtx, reconciler.Reconcile)).To(Succeed())
 
 				npList := &networkingv1.NetworkPolicyList{}
 				Expect(cheCtx.ClusterAPI.Client.List(cheCtx.Context, npList)).To(Succeed())
@@ -119,7 +120,7 @@ var _ = Describe("NetworkPoliciesReconciler", func() {
 			var expectedPolicyNames []string
 
 			BeforeEach(func() {
-				test.Initialize(infrastructure.Kubernetes)
+				test.InitializeDefaults(infrastructure.Kubernetes)
 
 				expectedPolicyNames = []string{
 					"allow-all-egress",
@@ -128,7 +129,7 @@ var _ = Describe("NetworkPoliciesReconciler", func() {
 			})
 
 			It("should create permissive allow-all ingress and egress policies", func() {
-				test.Reconcile(cheCtx, reconciler.Reconcile)
+				Expect(test.ReconcileTwice(cheCtx, reconciler.Reconcile)).To(Succeed())
 
 				npList := &networkingv1.NetworkPolicyList{}
 				Expect(cheCtx.ClusterAPI.Client.List(cheCtx.Context, npList)).To(Succeed())
@@ -139,7 +140,7 @@ var _ = Describe("NetworkPoliciesReconciler", func() {
 			})
 
 			It("should revert out-of-band edits to a NetworkPolicy", func() {
-				test.Reconcile(cheCtx, reconciler.Reconcile)
+				Expect(test.ReconcileTwice(cheCtx, reconciler.Reconcile)).To(Succeed())
 
 				npKey := types.NamespacedName{Name: "allow-all-ingress", Namespace: cheCtx.CheCluster.Namespace}
 
@@ -157,7 +158,7 @@ var _ = Describe("NetworkPoliciesReconciler", func() {
 				Expect(np.Spec.Ingress).To(BeNil())
 
 				By("reconciling a second time")
-				test.Reconcile(cheCtx, reconciler.Reconcile)
+				Expect(test.ReconcileTwice(cheCtx, reconciler.Reconcile)).To(Succeed())
 
 				By("reading it back after reconciling")
 				np = &networkingv1.NetworkPolicy{}

@@ -16,13 +16,16 @@ import (
 	"context"
 	"testing"
 
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
 func TestSyncClusterRole(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().Build()
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().Build()
 
 	err := SyncClusterRoleToCluster(cheCtx, "test", []rbacv1.PolicyRule{
 		{

@@ -22,7 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 type Type int
@@ -77,22 +76,22 @@ func GetOperatorNamespace() (string, error) {
 }
 
 func IsOpenShift() bool {
-	initializeIfNeeded()
+	checkInitialized()
 	return infrastructure == OpenShiftV4
 }
 
 func IsOpenShiftOAuthEnabled() bool {
-	initializeIfNeeded()
+	checkInitialized()
 	return isOpenShiftOAuthEnabled
 }
 
 func IsOpenShiftExternalAuth() bool {
-	initializeIfNeeded()
+	checkInitialized()
 	return IsOpenShift() && !IsOpenShiftOAuthEnabled()
 }
 
 func IsLeaderElectionEnabled() bool {
-	initializeIfNeeded()
+	checkInitialized()
 	return isLeaderElectionEnabled
 }
 
@@ -117,12 +116,12 @@ func IsAgentSandboxEnabled(discovery discovery.DiscoveryInterface) bool {
 }
 
 func IsServiceMonitorEnabled() bool {
-	initializeIfNeeded()
+	checkInitialized()
 	return isServiceMonitorEnabled
 }
 
 func IsConsoleLinkEnabled() bool {
-	initializeIfNeeded()
+	checkInitialized()
 	return isConsoleLinkEnabled
 }
 
@@ -132,8 +131,7 @@ func SetOpenShiftOAuthEnabledForTesting(enabled bool) {
 
 func InitializeForTesting(desiredInfrastructure Type) {
 	infrastructure = desiredInfrastructure
-
-	if IsOpenShift() {
+	if infrastructure == OpenShiftV4 {
 		operatorNamespace = "openshift-operators"
 	} else {
 		operatorNamespace = "eclipse-che"
@@ -145,24 +143,10 @@ func InitializeForTesting(desiredInfrastructure Type) {
 	isConsoleLinkEnabled = IsOpenShift()
 }
 
-func initializeIfNeeded() {
-	if infrastructure != Unknown {
-		return
-	}
-
-	kubeCfg, err := config.GetConfig()
+func Initialize(discovery discovery.DiscoveryInterface) error {
+	apiGroups, apiResources, err := discovery.ServerGroupsAndResources()
 	if err != nil {
-		panic("Failed to get kubeconfig")
-	}
-
-	discoveryClient, err := discovery.NewDiscoveryClientForConfig(kubeCfg)
-	if err != nil {
-		panic("Failed to create discovery client")
-	}
-
-	apiGroups, apiResources, err := discoveryClient.ServerGroupsAndResources()
-	if err != nil {
-		panic("Failed to get API Groups and Resources")
+		return fmt.Errorf("failed to get API resources list: %w", err)
 	}
 
 	if hasAPIGroup(apiGroups, "config.openshift.io") {
@@ -176,6 +160,14 @@ func initializeIfNeeded() {
 	isLeaderElectionEnabled = hasAPIResource(apiResources, leaseCoordination)
 	isServiceMonitorEnabled = hasAPIResource(apiResources, serviceMonitor)
 	isConsoleLinkEnabled = hasAPIResource(apiResources, consoleLink)
+
+	return nil
+}
+
+func checkInitialized() {
+	if infrastructure == Unknown {
+		panic("Infrastructure is not initialized")
+	}
 }
 
 func hasAPIGroup(source []*metav1.APIGroup, apiName string) bool {

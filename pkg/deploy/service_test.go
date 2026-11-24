@@ -16,13 +16,16 @@ import (
 	"context"
 	"testing"
 
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
 func TestServiceToCluster(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().Build()
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().Build()
 
 	err := SyncServiceToCluster(cheCtx, "test", []string{"port"}, []int32{8080}, "test")
 	if err != nil {

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -15,6 +15,7 @@ package org
 import (
 	"testing"
 
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/utils/ptr"
 
@@ -30,6 +31,8 @@ import (
 )
 
 func TestConvertToEmptyCheCluster(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	checlusterv1 := &chev1.CheCluster{}
 	checlusterv2 := &chev2.CheCluster{}
 
@@ -38,7 +41,7 @@ func TestConvertToEmptyCheCluster(t *testing.T) {
 }
 
 func TestConvertToIngressOnOpenShift(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+	test.StartOn(infrastructure.OpenShiftV4)
 
 	checlusterv1 := &chev1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -73,7 +76,7 @@ func TestConvertToIngressOnOpenShift(t *testing.T) {
 }
 
 func TestConvertToIngressOnK8s(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
 
 	checlusterv1 := &chev1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -108,7 +111,7 @@ func TestConvertToIngressOnK8s(t *testing.T) {
 }
 
 func TestConvertToIngressOnK8sWithCheHostTLSSecret(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
 
 	checlusterv1 := &chev1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -144,7 +147,7 @@ func TestConvertToIngressOnK8sWithCheHostTLSSecret(t *testing.T) {
 }
 
 func TestConvertTo(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
 
 	checlusterv1 := &chev1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -486,7 +489,7 @@ func TestConvertTo(t *testing.T) {
 }
 
 func TestShouldConvertToWhenOnlyMemoryResourceSpecified(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
 
 	checlusterv1 := &chev1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{

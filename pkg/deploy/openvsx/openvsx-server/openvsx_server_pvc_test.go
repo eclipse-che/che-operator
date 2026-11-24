@@ -13,11 +13,11 @@
 package openvsx_server
 
 import (
-	"context"
 	"testing"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -26,15 +26,16 @@ import (
 )
 
 func TestPVCSync(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().Build()
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().Build()
 	reconciler := NewOpenVSXServerReconciler()
 
 	err := reconciler.syncPVC(cheCtx)
 	assert.NoError(t, err)
 
 	pvc := &corev1.PersistentVolumeClaim{}
-	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: "eclipse-che"}, pvc)
-	assert.NoError(t, err)
+	assert.NoError(t, test.ExpectFound(types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: "eclipse-che"}, pvc))
 	assert.Equal(t, resource.MustParse(constants.OpenVSXServerClaimSize), pvc.Spec.Resources.Requests[corev1.ResourceStorage])
 
 	cheCtx.CheCluster.Spec.Components.OpenVSXRegistry = chev2.OpenVSXRegistry{
@@ -49,8 +50,7 @@ func TestPVCSync(t *testing.T) {
 	assert.NoError(t, err)
 
 	pvc = &corev1.PersistentVolumeClaim{}
-	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: "eclipse-che"}, pvc)
-	assert.NoError(t, err)
+	assert.NoError(t, test.ExpectFound(types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: "eclipse-che"}, pvc))
 	assert.Equal(t, resource.MustParse("4Gi"), pvc.Spec.Resources.Requests[corev1.ResourceStorage])
 	assert.NotEqual(t, "4Gi", constants.OpenVSXServerClaimSize)
 }

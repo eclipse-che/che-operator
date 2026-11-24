@@ -42,7 +42,7 @@ func (r *CheUserNamespaceReconciler) reconcileAgentSandboxRbac(
 			Namespace: targetNs,
 		}
 
-		if err := r.clientWrapper.DeleteByKeyIgnoreNotFound(
+		if err := r.clusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
 			cheCtx.Context,
 			roleBindingKey,
 			&rbacv1.RoleBinding{},
@@ -57,7 +57,7 @@ func (r *CheUserNamespaceReconciler) reconcileAgentSandboxRbac(
 	// unnecessary error in the console. When AgentSandbox integration enabled in the CheCluster,
 	// the main controller requires some time to provision ClusterRole resource.
 	// See pkg/reconciler/agentsandbox/agentsandbox.go
-	exists, err := r.clientWrapper.GetIgnoreNotFound(
+	exists, err := r.clusterAPI.ClientWrapper.GetIgnoreNotFound(
 		cheCtx.Context,
 		types.NamespacedName{Name: agentsandbox.GetUserClusterRoleName()},
 		&rbacv1.ClusterRole{},
@@ -101,7 +101,7 @@ func (r *CheUserNamespaceReconciler) reconcileAgentSandboxRbac(
 		},
 	}
 
-	if err := r.clientWrapper.Sync(
+	if err := r.clusterAPI.ClientWrapper.Sync(
 		cheCtx.Context,
 		roleBinding,
 		&clientwrapper.SyncOptions{DiffOpts: diffs.RoleBinding},

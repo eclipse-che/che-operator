@@ -16,6 +16,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/yaml"
@@ -66,7 +67,9 @@ func TestReadEditorDefinitions(t *testing.T) {
 }
 
 func TestSyncEditorDefinitions(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().Build()
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().Build()
 
 	editorDefinitions, err := readEditorDefinitions()
 	assert.NoError(t, err)

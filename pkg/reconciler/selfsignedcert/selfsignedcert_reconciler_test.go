@@ -19,21 +19,19 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
-	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 var _ = Describe("SelfSignedCertificateReconciler", func() {
 	var reconciler *SelfSignedCertificateReconciler
 
 	BeforeEach(func() {
-		test.Initialize(infrastructure.Kubernetes)
+		test.StartOn(infrastructure.Kubernetes)
 		reconciler = NewReconciler()
 	})
 
@@ -45,7 +43,7 @@ var _ = Describe("SelfSignedCertificateReconciler", func() {
 			},
 			Data: map[string][]byte{"tls.crt": []byte("crt")},
 		}
-		cheCtx := test.NewCtxBuilder().
+		cheCtx := test.NewCheContextBuilder().
 			WithCheCluster(
 				&chev2.CheCluster{
 					ObjectMeta: metav1.ObjectMeta{
@@ -61,18 +59,12 @@ var _ = Describe("SelfSignedCertificateReconciler", func() {
 			WithObjects(tlsSecret).
 			Build()
 
-		result, done, err := reconciler.Reconcile(cheCtx)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(done).To(BeTrue())
-		Expect(result).To(Equal(reconcile.Result{}))
-
-		job := &batchv1.Job{}
-		err = cheCtx.ClusterAPI.Client.Get(cheCtx.Context, types.NamespacedName{Name: cheTLSJobName, Namespace: cheCtx.CheCluster.Namespace}, job)
-		Expect(err).To(HaveOccurred())
+		Expect(test.ReconcileTwice(cheCtx, reconciler.Reconcile)).To(Succeed())
+		Expect(test.ExpectNotFound(types.NamespacedName{Name: cheTLSJobName, Namespace: cheCtx.CheCluster.Namespace}, &batchv1.Job{})).To(Succeed())
 	})
 
 	It("creates TLS creation job when custom TLS secret is missing", func() {
-		cheCtx := test.NewCtxBuilder().
+		cheCtx := test.NewCheContextBuilder().
 			WithCheCluster(
 				&chev2.CheCluster{
 					ObjectMeta: metav1.ObjectMeta{
@@ -93,8 +85,7 @@ var _ = Describe("SelfSignedCertificateReconciler", func() {
 		Expect(result.RequeueAfter).To(Equal(5 * time.Second))
 
 		job := &batchv1.Job{}
-		err = cheCtx.ClusterAPI.Client.Get(cheCtx.Context, types.NamespacedName{Name: cheTLSJobName, Namespace: cheCtx.CheCluster.Namespace}, job)
-		Expect(err).ToNot(HaveOccurred())
+		Expect(test.ExpectFound(types.NamespacedName{Name: cheTLSJobName, Namespace: cheCtx.CheCluster.Namespace}, job)).To(Succeed())
 		Expect(job.Spec.Template.Spec.ServiceAccountName).To(Equal(cheTLSJobServiceAccountName))
 	})
 
@@ -106,7 +97,7 @@ var _ = Describe("SelfSignedCertificateReconciler", func() {
 			},
 			Data: map[string][]byte{"ca.crt": []byte("existing-ca")},
 		}
-		cheCtx := test.NewCtxBuilder().
+		cheCtx := test.NewCheContextBuilder().
 			WithCheCluster(
 				&chev2.CheCluster{
 					ObjectMeta: metav1.ObjectMeta{
@@ -122,15 +113,10 @@ var _ = Describe("SelfSignedCertificateReconciler", func() {
 			WithObjects(selfSignedSecret).
 			Build()
 
-		result, done, err := reconciler.Reconcile(cheCtx)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(done).To(BeTrue())
-		Expect(result).To(Equal(reconcile.Result{}))
+		Expect(test.ReconcileTwice(cheCtx, reconciler.Reconcile)).To(Succeed())
 
 		secret := &corev1.Secret{}
-		exists, err := resources.Secret.Get(cheCtx, constants.SelfSignedCertificateSecretName, cheCtx.CheCluster.Namespace, secret)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(exists).To(BeTrue())
+		Expect(test.ExpectFound(types.NamespacedName{Name: constants.SelfSignedCertificateSecretName, Namespace: cheCtx.CheCluster.Namespace}, secret)).To(Succeed())
 		Expect(secret.Data["ca.crt"]).To(Equal([]byte("existing-ca")))
 	})
 })

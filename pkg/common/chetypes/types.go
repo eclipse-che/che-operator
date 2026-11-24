@@ -17,29 +17,17 @@ import (
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/cheproxy"
-	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/discovery"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"github.com/eclipse-che/che-operator/pkg/common/clusterapi"
 )
 
 type CheContext struct {
 	CheCluster     *chev2.CheCluster
-	ClusterAPI     ClusterAPI
+	ClusterAPI     *clusterapi.ClusterAPI
 	Proxy          *cheproxy.Proxy
 	Authentication *Authentication
 	CheHost        string
 	DWONamespace   string
 	Context        context.Context
-}
-
-type ClusterAPI struct {
-	Client                  client.Client // We should ClientWrapper instead wherever it possible
-	NonCachingClient        client.Client // We should NonCachingClientWrapper instead wherever it possible
-	DiscoveryClient         discovery.DiscoveryInterface
-	Scheme                  *runtime.Scheme
-	ClientWrapper           clientwrapper.ClientWrapper
-	NonCachingClientWrapper clientwrapper.ClientWrapper
 }
 
 type Authentication struct {

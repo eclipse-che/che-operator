@@ -17,7 +17,9 @@ import (
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -54,6 +56,8 @@ func TestGetWorkspaceGatewayImage(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
+			test.StartOn(infrastructure.OpenShiftV4)
+
 			cheCluster := &chev2.CheCluster{}
 			cheCluster.Spec.DevEnvironments.GatewayContainer = testCase.gatewayContainer
 

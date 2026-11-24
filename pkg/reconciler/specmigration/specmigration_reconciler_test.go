@@ -29,7 +29,7 @@ var _ = Describe("SpecMigrationReconciler", func() {
 	var cheCtx *chetypes.CheContext
 
 	BeforeEach(func() {
-		test.Initialize(infrastructure.Kubernetes)
+		test.StartOn(infrastructure.Kubernetes)
 	})
 
 	It("should append CHOWN to a user-configured capabilities list and mark the task done", func() {
@@ -55,27 +55,18 @@ var _ = Describe("SpecMigrationReconciler", func() {
 				},
 			},
 		}
-		cheCtx = test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
+		cheCtx = test.NewCheContextBuilder().WithCheCluster(cheCluster).Build()
 
 		reconciler := NewReconciler()
-		_, done, err := reconciler.Reconcile(cheCtx)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(done).To(BeTrue())
-
-		capabilities := cheCtx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration.ContainerSecurityContext.Capabilities.Add
-		Expect(capabilities).To(Equal([]corev1.Capability{"NET_BIND_SERVICE", "CHOWN"}))
+		Expect(test.ReconcileTwice(cheCtx, reconciler.Reconcile)).To(Succeed())
 
 		// the task is recorded as done in the annotation
 		fields := map[string]string{}
 		Expect(json.Unmarshal([]byte(cheCtx.CheCluster.GetAnnotations()[cheClusterSpecMigrationAnnotation]), &fields)).To(Succeed())
 		Expect(fields["spec.devEnvironments.containerRunConfiguration.containerSecurityContext.capabilities.add"]).To(Equal("true"))
 
-		// the second reconcile does not append CHOWN again
-		_, done, err = reconciler.Reconcile(cheCtx)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(done).To(BeTrue())
-
-		capabilities = cheCtx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration.ContainerSecurityContext.Capabilities.Add
+		// CHOWN is appended once, not duplicated by the second reconcile
+		capabilities := cheCtx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration.ContainerSecurityContext.Capabilities.Add
 		Expect(capabilities).To(Equal([]corev1.Capability{"NET_BIND_SERVICE", "CHOWN"}))
 	})
 
@@ -99,12 +90,10 @@ var _ = Describe("SpecMigrationReconciler", func() {
 				},
 			},
 		}
-		cheCtx = test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
+		cheCtx = test.NewCheContextBuilder().WithCheCluster(cheCluster).Build()
 
 		reconciler := NewReconciler()
-		_, done, err := reconciler.Reconcile(cheCtx)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(done).To(BeTrue())
+		Expect(test.ReconcileTwice(cheCtx, reconciler.Reconcile)).To(Succeed())
 
 		// the migration func is not executed on installation
 		capabilities := cheCtx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration.ContainerSecurityContext.Capabilities.Add
@@ -140,12 +129,10 @@ var _ = Describe("SpecMigrationReconciler", func() {
 				},
 			},
 		}
-		cheCtx = test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
+		cheCtx = test.NewCheContextBuilder().WithCheCluster(cheCluster).Build()
 
 		reconciler := NewReconciler()
-		_, done, err := reconciler.Reconcile(cheCtx)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(done).To(BeTrue())
+		Expect(test.ReconcileTwice(cheCtx, reconciler.Reconcile)).To(Succeed())
 
 		// the tasks are re-evaluated
 		capabilities := cheCtx.CheCluster.Spec.DevEnvironments.ContainerRunConfiguration.ContainerSecurityContext.Capabilities.Add

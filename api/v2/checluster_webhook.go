@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/eclipse-che/che-operator/pkg/common/clusterapi"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -27,12 +28,11 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/json"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
-	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -102,20 +102,20 @@ type CheClusterValidator struct{}
 var _ admission.Validator[*CheCluster] = &CheClusterValidator{}
 
 // ValidateCreate implements admission.Validator so a webhook will be registered for the type
-func (r *CheClusterValidator) ValidateCreate(_ context.Context, cheCluster *CheCluster) (admission.Warnings, error) {
+func (r *CheClusterValidator) ValidateCreate(ctx context.Context, cheCluster *CheCluster) (admission.Warnings, error) {
 	webhookLogger.Info("Validation for CheCluster upon creation", "name", cheCluster.GetName())
 
-	if err := r.ensureSingletonCheCluster(); err != nil {
+	if err := r.ensureSingletonCheCluster(ctx); err != nil {
 		return []string{}, err
 	}
-	return []string{}, r.validate(cheCluster)
+	return []string{}, r.validate(ctx, cheCluster)
 }
 
 // ValidateUpdate implements admission.Validator so a webhook will be registered for the type CheCluster.
-func (r *CheClusterValidator) ValidateUpdate(_ context.Context, _, newObj *CheCluster) (admission.Warnings, error) {
+func (r *CheClusterValidator) ValidateUpdate(ctx context.Context, _, newObj *CheCluster) (admission.Warnings, error) {
 	webhookLogger.Info("Validation for CheCluster upon update", "name", newObj.GetName())
 
-	return nil, r.validate(newObj)
+	return nil, r.validate(ctx, newObj)
 }
 
 // ValidateDelete implements admission.Validator so a webhook will be registered for the type CheCluster.
@@ -123,14 +123,11 @@ func (r *CheClusterValidator) ValidateDelete(_ context.Context, _ *CheCluster) (
 	return nil, nil
 }
 
-func (r *CheClusterValidator) ensureSingletonCheCluster() error {
-	client := k8shelper.GetInstance().GetClient()
-	utilruntime.Must(AddToScheme(client.Scheme()))
-
+func (r *CheClusterValidator) ensureSingletonCheCluster(ctx context.Context) error {
 	che := &CheClusterList{}
-	err := client.List(context.TODO(), che)
+	err := clusterapi.Get().NonCachingClient.List(ctx, che)
 	if err != nil {
-		webhookLogger.Error(err, "Failed to list CheCluster Custom Resources.")
+		return fmt.Errorf("failed to list CheClusters: %w", err)
 	}
 
 	if len(che.Items) != 0 {
@@ -140,12 +137,12 @@ func (r *CheClusterValidator) ensureSingletonCheCluster() error {
 	return nil
 }
 
-func (r *CheClusterValidator) validate(checluster *CheCluster) error {
+func (r *CheClusterValidator) validate(ctx context.Context, checluster *CheCluster) error {
 	if !checluster.DeletionTimestamp.IsZero() {
 		return nil
 	}
 
-	if err := r.validateOpenVSXRegistry(checluster); err != nil {
+	if err := r.validateOpenVSXRegistry(ctx, checluster); err != nil {
 		return err
 	}
 
@@ -158,25 +155,53 @@ func (r *CheClusterValidator) validate(checluster *CheCluster) error {
 	}
 
 	for _, github := range checluster.Spec.GitServices.GitHub {
-		if err := r.validateOAuthSecret(github.SecretName, "github", github.Endpoint, github.DisableSubdomainIsolation, checluster.Namespace); err != nil {
+		if err := r.validateOAuthSecret(
+			ctx,
+			github.SecretName,
+			"github",
+			github.Endpoint,
+			github.DisableSubdomainIsolation,
+			checluster.Namespace,
+		); err != nil {
 			return err
 		}
 	}
 
 	for _, gitlab := range checluster.Spec.GitServices.GitLab {
-		if err := r.validateOAuthSecret(gitlab.SecretName, "gitlab", gitlab.Endpoint, nil, checluster.Namespace); err != nil {
+		if err := r.validateOAuthSecret(
+			ctx,
+			gitlab.SecretName,
+			"gitlab",
+			gitlab.Endpoint,
+			nil,
+			checluster.Namespace,
+		); err != nil {
 			return err
 		}
 	}
 
 	for _, bitbucket := range checluster.Spec.GitServices.BitBucket {
-		if err := r.validateOAuthSecret(bitbucket.SecretName, "bitbucket", bitbucket.Endpoint, nil, checluster.Namespace); err != nil {
+		if err := r.validateOAuthSecret(
+			ctx,
+			bitbucket.SecretName,
+			"bitbucket",
+			bitbucket.Endpoint,
+			nil,
+			checluster.Namespace,
+		); err != nil {
 			return err
 		}
 	}
 
 	for _, azure := range checluster.Spec.GitServices.AzureDevOps {
-		if err := r.validateOAuthSecret(azure.SecretName, constants.AzureDevOpsOAuth, "", nil, checluster.Namespace); err != nil {
+		if err := r.validateOAuthSecret(
+			ctx,
+			azure.SecretName,
+			constants.AzureDevOpsOAuth,
+			"",
+			nil,
+			checluster.Namespace,
+		); err != nil {
 			return err
 		}
 	}
@@ -184,21 +209,36 @@ func (r *CheClusterValidator) validate(checluster *CheCluster) error {
 	return nil
 }
 
-func (r *CheClusterValidator) validateOAuthSecret(secretName string, scmProvider string, serverEndpoint string, disableSubdomainIsolation *bool, namespace string) error {
+func (r *CheClusterValidator) validateOAuthSecret(
+	ctx context.Context,
+	secretName string,
+	scmProvider string,
+	serverEndpoint string,
+	disableSubdomainIsolation *bool,
+	namespace string,
+) error {
 	if secretName == "" {
 		return nil
 	}
 
-	k8sHelper := k8shelper.GetInstance()
-	secret, err := k8sHelper.GetClientSet().CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+	secret := &corev1.Secret{}
+	key := client.ObjectKey{Name: secretName, Namespace: namespace}
+
+	err := clusterapi.Get().NonCachingClient.Get(ctx, key, secret)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return fmt.Errorf("secret '%s' not found", secretName)
 		}
-		return fmt.Errorf("error reading '%s' secret", err.Error())
+		return fmt.Errorf("error reading '%s' secret: %w", secretName, err)
 	}
 
-	if err := r.ensureScmLabelsAndAnnotations(secret, scmProvider, serverEndpoint, disableSubdomainIsolation); err != nil {
+	if err := r.ensureScmLabelsAndAnnotations(
+		ctx,
+		secret,
+		scmProvider,
+		serverEndpoint,
+		disableSubdomainIsolation,
+	); err != nil {
 		return err
 	}
 
@@ -253,7 +293,13 @@ func (r *CheClusterValidator) validateBitBucketOAuthSecretDataKeys(secret *corev
 	return nil
 }
 
-func (r *CheClusterValidator) ensureScmLabelsAndAnnotations(secret *corev1.Secret, scmProvider string, serverEndpoint string, disableSubdomainIsolation *bool) error {
+func (r *CheClusterValidator) ensureScmLabelsAndAnnotations(
+	ctx context.Context,
+	secret *corev1.Secret,
+	scmProvider string,
+	serverEndpoint string,
+	disableSubdomainIsolation *bool,
+) error {
 	patch := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
@@ -276,19 +322,16 @@ func (r *CheClusterValidator) ensureScmLabelsAndAnnotations(secret *corev1.Secre
 	}
 
 	patchData, _ := json.Marshal(patch)
-	k8sHelper := k8shelper.GetInstance()
-	if _, err := k8sHelper.
-		GetClientSet().
-		CoreV1().
-		Secrets(secret.Namespace).
-		Patch(context.TODO(), secret.Name, types.MergePatchType, patchData, metav1.PatchOptions{}); err != nil {
-		return err
+	rawPatch := client.RawPatch(types.MergePatchType, patchData)
+
+	if err := clusterapi.Get().NonCachingClient.Patch(ctx, secret, rawPatch); err != nil {
+		return fmt.Errorf("failed to patch Secret %s/%s: %w", secret.Namespace, secret.Name, err)
 	}
 
 	return nil
 }
 
-func (r *CheClusterValidator) validateOpenVSXRegistry(checluster *CheCluster) error {
+func (r *CheClusterValidator) validateOpenVSXRegistry(ctx context.Context, checluster *CheCluster) error {
 	if checluster.Spec.Components.OpenVSXRegistry.Database != nil &&
 		checluster.Spec.Components.OpenVSXRegistry.Database.Storage != nil &&
 		checluster.Spec.Components.OpenVSXRegistry.Database.Storage.ClaimSize != "" {
@@ -310,12 +353,10 @@ func (r *CheClusterValidator) validateOpenVSXRegistry(checluster *CheCluster) er
 	if checluster.Spec.Components.OpenVSXRegistry.CredentialsSecretName != nil {
 		credentialsSecretName := *checluster.Spec.Components.OpenVSXRegistry.CredentialsSecretName
 
-		k8sHelper := k8shelper.GetInstance()
-		secret, err := k8sHelper.
-			GetClientSet().
-			CoreV1().
-			Secrets(checluster.Namespace).
-			Get(context.TODO(), credentialsSecretName, metav1.GetOptions{})
+		secret := &corev1.Secret{}
+		key := client.ObjectKey{Name: credentialsSecretName, Namespace: checluster.Namespace}
+
+		err := clusterapi.Get().NonCachingClient.Get(ctx, key, secret)
 		if err != nil {
 			if errors.IsNotFound(err) {
 				return fmt.Errorf("OpenVSX registry credentials secret %s not found", credentialsSecretName)
@@ -362,10 +403,8 @@ func (r *CheClusterValidator) validateNetworkingDomain(cheCluster *CheCluster) e
 }
 
 func (r *CheClusterValidator) validateAgentSandbox(cheCluster *CheCluster) error {
-	discoveryClient := k8shelper.GetInstance().GetDiscoveryClient()
-
 	if cheCluster.IsAgentSandboxEnabled() &&
-		!infrastructure.IsAgentSandboxEnabled(discoveryClient) {
+		!infrastructure.IsAgentSandboxEnabled(clusterapi.Get().DiscoveryClient) {
 
 		return fmt.Errorf("AgentSandbox integration cannot be enabled because the agents.x-k8s.io API group is not available in the cluster")
 	}

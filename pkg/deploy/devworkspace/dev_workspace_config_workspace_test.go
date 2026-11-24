@@ -21,6 +21,7 @@ import (
 
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -180,6 +181,8 @@ func TestReconcileDevWorkspaceProjectCloneConfig(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
+			test.StartOn(infrastructure.OpenShiftV4)
+
 			cheCluster := &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: testNamespace,
@@ -204,10 +207,10 @@ func TestReconcileDevWorkspaceProjectCloneConfig(t *testing.T) {
 			}
 			runtimeDWOC := client.Object(existingDWOC)
 
-			cheCtx := test.NewCtxBuilder().WithCheCluster(cheCluster).WithObjects(runtimeDWOC).Build()
+			cheCtx := test.NewCheContextBuilder().WithCheCluster(cheCluster).WithObjects(runtimeDWOC).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			test.EnsureReconcile(t, cheCtx, devWorkspaceConfigReconciler.Reconcile)
+			assert.NoError(t, test.ReconcileTwice(cheCtx, devWorkspaceConfigReconciler.Reconcile))
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
 			err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testNamespace}, dwoc)
@@ -498,10 +501,12 @@ func TestReconcileDevWorkspaceConfigPersistUserHome(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.existedObjects...).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := test.NewCheContextBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.existedObjects...).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			test.EnsureReconcile(t, cheCtx, devWorkspaceConfigReconciler.Reconcile)
+			assert.NoError(t, test.ReconcileTwice(cheCtx, devWorkspaceConfigReconciler.Reconcile))
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
 			err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
@@ -583,10 +588,12 @@ func TestReconcileDevWorkspaceImagePullPolicy(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := test.NewCheContextBuilder().WithCheCluster(testCase.cheCluster).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			test.EnsureReconcile(t, cheCtx, devWorkspaceConfigReconciler.Reconcile)
+			assert.NoError(t, test.ReconcileTwice(cheCtx, devWorkspaceConfigReconciler.Reconcile))
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
 			err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
@@ -673,10 +680,12 @@ func TestReconcileDevWorkspaceAnnotations(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := test.NewCheContextBuilder().WithCheCluster(testCase.cheCluster).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			test.EnsureReconcile(t, cheCtx, devWorkspaceConfigReconciler.Reconcile)
+			assert.NoError(t, test.ReconcileTwice(cheCtx, devWorkspaceConfigReconciler.Reconcile))
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
 			err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
@@ -763,10 +772,12 @@ func TestReconcileDevWorkspaceIgnoredUnrecoverableEvents(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := test.NewCheContextBuilder().WithCheCluster(testCase.cheCluster).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			test.EnsureReconcile(t, cheCtx, devWorkspaceConfigReconciler.Reconcile)
+			assert.NoError(t, test.ReconcileTwice(cheCtx, devWorkspaceConfigReconciler.Reconcile))
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
 			err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)
@@ -963,10 +974,12 @@ func TestReconcileDevWorkspaceConfigForInitContainers(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.existedObjects...).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := test.NewCheContextBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.existedObjects...).Build()
 
 			devWorkspaceConfigReconciler := NewDevWorkspaceConfigReconciler()
-			test.EnsureReconcile(t, cheCtx, devWorkspaceConfigReconciler.Reconcile)
+			assert.NoError(t, test.ReconcileTwice(cheCtx, devWorkspaceConfigReconciler.Reconcile))
 
 			dwoc := &controllerv1alpha1.DevWorkspaceOperatorConfig{}
 			err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: devWorkspaceConfigName, Namespace: testCase.cheCluster.Namespace}, dwoc)

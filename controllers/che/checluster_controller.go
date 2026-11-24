@@ -20,10 +20,10 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/cheerrors"
 	"github.com/eclipse-che/che-operator/pkg/common/cheproxy"
+	"github.com/eclipse-che/che-operator/pkg/common/clusterapi"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/deploy/metrics"
 	"github.com/eclipse-che/che-operator/pkg/deploy/rbac"
-	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/agentsandbox"
@@ -71,8 +71,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networking "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	k8sruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/discovery"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -80,34 +78,15 @@ import (
 
 // CheClusterReconciler reconciles a CheCluster object
 type CheClusterReconciler struct {
-	Log    logr.Logger
-	Scheme *k8sruntime.Scheme
-
-	// This client, initialized using mgr.Client() above, is a split client
-	// that reads objects from the cache and writes to the apiserver
-	client client.Client
-
-	// This client, is a simple client
-	// that reads objects without using the cache,
-	// to simply read objects that we don't intend
-	// to further watch
-	nonCachedClient client.Client
-	// A discovery client to check for the existence of certain APIs registered
-	// in the API Server
-	discoveryClient   discovery.DiscoveryInterface
+	Log               logr.Logger
+	clusterAPI        *clusterapi.ClusterAPI
 	reconcilerManager *reconciler.ReconcilerManager
 	// the namespace to which to limit the reconciliation. If empty, all namespaces are considered
 	namespace string
 }
 
 // NewReconciler returns a new CheClusterReconciler
-func NewReconciler(
-	k8sclient client.Client,
-	noncachedClient client.Client,
-	discoveryClient discovery.DiscoveryInterface,
-	scheme *k8sruntime.Scheme,
-	namespace string) *CheClusterReconciler {
-
+func NewReconciler(namespace string) *CheClusterReconciler {
 	reconcilerManager := reconciler.NewReconcilerManager()
 
 	// order does matter
@@ -156,12 +135,8 @@ func NewReconciler(
 	}
 
 	return &CheClusterReconciler{
-		Scheme: scheme,
-		Log:    ctrl.Log.WithName("controllers").WithName("CheCluster"),
-
-		client:            k8sclient,
-		nonCachedClient:   noncachedClient,
-		discoveryClient:   discoveryClient,
+		Log:               ctrl.Log.WithName("controllers").WithName("CheCluster"),
+		clusterAPI:        clusterapi.Get(),
 		namespace:         namespace,
 		reconcilerManager: reconcilerManager,
 	}
@@ -170,7 +145,7 @@ func NewReconciler(
 // SetupWithManager sets up the controller with the Manager.
 func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	var toTrustedBundleConfigMapRequestMapper handler.MapFunc = func(ctx context.Context, obj client.Object) []reconcile.Request {
-		isTrusted, reconcileRequest := IsTrustedBundleConfigMap(ctx, r.client, obj)
+		isTrusted, reconcileRequest := IsTrustedBundleConfigMap(ctx, r.clusterAPI.Client, obj)
 		if isTrusted {
 			return []reconcile.Request{reconcileRequest}
 		}
@@ -178,7 +153,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	var toEclipseCheRelatedObjRequestMapper handler.MapFunc = func(ctx context.Context, obj client.Object) []reconcile.Request {
-		isEclipseCheRelatedObj, reconcileRequest := IsEclipseCheRelatedObj(ctx, r.client, obj)
+		isEclipseCheRelatedObj, reconcileRequest := IsEclipseCheRelatedObj(ctx, r.clusterAPI.Client, obj)
 		if isEclipseCheRelatedObj {
 			return []reconcile.Request{reconcileRequest}
 		}
@@ -189,7 +164,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		ctx context.Context,
 		obj client.Object,
 	) []reconcile.Request {
-		isDevWorkspaceOperatorPod, reconcileRequest := mapDevWorkspaceOperatorPodToCheCluster(ctx, r.client, obj)
+		isDevWorkspaceOperatorPod, reconcileRequest := mapDevWorkspaceOperatorPodToCheCluster(ctx, r.clusterAPI.Client, obj)
 		if isDevWorkspaceOperatorPod {
 			return []reconcile.Request{reconcileRequest}
 		}
@@ -197,7 +172,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	var toOperatorManagedObjRequestMapper handler.MapFunc = func(ctx context.Context, obj client.Object) []reconcile.Request {
-		isOperatorManagedObj, reconcileRequest := IsOperatorManaged(ctx, r.client, obj)
+		isOperatorManagedObj, reconcileRequest := IsOperatorManaged(ctx, r.clusterAPI.Client, obj)
 		if isOperatorManagedObj {
 			return []reconcile.Request{reconcileRequest}
 		}
@@ -205,7 +180,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	var toClusterProxyRequestMapper handler.MapFunc = func(ctx context.Context, obj client.Object) []reconcile.Request {
-		isClusterProxy, reconcileRequest := IsClusterProxy(ctx, r.client, obj)
+		isClusterProxy, reconcileRequest := IsClusterProxy(ctx, r.clusterAPI.Client, obj)
 		if isClusterProxy {
 			return []reconcile.Request{reconcileRequest}
 		}
@@ -278,28 +253,20 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = r.Log.WithValues("checluster", req.NamespacedName)
 
-	cheCluster := &chev2.CheCluster{}
-	err := r.client.Get(ctx, req.NamespacedName, cheCluster)
+	cheCtx := &chetypes.CheContext{
+		Context:    ctx,
+		CheCluster: &chev2.CheCluster{},
+		Proxy:      &cheproxy.Proxy{},
+		ClusterAPI: r.clusterAPI,
+	}
+
+	err := r.clusterAPI.Client.Get(ctx, req.NamespacedName, cheCtx.CheCluster)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
 		r.Log.Error(err, "Failed to get CheCluster")
 		return ctrl.Result{}, err
-	}
-
-	cheCtx := &chetypes.CheContext{
-		Context:    ctx,
-		CheCluster: cheCluster,
-		Proxy:      &cheproxy.Proxy{},
-		ClusterAPI: chetypes.ClusterAPI{
-			Client:                  r.client,
-			NonCachingClient:        r.nonCachedClient,
-			DiscoveryClient:         r.discoveryClient,
-			Scheme:                  r.Scheme,
-			ClientWrapper:           clientwrapper.New(r.client, r.Scheme),
-			NonCachingClientWrapper: clientwrapper.New(r.nonCachedClient, r.Scheme),
-		},
 	}
 
 	// Ensure the CheCluster is not deleted until the operator

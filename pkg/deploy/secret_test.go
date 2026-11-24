@@ -16,6 +16,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,45 +31,6 @@ func TestGetSecrets(t *testing.T) {
 		annotations    map[string]string
 		initObjects    []client.Object
 		expectedAmount int
-	}
-
-	runtimeSecrets := []client.Object{
-		&corev1.Secret{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Secret",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test2",
-				Namespace: "eclipse-che",
-				Labels: map[string]string{
-					"l1": "v1",
-					"l2": "v2",
-				},
-				Annotations: map[string]string{
-					"a1": "v1",
-					"a2": "v2",
-				},
-			},
-		},
-		&corev1.Secret{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Secret",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test1",
-				Namespace: "eclipse-che",
-				Labels: map[string]string{
-					"l1": "v1",
-					"l3": "v3",
-				},
-				Annotations: map[string]string{
-					"a1": "v1",
-					"a3": "v3",
-				},
-			},
-		},
 	}
 
 	testCases := []testCase{
@@ -131,8 +93,10 @@ func TestGetSecrets(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			testCase.initObjects = append(testCase.initObjects, runtimeSecrets...)
-			cheCtx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			testCase.initObjects = append(testCase.initObjects, getRuntimeSecrets()...)
+			cheCtx := test.NewCheContextBuilder().WithObjects(testCase.initObjects...).Build()
 
 			secrets, err := GetSecrets(cheCtx, testCase.labels, testCase.annotations)
 			if err != nil {
@@ -147,7 +111,9 @@ func TestGetSecrets(t *testing.T) {
 }
 
 func TestSyncSecretToCluster(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().Build()
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().Build()
 
 	err := SyncSecretToCluster(cheCtx, "test", map[string][]byte{"A": []byte("AAAA")})
 	if err != nil {
@@ -171,5 +137,46 @@ func TestSyncSecretToCluster(t *testing.T) {
 	}
 	if string(actual.Data["B"]) != "BBBB" {
 		t.Fatalf("Failed to sync secret: %v", err)
+	}
+}
+
+func getRuntimeSecrets() []client.Object {
+	return []client.Object{
+		&corev1.Secret{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Secret",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test2",
+				Namespace: "eclipse-che",
+				Labels: map[string]string{
+					"l1": "v1",
+					"l2": "v2",
+				},
+				Annotations: map[string]string{
+					"a1": "v1",
+					"a2": "v2",
+				},
+			},
+		},
+		&corev1.Secret{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Secret",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test1",
+				Namespace: "eclipse-che",
+				Labels: map[string]string{
+					"l1": "v1",
+					"l3": "v3",
+				},
+				Annotations: map[string]string{
+					"a1": "v1",
+					"a3": "v3",
+				},
+			},
+		},
 	}
 }

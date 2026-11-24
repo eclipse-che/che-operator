@@ -35,17 +35,18 @@ var _ = Describe("ConsoleLinkReconciler", func() {
 	)
 
 	BeforeEach(func() {
-		test.Initialize(infrastructure.OpenShiftV4)
 		reconciler = NewReconciler()
 	})
 
 	Context("Reconcile", func() {
 		BeforeEach(func() {
-			cheCtx = test.NewCtxBuilder().Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx = test.NewCheContextBuilder().Build()
 		})
 
 		It("should create the ConsoleLink", func() {
-			test.Reconcile(cheCtx, reconciler.Reconcile)
+			Expect(test.ReconcileTwice(cheCtx, reconciler.Reconcile)).To(Succeed())
 
 			consoleLink := &consolev1.ConsoleLink{}
 			key := types.NamespacedName{Name: defaults.GetConsoleLinkName()}
@@ -57,7 +58,7 @@ var _ = Describe("ConsoleLinkReconciler", func() {
 
 	Context("when the ConsoleLink exists without labels", func() {
 		BeforeEach(func() {
-			cheCtx = test.NewCtxBuilder().Build()
+			test.StartOn(infrastructure.OpenShiftV4)
 
 			consoleLink := &consolev1.ConsoleLink{
 				TypeMeta: metav1.TypeMeta{
@@ -79,11 +80,11 @@ var _ = Describe("ConsoleLinkReconciler", func() {
 				},
 			}
 
-			Expect(cheCtx.ClusterAPI.Client.Create(cheCtx.Context, consoleLink)).To(Succeed())
+			cheCtx = test.NewCheContextBuilder().WithObjects(consoleLink).Build()
 		})
 
 		It("should add the standard labels on sync", func() {
-			test.Reconcile(cheCtx, reconciler.Reconcile)
+			Expect(test.ReconcileTwice(cheCtx, reconciler.Reconcile)).To(Succeed())
 
 			consoleLink := &consolev1.ConsoleLink{}
 			key := types.NamespacedName{Name: defaults.GetConsoleLinkName()}
@@ -94,6 +95,8 @@ var _ = Describe("ConsoleLinkReconciler", func() {
 
 	Context("when the Che URL changes", func() {
 		BeforeEach(func() {
+			test.StartOn(infrastructure.OpenShiftV4)
+
 			cheCluster := &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -124,11 +127,14 @@ var _ = Describe("ConsoleLinkReconciler", func() {
 				},
 			}
 
-			cheCtx = test.NewCtxBuilder().WithCheCluster(cheCluster).WithObjects(consoleLink).Build()
+			cheCtx = test.NewCheContextBuilder().
+				WithCheCluster(cheCluster).
+				WithObjects(consoleLink).
+				Build()
 		})
 
 		It("should update the ConsoleLink href and image URL", func() {
-			test.Reconcile(cheCtx, reconciler.Reconcile)
+			Expect(test.ReconcileTwice(cheCtx, reconciler.Reconcile)).To(Succeed())
 
 			consoleLink := &consolev1.ConsoleLink{}
 			key := types.NamespacedName{Name: defaults.GetConsoleLinkName()}

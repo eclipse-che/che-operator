@@ -18,10 +18,8 @@ import (
 	"testing"
 
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
-	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
-	"k8s.io/utils/ptr"
-
 	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"k8s.io/utils/ptr"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -151,27 +149,18 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, cheNam
 
 }
 
-func setup(infraType infrastructure.Type, objs ...client.Object) (*runtime.Scheme, client.Client, *CheUserNamespaceReconciler) {
-	infrastructure.InitializeForTesting(infraType)
-
-	cheCtx := test.NewCtxBuilder().WithObjects(objs...).WithCheCluster(nil).Build()
+func setup(objs ...client.Object) (*runtime.Scheme, client.Client, *CheUserNamespaceReconciler) {
+	cheCtx := test.NewCheContextBuilder().WithObjects(objs...).WithCheCluster(nil).Build()
 
 	cl := cheCtx.ClusterAPI.Client
 	scheme := cheCtx.ClusterAPI.Scheme
 
-	r := &CheUserNamespaceReconciler{
-		client:                 cl,
-		nonCachedClient:        cl,
-		clientWrapper:          clientwrapper.New(cl, scheme),
-		nonCachedClientWrapper: clientwrapper.New(cl, scheme),
-		scheme:                 scheme,
-		namespaceCache: &namespacecache.NamespaceCache{
+	r := NewCheUserNamespaceReconciler(
+		&namespacecache.NamespaceCache{
 			Client:          cl,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{},
 			Lock:            sync.Mutex{},
-		},
-	}
-
+		})
 	r.setDWONamespace("devworkspace-controller")
 
 	return scheme, cl, r

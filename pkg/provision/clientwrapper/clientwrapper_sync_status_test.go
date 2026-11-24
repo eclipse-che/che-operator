@@ -57,6 +57,7 @@ var _ = Describe("SyncStatus", Ordered, func() {
 		Expect(err).To(Succeed())
 
 		actualCheCluster := &chev2.CheCluster{}
+
 		key := types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"}
 		Expect(env.Client.Get(env.Context, key, actualCheCluster)).To(Succeed())
 		Expect(actualCheCluster.Status.CheURL).To(Equal("https://new-host"))
@@ -93,6 +94,7 @@ var _ = Describe("SyncStatus", Ordered, func() {
 		Expect(err).To(Succeed())
 
 		actualCheCluster := &chev2.CheCluster{}
+
 		key := types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"}
 		Expect(env.Client.Get(env.Context, key, actualCheCluster)).To(Succeed())
 		Expect(actualCheCluster.Status.CheURL).To(Equal("https://new-host"))

@@ -16,15 +16,17 @@ import (
 	"os"
 	"testing"
 
-	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
-
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestDevfileRegistryReconciler(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	defaultExternalDevfileRegistriesEnvVar := os.Getenv("CHE_DEFAULT_SPEC_COMPONENTS_DEVFILEREGISTRY_EXTERNAL_DEVFILE_REGISTRIES")
 	defer func() {
 		_ = os.Setenv("CHE_DEFAULT_SPEC_COMPONENTS_DEVFILEREGISTRY_EXTERNAL_DEVFILE_REGISTRIES", defaultExternalDevfileRegistriesEnvVar)
@@ -166,11 +168,12 @@ func TestDevfileRegistryReconciler(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := test.NewCheContextBuilder().WithCheCluster(testCase.cheCluster).Build()
 
 			devfileRegistryReconciler := NewDevfileRegistryReconciler()
-			test.EnsureReconcile(t, cheCtx, devfileRegistryReconciler.Reconcile)
-
+			assert.NoError(t, test.ReconcileTwice(cheCtx, devfileRegistryReconciler.Reconcile))
 			assert.Equal(t, testCase.expectedDevfileRegistryURL, cheCtx.CheCluster.Status.DevfileRegistryURL)
 			assert.Equal(t, testCase.expectedDisableInternalRegistry, cheCtx.CheCluster.Spec.Components.DevfileRegistry.DisableInternalRegistry)
 			assert.Equal(t, len(testCase.expectedExternalDevfileRegistries), len(cheCtx.CheCluster.Spec.Components.DevfileRegistry.ExternalDevfileRegistries))

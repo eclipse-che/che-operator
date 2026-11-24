@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2024 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -12,16 +12,6 @@
 
 package editorsdefinitions
 
-import (
-	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
-	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
-	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
-)
-
 func init() {
-	k8shelper.InitializeForTesting()
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
-	defaults.InitializeForTesting()
-
 	editorsDefinitionsDir = "./test-editors-definitions"
 }

@@ -24,6 +24,7 @@ import (
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -46,7 +47,9 @@ var (
 )
 
 func TestSyncConfigMap(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithObjects(&corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
 			APIVersion: "v1",
@@ -67,9 +70,6 @@ func TestSyncConfigMap(t *testing.T) {
 	}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
 			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
@@ -209,7 +209,9 @@ func TestSyncConfigMap(t *testing.T) {
 }
 
 func TestSyncConfigMapShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithObjects(&corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
 			APIVersion: "v1",
@@ -232,9 +234,6 @@ func TestSyncConfigMapShouldMergeLabelsAndAnnotationsOnUpdate(t *testing.T) {
 	}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
 			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
@@ -330,7 +329,9 @@ func assertSyncConfig(t *testing.T, workspaceConfigReconciler *WorkspacesConfigR
 }
 
 func TestSyncConfigMapShouldRespectDWOLabels(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithObjects(&corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
 			APIVersion: "v1",
@@ -348,9 +349,6 @@ func TestSyncConfigMapShouldRespectDWOLabels(t *testing.T) {
 	}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
 			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
@@ -426,7 +424,9 @@ func TestSyncConfigMapShouldRespectDWOLabels(t *testing.T) {
 }
 
 func TestSyncConfigMapShouldRemoveSomeLabels(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithObjects(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithObjects(
 		&corev1.ConfigMap{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "ConfigMap",
@@ -445,9 +445,6 @@ func TestSyncConfigMapShouldRemoveSomeLabels(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
 			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
@@ -475,7 +472,9 @@ func TestSyncConfigMapShouldRemoveSomeLabels(t *testing.T) {
 }
 
 func TestSyncConfigMapShouldRetainIfAnnotationSetTrue(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithObjects(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithObjects(
 		&corev1.ConfigMap{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "ConfigMap",
@@ -495,9 +494,6 @@ func TestSyncConfigMapShouldRetainIfAnnotationSetTrue(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
 			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{
@@ -536,7 +532,9 @@ func TestSyncConfigMapShouldRetainIfAnnotationSetTrue(t *testing.T) {
 }
 
 func TestSyncConfigMapShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithObjects(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithObjects(
 		&corev1.ConfigMap{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "ConfigMap",
@@ -556,9 +554,6 @@ func TestSyncConfigMapShouldNotRetainIfAnnotationSetFalse(t *testing.T) {
 		}).Build()
 
 	workspaceConfigReconciler := NewWorkspacesConfigReconciler(
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Client,
-		cheCtx.ClusterAPI.Scheme,
 		&namespacecache.NamespaceCache{
 			Client: cheCtx.ClusterAPI.Client,
 			KnownNamespaces: map[string]namespacecache.NamespaceInfo{

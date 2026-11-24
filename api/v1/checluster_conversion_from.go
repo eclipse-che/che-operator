@@ -23,10 +23,11 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/clusterapi"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
-	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
@@ -425,9 +426,11 @@ func (dst *CheCluster) convertFrom_Storage(src *chev2.CheCluster) error {
 
 // Finds TrustStore ConfigMap.
 func findTrustStoreConfigMap(namespace string) (string, error) {
-	k8sHelper := k8shelper.GetInstance()
-
-	_, err := k8sHelper.GetClientSet().CoreV1().ConfigMaps(namespace).Get(context.TODO(), constants.DefaultCaBundleCertsCMName, metav1.GetOptions{})
+	key := client.ObjectKey{
+		Name:      constants.DefaultCaBundleCertsCMName,
+		Namespace: namespace,
+	}
+	err := clusterapi.Get().NonCachingClient.Get(context.TODO(), key, &corev1.ConfigMap{})
 	if err == nil {
 		// TrustStore ConfigMap with a default name exists
 		return constants.DefaultCaBundleCertsCMName, nil

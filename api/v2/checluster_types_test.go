@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -47,6 +47,8 @@ func TestIsAccessTokenConfigured(t *testing.T) {
 
 func TestGetIdentityToken(t *testing.T) {
 	t.Run("TestGetIdentityToken when access_token defined in config and k8s", func(t *testing.T) {
+		infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
 		cheCluster := &CheCluster{
 			Spec: CheClusterSpec{
 				Networking: CheClusterSpecNetworking{
@@ -55,13 +57,14 @@ func TestGetIdentityToken(t *testing.T) {
 					},
 				}},
 		}
-		infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
 		assert.Equal(t, "access_token", cheCluster.GetIdentityToken(),
 			"'access_token' should be used")
 	})
 
 	t.Run("TestGetIdentityToken when id_token defined in config and k8s", func(t *testing.T) {
+		infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
 		cheCluster := &CheCluster{
 			Spec: CheClusterSpec{
 				Networking: CheClusterSpecNetworking{
@@ -70,7 +73,6 @@ func TestGetIdentityToken(t *testing.T) {
 					},
 				}},
 		}
-		infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 
 		assert.Equal(t, "id_token", cheCluster.GetIdentityToken(),
 			"'id_token' should be used")
@@ -90,6 +92,8 @@ func TestGetIdentityToken(t *testing.T) {
 	})
 
 	t.Run("TestGetIdentityToken when access_token defined in config and openshift", func(t *testing.T) {
+		infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+
 		cheCluster := &CheCluster{
 			Spec: CheClusterSpec{
 				Networking: CheClusterSpecNetworking{
@@ -98,13 +102,14 @@ func TestGetIdentityToken(t *testing.T) {
 					},
 				}},
 		}
-		infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 
 		assert.Equal(t, "access_token", cheCluster.GetIdentityToken(),
 			"'access_token' should be used")
 	})
 
 	t.Run("TestGetIdentityToken when id_token defined in config and openshift", func(t *testing.T) {
+		infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+
 		cheCluster := &CheCluster{
 			Spec: CheClusterSpec{
 				Networking: CheClusterSpecNetworking{
@@ -113,20 +118,20 @@ func TestGetIdentityToken(t *testing.T) {
 					},
 				}},
 		}
-		infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 
 		assert.Equal(t, "id_token", cheCluster.GetIdentityToken(),
 			"'id_token' should be used")
 	})
 
 	t.Run("TestGetIdentityToken when no defined token in config and openshift", func(t *testing.T) {
+		infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+
 		cheCluster := &CheCluster{
 			Spec: CheClusterSpec{
 				Networking: CheClusterSpecNetworking{
 					Auth: Auth{},
 				}},
 		}
-		infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
 
 		assert.Equal(t, "access_token", cheCluster.GetIdentityToken(),
 			"'access_token' should be used")
@@ -146,6 +151,7 @@ func TestGetDefaultIdentityToken(t *testing.T) {
 	}
 	for _, test := range tests {
 		infrastructure.InitializeForTesting(test.infrastructure)
+
 		if actual := emptyCheCluster.GetIdentityToken(); !reflect.DeepEqual(test.identityToken, actual) {
 			t.Errorf("Test Failed. Expected '%s', but got '%s'", test.identityToken, actual)
 		}

@@ -17,8 +17,8 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
@@ -98,7 +98,9 @@ func TestIsTrustedBundleConfigMap(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := test.NewCheContextBuilder().WithObjects(testCase.initObjects...).Build()
 
 			newTestObject := testObject.DeepCopy()
 			newTestObject.Namespace = testCase.objNamespace
@@ -180,7 +182,9 @@ func TestIsEclipseCheRelatedObj(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := test.NewCheContextBuilder().WithObjects(testCase.initObjects...).Build()
 
 			testObject.Namespace = testCase.objNamespace
 			isEclipseCheObj, req := IsEclipseCheRelatedObj(cheCtx.Context, cheCtx.ClusterAPI.Client, testObject)
@@ -227,11 +231,9 @@ func TestMapDevWorkspaceOperatorPodToCheCluster(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			cheCluster := &chev2.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{Name: "eclipse-che", Namespace: "eclipse-che"},
-			}
-			cheCtx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
 
+			cheCtx := test.NewCheContextBuilder().Build()
 			isDevWorkspaceOperatorPod, request := mapDevWorkspaceOperatorPodToCheCluster(
 				cheCtx.Context,
 				cheCtx.ClusterAPI.Client,
@@ -248,8 +250,9 @@ func TestMapDevWorkspaceOperatorPodToCheCluster(t *testing.T) {
 }
 
 func TestMapDevWorkspaceOperatorPodToCheClusterWithoutCheCluster(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(nil).Build()
+	test.StartOn(infrastructure.OpenShiftV4)
 
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(nil).Build()
 	isDevWorkspaceOperatorPod, _ := mapDevWorkspaceOperatorPodToCheCluster(
 		cheCtx.Context,
 		cheCtx.ClusterAPI.Client,

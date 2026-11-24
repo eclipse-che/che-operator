@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -17,6 +17,7 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -320,11 +321,11 @@ func TestRoundConvertCheClusterV2(t *testing.T) {
 }
 
 func onKubernetes(f func()) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
 	f()
 }
 
 func onOpenShift(f func()) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+	test.StartOn(infrastructure.OpenShiftV4)
 	f()
 }

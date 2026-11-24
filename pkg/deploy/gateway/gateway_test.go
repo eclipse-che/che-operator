@@ -19,13 +19,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/eclipse-che/che-operator/pkg/common/clusterapi"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"k8s.io/utils/ptr"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
-	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -49,7 +51,9 @@ var (
 )
 
 func TestSyncAllToCluster(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().Build()
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().Build()
 
 	done, err := SyncGatewayToCluster(cheCtx, readFile)
 	assert.True(t, done)
@@ -75,7 +79,9 @@ func TestSyncAllToCluster(t *testing.T) {
 }
 
 func TestNativeUserGateway(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().Build()
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().Build()
 
 	done, err := SyncGatewayToCluster(cheCtx, readFile)
 	assert.True(t, done)
@@ -121,7 +127,10 @@ func TestRandomCookieSecret(t *testing.T) {
 
 func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 	t.Run("no skip auth", func(t *testing.T) {
-		cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+		test.StartOn(infrastructure.OpenShiftV4)
+
+		cheCtx := test.NewCheContextBuilder().WithCheCluster(&chev2.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{Name: "eclipse-che"},
 			Spec: chev2.CheClusterSpec{
 				Components: chev2.CheClusterComponents{
 					PluginRegistry: chev2.PluginRegistry{
@@ -138,7 +147,10 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 	})
 
 	t.Run("skip plugin registry", func(t *testing.T) {
-		cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+		test.StartOn(infrastructure.OpenShiftV4)
+
+		cheCtx := test.NewCheContextBuilder().WithCheCluster(&chev2.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{Name: "eclipse-che"},
 			Spec: chev2.CheClusterSpec{
 				Components: chev2.CheClusterComponents{
 					PluginRegistry: chev2.PluginRegistry{
@@ -156,14 +168,19 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 	})
 
 	t.Run("skip '/healthz' path", func(t *testing.T) {
-		cheCtx := test.NewCtxBuilder().Build()
+		test.StartOn(infrastructure.OpenShiftV4)
+
+		cheCtx := test.NewCheContextBuilder().Build()
 		configmap := getGatewayOauthProxyConfigSpec(cheCtx, "blabol")
 		config := configmap.Data["oauth-proxy.cfg"]
 		assert.Contains(t, config, "/healthz$")
 	})
 
 	t.Run("skip openvsx", func(t *testing.T) {
-		cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+		test.StartOn(infrastructure.OpenShiftV4)
+
+		cheCtx := test.NewCheContextBuilder().WithCheCluster(&chev2.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{Name: "eclipse-che"},
 			Spec: chev2.CheClusterSpec{
 				Components: chev2.CheClusterComponents{
 					PluginRegistry: chev2.PluginRegistry{
@@ -185,12 +202,7 @@ func TestTokenValidityCheckOnOpenShiftNativeUser(t *testing.T) {
 	_ = chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
 	_ = corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
 
-	cm, err := getGatewayServerConfigSpec(&chetypes.CheContext{
-		CheCluster: &chev2.CheCluster{},
-		ClusterAPI: chetypes.ClusterAPI{
-			Scheme: scheme.Scheme,
-		},
-	})
+	cm, err := getGatewayServerConfigSpec(&chetypes.CheContext{CheCluster: &chev2.CheCluster{}, ClusterAPI: clusterapi.Get()})
 	assert.NoError(t, err)
 
 	cfg := &TraefikConfig{}
@@ -206,6 +218,8 @@ func TestTokenValidityCheckOnOpenShiftNativeUser(t *testing.T) {
 }
 
 func TestCustomizeGatewayDeploymentAllImages(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	checluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "eclipse-che",
@@ -240,7 +254,7 @@ func TestCustomizeGatewayDeploymentAllImages(t *testing.T) {
 			},
 		},
 	}
-	cheCtx := test.NewCtxBuilder().WithCheCluster(checluster).Build()
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(checluster).Build()
 
 	deployment, err := getGatewayDeploymentSpec(cheCtx)
 	assert.NoError(t, err)
@@ -259,6 +273,8 @@ func TestCustomizeGatewayDeploymentAllImages(t *testing.T) {
 }
 
 func TestCustomizeGatewayDeploymentSingleImage(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	checluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "eclipse-che",
@@ -281,7 +297,7 @@ func TestCustomizeGatewayDeploymentSingleImage(t *testing.T) {
 			},
 		},
 	}
-	cheCtx := test.NewCtxBuilder().WithCheCluster(checluster).Build()
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(checluster).Build()
 
 	deployment, err := getGatewayDeploymentSpec(cheCtx)
 	assert.NoError(t, err)
@@ -332,6 +348,8 @@ func TestTraefikLogLevelDefault(t *testing.T) {
 }
 
 func TestKubeRbacProxyLogLevel(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	logLevel := int32(10)
 	checluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -350,7 +368,7 @@ func TestKubeRbacProxyLogLevel(t *testing.T) {
 			},
 		},
 	}
-	cheCtx := test.NewCtxBuilder().WithCheCluster(checluster).Build()
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(checluster).Build()
 
 	deployment, err := getGatewayDeploymentSpec(cheCtx)
 	assert.NoError(t, err)
@@ -361,7 +379,9 @@ func TestKubeRbacProxyLogLevel(t *testing.T) {
 }
 
 func TestKubeRbacProxyLogLevelDefault(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().Build()
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().Build()
 
 	deployment, err := getGatewayDeploymentSpec(cheCtx)
 	assert.NoError(t, err)

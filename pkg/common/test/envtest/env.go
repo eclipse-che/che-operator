@@ -17,17 +17,13 @@ import (
 	"os"
 	"path/filepath"
 
-	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/clusterapi"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/discovery"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	crenvtest "sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -52,7 +48,9 @@ func Start() *Env {
 	projectRoot, err := utils.FindProjectRoot()
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-	env := &Env{Scheme: newScheme()}
+	scheme := test.NewScheme()
+
+	env := &Env{Scheme: scheme}
 
 	env.testEnv = &crenvtest.Environment{
 		Scheme:                env.Scheme,
@@ -71,6 +69,8 @@ func Start() *Env {
 	env.DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(env.Config)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to create DiscoveryClient")
 
+	clusterapi.Initialize(env.Client, env.Client, env.DiscoveryClient, env.Scheme)
+
 	return env
 }
 
@@ -82,31 +82,4 @@ func (e *Env) Stop() {
 	}
 
 	gomega.Expect(e.testEnv.Stop()).To(gomega.Succeed(), "failed to stop envtest control plane")
-}
-
-func (e *Env) ensureNamespaceExists(name string) error {
-	if name == "" {
-		return nil
-	}
-
-	namespace := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-	}
-
-	if err := e.Client.Create(e.Context, namespace); err != nil && !errors.IsAlreadyExists(err) {
-		return err
-	}
-
-	return nil
-}
-
-func newScheme() *runtime.Scheme {
-	scheme := runtime.NewScheme()
-
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(chev2.AddToScheme(scheme))
-
-	return scheme
 }

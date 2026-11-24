@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -18,6 +18,7 @@ import (
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -28,7 +29,7 @@ import (
 )
 
 func TestExternalTLSConfigForIngresses(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
 
 	mgr := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -106,7 +107,7 @@ func TestExternalTLSConfigForIngresses(t *testing.T) {
 }
 
 func TestExternalTLSConfigForRoutes(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+	test.StartOn(infrastructure.OpenShiftV4)
 
 	mgr := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{

@@ -16,17 +16,16 @@ import (
 	"context"
 	"testing"
 
+	"github.com/eclipse-che/che-operator/pkg/common/clusterapi"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
-	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func TestValidateScmSecrets(t *testing.T) {
-	k8sHelper := k8shelper.GetInstance()
-
 	githubSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
@@ -37,7 +36,7 @@ func TestValidateScmSecrets(t *testing.T) {
 			"secret": []byte("secret"),
 		},
 	}
-	_, err := k8sHelper.GetClientSet().CoreV1().Secrets("eclipse-che").Create(context.TODO(), githubSecret, metav1.CreateOptions{})
+	err := clusterapi.Get().Client.Create(context.TODO(), githubSecret)
 	assert.Nil(t, err)
 
 	gitlabSecret := &corev1.Secret{
@@ -53,7 +52,7 @@ func TestValidateScmSecrets(t *testing.T) {
 			"secret": []byte("secret"),
 		},
 	}
-	_, err = k8sHelper.GetClientSet().CoreV1().Secrets("eclipse-che").Create(context.TODO(), gitlabSecret, metav1.CreateOptions{})
+	err = clusterapi.Get().Client.Create(context.TODO(), gitlabSecret)
 	assert.Nil(t, err)
 
 	bitbucketSecret := &corev1.Secret{
@@ -66,7 +65,7 @@ func TestValidateScmSecrets(t *testing.T) {
 			"consumer.key": []byte("secret"),
 		},
 	}
-	_, err = k8sHelper.GetClientSet().CoreV1().Secrets("eclipse-che").Create(context.TODO(), bitbucketSecret, metav1.CreateOptions{})
+	err = clusterapi.Get().Client.Create(context.TODO(), bitbucketSecret)
 	assert.Nil(t, err)
 
 	checluster := &CheCluster{
@@ -103,26 +102,34 @@ func TestValidateScmSecrets(t *testing.T) {
 	_, err = cheClusterValidator.ValidateCreate(context.TODO(), checluster)
 	assert.Nil(t, err)
 
-	githubSecret, err = k8sHelper.GetClientSet().CoreV1().Secrets("eclipse-che").Get(context.TODO(), "github-scm-secret", metav1.GetOptions{})
-	assert.Nil(t, err)
-	assert.Equal(t, "github", githubSecret.Annotations[constants.CheEclipseOrgOAuthScmServer])
-	assert.Equal(t, "github-endpoint", githubSecret.Annotations[constants.CheEclipseOrgScmServerEndpoint])
-	assert.Equal(t, constants.OAuthScmConfiguration, githubSecret.Labels[constants.KubernetesComponentLabelKey])
-	assert.Equal(t, constants.CheEclipseOrg, githubSecret.Labels[constants.KubernetesPartOfLabelKey])
+	secret := &corev1.Secret{}
 
-	gitlabSecret, err = k8sHelper.GetClientSet().CoreV1().Secrets("eclipse-che").Get(context.TODO(), "gitlab-scm-secret", metav1.GetOptions{})
-	assert.Nil(t, err)
-	assert.Equal(t, "gitlab", gitlabSecret.Annotations[constants.CheEclipseOrgOAuthScmServer])
-	assert.Equal(t, "gitlab-endpoint-secret", gitlabSecret.Annotations[constants.CheEclipseOrgScmServerEndpoint])
-	assert.Equal(t, constants.OAuthScmConfiguration, gitlabSecret.Labels[constants.KubernetesComponentLabelKey])
-	assert.Equal(t, constants.CheEclipseOrg, gitlabSecret.Labels[constants.KubernetesPartOfLabelKey])
+	key := client.ObjectKey{Namespace: "eclipse-che", Name: "github-scm-secret"}
+	err = clusterapi.Get().NonCachingClient.Get(context.TODO(), key, secret)
 
-	bitbucketSecret, err = k8sHelper.GetClientSet().CoreV1().Secrets("eclipse-che").Get(context.TODO(), "bitbucket-scm-secret", metav1.GetOptions{})
 	assert.Nil(t, err)
-	assert.Equal(t, "bitbucket", bitbucketSecret.Annotations[constants.CheEclipseOrgOAuthScmServer])
-	assert.Empty(t, bitbucketSecret.Annotations[constants.CheEclipseOrgScmServerEndpoint])
-	assert.Equal(t, constants.OAuthScmConfiguration, bitbucketSecret.Labels[constants.KubernetesComponentLabelKey])
-	assert.Equal(t, constants.CheEclipseOrg, bitbucketSecret.Labels[constants.KubernetesPartOfLabelKey])
+	assert.Equal(t, "github", secret.Annotations[constants.CheEclipseOrgOAuthScmServer])
+	assert.Equal(t, "github-endpoint", secret.Annotations[constants.CheEclipseOrgScmServerEndpoint])
+	assert.Equal(t, constants.OAuthScmConfiguration, secret.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, constants.CheEclipseOrg, secret.Labels[constants.KubernetesPartOfLabelKey])
+
+	key = client.ObjectKey{Namespace: "eclipse-che", Name: "gitlab-scm-secret"}
+	err = clusterapi.Get().NonCachingClient.Get(context.TODO(), key, secret)
+
+	assert.Nil(t, err)
+	assert.Equal(t, "gitlab", secret.Annotations[constants.CheEclipseOrgOAuthScmServer])
+	assert.Equal(t, "gitlab-endpoint-secret", secret.Annotations[constants.CheEclipseOrgScmServerEndpoint])
+	assert.Equal(t, constants.OAuthScmConfiguration, secret.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, constants.CheEclipseOrg, secret.Labels[constants.KubernetesPartOfLabelKey])
+
+	key = client.ObjectKey{Namespace: "eclipse-che", Name: "bitbucket-scm-secret"}
+	err = clusterapi.Get().NonCachingClient.Get(context.TODO(), key, secret)
+
+	assert.Nil(t, err)
+	assert.Equal(t, "bitbucket", secret.Annotations[constants.CheEclipseOrgOAuthScmServer])
+	assert.Empty(t, secret.Annotations[constants.CheEclipseOrgScmServerEndpoint])
+	assert.Equal(t, constants.OAuthScmConfiguration, secret.Labels[constants.KubernetesComponentLabelKey])
+	assert.Equal(t, constants.CheEclipseOrg, secret.Labels[constants.KubernetesPartOfLabelKey])
 }
 
 func TestValidateOpenVSXClaimSize(t *testing.T) {
@@ -148,7 +155,7 @@ func TestValidateOpenVSXClaimSize(t *testing.T) {
 		},
 	}
 
-	err := cheClusterValidator.validate(checluster)
+	err := cheClusterValidator.validate(context.TODO(), checluster)
 	assert.NoError(t, err)
 }
 
@@ -172,7 +179,7 @@ func TestValidateOpenVSXServerClaimSizeInvalid(t *testing.T) {
 		},
 	}
 
-	err := cheClusterValidator.validate(checluster)
+	err := cheClusterValidator.validate(context.TODO(), checluster)
 	assert.Error(t, err)
 }
 
@@ -196,13 +203,11 @@ func TestValidateOpenVSXSDatabaseClaimSizeInvalid(t *testing.T) {
 		},
 	}
 
-	err := cheClusterValidator.validate(checluster)
+	err := cheClusterValidator.validate(context.TODO(), checluster)
 	assert.Error(t, err)
 }
 
 func TestValidateOpenVSXCredentialsSecret(t *testing.T) {
-	k8sHelper := k8shelper.GetInstance()
-
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
@@ -218,7 +223,7 @@ func TestValidateOpenVSXCredentialsSecret(t *testing.T) {
 			"openvsx-admin-token":     []byte("admin-token"),
 		},
 	}
-	_, err := k8sHelper.GetClientSet().CoreV1().Secrets("eclipse-che").Create(context.TODO(), secret, metav1.CreateOptions{})
+	err := clusterapi.Get().Client.Create(context.TODO(), secret)
 	assert.NoError(t, err)
 
 	cheClusterValidator := CheClusterValidator{}
@@ -238,13 +243,11 @@ func TestValidateOpenVSXCredentialsSecret(t *testing.T) {
 		},
 	}
 
-	err = cheClusterValidator.validate(checluster)
+	err = cheClusterValidator.validate(context.TODO(), checluster)
 	assert.NoError(t, err)
 }
 
 func TestValidateOpenVSXCredentialsSecretMissingKeys(t *testing.T) {
-	k8sHelper := k8shelper.GetInstance()
-
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
@@ -254,7 +257,7 @@ func TestValidateOpenVSXCredentialsSecretMissingKeys(t *testing.T) {
 			"database-user": []byte("user"),
 		},
 	}
-	_, err := k8sHelper.GetClientSet().CoreV1().Secrets("eclipse-che").Create(context.TODO(), secret, metav1.CreateOptions{})
+	err := clusterapi.Get().Client.Create(context.TODO(), secret)
 	assert.NoError(t, err)
 
 	cheClusterValidator := CheClusterValidator{}
@@ -274,7 +277,7 @@ func TestValidateOpenVSXCredentialsSecretMissingKeys(t *testing.T) {
 		},
 	}
 
-	err = cheClusterValidator.validate(checluster)
+	err = cheClusterValidator.validate(context.TODO(), checluster)
 	assert.Error(t, err)
 }
 
@@ -308,8 +311,7 @@ func TestValidateScmSecretsShouldThrowError(t *testing.T) {
 		},
 	}
 
-	k8sHelper := k8shelper.GetInstance()
-	_, err = k8sHelper.GetClientSet().CoreV1().Secrets("eclipse-che").Create(context.TODO(), githubSecret, metav1.CreateOptions{})
+	err = clusterapi.Get().Client.Create(context.TODO(), githubSecret)
 	assert.Nil(t, err)
 
 	_, err = cheClusterValidator.ValidateCreate(context.TODO(), checluster)
@@ -329,11 +331,11 @@ func TestValidateNetworkingDomainOnKubernetes(t *testing.T) {
 		},
 	}
 
-	err := cheClusterValidator.validate(checluster)
+	err := cheClusterValidator.validate(context.TODO(), checluster)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "spec.networking.domain")
 
 	checluster.Spec.Networking.Domain = "example.com"
-	err = cheClusterValidator.validate(checluster)
+	err = cheClusterValidator.validate(context.TODO(), checluster)
 	assert.NoError(t, err)
 }
