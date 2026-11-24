@@ -190,11 +190,6 @@ update-helmcharts: ## Update Helm Charts based on deployment resources
 		# Update Chart.yaml
 		yq -rYi --arg examples "$${CRDS_SAMPLES}" ".annotations.\"artifacthub.io/crdsExamples\" = \$$examples" $${chartYaml}
 
-		# Set CheCluster API version to v2 (TODO: remove in a next release)
-		CRDS=$$(yq -r '.annotations."artifacthub.io/crds"' $${chartYaml} | yq -ry -w 9999 '.[0].version="v2"')
-		yq -rYi --arg crds "$${CRDS}" ".annotations.\"artifacthub.io/crds\" = \$$crds" $${chartYaml}
-		sed -i 's|org_v1_checluster|org_v2_checluster|g' $${HELM_DIR}/README.md
-
 		make license $${chartYaml}
 
 		rm -rf $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
@@ -442,6 +437,14 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 	# Build default clusterserviceversion file
 	$(OPERATOR_SDK) generate kustomize manifests
 
+	# CheCluster v1 is unserved. operator-sdk lists every CRD version as owned regardless of the served flag,
+	# so drop v1 from the base clusterserviceversion file to keep it out of the bundle.
+	# Remove this filter together with api/v1 once CheCluster v1 is dropped from the CRD.
+	BASE_CSV_PATH=$(PROJECT_DIR)/config/manifests/bases/che-operator.clusterserviceversion.yaml
+	# --indentless keeps the operator-sdk list style, so only the v1 entry is removed and the rest of the file stays as is.
+	yq -Y -i --indentless '.spec.customresourcedefinitions.owned |= map(select((.name == "checlusters.org.eclipse.che" and .version == "v1") | not))' \
+		"$${BASE_CSV_PATH}"
+
 	$(KUSTOMIZE) build config/openshift/olm | \
 	$(OPERATOR_SDK) generate bundle \
 	--quiet \
@@ -470,11 +473,14 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 	printf "\n  com.redhat.openshift.versions: \"v4.8\"\n" >> $${BUNDLE_PATH}/metadata/annotations.yaml
 
 	# Base cluster service version file has got correctly sorted CRDs.
-	# They are sorted with help of annotation markers in the api type files ("api/v1" folder).
+	# They are sorted with help of annotation markers in the api type files ("api/v2" folder).
 	# Example such annotation: +operator-sdk:csv:customresourcedefinitions:order=0
 	# Copy this sorted CRDs to the bundle clusterserviceversion file.
-	CRDS_OWNED=$$(yq  '.spec.customresourcedefinitions.owned' "$(PROJECT_DIR)/config/manifests/bases/che-operator.clusterserviceversion.yaml")
+	CRDS_OWNED=$$(yq '.spec.customresourcedefinitions.owned' "$${BASE_CSV_PATH}")
 	yq -riSY ".spec.customresourcedefinitions.owned = $${CRDS_OWNED}" "$${CSV_PATH}"
+	yq -e '[.spec.customresourcedefinitions.owned[] | select(.name == "checlusters.org.eclipse.che" and .version == "v1")] | length == 0' \
+		"$${CSV_PATH}" > /dev/null || \
+		 { echo "[ERROR] CheCluster v1 is still listed in owned CRDs of $${CSV_PATH} (check the filter applied to $${BASE_CSV_PATH})"; exit 1; }
 
 	# Ensure pod security standards
 	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostIPC") = false' "$${CSV_PATH}"
