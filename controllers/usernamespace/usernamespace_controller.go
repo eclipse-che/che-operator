@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/common/cheproxy"
+	"github.com/eclipse-che/che-operator/pkg/common/clusterapi"
 	"github.com/eclipse-che/che-operator/pkg/common/diffs"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	containercapabilties "github.com/eclipse-che/che-operator/pkg/deploy/container-capabilities"
@@ -49,7 +50,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -70,12 +70,9 @@ var (
 )
 
 type CheUserNamespaceReconciler struct {
-	scheme                 *runtime.Scheme
-	client                 client.Client
-	nonCachedClient        client.Client
-	clientWrapper          *clientwrapper.K8sClientWrapper
-	nonCachedClientWrapper *clientwrapper.K8sClientWrapper
-	namespaceCache         *namespacecache.NamespaceCache
+	namespaceCache *namespacecache.NamespaceCache
+
+	clusterAPI *clusterapi.ClusterAPI
 
 	dwoNamespace   string
 	dwoNamespaceMu sync.RWMutex
@@ -83,20 +80,8 @@ type CheUserNamespaceReconciler struct {
 
 var _ reconcile.Reconciler = (*CheUserNamespaceReconciler)(nil)
 
-func NewCheUserNamespaceReconciler(
-	client client.Client,
-	noncachedClient client.Client,
-	scheme *runtime.Scheme,
-	namespaceCache *namespacecache.NamespaceCache) *CheUserNamespaceReconciler {
-
-	return &CheUserNamespaceReconciler{
-		scheme:                 scheme,
-		client:                 client,
-		nonCachedClient:        noncachedClient,
-		clientWrapper:          clientwrapper.New(client, scheme),
-		nonCachedClientWrapper: clientwrapper.New(noncachedClient, scheme),
-		namespaceCache:         namespaceCache,
-	}
+func NewCheUserNamespaceReconciler(namespaceCache *namespacecache.NamespaceCache) *CheUserNamespaceReconciler {
+	return &CheUserNamespaceReconciler{clusterAPI: clusterapi.Get(), namespaceCache: namespaceCache}
 }
 
 func (r *CheUserNamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -219,7 +204,7 @@ func (r *CheUserNamespaceReconciler) allNamespacesRequests() []reconcile.Request
 
 func (r *CheUserNamespaceReconciler) hasCheCluster(ctx context.Context, namespace string) bool {
 	list := chev2.CheClusterList{}
-	if err := r.client.List(ctx, &list, client.InNamespace(namespace)); err != nil {
+	if err := r.clusterAPI.Client.List(ctx, &list, client.InNamespace(namespace)); err != nil {
 		return false
 	}
 
@@ -242,7 +227,7 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, nil
 	}
 
-	checluster, err := resources.CheCluster.Find(ctx, r.client)
+	checluster, err := resources.CheCluster.Find(ctx, r.clusterAPI.Client)
 	if checluster == nil || err != nil {
 		// CheCluster is not found or error occurred, requeue the request
 		return ctrl.Result{}, err
@@ -250,14 +235,8 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	// let's construct the CheContext to be able to use methods from v1 operator
 	cheCtx := &chetypes.CheContext{
-		CheCluster: checluster,
-		ClusterAPI: chetypes.ClusterAPI{
-			Client:                  r.client,
-			NonCachingClient:        r.nonCachedClient,
-			ClientWrapper:           r.clientWrapper,
-			NonCachingClientWrapper: r.nonCachedClientWrapper,
-			Scheme:                  r.scheme,
-		},
+		CheCluster:   checluster,
+		ClusterAPI:   r.clusterAPI,
 		Proxy:        &cheproxy.Proxy{},
 		Context:      ctx,
 		DWONamespace: r.getDWONamespace(),
@@ -351,7 +330,7 @@ func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context
 	targetCertName := prefixedName("server-cert")
 
 	delSecret := func() error {
-		return r.nonCachedClientWrapper.DeleteByKeyIgnoreNotFound(
+		return r.clusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(
 			ctx,
 			client.ObjectKey{Name: targetCertName, Namespace: targetNs},
 			&corev1.Secret{},
@@ -359,7 +338,7 @@ func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context
 	}
 
 	cheCert := &corev1.Secret{}
-	if err := r.client.Get(ctx, client.ObjectKey{Name: constants.SelfSignedCertificateSecretName, Namespace: checluster.Namespace}, cheCert); err != nil {
+	if err := r.clusterAPI.Client.Get(ctx, client.ObjectKey{Name: constants.SelfSignedCertificateSecretName, Namespace: checluster.Namespace}, cheCert); err != nil {
 		if !errors.IsNotFound(err) {
 			return err
 		}
@@ -395,7 +374,7 @@ func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context
 		Type: cheCert.Type,
 	}
 
-	if err := r.nonCachedClientWrapper.Sync(
+	if err := r.clusterAPI.NonCachingClientWrapper.Sync(
 		ctx,
 		targetCert,
 		&clientwrapper.SyncOptions{DiffOpts: deploy.SecretDiffOpts},
@@ -416,7 +395,7 @@ func (r *CheUserNamespaceReconciler) reconcileTrustedCerts(ctx context.Context, 
 	// See cerificates#syncCheCABundleCerts
 	trustedCACertsCMKey := client.ObjectKey{Name: prefixedName("trusted-ca-certs"), Namespace: targetNs}
 
-	return r.nonCachedClientWrapper.DeleteByKeyIgnoreNotFound(ctx, trustedCACertsCMKey, &corev1.ConfigMap{})
+	return r.clusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(ctx, trustedCACertsCMKey, &corev1.ConfigMap{})
 }
 
 func (r *CheUserNamespaceReconciler) reconcileUserSettings(
@@ -433,7 +412,7 @@ func (r *CheUserNamespaceReconciler) reconcileUserSettings(
 
 	// delete previously created CMs
 	for _, name := range cm2Delete {
-		if err := r.nonCachedClientWrapper.DeleteByKeyIgnoreNotFound(
+		if err := r.clusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(
 			cheCtx.Context,
 			client.ObjectKey{Name: name, Namespace: targetNs},
 			&corev1.ConfigMap{},
@@ -520,7 +499,7 @@ func (r *CheUserNamespaceReconciler) reconcileUserSettings(
 		Data: data,
 	}
 
-	if err := r.nonCachedClientWrapper.Sync(
+	if err := r.clusterAPI.NonCachingClientWrapper.Sync(
 		cheCtx.Context,
 		cm,
 		&clientwrapper.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
@@ -537,7 +516,7 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 	}
 	targetName := prefixedName("git-tls-creds")
 	delConfigMap := func() error {
-		return r.nonCachedClientWrapper.DeleteByKeyIgnoreNotFound(
+		return r.clusterAPI.NonCachingClientWrapper.DeleteByKeyIgnoreNotFound(
 			ctx,
 			client.ObjectKey{Name: targetName, Namespace: targetNs},
 			&corev1.ConfigMap{},
@@ -584,7 +563,7 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 		target.Data["host"] = gitCert.Data[constants.GitSelfSignedCertsConfigMapGitHostKey]
 	}
 
-	if err := r.nonCachedClientWrapper.Sync(
+	if err := r.clusterAPI.NonCachingClientWrapper.Sync(
 		ctx,
 		&target,
 		&clientwrapper.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
@@ -597,7 +576,7 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 
 func (r *CheUserNamespaceReconciler) reconcileNodeSelectorAndTolerations(ctx context.Context, targetNs string, checluster *chev2.CheCluster, cheCtx *chetypes.CheContext) error {
 	ns := &corev1.Namespace{}
-	if err := r.client.Get(ctx, client.ObjectKey{Name: targetNs}, ns); err != nil {
+	if err := r.clusterAPI.Client.Get(ctx, client.ObjectKey{Name: targetNs}, ns); err != nil {
 		return err
 	}
 
@@ -641,7 +620,7 @@ func (r *CheUserNamespaceReconciler) reconcileNodeSelectorAndTolerations(ctx con
 
 	ns.SetAnnotations(annos)
 
-	return r.client.Update(ctx, ns)
+	return r.clusterAPI.Client.Update(ctx, ns)
 }
 
 func (r *CheUserNamespaceReconciler) reconcileSCCPrivileges(
@@ -655,7 +634,7 @@ func (r *CheUserNamespaceReconciler) reconcileSCCPrivileges(
 	}
 
 	if !isContainerCapabilitiesEnabled {
-		return r.clientWrapper.DeleteByKeyIgnoreNotFound(
+		return r.clusterAPI.ClientWrapper.DeleteByKeyIgnoreNotFound(
 			context.TODO(),
 			types.NamespacedName{Name: containerCapability.GetUserClusterRoleBindingName(), Namespace: targetNs},
 			&rbacv1.RoleBinding{},
@@ -686,7 +665,7 @@ func (r *CheUserNamespaceReconciler) reconcileSCCPrivileges(
 		},
 	}
 
-	return r.clientWrapper.Sync(
+	return r.clusterAPI.ClientWrapper.Sync(
 		context.TODO(),
 		rb,
 		&clientwrapper.SyncOptions{DiffOpts: diffs.RoleBinding},

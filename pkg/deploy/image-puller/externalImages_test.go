@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,6 +32,8 @@ import (
 const testProjectCloneImage = "quay.io/devfile/project-clone:next"
 
 func TestGetExternalImages(t *testing.T) {
+	test.InitializeDefaults(infrastructure.OpenShiftV4)
+
 	type testCase struct {
 		name             string
 		editorsFile      string
@@ -74,7 +77,9 @@ func TestGetExternalImages(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().WithObjects(tc.initObjects...).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := test.NewCheContextBuilder().WithObjects(tc.initObjects...).Build()
 			cheCtx.CheCluster.Spec.DevEnvironments.GatewayContainer = tc.gatewayContainer
 
 			editorsEndpointUrl := getDashboardEditorsInternalAPIUrl(cheCtx)

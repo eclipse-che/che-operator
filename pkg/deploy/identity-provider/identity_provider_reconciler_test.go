@@ -19,6 +19,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	"github.com/stretchr/testify/assert"
@@ -29,6 +30,8 @@ import (
 )
 
 func TestFinalizeDefaultOAuthClientName(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	oauthClient := GetOAuthClientSpec("eclipse-che-client", "secret", []string{"https://che-host/oauth/callback"}, nil, nil)
 	oauthClient.Labels = map[string]string{}
 
@@ -39,17 +42,19 @@ func TestFinalizeDefaultOAuthClientName(t *testing.T) {
 		},
 	}
 
-	cheCtx := test.NewCtxBuilder().WithCheCluster(checluster).WithObjects(oauthClient).Build()
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(checluster).WithObjects(oauthClient).Build()
 
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "eclipse-che-client"}, &oauthv1.OAuthClient{}))
+	assert.NoError(t, test.ExpectFound(types.NamespacedName{Name: "eclipse-che-client"}, &oauthv1.OAuthClient{}))
 
 	identityProviderReconciler := NewIdentityProviderReconciler()
 	err := identityProviderReconciler.Finalize(cheCtx)
 	assert.Nil(t, err)
-	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "eclipse-che-client"}, &oauthv1.OAuthClient{}))
+	assert.NoError(t, test.ExpectNotFound(types.NamespacedName{Name: "eclipse-che-client"}, &oauthv1.OAuthClient{}))
 }
 
 func TestFinalizeOAuthClient(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	oauthClient := GetOAuthClientSpec("test", "secret", []string{"https://che-host/oauth/callback"}, nil, nil)
 	oauthClient.Labels = map[string]string{}
 
@@ -67,17 +72,19 @@ func TestFinalizeOAuthClient(t *testing.T) {
 		},
 	}
 
-	cheCtx := test.NewCtxBuilder().WithCheCluster(checluster).WithObjects(oauthClient).Build()
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(checluster).WithObjects(oauthClient).Build()
 
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "test"}, &oauthv1.OAuthClient{}))
+	assert.NoError(t, test.ExpectFound(types.NamespacedName{Name: "test"}, &oauthv1.OAuthClient{}))
 
 	identityProviderReconciler := NewIdentityProviderReconciler()
 	err := identityProviderReconciler.Finalize(cheCtx)
 	assert.Nil(t, err)
-	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "test"}, &oauthv1.OAuthClient{}))
+	assert.NoError(t, test.ExpectNotFound(types.NamespacedName{Name: "test"}, &oauthv1.OAuthClient{}))
 }
 
 func TestShouldFindSingleOAuthClient(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	oauthClient1 := GetOAuthClientSpec("test1", "secret", []string{"https://che-host/oauth/callback"}, nil, nil)
 	oauthClient2 := GetOAuthClientSpec("test2", "secret", []string{"https://che-host/oauth/callback"}, nil, nil)
 
@@ -95,7 +102,7 @@ func TestShouldFindSingleOAuthClient(t *testing.T) {
 		},
 	}
 
-	cheCtx := test.NewCtxBuilder().WithCheCluster(checluster).WithObjects(oauthClient1).WithObjects(oauthClient2).Build()
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(checluster).WithObjects(oauthClient1).WithObjects(oauthClient2).Build()
 	oauthClient, err := GetOAuthClient(cheCtx)
 	assert.Nil(t, err)
 	assert.NotNil(t, oauthClient)
@@ -103,6 +110,8 @@ func TestShouldFindSingleOAuthClient(t *testing.T) {
 }
 
 func TestSyncOAuthClientShouldSyncTokenTimeout(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	checluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "eclipse-che",
@@ -118,7 +127,7 @@ func TestSyncOAuthClientShouldSyncTokenTimeout(t *testing.T) {
 		},
 	}
 
-	cheCtx := test.NewCtxBuilder().WithCheCluster(checluster).Build()
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(checluster).Build()
 	err := syncOAuthClient(cheCtx)
 	assert.Nil(t, err)
 
@@ -207,8 +216,9 @@ func TestSyncOAuthClient(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
+			test.StartOn(infrastructure.OpenShiftV4)
 
-			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			cheCtx := test.NewCheContextBuilder().WithCheCluster(testCase.cheCluster).Build()
 			err := syncOAuthClient(cheCtx)
 			assert.Nil(t, err)
 
@@ -226,9 +236,6 @@ func TestSyncOAuthClient(t *testing.T) {
 }
 
 func TestSyncExistedOAuthClient(t *testing.T) {
-	oauthClient1 := GetOAuthClientSpec("test", "secret", []string{}, nil, nil)
-	oauthClient2 := GetOAuthClientSpec("eclipse-che-client", "secret", []string{}, nil, nil)
-
 	type testCase struct {
 		name           string
 		cheCluster     *chev2.CheCluster
@@ -308,8 +315,12 @@ func TestSyncExistedOAuthClient(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
+			test.StartOn(infrastructure.OpenShiftV4)
 
-			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(oauthClient1).WithObjects(oauthClient2).Build()
+			oauthClient1 := GetOAuthClientSpec("test", "secret", []string{}, nil, nil)
+			oauthClient2 := GetOAuthClientSpec("eclipse-che-client", "secret", []string{}, nil, nil)
+
+			cheCtx := test.NewCheContextBuilder().WithCheCluster(testCase.cheCluster).WithObjects(oauthClient1).WithObjects(oauthClient2).Build()
 			err := syncOAuthClient(cheCtx)
 			assert.Nil(t, err)
 

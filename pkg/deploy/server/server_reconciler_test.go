@@ -16,6 +16,7 @@ import (
 	"context"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
@@ -29,7 +30,9 @@ import (
 )
 
 func TestReconcile(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
@@ -47,23 +50,20 @@ func TestReconcile(t *testing.T) {
 	_, done, err := server.Reconcile(cheCtx)
 	assert.False(t, done)
 	assert.Nil(t, err)
-
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: configMapName, Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Namespace: "eclipse-che", Name: "che"}, &corev1.ServiceAccount{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "test-role"}, &rbac.ClusterRoleBinding{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: getComponentName(), Namespace: "eclipse-che"}, &appsv1.Deployment{}))
+	assert.NoError(t, test.ExpectFound(types.NamespacedName{Name: configMapName, Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
+	assert.NoError(t, test.ExpectFound(types.NamespacedName{Namespace: "eclipse-che", Name: "che"}, &corev1.ServiceAccount{}))
+	assert.NoError(t, test.ExpectFound(types.NamespacedName{Name: "test-role"}, &rbac.ClusterRoleBinding{}))
+	assert.NoError(t, test.ExpectFound(types.NamespacedName{Name: getComponentName(), Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 	assert.Equal(t, cheCtx.CheCluster.Status.ChePhase, chev2.CheClusterPhase(chev2.ClusterPhaseInactive))
 
 	cheDeployment := &appsv1.Deployment{}
-	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: defaults.GetCheFlavor(), Namespace: "eclipse-che"}, cheDeployment)
-	assert.Nil(t, err)
+	assert.NoError(t, test.ExpectFound(types.NamespacedName{Name: defaults.GetCheFlavor(), Namespace: "eclipse-che"}, cheDeployment))
 
 	cheDeployment.Status.Replicas = 1
 	cheDeployment.Status.AvailableReplicas = 1
 	err = cheCtx.ClusterAPI.Client.Status().Update(context.TODO(), cheDeployment)
 	assert.NoError(t, err)
-
-	test.EnsureReconcile(t, cheCtx, server.Reconcile)
+	assert.NoError(t, test.ReconcileTwice(cheCtx, server.Reconcile))
 
 	assert.Equal(t, cheCtx.CheCluster.Status.ChePhase, chev2.CheClusterPhase(chev2.ClusterPhaseActive))
 	assert.NotEmpty(t, cheCtx.CheCluster.Status.CheVersion)
@@ -71,11 +71,12 @@ func TestReconcile(t *testing.T) {
 
 	err = server.Finalize(cheCtx)
 	assert.Nil(t, err)
-
-	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "test-role"}, &rbac.ClusterRoleBinding{}))
+	assert.NoError(t, test.ExpectNotFound(types.NamespacedName{Name: "test-role"}, &rbac.ClusterRoleBinding{}))
 }
 
 func TestUpdateAvailabilityStatus(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	cheDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      defaults.GetCheFlavor(),
@@ -90,7 +91,8 @@ func TestUpdateAvailabilityStatus(t *testing.T) {
 			Replicas:          1,
 		},
 	}
-	cheCtx := test.NewCtxBuilder().Build()
+
+	cheCtx := test.NewCheContextBuilder().Build()
 
 	server := NewCheServerReconciler()
 	done, err := server.syncActiveChePhase(cheCtx)

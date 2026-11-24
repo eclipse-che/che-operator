@@ -17,6 +17,7 @@ import (
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
@@ -27,7 +28,9 @@ import (
 )
 
 func TestOpenVSXDatabaseReconciler(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "eclipse-che",
@@ -44,16 +47,16 @@ func TestOpenVSXDatabaseReconciler(t *testing.T) {
 	).Build()
 
 	reconciler := NewOpenVSXDatabaseReconciler()
-	test.EnsureReconcile(t, cheCtx, reconciler.Reconcile)
+	assert.NoError(t, test.ReconcileTwice(cheCtx, reconciler.Reconcile))
 
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: "eclipse-che"}, &corev1.Service{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: "eclipse-che"}, &corev1.PersistentVolumeClaim{}))
+	key := types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: "eclipse-che"}
+	assert.NoError(t, test.ExpectFound(key, &appsv1.Deployment{}))
+	assert.NoError(t, test.ExpectFound(key, &corev1.Service{}))
+	assert.NoError(t, test.ExpectFound(key, &corev1.PersistentVolumeClaim{}))
 
 	cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Enable = ptr.To(false)
-	test.EnsureReconcile(t, cheCtx, reconciler.Reconcile)
-
-	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: "eclipse-che"}, &appsv1.Deployment{}))
-	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: "eclipse-che"}, &corev1.Service{}))
-	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXDatabaseComponentName, Namespace: "eclipse-che"}, &corev1.PersistentVolumeClaim{}))
+	assert.NoError(t, test.ReconcileTwice(cheCtx, reconciler.Reconcile))
+	assert.NoError(t, test.ExpectNotFound(key, &appsv1.Deployment{}))
+	assert.NoError(t, test.ExpectNotFound(key, &corev1.Service{}))
+	assert.NoError(t, test.ExpectNotFound(key, &corev1.PersistentVolumeClaim{}))
 }

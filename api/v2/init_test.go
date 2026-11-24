@@ -13,9 +13,16 @@
 package v2
 
 import (
-	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
+	"github.com/eclipse-che/che-operator/pkg/common/test/fakeclusterapi"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
 func init() {
-	k8shelper.InitializeForTesting()
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(AddToScheme(scheme))
+
+	fakeclusterapi.Setup(fakeclusterapi.WithScheme(scheme))
 }

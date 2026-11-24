@@ -16,6 +16,7 @@ import (
 	"os"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
@@ -29,7 +30,9 @@ import (
 )
 
 func TestShouldDeployPluginRegistryIfOpenVSXIsEmpty(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "eclipse-che",
 			Namespace: "eclipse-che",
@@ -44,15 +47,18 @@ func TestShouldDeployPluginRegistryIfOpenVSXIsEmpty(t *testing.T) {
 	}).Build()
 
 	pluginregistry := NewPluginRegistryReconciler()
-	test.EnsureReconcile(t, cheCtx, pluginregistry.Reconcile)
+	assert.NoError(t, test.ReconcileTwice(cheCtx, pluginregistry.Reconcile))
 
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.Service{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &appsv1.Deployment{}))
+	key := types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}
+	assert.NoError(t, test.ExpectFound(key, &corev1.Service{}))
+	assert.NoError(t, test.ExpectFound(key, &corev1.ConfigMap{}))
+	assert.NoError(t, test.ExpectFound(key, &appsv1.Deployment{}))
 	assert.NotEmpty(t, cheCtx.CheCluster.Status.PluginRegistryURL)
 }
 
 func TestShouldDeployPluginRegistryIfOpenVSXIsEmptyByDefault(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	defaultOpenVSXURL := os.Getenv("CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL")
 
 	err := os.Unsetenv("CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL")
@@ -65,19 +71,22 @@ func TestShouldDeployPluginRegistryIfOpenVSXIsEmptyByDefault(t *testing.T) {
 	// re initialize defaults with new env var
 	defaults.Initialize()
 
-	cheCtx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCheContextBuilder().Build()
 
 	pluginregistry := NewPluginRegistryReconciler()
-	test.EnsureReconcile(t, cheCtx, pluginregistry.Reconcile)
+	assert.NoError(t, test.ReconcileTwice(cheCtx, pluginregistry.Reconcile))
 
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.Service{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &appsv1.Deployment{}))
+	key := types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}
+	assert.NoError(t, test.ExpectFound(key, &corev1.Service{}))
+	assert.NoError(t, test.ExpectFound(key, &corev1.ConfigMap{}))
+	assert.NoError(t, test.ExpectFound(key, &appsv1.Deployment{}))
 	assert.NotEmpty(t, cheCtx.CheCluster.Status.PluginRegistryURL)
 }
 
 func TestShouldNotDeployPluginRegistryIfOpenVSXConfigured(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "eclipse-che",
 			Namespace: "eclipse-che",
@@ -92,15 +101,18 @@ func TestShouldNotDeployPluginRegistryIfOpenVSXConfigured(t *testing.T) {
 	}).Build()
 
 	pluginregistry := NewPluginRegistryReconciler()
-	test.EnsureReconcile(t, cheCtx, pluginregistry.Reconcile)
+	assert.NoError(t, test.ReconcileTwice(cheCtx, pluginregistry.Reconcile))
 
-	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.Service{}))
-	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
-	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &appsv1.Deployment{}))
+	key := types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}
+	assert.NoError(t, test.ExpectNotFound(key, &corev1.Service{}))
+	assert.NoError(t, test.ExpectNotFound(key, &corev1.ConfigMap{}))
+	assert.NoError(t, test.ExpectNotFound(key, &appsv1.Deployment{}))
 	assert.Empty(t, cheCtx.CheCluster.Status.PluginRegistryURL)
 }
 
 func TestShouldNotDeployPluginRegistryIfOpenVSXConfiguredByDefault(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	defaultOpenVSXURL := os.Getenv("CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL")
 	err := os.Setenv("CHE_DEFAULT_SPEC_COMPONENTS_PLUGINREGISTRY_OPENVSXURL", "https://openvsx.org")
 	assert.NoError(t, err)
@@ -112,13 +124,14 @@ func TestShouldNotDeployPluginRegistryIfOpenVSXConfiguredByDefault(t *testing.T)
 	// re initialize defaults with new env var
 	defaults.Initialize()
 
-	cheCtx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCheContextBuilder().Build()
 
 	pluginregistry := NewPluginRegistryReconciler()
-	test.EnsureReconcile(t, cheCtx, pluginregistry.Reconcile)
+	assert.NoError(t, test.ReconcileTwice(cheCtx, pluginregistry.Reconcile))
 
-	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.Service{}))
-	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
-	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, &appsv1.Deployment{}))
+	key := types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}
+	assert.NoError(t, test.ExpectNotFound(key, &corev1.Service{}))
+	assert.NoError(t, test.ExpectNotFound(key, &corev1.ConfigMap{}))
+	assert.NoError(t, test.ExpectNotFound(key, &appsv1.Deployment{}))
 	assert.Empty(t, cheCtx.CheCluster.Status.PluginRegistryURL)
 }

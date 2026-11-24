@@ -16,20 +16,21 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/utils/ptr"
 
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
 
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
-
-	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -40,13 +41,17 @@ import (
 )
 
 func TestDashboardDeploymentSecurityContext(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().Build()
+	test.StartOn(infrastructure.OpenShiftV4)
 
+	cheCtx := test.NewCheContextBuilder().Build()
 	dashboard := NewDashboardReconciler()
-	deployment, err := dashboard.getDashboardDeploymentSpec(cheCtx)
 
+	deployment, err := dashboard.getDashboardDeploymentSpec(cheCtx)
 	assert.Nil(t, err)
-	test.ValidateSecurityContext(deployment, t)
+
+	securityContext := deployment.Spec.Template.Spec.Containers[0].SecurityContext
+	assert.Equal(t, corev1.Capability("ALL"), securityContext.Capabilities.Drop[0])
+	assert.Equal(t, ptr.To(false), securityContext.AllowPrivilegeEscalation)
 }
 
 func TestDashboardDeploymentResources(t *testing.T) {
@@ -122,24 +127,25 @@ func TestDashboardDeploymentResources(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
 
+			cheCtx := test.NewCheContextBuilder().WithCheCluster(testCase.cheCluster).Build()
 			dashboard := NewDashboardReconciler()
 			deployment, err := dashboard.getDashboardDeploymentSpec(cheCtx)
 			assert.Nil(t, err)
-			test.CompareResources(deployment,
-				test.TestExpectedResources{
-					MemoryLimit:   testCase.memoryLimit,
-					MemoryRequest: testCase.memoryRequest,
-					CpuRequest:    testCase.cpuRequest,
-					CpuLimit:      testCase.cpuLimit,
-				},
-				t)
+
+			resources := deployment.Spec.Template.Spec.Containers[0].Resources
+			assert.True(t, resources.Limits.Memory().Equal(resource.MustParse(testCase.memoryLimit)), "memory limit")
+			assert.True(t, resources.Requests.Memory().Equal(resource.MustParse(testCase.memoryRequest)), "memory request")
+			assert.True(t, resources.Limits.Cpu().Equal(resource.MustParse(testCase.cpuLimit)), "CPU limit")
+			assert.True(t, resources.Requests.Cpu().Equal(resource.MustParse(testCase.cpuRequest)), "CPU request")
 		})
 	}
 }
 
 func TestDashboardDeploymentEnvVars(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	_ = os.Setenv("RELATED_IMAGE_sample_image", "sample_image")
 	_ = os.Setenv("RELATED_IMAGE_sample_encoded_image", "sample_encoded_image")
 
@@ -148,7 +154,7 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 		_ = os.Unsetenv("RELATED_IMAGE_sample_encoded_")
 	}()
 
-	cheCtx := test.NewCtxBuilder().WithObjects(&configv1.Console{
+	cheCtx := test.NewCheContextBuilder().WithObjects(&configv1.Console{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cluster",
 			Namespace: "openshift-console",
@@ -362,7 +368,9 @@ func TestDashboardDeploymentVolumes(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := test.NewCheContextBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
 
 			dashboard := NewDashboardReconciler()
 			deployment, err := dashboard.getDashboardDeploymentSpec(cheCtx)

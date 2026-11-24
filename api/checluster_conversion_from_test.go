@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -15,6 +15,7 @@ package org
 import (
 	"testing"
 
+	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/utils/ptr"
 
@@ -29,6 +30,8 @@ import (
 )
 
 func TestConvertFromEmptyCheCluster(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	checlusterv1 := &chev1.CheCluster{}
 	checlusterv2 := &chev2.CheCluster{}
 
@@ -37,7 +40,7 @@ func TestConvertFromEmptyCheCluster(t *testing.T) {
 }
 
 func TestConvertFromIngressOnK8s(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
 
 	checlusterv2 := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -68,7 +71,7 @@ func TestConvertFromIngressOnK8s(t *testing.T) {
 }
 
 func TestConvertFromIngressOnOpenShift(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+	test.StartOn(infrastructure.OpenShiftV4)
 
 	checlusterv2 := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -98,7 +101,7 @@ func TestConvertFromIngressOnOpenShift(t *testing.T) {
 }
 
 func TestConvertFrom(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	test.StartOn(infrastructure.Kubernetes)
 
 	memoryRequest := resource.MustParse("128Mi")
 	cpuRequest := resource.MustParse("1")
@@ -523,7 +526,7 @@ func TestConvertFrom(t *testing.T) {
 }
 
 func TestShouldConvertFromWhenOnlyMemoryResourceSpecified(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+	test.StartOn(infrastructure.OpenShiftV4)
 
 	memoryRequest := resource.MustParse("128Mi")
 	memoryLimit := resource.MustParse("228Mi")

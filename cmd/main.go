@@ -18,9 +18,10 @@ import (
 	"os"
 	"time"
 
-	dwInfra "github.com/devfile/devworkspace-operator/pkg/infrastructure"
-	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
-	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
+	dwInfrastructure "github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/clusterapi"
+	cheInfrastructure "github.com/eclipse-che/che-operator/pkg/common/infrastructure"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	userv1 "github.com/openshift/api/user/v1"
@@ -30,6 +31,7 @@ import (
 	"github.com/eclipse-che/che-operator/controllers/namespacecache"
 	workspaceconfig "github.com/eclipse-che/che-operator/controllers/workspaceconfig"
 
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
@@ -44,12 +46,10 @@ import (
 	"go.uber.org/zap/zapcore"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
-	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/signal"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
-	"k8s.io/client-go/discovery"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"k8s.io/apimachinery/pkg/fields"
@@ -122,108 +122,31 @@ func init() {
 
 	logger := zap.New(zap.UseFlagOptions(&opts))
 	ctrl.SetLogger(logger)
-
-	defaults.Initialize()
-
-	printVersion(logger)
-
-	utilruntime.Must(chev1.AddToScheme(scheme))
-	utilruntime.Must(chev2.AddToScheme(scheme))
-
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(admissionregistrationv1.AddToScheme(scheme))
-	utilruntime.Must(rbacv1.AddToScheme(scheme))
-
-	utilruntime.Must(imagepullerapi.AddToScheme(scheme))
-	utilruntime.Must(packagesv1.AddToScheme(scheme))
-	utilruntime.Must(operatorsv1alpha1.AddToScheme(scheme))
-	utilruntime.Must(operatorsv1.AddToScheme(scheme))
-	utilruntime.Must(corev1.AddToScheme(scheme))
-
-	if infrastructure.IsOpenShift() {
-		utilruntime.Must(routev1.Install(scheme))
-		utilruntime.Must(configv1.Install(scheme))
-		utilruntime.Must(consolev1.Install(scheme))
-		utilruntime.Must(projectv1.Install(scheme))
-		utilruntime.Must(securityv1.Install(scheme))
-		utilruntime.Must(templatev1.Install(scheme))
-	}
-
-	if infrastructure.IsServiceMonitorEnabled() {
-		utilruntime.Must(monitoringv1.AddToScheme(scheme))
-	}
-
-	// User and OAuthClient API are disabled in case of external IDP
-	// Check API before adding to the scheme
-	if infrastructure.IsOpenShiftOAuthEnabled() {
-		utilruntime.Must(userv1.Install(scheme))
-		utilruntime.Must(oauthv1.Install(scheme))
-	}
-}
-
-func getLogLevel() zapcore.Level {
-	switch logLevel, _ := os.LookupEnv("LOG_LEVEL"); logLevel {
-	case zapcore.DebugLevel.String():
-		return zapcore.DebugLevel
-	case zapcore.InfoLevel.String():
-		return zapcore.InfoLevel
-	case zapcore.WarnLevel.String():
-		return zapcore.WarnLevel
-	case zapcore.ErrorLevel.String():
-		return zapcore.ErrorLevel
-	case zapcore.PanicLevel.String():
-		return zapcore.PanicLevel
-	default:
-		return zapcore.InfoLevel
-	}
-}
-
-func printVersion(logger logr.Logger) {
-	logger.Info("Binary info ", "Go version", osruntime.Version())
-	logger.Info("Binary info ", "OS", osruntime.GOOS, "Arch", osruntime.GOARCH)
-	logger.Info("Address ", "Metrics", metricsAddr)
-	logger.Info("Address ", "Probe", probeAddr)
-
-	infra := "Kubernetes"
-	if infrastructure.IsOpenShift() {
-		infra = "OpenShift"
-	}
-	logger.Info("Operator is running on ", "Infrastructure", infra)
-}
-
-// getWatchNamespace returns the Namespace the operator should be watching for changes
-func getWatchNamespace() (string, error) {
-	// WatchNamespaceEnvVar is the constant for env variable WATCH_NAMESPACE
-	// which specifies the Namespace to watch.
-	// An empty value means the operator is running with cluster scope.
-	var watchNamespaceEnvVar = "WATCH_NAMESPACE"
-
-	ns, found := os.LookupEnv(watchNamespaceEnvVar)
-	if !found {
-		return "", fmt.Errorf("%s must be set", watchNamespaceEnvVar)
-	}
-
-	return ns, nil
 }
 
 func main() {
-	if err := dwInfra.Initialize(); err != nil {
+	config := ctrl.GetConfigOrDie()
+	discoveryClient := discovery.NewDiscoveryClientForConfigOrDie(config)
+
+	if err := cheInfrastructure.Initialize(discoveryClient); err != nil {
 		setupLog.Error(err, "Failed to initialize infrastructure")
 		os.Exit(1)
 	}
 
-	if err := k8shelper.Initialize(); err != nil {
-		setupLog.Error(err, "Failed to initialize Kubernetes helper")
+	defaults.Initialize()
+
+	if err := dwInfrastructure.Initialize(); err != nil {
+		setupLog.Error(err, "Failed to initialize infrastructure")
 		os.Exit(1)
 	}
 
+	printVersion(setupLog)
+	registerSchemes()
+
 	watchNamespace, err := getWatchNamespace()
 	if err != nil {
-		setupLog.Error(err, "unable to get WatchNamespace, "+
-			"the manager will watch and manage resources in all namespaces")
+		setupLog.Error(err, "unable to get WatchNamespace, the manager will watch and manage resources in all namespaces")
 	}
-
-	config := ctrl.GetConfigOrDie()
 
 	tlsCtx, cancelTLSFetch := context.WithTimeout(context.Background(), 30*time.Second)
 	serverTLS, err := tls.BuildServerTLSOptions(tlsCtx, config, scheme, setupLog)
@@ -233,13 +156,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
-	if err != nil {
-		setupLog.Error(err, "failed to create discovery client")
-		os.Exit(1)
-	}
-
-	if !infrastructure.IsLeaderElectionEnabled() {
+	if !cheInfrastructure.IsLeaderElectionEnabled() {
 		setupLog.Info("Leader election disabled")
 		enableLeaderElection = false
 	}
@@ -291,8 +208,10 @@ func main() {
 		os.Exit(1)
 	}
 
+	clusterapi.Initialize(mgr.GetClient(), nonCachingClient, discoveryClient, scheme)
+
 	// Setup all Controllers
-	cheReconciler := checontroller.NewReconciler(mgr.GetClient(), nonCachingClient, discoveryClient, mgr.GetScheme(), watchNamespace)
+	cheReconciler := checontroller.NewReconciler(watchNamespace)
 	if err = cheReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to set up controller", "controller", "CheCluster")
 		os.Exit(1)
@@ -301,8 +220,8 @@ func main() {
 	routing := dwr.DevWorkspaceRoutingReconciler{
 		Client:       mgr.GetClient(),
 		Log:          ctrl.Log.WithName("controllers").WithName("DevWorkspaceRouting"),
-		Scheme:       mgr.GetScheme(),
-		SolverGetter: solver.Getter(mgr.GetScheme()),
+		Scheme:       scheme,
+		SolverGetter: solver.Getter(scheme),
 	}
 	if err := routing.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to set up controller", "controller", "DevWorkspaceRouting")
@@ -311,27 +230,27 @@ func main() {
 
 	namespacecache := namespacecache.NewNamespaceCache(nonCachingClient)
 
-	userNamespaceReconciler := usernamespace.NewCheUserNamespaceReconciler(mgr.GetClient(), nonCachingClient, mgr.GetScheme(), namespacecache)
+	userNamespaceReconciler := usernamespace.NewCheUserNamespaceReconciler(namespacecache)
 	if err = userNamespaceReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to set up controller", "controller", "CheUserReconciler")
 		os.Exit(1)
 	}
 
-	workspacesConfigReconciler := workspaceconfig.NewWorkspacesConfigReconciler(mgr.GetClient(), nonCachingClient, mgr.GetScheme(), namespacecache)
+	workspacesConfigReconciler := workspaceconfig.NewWorkspacesConfigReconciler(namespacecache)
 	if err = workspacesConfigReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to set up controller", "controller", "WorkspacesConfigReconciler")
 		os.Exit(1)
 	}
 
 	terminationPeriod := int64(20)
-	namespace, err := infrastructure.GetOperatorNamespace()
+	namespace, err := cheInfrastructure.GetOperatorNamespace()
 	if err == nil {
 		terminationPeriod = signal.GetTerminationGracePeriodSeconds(mgr.GetAPIReader(), namespace)
 	}
 	ctx, onCancel := context.WithCancel(signal.SetupSignalHandler(terminationPeriod))
 	defer onCancel()
 
-	if infrastructure.IsOpenShift() {
+	if cheInfrastructure.IsOpenShift() {
 		if err := tls.RegisterSecurityProfileWatcher(mgr, serverTLS, onCancel, setupLog); err != nil {
 			setupLog.Error(err, "unable to set up TLS security profile watcher")
 			os.Exit(1)
@@ -427,7 +346,7 @@ func getCacheFunc() (cache.NewCacheFunc, error) {
 		},
 	}
 
-	if infrastructure.IsOpenShift() {
+	if cheInfrastructure.IsOpenShift() {
 		selectors[&routev1.Route{}] = cache.ByObject{Label: partOfEclipseChe}
 		selectors[&templatev1.Template{}] = cache.ByObject{Label: partOfEclipseChe}
 		selectors[&consolev1.ConsoleLink{}] = cache.ByObject{Label: partOfEclipseChe}
@@ -436,15 +355,15 @@ func getCacheFunc() (cache.NewCacheFunc, error) {
 		}
 	}
 
-	if infrastructure.IsConsoleLinkEnabled() {
+	if cheInfrastructure.IsConsoleLinkEnabled() {
 		selectors[&consolev1.ConsoleLink{}] = cache.ByObject{Label: partOfEclipseChe}
 	}
 
-	if infrastructure.IsServiceMonitorEnabled() {
+	if cheInfrastructure.IsServiceMonitorEnabled() {
 		selectors[&monitoringv1.ServiceMonitor{}] = cache.ByObject{Label: partOfEclipseChe}
 	}
 
-	if infrastructure.IsOpenShiftOAuthEnabled() {
+	if cheInfrastructure.IsOpenShiftOAuthEnabled() {
 		selectors[&oauthv1.OAuthClient{}] = cache.ByObject{Label: partOfEclipseChe}
 	}
 
@@ -452,4 +371,84 @@ func getCacheFunc() (cache.NewCacheFunc, error) {
 		opts.ByObject = selectors
 		return cache.New(config, opts)
 	}, nil
+}
+
+// getWatchNamespace returns the Namespace the operator should be watching for changes
+func getWatchNamespace() (string, error) {
+	// WatchNamespaceEnvVar is the constant for env variable WATCH_NAMESPACE
+	// which specifies the Namespace to watch.
+	// An empty value means the operator is running with cluster scope.
+	var watchNamespaceEnvVar = "WATCH_NAMESPACE"
+
+	ns, found := os.LookupEnv(watchNamespaceEnvVar)
+	if !found {
+		return "", fmt.Errorf("%s must be set", watchNamespaceEnvVar)
+	}
+
+	return ns, nil
+}
+
+func getLogLevel() zapcore.Level {
+	switch logLevel, _ := os.LookupEnv("LOG_LEVEL"); logLevel {
+	case zapcore.DebugLevel.String():
+		return zapcore.DebugLevel
+	case zapcore.InfoLevel.String():
+		return zapcore.InfoLevel
+	case zapcore.WarnLevel.String():
+		return zapcore.WarnLevel
+	case zapcore.ErrorLevel.String():
+		return zapcore.ErrorLevel
+	case zapcore.PanicLevel.String():
+		return zapcore.PanicLevel
+	default:
+		return zapcore.InfoLevel
+	}
+}
+
+func printVersion(logger logr.Logger) {
+	logger.Info("Binary info ", "Go version", osruntime.Version())
+	logger.Info("Binary info ", "OS", osruntime.GOOS, "Arch", osruntime.GOARCH)
+	logger.Info("Address ", "Metrics", metricsAddr)
+	logger.Info("Address ", "Probe", probeAddr)
+
+	infra := "Kubernetes"
+	if cheInfrastructure.IsOpenShift() {
+		infra = "OpenShift"
+	}
+	logger.Info("Operator is running on ", "Infrastructure", infra)
+}
+
+func registerSchemes() {
+	utilruntime.Must(chev1.AddToScheme(scheme))
+	utilruntime.Must(chev2.AddToScheme(scheme))
+
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(admissionregistrationv1.AddToScheme(scheme))
+	utilruntime.Must(rbacv1.AddToScheme(scheme))
+
+	utilruntime.Must(imagepullerapi.AddToScheme(scheme))
+	utilruntime.Must(packagesv1.AddToScheme(scheme))
+	utilruntime.Must(operatorsv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(operatorsv1.AddToScheme(scheme))
+	utilruntime.Must(corev1.AddToScheme(scheme))
+
+	if cheInfrastructure.IsOpenShift() {
+		utilruntime.Must(routev1.Install(scheme))
+		utilruntime.Must(configv1.Install(scheme))
+		utilruntime.Must(consolev1.Install(scheme))
+		utilruntime.Must(projectv1.Install(scheme))
+		utilruntime.Must(securityv1.Install(scheme))
+		utilruntime.Must(templatev1.Install(scheme))
+	}
+
+	if cheInfrastructure.IsServiceMonitorEnabled() {
+		utilruntime.Must(monitoringv1.AddToScheme(scheme))
+	}
+
+	// User and OAuthClient API are disabled in case of external IDP
+	// Check API before adding to the scheme
+	if cheInfrastructure.IsOpenShiftOAuthEnabled() {
+		utilruntime.Must(userv1.Install(scheme))
+		utilruntime.Must(oauthv1.Install(scheme))
+	}
 }

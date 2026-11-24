@@ -20,6 +20,7 @@ import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
@@ -35,7 +36,9 @@ import (
 )
 
 func TestOpenVSXServerReconciler(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "eclipse-che",
@@ -52,12 +55,13 @@ func TestOpenVSXServerReconciler(t *testing.T) {
 	).Build()
 
 	reconciler := NewOpenVSXServerReconciler()
-	test.EnsureReconcile(t, cheCtx, func(cheCtx *chetypes.CheContext) (result reconcile.Result, done bool, err error) {
+	assert.NoError(t, test.ReconcileTwice(cheCtx, func(cheCtx *chetypes.CheContext) (result reconcile.Result, done bool, err error) {
 		result, done, err = reconciler.Reconcile(cheCtx)
 		if !done && err == nil {
 			// Update deployment status to simulate it being ready
 			deployment := &appsv1.Deployment{}
 			key := types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: cheCtx.CheCluster.Namespace}
+
 			if exists, _ := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(cheCtx.Context, key, deployment); exists {
 				deployment.Status.AvailableReplicas = 1
 				deployment.Status.UnavailableReplicas = 0
@@ -65,32 +69,35 @@ func TestOpenVSXServerReconciler(t *testing.T) {
 			}
 		}
 		return result, done, err
-	})
+	}))
 
 	ns := "eclipse-che"
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: ns}, &appsv1.Deployment{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: ns}, &corev1.Service{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: ns}, &corev1.PersistentVolumeClaim{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: ns}, &corev1.ConfigMap{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: gateway.GatewayConfigMapNamePrefix + constants.OpenVSXServerComponentName, Namespace: ns}, &corev1.ConfigMap{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerExtensionsConfigMapName, Namespace: ns}, &corev1.ConfigMap{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerExtensionPublishJobName, Namespace: ns}, &batchv1.Job{}))
+
+	key := types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: ns}
+	assert.NoError(t, test.ExpectFound(key, &appsv1.Deployment{}))
+	assert.NoError(t, test.ExpectFound(key, &corev1.Service{}))
+	assert.NoError(t, test.ExpectFound(key, &corev1.PersistentVolumeClaim{}))
+	assert.NoError(t, test.ExpectFound(key, &corev1.ConfigMap{}))
+	assert.NoError(t, test.ExpectFound(types.NamespacedName{Name: gateway.GatewayConfigMapNamePrefix + constants.OpenVSXServerComponentName, Namespace: ns}, &corev1.ConfigMap{}))
+	assert.NoError(t, test.ExpectFound(types.NamespacedName{Name: constants.OpenVSXServerExtensionsConfigMapName, Namespace: ns}, &corev1.ConfigMap{}))
+	assert.NoError(t, test.ExpectFound(types.NamespacedName{Name: constants.OpenVSXServerExtensionPublishJobName, Namespace: ns}, &batchv1.Job{}))
 
 	cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Enable = ptr.To(false)
-	test.EnsureReconcile(t, cheCtx, reconciler.Reconcile)
-
-	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: ns}, &appsv1.Deployment{}))
-	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: ns}, &corev1.Service{}))
-	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: ns}, &corev1.PersistentVolumeClaim{}))
-	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: ns}, &corev1.ConfigMap{}))
-	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: gateway.GatewayConfigMapNamePrefix + constants.OpenVSXServerComponentName, Namespace: ns}, &corev1.ConfigMap{}))
-	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerExtensionsConfigMapName, Namespace: ns}, &corev1.ConfigMap{}))
-	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerExtensionPublishJobName, Namespace: ns}, &batchv1.Job{}))
-	assert.False(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: constants.OpenVSXServerExtensionUpdateCronJobName, Namespace: ns}, &batchv1.CronJob{}))
+	assert.NoError(t, test.ReconcileTwice(cheCtx, reconciler.Reconcile))
+	assert.NoError(t, test.ExpectNotFound(key, &appsv1.Deployment{}))
+	assert.NoError(t, test.ExpectNotFound(key, &corev1.Service{}))
+	assert.NoError(t, test.ExpectNotFound(key, &corev1.PersistentVolumeClaim{}))
+	assert.NoError(t, test.ExpectNotFound(key, &corev1.ConfigMap{}))
+	assert.NoError(t, test.ExpectNotFound(types.NamespacedName{Name: gateway.GatewayConfigMapNamePrefix + constants.OpenVSXServerComponentName, Namespace: ns}, &corev1.ConfigMap{}))
+	assert.NoError(t, test.ExpectNotFound(types.NamespacedName{Name: constants.OpenVSXServerExtensionsConfigMapName, Namespace: ns}, &corev1.ConfigMap{}))
+	assert.NoError(t, test.ExpectNotFound(types.NamespacedName{Name: constants.OpenVSXServerExtensionPublishJobName, Namespace: ns}, &batchv1.Job{}))
+	assert.NoError(t, test.ExpectNotFound(types.NamespacedName{Name: constants.OpenVSXServerExtensionUpdateCronJobName, Namespace: ns}, &batchv1.CronJob{}))
 }
 
 func TestPublishJobIncludesProxyEnv(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "eclipse-che",
@@ -110,10 +117,11 @@ func TestPublishJobIncludesProxyEnv(t *testing.T) {
 	cheCtx.Proxy.NoProxy = "localhost,.svc,.cluster.local"
 
 	reconciler := NewOpenVSXServerReconciler()
-	test.EnsureReconcile(t, cheCtx, func(cheCtx *chetypes.CheContext) (result reconcile.Result, done bool, err error) {
+	assert.NoError(t, test.ReconcileTwice(cheCtx, func(cheCtx *chetypes.CheContext) (result reconcile.Result, done bool, err error) {
 		result, done, err = reconciler.Reconcile(cheCtx)
 		if !done && err == nil {
 			deployment := &appsv1.Deployment{}
+
 			key := types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: cheCtx.CheCluster.Namespace}
 			if exists, _ := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(cheCtx.Context, key, deployment); exists {
 				deployment.Status.AvailableReplicas = 1
@@ -122,20 +130,10 @@ func TestPublishJobIncludesProxyEnv(t *testing.T) {
 			}
 		}
 		return result, done, err
-	})
+	}))
 
 	job := &batchv1.Job{}
-	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(
-		cheCtx.Context,
-		types.NamespacedName{
-			Name:      constants.OpenVSXServerExtensionPublishJobName,
-			Namespace: cheCtx.CheCluster.Namespace,
-		},
-		job,
-	)
-	if !assert.NoError(t, err) || !assert.True(t, exists, "publisher Job should exist") {
-		return
-	}
+	assert.NoError(t, test.ExpectFound(types.NamespacedName{Name: constants.OpenVSXServerExtensionPublishJobName, Namespace: cheCtx.CheCluster.Namespace}, job))
 
 	container := job.Spec.Template.Spec.Containers[0]
 	envMap := make(map[string]string)
@@ -152,7 +150,9 @@ func TestPublishJobIncludesProxyEnv(t *testing.T) {
 }
 
 func TestPublishJobResyncsOnProxyChange(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "eclipse-che",
@@ -173,6 +173,7 @@ func TestPublishJobResyncsOnProxyChange(t *testing.T) {
 		result, done, err = reconciler.Reconcile(cheCtx)
 		if !done && err == nil {
 			deployment := &appsv1.Deployment{}
+
 			key := types.NamespacedName{Name: constants.OpenVSXServerComponentName, Namespace: cheCtx.CheCluster.Namespace}
 			if exists, _ := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(cheCtx.Context, key, deployment); exists {
 				deployment.Status.AvailableReplicas = 1
@@ -183,17 +184,14 @@ func TestPublishJobResyncsOnProxyChange(t *testing.T) {
 		return result, done, err
 	}
 
-	test.EnsureReconcile(t, cheCtx, reconcileReady)
+	assert.NoError(t, test.ReconcileTwice(cheCtx, reconcileReady))
 
 	jobKey := types.NamespacedName{
 		Name:      constants.OpenVSXServerExtensionPublishJobName,
 		Namespace: cheCtx.CheCluster.Namespace,
 	}
 	job := &batchv1.Job{}
-	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(cheCtx.Context, jobKey, job)
-	if !assert.NoError(t, err) || !assert.True(t, exists, "publisher Job should exist") {
-		return
-	}
+	assert.NoError(t, test.ExpectFound(jobKey, job))
 	assert.Nil(t, findEnvVar(job.Spec.Template.Spec.Containers[0].Env, "HTTP_PROXY"))
 	assert.Nil(t, findEnvVar(job.Spec.Template.Spec.Containers[0].Env, "HTTPS_PROXY"))
 	assert.Nil(t, findEnvVar(job.Spec.Template.Spec.Containers[0].Env, "NO_PROXY"))
@@ -202,13 +200,10 @@ func TestPublishJobResyncsOnProxyChange(t *testing.T) {
 	cheCtx.Proxy.HttpsProxy = "http://proxy.example.com:3128"
 	cheCtx.Proxy.NoProxy = "localhost,.svc,.cluster.local"
 
-	test.EnsureReconcile(t, cheCtx, reconcileReady)
+	assert.NoError(t, test.ReconcileTwice(cheCtx, reconcileReady))
 
 	job = &batchv1.Job{}
-	exists, err = cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(cheCtx.Context, jobKey, job)
-	if !assert.NoError(t, err) || !assert.True(t, exists, "publisher Job should exist after proxy change") {
-		return
-	}
+	assert.NoError(t, test.ExpectFound(jobKey, job))
 
 	envMap := make(map[string]string)
 	for _, e := range job.Spec.Template.Spec.Containers[0].Env {
@@ -220,7 +215,9 @@ func TestPublishJobResyncsOnProxyChange(t *testing.T) {
 }
 
 func TestDeploymentSpecHasWaitDatabaseInitContainer(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "eclipse-che",

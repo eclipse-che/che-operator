@@ -16,6 +16,7 @@ import (
 	"context"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
@@ -170,7 +171,9 @@ func TestIngressSpec(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			test.StartOn(infrastructure.Kubernetes)
+
+			cheCtx := test.NewCheContextBuilder().WithCheCluster(testCase.cheCluster).Build()
 			_, actualIngress := GetIngressSpec(cheCtx,
 				"test",
 				"",
@@ -184,6 +187,8 @@ func TestIngressSpec(t *testing.T) {
 }
 
 func TestSyncIngressToCluster(t *testing.T) {
+	test.StartOn(infrastructure.Kubernetes)
+
 	cheCluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
@@ -196,7 +201,7 @@ func TestSyncIngressToCluster(t *testing.T) {
 		},
 	}
 
-	cheCtx := test.NewCtxBuilder().WithCheCluster(cheCluster).Build()
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(cheCluster).Build()
 	_, err := SyncIngressToCluster(cheCtx, "test", "", "service-1", 8080, "component")
 	assert.Nil(t, err)
 

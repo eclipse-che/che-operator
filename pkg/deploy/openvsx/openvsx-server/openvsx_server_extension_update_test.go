@@ -18,6 +18,7 @@ import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/deploy/openvsx"
@@ -63,7 +64,9 @@ func cronJobKey(cheCtx *chetypes.CheContext) types.NamespacedName {
 }
 
 func TestExtensionAutoUpdateCronJobCreated(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "eclipse-che",
@@ -83,16 +86,14 @@ func TestExtensionAutoUpdateCronJobCreated(t *testing.T) {
 	).Build()
 
 	reconciler := NewOpenVSXServerReconciler()
-	test.EnsureReconcile(t, cheCtx, reconcileWithReadyDeployment(reconciler))
-
-	assert.True(t,
-		test.IsObjectExists(cheCtx.ClusterAPI.Client, cronJobKey(cheCtx), &batchv1.CronJob{}),
-		"CronJob should be created when auto-update is enabled",
-	)
+	assert.NoError(t, test.ReconcileTwice(cheCtx, reconcileWithReadyDeployment(reconciler)))
+	assert.NoError(t, test.ExpectFound(cronJobKey(cheCtx), &batchv1.CronJob{}), "CronJob should be created when auto-update is enabled")
 }
 
 func TestExtensionAutoUpdateCronJobNotCreatedWhenDisabled(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "eclipse-che",
@@ -109,16 +110,14 @@ func TestExtensionAutoUpdateCronJobNotCreatedWhenDisabled(t *testing.T) {
 	).Build()
 
 	reconciler := NewOpenVSXServerReconciler()
-	test.EnsureReconcile(t, cheCtx, reconcileWithReadyDeployment(reconciler))
-
-	assert.False(t,
-		test.IsObjectExists(cheCtx.ClusterAPI.Client, cronJobKey(cheCtx), &batchv1.CronJob{}),
-		"CronJob should not be created when auto-update is not configured",
-	)
+	assert.NoError(t, test.ReconcileTwice(cheCtx, reconcileWithReadyDeployment(reconciler)))
+	assert.NoError(t, test.ExpectNotFound(cronJobKey(cheCtx), &batchv1.CronJob{}), "CronJob should not be created when auto-update is not configured")
 }
 
 func TestExtensionAutoUpdateCronJobCleanedUpOnDisable(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "eclipse-che",
@@ -138,17 +137,12 @@ func TestExtensionAutoUpdateCronJobCleanedUpOnDisable(t *testing.T) {
 	).Build()
 
 	reconciler := NewOpenVSXServerReconciler()
-	test.EnsureReconcile(t, cheCtx, reconcileWithReadyDeployment(reconciler))
-
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, cronJobKey(cheCtx), &batchv1.CronJob{}))
+	assert.NoError(t, test.ReconcileTwice(cheCtx, reconcileWithReadyDeployment(reconciler)))
+	assert.NoError(t, test.ExpectFound(cronJobKey(cheCtx), &batchv1.CronJob{}))
 
 	cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.ExtensionAutoUpdate.Enable = ptr.To(false)
-	test.EnsureReconcile(t, cheCtx, reconcileWithReadyDeployment(reconciler))
-
-	assert.False(t,
-		test.IsObjectExists(cheCtx.ClusterAPI.Client, cronJobKey(cheCtx), &batchv1.CronJob{}),
-		"CronJob should be deleted when auto-update is disabled",
-	)
+	assert.NoError(t, test.ReconcileTwice(cheCtx, reconcileWithReadyDeployment(reconciler)))
+	assert.NoError(t, test.ExpectNotFound(cronJobKey(cheCtx), &batchv1.CronJob{}), "CronJob should be deleted when auto-update is disabled")
 }
 
 func TestExtensionAutoUpdateCronJobSpec(t *testing.T) {
@@ -156,7 +150,9 @@ func TestExtensionAutoUpdateCronJobSpec(t *testing.T) {
 	engineVersion := "1.92.0"
 	excludeExtensions := []string{"redhat.java", "redhat.vscode-xml"}
 
-	cheCtx := test.NewCtxBuilder().WithCheCluster(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "eclipse-che",
@@ -213,7 +209,9 @@ func TestExtensionAutoUpdateCronJobSpec(t *testing.T) {
 }
 
 func TestExtensionAutoUpdateCronJobIncludesProxyEnv(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "eclipse-che",
@@ -256,7 +254,9 @@ func TestExtensionAutoUpdateCronJobIncludesProxyEnv(t *testing.T) {
 }
 
 func TestExtensionAutoUpdateCronJobNoExcludedExtensions(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "eclipse-che",
@@ -291,7 +291,9 @@ func TestExtensionAutoUpdateCronJobNoExcludedExtensions(t *testing.T) {
 }
 
 func TestExtensionAutoUpdateCronJobDefaultSchedule(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "eclipse-che",
@@ -320,7 +322,9 @@ func TestExtensionAutoUpdateCronJobDefaultSchedule(t *testing.T) {
 }
 
 func TestExtensionAutoUpdateCronJobNoEngineVersion(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "eclipse-che",
@@ -355,7 +359,9 @@ func TestExtensionAutoUpdateCronJobNoEngineVersion(t *testing.T) {
 }
 
 func TestExtensionAutoUpdateCronJobCleanedUpWhenRegistryDisabled(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "eclipse-che",
@@ -375,20 +381,12 @@ func TestExtensionAutoUpdateCronJobCleanedUpWhenRegistryDisabled(t *testing.T) {
 	).Build()
 
 	reconciler := NewOpenVSXServerReconciler()
-	test.EnsureReconcile(t, cheCtx, reconcileWithReadyDeployment(reconciler))
-
-	cronJob := &batchv1.CronJob{}
-	exists, err := cheCtx.ClusterAPI.ClientWrapper.GetIgnoreNotFound(cheCtx.Context, cronJobKey(cheCtx), cronJob)
-	assert.NoError(t, err)
-	assert.True(t, exists, "CronJob should exist")
+	assert.NoError(t, test.ReconcileTwice(cheCtx, reconcileWithReadyDeployment(reconciler)))
+	assert.NoError(t, test.ExpectFound(cronJobKey(cheCtx), &batchv1.CronJob{}), "CronJob should exist")
 
 	cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Enable = ptr.To(false)
-	test.EnsureReconcile(t, cheCtx, reconcileWithReadyDeployment(reconciler))
-
-	assert.False(t,
-		test.IsObjectExists(cheCtx.ClusterAPI.Client, cronJobKey(cheCtx), &batchv1.CronJob{}),
-		"CronJob should be deleted when OpenVSX registry is disabled",
-	)
+	assert.NoError(t, test.ReconcileTwice(cheCtx, reconcileWithReadyDeployment(reconciler)))
+	assert.NoError(t, test.ExpectNotFound(cronJobKey(cheCtx), &batchv1.CronJob{}), "CronJob should be deleted when OpenVSX registry is disabled")
 }
 
 func findEnvVar(envVars []corev1.EnvVar, name string) *corev1.EnvVar {

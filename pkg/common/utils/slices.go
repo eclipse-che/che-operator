@@ -34,3 +34,13 @@ func AppendUnique[S ~[]E, E comparable](s S, values ...E) S {
 	}
 	return s
 }
+
+func Find[T any](slice []T, predicate func(T) bool) *T {
+	for i := range slice {
+		if predicate(slice[i]) {
+			return &slice[i]
+		}
+	}
+
+	return nil
+}

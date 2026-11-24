@@ -13,11 +13,10 @@
 package server
 
 import (
-	"context"
 	"testing"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/stretchr/testify/assert"
@@ -26,7 +25,9 @@ import (
 )
 
 func TestBaseDomainFromNetworkingDomain(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
@@ -47,7 +48,9 @@ func TestBaseDomainFromNetworkingDomain(t *testing.T) {
 }
 
 func TestBaseDomainFromExtraProperties(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
@@ -75,7 +78,9 @@ func TestBaseDomainFromExtraProperties(t *testing.T) {
 }
 
 func TestBaseDomainExtraPropertiesOverridesNetworkingDomain(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
@@ -103,7 +108,9 @@ func TestBaseDomainExtraPropertiesOverridesNetworkingDomain(t *testing.T) {
 }
 
 func TestBaseDomainStatusUpdated(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
@@ -127,13 +134,14 @@ func TestBaseDomainStatusUpdated(t *testing.T) {
 
 	// Verify status was persisted
 	cheCluster := &chev2.CheCluster{}
-	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"}, cheCluster)
-	assert.Nil(t, err)
+	assert.NoError(t, test.ExpectFound(types.NamespacedName{Name: "eclipse-che", Namespace: "eclipse-che"}, cheCluster))
 	assert.Equal(t, "new-domain.com", cheCluster.Status.WorkspaceBaseDomain)
 }
 
 func TestBaseDomainIdempotency(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
@@ -164,10 +172,9 @@ func TestBaseDomainIdempotency(t *testing.T) {
 }
 
 func TestBaseDomainFailsWhenNoDomainResolved(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
-	defer infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	test.StartOn(infrastructure.Kubernetes)
 
-	cheCtx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCheContextBuilder().Build()
 
 	reconciler := NewBaseDomainReconciler()
 	_, done, err := reconciler.Reconcile(cheCtx)
@@ -177,6 +184,8 @@ func TestBaseDomainFailsWhenNoDomainResolved(t *testing.T) {
 }
 
 func TestBaseDomainFailsWhenRouteHostMalformed(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	route := &routev1.Route{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Route",
@@ -191,7 +200,7 @@ func TestBaseDomainFailsWhenRouteHostMalformed(t *testing.T) {
 		},
 	}
 
-	cheCtx := test.NewCtxBuilder().WithObjects(route).Build()
+	cheCtx := test.NewCheContextBuilder().WithObjects(route).Build()
 
 	reconciler := NewBaseDomainReconciler()
 	_, done, err := reconciler.Reconcile(cheCtx)
@@ -201,6 +210,8 @@ func TestBaseDomainFailsWhenRouteHostMalformed(t *testing.T) {
 }
 
 func TestBaseDomainFromRoute(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	route := &routev1.Route{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Route",
@@ -215,7 +226,7 @@ func TestBaseDomainFromRoute(t *testing.T) {
 		},
 	}
 
-	cheCtx := test.NewCtxBuilder().WithObjects(route).Build()
+	cheCtx := test.NewCheContextBuilder().WithObjects(route).Build()
 
 	reconciler := NewBaseDomainReconciler()
 	_, done, err := reconciler.Reconcile(cheCtx)

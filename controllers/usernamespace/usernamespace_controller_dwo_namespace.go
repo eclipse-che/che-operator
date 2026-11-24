@@ -76,7 +76,7 @@ func (r *CheUserNamespaceReconciler) watchRuleForDevWorkspacePod() handler.Event
 			currentDWONamespace := r.getDWONamespace()
 
 			// Find the new DWO namespace
-			newDWONamespace, err := devworkspace.GetDevWorkspaceOperatorNamespace(ctx, r.clientWrapper)
+			newDWONamespace, err := devworkspace.GetDevWorkspaceOperatorNamespace(ctx, r.clusterAPI.ClientWrapper)
 			if err != nil {
 				logger.Error(err, "Failed to get DevWorkspaceOperator namespace")
 				return

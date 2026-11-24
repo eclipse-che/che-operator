@@ -483,18 +483,13 @@ func TestResolveOIDCAuthentication(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.isOpenShift {
-				infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+				test.StartOn(infrastructure.OpenShiftV4)
 				infrastructure.SetOpenShiftOAuthEnabledForTesting(tc.oAuthEnabled)
 			} else {
-				infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+				test.StartOn(infrastructure.Kubernetes)
 			}
 
-			defer func() {
-				infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
-				infrastructure.SetOpenShiftOAuthEnabledForTesting(true)
-			}()
-
-			cheCtx := test.NewCtxBuilder().
+			cheCtx := test.NewCheContextBuilder().
 				WithCheCluster(tc.cheCluster).
 				WithObjects(tc.initObjects...).
 				Build()

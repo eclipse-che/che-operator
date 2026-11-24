@@ -19,10 +19,8 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	k8shelper "github.com/eclipse-che/che-operator/pkg/common/k8s-helper"
-
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
-
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/api/resource"
 
@@ -74,8 +72,7 @@ func TestMountSecret(t *testing.T) {
 			name: "Mount secret as file",
 			initDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "che",
-					ResourceVersion: "0",
+					Name: "che",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -87,8 +84,7 @@ func TestMountSecret(t *testing.T) {
 			},
 			expectedDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "che",
-					ResourceVersion: "0",
+					Name: "che",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -145,8 +141,7 @@ func TestMountSecret(t *testing.T) {
 			name: "Mount secret as subpath",
 			initDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "che",
-					ResourceVersion: "0",
+					Name: "che",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -158,8 +153,7 @@ func TestMountSecret(t *testing.T) {
 			},
 			expectedDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "che",
-					ResourceVersion: "0",
+					Name: "che",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -217,8 +211,7 @@ func TestMountSecret(t *testing.T) {
 			name: "Mount secret as env variable",
 			initDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "che",
-					ResourceVersion: "0",
+					Name: "che",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -230,8 +223,7 @@ func TestMountSecret(t *testing.T) {
 			},
 			expectedDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "che",
-					ResourceVersion: "0",
+					Name: "che",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -285,8 +277,7 @@ func TestMountSecret(t *testing.T) {
 			name: "Mount several env variables",
 			initDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "che",
-					ResourceVersion: "0",
+					Name: "che",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -298,8 +289,7 @@ func TestMountSecret(t *testing.T) {
 			},
 			expectedDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "che",
-					ResourceVersion: "0",
+					Name: "che",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -379,15 +369,17 @@ func TestMountSecret(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
+			test.StartOn(infrastructure.OpenShiftV4)
+
 			testCase.initObjects = append(testCase.initObjects, testCase.initDeployment)
-			cheCtx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
+			cheCtx := test.NewCheContextBuilder().WithObjects(testCase.initObjects...).Build()
 
 			err := MountSecrets(testCase.initDeployment, cheCtx)
 			if err != nil {
 				t.Fatalf("Error mounting secret: %v", err)
 			}
 
-			if !reflect.DeepEqual(testCase.expectedDeployment, testCase.initDeployment) {
+			if !reflect.DeepEqual(testCase.expectedDeployment.Spec, testCase.initDeployment.Spec) {
 				t.Errorf("Expected deployment and deployment returned from API server differ (-want, +got): %v", cmp.Diff(testCase.expectedDeployment, testCase.initDeployment))
 			}
 		})
@@ -407,8 +399,7 @@ func TestMountConfigMaps(t *testing.T) {
 			name: "Mount configmap as file",
 			initDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "che",
-					ResourceVersion: "0",
+					Name: "che",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -420,8 +411,7 @@ func TestMountConfigMaps(t *testing.T) {
 			},
 			expectedDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "che",
-					ResourceVersion: "0",
+					Name: "che",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -480,8 +470,7 @@ func TestMountConfigMaps(t *testing.T) {
 			name: "Mount configmap as subpath",
 			initDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "che",
-					ResourceVersion: "0",
+					Name: "che",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -493,8 +482,7 @@ func TestMountConfigMaps(t *testing.T) {
 			},
 			expectedDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "che",
-					ResourceVersion: "0",
+					Name: "che",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -554,8 +542,7 @@ func TestMountConfigMaps(t *testing.T) {
 			name: "Mount configmap as env variable",
 			initDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "che",
-					ResourceVersion: "0",
+					Name: "che",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -567,8 +554,7 @@ func TestMountConfigMaps(t *testing.T) {
 			},
 			expectedDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "che",
-					ResourceVersion: "0",
+					Name: "che",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -622,8 +608,7 @@ func TestMountConfigMaps(t *testing.T) {
 			name: "Mount several env variables",
 			initDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "che",
-					ResourceVersion: "0",
+					Name: "che",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -635,8 +620,7 @@ func TestMountConfigMaps(t *testing.T) {
 			},
 			expectedDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "che",
-					ResourceVersion: "0",
+					Name: "che",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -716,15 +700,17 @@ func TestMountConfigMaps(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
+			test.StartOn(infrastructure.OpenShiftV4)
+
 			testCase.initObjects = append(testCase.initObjects, testCase.initDeployment)
-			cheCtx := test.NewCtxBuilder().WithObjects(testCase.initObjects...).Build()
+			cheCtx := test.NewCheContextBuilder().WithObjects(testCase.initObjects...).Build()
 
 			err := MountConfigMaps(testCase.initDeployment, cheCtx)
 			if err != nil {
 				t.Fatalf("Error mounting configmap: %v", err)
 			}
 
-			if !reflect.DeepEqual(testCase.expectedDeployment, testCase.initDeployment) {
+			if !reflect.DeepEqual(testCase.expectedDeployment.Spec, testCase.initDeployment.Spec) {
 				t.Errorf("Expected deployment and deployment returned from API server differ (-want, +got): %v", cmp.Diff(testCase.expectedDeployment, testCase.initDeployment))
 			}
 		})
@@ -732,7 +718,9 @@ func TestMountConfigMaps(t *testing.T) {
 }
 
 func TestSyncEnvVarDeploymentToCluster(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().Build()
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().Build()
 
 	// initial sync
 	done, err := SyncDeploymentSpecToCluster(cheCtx, deployment, DefaultDeploymentDiffOpts)
@@ -781,6 +769,8 @@ func TestSyncEnvVarDeploymentToCluster(t *testing.T) {
 }
 
 func TestCustomizeDeploymentShouldNotUpdateResources(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
@@ -817,7 +807,7 @@ func TestCustomizeDeploymentShouldNotUpdateResources(t *testing.T) {
 		},
 	}
 
-	cheCtx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCheContextBuilder().Build()
 	err := OverrideDeployment(cheCtx, deployment, customizationDeployment)
 	assert.Nil(t, err)
 
@@ -901,7 +891,9 @@ func TestCustomizeDeploymentImagePullPolicy(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := test.NewCheContextBuilder().Build()
 			err := OverrideDeployment(cheCtx, testCase.initDeployment, testCase.customizationDeployment)
 			assert.Nil(t, err)
 
@@ -984,7 +976,9 @@ func TestCustomizeDeploymentEnvVar(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := test.NewCheContextBuilder().Build()
 			err := OverrideDeployment(cheCtx, testCase.initDeployment, testCase.customizationDeployment)
 			assert.Nil(t, err)
 
@@ -994,6 +988,8 @@ func TestCustomizeDeploymentEnvVar(t *testing.T) {
 }
 
 func TestCustomizeDeploymentVolumeMounts(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	initDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
@@ -1026,7 +1022,7 @@ func TestCustomizeDeploymentVolumeMounts(t *testing.T) {
 			},
 		},
 	}
-	cheCtx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCheContextBuilder().Build()
 	err := OverrideDeployment(cheCtx, initDeployment, customization)
 	assert.Nil(t, err)
 
@@ -1038,6 +1034,8 @@ func TestCustomizeDeploymentVolumeMounts(t *testing.T) {
 }
 
 func TestCustomizeDeploymentVolumes(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	initDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
@@ -1066,7 +1064,7 @@ func TestCustomizeDeploymentVolumes(t *testing.T) {
 		},
 		Containers: []chev2.Container{{Name: "test"}},
 	}
-	cheCtx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCheContextBuilder().Build()
 	err := OverrideDeployment(cheCtx, initDeployment, customization)
 	assert.Nil(t, err)
 
@@ -1078,6 +1076,8 @@ func TestCustomizeDeploymentVolumes(t *testing.T) {
 }
 
 func TestCustomizeDeploymentVolumesReplaceByName(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	initDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
@@ -1106,7 +1106,7 @@ func TestCustomizeDeploymentVolumesReplaceByName(t *testing.T) {
 		},
 		Containers: []chev2.Container{{Name: "test"}},
 	}
-	cheCtx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCheContextBuilder().Build()
 	err := OverrideDeployment(cheCtx, initDeployment, customization)
 	assert.Nil(t, err)
 
@@ -1117,6 +1117,8 @@ func TestCustomizeDeploymentVolumesReplaceByName(t *testing.T) {
 }
 
 func TestCustomizeDeploymentContainerSecurityContext(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	runAs := int64(1001)
 	initDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1148,7 +1150,7 @@ func TestCustomizeDeploymentContainerSecurityContext(t *testing.T) {
 			},
 		},
 	}
-	cheCtx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCheContextBuilder().Build()
 	err := OverrideDeployment(cheCtx, initDeployment, customization)
 	assert.Nil(t, err)
 
@@ -1160,6 +1162,8 @@ func TestCustomizeDeploymentContainerSecurityContext(t *testing.T) {
 }
 
 func TestShouldNotThrowErrorIfOverrideDeploymentSettingsIsEmpty(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
@@ -1180,7 +1184,7 @@ func TestShouldNotThrowErrorIfOverrideDeploymentSettingsIsEmpty(t *testing.T) {
 
 	overrideDeploymentSettings := &chev2.Deployment{}
 
-	cheCtx := test.NewCtxBuilder().Build()
+	cheCtx := test.NewCheContextBuilder().Build()
 	err := OverrideDeployment(cheCtx, deployment, overrideDeploymentSettings)
 	assert.Nil(t, err)
 }
@@ -1285,12 +1289,14 @@ func TestOverrideContainerCpuLimit(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			k8sHelper := k8shelper.GetInstance()
+			test.StartOn(infrastructure.OpenShiftV4)
 
+			initObjs := []client.Object{}
 			if testCase.limitRange != nil {
-				_, err := k8sHelper.GetClientSet().CoreV1().LimitRanges("eclipse-che").Create(context.TODO(), testCase.limitRange, metav1.CreateOptions{})
-				assert.NoError(t, err)
+				initObjs = append(initObjs, testCase.limitRange)
 			}
+
+			test.NewCheContextBuilder().WithObjects(initObjs...).Build()
 
 			err := OverrideContainer("eclipse-che", testCase.container, testCase.overrideSettings)
 			assert.NoError(t, err)
@@ -1300,19 +1306,14 @@ func TestOverrideContainerCpuLimit(t *testing.T) {
 			} else {
 				assert.Equal(t, testCase.expectedCpuLimit, testCase.container.Resources.Limits.Cpu().String())
 			}
-
-			defer func() {
-				if testCase.limitRange != nil {
-					err := k8sHelper.GetClientSet().CoreV1().LimitRanges("eclipse-che").Delete(context.TODO(), testCase.limitRange.Name, metav1.DeleteOptions{})
-					assert.NoError(t, err)
-				}
-			}()
 		})
 	}
 }
 
 func TestOverrideNodeSelector(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().Build()
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().Build()
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
@@ -1343,7 +1344,9 @@ func TestOverrideNodeSelector(t *testing.T) {
 }
 
 func TestOverrideTolerations(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().Build()
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().Build()
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
@@ -1384,6 +1387,8 @@ func TestOverrideTolerations(t *testing.T) {
 }
 
 func TestMountAsSubpathShouldSortVolumeMounts(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	newDeployment := func() *appsv1.Deployment {
 		return &appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
@@ -1399,7 +1404,7 @@ func TestMountAsSubpathShouldSortVolumeMounts(t *testing.T) {
 		}
 	}
 
-	cheCtx := test.NewCtxBuilder().WithObjects(
+	cheCtx := test.NewCheContextBuilder().WithObjects(
 		&corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test",

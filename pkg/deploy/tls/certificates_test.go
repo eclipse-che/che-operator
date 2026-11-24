@@ -18,9 +18,10 @@ import (
 	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	"k8s.io/utils/ptr"
 
-	"github.com/eclipse-che/che-operator/pkg/common/constants"
-
 	"testing"
+
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
@@ -31,9 +32,11 @@ import (
 )
 
 func TestSyncOpenShiftCABundleCertificates(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().Build()
+	test.StartOn(infrastructure.OpenShiftV4)
 
-	test.EnsureReconcile(t, cheCtx, NewCertificatesReconciler().Reconcile)
+	cheCtx := test.NewCheContextBuilder().Build()
+
+	assert.NoError(t, test.ReconcileTwice(cheCtx, NewCertificatesReconciler().Reconcile))
 
 	caCertsCM := &corev1.ConfigMap{}
 	err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
@@ -52,9 +55,12 @@ func TestSyncOpenShiftCABundleCertificates(t *testing.T) {
 }
 
 func TestSyncEmptyOpenShiftCABundleCertificates(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().Build()
+	test.StartOn(infrastructure.OpenShiftV4)
 
-	test.EnsureReconcile(t, cheCtx, NewCertificatesReconciler().Reconcile)
+	cheCtx := test.NewCheContextBuilder().Build()
+	reconciler := NewCertificatesReconciler()
+
+	assert.NoError(t, test.ReconcileTwice(cheCtx, reconciler.Reconcile))
 
 	caCertsCM := &corev1.ConfigMap{}
 	err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
@@ -67,8 +73,7 @@ func TestSyncEmptyOpenShiftCABundleCertificates(t *testing.T) {
 	caCertsCM.Data = map[string]string{"ca-bundle.crt": "openshift-ca-bundle"}
 	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), caCertsCM)
 	assert.NoError(t, err)
-
-	test.EnsureReconcile(t, cheCtx, NewCertificatesReconciler().Reconcile)
+	assert.NoError(t, test.ReconcileTwice(cheCtx, reconciler.Reconcile))
 
 	caCertsMergedCM := &corev1.ConfigMap{}
 	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
@@ -80,7 +85,9 @@ func TestSyncEmptyOpenShiftCABundleCertificates(t *testing.T) {
 }
 
 func TestSyncOnlyCustomOpenShiftCertificates(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithObjects(&corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "custom-openshift-trusted-certs-cm",
 			Namespace: "openshift-config",
@@ -92,7 +99,7 @@ func TestSyncOnlyCustomOpenShiftCertificates(t *testing.T) {
 	cheCtx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: ptr.To(true)}
 	cheCtx.Proxy.TrustedCAMapName = "custom-openshift-trusted-certs-cm"
 
-	test.EnsureReconcile(t, cheCtx, NewCertificatesReconciler().Reconcile)
+	assert.NoError(t, test.ReconcileTwice(cheCtx, NewCertificatesReconciler().Reconcile))
 
 	cm := &corev1.ConfigMap{}
 	err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, cm)
@@ -112,7 +119,9 @@ func TestSyncOnlyCustomOpenShiftCertificates(t *testing.T) {
 }
 
 func TestSyncKubernetesCABundleCertificates(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().Build()
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().Build()
 
 	certificates := &CertificatesReconciler{
 		readKubernetesCaBundle: func() ([]byte, error) {
@@ -132,6 +141,8 @@ func TestSyncKubernetesCABundleCertificates(t *testing.T) {
 }
 
 func TestSyncKubernetesRootCertificates(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	kubeRootCert := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      kubernetesRootCACertsCMName,
@@ -141,7 +152,8 @@ func TestSyncKubernetesRootCertificates(t *testing.T) {
 			"ca.crt": "root-cert",
 		},
 	}
-	cheCtx := test.NewCtxBuilder().WithObjects(kubeRootCert).Build()
+
+	cheCtx := test.NewCheContextBuilder().WithObjects(kubeRootCert).Build()
 
 	certificates := NewCertificatesReconciler()
 
@@ -156,6 +168,8 @@ func TestSyncKubernetesRootCertificates(t *testing.T) {
 }
 
 func TestSyncGitTrustedCertificates(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	cheCluster := &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "eclipse-che",
@@ -178,7 +192,7 @@ func TestSyncGitTrustedCertificates(t *testing.T) {
 			"ca.crt": "git-cert",
 		},
 	}
-	cheCtx := test.NewCtxBuilder().WithCheCluster(cheCluster).WithObjects(gitCerts).Build()
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(cheCluster).WithObjects(gitCerts).Build()
 
 	certificates := NewCertificatesReconciler()
 
@@ -194,6 +208,8 @@ func TestSyncGitTrustedCertificates(t *testing.T) {
 }
 
 func TestSyncSelfSignedCertificates(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	selfSignedCerts := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.SelfSignedCertificateSecretName,
@@ -203,7 +219,7 @@ func TestSyncSelfSignedCertificates(t *testing.T) {
 			"ca.crt": []byte("self-signed-cert"),
 		},
 	}
-	cheCtx := test.NewCtxBuilder().WithObjects(selfSignedCerts).Build()
+	cheCtx := test.NewCheContextBuilder().WithObjects(selfSignedCerts).Build()
 
 	certificates := NewCertificatesReconciler()
 
@@ -219,18 +235,19 @@ func TestSyncSelfSignedCertificates(t *testing.T) {
 }
 
 func TestSyncCheCABundleCerts(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	cert1 := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            "cert1",
-			Namespace:       "eclipse-che",
-			ResourceVersion: "1",
+			Name:      "cert1",
+			Namespace: "eclipse-che",
 			Labels: map[string]string{
 				"app.kubernetes.io/component": "ca-bundle",
 				"app.kubernetes.io/part-of":   "che.eclipse.org"},
 		},
 		Data: map[string]string{"a1": "b1"},
 	}
-	cheCtx := test.NewCtxBuilder().WithObjects(cert1).Build()
+	cheCtx := test.NewCheContextBuilder().WithObjects(cert1).Build()
 
 	certificates := NewCertificatesReconciler()
 
@@ -265,7 +282,9 @@ func TestSyncCheCABundleCerts(t *testing.T) {
 }
 
 func TestSyncCheCABundleCertsDeterministicKeyOrder(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithObjects(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithObjects(
 		&corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "cert1",
@@ -298,7 +317,9 @@ func TestSyncCheCABundleCertsDeterministicKeyOrder(t *testing.T) {
 }
 
 func TestSyncCheCABundleCertsGitTrustedCertsExcludesGitHostKey(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "eclipse-che",
@@ -357,7 +378,9 @@ func TestSyncCheCABundleCertsGitTrustedCertsExcludesGitHostKey(t *testing.T) {
 }
 
 func TestSyncCheCABundleCertsExcludesGitHostKeyWithDefaultConfigMap(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithObjects(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithObjects(
 		&corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      constants.DefaultGitSelfSignedCertsConfigMapName, // "che-git-self-signed-cert"
@@ -402,16 +425,17 @@ func TestSyncOpenShiftCABundleCertificatesRemovesInjectLabel(t *testing.T) {
 		},
 	}
 
-	cheCtx := test.NewCtxBuilder().WithObjects(existingCM).Build()
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithObjects(existingCM).Build()
 	cheCtx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: ptr.To(true)}
 
-	test.EnsureReconcile(t, cheCtx, NewCertificatesReconciler().Reconcile)
+	assert.NoError(t, test.ReconcileTwice(cheCtx, NewCertificatesReconciler().Reconcile))
 
 	cm := &corev1.ConfigMap{}
 	err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: constants.DefaultCaBundleCertsCMName, Namespace: "eclipse-che"}, cm)
 
 	assert.NoError(t, err)
-
 	assert.Empty(t, cm.Labels[constants.ConfigOpenShiftIOInjectTrustedCaBundle])
 	assert.Equal(t, constants.CheEclipseOrg, cm.Labels[constants.KubernetesPartOfLabelKey])
 	assert.Equal(t, constants.CheCABundle, cm.Labels[constants.KubernetesComponentLabelKey])
@@ -420,7 +444,9 @@ func TestSyncOpenShiftCABundleCertificatesRemovesInjectLabel(t *testing.T) {
 
 func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 	// Enable workspace CA bundle mount
-	cheCtx := test.NewCtxBuilder().WithObjects(&corev1.ConfigMap{
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithObjects(&corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "custom-openshift-trusted-certs-cm",
 			Namespace: "openshift-config",
@@ -432,7 +458,9 @@ func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 	cheCtx.Proxy.TrustedCAMapName = "custom-openshift-trusted-certs-cm"
 	cheCtx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: ptr.To(false)}
 
-	test.EnsureReconcile(t, cheCtx, NewCertificatesReconciler().Reconcile)
+	reconciler := NewCertificatesReconciler()
+
+	assert.NoError(t, test.ReconcileTwice(cheCtx, reconciler.Reconcile))
 
 	caCertsCM := &corev1.ConfigMap{}
 	err := cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
@@ -445,8 +473,7 @@ func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 	caCertsCM.Data = map[string]string{"ca-bundle.crt": "openshift-ca-bundle"}
 	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), caCertsCM)
 	assert.NoError(t, err)
-
-	test.EnsureReconcile(t, cheCtx, NewCertificatesReconciler().Reconcile)
+	assert.NoError(t, test.ReconcileTwice(cheCtx, reconciler.Reconcile))
 
 	caCertsMergedCM := &corev1.ConfigMap{}
 	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
@@ -461,7 +488,7 @@ func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 	// Disable workspace CA bundle mount
 	cheCtx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: ptr.To(true)}
 
-	test.EnsureReconcile(t, cheCtx, NewCertificatesReconciler().Reconcile)
+	assert.NoError(t, test.ReconcileTwice(cheCtx, reconciler.Reconcile))
 
 	caCertsCM = &corev1.ConfigMap{}
 	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
@@ -483,7 +510,7 @@ func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 
 	// Enable workspace CA bundle mount
 	cheCtx.CheCluster.Spec.DevEnvironments.TrustedCerts = &chev2.TrustedCerts{DisableWorkspaceCaBundleMount: ptr.To(false)}
-	test.EnsureReconcile(t, cheCtx, NewCertificatesReconciler().Reconcile)
+	assert.NoError(t, test.ReconcileTwice(cheCtx, reconciler.Reconcile))
 
 	caCertsCM = &corev1.ConfigMap{}
 	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs", Namespace: "eclipse-che"}, caCertsCM)
@@ -496,8 +523,7 @@ func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 	caCertsCM.Data = map[string]string{"ca-bundle.crt": "openshift-ca-bundle-new"}
 	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), caCertsCM)
 	assert.NoError(t, err)
-
-	test.EnsureReconcile(t, cheCtx, NewCertificatesReconciler().Reconcile)
+	assert.NoError(t, test.ReconcileTwice(cheCtx, reconciler.Reconcile))
 
 	caCertsMergedCM = &corev1.ConfigMap{}
 	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
@@ -514,8 +540,7 @@ func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 	caCertsMergedCM.Annotations[dwconstants.DevWorkspaceMountAsAnnotation] = "b"
 	err = cheCtx.ClusterAPI.Client.Update(context.TODO(), caCertsMergedCM)
 	assert.NoError(t, err)
-
-	test.EnsureReconcile(t, cheCtx, NewCertificatesReconciler().Reconcile)
+	assert.NoError(t, test.ReconcileTwice(cheCtx, reconciler.Reconcile))
 
 	caCertsMergedCM = &corev1.ConfigMap{}
 	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "ca-certs-merged", Namespace: "eclipse-che"}, caCertsMergedCM)
@@ -529,6 +554,8 @@ func TestToggleDisableWorkspaceCaBundleMount(t *testing.T) {
 }
 
 func TestSyncCheCABundleCertsWithEmptyConfigMap(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	// A CA bundle ConfigMap exists but has no data entries
 	emptyCert := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -541,7 +568,8 @@ func TestSyncCheCABundleCertsWithEmptyConfigMap(t *testing.T) {
 		},
 		Data: map[string]string{},
 	}
-	cheCtx := test.NewCtxBuilder().WithObjects(emptyCert).Build()
+
+	cheCtx := test.NewCheContextBuilder().WithObjects(emptyCert).Build()
 
 	certificates := NewCertificatesReconciler()
 
@@ -557,6 +585,8 @@ func TestSyncCheCABundleCertsWithEmptyConfigMap(t *testing.T) {
 }
 
 func TestSyncCheCABundleCertsWithEmptyAndNonEmptyConfigMaps(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	emptyCert := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "empty-cert",
@@ -579,7 +609,7 @@ func TestSyncCheCABundleCertsWithEmptyAndNonEmptyConfigMaps(t *testing.T) {
 		},
 		Data: map[string]string{"ca.crt": "some-cert"},
 	}
-	cheCtx := test.NewCtxBuilder().WithObjects(emptyCert, nonEmptyCert).Build()
+	cheCtx := test.NewCheContextBuilder().WithObjects(emptyCert, nonEmptyCert).Build()
 
 	certificates := NewCertificatesReconciler()
 
@@ -596,6 +626,8 @@ func TestSyncCheCABundleCertsWithEmptyAndNonEmptyConfigMaps(t *testing.T) {
 }
 
 func TestSyncCheCABundleCertsWithNilDataConfigMap(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
 	// A CA bundle ConfigMap exists with nil Data (not initialized)
 	nilDataCert := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -607,7 +639,7 @@ func TestSyncCheCABundleCertsWithNilDataConfigMap(t *testing.T) {
 			},
 		},
 	}
-	cheCtx := test.NewCtxBuilder().WithObjects(nilDataCert).Build()
+	cheCtx := test.NewCheContextBuilder().WithObjects(nilDataCert).Build()
 
 	certificates := NewCertificatesReconciler()
 
@@ -624,7 +656,9 @@ func TestSyncCheCABundleCertsWithNilDataConfigMap(t *testing.T) {
 
 func TestSyncCheCABundleCertsGitTrustedCertsOnlyGitHostKey(t *testing.T) {
 	// Git trusted certs ConfigMap has only the githost key (no actual cert)
-	cheCtx := test.NewCtxBuilder().WithCheCluster(
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(
 		&chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "eclipse-che",

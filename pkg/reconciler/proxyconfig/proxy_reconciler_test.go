@@ -18,7 +18,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	configv1 "github.com/openshift/api/config/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -34,11 +33,11 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 
 	Describe("on Kubernetes", func() {
 		BeforeEach(func() {
-			infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+			test.StartOn(infrastructure.Kubernetes)
 		})
 
 		It("should set empty proxy when nothing is configured", func() {
-			cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+			cheCtx := test.NewCheContextBuilder().WithCheCluster(&chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "eclipse-che",
 					Namespace: "eclipse-che",
@@ -52,18 +51,14 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 				},
 			}).Build()
 
-			result, done, err := reconciler.Reconcile(cheCtx)
-
-			Expect(err).ToNot(HaveOccurred())
-			Expect(done).To(BeTrue())
-			Expect(result).To(Equal(reconcile.Result{}))
+			Expect(test.ReconcileTwice(cheCtx, reconciler.Reconcile)).To(Succeed())
 			Expect(cheCtx.Proxy.IsPresent()).To(BeFalse())
 		})
 
 		It("should use proxy from CheCluster CR and merge in-cluster service host into non proxy hosts", func() {
 			GinkgoT().Setenv("KUBERNETES_SERVICE_HOST", "10.10.10.10")
 
-			cheCtx := test.NewCtxBuilder().
+			cheCtx := test.NewCheContextBuilder().
 				WithCheCluster(&chev2.CheCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "eclipse-che",
@@ -83,11 +78,7 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 				}).
 				Build()
 
-			result, done, err := reconciler.Reconcile(cheCtx)
-
-			Expect(err).ToNot(HaveOccurred())
-			Expect(done).To(BeTrue())
-			Expect(result).To(Equal(reconcile.Result{}))
+			Expect(test.ReconcileTwice(cheCtx, reconciler.Reconcile)).To(Succeed())
 			Expect(cheCtx.Proxy.IsPresent()).To(BeTrue())
 			Expect(cheCtx.Proxy.HttpProxy).To(Equal("http://myproxy.com:3128"))
 			Expect(cheCtx.Proxy.HttpsProxy).To(Equal("http://myproxy.com:3128"))
@@ -97,11 +88,11 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 
 	Describe("on OpenShift", func() {
 		BeforeEach(func() {
-			infrastructure.InitializeForTesting(infrastructure.OpenShiftV4)
+			test.StartOn(infrastructure.OpenShiftV4)
 		})
 
 		It("should set empty proxy when nothing is configured", func() {
-			cheCtx := test.NewCtxBuilder().
+			cheCtx := test.NewCheContextBuilder().
 				WithObjects(&configv1.Proxy{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "cluster",
@@ -128,16 +119,12 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 				}).
 				Build()
 
-			result, done, err := reconciler.Reconcile(cheCtx)
-
-			Expect(err).ToNot(HaveOccurred())
-			Expect(done).To(BeTrue())
-			Expect(result).To(Equal(reconcile.Result{}))
+			Expect(test.ReconcileTwice(cheCtx, reconciler.Reconcile)).To(Succeed())
 			Expect(cheCtx.Proxy.IsPresent()).To(BeFalse())
 		})
 
 		It("should always store trusted CA config map name even when proxy is not present", func() {
-			cheCtx := test.NewCtxBuilder().
+			cheCtx := test.NewCheContextBuilder().
 				WithObjects(&configv1.Proxy{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "cluster",
@@ -164,17 +151,13 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 				}).
 				Build()
 
-			result, done, err := reconciler.Reconcile(cheCtx)
-
-			Expect(err).ToNot(HaveOccurred())
-			Expect(done).To(BeTrue())
-			Expect(result).To(Equal(reconcile.Result{}))
+			Expect(test.ReconcileTwice(cheCtx, reconciler.Reconcile)).To(Succeed())
 			Expect(cheCtx.Proxy.IsPresent()).To(BeFalse())
 			Expect(cheCtx.Proxy.TrustedCAMapName).To(Equal("additional-cluster-ca-bundle"))
 		})
 
 		It("should use cluster wide proxy configuration", func() {
-			cheCtx := test.NewCtxBuilder().
+			cheCtx := test.NewCheContextBuilder().
 				WithObjects(&configv1.Proxy{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "cluster",
@@ -205,11 +188,7 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 				}).
 				Build()
 
-			result, done, err := reconciler.Reconcile(cheCtx)
-
-			Expect(err).ToNot(HaveOccurred())
-			Expect(done).To(BeTrue())
-			Expect(result).To(Equal(reconcile.Result{}))
+			Expect(test.ReconcileTwice(cheCtx, reconciler.Reconcile)).To(Succeed())
 			Expect(cheCtx.Proxy.IsPresent()).To(BeTrue())
 			Expect(cheCtx.Proxy.HttpProxy).To(Equal("http://myproxy.com:3128"))
 			Expect(cheCtx.Proxy.HttpsProxy).To(Equal("http://myproxy.com:3128"))
@@ -218,7 +197,7 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 		})
 
 		It("should use cluster wide HTTPS-only proxy and keep HTTP fields empty", func() {
-			cheCtx := test.NewCtxBuilder().
+			cheCtx := test.NewCheContextBuilder().
 				WithObjects(&configv1.Proxy{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "cluster",
@@ -248,11 +227,7 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 				}).
 				Build()
 
-			result, done, err := reconciler.Reconcile(cheCtx)
-
-			Expect(err).ToNot(HaveOccurred())
-			Expect(done).To(BeTrue())
-			Expect(result).To(Equal(reconcile.Result{}))
+			Expect(test.ReconcileTwice(cheCtx, reconciler.Reconcile)).To(Succeed())
 			Expect(cheCtx.Proxy.IsPresent()).To(BeTrue())
 			Expect(cheCtx.Proxy.HttpProxy).To(BeEmpty())
 			Expect(cheCtx.Proxy.HttpsProxy).To(Equal("https://myproxy.com:3128"))
@@ -266,7 +241,7 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 		})
 
 		It("should override cluster wide proxy with CheCluster CR proxy", func() {
-			cheCtx := test.NewCtxBuilder().
+			cheCtx := test.NewCheContextBuilder().
 				WithObjects(&configv1.Proxy{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "cluster",
@@ -301,11 +276,7 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 				}).
 				Build()
 
-			result, done, err := reconciler.Reconcile(cheCtx)
-
-			Expect(err).ToNot(HaveOccurred())
-			Expect(done).To(BeTrue())
-			Expect(result).To(Equal(reconcile.Result{}))
+			Expect(test.ReconcileTwice(cheCtx, reconciler.Reconcile)).To(Succeed())
 			Expect(cheCtx.Proxy.IsPresent()).To(BeTrue())
 			Expect(cheCtx.Proxy.HttpProxy).To(Equal("http://che-proxy.com:8080"))
 			Expect(cheCtx.Proxy.HttpsProxy).To(Equal("http://che-proxy.com:8080"))
@@ -315,7 +286,7 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 		})
 
 		It("should use cluster wide proxy when CR has non proxy hosts only", func() {
-			cheCtx := test.NewCtxBuilder().
+			cheCtx := test.NewCheContextBuilder().
 				WithObjects(&configv1.Proxy{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "cluster",
@@ -343,11 +314,7 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 				}).
 				Build()
 
-			result, done, err := reconciler.Reconcile(cheCtx)
-
-			Expect(err).ToNot(HaveOccurred())
-			Expect(done).To(BeTrue())
-			Expect(result).To(Equal(reconcile.Result{}))
+			Expect(test.ReconcileTwice(cheCtx, reconciler.Reconcile)).To(Succeed())
 			// the cluster wide proxy must not be overridden by an empty CR url
 			Expect(cheCtx.Proxy.HttpProxy).To(Equal("http://cluster-proxy.com:3128"))
 			Expect(cheCtx.Proxy.HttpsProxy).To(Equal("http://cluster-proxy.com:3128"))
@@ -356,7 +323,7 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 		})
 
 		It("should merge non proxy hosts from CheCluster CR when cluster proxy is not configured", func() {
-			cheCtx := test.NewCtxBuilder().
+			cheCtx := test.NewCheContextBuilder().
 				WithObjects(&configv1.Proxy{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "cluster",
@@ -386,11 +353,7 @@ var _ = Describe("ProxyConfigReconciler Reconcile", func() {
 				}).
 				Build()
 
-			result, done, err := reconciler.Reconcile(cheCtx)
-
-			Expect(err).ToNot(HaveOccurred())
-			Expect(done).To(BeTrue())
-			Expect(result).To(Equal(reconcile.Result{}))
+			Expect(test.ReconcileTwice(cheCtx, reconciler.Reconcile)).To(Succeed())
 			Expect(cheCtx.Proxy.IsPresent()).To(BeTrue())
 			Expect(cheCtx.Proxy.NoProxy).To(Equal(".svc,host2"))
 		})

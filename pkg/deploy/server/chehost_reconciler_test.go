@@ -13,11 +13,10 @@
 package server
 
 import (
-	"context"
-
 	"k8s.io/utils/ptr"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	routev1 "github.com/openshift/api/route/v1"
@@ -32,7 +31,9 @@ import (
 )
 
 func TestSyncService(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
@@ -54,9 +55,7 @@ func TestSyncService(t *testing.T) {
 	assert.Nil(t, err)
 
 	service := &corev1.Service{}
-	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: deploy.CheServiceName, Namespace: "eclipse-che"}, service)
-	assert.Nil(t, err)
-
+	assert.NoError(t, test.ExpectFound(types.NamespacedName{Name: deploy.CheServiceName, Namespace: "eclipse-che"}, service))
 	assert.Equal(t, service.Spec.Ports[0].Name, "http")
 	assert.Equal(t, service.Spec.Ports[0].Port, int32(8080))
 	assert.Equal(t, service.Spec.Ports[1].Name, "metrics")
@@ -66,7 +65,9 @@ func TestSyncService(t *testing.T) {
 }
 
 func TestConfiguringLabelsForRoutes(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().WithCheCluster(&chev2.CheCluster{
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().WithCheCluster(&chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
@@ -85,17 +86,17 @@ func TestConfiguringLabelsForRoutes(t *testing.T) {
 	assert.Nil(t, err)
 
 	route := &routev1.Route{}
-	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: getComponentName(), Namespace: "eclipse-che"}, route)
-	assert.Nil(t, err)
+	assert.NoError(t, test.ExpectFound(types.NamespacedName{Name: getComponentName(), Namespace: "eclipse-che"}, route))
 	assert.Equal(t, route.Labels["route"], "one")
 }
 
 func TestCheHostReconciler(t *testing.T) {
-	cheCtx := test.NewCtxBuilder().Build()
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	cheCtx := test.NewCheContextBuilder().Build()
 
 	cheHostReconciler := NewCheHostReconciler()
-	test.EnsureReconcile(t, cheCtx, cheHostReconciler.Reconcile)
-
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: getComponentName(), Namespace: "eclipse-che"}, &routev1.Route{}))
-	assert.True(t, test.IsObjectExists(cheCtx.ClusterAPI.Client, types.NamespacedName{Name: deploy.CheServiceName, Namespace: "eclipse-che"}, &corev1.Service{}))
+	assert.NoError(t, test.ReconcileTwice(cheCtx, cheHostReconciler.Reconcile))
+	assert.NoError(t, test.ExpectFound(types.NamespacedName{Name: getComponentName(), Namespace: "eclipse-che"}, &routev1.Route{}))
+	assert.NoError(t, test.ExpectFound(types.NamespacedName{Name: deploy.CheServiceName, Namespace: "eclipse-che"}, &corev1.Service{}))
 }

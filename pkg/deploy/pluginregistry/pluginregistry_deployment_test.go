@@ -14,8 +14,10 @@ package pluginregistry
 
 import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/utils/ptr"
 
@@ -126,22 +128,23 @@ func TestGetPluginRegistryDeploymentSpec(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := test.NewCheContextBuilder().WithCheCluster(testCase.cheCluster).Build()
 
 			pluginregistry := NewPluginRegistryReconciler()
 			deployment, err := pluginregistry.getPluginRegistryDeploymentSpec(cheCtx)
 			assert.NoError(t, err)
 
-			test.CompareResources(deployment,
-				test.TestExpectedResources{
-					MemoryLimit:   testCase.memoryLimit,
-					MemoryRequest: testCase.memoryRequest,
-					CpuRequest:    testCase.cpuRequest,
-					CpuLimit:      testCase.cpuLimit,
-				},
-				t)
+			resources := deployment.Spec.Template.Spec.Containers[0].Resources
+			assert.True(t, resources.Limits.Memory().Equal(resource.MustParse(testCase.memoryLimit)), "memory limit")
+			assert.True(t, resources.Requests.Memory().Equal(resource.MustParse(testCase.memoryRequest)), "memory request")
+			assert.True(t, resources.Limits.Cpu().Equal(resource.MustParse(testCase.cpuLimit)), "CPU limit")
+			assert.True(t, resources.Requests.Cpu().Equal(resource.MustParse(testCase.cpuRequest)), "CPU request")
 
-			test.ValidateSecurityContext(deployment, t)
+			securityContext := deployment.Spec.Template.Spec.Containers[0].SecurityContext
+			assert.Equal(t, corev1.Capability("ALL"), securityContext.Capabilities.Drop[0])
+			assert.Equal(t, ptr.To(false), securityContext.AllowPrivilegeEscalation)
 		})
 	}
 }

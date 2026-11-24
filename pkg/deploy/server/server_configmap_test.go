@@ -15,7 +15,9 @@ package server
 import (
 	"testing"
 
+	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/utils/ptr"
@@ -94,7 +96,9 @@ func TestGetConfigMapData(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := test.NewCheContextBuilder().WithCheCluster(testCase.cheCluster).Build()
 			cheCtx.Proxy.HttpProxy = "http://127.0.0.1:8080"
 			cheCtx.Proxy.HttpHost = "127.0.0.1"
 			cheCtx.Proxy.HttpPort = "8080"
@@ -177,6 +181,7 @@ func TestGetConfigMapDataWithServerEndpoints(t *testing.T) {
 			cheCluster: &chev2.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
 				},
 				Spec: chev2.CheClusterSpec{
 					Components: chev2.CheClusterComponents{
@@ -320,13 +325,15 @@ func TestGetConfigMapDataWithServerEndpoints(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := test.NewCheContextBuilder().WithCheCluster(testCase.cheCluster).WithObjects(testCase.initObjects...).Build()
 			serverReconciler := NewCheServerReconciler()
 
 			actualData, err := serverReconciler.getConfigMapData(cheCtx)
 
 			assert.Nil(t, err)
-			test.ValidateContainData(actualData, testCase.expectedData, t)
+			assert.True(t, utils.ContainsEntries(actualData, testCase.expectedData))
 		})
 	}
 }
@@ -398,7 +405,9 @@ func TestGetConfigMapDataWithUserClusterRoles(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := test.NewCheContextBuilder().WithCheCluster(testCase.cheCluster).Build()
 			serverReconciler := NewCheServerReconciler()
 
 			cheEnv, err := serverReconciler.getConfigMapData(cheCtx)
@@ -536,7 +545,9 @@ func TestUpdateAdvancedAuthorizationEnv(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := test.NewCheContextBuilder().WithCheCluster(testCase.cheCluster).Build()
 
 			serverReconciler := NewCheServerReconciler()
 			cheEnv, err := serverReconciler.getConfigMapData(cheCtx)
@@ -639,7 +650,9 @@ func TestUpdateOauthTokenRefreshEnv(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			cheCtx := test.NewCtxBuilder().WithCheCluster(testCase.cheCluster).Build()
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			cheCtx := test.NewCheContextBuilder().WithCheCluster(testCase.cheCluster).Build()
 
 			serverReconciler := NewCheServerReconciler()
 			cheEnv, err := serverReconciler.getConfigMapData(cheCtx)

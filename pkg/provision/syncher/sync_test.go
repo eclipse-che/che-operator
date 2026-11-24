@@ -39,8 +39,8 @@ var _ = Describe("syncObject", Ordered, func() {
 	)
 
 	BeforeAll(func() {
-		cheCtx = env.NewCheCtxBuilder().WithEmptyCheCluster().Build()
-		test.Initialize(infrastructure.Kubernetes)
+		test.InitializeDefaults(infrastructure.Kubernetes)
+		cheCtx = test.NewCheContextBuilder().WithEmptyCheCluster().Build()
 	})
 
 	AfterEach(func() {
@@ -55,7 +55,7 @@ var _ = Describe("syncObject", Ordered, func() {
 			},
 		}
 
-		emptyCheClusterContext := env.NewCheCtxBuilder().Build()
+		emptyCheClusterContext := test.NewCheContextBuilder().WithCheCluster(nil).Build()
 		Expect(SyncObject(emptyCheClusterContext, testCm, cmDiffs, false, false)).To(Succeed())
 
 		actualCm := &corev1.ConfigMap{}
@@ -71,23 +71,29 @@ var _ = Describe("syncObject", Ordered, func() {
 	})
 
 	It("should not set owner reference when syncing the CheCluster itself", func(ctx SpecContext) {
-		cheClusterDiffs := cmp.Options{cmpopts.IgnoreFields(chev2.CheCluster{}, "TypeMeta", "Status")}
+		cheClusterDiffs := cmp.Options{cmpopts.IgnoreFields(chev2.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{Name: "eclipse-che"}}, "TypeMeta", "Status")}
 		Expect(SyncObject(cheCtx, cheCtx.CheCluster, cheClusterDiffs, false, false)).To(Succeed())
 
-		actualCheCluster := &chev2.CheCluster{}
+		actualCheCluster := &chev2.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{Name: "eclipse-che"}}
+
 		key := types.NamespacedName{Name: cheCtx.CheCluster.Name, Namespace: cheCtx.CheCluster.Namespace}
 		Expect(env.Client.Get(cheCtx.Context, key, actualCheCluster)).To(Succeed())
 		Expect(actualCheCluster.OwnerReferences).To(BeEmpty())
 	})
 
 	It("should sync finalizers", func(ctx SpecContext) {
-		cheClusterDiffs := cmp.Options{cmpopts.IgnoreFields(chev2.CheCluster{}, "TypeMeta", "Status")}
+		cheClusterDiffs := cmp.Options{cmpopts.IgnoreFields(chev2.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{Name: "eclipse-che"}}, "TypeMeta", "Status")}
+
 		key := types.NamespacedName{Name: cheCtx.CheCluster.Name, Namespace: cheCtx.CheCluster.Namespace}
 
 		cheCtx.CheCluster.Finalizers = []string{"a.finalizers.che.eclipse.org", "b.finalizers.che.eclipse.org"}
 		Expect(SyncObject(cheCtx, cheCtx.CheCluster, cheClusterDiffs, false, false)).To(Succeed())
 
-		actualCheCluster := &chev2.CheCluster{}
+		actualCheCluster := &chev2.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{Name: "eclipse-che"}}
 		Expect(env.Client.Get(cheCtx.Context, key, actualCheCluster)).To(Succeed())
 		Expect(actualCheCluster.Finalizers).To(ConsistOf("a.finalizers.che.eclipse.org", "b.finalizers.che.eclipse.org"))
 		resourceVersion := actualCheCluster.ResourceVersion
@@ -96,7 +102,8 @@ var _ = Describe("syncObject", Ordered, func() {
 		cheCtx.CheCluster.Finalizers = []string{"b.finalizers.che.eclipse.org", "a.finalizers.che.eclipse.org"}
 		Expect(SyncObject(cheCtx, cheCtx.CheCluster, cheClusterDiffs, false, false)).To(Succeed())
 
-		actualCheCluster = &chev2.CheCluster{}
+		actualCheCluster = &chev2.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{Name: "eclipse-che"}}
 		Expect(env.Client.Get(cheCtx.Context, key, actualCheCluster)).To(Succeed())
 		Expect(actualCheCluster.Finalizers).To(ConsistOf("a.finalizers.che.eclipse.org", "b.finalizers.che.eclipse.org"))
 		Expect(actualCheCluster.ResourceVersion).To(Equal(resourceVersion))
@@ -104,7 +111,8 @@ var _ = Describe("syncObject", Ordered, func() {
 		cheCtx.CheCluster.Finalizers = nil
 		Expect(SyncObject(cheCtx, cheCtx.CheCluster, cheClusterDiffs, false, false)).To(Succeed())
 
-		actualCheCluster = &chev2.CheCluster{}
+		actualCheCluster = &chev2.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{Name: "eclipse-che"}}
 		Expect(env.Client.Get(cheCtx.Context, key, actualCheCluster)).To(Succeed())
 		Expect(actualCheCluster.Finalizers).To(BeEmpty())
 	})
@@ -123,6 +131,7 @@ var _ = Describe("syncObject", Ordered, func() {
 		// a foreign finalizer is added to the existing object by another controller;
 		// finalizers on built-in types are validated as label keys, so the name needs the 'domain/name' form
 		actualCm := &corev1.ConfigMap{}
+
 		key := types.NamespacedName{Name: "test", Namespace: "eclipse-che"}
 		Expect(env.Client.Get(cheCtx.Context, key, actualCm)).To(Succeed())
 		actualCm.Finalizers = []string{"example.org/foreign-finalizer"}
