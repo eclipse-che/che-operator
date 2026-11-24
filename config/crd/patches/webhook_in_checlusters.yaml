@@ -19,7 +19,7 @@ spec:
   conversion:
     strategy: Webhook
     webhook:
-      conversionReviewVersions: ["v1", "v2"]
+      conversionReviewVersions: ["v1"]
       clientConfig:
         service:
           namespace: eclipse-che
