@@ -158,7 +158,9 @@ if [[ "${FORBID_TAGS_GIVEN}" == true ]]; then
   while IFS= read -r origin; do
     origin="${origin#"${origin%%[![:space:]]*}"}"
     origin="${origin%"${origin##*[![:space:]]}"}"
-    origin="${origin//\"/}"
+    # Remove a matching pair of surrounding quotes, single or double.
+    origin="${origin#[\"\']}"
+    origin="${origin%[\"\']}"
     if [[ -z "${origin}" ]]; then
       continue
     fi
