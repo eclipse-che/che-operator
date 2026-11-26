@@ -148,6 +148,10 @@ func skipAuthConfig(instance *chev2.CheCluster) string {
 		skipAuthPaths = append(skipAuthPaths, "^/"+constants.OpenVSXServerGatewayPath)
 	}
 	skipAuthPaths = append(skipAuthPaths, "^/$")
+	// oauth-proxy stores the unauthenticated RequestURI as the post-login redirect and
+	// discards any that contains "//". Letting "/f" through lets the Dashboard turn it
+	// into its fragment form first, which leaves only "/dashboard/" to store.
+	skipAuthPaths = append(skipAuthPaths, "^/f$")
 	skipAuthPaths = append(skipAuthPaths, "/healthz$")
 	skipAuthPaths = append(skipAuthPaths, "^/dashboard/static/preload")
 	skipAuthPaths = append(skipAuthPaths, fmt.Sprintf("^%s$", defaults.GetConsoleLinkImage()))
