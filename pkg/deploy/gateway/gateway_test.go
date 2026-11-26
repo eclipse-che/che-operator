@@ -141,7 +141,7 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 
 		configmap := getGatewayOauthProxyConfigSpec(cheCtx, "blabol")
 		config := configmap.Data["oauth-proxy.cfg"]
-		if !strings.Contains(config, "skip_auth_regex = \"^/$|/healthz$|^/dashboard/static/preload|^/dashboard/assets/branding/loader.svg$\"") {
+		if !strings.Contains(config, "skip_auth_regex = \"^/$|^/f$|/healthz$|^/dashboard/static/preload|^/dashboard/assets/branding/loader.svg$\"") {
 			t.Errorf("oauth config shold not contain any skip auth when both registries are external")
 		}
 	})
@@ -162,7 +162,7 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 
 		configmap := getGatewayOauthProxyConfigSpec(cheCtx, "blabol")
 		config := configmap.Data["oauth-proxy.cfg"]
-		if !strings.Contains(config, "skip_auth_regex = \"^/plugin-registry|^/$|/healthz$|^/dashboard/static/preload|^/dashboard/assets/branding/loader.svg$\"") {
+		if !strings.Contains(config, "skip_auth_regex = \"^/plugin-registry|^/$|^/f$|/healthz$|^/dashboard/static/preload|^/dashboard/assets/branding/loader.svg$\"") {
 			t.Error("oauth config should skip auth for plugin and devfile registry.", config)
 		}
 	})
@@ -174,6 +174,26 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 		configmap := getGatewayOauthProxyConfigSpec(cheCtx, "blabol")
 		config := configmap.Data["oauth-proxy.cfg"]
 		assert.Contains(t, config, "/healthz$")
+	})
+
+	t.Run("skip '/f' factory path", func(t *testing.T) {
+		test.StartOn(infrastructure.OpenShiftV4)
+
+		cheCtx := test.NewCheContextBuilder().Build()
+		configmap := getGatewayOauthProxyConfigSpec(cheCtx, "blabol")
+		config := configmap.Data["oauth-proxy.cfg"]
+		// anchored, so the exemption cannot widen to e.g. "/factory"
+		assert.Contains(t, config, "|^/f$|")
+	})
+
+	t.Run("'/f' is exempt on Kubernetes too", func(t *testing.T) {
+		test.StartOn(infrastructure.Kubernetes)
+
+		cheCtx := test.NewCheContextBuilder().Build()
+		configmap := getGatewayOauthProxyConfigSpec(cheCtx, "blabol")
+		config := configmap.Data["oauth-proxy.cfg"]
+		assert.Contains(t, config, "skip_auth_routes")
+		assert.Contains(t, config, "|^/f$|")
 	})
 
 	t.Run("skip openvsx", func(t *testing.T) {
