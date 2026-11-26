@@ -43,6 +43,12 @@ var _ = Describe("syncObject", Ordered, func() {
 		cheCtx = test.NewCheContextBuilder().WithEmptyCheCluster().Build()
 	})
 
+	AfterAll(func() {
+		// the CheCluster is deleted so that the next Describe can build its own CheContext
+		// with the same name in the same envtest cluster
+		Expect(env.Client.Delete(env.Context, cheCtx.CheCluster)).To(Succeed())
+	})
+
 	AfterEach(func() {
 		Expect(env.Client.DeleteAllOf(env.Context, &corev1.ConfigMap{}, client.InNamespace(cheCtx.CheCluster.Namespace))).To(Succeed())
 	})
@@ -291,5 +297,118 @@ var _ = Describe("syncObject", Ordered, func() {
 		Expect(actualCm.Annotations["annotation1"]).To(Equal("value2"))
 		Expect(actualCm.Annotations["annotation2"]).To(Equal("value3"))
 		Expect(actualCm.Annotations["annotation3"]).To(Equal("value2"))
+	})
+})
+
+var _ = Describe("create", Ordered, func() {
+	var (
+		cheCtx *chetypes.CheContext
+	)
+
+	BeforeAll(func() {
+		cheCtx = test.NewCheContextBuilder().WithEmptyCheCluster().Build()
+	})
+
+	AfterAll(func() {
+		Expect(env.Client.Delete(env.Context, cheCtx.CheCluster)).To(Succeed())
+	})
+
+	AfterEach(func() {
+		Expect(env.Client.DeleteAllOf(env.Context, &corev1.ConfigMap{}, client.InNamespace(cheCtx.CheCluster.Namespace))).To(Succeed())
+	})
+
+	It("should create the object", func(ctx SpecContext) {
+		testCm := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: "eclipse-che",
+			},
+			Data: map[string]string{"a": "b"},
+		}
+
+		Expect(Create(cheCtx, testCm)).To(Succeed())
+
+		actualCm := &corev1.ConfigMap{}
+		Expect(env.Client.Get(cheCtx.Context, types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actualCm)).To(Succeed())
+		Expect(actualCm.Data).To(Equal(map[string]string{"a": "b"}))
+	})
+
+	It("should fail when the object already exists", func(ctx SpecContext) {
+		testCm := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: "eclipse-che",
+			},
+			Data: map[string]string{"a": "b"},
+		}
+
+		Expect(Create(cheCtx, testCm)).To(Succeed())
+
+		// the same blueprint reused on the next reconcile must fail instead of updating
+		Expect(Create(cheCtx, testCm)).To(Not(Succeed()))
+
+		actualCm := &corev1.ConfigMap{}
+		Expect(env.Client.Get(cheCtx.Context, types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actualCm)).To(Succeed())
+		Expect(actualCm.Data).To(Equal(map[string]string{"a": "b"}))
+	})
+
+	It("should set owner reference on objects in the CheCluster namespace", func(ctx SpecContext) {
+		testCm := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: "eclipse-che",
+			},
+		}
+
+		Expect(Create(cheCtx, testCm)).To(Succeed())
+
+		actualCm := &corev1.ConfigMap{}
+		Expect(env.Client.Get(cheCtx.Context, types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actualCm)).To(Succeed())
+		Expect(actualCm.OwnerReferences).To(HaveLen(1))
+		Expect(actualCm.OwnerReferences[0].UID).To(Equal(cheCtx.CheCluster.UID))
+	})
+
+	It("should not set owner reference on an existing controller", func(ctx SpecContext) {
+		testCm := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: "eclipse-che",
+				OwnerReferences: []metav1.OwnerReference{{
+					APIVersion: "v1",
+					Kind:       "Pod",
+					Name:       "other",
+					UID:        "other-uid",
+					Controller: new(true),
+				}},
+			},
+		}
+
+		Expect(Create(cheCtx, testCm)).To(Succeed())
+
+		actualCm := &corev1.ConfigMap{}
+		Expect(env.Client.Get(cheCtx.Context, types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actualCm)).To(Succeed())
+		Expect(actualCm.OwnerReferences).To(HaveLen(1))
+		Expect(actualCm.OwnerReferences[0].UID).To(Equal(types.UID("other-uid")))
+	})
+
+	It("should not set owner reference on objects in other namespaces", func(ctx SpecContext) {
+		otherNamespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "syncher-create-other"}}
+		Expect(env.Client.Create(env.Context, otherNamespace)).To(Succeed())
+		DeferCleanup(func(ctx SpecContext) {
+			Expect(env.Client.Delete(ctx, otherNamespace)).To(Succeed())
+		})
+
+		testCm := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: "syncher-create-other",
+			},
+		}
+
+		Expect(Create(cheCtx, testCm)).To(Succeed())
+
+		actualCm := &corev1.ConfigMap{}
+		Expect(env.Client.Get(cheCtx.Context, types.NamespacedName{Name: "test", Namespace: "syncher-create-other"}, actualCm)).To(Succeed())
+		Expect(actualCm.OwnerReferences).To(BeEmpty())
 	})
 })

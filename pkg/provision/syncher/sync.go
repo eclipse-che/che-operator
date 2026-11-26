@@ -54,21 +54,10 @@ func SyncObject(
 	suppressDiff bool,
 	allowForceRecreate bool) error {
 
-	var cw clientwrapper.ClientWrapper
+	cw := getClientFor(cheCtx, obj)
 
-	if isCheCluster(obj) || obj.GetLabels()[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg {
-		cw = cheCtx.ClusterAPI.ClientWrapper
-	} else {
-		cw = cheCtx.ClusterAPI.NonCachingClientWrapper
-	}
-
-	// the CheCluster cannot own itself
-	if cheCtx.CheCluster != nil && !isCheCluster(obj) {
-		if obj.GetNamespace() == cheCtx.CheCluster.Namespace {
-			if err := controllerutil.SetControllerReference(cheCtx.CheCluster, obj, cheCtx.ClusterAPI.Scheme); err != nil {
-				return getSyncError(obj, err)
-			}
-		}
+	if err := setOwnerReferenceIfNeeded(cheCtx, obj); err != nil {
+		return err
 	}
 
 	// The operator fully owns the finalizers of the CheCluster itself, so they are synced
@@ -112,6 +101,28 @@ func SyncObject(
 	return nil
 }
 
+// Create creates the object in the cluster. It fails if the object already exists -
+// use `SyncObject` instead when the object must be created or updated to the desired state.
+//
+// It selects the client like `SyncObject` does, sets the CheCluster as the controller
+// owner if the object lives in the same namespace as the CR, and drops the resource
+// version so that a blueprint reused across reconciles is always accepted by the API server.
+func Create(cheCtx *chetypes.CheContext, obj client.Object) error {
+	cw := getClientFor(cheCtx, obj)
+
+	if err := setOwnerReferenceIfNeeded(cheCtx, obj); err != nil {
+		return err
+	}
+
+	obj.SetResourceVersion("")
+
+	if err := cw.Create(cheCtx.Context, obj); err != nil {
+		return getCreateError(obj, err)
+	}
+
+	return nil
+}
+
 // SyncObjectStatus ensures that the status subresource of the object is up to date in the cluster.
 // It mirrors `SyncObject` but syncs only the status: the spec and the metadata are not touched.
 // The object must already exist, otherwise an error is returned.
@@ -121,13 +132,7 @@ func SyncObjectStatus(
 	diff cmp.Options,
 	suppressDiff bool) error {
 
-	var cw clientwrapper.ClientWrapper
-
-	if isCheCluster(obj) || obj.GetLabels()[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg {
-		cw = cheCtx.ClusterAPI.ClientWrapper
-	} else {
-		cw = cheCtx.ClusterAPI.NonCachingClientWrapper
-	}
+	cw := getClientFor(cheCtx, obj)
 
 	opts := &clientwrapper.SyncOptions{
 		SuppressDiff:  suppressDiff,
@@ -265,6 +270,30 @@ func cmpMetadata(
 	return cmp.FilterPath(isRootMetadata, transform)
 }
 
+func getClientFor(cheCtx *chetypes.CheContext, obj client.Object) clientwrapper.ClientWrapper {
+	if isCheCluster(obj) || obj.GetLabels()[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg {
+		return cheCtx.ClusterAPI.ClientWrapper
+	}
+
+	return cheCtx.ClusterAPI.NonCachingClientWrapper
+}
+
+func setOwnerReferenceIfNeeded(cheCtx *chetypes.CheContext, obj client.Object) error {
+	if metav1.GetControllerOf(obj) != nil {
+		return nil
+	}
+
+	if cheCtx.CheCluster == nil || isCheCluster(obj) {
+		return nil
+	}
+
+	if obj.GetNamespace() != cheCtx.CheCluster.Namespace {
+		return nil
+	}
+
+	return controllerutil.SetControllerReference(cheCtx.CheCluster, obj, cheCtx.ClusterAPI.Scheme)
+}
+
 // comparableMetadata is the reduced view of `metav1.ObjectMeta` that `cmpMetadata` compares.
 type comparableMetadata struct {
 	Labels      map[string]string
@@ -295,6 +324,10 @@ func isRootMetadata(p cmp.Path) bool {
 // Deployment.Selector.
 func isFieldImmutableError(err error) bool {
 	return apierrors.IsInvalid(err) && strings.Contains(err.Error(), validation.FieldImmutableErrorMsg)
+}
+
+func getCreateError(obj client.Object, cause error) error {
+	return fmt.Errorf("failed to create %s %s/%s: %w", clientwrapper.GetObjectType(obj), obj.GetNamespace(), obj.GetName(), cause)
 }
 
 func getSyncError(obj client.Object, cause error) error {

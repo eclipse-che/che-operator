@@ -17,7 +17,8 @@ import (
 	"time"
 
 	"github.com/devfile/devworkspace-operator/pkg/constants"
-	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/clusterapi"
 	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
@@ -25,7 +26,6 @@ import (
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -40,9 +40,7 @@ var (
 
 // CheRoutingSolver is a struct representing the routing solver for Che specific routing of devworkspaces
 type CheRoutingSolver struct {
-	client        client.Client
-	scheme        *runtime.Scheme
-	clientWrapper clientwrapper.ClientWrapper
+	clusterAPI *clusterapi.ClusterAPI
 }
 
 // Magic to ensure we get compile time error right here if our struct doesn't support the interface.
@@ -50,26 +48,22 @@ var _ solvers.RoutingSolverGetter = (*CheRouterGetter)(nil)
 var _ solvers.RoutingSolver = (*CheRoutingSolver)(nil)
 
 // CheRouterGetter negotiates the solver with the calling code
-type CheRouterGetter struct {
-	scheme *runtime.Scheme
-}
+type CheRouterGetter struct{}
 
 // Getter creates a new CheRouterGetter
-func Getter(scheme *runtime.Scheme) *CheRouterGetter {
-	return &CheRouterGetter{
-		scheme: scheme,
-	}
+func Getter() *CheRouterGetter {
+	return &CheRouterGetter{}
 }
 
 func (g *CheRouterGetter) HasSolver(routingClass controllerv1alpha1.DevWorkspaceRoutingClass) bool {
 	return isSupported(routingClass)
 }
 
-func (g *CheRouterGetter) GetSolver(client client.Client, routingClass controllerv1alpha1.DevWorkspaceRoutingClass) (solver solvers.RoutingSolver, err error) {
+func (g *CheRouterGetter) GetSolver(_ client.Client, routingClass controllerv1alpha1.DevWorkspaceRoutingClass) (solver solvers.RoutingSolver, err error) {
 	if !isSupported(routingClass) {
 		return nil, solvers.RoutingNotSupported
 	}
-	return &CheRoutingSolver{client, g.scheme, clientwrapper.New(client, g.scheme)}, nil
+	return &CheRoutingSolver{clusterAPI: clusterapi.Get()}, nil
 }
 
 func (g *CheRouterGetter) SetupControllerManager(mgr *builder.Builder) error {
@@ -132,7 +126,13 @@ func (c *CheRoutingSolver) GetSpecObjects(routing *controllerv1alpha1.DevWorkspa
 		return solvers.RoutingObjects{}, err
 	}
 
-	return c.cheSpecObjects(cheCluster, routing, workspaceMeta)
+	cheCtx := &chetypes.CheContext{
+		ClusterAPI: c.clusterAPI,
+		CheCluster: cheCluster,
+		Context:    context.Background(),
+	}
+
+	return c.cheSpecObjects(cheCtx, routing, workspaceMeta)
 }
 
 // GetExposedEndpoints retreives the URL for each endpoint in a devfile spec from a set of RoutingObjects.
@@ -159,7 +159,7 @@ func isSupported(routingClass controllerv1alpha1.DevWorkspaceRoutingClass) bool 
 }
 
 func (c *CheRoutingSolver) getCheClusterReady() (*chev2.CheCluster, error) {
-	cheCluster, err := resources.CheCluster.Find(context.TODO(), c.client)
+	cheCluster, err := resources.CheCluster.Find(context.TODO(), c.clusterAPI.Client)
 	if err != nil {
 		return nil, err
 	}
