@@ -201,7 +201,7 @@ addDigests() {
   # and every later step. The operator image has already been pushed by then; re-running with
   # FORCE_UPDATE rebuilds and republishes it.
   echo "[INFO] addDigests :: Check that every image can be pinned with a PinnedImageSet"
-  bash "${OPERATOR_REPO}/build/scripts/release/checkPinnedImages.sh" --csv "${CSV_STABLE_PATH}" --forbid-next-tags
+  bash "${OPERATOR_REPO}/build/scripts/release/checkPinnedImages.sh" --csv "${CSV_STABLE_PATH}" --forbid-tags next
 
   echo "[INFO] addDigests :: Ensure license header"
   make license "${CSV_STABLE_PATH}"

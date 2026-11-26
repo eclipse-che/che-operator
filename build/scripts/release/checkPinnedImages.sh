@@ -21,12 +21,13 @@
 # such image silently disables the whole set.
 #
 # make-release.sh calls this after addDigests.sh, on the digest-pinned stable CSV, with
-# --forbid-next-tags: addDigests.sh records the tag each digest was pinned from as a commented
-# `# tag:` line, and an image that came from a moving `:next` tag is rebuilt and removed behind
-# the pinned digest, which breaks workspaces. The next catalog keeps those tags by design and
-# does not pass the flag.
+# --forbid-tags next: addDigests.sh records the tag each digest was pinned from as a commented
+# `# tag:` line, and an image that came from a moving tag is rebuilt and removed behind the
+# pinned digest, which breaks workspaces. The argument is a comma-separated list of tag names or
+# glob patterns; stable releases pass `next` today and can add `latest` once those references
+# are version-tagged. The next catalog keeps moving tags by design and does not pass the flag.
 #
-# Usage: checkPinnedImages.sh --csv <CSV> [--authfile <file>] [--forbid-next-tags]
+# Usage: checkPinnedImages.sh --csv <CSV> [--authfile <file>] [--forbid-tags <tags>]
 #
 # Requires podman and the python-yq (kislyuk) implementation. Set CONTAINERS_REGISTRIES_CONF to
 # check pre-release images through a mirror.
@@ -57,7 +58,8 @@ die() {
 
 CSV=""
 AUTHFILE=""
-FORBID_NEXT_TAGS=false
+FORBID_TAGS=""
+FORBID_TAGS_GIVEN=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -71,9 +73,11 @@ while [[ $# -gt 0 ]]; do
       AUTHFILE="$2"
       shift 2
       ;;
-    --forbid-next-tags)
-      FORBID_NEXT_TAGS=true
-      shift
+    --forbid-tags)
+      [[ $# -ge 2 ]] || die "--forbid-tags requires a value"
+      FORBID_TAGS="$2"
+      FORBID_TAGS_GIVEN=true
+      shift 2
       ;;
     -h | --help)
       sed -n '/^# Usage:/,/^$/s/^# \{0,1\}//p' "$0"
@@ -83,7 +87,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ -n "${CSV}" ]] || die "usage: $(basename "$0") --csv <CSV> [--authfile <file>]"
+[[ -n "${CSV}" ]] || die "usage: $(basename "$0") --csv <CSV> [--authfile <file>] [--forbid-tags <tags>]"
 [[ -r "${CSV}" ]] || die "${CSV} cannot be read"
 [[ -z "${AUTHFILE}" || -r "${AUTHFILE}" ]] || die "${AUTHFILE} cannot be read"
 command -v podman >/dev/null 2>&1 || die "podman is not installed"
@@ -127,18 +131,57 @@ fi
 refs=$(yq -r "${RELATED_ENVS} | .value" "${CSV}") ||
   die "could not read the RELATED_IMAGE_* values of ${CSV}"
 
-next_origins=""
-if [[ "${FORBID_NEXT_TAGS}" == true ]]; then
+forbidden_origins=""
+if [[ "${FORBID_TAGS_GIVEN}" == true ]]; then
   # addDigests.sh keeps the source tag as a commented line, so a digest alone does not say
   # whether the image is rebuilt behind it. Without those lines the rule cannot work, so fail
   # instead of passing every image.
   grep -qE '^[[:space:]]*#[[:space:]]*tag:' "${CSV}" ||
-    die "--forbid-next-tags needs the '# tag:' origin lines that addDigests.sh writes; none found in ${CSV}"
-  next_origins=$(grep -E '^[[:space:]]*#[[:space:]]*tag:[[:space:]]*"?[^"[:space:]]*:next"?[[:space:]]*$' "${CSV}" | sort -u || true)
-fi
+    die "--forbid-tags needs the '# tag:' origin lines that addDigests.sh writes; none found in ${CSV}"
 
-# Count distinct references, then check each one once.
-echo "[INFO] checking $(sort -u <<<"${refs}" | wc -l) distinct image references from ${CSV}"
+  IFS=',' read -r -a forbidden_tags <<< "${FORBID_TAGS}"
+  valid_patterns=()
+  for pattern in "${forbidden_tags[@]}"; do
+    pattern="${pattern#"${pattern%%[![:space:]]*}"}"
+    pattern="${pattern%"${pattern##*[![:space:]]}"}"
+    if [[ -n "${pattern}" ]]; then
+      valid_patterns+=("${pattern}")
+    fi
+  done
+  if (( ${#valid_patterns[@]} == 0 )); then
+    die "--forbid-tags needs at least one tag name or pattern"
+  fi
+
+  origins=$(grep -E '^[[:space:]]*#[[:space:]]*tag:' "${CSV}" |
+    sed -e 's|^[[:space:]]*#[[:space:]]*tag:[[:space:]]*||' | sort -u || true)
+
+  while IFS= read -r origin; do
+    origin="${origin#"${origin%%[![:space:]]*}"}"
+    origin="${origin%"${origin##*[![:space:]]}"}"
+    origin="${origin//\"/}"
+    if [[ -z "${origin}" ]]; then
+      continue
+    fi
+    # An origin that is already a digest reference has no tag to forbid.
+    if [[ "${origin}" == *"@sha256:"* ]]; then
+      continue
+    fi
+    # An untagged reference resolves to the implicit latest tag.
+    last_segment="${origin##*/}"
+    if [[ "${last_segment}" == *:* ]]; then
+      tag="${last_segment##*:}"
+    else
+      tag="latest"
+    fi
+    for pattern in "${valid_patterns[@]}"; do
+      # shellcheck disable=SC2053 # the pattern intentionally supports globs
+      if [[ "${tag}" == ${pattern} ]]; then
+        forbidden_origins+="${origin}"$'\n'
+        break
+      fi
+    done
+  done <<< "${origins}"
+fi
 
 AUTHARGS=()
 [[ -n "${AUTHFILE}" ]] && AUTHARGS=(--authfile "${AUTHFILE}")
@@ -167,21 +210,19 @@ while IFS= read -r ref; do
   fi
 done < <(sort -u <<<"${refs}")
 
-if [[ -n "${next_origins:-}" ]]; then
+if [[ -n "${forbidden_origins}" ]]; then
   while IFS= read -r origin; do
-    origin="${origin#*tag:}"
-    origin="${origin//\"/}"
-    origin="${origin#"${origin%%[![:space:]]*}"}"
+    [[ -n "${origin}" ]] || continue
     echo "[FAIL] ${origin}"
-    echo "       pinned from a ':next' tag, which moves and leaves the digest behind"
+    echo "       pinned from a tag listed in --forbid-tags, which can move and leave the digest behind"
     forbidden=$((forbidden + 1))
-  done <<< "${next_origins}"
+  done <<< "${forbidden_origins}"
 fi
 
 if (( failures > 0 || forbidden > 0 )); then
   summary=""
   (( failures > 0 )) && summary="${failures} image(s) failed the pinned-image check"
-  (( forbidden > 0 )) && summary="${summary:+${summary}; }${forbidden} image(s) were pinned from a ':next' tag"
+  (( forbidden > 0 )) && summary="${summary:+${summary}; }${forbidden} image(s) were pinned from a forbidden tag"
   die "${summary}"
 fi
 
