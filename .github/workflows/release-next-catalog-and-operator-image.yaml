@@ -135,8 +135,9 @@ jobs:
             --index-json-url "https://raw.githubusercontent.com/eclipse-che/che-dashboard/main/packages/devfile-registry/air-gap/index.json"
           make update-dev-resources
           ${GITHUB_WORKSPACE}/build/scripts/release/addDigests.sh -s $(make csv-path CHANNEL=next) -t next
-          # bundle/next is what downstream Dev Spaces copies into its bundle, so this gates the
-          # artifact Dev Spaces ships before the next-digest bundle and catalog are published.
+          # Check the images the next channel ships before the next-digest bundle and catalog
+          # are published. Dev Spaces replaces these with downstream images, so this is not a
+          # downstream gate.
           ${GITHUB_WORKSPACE}/build/scripts/release/checkPinnedImages.sh --csv $(make csv-path CHANNEL=next)
           ${GITHUB_WORKSPACE}/build/scripts/release/release-catalog.sh \
             --channel next \
