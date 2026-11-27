@@ -97,15 +97,3 @@ func ContainsEntries[T comparable](actual, expected map[string]T) bool {
 
 	return true
 }
-
-func FilterMap[K comparable, V any](input map[K]V, predicate func(K, V) bool) map[K]V {
-	result := make(map[K]V)
-
-	for key, value := range input {
-		if predicate(key, value) {
-			result[key] = value
-		}
-	}
-
-	return result
-}

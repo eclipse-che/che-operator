@@ -490,9 +490,14 @@ func exposeAllEndpoints(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceR
 
 			if e.Attributes.GetString(urlRewriteSupportedEndpointAttributeName, nil) != "true" {
 				if !containPort(commonService, exposedPort) {
+					name := dwocommon.EndpointName(e.Name)
+					if isOAuthProxyEndpoint(e) {
+						name += oauthProxyServicePortSuffix
+					}
+
 					commonService.Spec.Ports = append(commonService.Spec.Ports,
 						corev1.ServicePort{
-							Name:       dwocommon.EndpointName(e.Name),
+							Name:       name,
 							Protocol:   corev1.ProtocolTCP,
 							Port:       exposedPort,
 							TargetPort: intstr.FromInt32(exposedPort),
@@ -503,10 +508,10 @@ func exposeAllEndpoints(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceR
 				if isOAuthProxyEndpoint(e) {
 					if !containPort(commonService, int32(e.TargetPort)) {
 						// keeps the endpoint targetPort reachable on the common Service,
-						// but forwards it to the oauth-proxy so in-cluster clients	must authenticate too
+						// but forwards it to the oauth-proxy so in-cluster clients must authenticate too
 						commonService.Spec.Ports = append(commonService.Spec.Ports,
 							corev1.ServicePort{
-								Name:       dwocommon.EndpointName(e.Name) + "-proxy",
+								Name:       dwocommon.EndpointName(e.Name),
 								Protocol:   corev1.ProtocolTCP,
 								Port:       int32(e.TargetPort),
 								TargetPort: intstr.FromInt32(exposedPort),
@@ -530,11 +535,11 @@ func exposeAllEndpoints(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceR
 
 				if service != commonService && isOAuthProxyEndpoint(e) {
 					if !containPort(service, exposedPort) {
-						// keeps the endpoint targetPort reachable on the common Service,
-						// but forwards it to the oauth-proxy so in-cluster clients	must authenticate too
+						// exposes the oauth-proxy listen port on the endpoint Service,
+						// so that the Route can target it
 						service.Spec.Ports = append(service.Spec.Ports,
 							corev1.ServicePort{
-								Name:       dwocommon.EndpointName(e.Name) + "-proxy",
+								Name:       dwocommon.EndpointName(e.Name) + oauthProxyServicePortSuffix,
 								Protocol:   corev1.ProtocolTCP,
 								Port:       exposedPort,
 								TargetPort: intstr.FromInt32(exposedPort),

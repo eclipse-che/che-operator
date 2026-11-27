@@ -36,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
@@ -2072,12 +2073,10 @@ func TestSecureEndpointServedByOAuthProxyThroughDiscoverableService(t *testing.T
 
 		// the port in-cluster clients discovered keeps the endpoint targetPort 9999 as its
 		// number, but forwards it to the oauth-proxy instead of the application
-		assert.Len(t, e2Service.Spec.Ports, 2)
-		for _, p := range e2Service.Spec.Ports {
-			if p.Port == 9999 {
-				assert.Equal(t, 9443, p.TargetPort.IntValue())
-			}
-		}
+		assert.ElementsMatch(t, []corev1.ServicePort{
+			{Name: "e2", Protocol: corev1.ProtocolTCP, Port: 9999, TargetPort: intstr.FromInt32(9443)},
+			{Name: "e2-oauth-proxy", Protocol: corev1.ProtocolTCP, Port: 9443, TargetPort: intstr.FromInt32(9443)},
+		}, e2Service.Spec.Ports)
 	}
 
 	for _, e := range dwr.Spec.Endpoints["m1"] {
@@ -2125,6 +2124,16 @@ func TestSecureEndpointTargetPortKeptOnCommonService(t *testing.T) {
 	assert.False(t, forwardsToPort(commonService, 9999),
 		"common Service must not forward to the secure application port 9999")
 	assert.True(t, forwardsToPort(commonService, 4180))
+
+	// only the ports of the secure endpoint are named after the oauth-proxy: the bare endpoint
+	// name keeps the port in-cluster clients discovered, the "-oauth-proxy" suffix marks the proxy
+	// listen port; the e3 endpoint shares the targetPort 8888 with e1, so it adds no port
+	assert.ElementsMatch(t, []corev1.ServicePort{
+		{Name: "ws-route", Protocol: corev1.ProtocolTCP, Port: 3030, TargetPort: intstr.FromInt32(3030)},
+		{Name: "e1", Protocol: corev1.ProtocolTCP, Port: 8888, TargetPort: intstr.FromInt32(8888)},
+		{Name: "e2-oauth-proxy", Protocol: corev1.ProtocolTCP, Port: 4180, TargetPort: intstr.FromInt32(4180)},
+		{Name: "e2", Protocol: corev1.ProtocolTCP, Port: 9999, TargetPort: intstr.FromInt32(4180)},
+	}, commonService.Spec.Ports)
 }
 
 func TestSecureEndpointNotProxiedWithoutOpenShiftOAuth(t *testing.T) {
@@ -2671,4 +2680,90 @@ func TestOAuthProxyServiceAccountNotReadyWithoutRoute(t *testing.T) {
 
 	secretKey := types.NamespacedName{Name: getOAuthProxyTokenSecretName(routing), Namespace: routing.Namespace}
 	assert.NoError(t, test.ExpectNotFound(secretKey, &corev1.Secret{}))
+}
+
+func TestSecureEndpointTargetPortSharedWithAnotherEndpoint(t *testing.T) {
+	type testCase struct {
+		name           string
+		otherComponent string
+		otherEndpoint  dwo.Endpoint
+		// expectedReason is empty when the routing is expected to be valid
+		expectedReason string
+	}
+
+	testCases := []testCase{
+		{
+			name:           "public endpoint",
+			otherComponent: "m2",
+			otherEndpoint:  dwo.Endpoint{Name: "e4", TargetPort: 9999, Exposure: dwo.PublicEndpointExposure},
+			expectedReason: "targetPort 9999 is shared with the endpoint m2/e4",
+		},
+		{
+			name:           "internal endpoint",
+			otherComponent: "m2",
+			otherEndpoint:  dwo.Endpoint{Name: "e4", TargetPort: 9999, Exposure: dwo.InternalEndpointExposure},
+			expectedReason: "targetPort 9999 is shared with the endpoint m2/e4",
+		},
+		{
+			name:           "endpoint not exposed",
+			otherComponent: "m2",
+			otherEndpoint:  dwo.Endpoint{Name: "e4", TargetPort: 9999, Exposure: dwo.NoneEndpointExposure},
+		},
+		{
+			name:           "endpoint in the same component",
+			otherComponent: "m1",
+			otherEndpoint:  dwo.Endpoint{Name: "e5", TargetPort: 9999, Exposure: dwo.PublicEndpointExposure},
+			expectedReason: "targetPort 9999 is shared with the endpoint m1/e5",
+		},
+		{
+			name:           "endpoint with the same name in another component",
+			otherComponent: "m2",
+			otherEndpoint:  dwo.Endpoint{Name: "e2", TargetPort: 9999, Exposure: dwo.PublicEndpointExposure},
+			expectedReason: "targetPort 9999 is shared with the endpoint m2/e2",
+		},
+		{
+			// the gateway would route such an endpoint straight to the application
+			name:           "endpoint with url rewrite supported",
+			otherComponent: "m2",
+			otherEndpoint: dwo.Endpoint{
+				Name:       "e4",
+				TargetPort: 9999,
+				Exposure:   dwo.PublicEndpointExposure,
+				Attributes: dwo.Attributes{
+					urlRewriteSupportedEndpointAttributeName: apiext.JSON{Raw: []byte("\"true\"")},
+				},
+			},
+			expectedReason: "targetPort 9999 is shared with the endpoint m2/e4",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			// e2 (component m1) is the secure endpoint on targetPort 9999; another endpoint sharing
+			// that targetPort would, unless it isn't exposed, reach the application directly
+			routing := subdomainDevWorkspaceRouting()
+			routing.Spec.Endpoints[tc.otherComponent] = append(
+				routing.Spec.Endpoints[tc.otherComponent],
+				tc.otherEndpoint,
+			)
+
+			found, oauthProxyPort, upstreamPort, err := resolveOAuthProxyPorts(routing)
+			if tc.expectedReason != "" {
+				var invalid *solvers.RoutingInvalid
+				if assert.ErrorAs(t, err, &invalid) {
+					assert.Contains(t, invalid.Reason, tc.expectedReason)
+				}
+				assert.False(t, found)
+
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.True(t, found)
+			assert.Equal(t, int32(4180), oauthProxyPort)
+			assert.Equal(t, int32(9999), upstreamPort)
+		})
+	}
 }

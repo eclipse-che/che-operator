@@ -55,6 +55,11 @@ const (
 
 	oauthProxyServiceAccountPrefix = "oauth-proxy-"
 
+	// oauthProxyServicePortSuffix is appended to the endpoint name to name the Service port
+	// exposing the oauth-proxy listen port; the bare endpoint name is kept for the port
+	// in-cluster clients discovered, which is forwarded to the oauth-proxy as well
+	oauthProxyServicePortSuffix = "-oauth-proxy"
+
 	oauthRedirectReferenceAnnotationPrefix = "serviceaccounts.openshift.io/oauth-redirectreference."
 
 	oauthProxyMemoryLimit   = "128Mi"
@@ -307,7 +312,9 @@ func getOAuthProxyRoutes(routing *dwo.DevWorkspaceRouting, routes []routev1.Rout
 //     oauthProxyPort attribute
 //   - upstreamPort - the port of the application behind the secure endpoint, i.e. the
 //     endpoint targetPort
-func resolveOAuthProxyPorts(routing *dwo.DevWorkspaceRouting) (found bool, oauthProxyPort, upstreamPort int32, err error) {
+func resolveOAuthProxyPorts(
+	routing *dwo.DevWorkspaceRouting,
+) (found bool, oauthProxyPort, upstreamPort int32, err error) {
 	for _, componentName := range slices.Sorted(maps.Keys(routing.Spec.Endpoints)) {
 		for _, e := range routing.Spec.Endpoints[componentName] {
 			if !isOAuthProxyEndpoint(e) {
@@ -327,6 +334,11 @@ func resolveOAuthProxyPorts(routing *dwo.DevWorkspaceRouting) (found bool, oauth
 
 			if cause := findOAuthProxyPortConflict(routing, int(port)); cause != "" {
 				cause = fmt.Sprintf("endpoint %s/%s: '%s' %d %s", componentName, e.Name, oauthProxyPortAttributeName, port, cause)
+				return false, 0, 0, oauthProxyErrorf(routing, cause)
+			}
+
+			if cause := findTargetPortConflict(routing, componentName, e); cause != "" {
+				cause = fmt.Sprintf("endpoint %s/%s: targetPort %d %s", componentName, e.Name, e.TargetPort, cause)
 				return false, 0, 0, oauthProxyErrorf(routing, cause)
 			}
 
@@ -363,6 +375,34 @@ func findOAuthProxyPortConflict(routing *dwo.DevWorkspaceRouting, oauthProxyPort
 		for _, e := range routing.Spec.Endpoints[componentName] {
 			if e.TargetPort == oauthProxyPort {
 				return fmt.Sprintf("must differ from the targetPort of the endpoint %s/%s", componentName, e.Name)
+			}
+		}
+	}
+
+	return ""
+}
+
+// findTargetPortConflict returns the reason why the secure endpoint can't be served by the
+// oauth-proxy sidecar because another exposed endpoint shares its targetPort, or an empty
+// string when there is no such endpoint. Such an endpoint would expose the targetPort on the
+// common Service straight to the application, so in-cluster clients could bypass the oauth-proxy.
+func findTargetPortConflict(
+	routing *dwo.DevWorkspaceRouting,
+	secureComponentName string,
+	secureEndpoint dwo.Endpoint,
+) string {
+	for _, componentName := range slices.Sorted(maps.Keys(routing.Spec.Endpoints)) {
+		for _, e := range routing.Spec.Endpoints[componentName] {
+			if componentName == secureComponentName && e.Name == secureEndpoint.Name {
+				continue
+			}
+
+			if dw.EndpointExposure(e.Exposure) == dw.NoneEndpointExposure {
+				continue
+			}
+
+			if e.TargetPort == secureEndpoint.TargetPort {
+				return fmt.Sprintf("is shared with the endpoint %s/%s", componentName, e.Name)
 			}
 		}
 	}
