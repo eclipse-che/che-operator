@@ -15,8 +15,10 @@ package solver
 import (
 	"fmt"
 	"maps"
+	"math"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
@@ -40,14 +42,11 @@ import (
 )
 
 const (
-	// oauthProxyPortAttributeName is the endpoint attribute overriding the port the
-	// oauth-proxy sidecar listens on. When unset, oauthProxyDefaultPort is used.
+	// oauthProxyPortAttributeName is the endpoint attribute setting the port the oauth-proxy
+	// sidecar listens on. It is required for a secure endpoint to be served by the oauth-proxy:
+	// when unset, the endpoint is exposed without authentication, as before the oauth-proxy
+	// support, so that existing workspaces with secure endpoints keep working unchanged.
 	oauthProxyPortAttributeName = "oauthProxyPort"
-
-	// oauthProxyDefaultPort is the port the oauth-proxy sidecar listens on when the endpoint
-	// does not override it via the oauthProxyPort attribute. The application itself keeps
-	// listening on the endpoint targetPort, which is the proxy's upstream port.
-	oauthProxyDefaultPort = 4180
 
 	oauthProxyContainerName         = "oauth-proxy"
 	oauthProxyVolumeName            = "oauth-client-token"
@@ -64,28 +63,16 @@ const (
 	oauthProxyCPURequest    = "20m"
 )
 
-// hasOAuthProxyEndpoint returns true if the routing has at least one endpoint that must be
-// served by the oauth-proxy sidecar.
-func (c *CheRoutingSolver) hasOAuthProxyEndpoint(routing *dwo.DevWorkspaceRouting) bool {
-	if !infrastructure.IsOpenShiftOAuthEnabled() {
-		return false
-	}
-
-	for _, endpoints := range routing.Spec.Endpoints {
-		if slices.ContainsFunc(endpoints, isOAuthProxyEndpoint) {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (c *CheRoutingSolver) provisionOAuthProxyPodAdditions(cheCtx *chetypes.CheContext, objs *solvers.RoutingObjects, routing *dwo.DevWorkspaceRouting) error {
-	found, listenPort, upstreamPort, err := resolveOAuthProxyPorts(routing)
-	if !found {
-		return err
-	}
-
+// provisionOAuthProxyPodAdditions adds the oauth-proxy sidecar to the workspace pod. It listens
+// on oauthProxyPort and forwards authenticated requests to the application on upstreamPort.
+// Both ports must have been resolved and validated by resolveOAuthProxyPorts.
+func (c *CheRoutingSolver) provisionOAuthProxyPodAdditions(
+	cheCtx *chetypes.CheContext,
+	objs *solvers.RoutingObjects,
+	routing *dwo.DevWorkspaceRouting,
+	oauthProxyPort int32,
+	upstreamPort int32,
+) {
 	image := gateway.GetOpenShiftOAuthProxyImage(cheCtx)
 
 	scope := "user:info user:check-access"
@@ -102,15 +89,15 @@ OPENSHIFT_SAR="{\"namespace\":\"${DEVWORKSPACE_NAMESPACE}\",\"verb\":\"get\",\"g
   --cookie-secure=true \
   --pass-basic-auth=false \
   --skip-provider-button=true \
-  --client-id=%s \
-  --client-secret-file=%s/%s \
-  --scope=%s \
-  --email-domains=* \
-  --cookie-expire=%s \
+  --client-id='%s' \
+  --client-secret-file='%s/%s' \
+  --scope='%s' \
+  --email-domain='*' \
+  --cookie-expire='%s' \
   --openshift-ca=/etc/pki/tls/cert.pem \
   --openshift-ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt \
   --openshift-sar="${OPENSHIFT_SAR}"`,
-		listenPort,
+		oauthProxyPort,
 		upstreamPort,
 		"system:serviceaccount:"+routing.Namespace+":"+getOAuthProxyServiceAccountName(routing),
 		oauthProxyClientSecretMountPath,
@@ -145,7 +132,7 @@ OPENSHIFT_SAR="{\"namespace\":\"${DEVWORKSPACE_NAMESPACE}\",\"verb\":\"get\",\"g
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          oauthProxyContainerName,
-				ContainerPort: int32(listenPort),
+				ContainerPort: oauthProxyPort,
 				Protocol:      "TCP",
 			},
 		},
@@ -153,7 +140,7 @@ OPENSHIFT_SAR="{\"namespace\":\"${DEVWORKSPACE_NAMESPACE}\",\"verb\":\"get\",\"g
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path:   "/oauth/healthz",
-					Port:   intstr.FromInt32(int32(listenPort)),
+					Port:   intstr.FromInt32(oauthProxyPort),
 					Scheme: corev1.URISchemeHTTP,
 				},
 			},
@@ -167,7 +154,7 @@ OPENSHIFT_SAR="{\"namespace\":\"${DEVWORKSPACE_NAMESPACE}\",\"verb\":\"get\",\"g
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path:   "/oauth/healthz",
-					Port:   intstr.FromInt32(int32(listenPort)),
+					Port:   intstr.FromInt32(oauthProxyPort),
 					Scheme: corev1.URISchemeHTTP,
 				},
 			},
@@ -190,8 +177,6 @@ OPENSHIFT_SAR="{\"namespace\":\"${DEVWORKSPACE_NAMESPACE}\",\"verb\":\"get\",\"g
 		},
 	}
 	objs.PodAdditions.Volumes = append(objs.PodAdditions.Volumes, volume)
-
-	return nil
 }
 
 func (c *CheRoutingSolver) provisionOAuthProxyServiceAccount(
@@ -199,18 +184,18 @@ func (c *CheRoutingSolver) provisionOAuthProxyServiceAccount(
 	objs *solvers.RoutingObjects,
 	routing *dwo.DevWorkspaceRouting,
 ) error {
+	// the oauth-proxy sidecar mounts the token Secret of the ServiceAccount, so the routing must
+	// not be reported as ready without them, otherwise the workspace pod hangs on a missing volume
 	proxyRoutes := getOAuthProxyRoutes(routing, objs.Routes)
-	if len(proxyRoutes) > 0 {
-		if err := c.syncOAuthProxyServiceAccount(cheCtx, routing, proxyRoutes); err != nil {
-			return err
-		}
-
-		if err := c.syncOAuthProxyServiceAccountTokenSecret(cheCtx, routing); err != nil {
-			return err
-		}
+	if len(proxyRoutes) == 0 {
+		return &solvers.RoutingNotReady{Retry: 5 * time.Second}
 	}
 
-	return nil
+	if err := c.syncOAuthProxyServiceAccount(cheCtx, routing, proxyRoutes); err != nil {
+		return err
+	}
+
+	return c.syncOAuthProxyServiceAccountTokenSecret(cheCtx, routing)
 }
 
 func (c *CheRoutingSolver) syncOAuthProxyServiceAccount(
@@ -219,12 +204,12 @@ func (c *CheRoutingSolver) syncOAuthProxyServiceAccount(
 	proxyRoutes map[string]string,
 ) error {
 	redirectRefAnnotations := map[string]string{}
-	for routeName, port := range proxyRoutes {
+	for routeName, suffix := range proxyRoutes {
 		reference := fmt.Sprintf(
 			`{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":%q}}`,
 			routeName,
 		)
-		redirectRefAnnotations[fmt.Sprintf("%s%s", oauthRedirectReferenceAnnotationPrefix, port)] = reference
+		redirectRefAnnotations[fmt.Sprintf("%s%s", oauthRedirectReferenceAnnotationPrefix, suffix)] = reference
 	}
 
 	sa := &corev1.ServiceAccount{}
@@ -252,11 +237,10 @@ func (c *CheRoutingSolver) syncOAuthProxyServiceAccount(
 		return resources.ServiceAccount.Create(cheCtx, sa)
 	}
 
-	if utils.ContainsEntries(sa.Annotations, redirectRefAnnotations) {
-		return nil
-	}
-
 	sa.Annotations = utils.NonNilMap(sa.Annotations)
+	maps.DeleteFunc(sa.Annotations, func(key string, _ string) bool {
+		return strings.HasPrefix(key, oauthRedirectReferenceAnnotationPrefix)
+	})
 	maps.Copy(sa.Annotations, redirectRefAnnotations)
 
 	if err := controllerutil.SetControllerReference(routing, sa, cheCtx.ClusterAPI.Scheme); err != nil {
@@ -319,14 +303,11 @@ func getOAuthProxyRoutes(routing *dwo.DevWorkspaceRouting, routes []routev1.Rout
 
 // resolveOAuthProxyPorts returns whether the workspace pod needs the oauth-proxy sidecar,
 // and if so, the two ports it is configured with:
-//   - port - the port the sidecar listens on: the endpoint's oauthProxyPort attribute,
-//     or oauthProxyDefaultPort when the attribute is unset
+//   - oauthProxyPort - the port the sidecar listens on, taken from the endpoint's
+//     oauthProxyPort attribute
 //   - upstreamPort - the port of the application behind the secure endpoint, i.e. the
 //     endpoint targetPort
-//
-// At most one secure endpoint per workspace is currently supported - an error is returned
-// when there are more. Components are iterated in a sorted order to get a stable result.
-func resolveOAuthProxyPorts(routing *dwo.DevWorkspaceRouting) (found bool, port, upstreamPort int, err error) {
+func resolveOAuthProxyPorts(routing *dwo.DevWorkspaceRouting) (found bool, oauthProxyPort, upstreamPort int32, err error) {
 	for _, componentName := range slices.Sorted(maps.Keys(routing.Spec.Endpoints)) {
 		for _, e := range routing.Spec.Endpoints[componentName] {
 			if !isOAuthProxyEndpoint(e) {
@@ -338,57 +319,73 @@ func resolveOAuthProxyPorts(routing *dwo.DevWorkspaceRouting) (found bool, port,
 				return false, 0, 0, oauthProxyErrorf(routing, cause)
 			}
 
-			portStr := e.Attributes.GetString(oauthProxyPortAttributeName, nil)
-			if portStr == "" {
-				port = oauthProxyDefaultPort
-			} else {
-				port, err = strconv.Atoi(portStr)
-				if err != nil {
-					cause := fmt.Sprintf("endpoint %s/%s: '%s' attribute must be an integer", componentName, e.Name, oauthProxyPortAttributeName)
-					return false, 0, 0, oauthProxyErrorf(routing, cause)
-				}
+			port, err := parseOAuthProxyPort(e)
+			if err != nil {
+				cause := fmt.Sprintf("endpoint %s/%s: %v", componentName, e.Name, err)
+				return false, 0, 0, oauthProxyErrorf(routing, cause)
 			}
 
-			if port == e.TargetPort {
-				cause := fmt.Sprintf("endpoint %s/%s: '%s' must differ from the endpoint targetPort %d the oauth-proxy forwards requests to", componentName, e.Name, oauthProxyPortAttributeName, e.TargetPort)
+			if cause := findOAuthProxyPortConflict(routing, int(port)); cause != "" {
+				cause = fmt.Sprintf("endpoint %s/%s: '%s' %d %s", componentName, e.Name, oauthProxyPortAttributeName, port, cause)
 				return false, 0, 0, oauthProxyErrorf(routing, cause)
 			}
 
 			found = true
-			upstreamPort = e.TargetPort
+			oauthProxyPort = port
+			upstreamPort = int32(e.TargetPort)
 		}
 	}
 
-	return found, port, upstreamPort, nil
+	return found, oauthProxyPort, upstreamPort, nil
 }
 
-// getOAuthProxyListenPort returns the port the oauth-proxy sidecar listens on for the given
-// secure endpoint: the oauthProxyPort attribute when set to a valid port, the default
-// otherwise. Unlike resolveOAuthProxyPorts it never fails - use it only where the attribute
-// has already been validated or where falling back to the default is acceptable.
-func getOAuthProxyListenPort(e dwo.Endpoint) int {
-	if port, err := strconv.Atoi(e.Attributes.GetString(oauthProxyPortAttributeName, nil)); err == nil && port > 0 {
-		return port
+func parseOAuthProxyPort(e dwo.Endpoint) (int32, error) {
+	value := e.Attributes.GetString(oauthProxyPortAttributeName, nil)
+
+	port, err := strconv.Atoi(value)
+	if err != nil || port < 1 || port > math.MaxUint16 {
+		return 0, &solvers.RoutingInvalid{
+			Reason: fmt.Sprintf("'%s' attribute must be a port number between 1 and %d, got '%s'", oauthProxyPortAttributeName, math.MaxUint16, value),
+		}
 	}
 
-	return oauthProxyDefaultPort
+	return int32(port), nil
+}
+
+// findOAuthProxyPortConflict returns the reason why the oauth-proxy sidecar can't listen on
+// the given port, or an empty string when the port is free.
+func findOAuthProxyPortConflict(routing *dwo.DevWorkspaceRouting, oauthProxyPort int) string {
+	if oauthProxyPort == wsGatewayPort {
+		return fmt.Sprintf("must differ from the port %d of the workspace gateway", wsGatewayPort)
+	}
+
+	for _, componentName := range slices.Sorted(maps.Keys(routing.Spec.Endpoints)) {
+		for _, e := range routing.Spec.Endpoints[componentName] {
+			if e.TargetPort == oauthProxyPort {
+				return fmt.Sprintf("must differ from the targetPort of the endpoint %s/%s", componentName, e.Name)
+			}
+		}
+	}
+
+	return ""
 }
 
 // endpointExposedPort returns the port the given endpoint is exposed on outside the
 // workspace pod: the oauth-proxy listen port for secure endpoints served by the sidecar,
 // the endpoint targetPort for all the others.
-func endpointExposedPort(e dwo.Endpoint) int32 {
+func endpointExposedPort(e dwo.Endpoint) (int32, error) {
 	if isOAuthProxyEndpoint(e) {
-		return int32(getOAuthProxyListenPort(e))
+		return parseOAuthProxyPort(e)
 	}
 
-	return int32(e.TargetPort)
+	return int32(e.TargetPort), nil
 }
 
 func oauthProxyErrorf(routing *dwo.DevWorkspaceRouting, cause string) error {
-	return fmt.Errorf(
-		"failed to configure oauth-proxy for DevWorkspace %s in namespace %s: %s",
-		routing.Spec.DevWorkspaceId, routing.Namespace, cause)
+	return &solvers.RoutingInvalid{
+		Reason: fmt.Sprintf("failed to configure oauth-proxy for DevWorkspace %s in namespace %s: %s",
+			routing.Spec.DevWorkspaceId, routing.Namespace, cause),
+	}
 }
 
 func getOAuthProxyServiceAccountName(routing *dwo.DevWorkspaceRouting) string {
@@ -400,9 +397,15 @@ func getOAuthProxyTokenSecretName(routing *dwo.DevWorkspaceRouting) string {
 }
 
 // isOAuthProxyEndpoint returns true if the endpoint is exposed with a dedicated Route
-// and must be authenticated by the oauth-proxy sidecar.
+// and must be authenticated by the oauth-proxy sidecar, i.e. when all of the following hold:
+//   - the endpoint is secure and public
+//   - OpenShift OAuth is enabled
+//   - the endpoint sets the oauthProxyPort attribute
+//   - the endpoint is not served through the gateway (urlRewriteSupported is not "true")
 func isOAuthProxyEndpoint(e dwo.Endpoint) bool {
 	return e.Secure &&
+		infrastructure.IsOpenShiftOAuthEnabled() &&
 		dw.EndpointExposure(e.Exposure) == dw.PublicEndpointExposure &&
+		e.Attributes.GetString(oauthProxyPortAttributeName, nil) != "" &&
 		e.Attributes.GetString(urlRewriteSupportedEndpointAttributeName, nil) != "true"
 }

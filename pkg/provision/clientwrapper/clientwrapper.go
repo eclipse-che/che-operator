@@ -316,10 +316,16 @@ func (k K8sClientWrapper) doSync(
 			// update (controller-runtime decodes the response back into the object).
 			// 'actual' comes from the informer cache, which may lag behind our own
 			// writes — overwriting 'obj' with a stale RV causes conflicts.
+			//
+			// The metadata of 'actual' is merged only into a blueprint built from scratch.
+			// An object carrying a resourceVersion was read from the cluster (or returned by a previous
+			// update), so its metadata is already complete; it is written as is: keys removed on purpose are not
+			// restored, and the optimistic concurrency check of the API server rejects the
+			// update if someone else changed the object in the meantime.
 			if obj.GetResourceVersion() == "" {
+				mergeMetadata(syncOptions, obj, actual)
 				obj.SetResourceVersion(actual.GetResourceVersion())
 			}
-			mergeMetadata(syncOptions, obj, actual)
 
 			err := k.cli.Update(ctx, obj)
 			if err == nil {

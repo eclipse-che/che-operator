@@ -298,6 +298,40 @@ var _ = Describe("syncObject", Ordered, func() {
 		Expect(actualCm.Annotations["annotation2"]).To(Equal("value3"))
 		Expect(actualCm.Annotations["annotation3"]).To(Equal("value2"))
 	})
+
+	It("should remove labels and annotations deleted from an object read from the cluster", func(ctx SpecContext) {
+		testCm := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: "eclipse-che",
+				Labels: map[string]string{
+					"label1": "value1",
+					"label2": "value1",
+				},
+				Annotations: map[string]string{
+					"annotation1": "value1",
+					"annotation2": "value1",
+				},
+			},
+		}
+
+		Expect(SyncObject(cheCtx, testCm, cmDiffs, false, false)).To(Succeed())
+
+		// only remove keys: nothing else changes, so the removal alone must trigger the update
+		fetchedCm := &corev1.ConfigMap{}
+		Expect(env.Client.Get(cheCtx.Context, types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, fetchedCm)).To(Succeed())
+		delete(fetchedCm.Labels, "label2")
+		delete(fetchedCm.Annotations, "annotation2")
+
+		Expect(SyncObject(cheCtx, fetchedCm, cmDiffs, false, false)).To(Succeed())
+
+		actualCm := &corev1.ConfigMap{}
+		Expect(env.Client.Get(cheCtx.Context, types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actualCm)).To(Succeed())
+		Expect(actualCm.Labels).To(HaveKeyWithValue("label1", "value1"))
+		Expect(actualCm.Labels).NotTo(HaveKey("label2"))
+		Expect(actualCm.Annotations).To(HaveKeyWithValue("annotation1", "value1"))
+		Expect(actualCm.Annotations).NotTo(HaveKey("annotation2"))
+	})
 })
 
 var _ = Describe("create", Ordered, func() {

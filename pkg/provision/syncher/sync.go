@@ -45,6 +45,9 @@ import (
 //   - builds the sync options: existing labels and annotations are merged rather than replaced,
 //     and only the labels and annotations defined on the given object participate in the diff,
 //     together with the controller owner reference and the finalizers (for the CheCluster itself).
+//     This applies to a blueprint built from scratch (no resourceVersion). An object carrying a
+//     resourceVersion (read from the cluster) is written as is: nothing is merged and all its
+//     labels and annotations are compared, so keys removed from it are removed from the cluster too.
 //   - retries the sync with recreation if the update failed because an immutable field has changed,
 //     but only when `allowForceRecreate` is set.
 func SyncObject(
@@ -65,6 +68,12 @@ func SyncObject(
 	// preserved and kept out of the comparison.
 	preserveFinalizers := !isCheCluster(obj)
 
+	// An object carrying a resourceVersion was read from the cluster (or returned by a previous
+	// update), and the client wrapper writes it as is, without merging the existing metadata into
+	// it. All its labels and annotations are compared then, otherwise a key removed on purpose
+	// would not be detected and the object would not be updated.
+	compareAllMetadataKeys := obj.GetResourceVersion() != ""
+
 	opts := &clientwrapper.SyncOptions{
 		MergeAnnotations:   true,
 		MergeLabels:        true,
@@ -75,6 +84,7 @@ func SyncObject(
 			cmpMetadata(
 				slices.Collect(maps.Keys(obj.GetLabels())),
 				slices.Collect(maps.Keys(obj.GetAnnotations())),
+				compareAllMetadataKeys,
 				preserveFinalizers,
 			),
 		},
@@ -231,8 +241,11 @@ func DeleteAllManaged(
 }
 
 // cmpMetadata compares only the specified labels and annotations, finalizers (unless
-// preserveFinalizers is false), and the controller owner reference. All other metadata is
+// preserveFinalizers is true), and the controller owner reference. All other metadata is
 // ignored. Finalizers are compared as a set, since their order is not significant.
+//
+// If compareAllKeys is true, labelKeys and annotationKeys are ignored and all labels and
+// annotations are compared, so that a key present only on one side is detected as well.
 //
 // It is applied as a metav1.ObjectMeta transformer via cmp.FilterPath. It only works
 // with types embedding metav1.ObjectMeta at the top level; it has no effect on
@@ -241,18 +254,12 @@ func DeleteAllManaged(
 func cmpMetadata(
 	labelKeys []string,
 	annotationKeys []string,
+	compareAllKeys bool,
 	preserveFinalizers bool,
 ) cmp.Option {
 	transform := cmp.Transformer("cmpMetadata", func(m metav1.ObjectMeta) comparableMetadata {
-		labels := make(map[string]string, len(labelKeys))
-		for _, key := range labelKeys {
-			labels[key] = m.Labels[key]
-		}
-
-		annotations := make(map[string]string, len(annotationKeys))
-		for _, key := range annotationKeys {
-			annotations[key] = m.Annotations[key]
-		}
+		labels := selectEntries(m.Labels, labelKeys, compareAllKeys)
+		annotations := selectEntries(m.Annotations, annotationKeys, compareAllKeys)
 
 		var finalizers []string
 		if !preserveFinalizers {
@@ -292,6 +299,25 @@ func setOwnerReferenceIfNeeded(cheCtx *chetypes.CheContext, obj client.Object) e
 	}
 
 	return controllerutil.SetControllerReference(cheCtx.CheCluster, obj, cheCtx.ClusterAPI.Scheme)
+}
+
+// selectEntries returns a new map with the entries of m for the given keys; a key missing
+// from m maps to an empty value. If allKeys is true, all entries of m are returned instead.
+// The result is never nil, so that a nil map and an empty map compare as equal.
+func selectEntries(m map[string]string, keys []string, allKeys bool) map[string]string {
+	if allKeys {
+		result := make(map[string]string, len(m))
+		maps.Copy(result, m)
+
+		return result
+	}
+
+	result := make(map[string]string, len(keys))
+	for _, key := range keys {
+		result[key] = m[key]
+	}
+
+	return result
 }
 
 // comparableMetadata is the reduced view of `metav1.ObjectMeta` that `cmpMetadata` compares.
