@@ -178,6 +178,16 @@ func oauthScopeConfig(instance *chev2.CheCluster) string {
 	return ""
 }
 
+func GetOpenShiftOAuthProxyImage(cheCtx *chetypes.CheContext) string {
+	if cheCtx.CheCluster.IsCheFlavor() && cheCtx.CheCluster.IsOAuthProxyImageResolutionFromImageStreamEnabled() {
+		if image := resolveOpenShiftOAuthProxyImage(cheCtx); image != "" {
+			return image
+		}
+	}
+
+	return defaults.GetGatewayOpenShiftAuthenticationSidecarImage(cheCtx.CheCluster)
+}
+
 // resolveOpenShiftOAuthProxyImage resolves the oauth-proxy image from the cluster's own
 // openshift/oauth-proxy ImageStream. Returns empty string when unavailable.
 func resolveOpenShiftOAuthProxyImage(cheCtx *chetypes.CheContext) string {
@@ -241,13 +251,7 @@ func getOauthProxyContainerSpec(cheCtx *chetypes.CheContext) corev1.Container {
 	var image, probePath string
 	var args = []string{"--config=/etc/oauth-proxy/oauth-proxy.cfg"}
 	if infrastructure.IsOpenShiftOAuthEnabled() {
-		// Guarded to upstream Che only; downstream manages its own oauth-proxy image.
-		if cheCtx.CheCluster.IsCheFlavor() && cheCtx.CheCluster.IsOAuthProxyImageResolutionFromImageStreamEnabled() {
-			image = resolveOpenShiftOAuthProxyImage(cheCtx)
-		}
-		if image == "" {
-			image = defaults.GetGatewayOpenShiftAuthenticationSidecarImage(cheCtx.CheCluster)
-		}
+		image = GetOpenShiftOAuthProxyImage(cheCtx)
 		probePath = "/oauth/healthz"
 	} else {
 		image = defaults.GetGatewayKubernetesAuthenticationSidecarImage(cheCtx.CheCluster)

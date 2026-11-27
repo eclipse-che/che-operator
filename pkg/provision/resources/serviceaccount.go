@@ -55,3 +55,19 @@ func (h serviceAccountHandler) Delete(cheCtx *chetypes.CheContext, name string, 
 		&corev1.ServiceAccount{},
 	)
 }
+
+func (h serviceAccountHandler) Get(cheCtx *chetypes.CheContext, name string, namespace string, serviceAccount *corev1.ServiceAccount) (bool, error) {
+	return syncher.GetObject(
+		cheCtx,
+		name,
+		namespace,
+		serviceAccount,
+	)
+}
+
+func (h serviceAccountHandler) Create(cheCtx *chetypes.CheContext, serviceAccount *corev1.ServiceAccount) error {
+	return syncher.Create(
+		cheCtx,
+		serviceAccount,
+	)
+}

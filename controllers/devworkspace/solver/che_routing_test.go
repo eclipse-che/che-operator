@@ -17,9 +17,11 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/stretchr/testify/assert"
 
 	dwCommon "github.com/devfile/devworkspace-operator/pkg/common"
@@ -34,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
@@ -50,10 +53,10 @@ func getSpecObjectsForManager(t *testing.T, mgr *chev2.CheCluster, routing *dwo.
 		WithObjects(additionalInitialObjects...).
 		Build()
 
-	scheme := cheCtx.ClusterAPI.Scheme
 	cl := cheCtx.ClusterAPI.Client
+	scheme := cheCtx.ClusterAPI.Scheme
 
-	solver, err := Getter(scheme).GetSolver(cl, "che")
+	solver, err := Getter().GetSolver(cl, "che")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,6 +95,93 @@ func getSpecObjectsForManager(t *testing.T, mgr *chev2.CheCluster, routing *dwo.
 	return cl, solver, objs
 }
 
+// assertSecurePodAdditions checks that both the gateway and the oauth-proxy are added to the workspace pod.
+func assertSecurePodAdditions(t *testing.T, routing *dwo.DevWorkspaceRouting, objs solvers.RoutingObjects) {
+	if assert.Len(t, objs.PodAdditions.Containers, 2) {
+		assert.Equal(t, wsGatewayName, objs.PodAdditions.Containers[0].Name)
+		assert.Equal(t, "oauth-proxy", objs.PodAdditions.Containers[1].Name)
+		// the secure endpoint of the test routings runs its app on 9999 and the oauth-proxy
+		// listens on the port set by the oauthProxyPort attribute (4180), forwarding
+		// authenticated requests to the app
+		assert.Contains(t, objs.PodAdditions.Containers[1].Args[0], "--http-address=:4180")
+		assert.Contains(t, objs.PodAdditions.Containers[1].Args[0], "--upstream=http://localhost:9999")
+		assert.Contains(t, objs.PodAdditions.Containers[1].Args[0],
+			"--client-id='system:serviceaccount:"+routing.Namespace+":"+getOAuthProxyServiceAccountName(routing)+"'")
+
+		assert.Equal(t, int32(4180), objs.PodAdditions.Containers[1].Ports[0].ContainerPort)
+	}
+
+	if assert.Len(t, objs.PodAdditions.Volumes, 2) {
+		assert.Equal(t, wsGatewayName, objs.PodAdditions.Volumes[0].Name)
+		assert.Equal(t, "oauth-client-token", objs.PodAdditions.Volumes[1].Name)
+		assert.Equal(t, getOAuthProxyTokenSecretName(routing), objs.PodAdditions.Volumes[1].Secret.SecretName)
+	}
+}
+
+// assertOAuthProxyServiceAccount checks that the ServiceAccount used as the OAuth client of the
+// oauth-proxy sidecar is provisioned together with its token secret, and that it registers
+// the secure endpoint routes as OAuth redirect references.
+func assertOAuthProxyServiceAccount(t *testing.T, cl client.Client, routing *dwo.DevWorkspaceRouting, objs solvers.RoutingObjects) {
+	sa := &corev1.ServiceAccount{}
+	err := cl.Get(context.TODO(), types.NamespacedName{
+		Name:      getOAuthProxyServiceAccountName(routing),
+		Namespace: routing.Namespace,
+	}, sa)
+	if assert.NoError(t, err) {
+		assert.Equal(t, routing.Spec.DevWorkspaceId, sa.Labels[dwConstants.DevWorkspaceIDLabel])
+
+		// the ServiceAccount is removed automatically with the DevWorkspaceRouting
+		assert.Len(t, sa.OwnerReferences, 1)
+		assert.Equal(t, routing.Name, sa.OwnerReferences[0].Name)
+	}
+
+	secret := &corev1.Secret{}
+	err = cl.Get(context.TODO(), types.NamespacedName{
+		Name:      getOAuthProxyTokenSecretName(routing),
+		Namespace: routing.Namespace,
+	}, secret)
+	if assert.NoError(t, err) {
+		assert.Equal(t, corev1.SecretTypeServiceAccountToken, secret.Type)
+		assert.Equal(t, getOAuthProxyServiceAccountName(routing), secret.Annotations["kubernetes.io/service-account.name"])
+
+		// the secret is removed automatically with the DevWorkspaceRouting
+		assert.Len(t, secret.OwnerReferences, 1)
+		assert.Equal(t, routing.Name, secret.OwnerReferences[0].Name)
+	}
+
+	// every route of a secure endpoint must be registered as an OAuth redirect reference
+	// by its actual Route name, resolvable among the routes the solver has provisioned
+	proxyRoutes := getOAuthProxyRoutes(routing, objs.Routes)
+	assert.NotEmpty(t, proxyRoutes)
+	provisionedRouteNames := map[string]bool{}
+	for i := range objs.Routes {
+		provisionedRouteNames[objs.Routes[i].Name] = true
+	}
+
+	for routeName, port := range proxyRoutes {
+		if assert.Contains(t, provisionedRouteNames, routeName,
+			"redirect reference must use a provisioned Route name, not the endpoint name") {
+			// the redirect reference annotation is keyed by the Route target port
+			annotation := oauthRedirectReferenceAnnotationPrefix + port
+			reference := sa.Annotations[annotation]
+			if assert.Contains(t, sa.Annotations, annotation) {
+				assert.Contains(t, reference, fmt.Sprintf(`"name":"%s"`, routeName))
+			}
+		}
+	}
+}
+
+// assertGatewayOnlyPodAdditions checks that only the gateway is added to the workspace pod.
+func assertGatewayOnlyPodAdditions(t *testing.T, objs solvers.RoutingObjects) {
+	if assert.Len(t, objs.PodAdditions.Containers, 1) {
+		assert.Equal(t, wsGatewayName, objs.PodAdditions.Containers[0].Name)
+	}
+
+	if assert.Len(t, objs.PodAdditions.Volumes, 1) {
+		assert.Equal(t, wsGatewayName, objs.PodAdditions.Volumes[0].Name)
+	}
+}
+
 func getSpecObjects(t *testing.T, routing *dwo.DevWorkspaceRouting) (client.Client, solvers.RoutingSolver, solvers.RoutingObjects) {
 	return getSpecObjectsForManager(t, &chev2.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -128,7 +218,7 @@ func subdomainDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 				"m1": {
 					{
 						Name:       "e1",
-						TargetPort: 9999,
+						TargetPort: 8888,
 						Exposure:   dwo.PublicEndpointExposure,
 						Protocol:   "https",
 						Path:       "/1/",
@@ -140,10 +230,13 @@ func subdomainDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 						Protocol:   "http",
 						Path:       "/2.js",
 						Secure:     true,
+						Attributes: dwo.Attributes{
+							oauthProxyPortAttributeName: apiext.JSON{Raw: []byte("\"4180\"")},
+						},
 					},
 					{
 						Name:       "e3",
-						TargetPort: 9999,
+						TargetPort: 8888,
 						Exposure:   dwo.PublicEndpointExposure,
 					},
 				},
@@ -173,7 +266,7 @@ func endpointAnnotationDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 				"m1": {
 					{
 						Name:        "e1",
-						TargetPort:  9999,
+						TargetPort:  8888,
 						Exposure:    dwo.PublicEndpointExposure,
 						Protocol:    "https",
 						Path:        "/1/",
@@ -190,7 +283,7 @@ func endpointAnnotationDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 					},
 					{
 						Name:        "e3",
-						TargetPort:  9999,
+						TargetPort:  8888,
 						Exposure:    dwo.PublicEndpointExposure,
 						Annotations: devfileEndpointAnnotations,
 					},
@@ -238,15 +331,17 @@ func discoverableEndpointDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 						Secure:     true,
 						Attributes: dwo.Attributes{
 							string(dwo.DiscoverableAttribute): apiext.JSON{Raw: []byte("\"true\"")},
+							// the listen port of the oauth-proxy sidecar is overridden
+							// to make sure the attribute is honored
+							oauthProxyPortAttributeName: apiext.JSON{Raw: []byte("\"9443\"")},
 						},
 					},
 					{
 						Name:       "e3",
-						TargetPort: 9999,
+						TargetPort: 8888,
 						Exposure:   dwo.PublicEndpointExposure,
 						Protocol:   "https",
 						Path:       "/3.js",
-						Secure:     true,
 					},
 				},
 			},
@@ -339,12 +434,8 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 	})
 
 	t.Run("testPodAdditions", func(t *testing.T) {
-		if len(objs.PodAdditions.Containers) != 1 || objs.PodAdditions.Containers[0].Name != wsGatewayName {
-			t.Error("expected Container pod addition with Workspace Gateway. Got ", objs.PodAdditions)
-		}
-		if len(objs.PodAdditions.Volumes) != 1 || objs.PodAdditions.Volumes[0].Name != wsGatewayName {
-			t.Error("expected Volume pod addition for workspace gateway. Got ", objs.PodAdditions)
-		}
+		// e2 endpoint is secure, but it is served through the gateway, so the oauth-proxy is not needed
+		assertGatewayOnlyPodAdditions(t, objs)
 
 		if objs.PodAdditions.Containers[0].Resources.Requests.Memory() == nil {
 			t.Error("expected addition pod Container Memory request to be set")
@@ -627,11 +718,8 @@ func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 	assert.Empty(t, objs.Routes)
 
 	t.Run("testPodAdditions", func(t *testing.T) {
-		assert.Len(t, objs.PodAdditions.Containers, 1)
-		assert.Equal(t, objs.PodAdditions.Containers[0].Name, wsGatewayName)
-
-		assert.Len(t, objs.PodAdditions.Volumes, 1)
-		assert.Equal(t, objs.PodAdditions.Volumes[0].Name, wsGatewayName)
+		// e2 endpoint is secure, but it is served through the gateway, so the oauth-proxy is not needed
+		assertGatewayOnlyPodAdditions(t, objs)
 	})
 
 	t.Run("traefikConfig", func(t *testing.T) {
@@ -1012,16 +1100,24 @@ func TestCreateSubDomainObjects(t *testing.T) {
 	testCommon := func(infra infrastructure.Type) solvers.RoutingObjects {
 		test.StartOn(infra)
 
-		cl, _, objs := getSpecObjects(t, subdomainDevWorkspaceRouting())
+		routing := subdomainDevWorkspaceRouting()
+		cl, _, objs := getSpecObjects(t, routing)
 
 		t.Run("testPodAdditions", func(t *testing.T) {
-			if len(objs.PodAdditions.Containers) != 1 || objs.PodAdditions.Containers[0].Name != wsGatewayName {
-				t.Error("expected Container pod addition with Workspace Gateway. Got ", objs.PodAdditions)
-			}
-			if len(objs.PodAdditions.Volumes) != 1 || objs.PodAdditions.Volumes[0].Name != wsGatewayName {
-				t.Error("expected Volume pod addition for workspace gateway. Got ", objs.PodAdditions)
+			if infra == infrastructure.OpenShiftV4 {
+				// e2 endpoint is secure, so the oauth-proxy is added next to the gateway
+				assertSecurePodAdditions(t, routing, objs)
+			} else {
+				// the oauth-proxy sidecar is OpenShift-only, so only the gateway is added
+				assertGatewayOnlyPodAdditions(t, objs)
 			}
 		})
+
+		if infra == infrastructure.OpenShiftV4 {
+			t.Run("testOAuthProxyServiceAccount", func(t *testing.T) {
+				assertOAuthProxyServiceAccount(t, cl, routing, objs)
+			})
+		}
 
 		for i := range objs.Services {
 			t.Run(fmt.Sprintf("service-%d", i), func(t *testing.T) {
@@ -1089,11 +1185,12 @@ func TestCreateSubDomainObjectsLegacy(t *testing.T) {
 		}, subdomainDevWorkspaceRouting())
 
 		t.Run("testPodAdditions", func(t *testing.T) {
-			if len(objs.PodAdditions.Containers) != 1 || objs.PodAdditions.Containers[0].Name != wsGatewayName {
-				t.Error("expected Container pod addition with Workspace Gateway. Got ", objs.PodAdditions)
-			}
-			if len(objs.PodAdditions.Volumes) != 1 || objs.PodAdditions.Volumes[0].Name != wsGatewayName {
-				t.Error("expected Volume pod addition for workspace gateway. Got ", objs.PodAdditions)
+			if infra == infrastructure.OpenShiftV4 {
+				// e2 endpoint is secure, so the oauth-proxy is added next to the gateway
+				assertSecurePodAdditions(t, subdomainDevWorkspaceRouting(), objs)
+			} else {
+				// the oauth-proxy sidecar is OpenShift-only, so only the gateway is added
+				assertGatewayOnlyPodAdditions(t, objs)
 			}
 		})
 
@@ -1890,7 +1987,10 @@ func TestUsesEndpointServiceWithDiscoverableAttributeSetRoutes(t *testing.T) {
 
 	for _, route := range objs.Routes {
 		for _, endpoint := range dwr.Spec.Endpoints["m1"] {
-			if route.Name == getEndpointExposingObjectName("m1", "wsid", int32(endpoint.TargetPort), endpoint.Name) {
+			exposedPort, err := endpointExposedPort(endpoint)
+			assert.NoError(t, err)
+
+			if route.Name == getEndpointExposingObjectName("m1", "wsid", exposedPort, endpoint.Name) {
 				assert.NotNil(t, route.Spec.To.Name)
 
 				actualServiceName := route.Spec.To.Name
@@ -1903,7 +2003,250 @@ func TestUsesEndpointServiceWithDiscoverableAttributeSetRoutes(t *testing.T) {
 				if actualServiceName != expectedServiceName {
 					t.Errorf("Expected service to be '%s' but got '%s'", expectedServiceName, actualServiceName)
 				}
+
+				// secure endpoints are served by the oauth-proxy sidecar, so their routes
+				// target the sidecar listen port instead of the endpoint targetPort
+				assert.Equal(t, exposedPort, int32(route.Spec.Port.TargetPort.IntValue()))
+
+				// the Service the route points to must forward to the pod port the route targets,
+				// otherwise the router has no backend for it
+				targetService := utils.Find(objs.Services, func(service corev1.Service) bool { return service.Name == actualServiceName })
+
+				if assert.NotNil(t, targetService, "route target Service %s not found", actualServiceName) {
+					assert.True(t, forwardsToPort(targetService, exposedPort),
+						"Service %s must forward to port %d targeted by route %s", actualServiceName, exposedPort, route.Name)
+
+					if endpoint.Attributes.GetBoolean(string(dwo.DiscoverableAttribute), nil) {
+						// discoverable endpoints stay reachable in-cluster on their targetPort
+						assert.True(t, containPort(targetService, int32(endpoint.TargetPort)))
+
+						// a secure endpoint must not be reachable through its Service without
+						// passing the oauth-proxy
+						if endpoint.Secure {
+							assert.False(t, forwardsToPort(targetService, int32(endpoint.TargetPort)),
+								"Service %s must not forward to the secure application port %d", actualServiceName, endpoint.TargetPort)
+						}
+					}
+				}
 			}
+		}
+	}
+}
+
+// forwardsToPort returns true if the Service forwards any of its ports to the given pod port.
+func forwardsToPort(service *corev1.Service, podPort int32) bool {
+	for _, p := range service.Spec.Ports {
+		if p.TargetPort.IntValue() == int(podPort) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func TestSecureEndpointServedByOAuthProxyThroughDiscoverableService(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	dwr := discoverableEndpointDevWorkspaceRouting()
+	_, _, objs := getSpecObjectsForManager(t, &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{Name: "che", Namespace: "ns"},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Hostname: "over.the.rainbow",
+				Domain:   "down.on.earth",
+			},
+		},
+	}, dwr, userProfileSecret("username"))
+
+	var e2Service *corev1.Service
+	for i := range objs.Services {
+		if objs.Services[i].Name == dwCommon.EndpointName("e2") {
+			e2Service = &objs.Services[i]
+		}
+	}
+
+	if assert.NotNil(t, e2Service) {
+		// the Service must expose the oauth-proxy listen port 9443, otherwise the Route
+		// targeting it has no backend and the router returns 503
+		assert.True(t, containPort(e2Service, 9443),
+			"Service %s must expose the oauth-proxy listen port 9443 targeted by the Route", e2Service.Name)
+
+		// the port in-cluster clients discovered keeps the endpoint targetPort 9999 as its
+		// number, but forwards it to the oauth-proxy instead of the application
+		assert.ElementsMatch(t, []corev1.ServicePort{
+			{Name: "e2", Protocol: corev1.ProtocolTCP, Port: 9999, TargetPort: intstr.FromInt32(9443)},
+			{Name: "e2-oauth-proxy", Protocol: corev1.ProtocolTCP, Port: 9443, TargetPort: intstr.FromInt32(9443)},
+		}, e2Service.Spec.Ports)
+	}
+
+	for _, e := range dwr.Spec.Endpoints["m1"] {
+		if e.Name == "e2" {
+			route, err := findRouteForEndpoint("m1", e, &objs, dwr.Spec.DevWorkspaceId)
+			if !assert.NoError(t, err) {
+				return
+			}
+			if assert.NotNil(t, route, "Route of the secure endpoint must be found to report its URL") {
+				assert.Equal(t, dwCommon.EndpointName("e2"), route.Spec.To.Name)
+				assert.Equal(t, 9443, route.Spec.Port.TargetPort.IntValue())
+
+				// the Route targetPort must resolve to a Service port, not just to a pod port
+				assert.True(t, containPort(e2Service, int32(route.Spec.Port.TargetPort.IntValue())),
+					"Route target port %d must be exposed by Service %s", route.Spec.Port.TargetPort.IntValue(), route.Spec.To.Name)
+			}
+		}
+	}
+}
+
+func TestSecureEndpointTargetPortKeptOnCommonService(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	dwr := subdomainDevWorkspaceRouting()
+	_, _, objs := getSpecObjectsForManager(t, &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{Name: "che", Namespace: "ns"},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Hostname: "over.the.rainbow",
+				Domain:   "down.on.earth",
+			},
+		},
+	}, dwr, userProfileSecret("username"))
+
+	commonService := getCommonService(&objs, dwr.Spec.DevWorkspaceId)
+	if !assert.NotNil(t, commonService) {
+		return
+	}
+
+	// the common Service exposes the oauth-proxy listen port 4180 for the Route backend,
+	// and keeps the endpoint targetPort 9999 for in-cluster clients, forwarding it to the
+	// oauth-proxy instead of the application
+	assert.True(t, containPort(commonService, 4180))
+	assert.True(t, containPort(commonService, 9999))
+	assert.False(t, forwardsToPort(commonService, 9999),
+		"common Service must not forward to the secure application port 9999")
+	assert.True(t, forwardsToPort(commonService, 4180))
+
+	// only the ports of the secure endpoint are named after the oauth-proxy: the bare endpoint
+	// name keeps the port in-cluster clients discovered, the "-oauth-proxy" suffix marks the proxy
+	// listen port; the e3 endpoint shares the targetPort 8888 with e1, so it adds no port
+	assert.ElementsMatch(t, []corev1.ServicePort{
+		{Name: "ws-route", Protocol: corev1.ProtocolTCP, Port: 3030, TargetPort: intstr.FromInt32(3030)},
+		{Name: "e1", Protocol: corev1.ProtocolTCP, Port: 8888, TargetPort: intstr.FromInt32(8888)},
+		{Name: "e2-oauth-proxy", Protocol: corev1.ProtocolTCP, Port: 4180, TargetPort: intstr.FromInt32(4180)},
+		{Name: "e2", Protocol: corev1.ProtocolTCP, Port: 9999, TargetPort: intstr.FromInt32(4180)},
+	}, commonService.Spec.Ports)
+}
+
+func TestSecureEndpointNotProxiedWithoutOpenShiftOAuth(t *testing.T) {
+	type testCase struct {
+		name         string
+		infra        infrastructure.Type
+		oauthEnabled bool
+	}
+
+	testCases := []testCase{
+		{name: "Kubernetes", infra: infrastructure.Kubernetes, oauthEnabled: false},
+		{name: "OpenShift without OAuth", infra: infrastructure.OpenShiftV4, oauthEnabled: false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			test.StartOn(tc.infra)
+			infrastructure.SetOpenShiftOAuthEnabledForTesting(tc.oauthEnabled)
+
+			// e2 is secure and public and sets oauthProxyPort 4180, but without OpenShift OAuth
+			// it must be exposed directly on its targetPort 9999, as before the feature
+			routing := subdomainDevWorkspaceRouting()
+			_, _, objs := getSpecObjects(t, routing)
+
+			assertGatewayOnlyPodAdditions(t, objs)
+
+			commonService := getCommonService(&objs, routing.Spec.DevWorkspaceId)
+			if assert.NotNil(t, commonService) {
+				assert.False(t, containPort(commonService, 4180))
+				assert.True(t, forwardsToPort(commonService, 9999))
+			}
+
+			for _, e := range routing.Spec.Endpoints["m1"] {
+				if e.Name != "e2" {
+					continue
+				}
+
+				if tc.infra == infrastructure.OpenShiftV4 {
+					route, err := findRouteForEndpoint("m1", e, &objs, routing.Spec.DevWorkspaceId)
+					if !assert.NoError(t, err) {
+						return
+					}
+					if assert.NotNil(t, route) {
+						assert.Equal(t, 9999, route.Spec.Port.TargetPort.IntValue())
+					}
+				} else {
+					ingress, err := findIngressForEndpoint("m1", e, &objs)
+					if !assert.NoError(t, err) {
+						return
+					}
+					if assert.NotNil(t, ingress) {
+						backendPort := ingress.Spec.Rules[0].HTTP.Paths[0].Backend.Service.Port.Number
+						assert.Equal(t, int32(9999), backendPort)
+					}
+				}
+			}
+
+			saKey := types.NamespacedName{Name: getOAuthProxyServiceAccountName(routing), Namespace: routing.Namespace}
+			assert.NoError(t, test.ExpectNotFound(saKey, &corev1.ServiceAccount{}))
+
+			secretKey := types.NamespacedName{Name: getOAuthProxyTokenSecretName(routing), Namespace: routing.Namespace}
+			assert.NoError(t, test.ExpectNotFound(secretKey, &corev1.Secret{}))
+		})
+	}
+}
+
+func TestOAuthProxyServiceAccountRedirectReferencesFollowPortChange(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	routing := subdomainDevWorkspaceRouting()
+	cl, solver, _ := getSpecObjects(t, routing)
+
+	saKey := types.NamespacedName{Name: getOAuthProxyServiceAccountName(routing), Namespace: routing.Namespace}
+	staleAnnotation := oauthRedirectReferenceAnnotationPrefix + "4180"
+	newAnnotation := oauthRedirectReferenceAnnotationPrefix + "4181"
+	foreignAnnotation := "example.com/foreign"
+
+	sa := &corev1.ServiceAccount{}
+	assert.NoError(t, cl.Get(context.TODO(), saKey, sa))
+	assert.Contains(t, sa.Annotations, staleAnnotation)
+
+	// annotations not owned by the solver must survive the redirect references update
+	sa.Annotations[foreignAnnotation] = "value"
+	assert.NoError(t, cl.Update(context.TODO(), sa))
+
+	// move the oauth-proxy of the secure endpoint e2 to another port
+	for i := range routing.Spec.Endpoints["m1"] {
+		if routing.Spec.Endpoints["m1"][i].Name == "e2" {
+			routing.Spec.Endpoints["m1"][i].Attributes[oauthProxyPortAttributeName] = apiext.JSON{Raw: []byte("\"4181\"")}
+		}
+	}
+
+	objs, err := solver.GetSpecObjects(routing, solvers.DevWorkspaceMetadata{
+		DevWorkspaceId: routing.Spec.DevWorkspaceId,
+		Namespace:      routing.Namespace,
+		PodSelector:    routing.Spec.PodSelector,
+	})
+	assert.NoError(t, err)
+
+	sa = &corev1.ServiceAccount{}
+	assert.NoError(t, cl.Get(context.TODO(), saKey, sa))
+
+	// the redirect reference of the old port is pruned, so it can't be used as an OAuth
+	// redirect target anymore, and the new port references the Route of the endpoint
+	assert.NotContains(t, sa.Annotations, staleAnnotation)
+	assert.Contains(t, sa.Annotations, newAnnotation)
+	assert.Equal(t, "value", sa.Annotations[foreignAnnotation])
+
+	proxyRoutes := getOAuthProxyRoutes(routing, objs.Routes)
+	if assert.Len(t, proxyRoutes, 1) {
+		for routeName, port := range proxyRoutes {
+			assert.Equal(t, "4181", port)
+			assert.Contains(t, sa.Annotations[newAnnotation], fmt.Sprintf(`"name":"%s"`, routeName))
 		}
 	}
 }
@@ -2137,10 +2480,8 @@ func TestOverrideGatewayContainerProvisioning(t *testing.T) {
 	}
 
 	cheCtx := test.NewCheContextBuilder().WithCheCluster(cheCluster).Build()
-	scheme := cheCtx.ClusterAPI.Scheme
-	cl := cheCtx.ClusterAPI.Client
 
-	cheSolver := &CheRoutingSolver{client: cl, scheme: scheme}
+	cheSolver := &CheRoutingSolver{clusterAPI: cheCtx.ClusterAPI}
 	objs := &solvers.RoutingObjects{}
 
 	routing := &dwo.DevWorkspaceRouting{
@@ -2193,10 +2534,8 @@ func TestOverridePartialLimitsGatewayContainerProvisioning(t *testing.T) {
 	}
 
 	cheCtx := test.NewCheContextBuilder().WithCheCluster(cheCluster).Build()
-	scheme := cheCtx.ClusterAPI.Scheme
-	cl := cheCtx.ClusterAPI.Client
 
-	cheSolver := &CheRoutingSolver{client: cl, scheme: scheme}
+	cheSolver := &CheRoutingSolver{clusterAPI: cheCtx.ClusterAPI}
 	objs := &solvers.RoutingObjects{}
 
 	routing := &dwo.DevWorkspaceRouting{
@@ -2254,10 +2593,8 @@ func TestOverrideGatewayEmptyContainerProvisioning(t *testing.T) {
 	}
 
 	cheCtx := test.NewCheContextBuilder().WithCheCluster(cheCluster).Build()
-	scheme := cheCtx.ClusterAPI.Scheme
-	cl := cheCtx.ClusterAPI.Client
 
-	cheSolver := &CheRoutingSolver{client: cl, scheme: scheme}
+	cheSolver := &CheRoutingSolver{clusterAPI: cheCtx.ClusterAPI}
 	objs := &solvers.RoutingObjects{}
 
 	routing := &dwo.DevWorkspaceRouting{
@@ -2300,10 +2637,8 @@ func TestDefaultGatewayContainerProvisioning(t *testing.T) {
 	}
 
 	cheCtx := test.NewCheContextBuilder().WithCheCluster(cheCluster).Build()
-	scheme := cheCtx.ClusterAPI.Scheme
-	cl := cheCtx.ClusterAPI.Client
 
-	cheSolver := &CheRoutingSolver{client: cl, scheme: scheme}
+	cheSolver := &CheRoutingSolver{clusterAPI: cheCtx.ClusterAPI}
 	objs := &solvers.RoutingObjects{}
 
 	routing := &dwo.DevWorkspaceRouting{
@@ -2323,4 +2658,112 @@ func TestDefaultGatewayContainerProvisioning(t *testing.T) {
 	assert.Equal(t, defaultMemoryRequest.String(), objs.PodAdditions.Containers[0].Resources.Requests.Memory().String())
 	assert.Empty(t, objs.PodAdditions.Containers[0].Resources.Limits[corev1.ResourceCPU])
 	assert.Equal(t, defaultMemoryLimit.String(), objs.PodAdditions.Containers[0].Resources.Limits.Memory().String())
+}
+
+func TestOAuthProxyServiceAccountNotReadyWithoutRoute(t *testing.T) {
+	test.StartOn(infrastructure.OpenShiftV4)
+
+	routing := subdomainDevWorkspaceRouting()
+	cheCtx := test.NewCheContextBuilder().WithObjects(routing).Build()
+	cheSolver := &CheRoutingSolver{clusterAPI: cheCtx.ClusterAPI}
+
+	// no Route has been provisioned for the secure endpoint
+	err := cheSolver.provisionOAuthProxyServiceAccount(cheCtx, &solvers.RoutingObjects{}, routing)
+
+	var routingNotReady *solvers.RoutingNotReady
+	if assert.ErrorAs(t, err, &routingNotReady) {
+		assert.Equal(t, 5*time.Second, routingNotReady.Retry)
+	}
+
+	saKey := types.NamespacedName{Name: getOAuthProxyServiceAccountName(routing), Namespace: routing.Namespace}
+	assert.NoError(t, test.ExpectNotFound(saKey, &corev1.ServiceAccount{}))
+
+	secretKey := types.NamespacedName{Name: getOAuthProxyTokenSecretName(routing), Namespace: routing.Namespace}
+	assert.NoError(t, test.ExpectNotFound(secretKey, &corev1.Secret{}))
+}
+
+func TestSecureEndpointTargetPortSharedWithAnotherEndpoint(t *testing.T) {
+	type testCase struct {
+		name           string
+		otherComponent string
+		otherEndpoint  dwo.Endpoint
+		// expectedReason is empty when the routing is expected to be valid
+		expectedReason string
+	}
+
+	testCases := []testCase{
+		{
+			name:           "public endpoint",
+			otherComponent: "m2",
+			otherEndpoint:  dwo.Endpoint{Name: "e4", TargetPort: 9999, Exposure: dwo.PublicEndpointExposure},
+			expectedReason: "targetPort 9999 is shared with the endpoint m2/e4",
+		},
+		{
+			name:           "internal endpoint",
+			otherComponent: "m2",
+			otherEndpoint:  dwo.Endpoint{Name: "e4", TargetPort: 9999, Exposure: dwo.InternalEndpointExposure},
+			expectedReason: "targetPort 9999 is shared with the endpoint m2/e4",
+		},
+		{
+			name:           "endpoint not exposed",
+			otherComponent: "m2",
+			otherEndpoint:  dwo.Endpoint{Name: "e4", TargetPort: 9999, Exposure: dwo.NoneEndpointExposure},
+		},
+		{
+			name:           "endpoint in the same component",
+			otherComponent: "m1",
+			otherEndpoint:  dwo.Endpoint{Name: "e5", TargetPort: 9999, Exposure: dwo.PublicEndpointExposure},
+			expectedReason: "targetPort 9999 is shared with the endpoint m1/e5",
+		},
+		{
+			name:           "endpoint with the same name in another component",
+			otherComponent: "m2",
+			otherEndpoint:  dwo.Endpoint{Name: "e2", TargetPort: 9999, Exposure: dwo.PublicEndpointExposure},
+			expectedReason: "targetPort 9999 is shared with the endpoint m2/e2",
+		},
+		{
+			// the gateway would route such an endpoint straight to the application
+			name:           "endpoint with url rewrite supported",
+			otherComponent: "m2",
+			otherEndpoint: dwo.Endpoint{
+				Name:       "e4",
+				TargetPort: 9999,
+				Exposure:   dwo.PublicEndpointExposure,
+				Attributes: dwo.Attributes{
+					urlRewriteSupportedEndpointAttributeName: apiext.JSON{Raw: []byte("\"true\"")},
+				},
+			},
+			expectedReason: "targetPort 9999 is shared with the endpoint m2/e4",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			test.StartOn(infrastructure.OpenShiftV4)
+
+			// e2 (component m1) is the secure endpoint on targetPort 9999; another endpoint sharing
+			// that targetPort would, unless it isn't exposed, reach the application directly
+			routing := subdomainDevWorkspaceRouting()
+			routing.Spec.Endpoints[tc.otherComponent] = append(
+				routing.Spec.Endpoints[tc.otherComponent],
+				tc.otherEndpoint,
+			)
+
+			found, oauthProxyPort, upstreamPort, err := resolveOAuthProxyPorts(routing)
+			if tc.expectedReason != "" {
+				var invalid *solvers.RoutingInvalid
+				if assert.ErrorAs(t, err, &invalid) {
+					assert.Contains(t, invalid.Reason, tc.expectedReason)
+				}
+				assert.False(t, found)
+
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.True(t, found)
+			assert.Equal(t, int32(4180), oauthProxyPort)
+			assert.Equal(t, int32(9999), upstreamPort)
+		})
+	}
 }

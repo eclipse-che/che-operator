@@ -45,6 +45,9 @@ import (
 //   - builds the sync options: existing labels and annotations are merged rather than replaced,
 //     and only the labels and annotations defined on the given object participate in the diff,
 //     together with the controller owner reference and the finalizers (for the CheCluster itself).
+//     This applies to a blueprint built from scratch (no resourceVersion). An object carrying a
+//     resourceVersion (read from the cluster) is written as is: nothing is merged and all its
+//     labels and annotations are compared, so keys removed from it are removed from the cluster too.
 //   - retries the sync with recreation if the update failed because an immutable field has changed,
 //     but only when `allowForceRecreate` is set.
 func SyncObject(
@@ -54,27 +57,22 @@ func SyncObject(
 	suppressDiff bool,
 	allowForceRecreate bool) error {
 
-	var cw clientwrapper.ClientWrapper
+	cw := getClientFor(cheCtx, obj)
 
-	if isCheCluster(obj) || obj.GetLabels()[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg {
-		cw = cheCtx.ClusterAPI.ClientWrapper
-	} else {
-		cw = cheCtx.ClusterAPI.NonCachingClientWrapper
-	}
-
-	// the CheCluster cannot own itself
-	if cheCtx.CheCluster != nil && !isCheCluster(obj) {
-		if obj.GetNamespace() == cheCtx.CheCluster.Namespace {
-			if err := controllerutil.SetControllerReference(cheCtx.CheCluster, obj, cheCtx.ClusterAPI.Scheme); err != nil {
-				return getSyncError(obj, err)
-			}
-		}
+	if err := setOwnerReferenceIfNeeded(cheCtx, obj); err != nil {
+		return err
 	}
 
 	// The operator fully owns the finalizers of the CheCluster itself, so they are synced
 	// and compared. On every other object, finalizers set by other controllers must be
 	// preserved and kept out of the comparison.
 	preserveFinalizers := !isCheCluster(obj)
+
+	// An object carrying a resourceVersion was read from the cluster (or returned by a previous
+	// update), and the client wrapper writes it as is, without merging the existing metadata into
+	// it. All its labels and annotations are compared then, otherwise a key removed on purpose
+	// would not be detected and the object would not be updated.
+	compareAllMetadataKeys := obj.GetResourceVersion() != ""
 
 	opts := &clientwrapper.SyncOptions{
 		MergeAnnotations:   true,
@@ -86,6 +84,7 @@ func SyncObject(
 			cmpMetadata(
 				slices.Collect(maps.Keys(obj.GetLabels())),
 				slices.Collect(maps.Keys(obj.GetAnnotations())),
+				compareAllMetadataKeys,
 				preserveFinalizers,
 			),
 		},
@@ -112,6 +111,28 @@ func SyncObject(
 	return nil
 }
 
+// Create creates the object in the cluster. It fails if the object already exists -
+// use `SyncObject` instead when the object must be created or updated to the desired state.
+//
+// It selects the client like `SyncObject` does, sets the CheCluster as the controller
+// owner if the object lives in the same namespace as the CR, and drops the resource
+// version so that a blueprint reused across reconciles is always accepted by the API server.
+func Create(cheCtx *chetypes.CheContext, obj client.Object) error {
+	cw := getClientFor(cheCtx, obj)
+
+	if err := setOwnerReferenceIfNeeded(cheCtx, obj); err != nil {
+		return err
+	}
+
+	obj.SetResourceVersion("")
+
+	if err := cw.Create(cheCtx.Context, obj); err != nil {
+		return getCreateError(obj, err)
+	}
+
+	return nil
+}
+
 // SyncObjectStatus ensures that the status subresource of the object is up to date in the cluster.
 // It mirrors `SyncObject` but syncs only the status: the spec and the metadata are not touched.
 // The object must already exist, otherwise an error is returned.
@@ -121,13 +142,7 @@ func SyncObjectStatus(
 	diff cmp.Options,
 	suppressDiff bool) error {
 
-	var cw clientwrapper.ClientWrapper
-
-	if isCheCluster(obj) || obj.GetLabels()[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg {
-		cw = cheCtx.ClusterAPI.ClientWrapper
-	} else {
-		cw = cheCtx.ClusterAPI.NonCachingClientWrapper
-	}
+	cw := getClientFor(cheCtx, obj)
 
 	opts := &clientwrapper.SyncOptions{
 		SuppressDiff:  suppressDiff,
@@ -226,8 +241,11 @@ func DeleteAllManaged(
 }
 
 // cmpMetadata compares only the specified labels and annotations, finalizers (unless
-// preserveFinalizers is false), and the controller owner reference. All other metadata is
+// preserveFinalizers is true), and the controller owner reference. All other metadata is
 // ignored. Finalizers are compared as a set, since their order is not significant.
+//
+// If compareAllKeys is true, labelKeys and annotationKeys are ignored and all labels and
+// annotations are compared, so that a key present only on one side is detected as well.
 //
 // It is applied as a metav1.ObjectMeta transformer via cmp.FilterPath. It only works
 // with types embedding metav1.ObjectMeta at the top level; it has no effect on
@@ -236,18 +254,12 @@ func DeleteAllManaged(
 func cmpMetadata(
 	labelKeys []string,
 	annotationKeys []string,
+	compareAllKeys bool,
 	preserveFinalizers bool,
 ) cmp.Option {
 	transform := cmp.Transformer("cmpMetadata", func(m metav1.ObjectMeta) comparableMetadata {
-		labels := make(map[string]string, len(labelKeys))
-		for _, key := range labelKeys {
-			labels[key] = m.Labels[key]
-		}
-
-		annotations := make(map[string]string, len(annotationKeys))
-		for _, key := range annotationKeys {
-			annotations[key] = m.Annotations[key]
-		}
+		labels := selectEntries(m.Labels, labelKeys, compareAllKeys)
+		annotations := selectEntries(m.Annotations, annotationKeys, compareAllKeys)
 
 		var finalizers []string
 		if !preserveFinalizers {
@@ -263,6 +275,49 @@ func cmpMetadata(
 	})
 
 	return cmp.FilterPath(isRootMetadata, transform)
+}
+
+func getClientFor(cheCtx *chetypes.CheContext, obj client.Object) clientwrapper.ClientWrapper {
+	if isCheCluster(obj) || obj.GetLabels()[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg {
+		return cheCtx.ClusterAPI.ClientWrapper
+	}
+
+	return cheCtx.ClusterAPI.NonCachingClientWrapper
+}
+
+func setOwnerReferenceIfNeeded(cheCtx *chetypes.CheContext, obj client.Object) error {
+	if metav1.GetControllerOf(obj) != nil {
+		return nil
+	}
+
+	if cheCtx.CheCluster == nil || isCheCluster(obj) {
+		return nil
+	}
+
+	if obj.GetNamespace() != cheCtx.CheCluster.Namespace {
+		return nil
+	}
+
+	return controllerutil.SetControllerReference(cheCtx.CheCluster, obj, cheCtx.ClusterAPI.Scheme)
+}
+
+// selectEntries returns a new map with the entries of m for the given keys; a key missing
+// from m maps to an empty value. If allKeys is true, all entries of m are returned instead.
+// The result is never nil, so that a nil map and an empty map compare as equal.
+func selectEntries(m map[string]string, keys []string, allKeys bool) map[string]string {
+	if allKeys {
+		result := make(map[string]string, len(m))
+		maps.Copy(result, m)
+
+		return result
+	}
+
+	result := make(map[string]string, len(keys))
+	for _, key := range keys {
+		result[key] = m[key]
+	}
+
+	return result
 }
 
 // comparableMetadata is the reduced view of `metav1.ObjectMeta` that `cmpMetadata` compares.
@@ -295,6 +350,10 @@ func isRootMetadata(p cmp.Path) bool {
 // Deployment.Selector.
 func isFieldImmutableError(err error) bool {
 	return apierrors.IsInvalid(err) && strings.Contains(err.Error(), validation.FieldImmutableErrorMsg)
+}
+
+func getCreateError(obj client.Object, cause error) error {
+	return fmt.Errorf("failed to create %s %s/%s: %w", clientwrapper.GetObjectType(obj), obj.GetNamespace(), obj.GetName(), cause)
 }
 
 func getSyncError(obj client.Object, cause error) error {

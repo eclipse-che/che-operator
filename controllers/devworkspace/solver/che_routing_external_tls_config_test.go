@@ -152,7 +152,7 @@ func TestExternalTLSConfigForRoutes(t *testing.T) {
 		},
 		&routev1.Route{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "wsid-m1-9999-e1",
+				Name:      "wsid-m1-8888-e1",
 				Namespace: "ws",
 			},
 			Spec: routev1.RouteSpec{

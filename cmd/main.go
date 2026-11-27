@@ -221,7 +221,7 @@ func main() {
 		Client:       mgr.GetClient(),
 		Log:          ctrl.Log.WithName("controllers").WithName("DevWorkspaceRouting"),
 		Scheme:       scheme,
-		SolverGetter: solver.Getter(scheme),
+		SolverGetter: solver.Getter(),
 	}
 	if err := routing.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to set up controller", "controller", "DevWorkspaceRouting")

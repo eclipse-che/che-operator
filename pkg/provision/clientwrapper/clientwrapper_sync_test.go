@@ -21,6 +21,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -168,6 +169,70 @@ var _ = Describe("Sync", Ordered, func() {
 			"annotation2": "cluster_value2",
 			"annotation3": "value3",
 		}))
+	})
+
+	It("should not merge labels and annotations into an object read from the cluster", func() {
+		existing := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "no-merge-fetched",
+				Namespace: testNamespace,
+				Labels: map[string]string{
+					"label1": "value1",
+					"label2": "value2",
+				},
+				Annotations: map[string]string{
+					"annotation1": "value1",
+					"annotation2": "value2",
+				},
+			},
+		}
+		Expect(cli.Sync(env.Context, existing, &clientwrapper.SyncOptions{DiffOpts: cmDiffs})).To(Succeed())
+
+		// read the object, so that it carries a resourceVersion, and remove keys on purpose
+		fetched := &corev1.ConfigMap{}
+		Expect(env.Client.Get(env.Context, types.NamespacedName{Name: "no-merge-fetched", Namespace: testNamespace}, fetched)).To(Succeed())
+		delete(fetched.Labels, "label2")
+		delete(fetched.Annotations, "annotation2")
+		fetched.Annotations["annotation3"] = "value3"
+
+		Expect(cli.Sync(env.Context, fetched, &clientwrapper.SyncOptions{DiffOpts: cmDiffs, MergeLabels: true, MergeAnnotations: true})).To(Succeed())
+
+		// the removed keys must not be restored from the existing object
+		actualCm := &corev1.ConfigMap{}
+		Expect(env.Client.Get(env.Context, types.NamespacedName{Name: "no-merge-fetched", Namespace: testNamespace}, actualCm)).To(Succeed())
+		Expect(actualCm.Labels).To(Equal(map[string]string{"label1": "value1"}))
+		Expect(actualCm.Annotations).To(Equal(map[string]string{"annotation1": "value1", "annotation3": "value3"}))
+	})
+
+	It("should fail with a conflict when an object read from the cluster has been changed since", func() {
+		existing := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "conflict-fetched",
+				Namespace: testNamespace,
+				Annotations: map[string]string{
+					"annotation1": "value1",
+				},
+			},
+		}
+		Expect(cli.Sync(env.Context, existing, &clientwrapper.SyncOptions{DiffOpts: cmDiffs})).To(Succeed())
+
+		stale := &corev1.ConfigMap{}
+		Expect(env.Client.Get(env.Context, types.NamespacedName{Name: "conflict-fetched", Namespace: testNamespace}, stale)).To(Succeed())
+
+		// someone else adds an annotation after the object has been read
+		other := stale.DeepCopy()
+		other.Annotations["annotation2"] = "value2"
+		Expect(env.Client.Update(env.Context, other)).To(Succeed())
+
+		// the stale object is not merged, so writing it would drop the other annotation;
+		// the API server must reject it instead
+		delete(stale.Annotations, "annotation1")
+		err := cli.Sync(env.Context, stale, &clientwrapper.SyncOptions{DiffOpts: cmDiffs, MergeAnnotations: true})
+		Expect(apierrors.IsConflict(err)).To(BeTrue(), "expected a conflict error, got: %v", err)
+
+		actualCm := &corev1.ConfigMap{}
+		Expect(env.Client.Get(env.Context, types.NamespacedName{Name: "conflict-fetched", Namespace: testNamespace}, actualCm)).To(Succeed())
+		Expect(actualCm.Annotations).To(Equal(map[string]string{"annotation1": "value1", "annotation2": "value2"}))
 	})
 
 	It("should recreate object when ForceRecreate is set", func() {

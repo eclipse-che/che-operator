@@ -61,3 +61,7 @@ func (h secretHandler) Delete(cheCtx *chetypes.CheContext, name string, namespac
 		&corev1.Secret{},
 	)
 }
+
+func (h secretHandler) Create(cheCtx *chetypes.CheContext, secret *corev1.Secret) error {
+	return syncher.Create(cheCtx, secret)
+}

@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 
@@ -58,19 +59,34 @@ const (
 	wsGatewayName                  = "che-gateway"
 )
 
-func (c *CheRoutingSolver) cheSpecObjects(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, workspaceMeta solvers.DevWorkspaceMetadata) (solvers.RoutingObjects, error) {
+func (c *CheRoutingSolver) cheSpecObjects(cheCtx *chetypes.CheContext, routing *dwo.DevWorkspaceRouting, workspaceMeta solvers.DevWorkspaceMetadata) (solvers.RoutingObjects, error) {
 	objs := solvers.RoutingObjects{}
 
-	if err := c.provisionServices(&objs, cheCluster, routing, workspaceMeta); err != nil {
+	// validate the secure endpoints before provisioning anything, so that a misconfigured
+	// endpoint fails the routing with a RoutingInvalid error instead of being retried forever
+	hasOAuthProxyEndpoint, oauthProxyPort, upstreamPort, err := resolveOAuthProxyPorts(routing)
+	if err != nil {
 		return solvers.RoutingObjects{}, err
 	}
 
-	if err := c.provisionRouting(&objs, cheCluster, routing, workspaceMeta); err != nil {
+	if err := c.provisionServices(&objs, cheCtx.CheCluster, routing, workspaceMeta); err != nil {
 		return solvers.RoutingObjects{}, err
 	}
 
-	if err := c.provisionPodAdditions(&objs, cheCluster, routing); err != nil {
+	if err := c.provisionRouting(&objs, cheCtx.CheCluster, routing, workspaceMeta); err != nil {
 		return solvers.RoutingObjects{}, err
+	}
+
+	if err := c.provisionPodAdditions(&objs, cheCtx.CheCluster, routing); err != nil {
+		return solvers.RoutingObjects{}, err
+	}
+
+	if hasOAuthProxyEndpoint {
+		c.provisionOAuthProxyPodAdditions(cheCtx, &objs, routing, oauthProxyPort, upstreamPort)
+
+		if err := c.provisionOAuthProxyServiceAccount(cheCtx, &objs, routing); err != nil {
+			return solvers.RoutingObjects{}, err
+		}
 	}
 
 	return objs, nil
@@ -137,7 +153,7 @@ func (c *CheRoutingSolver) provisionRouting(objs *solvers.RoutingObjects, cheClu
 
 	// solvers.RoutingObjects does not currently support ConfigMaps, so we have to actually create it in cluster
 	for _, cm := range configMaps {
-		if err = c.clientWrapper.Sync(
+		if err = c.clusterAPI.ClientWrapper.Sync(
 			context.TODO(),
 			&cm,
 			&clientwrapper.SyncOptions{MergeLabels: true, MergeAnnotations: true}); err != nil {
@@ -205,7 +221,7 @@ func (c *CheRoutingSolver) provisionPodAdditions(objs *solvers.RoutingObjects, c
 func (c *CheRoutingSolver) cheExposedEndpoints(gatewayHost string, workspaceID string, componentEndpoints map[string]dwo.EndpointList, routingObj solvers.RoutingObjects) (exposedEndpoints map[string]dwo.ExposedEndpointList, ready bool, err error) {
 	exposedEndpoints = map[string]dwo.ExposedEndpointList{}
 
-	endpointStrategy := getEndpointPathStrategy(c.client, workspaceID, routingObj.Services[0].Namespace, routingObj.Services[0].ObjectMeta.OwnerReferences[0].Name)
+	endpointStrategy := getEndpointPathStrategy(c.clusterAPI.Client, workspaceID, routingObj.Services[0].Namespace, routingObj.Services[0].ObjectMeta.OwnerReferences[0].Name)
 
 	for component, endpoints := range componentEndpoints {
 		for _, endpoint := range endpoints {
@@ -237,12 +253,18 @@ func (c *CheRoutingSolver) cheExposedEndpoints(gatewayHost string, workspaceID s
 			// otherwise it is exposed through the gateway
 			var endpointURL string
 			if infrastructure.IsOpenShift() {
-				route := findRouteForEndpoint(component, endpoint, &routingObj, workspaceID)
+				route, err := findRouteForEndpoint(component, endpoint, &routingObj, workspaceID)
+				if err != nil {
+					return nil, false, err
+				}
 				if route != nil {
 					endpointURL = path.Join(route.Spec.Host, endpoint.Path)
 				}
 			} else {
-				ingress := findIngressForEndpoint(component, endpoint, &routingObj)
+				ingress, err := findIngressForEndpoint(component, endpoint, &routingObj)
+				if err != nil {
+					return nil, false, err
+				}
 				if ingress != nil {
 					endpointURL = path.Join(ingress.Spec.Rules[0].Host, endpoint.Path)
 				}
@@ -305,7 +327,7 @@ func (c *CheRoutingSolver) getGatewayConfigsAndFillRoutingObjects(cheCluster *ch
 	}
 
 	configs := make([]corev1.ConfigMap, 0)
-	endpointStrategy := getEndpointPathStrategy(c.client, workspaceID, routing.Namespace, routing.Name)
+	endpointStrategy := getEndpointPathStrategy(c.clusterAPI.Client, workspaceID, routing.Namespace, routing.Name)
 
 	// first do routing from main che-gateway into workspace service
 	if mainWsRouteConfig, err := provisionMainWorkspaceRoute(cheCluster, routing, cmLabels, endpointStrategy); err != nil {
@@ -421,11 +443,11 @@ func normalize(username string) string {
 func (c *CheRoutingSolver) getInfraSpecificExposer(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects, endpointStrategy EndpointStrategy) (func(info *EndpointInfo) error, error) {
 	if infrastructure.IsOpenShift() {
 		exposer := &RouteExposer{}
-		if err := exposer.initFrom(context.TODO(), c.client, cheCluster, routing); err != nil {
+		if err := exposer.initFrom(context.TODO(), c.clusterAPI.Client, cheCluster, routing); err != nil {
 			return nil, err
 		}
 		return func(info *EndpointInfo) error {
-			route, err := exposer.getRouteForService(context.TODO(), info, endpointStrategy, c.client, cheCluster)
+			route, err := exposer.getRouteForService(context.TODO(), info, endpointStrategy, c.clusterAPI.Client, cheCluster)
 			if route != nil {
 				objs.Routes = append(objs.Routes, *route)
 			}
@@ -433,7 +455,7 @@ func (c *CheRoutingSolver) getInfraSpecificExposer(cheCluster *chev2.CheCluster,
 		}, nil
 	} else {
 		exposer := &IngressExposer{}
-		if err := exposer.initFrom(context.TODO(), c.client, cheCluster, routing, c.scheme); err != nil {
+		if err := exposer.initFrom(context.TODO(), c.clusterAPI.Client, cheCluster, routing, c.clusterAPI.Scheme); err != nil {
 			return nil, err
 		}
 		return func(info *EndpointInfo) error {
@@ -459,14 +481,43 @@ func exposeAllEndpoints(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceR
 				continue
 			}
 
+			// secure endpoints served by the oauth-proxy sidecar are exposed on the sidecar's
+			// listen port; all the other endpoints on the endpoint targetPort
+			exposedPort, err := endpointExposedPort(e)
+			if err != nil {
+				return nil, err
+			}
+
 			if e.Attributes.GetString(urlRewriteSupportedEndpointAttributeName, nil) != "true" {
-				if !containPort(commonService, int32(e.TargetPort)) {
-					commonService.Spec.Ports = append(commonService.Spec.Ports, corev1.ServicePort{
-						Name:       dwocommon.EndpointName(e.Name),
-						Protocol:   corev1.ProtocolTCP,
-						Port:       int32(e.TargetPort),
-						TargetPort: intstr.FromInt(e.TargetPort),
-					})
+				if !containPort(commonService, exposedPort) {
+					name := dwocommon.EndpointName(e.Name)
+					if isOAuthProxyEndpoint(e) {
+						name += oauthProxyServicePortSuffix
+					}
+
+					commonService.Spec.Ports = append(commonService.Spec.Ports,
+						corev1.ServicePort{
+							Name:       name,
+							Protocol:   corev1.ProtocolTCP,
+							Port:       exposedPort,
+							TargetPort: intstr.FromInt32(exposedPort),
+						},
+					)
+				}
+
+				if isOAuthProxyEndpoint(e) {
+					if !containPort(commonService, int32(e.TargetPort)) {
+						// keeps the endpoint targetPort reachable on the common Service,
+						// but forwards it to the oauth-proxy so in-cluster clients must authenticate too
+						commonService.Spec.Ports = append(commonService.Spec.Ports,
+							corev1.ServicePort{
+								Name:       dwocommon.EndpointName(e.Name),
+								Protocol:   corev1.ProtocolTCP,
+								Port:       int32(e.TargetPort),
+								TargetPort: intstr.FromInt32(exposedPort),
+							},
+						)
+					}
 				}
 			}
 
@@ -481,11 +532,37 @@ func exposeAllEndpoints(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceR
 				if err != nil {
 					return nil, err
 				}
+
+				if service != commonService && isOAuthProxyEndpoint(e) {
+					if !containPort(service, exposedPort) {
+						// exposes the oauth-proxy listen port on the endpoint Service,
+						// so that the Route can target it
+						service.Spec.Ports = append(service.Spec.Ports,
+							corev1.ServicePort{
+								Name:       dwocommon.EndpointName(e.Name) + oauthProxyServicePortSuffix,
+								Protocol:   corev1.ProtocolTCP,
+								Port:       exposedPort,
+								TargetPort: intstr.FromInt32(exposedPort),
+							},
+						)
+					}
+
+					// replace the targetPort of the port in-cluster clients discovered with
+					// the proxy listen port: the port keeps its number, but its traffic now
+					// goes through the oauth-proxy instead of straight to the application
+					for i := range service.Spec.Ports {
+						if service.Spec.Ports[i].Port == int32(e.TargetPort) {
+							service.Spec.Ports[i].TargetPort = intstr.FromInt32(exposedPort)
+							break
+						}
+					}
+				}
+
 				err = ingressExpose(&EndpointInfo{
 					order:         order,
 					componentName: componentName,
 					endpointName:  e.Name,
-					port:          int32(e.TargetPort),
+					port:          exposedPort,
 					scheme:        determineEndpointScheme(e),
 					service:       service,
 					annotations:   e.Annotations,
@@ -548,9 +625,9 @@ func getCommonService(objs *solvers.RoutingObjects, dwId string) *corev1.Service
 
 func getEndpointService(objs *solvers.RoutingObjects, endpoint dwo.Endpoint) *corev1.Service {
 	endpointServiceName := dwocommon.EndpointName(endpoint.Name)
-	for _, svc := range objs.Services {
-		if svc.Name == endpointServiceName {
-			return &svc
+	for i := range objs.Services {
+		if objs.Services[i].Name == endpointServiceName {
+			return &objs.Services[i]
 		}
 	}
 	return nil
@@ -705,20 +782,14 @@ func addEndpointToTraefikConfig(componentName string, e dwo.Endpoint, cfg *gatew
 	}
 }
 
-func findServiceForPort(port int32, objs *solvers.RoutingObjects) *corev1.Service {
-	for i := range objs.Services {
-		svc := &objs.Services[i]
-		for j := range svc.Spec.Ports {
-			if svc.Spec.Ports[j].Port == port {
-				return svc
-			}
-		}
+func findIngressForEndpoint(componentName string, endpoint dwo.Endpoint, objs *solvers.RoutingObjects) (*networkingv1.Ingress, error) {
+	// the error can't happen in practice: the endpoint has been validated when the
+	// routing objects were provisioned
+	exposedPort, err := endpointExposedPort(endpoint)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
-}
-
-func findIngressForEndpoint(componentName string, endpoint dwo.Endpoint, objs *solvers.RoutingObjects) *networkingv1.Ingress {
 	for i := range objs.Ingresses {
 		ingress := &objs.Ingresses[i]
 
@@ -731,23 +802,33 @@ func findIngressForEndpoint(componentName string, endpoint dwo.Endpoint, objs *s
 			rule := ingress.Spec.Rules[r]
 			for p := range rule.HTTP.Paths {
 				path := rule.HTTP.Paths[p]
-				if path.Backend.Service.Port.Number == int32(endpoint.TargetPort) {
-					return ingress
+				if path.Backend.Service.Port.Number == exposedPort {
+					return ingress, nil
 				}
 			}
 		}
 	}
 
-	return nil
+	return nil, nil
 }
 
-func findRouteForEndpoint(componentName string, endpoint dwo.Endpoint, objs *solvers.RoutingObjects, dwId string) *routeV1.Route {
-	service := findServiceForPort(int32(endpoint.TargetPort), objs)
-	if service == nil {
-		service = getCommonService(objs, dwId)
+func findRouteForEndpoint(componentName string, endpoint dwo.Endpoint, objs *solvers.RoutingObjects, dwId string) (*routeV1.Route, error) {
+	// the error can't happen in practice: the endpoint has been validated when the
+	// routing objects were provisioned
+	exposedPort, err := endpointExposedPort(endpoint)
+	if err != nil {
+		return nil, err
 	}
-	if service == nil {
-		return nil
+
+	commonService := getCommonService(objs, dwId)
+	if commonService == nil {
+		return nil, fmt.Errorf("could not find the common service for workspace '%s'", dwId)
+	}
+
+	// look the Service up the same way it was chosen when the Route was created
+	service, err := determineEndpointService(objs, endpoint, commonService)
+	if err != nil {
+		return nil, err
 	}
 
 	for r := range objs.Routes {
@@ -756,12 +837,12 @@ func findRouteForEndpoint(componentName string, endpoint dwo.Endpoint, objs *sol
 			route.Annotations[dwdefaults.ConfigAnnotationEndpointName] == endpoint.Name &&
 			route.Spec.To.Kind == "Service" &&
 			route.Spec.To.Name == service.Name &&
-			route.Spec.Port.TargetPort.IntValue() == endpoint.TargetPort {
-			return route
+			route.Spec.Port.TargetPort.IntValue() == int(exposedPort) {
+			return route, nil
 		}
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (c *CheRoutingSolver) cheRoutingFinalize(routing *dwo.DevWorkspaceRouting) error {
@@ -771,7 +852,7 @@ func (c *CheRoutingSolver) cheRoutingFinalize(routing *dwo.DevWorkspaceRouting) 
 		},
 	)
 
-	err := c.client.DeleteAllOf(
+	err := c.clusterAPI.Client.DeleteAllOf(
 		context.TODO(),
 		&corev1.ConfigMap{},
 		&client.DeleteAllOfOptions{
@@ -782,13 +863,13 @@ func (c *CheRoutingSolver) cheRoutingFinalize(routing *dwo.DevWorkspaceRouting) 
 		return err
 	}
 
-	cheCluster, err := resources.CheCluster.Find(context.TODO(), c.client)
+	cheCluster, err := resources.CheCluster.Find(context.TODO(), c.clusterAPI.Client)
 	if err != nil {
 		return err
 	}
 
 	if cheCluster != nil {
-		err = c.client.DeleteAllOf(
+		err = c.clusterAPI.Client.DeleteAllOf(
 			context.TODO(),
 			&corev1.ConfigMap{},
 			&client.DeleteAllOfOptions{
