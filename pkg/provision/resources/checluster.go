@@ -27,7 +27,7 @@ import (
 )
 
 var (
-	CheCluster = cheClusterHandler{
+	CheCluster = &cheClusterHandler{
 		suppressDiff:       false,
 		allowForceRecreate: false,
 		diff: cmp.Options{
@@ -46,7 +46,7 @@ type cheClusterHandler struct {
 	allowForceRecreate bool
 }
 
-func (ch cheClusterHandler) Find(ctx context.Context, k8sClient client.Client) (*chev2.CheCluster, error) {
+func (ch *cheClusterHandler) Find(ctx context.Context, k8sClient client.Client) (*chev2.CheCluster, error) {
 	cheClusters := &chev2.CheClusterList{}
 	if err := k8sClient.List(ctx, cheClusters); err != nil {
 		return nil, fmt.Errorf("failed to list CheClusters: %w", err)
@@ -61,21 +61,21 @@ func (ch cheClusterHandler) Find(ctx context.Context, k8sClient client.Client) (
 	return nil, fmt.Errorf("found more than one CheCluster")
 }
 
-func (ch cheClusterHandler) AddFinalizer(cheCtx *chetypes.CheContext, finalizer string) error {
+func (ch *cheClusterHandler) AddFinalizer(cheCtx *chetypes.CheContext, finalizer string) error {
 	if !controllerutil.AddFinalizer(cheCtx.CheCluster, finalizer) {
 		return nil
 	}
 	return ch.Sync(cheCtx)
 }
 
-func (ch cheClusterHandler) RemoveFinalizer(cheCtx *chetypes.CheContext, finalizer string) error {
+func (ch *cheClusterHandler) RemoveFinalizer(cheCtx *chetypes.CheContext, finalizer string) error {
 	if !controllerutil.RemoveFinalizer(cheCtx.CheCluster, finalizer) {
 		return nil
 	}
 	return ch.Sync(cheCtx)
 }
 
-func (ch cheClusterHandler) RemoveAllFinalizers(cheCtx *chetypes.CheContext) error {
+func (ch *cheClusterHandler) RemoveAllFinalizers(cheCtx *chetypes.CheContext) error {
 	if len(cheCtx.CheCluster.Finalizers) == 0 {
 		return nil
 	}
@@ -83,7 +83,7 @@ func (ch cheClusterHandler) RemoveAllFinalizers(cheCtx *chetypes.CheContext) err
 	return ch.Sync(cheCtx)
 }
 
-func (ch cheClusterHandler) Sync(cheCtx *chetypes.CheContext) error {
+func (ch *cheClusterHandler) Sync(cheCtx *chetypes.CheContext) error {
 	return syncher.SyncObject(
 		cheCtx,
 		cheCtx.CheCluster,
@@ -93,7 +93,7 @@ func (ch cheClusterHandler) Sync(cheCtx *chetypes.CheContext) error {
 	)
 }
 
-func (ch cheClusterHandler) SyncStatus(cheCtx *chetypes.CheContext) error {
+func (ch *cheClusterHandler) SyncStatus(cheCtx *chetypes.CheContext) error {
 	return syncher.SyncObjectStatus(
 		cheCtx,
 		cheCtx.CheCluster,

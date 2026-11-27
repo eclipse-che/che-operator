@@ -38,7 +38,11 @@ func (r *OpenVSXServerReconciler) syncDeployment(cheCtx *chetypes.CheContext) (b
 		return false, fmt.Errorf("failed to get deployment spec: %w", err)
 	}
 
-	return deploy.SyncDeploymentSpecToCluster(cheCtx, spec, deploy.DefaultDeploymentDiffOpts)
+	if err := resources.Deployment.Sync(cheCtx, spec); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (r *OpenVSXServerReconciler) getDeploymentSpec(cheCtx *chetypes.CheContext) (*appsv1.Deployment, error) {
@@ -67,6 +71,8 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(cheCtx *chetypes.CheContext)
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
+			RevisionHistoryLimit:    new(int32(10)),
+			ProgressDeadlineSeconds: new(int32(600)),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
@@ -209,14 +215,8 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(cheCtx *chetypes.CheContext)
 					},
 					Volumes: []corev1.Volume{
 						{
-							Name: constants.OpenVSXServerComponentName + "-config",
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: constants.OpenVSXServerComponentName,
-									},
-								},
-							},
+							Name:         constants.OpenVSXServerComponentName + "-config",
+							VolumeSource: resources.VolumeSource.FromConfigMap(constants.OpenVSXServerComponentName),
 						},
 						{
 							Name: constants.OpenVSXServerComponentName,
@@ -234,16 +234,15 @@ func (r *OpenVSXServerReconciler) getDeploymentSpec(cheCtx *chetypes.CheContext)
 		},
 	}
 
-	resources.Pod.EnsureSecurityStandards(
-		&deployment.Spec.Template.Spec,
-		constants.DefaultSecurityContextRunAsUser,
-		constants.DefaultSecurityContextFsGroup,
-	)
+	if err := resources.Deployment.TrimCPULimitIfNoLimitRange(cheCtx, deployment); err != nil {
+		return nil, err
+	}
 
-	if cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Server != nil {
-		if err := deploy.OverrideDeployment(cheCtx, deployment, cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Server.Deployment); err != nil {
-			return nil, fmt.Errorf("failed to override deployment: %w", err)
-		}
+	pod := &deployment.Spec.Template.Spec
+	resources.Pod.EnsureSecurityStandards(pod, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
+
+	if server := cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Server; server != nil {
+		resources.Deployment.ApplyOverrides(deployment, server.Deployment)
 	}
 
 	return deployment, nil

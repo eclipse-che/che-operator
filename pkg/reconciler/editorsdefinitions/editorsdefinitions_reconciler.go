@@ -18,55 +18,56 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/eclipse-che/che-operator/pkg/common/diffs"
-	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
+	"github.com/eclipse-che/che-operator/pkg/common/chelabels"
+	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	"github.com/eclipse-che/che-operator/pkg/reconciler"
 
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 )
 
 const (
+	componentName = "editor-definition"
+	configMapName = "editors-definitions"
+
 	editorDefinitionEnvNamePrefix = "RELATED_IMAGE_editor_definition"
 )
 
 var (
-	editorsDefinitionsDir           = "/tmp/editors-definitions"
-	editorsDefinitionsConfigMapName = "editors-definitions"
-	logger                          = ctrl.Log.WithName("editorsdefinitions")
+	logger = ctrl.Log.WithName("editorsdefinitions")
+
+	editorsDefinitionsDir = "/tmp/editors-definitions"
 )
 
 type EditorsDefinitionsReconciler struct {
 	reconciler.Reconcilable
 }
 
-func NewEditorsDefinitionsReconciler() *EditorsDefinitionsReconciler {
+func NewReconciler() *EditorsDefinitionsReconciler {
 	return &EditorsDefinitionsReconciler{}
 }
 
 func (p *EditorsDefinitionsReconciler) Reconcile(cheCtx *chetypes.CheContext) (reconcile.Result, bool, error) {
-	if err := p.syncEditors(cheCtx); err != nil {
-		return reconcile.Result{}, false, err
+	if err := p.syncAll(cheCtx); err != nil {
+		return reconcile.Result{},
+			false,
+			fmt.Errorf("failed to reconcile Editor definitions: %w", err)
 	}
 
 	return reconcile.Result{}, true, nil
 }
 
-func (p *EditorsDefinitionsReconciler) Finalize(cheCtx *chetypes.CheContext) error {
+func (p *EditorsDefinitionsReconciler) Finalize(_ *chetypes.CheContext) error {
 	return nil
 }
 
-func (p *EditorsDefinitionsReconciler) syncEditors(cheCtx *chetypes.CheContext) error {
+func (p *EditorsDefinitionsReconciler) syncAll(cheCtx *chetypes.CheContext) error {
 	editorDefinitions, err := readEditorDefinitions()
 	if err != nil {
 		return fmt.Errorf("failed to read editors definitions: %w", err)
@@ -140,15 +141,17 @@ func updateEditorDefinitionImages(devfile map[string]interface{}) {
 }
 
 func syncEditorDefinitions(cheCtx *chetypes.CheContext, editorDefinitions map[string][]byte) error {
+	labels := chelabels.GetStandardLabels(componentName)
+
 	cm := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        editorsDefinitionsConfigMapName,
+			Name:        configMapName,
 			Namespace:   cheCtx.CheCluster.Namespace,
-			Labels:      deploy.GetLabels(constants.EditorDefinitionComponentName),
+			Labels:      labels,
 			Annotations: map[string]string{},
 		},
 		Data: map[string]string{},
@@ -158,17 +161,5 @@ func syncEditorDefinitions(cheCtx *chetypes.CheContext, editorDefinitions map[st
 		cm.Data[fileName] = string(content)
 	}
 
-	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, cm, cheCtx.ClusterAPI.Scheme); err != nil {
-		return fmt.Errorf("failed to set owner reference for ConfigMap %s/%s: %w", cm.Namespace, cm.Name, err)
-	}
-
-	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
-		cheCtx.Context,
-		cm,
-		&clientwrapper.SyncOptions{DiffOpts: diffs.ConfigMapEnsureLabels},
-	); err != nil {
-		return fmt.Errorf("failed to sync ConfigMap %s/%s: %w", cm.Namespace, cm.Name, err)
-	}
-
-	return nil
+	return resources.ConfigMap.Sync(cheCtx, cm)
 }

@@ -34,7 +34,7 @@ type clusterRoleHandler struct {
 	diff               cmp.Options
 }
 
-func (h clusterRoleHandler) Sync(cheCtx *chetypes.CheContext, clusterRole *rbac.ClusterRole) error {
+func (h *clusterRoleHandler) Sync(cheCtx *chetypes.CheContext, clusterRole *rbac.ClusterRole) error {
 	return syncher.SyncObject(
 		cheCtx,
 		clusterRole,
@@ -44,11 +44,6 @@ func (h clusterRoleHandler) Sync(cheCtx *chetypes.CheContext, clusterRole *rbac.
 	)
 }
 
-func (h clusterRoleHandler) Delete(cheCtx *chetypes.CheContext, name string) error {
-	return syncher.DeleteObject(
-		cheCtx,
-		name,
-		"",
-		&rbac.ClusterRole{},
-	)
+func (h *clusterRoleHandler) Delete(cheCtx *chetypes.CheContext, name string) error {
+	return syncher.Delete(cheCtx, name, "", &rbac.ClusterRole{})
 }

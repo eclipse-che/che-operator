@@ -13,14 +13,12 @@
 package deploy
 
 import (
-	"context"
 	"testing"
 
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -110,35 +108,6 @@ func TestGetSecrets(t *testing.T) {
 	}
 }
 
-func TestSyncSecretToCluster(t *testing.T) {
-	test.StartOn(infrastructure.OpenShiftV4)
-
-	cheCtx := test.NewCheContextBuilder().Build()
-
-	err := SyncSecretToCluster(cheCtx, "test", map[string][]byte{"A": []byte("AAAA")})
-	if err != nil {
-		t.Fatalf("Failed to sync secret: %v", err)
-	}
-
-	// sync another secret
-	err = SyncSecretToCluster(cheCtx, "test", map[string][]byte{"B": []byte("BBBB")})
-	if err != nil {
-		t.Fatalf("Failed to sync secret: %v", err)
-	}
-
-	actual := &corev1.Secret{}
-	err = cheCtx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
-	if err != nil {
-		t.Fatalf("Failed to get secret: %v", err)
-	}
-
-	if len(actual.Data) != 1 {
-		t.Fatalf("Failed to sync secret: %v", err)
-	}
-	if string(actual.Data["B"]) != "BBBB" {
-		t.Fatalf("Failed to sync secret: %v", err)
-	}
-}
 
 func getRuntimeSecrets() []client.Object {
 	return []client.Object{

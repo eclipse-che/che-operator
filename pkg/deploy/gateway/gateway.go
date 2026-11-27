@@ -171,7 +171,7 @@ func syncAll(
 		return false, err
 	}
 
-	if done, err := deploy.SyncDeploymentSpecToCluster(cheCtx, depl, deploy.DefaultDeploymentDiffOpts); !done {
+	if err := resources.Deployment.Sync(cheCtx, depl); err != nil {
 		return false, err
 	}
 
@@ -484,6 +484,8 @@ func getGatewayDeploymentSpec(cheCtx *chetypes.CheContext) (*appsv1.Deployment, 
 			Labels:    deployLabels,
 		},
 		Spec: appsv1.DeploymentSpec{
+			RevisionHistoryLimit:    new(int32(10)),
+			ProgressDeadlineSeconds: new(int32(600)),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labelsSelector,
 			},
@@ -505,15 +507,15 @@ func getGatewayDeploymentSpec(cheCtx *chetypes.CheContext) (*appsv1.Deployment, 
 		},
 	}
 
-	resources.Pod.EnsureSecurityStandards(
-		&deployment.Spec.Template.Spec,
-		constants.DefaultSecurityContextRunAsUser,
-		constants.DefaultSecurityContextFsGroup,
-	)
-
-	if err := deploy.OverrideDeployment(cheCtx, deployment, cheCtx.CheCluster.Spec.Networking.Auth.Gateway.Deployment); err != nil {
+	if err := resources.Deployment.TrimCPULimitIfNoLimitRange(cheCtx, deployment); err != nil {
 		return nil, err
 	}
+
+	pod := &deployment.Spec.Template.Spec
+	resources.Pod.EnsureSecurityStandards(pod, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
+
+	overrides := cheCtx.CheCluster.Spec.Networking.Auth.Gateway.Deployment
+	resources.Deployment.ApplyOverrides(deployment, overrides)
 
 	return deployment, nil
 }
@@ -672,14 +674,8 @@ func getTraefikContainerVolumeMounts(instance *chev2.CheCluster) []corev1.Volume
 func getVolumesSpec(instance *chev2.CheCluster) []corev1.Volume {
 	volumes := []corev1.Volume{
 		{
-			Name: "static-config",
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "che-gateway-config",
-					},
-				},
-			},
+			Name:         "static-config",
+			VolumeSource: resources.VolumeSource.FromConfigMap("che-gateway-config"),
 		},
 		{
 			Name: "dynamic-config",
@@ -695,14 +691,8 @@ func getVolumesSpec(instance *chev2.CheCluster) []corev1.Volume {
 
 	if instance.IsAccessTokenConfigured() {
 		volumes = append(volumes, corev1.Volume{
-			Name: "header-rewrite-traefik-plugin",
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "che-gateway-config-header-rewrite-traefik-plugin",
-					},
-				},
-			},
+			Name:         "header-rewrite-traefik-plugin",
+			VolumeSource: resources.VolumeSource.FromConfigMap("che-gateway-config-header-rewrite-traefik-plugin"),
 		})
 	}
 

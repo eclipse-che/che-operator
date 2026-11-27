@@ -13,12 +13,6 @@
 package constants
 
 const (
-	// Dashboard
-	DefaultDashboardMemoryLimit   = "1024Mi"
-	DefaultDashboardMemoryRequest = "32Mi"
-	DefaultDashboardCpuLimit      = "500m"
-	DefaultDashboardCpuRequest    = "100m"
-
 	// Gateway
 	DefaultGatewayMemoryLimit                    = "256Mi"
 	DefaultGatewayMemoryRequest                  = "64Mi"
@@ -172,7 +166,6 @@ const (
 	GatewayAuthenticationContainerName = "oauth-proxy"
 	GatewayAuthorizationContainerName  = "kube-rbac-proxy"
 	KubernetesImagePullerComponentName = "kubernetes-image-puller"
-	EditorDefinitionComponentName      = "editor-definition"
 	CheCABundle                        = "ca-bundle"
 	MetricsComponentName               = "metrics"
 	WorkspacesNamespaceComponentName   = "workspaces-namespace"

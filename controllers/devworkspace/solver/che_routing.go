@@ -20,13 +20,13 @@ import (
 	"strings"
 
 	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -58,18 +58,18 @@ const (
 	wsGatewayName                  = "che-gateway"
 )
 
-func (c *CheRoutingSolver) cheSpecObjects(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, workspaceMeta solvers.DevWorkspaceMetadata) (solvers.RoutingObjects, error) {
+func (c *CheRoutingSolver) cheSpecObjects(cheCtx *chetypes.CheContext, routing *dwo.DevWorkspaceRouting, workspaceMeta solvers.DevWorkspaceMetadata) (solvers.RoutingObjects, error) {
 	objs := solvers.RoutingObjects{}
 
-	if err := c.provisionServices(&objs, cheCluster, routing, workspaceMeta); err != nil {
+	if err := c.provisionServices(&objs, cheCtx.CheCluster, routing, workspaceMeta); err != nil {
 		return solvers.RoutingObjects{}, err
 	}
 
-	if err := c.provisionRouting(&objs, cheCluster, routing, workspaceMeta); err != nil {
+	if err := c.provisionRouting(&objs, cheCtx.CheCluster, routing, workspaceMeta); err != nil {
 		return solvers.RoutingObjects{}, err
 	}
 
-	if err := c.provisionPodAdditions(&objs, cheCluster, routing); err != nil {
+	if err := c.provisionPodAdditions(cheCtx, &objs, routing); err != nil {
 		return solvers.RoutingObjects{}, err
 	}
 
@@ -137,7 +137,7 @@ func (c *CheRoutingSolver) provisionRouting(objs *solvers.RoutingObjects, cheClu
 
 	// solvers.RoutingObjects does not currently support ConfigMaps, so we have to actually create it in cluster
 	for _, cm := range configMaps {
-		if err = c.clientWrapper.Sync(
+		if err = c.clusterAPI.ClientWrapper.Sync(
 			context.TODO(),
 			&cm,
 			&clientwrapper.SyncOptions{MergeLabels: true, MergeAnnotations: true}); err != nil {
@@ -148,13 +148,17 @@ func (c *CheRoutingSolver) provisionRouting(objs *solvers.RoutingObjects, cheClu
 	return nil
 }
 
-func (c *CheRoutingSolver) provisionPodAdditions(objs *solvers.RoutingObjects, cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting) error {
+func (c *CheRoutingSolver) provisionPodAdditions(
+	cheCtx *chetypes.CheContext,
+	objs *solvers.RoutingObjects,
+	routing *dwo.DevWorkspaceRouting,
+) error {
 	objs.PodAdditions = &dwo.PodAdditions{
 		Containers: []corev1.Container{},
 		Volumes:    []corev1.Volume{},
 	}
 
-	image := gateway.GetWorkspaceGatewayImage(cheCluster)
+	image := gateway.GetWorkspaceGatewayImage(cheCtx.CheCluster)
 
 	gatewayContainer := &corev1.Container{
 		Name:            wsGatewayName,
@@ -178,26 +182,21 @@ func (c *CheRoutingSolver) provisionPodAdditions(objs *solvers.RoutingObjects, c
 		},
 	}
 
-	if err := deploy.OverrideContainer(routing.GetNamespace(), gatewayContainer, cheCluster.Spec.DevEnvironments.GatewayContainer); err != nil {
+	if err := resources.Container.TrimCPULimitIfNoLimitRange(cheCtx, routing.GetNamespace(), gatewayContainer); err != nil {
 		return err
 	}
 
+	overrides := cheCtx.CheCluster.Spec.DevEnvironments.GatewayContainer
+	resources.Container.ApplyOverrides(gatewayContainer, overrides)
+
 	objs.PodAdditions.Containers = append(objs.PodAdditions.Containers, *gatewayContainer)
 
-	// Even though DefaultMode is optional in Kubernetes, DevWorkspace Controller needs it to be explicitly defined.
-	// 420 = 0644 = '-rw-r--r--'
-	defaultMode := int32(420)
-	objs.PodAdditions.Volumes = append(objs.PodAdditions.Volumes, corev1.Volume{
-		Name: wsGatewayName,
-		VolumeSource: corev1.VolumeSource{
-			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: dwdefaults.GetGatewayWorkspaceConfigMapName(routing.Spec.DevWorkspaceId),
-				},
-				DefaultMode: &defaultMode,
-			},
-		},
-	})
+	gatewayCMName := dwdefaults.GetGatewayWorkspaceConfigMapName(routing.Spec.DevWorkspaceId)
+	volume := corev1.Volume{
+		Name:         wsGatewayName,
+		VolumeSource: resources.VolumeSource.FromConfigMap(gatewayCMName),
+	}
+	objs.PodAdditions.Volumes = append(objs.PodAdditions.Volumes, volume)
 
 	return nil
 }
@@ -205,7 +204,7 @@ func (c *CheRoutingSolver) provisionPodAdditions(objs *solvers.RoutingObjects, c
 func (c *CheRoutingSolver) cheExposedEndpoints(gatewayHost string, workspaceID string, componentEndpoints map[string]dwo.EndpointList, routingObj solvers.RoutingObjects) (exposedEndpoints map[string]dwo.ExposedEndpointList, ready bool, err error) {
 	exposedEndpoints = map[string]dwo.ExposedEndpointList{}
 
-	endpointStrategy := getEndpointPathStrategy(c.client, workspaceID, routingObj.Services[0].Namespace, routingObj.Services[0].ObjectMeta.OwnerReferences[0].Name)
+	endpointStrategy := getEndpointPathStrategy(c.clusterAPI.Client, workspaceID, routingObj.Services[0].Namespace, routingObj.Services[0].ObjectMeta.OwnerReferences[0].Name)
 
 	for component, endpoints := range componentEndpoints {
 		for _, endpoint := range endpoints {
@@ -305,7 +304,7 @@ func (c *CheRoutingSolver) getGatewayConfigsAndFillRoutingObjects(cheCluster *ch
 	}
 
 	configs := make([]corev1.ConfigMap, 0)
-	endpointStrategy := getEndpointPathStrategy(c.client, workspaceID, routing.Namespace, routing.Name)
+	endpointStrategy := getEndpointPathStrategy(c.clusterAPI.Client, workspaceID, routing.Namespace, routing.Name)
 
 	// first do routing from main che-gateway into workspace service
 	if mainWsRouteConfig, err := provisionMainWorkspaceRoute(cheCluster, routing, cmLabels, endpointStrategy); err != nil {
@@ -421,11 +420,11 @@ func normalize(username string) string {
 func (c *CheRoutingSolver) getInfraSpecificExposer(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects, endpointStrategy EndpointStrategy) (func(info *EndpointInfo) error, error) {
 	if infrastructure.IsOpenShift() {
 		exposer := &RouteExposer{}
-		if err := exposer.initFrom(context.TODO(), c.client, cheCluster, routing); err != nil {
+		if err := exposer.initFrom(context.TODO(), c.clusterAPI.Client, cheCluster, routing); err != nil {
 			return nil, err
 		}
 		return func(info *EndpointInfo) error {
-			route, err := exposer.getRouteForService(context.TODO(), info, endpointStrategy, c.client, cheCluster)
+			route, err := exposer.getRouteForService(context.TODO(), info, endpointStrategy, c.clusterAPI.Client, cheCluster)
 			if route != nil {
 				objs.Routes = append(objs.Routes, *route)
 			}
@@ -433,7 +432,7 @@ func (c *CheRoutingSolver) getInfraSpecificExposer(cheCluster *chev2.CheCluster,
 		}, nil
 	} else {
 		exposer := &IngressExposer{}
-		if err := exposer.initFrom(context.TODO(), c.client, cheCluster, routing, c.scheme); err != nil {
+		if err := exposer.initFrom(context.TODO(), c.clusterAPI.Client, cheCluster, routing, c.clusterAPI.Scheme); err != nil {
 			return nil, err
 		}
 		return func(info *EndpointInfo) error {
@@ -771,7 +770,7 @@ func (c *CheRoutingSolver) cheRoutingFinalize(routing *dwo.DevWorkspaceRouting) 
 		},
 	)
 
-	err := c.client.DeleteAllOf(
+	err := c.clusterAPI.Client.DeleteAllOf(
 		context.TODO(),
 		&corev1.ConfigMap{},
 		&client.DeleteAllOfOptions{
@@ -782,13 +781,13 @@ func (c *CheRoutingSolver) cheRoutingFinalize(routing *dwo.DevWorkspaceRouting) 
 		return err
 	}
 
-	cheCluster, err := resources.CheCluster.Find(context.TODO(), c.client)
+	cheCluster, err := resources.CheCluster.Find(context.TODO(), c.clusterAPI.Client)
 	if err != nil {
 		return err
 	}
 
 	if cheCluster != nil {
-		err = c.client.DeleteAllOf(
+		err = c.clusterAPI.Client.DeleteAllOf(
 			context.TODO(),
 			&corev1.ConfigMap{},
 			&client.DeleteAllOfOptions{

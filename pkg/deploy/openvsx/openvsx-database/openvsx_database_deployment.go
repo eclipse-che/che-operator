@@ -36,7 +36,11 @@ func (p *OpenVSXDatabaseReconciler) syncDeployment(cheCtx *chetypes.CheContext) 
 		return false, fmt.Errorf("failed to get deployment spec: %w", err)
 	}
 
-	return deploy.SyncDeploymentSpecToCluster(cheCtx, spec, deploy.DefaultDeploymentDiffOpts)
+	if err := resources.Deployment.Sync(cheCtx, spec); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func getDeploymentSpec(cheCtx *chetypes.CheContext) (*appsv1.Deployment, error) {
@@ -57,6 +61,8 @@ func getDeploymentSpec(cheCtx *chetypes.CheContext) (*appsv1.Deployment, error) 
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
+			RevisionHistoryLimit:    new(int32(10)),
+			ProgressDeadlineSeconds: new(int32(600)),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
@@ -148,20 +154,16 @@ func getDeploymentSpec(cheCtx *chetypes.CheContext) (*appsv1.Deployment, error) 
 		},
 	}
 
+	if err := resources.Deployment.TrimCPULimitIfNoLimitRange(cheCtx, deployment); err != nil {
+		return nil, err
+	}
+
 	// `26` is a default user and group id in the container file
-	kubernetesUserId := int64(26)
-	kubernetesGroupId := int64(26)
+	pod := &deployment.Spec.Template.Spec
+	resources.Pod.EnsureSecurityStandards(pod, int64(26), int64(26))
 
-	resources.Pod.EnsureSecurityStandards(
-		&deployment.Spec.Template.Spec,
-		kubernetesUserId,
-		kubernetesGroupId,
-	)
-
-	if cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Database != nil {
-		if err := deploy.OverrideDeployment(cheCtx, deployment, cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Database.Deployment); err != nil {
-			return nil, fmt.Errorf("failed to override deployment: %w", err)
-		}
+	if database := cheCtx.CheCluster.Spec.Components.OpenVSXRegistry.Database; database != nil {
+		resources.Deployment.ApplyOverrides(deployment, database.Deployment)
 	}
 
 	return deployment, nil

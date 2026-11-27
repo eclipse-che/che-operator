@@ -82,15 +82,12 @@ func MergeMapsMissingKeys[K comparable, V any](dst, src map[K]V) map[K]V {
 	return dst
 }
 
-func ContainsEntries[T comparable](actual, expected map[string]T) bool {
-	for k, expectedValue := range expected {
-		actualValue, exists := actual[k]
-
-		if !exists {
-			return false
-		}
-
-		if actualValue != expectedValue {
+// ContainsEntries reports whether all entries of expected are present in m
+// with exactly the same values. A nil or empty expected matches any map.
+func ContainsEntries[K comparable, V comparable](m, expected map[K]V) bool {
+	for key, expectedValue := range expected {
+		value, exists := m[key]
+		if !exists || value != expectedValue {
 			return false
 		}
 	}

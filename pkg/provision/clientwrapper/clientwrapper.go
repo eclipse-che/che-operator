@@ -157,17 +157,6 @@ func (k K8sClientWrapper) DeleteAllOf(
 	return k.cli.DeleteAllOf(ctx, obj, opts...)
 }
 
-func (k K8sClientWrapper) DeleteIgnoreNotFound(
-	ctx context.Context,
-	obj client.Object,
-	opts ...client.DeleteOption,
-) error {
-	if err := k.ensureGVK(obj); err != nil {
-		return err
-	}
-	return k.doDeleteIgnoreIfNotFound(ctx, obj, opts...)
-}
-
 func (k K8sClientWrapper) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) ([]runtime.Object, error) {
 	err := k.cli.List(ctx, list, opts...)
 	if err != nil {

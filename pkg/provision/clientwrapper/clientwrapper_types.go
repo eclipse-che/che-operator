@@ -40,9 +40,6 @@ type ClientWrapper interface {
 	// Returns true if object exists otherwise returns false.
 	// Returns nil if object is retrieved or not found otherwise returns error.
 	GetIgnoreNotFound(ctx context.Context, key client.ObjectKey, objectMeta client.Object, opts ...client.GetOption) (bool, error)
-	// DeleteIgnoreNotFound deletes object.
-	// Returns nil if object is deleted or not found otherwise returns error.
-	DeleteIgnoreNotFound(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error
 	// DeleteByKeyIgnoreNotFound deletes object by key.
 	// The object is fetched from the cluster first, so the object passed in
 	// only needs to carry the type, not the actual content.

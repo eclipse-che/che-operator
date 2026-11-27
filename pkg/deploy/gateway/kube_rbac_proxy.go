@@ -22,6 +22,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -125,13 +126,7 @@ func getKubeRbacProxyContainerSpec(cheCtx *chetypes.CheContext) corev1.Container
 
 func getKubeRbacProxyConfigVolume() corev1.Volume {
 	return corev1.Volume{
-		Name: "kube-rbac-proxy-config",
-		VolumeSource: corev1.VolumeSource{
-			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: "che-gateway-config-kube-rbac-proxy",
-				},
-			},
-		},
+		Name:         "kube-rbac-proxy-config",
+		VolumeSource: resources.VolumeSource.FromConfigMap("che-gateway-config-kube-rbac-proxy"),
 	}
 }

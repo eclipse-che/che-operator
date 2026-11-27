@@ -46,14 +46,8 @@ func (s CheServerReconciler) getDeploymentSpec(cheCtx *chetypes.CheContext) (*ap
 	terminationGracePeriodSeconds := int64(30)
 	labels, labelSelector := deploy.GetLabelsAndSelector(defaults.GetCheFlavor())
 	customPublicCertsVolume := corev1.Volume{
-		Name: "che-public-certs",
-		VolumeSource: corev1.VolumeSource{
-			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: tls.CheMergedCABundleCertsCMName,
-				},
-			},
-		},
+		Name:         "che-public-certs",
+		VolumeSource: resources.VolumeSource.FromConfigMap(tls.CheMergedCABundleCertsCMName),
 	}
 	customPublicCertsVolumeMount := corev1.VolumeMount{
 		Name:      customPublicCertsVolume.Name,
@@ -67,12 +61,8 @@ func (s CheServerReconciler) getDeploymentSpec(cheCtx *chetypes.CheContext) (*ap
 
 	if selfSignedCASecretExists {
 		selfSignedCertVolume := corev1.Volume{
-			Name: "che-self-signed-cert",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: constants.SelfSignedCertificateSecretName,
-				},
-			},
+			Name:         "che-self-signed-cert",
+			VolumeSource: resources.VolumeSource.FromSecret(constants.SelfSignedCertificateSecretName),
 		}
 		selfSignedCertVolumeMount := corev1.VolumeMount{
 			Name:      selfSignedCertVolume.Name,
@@ -237,15 +227,15 @@ func (s CheServerReconciler) getDeploymentSpec(cheCtx *chetypes.CheContext) (*ap
 		}
 	}
 
-	resources.Pod.EnsureSecurityStandards(
-		&deployment.Spec.Template.Spec,
-		constants.DefaultSecurityContextRunAsUser,
-		constants.DefaultSecurityContextFsGroup,
-	)
-
-	if err := deploy.OverrideDeployment(cheCtx, deployment, cheCtx.CheCluster.Spec.Components.CheServer.Deployment); err != nil {
+	if err := resources.Deployment.TrimCPULimitIfNoLimitRange(cheCtx, deployment); err != nil {
 		return nil, err
 	}
+
+	pod := &deployment.Spec.Template.Spec
+	resources.Pod.EnsureSecurityStandards(pod, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
+
+	overrides := cheCtx.CheCluster.Spec.Components.CheServer.Deployment
+	resources.Deployment.ApplyOverrides(deployment, overrides)
 
 	return deployment, nil
 }
@@ -359,12 +349,8 @@ func mountVolumes(deployment *appsv1.Deployment, secret *corev1.Secret, mountPat
 	container := &deployment.Spec.Template.Spec.Containers[0]
 	deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes,
 		corev1.Volume{
-			Name: secret.Name,
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: secret.Name,
-				},
-			},
+			Name:         secret.Name,
+			VolumeSource: resources.VolumeSource.FromSecret(secret.Name),
 		})
 	container.VolumeMounts = append(container.VolumeMounts,
 		corev1.VolumeMount{

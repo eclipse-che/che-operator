@@ -34,7 +34,7 @@ type roleBindingHandler struct {
 	diff               cmp.Options
 }
 
-func (h roleBindingHandler) Sync(cheCtx *chetypes.CheContext, roleBinding *rbac.RoleBinding) error {
+func (h *roleBindingHandler) Sync(cheCtx *chetypes.CheContext, roleBinding *rbac.RoleBinding) error {
 	return syncher.SyncObject(
 		cheCtx,
 		roleBinding,
@@ -44,11 +44,6 @@ func (h roleBindingHandler) Sync(cheCtx *chetypes.CheContext, roleBinding *rbac.
 	)
 }
 
-func (h roleBindingHandler) Delete(cheCtx *chetypes.CheContext, name string, namespace string) error {
-	return syncher.DeleteObject(
-		cheCtx,
-		name,
-		namespace,
-		&rbac.RoleBinding{},
-	)
+func (h *roleBindingHandler) Delete(cheCtx *chetypes.CheContext, name string, namespace string) error {
+	return syncher.Delete(cheCtx, name, namespace, &rbac.RoleBinding{})
 }

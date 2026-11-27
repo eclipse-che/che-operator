@@ -158,14 +158,8 @@ func (r *OpenVSXServerReconciler) getExtensionUpdateCronJobSpec(cheCtx *chetypes
 							},
 							Volumes: []corev1.Volume{
 								{
-									Name: "extensions",
-									VolumeSource: corev1.VolumeSource{
-										ConfigMap: &corev1.ConfigMapVolumeSource{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: constants.OpenVSXServerExtensionsConfigMapName,
-											},
-										},
-									},
+									Name:         "extensions",
+									VolumeSource: resources.VolumeSource.FromConfigMap(constants.OpenVSXServerExtensionsConfigMapName),
 								},
 							},
 							RestartPolicy:                 corev1.RestartPolicyNever,

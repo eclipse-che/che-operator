@@ -34,3 +34,10 @@ func GetOperatorManagedLabels(component string) map[string]string {
 		constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
 	}
 }
+
+func GetLegacySelector(component string) map[string]string {
+	return map[string]string{
+		"app":       defaults.GetCheFlavor(),
+		"component": component,
+	}
+}
