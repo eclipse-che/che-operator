@@ -96,7 +96,7 @@ do
   RELATED_IMAGE="{ name: \"${relatedImageName}\", image: \"${dest}\", tag: \"${source}\"}"
   if [[ -z ${RELATED_IMAGES} ]]; then
     RELATED_IMAGES="${RELATED_IMAGE}"
-  elif [[ ! ${RELATED_IMAGES} =~ ${relatedImageName} ]]; then
+  elif ! grep -qF "name: \"${relatedImageName}\"" <<< "${RELATED_IMAGES}"; then
     RELATED_IMAGES="${RELATED_IMAGES}, ${RELATED_IMAGE}"
   fi
 
