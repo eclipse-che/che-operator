@@ -221,7 +221,7 @@ func main() {
 		Client:       mgr.GetClient(),
 		Log:          ctrl.Log.WithName("controllers").WithName("DevWorkspaceRouting"),
 		Scheme:       scheme,
-		SolverGetter: solver.Getter(scheme),
+		SolverGetter: solver.Getter(),
 	}
 	if err := routing.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to set up controller", "controller", "DevWorkspaceRouting")
@@ -352,6 +352,9 @@ func getCacheFunc() (cache.NewCacheFunc, error) {
 		selectors[&consolev1.ConsoleLink{}] = cache.ByObject{Label: partOfEclipseChe}
 		selectors[&configv1.Proxy{}] = cache.ByObject{
 			Field: fields.OneTermEqualSelector("metadata.name", resources.ProxyResourceName),
+		}
+		selectors[&configv1.Console{}] = cache.ByObject{
+			Field: fields.OneTermEqualSelector("metadata.name", resources.ConsoleResourceName),
 		}
 	}
 

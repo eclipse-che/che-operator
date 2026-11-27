@@ -28,6 +28,8 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/reconciler"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/agentsandbox"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/consolelink"
+	"github.com/eclipse-che/che-operator/pkg/reconciler/dashboard"
+	"github.com/eclipse-che/che-operator/pkg/reconciler/editorsdefinitions"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/labelbackfill"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/networkpolicy"
 	"github.com/eclipse-che/che-operator/pkg/reconciler/proxyconfig"
@@ -44,13 +46,10 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy/devworkspace"
 	imagepuller "github.com/eclipse-che/che-operator/pkg/deploy/image-puller"
 
-	editorsdefinitions "github.com/eclipse-che/che-operator/pkg/deploy/editors-definitions"
-
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/infrastructure"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	containerbuild "github.com/eclipse-che/che-operator/pkg/deploy/container-capabilities"
-	"github.com/eclipse-che/che-operator/pkg/deploy/dashboard"
 	"github.com/eclipse-che/che-operator/pkg/deploy/devfileregistry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	identityprovider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
@@ -114,8 +113,8 @@ func NewReconciler(namespace string) *CheClusterReconciler {
 	reconcilerManager.AddReconciler(openvsx.NewOpenVSXSecretReconciler())
 	reconcilerManager.AddReconciler(openvsxdatabase.NewOpenVSXDatabaseReconciler())
 	reconcilerManager.AddReconciler(openvsxserver.NewOpenVSXServerReconciler())
-	reconcilerManager.AddReconciler(editorsdefinitions.NewEditorsDefinitionsReconciler())
-	reconcilerManager.AddReconciler(dashboard.NewDashboardReconciler())
+	reconcilerManager.AddReconciler(editorsdefinitions.NewReconciler())
+	reconcilerManager.AddReconciler(dashboard.NewReconciler())
 	reconcilerManager.AddReconciler(gateway.NewGatewayReconciler())
 	reconcilerManager.AddReconciler(server.NewCheServerReconciler())
 	reconcilerManager.AddReconciler(imagepuller.NewImagePuller())
@@ -310,8 +309,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	result, done, recErr := r.reconcilerManager.ReconcileAll(cheCtx)
 	if recErr != nil {
-		var retryErr *cheerrors.RetryError
-		if errors.As(recErr, &retryErr) {
+		if retryErr, ok := errors.AsType[*cheerrors.RetryError](recErr); ok {
 			r.Log.Info("Reconcile failed with a retryable error, requeuing", "error", recErr.Error())
 
 			cheCtx.CheCluster.Status.Reason = chev2.InstallOrUpdateRetrying
@@ -319,11 +317,23 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 			recErr = nil
 			result = ctrl.Result{RequeueAfter: utils.ValueOrDef(retryErr.RequeueAfter, time.Second)}
+		} else if notReadyErr, ok := errors.AsType[*cheerrors.NotReadyError](recErr); ok {
+			r.Log.Info(notReadyErr.Error())
+
+			// A resource being not ready is not a failure but a normal part of provisioning:
+			// e.g. a Deployment was just created and its pods have not started yet.
+			cheCtx.CheCluster.Status.Reason = ""
+			cheCtx.CheCluster.Status.Message = ""
+
+			recErr = nil
+			result = ctrl.Result{RequeueAfter: utils.ValueOrDef(notReadyErr.RequeueAfter, time.Second)}
 		} else if k8serrors.IsConflict(recErr) {
 			r.Log.Info("Reconcile failed with a conflict error, requeuing", "error", recErr.Error())
 
 			// Conflicts are frequent and harmless. Setting InstallOrUpdateRetrying here costs one status write now
 			// and another on the next pass to clear it, so the status flickers.
+			cheCtx.CheCluster.Status.Reason = ""
+			cheCtx.CheCluster.Status.Message = ""
 
 			recErr = nil
 			result = ctrl.Result{RequeueAfter: time.Second}

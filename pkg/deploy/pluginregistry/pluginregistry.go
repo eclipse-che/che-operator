@@ -171,7 +171,10 @@ func (p *PluginRegistryReconciler) syncDeployment(cheCtx *chetypes.CheContext) (
 	if spec, err := p.getPluginRegistryDeploymentSpec(cheCtx); err != nil {
 		return false, err
 	} else {
-		return deploy.SyncDeploymentSpecToCluster(cheCtx, spec, deploy.DefaultDeploymentDiffOpts)
+		if err := resources.Deployment.Sync(cheCtx, spec); err != nil {
+			return false, err
+		}
+		return true, nil
 	}
 }
 

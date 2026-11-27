@@ -12,6 +12,16 @@
 
 package editorsdefinitions
 
-func init() {
+import (
+	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+)
+
+func TestEditorsDefinitions(t *testing.T) {
 	editorsDefinitionsDir = "./test-editors-definitions"
+
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "EditorsDefinitions Reconciler Suite")
 }

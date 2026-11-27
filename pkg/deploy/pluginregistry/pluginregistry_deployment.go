@@ -17,9 +17,8 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/registry"
-	k8sresources "github.com/eclipse-che/che-operator/pkg/provision/resources"
+	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -32,7 +31,7 @@ func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(cheCtx *chety
 	probePath := "/openvsx/api/version"
 	pluginImagesEnv := utils.GetGetArchitectureDependentEnvsByRegExp("^.*plugin_registry_image.*$")
 
-	resources := corev1.ResourceRequirements{
+	resRequirements := corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{
 			corev1.ResourceMemory: resource.MustParse(constants.DefaultPluginRegistryMemoryRequest),
 			corev1.ResourceCPU:    resource.MustParse(constants.DefaultPluginRegistryCpuRequest),
@@ -44,8 +43,8 @@ func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(cheCtx *chety
 	}
 
 	if cheCtx.CheCluster.IsInternalPluginRegistryWithOpenVSXEnabled() {
-		resources.Requests[corev1.ResourceMemory] = resource.MustParse(constants.DefaultPluginRegistryMemoryRequestEmbeddedOpenVSXRegistry)
-		resources.Limits[corev1.ResourceMemory] = resource.MustParse(constants.DefaultPluginRegistryMemoryLimitEmbeddedOpenVSXRegistry)
+		resRequirements.Requests[corev1.ResourceMemory] = resource.MustParse(constants.DefaultPluginRegistryMemoryRequestEmbeddedOpenVSXRegistry)
+		resRequirements.Limits[corev1.ResourceMemory] = resource.MustParse(constants.DefaultPluginRegistryMemoryLimitEmbeddedOpenVSXRegistry)
 	}
 
 	deployment := registry.GetSpecRegistryDeployment(
@@ -54,7 +53,7 @@ func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(cheCtx *chety
 		registryImage,
 		pluginImagesEnv,
 		registryImagePullPolicy,
-		resources,
+		resRequirements,
 		probePath)
 
 	if cheCtx.CheCluster.IsInternalPluginRegistryWithOpenVSXEnabled() {
@@ -63,15 +62,15 @@ func (p *PluginRegistryReconciler) getPluginRegistryDeploymentSpec(cheCtx *chety
 		deployment.Spec.Template.Spec.Containers[0].LivenessProbe.FailureThreshold = 30
 	}
 
-	k8sresources.Pod.EnsureSecurityStandards(
-		&deployment.Spec.Template.Spec,
-		constants.DefaultSecurityContextRunAsUser,
-		constants.DefaultSecurityContextFsGroup,
-	)
-
-	if err := deploy.OverrideDeployment(cheCtx, deployment, cheCtx.CheCluster.Spec.Components.PluginRegistry.Deployment); err != nil {
+	if err := resources.Deployment.TrimCPULimitIfNoLimitRange(cheCtx, deployment); err != nil {
 		return nil, err
 	}
+
+	pod := &deployment.Spec.Template.Spec
+	resources.Pod.EnsureSecurityStandards(pod, constants.DefaultSecurityContextRunAsUser, constants.DefaultSecurityContextFsGroup)
+
+	overrides := cheCtx.CheCluster.Spec.Components.PluginRegistry.Deployment
+	resources.Deployment.ApplyOverrides(deployment, overrides)
 
 	return deployment, nil
 }

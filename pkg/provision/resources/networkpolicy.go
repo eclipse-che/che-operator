@@ -35,7 +35,7 @@ type networkPolicyHandler struct {
 	diff               cmp.Options
 }
 
-func (h networkPolicyHandler) Sync(cheCtx *chetypes.CheContext, policy *networkingv1.NetworkPolicy) error {
+func (h *networkPolicyHandler) Sync(cheCtx *chetypes.CheContext, policy *networkingv1.NetworkPolicy) error {
 	return syncher.SyncObject(
 		cheCtx,
 		policy,
@@ -45,16 +45,11 @@ func (h networkPolicyHandler) Sync(cheCtx *chetypes.CheContext, policy *networki
 	)
 }
 
-func (h networkPolicyHandler) Delete(cheCtx *chetypes.CheContext, name string, namespace string) error {
-	return syncher.DeleteObject(
-		cheCtx,
-		name,
-		namespace,
-		&networkingv1.NetworkPolicy{},
-	)
+func (h *networkPolicyHandler) Delete(cheCtx *chetypes.CheContext, name string, namespace string) error {
+	return syncher.Delete(cheCtx, name, namespace, &networkingv1.NetworkPolicy{})
 }
 
-func (h networkPolicyHandler) DeleteAll(cheCtx *chetypes.CheContext, namespace string) error {
+func (h *networkPolicyHandler) DeleteAll(cheCtx *chetypes.CheContext, namespace string) error {
 	return syncher.DeleteAllManaged(
 		cheCtx,
 		namespace,

@@ -25,6 +25,18 @@ func Map[T any, R any](items []T, transform func(T) R) []R {
 	return result
 }
 
+// Find returns a pointer to the first element in the slice for which match
+// returns true, or nil if no matching element is found.
+func Find[T any](items []T, match func(T) bool) *T {
+	for i := range items {
+		if match(items[i]) {
+			return &items[i]
+		}
+	}
+
+	return nil
+}
+
 // AppendUnique appends values to a slice only if they do not already exist.
 func AppendUnique[S ~[]E, E comparable](s S, values ...E) S {
 	for _, v := range values {
@@ -33,14 +45,4 @@ func AppendUnique[S ~[]E, E comparable](s S, values ...E) S {
 		}
 	}
 	return s
-}
-
-func Find[T any](slice []T, predicate func(T) bool) *T {
-	for i := range slice {
-		if predicate(slice[i]) {
-			return &slice[i]
-		}
-	}
-
-	return nil
 }

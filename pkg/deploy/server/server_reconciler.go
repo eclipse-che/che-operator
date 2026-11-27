@@ -139,7 +139,10 @@ func (s *CheServerReconciler) syncDeployment(cheCtx *chetypes.CheContext) (bool,
 		return false, err
 	}
 
-	return deploy.SyncDeploymentSpecToCluster(cheCtx, spec, deploy.DefaultDeploymentDiffOpts)
+	if err := resources.Deployment.Sync(cheCtx, spec); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (s CheServerReconciler) syncCheVersion(cheCtx *chetypes.CheContext) (bool, error) {

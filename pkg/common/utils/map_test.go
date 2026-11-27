@@ -117,59 +117,53 @@ func TestFormatMap(t *testing.T) {
 func TestContainsEntries(t *testing.T) {
 	tests := []struct {
 		name     string
-		actual   map[string]string
+		m        map[string]string
 		expected map[string]string
 		want     bool
 	}{
 		{
-			name:     "nil maps",
-			actual:   nil,
+			name:     "nil expected matches nil map",
+			m:        nil,
 			expected: nil,
 			want:     true,
 		},
 		{
-			name:     "empty maps",
-			actual:   map[string]string{},
+			name:     "empty expected matches anything",
+			m:        map[string]string{"a": "1"},
 			expected: map[string]string{},
 			want:     true,
 		},
 		{
-			name:     "all entries match",
-			actual:   map[string]string{"a": "1", "b": "2"},
-			expected: map[string]string{"a": "1", "b": "2"},
+			name:     "all entries present with same values",
+			m:        map[string]string{"a": "1", "b": "2", "c": "3"},
+			expected: map[string]string{"a": "1", "c": "3"},
 			want:     true,
 		},
 		{
-			name:     "actual is superset",
-			actual:   map[string]string{"a": "1", "b": "2", "c": "3"},
-			expected: map[string]string{"a": "1"},
-			want:     true,
-		},
-		{
-			name:     "missing key with non-zero expected value",
-			actual:   map[string]string{"a": "1"},
+			name:     "missing key",
+			m:        map[string]string{"a": "1"},
 			expected: map[string]string{"b": "2"},
 			want:     false,
 		},
 		{
-			name:     "missing key with zero expected value",
-			actual:   map[string]string{"a": "1"},
-			expected: map[string]string{"b": ""},
+			name:     "different value",
+			m:        map[string]string{"a": "1"},
+			expected: map[string]string{"a": "2"},
 			want:     false,
 		},
 		{
-			name:     "value mismatch",
-			actual:   map[string]string{"a": "1"},
-			expected: map[string]string{"a": "2"},
+			name:     "value missing in m",
+			m:        map[string]string{},
+			expected: map[string]string{"a": ""},
 			want:     false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := ContainsEntries(tt.actual, tt.expected)
+			got := ContainsEntries(tt.m, tt.expected)
 			if got != tt.want {
-				t.Errorf("ContainsEntries(%v, %v) = %v, want %v", tt.actual, tt.expected, got, tt.want)
+				t.Errorf("ContainsEntries(%v, %v) = %v, want %v", tt.m, tt.expected, got, tt.want)
 			}
 		})
 	}

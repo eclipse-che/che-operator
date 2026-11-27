@@ -14,47 +14,19 @@ package deploy
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/eclipse-che/che-operator/pkg/provision/clientwrapper"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8slabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 )
 
 var SecretDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(corev1.Secret{}, "TypeMeta", "ObjectMeta"),
-}
-
-// SyncSecretToCluster applies secret into cluster or external namespace
-func SyncSecretToCluster(
-	cheCtx *chetypes.CheContext,
-	name string,
-	data map[string][]byte) error {
-
-	secretSpec := GetSecretSpec(name, cheCtx.CheCluster.Namespace, data)
-
-	if err := controllerutil.SetControllerReference(cheCtx.CheCluster, secretSpec, cheCtx.ClusterAPI.Scheme); err != nil {
-		return fmt.Errorf("failed to set owner reference for Secret %s/%s: %w", secretSpec.Namespace, name, err)
-	}
-
-	if err := cheCtx.ClusterAPI.ClientWrapper.Sync(
-		cheCtx.Context,
-		secretSpec,
-		&clientwrapper.SyncOptions{DiffOpts: SecretDiffOpts},
-	); err != nil {
-		return fmt.Errorf("failed to sync Secret %s/%s: %w", secretSpec.Namespace, name, err)
-	}
-
-	return nil
 }
 
 // Get all secrets by labels and annotations
@@ -95,24 +67,4 @@ func GetSecrets(cheCtx *chetypes.CheContext, labels map[string]string, annotatio
 	}
 
 	return secrets, nil
-}
-
-// GetSecretSpec return default secret config for given data
-func GetSecretSpec(name string, namespace string, data map[string][]byte) *corev1.Secret {
-	labels := GetLabels(defaults.GetCheFlavor())
-	secret := &corev1.Secret{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Secret",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-			Labels:    labels,
-		},
-		Type: corev1.SecretTypeOpaque,
-		Data: data,
-	}
-
-	return secret
 }

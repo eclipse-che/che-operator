@@ -22,6 +22,7 @@ import (
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
+	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	"github.com/stretchr/testify/assert"
 
 	"testing"
@@ -166,12 +167,8 @@ func TestMountBitBucketServerOAuthEnvVar(t *testing.T) {
 			expectedPrivateKeyPath:  "/che-conf/oauth/bitbucket/private.key",
 			expectedOAuthEndpoint:   "endpoint_1",
 			expectedVolume: corev1.Volume{
-				Name: "bitbucket-oauth-config",
-				VolumeSource: corev1.VolumeSource{
-					Secret: &corev1.SecretVolumeSource{
-						SecretName: "bitbucket-oauth-config",
-					},
-				},
+				Name:         "bitbucket-oauth-config",
+				VolumeSource: resources.VolumeSource.FromSecret("bitbucket-oauth-config"),
 			},
 			expectedVolumeMount: corev1.VolumeMount{
 				Name:      "bitbucket-oauth-config",
@@ -252,12 +249,8 @@ func TestMountBitbucketOAuthEnvVar(t *testing.T) {
 			expectedIdKeyPath:     "/che-conf/oauth/bitbucket/id",
 			expectedSecretKeyPath: "/che-conf/oauth/bitbucket/secret",
 			expectedVolume: corev1.Volume{
-				Name: "bitbucket-oauth-config",
-				VolumeSource: corev1.VolumeSource{
-					Secret: &corev1.SecretVolumeSource{
-						SecretName: "bitbucket-oauth-config",
-					},
-				},
+				Name:         "bitbucket-oauth-config",
+				VolumeSource: resources.VolumeSource.FromSecret("bitbucket-oauth-config"),
 			},
 			expectedVolumeMount: corev1.VolumeMount{
 				Name:      "bitbucket-oauth-config",
@@ -369,12 +362,8 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 	assert.NotNil(t, volume)
 	assert.Equal(t,
 		corev1.Volume{
-			Name: "github-oauth-config",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: "github-oauth-config",
-				},
-			},
+			Name:         "github-oauth-config",
+			VolumeSource: resources.VolumeSource.FromSecret("github-oauth-config"),
 		},
 		*volume)
 
@@ -382,12 +371,8 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 	assert.NotNil(t, volume)
 	assert.Equal(t,
 		corev1.Volume{
-			Name: "github-oauth-config_2",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: "github-oauth-config_2",
-				},
-			},
+			Name:         "github-oauth-config_2",
+			VolumeSource: resources.VolumeSource.FromSecret("github-oauth-config_2"),
 		},
 		*volume)
 
@@ -454,12 +439,8 @@ func TestMountAzureDevOpsOAuthEnvVar(t *testing.T) {
 			expectedSecretKeyPath:   "/che-conf/oauth/azure-devops/secret",
 			expectedOAuthEndpoint:   "endpoint_1",
 			expectedVolume: corev1.Volume{
-				Name: "azure-devops-oauth-config",
-				VolumeSource: corev1.VolumeSource{
-					Secret: &corev1.SecretVolumeSource{
-						SecretName: "azure-devops-oauth-config",
-					},
-				},
+				Name:         "azure-devops-oauth-config",
+				VolumeSource: resources.VolumeSource.FromSecret("azure-devops-oauth-config"),
 			},
 			expectedVolumeMount: corev1.VolumeMount{
 				Name:      "azure-devops-oauth-config",
@@ -569,23 +550,15 @@ func TestMountGitLabOAuthEnvVar(t *testing.T) {
 
 	assert.Equal(t,
 		corev1.Volume{
-			Name: "gitlab-oauth-config",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: "gitlab-oauth-config",
-				},
-			},
+			Name:         "gitlab-oauth-config",
+			VolumeSource: resources.VolumeSource.FromSecret("gitlab-oauth-config"),
 		},
 		*utils.Find(deployment.Spec.Template.Spec.Volumes, func(v corev1.Volume) bool { return v.Name == "gitlab-oauth-config" }))
 
 	assert.Equal(t,
 		corev1.Volume{
-			Name: "gitlab-oauth-config_2",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: "gitlab-oauth-config_2",
-				},
-			},
+			Name:         "gitlab-oauth-config_2",
+			VolumeSource: resources.VolumeSource.FromSecret("gitlab-oauth-config_2"),
 		},
 		*utils.Find(deployment.Spec.Template.Spec.Volumes, func(v corev1.Volume) bool { return v.Name == "gitlab-oauth-config_2" }))
 

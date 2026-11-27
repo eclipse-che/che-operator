@@ -21,42 +21,32 @@ var Pod = &podHandler{}
 
 type podHandler struct{}
 
-func (h podHandler) EnsureSecurityStandards(
-	podSpec *corev1.PodSpec,
-	defaultUserId int64,
-	defaultGroupId int64,
-) {
-	for i := range podSpec.Containers {
-		if podSpec.Containers[i].SecurityContext == nil {
-			podSpec.Containers[i].SecurityContext = &corev1.SecurityContext{}
-		}
+func (h *podHandler) EnsureSecurityStandards(pod *corev1.PodSpec, userId int64, groupId int64) {
+	h.ensureSecurityStandardsForContainers(pod.Containers)
+	h.ensureSecurityStandardsForContainers(pod.InitContainers)
 
-		podSpec.Containers[i].SecurityContext.AllowPrivilegeEscalation = new(false)
-		podSpec.Containers[i].SecurityContext.Capabilities = &corev1.Capabilities{Drop: []corev1.Capability{"ALL"}}
-		podSpec.Containers[i].SecurityContext.RunAsNonRoot = new(true)
-	}
-
-	for i := range podSpec.InitContainers {
-		if podSpec.InitContainers[i].SecurityContext == nil {
-			podSpec.InitContainers[i].SecurityContext = &corev1.SecurityContext{}
-		}
-
-		podSpec.InitContainers[i].SecurityContext.AllowPrivilegeEscalation = new(false)
-		podSpec.InitContainers[i].SecurityContext.Capabilities = &corev1.Capabilities{Drop: []corev1.Capability{"ALL"}}
-		podSpec.InitContainers[i].SecurityContext.RunAsNonRoot = new(true)
-	}
-
-	if podSpec.SecurityContext == nil {
-		podSpec.SecurityContext = &corev1.PodSecurityContext{}
+	if pod.SecurityContext == nil {
+		pod.SecurityContext = &corev1.PodSecurityContext{}
 	}
 
 	if !infrastructure.IsOpenShift() {
-		podSpec.SecurityContext.RunAsUser = new(defaultUserId)
-		podSpec.SecurityContext.FSGroup = new(defaultGroupId)
+		pod.SecurityContext.RunAsUser = new(userId)
+		pod.SecurityContext.FSGroup = new(groupId)
 	} else {
-		if podSpec.SecurityContext.SeccompProfile == nil {
-			podSpec.SecurityContext.SeccompProfile = &corev1.SeccompProfile{}
+		if pod.SecurityContext.SeccompProfile == nil {
+			pod.SecurityContext.SeccompProfile = &corev1.SeccompProfile{}
 		}
-		podSpec.SecurityContext.SeccompProfile.Type = corev1.SeccompProfileTypeRuntimeDefault
+		pod.SecurityContext.SeccompProfile.Type = corev1.SeccompProfileTypeRuntimeDefault
+	}
+}
+
+func (h *podHandler) ensureSecurityStandardsForContainers(containers []corev1.Container) {
+	for idx := range containers {
+		if containers[idx].SecurityContext == nil {
+			containers[idx].SecurityContext = &corev1.SecurityContext{}
+		}
+		containers[idx].SecurityContext.AllowPrivilegeEscalation = new(false)
+		containers[idx].SecurityContext.Capabilities = &corev1.Capabilities{Drop: []corev1.Capability{"ALL"}}
+		containers[idx].SecurityContext.RunAsNonRoot = new(true)
 	}
 }

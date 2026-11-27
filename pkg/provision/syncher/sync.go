@@ -54,21 +54,10 @@ func SyncObject(
 	suppressDiff bool,
 	allowForceRecreate bool) error {
 
-	var cw clientwrapper.ClientWrapper
+	cw := getClientWrapper(cheCtx, obj)
 
-	if isCheCluster(obj) || obj.GetLabels()[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg {
-		cw = cheCtx.ClusterAPI.ClientWrapper
-	} else {
-		cw = cheCtx.ClusterAPI.NonCachingClientWrapper
-	}
-
-	// the CheCluster cannot own itself
-	if cheCtx.CheCluster != nil && !isCheCluster(obj) {
-		if obj.GetNamespace() == cheCtx.CheCluster.Namespace {
-			if err := controllerutil.SetControllerReference(cheCtx.CheCluster, obj, cheCtx.ClusterAPI.Scheme); err != nil {
-				return getSyncError(obj, err)
-			}
-		}
+	if err := setControllerReference(cheCtx, obj); err != nil {
+		return getSyncError(obj, err)
 	}
 
 	// The operator fully owns the finalizers of the CheCluster itself, so they are synced
@@ -112,6 +101,27 @@ func SyncObject(
 	return nil
 }
 
+// Create creates the object in the cluster. Unlike `SyncObject`, the object is
+// never updated: if it already exists, an AlreadyExists error is returned.
+//
+// As with `SyncObject` it:
+//   - selects the client to use: the cached one for objects labeled with
+//     `app.kubernetes.io/part-of: che.eclipse.org`; see `getCacheFunc` in `cmd/main.go`.
+//   - sets the CheCluster as the controller owner if the object lives in the same namespace as the CR.
+func Create(cheCtx *chetypes.CheContext, obj client.Object) error {
+	cw := getClientWrapper(cheCtx, obj)
+
+	if err := setControllerReference(cheCtx, obj); err != nil {
+		return getCreateError(obj, err)
+	}
+
+	if err := cw.Create(cheCtx.Context, obj); err != nil {
+		return getCreateError(obj, err)
+	}
+
+	return nil
+}
+
 // SyncObjectStatus ensures that the status subresource of the object is up to date in the cluster.
 // It mirrors `SyncObject` but syncs only the status: the spec and the metadata are not touched.
 // The object must already exist, otherwise an error is returned.
@@ -121,13 +131,7 @@ func SyncObjectStatus(
 	diff cmp.Options,
 	suppressDiff bool) error {
 
-	var cw clientwrapper.ClientWrapper
-
-	if isCheCluster(obj) || obj.GetLabels()[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg {
-		cw = cheCtx.ClusterAPI.ClientWrapper
-	} else {
-		cw = cheCtx.ClusterAPI.NonCachingClientWrapper
-	}
+	cw := getClientWrapper(cheCtx, obj)
 
 	opts := &clientwrapper.SyncOptions{
 		SuppressDiff:  suppressDiff,
@@ -170,13 +174,36 @@ func GetObject(
 	return exists, nil
 }
 
-// DeleteObject ensures that the object is deleted in the cluster.
+// List fetches all objects of the given list type into list, scoped by
+// the provided list options (namespace, label selector, etc.).
+//
+// The client is selected from the label selector: the cached ClientWrapper is
+// used only when the selector requires the `app.kubernetes.io/part-of: che.eclipse.org`
+// label; otherwise the non-caching client is used
+func List(
+	cheCtx *chetypes.CheContext,
+	list client.ObjectList,
+	opts ...client.ListOption,
+) error {
+	cw := cheCtx.ClusterAPI.NonCachingClientWrapper
+	if hasEclipseCheSelector(opts...) {
+		cw = cheCtx.ClusterAPI.ClientWrapper
+	}
+
+	if _, err := cw.List(cheCtx.Context, list, opts...); err != nil {
+		return fmt.Errorf("failed to list %s: %w", clientwrapper.GetObjectType(list), err)
+	}
+
+	return nil
+}
+
+// Delete ensures that the object is deleted in the cluster.
 //
 // It always uses the cached ClientWrapper, and the operator's cache only watches
 // objects labeled with `app.kubernetes.io/part-of: che.eclipse.org` (see `getCacheFunc`
 // in `cmd/main.go`). So it is only correct for objects the operator manages or has
 // backfilled; for arbitrary objects the non-caching client must be used directly.
-func DeleteObject(
+func Delete(
 	cheCtx *chetypes.CheContext,
 	name string,
 	namespace string,
@@ -220,6 +247,41 @@ func DeleteAllManaged(
 			return fmt.Errorf("failed to delete %s: %w", clientwrapper.GetObjectType(obj), err)
 		}
 		return fmt.Errorf("failed to delete %s in %s: %w", clientwrapper.GetObjectType(obj), namespace, err)
+	}
+
+	return nil
+}
+
+// getClientWrapper selects the client to use for the given object: the cached
+// ClientWrapper for the CheCluster itself and for objects labeled with
+// `app.kubernetes.io/part-of: che.eclipse.org`; the non-caching one otherwise.
+// See `getCacheFunc` in `cmd/main.go`.
+func getClientWrapper(cheCtx *chetypes.CheContext, obj client.Object) clientwrapper.ClientWrapper {
+	if isCheCluster(obj) || obj.GetLabels()[constants.KubernetesPartOfLabelKey] == constants.CheEclipseOrg {
+		return cheCtx.ClusterAPI.ClientWrapper
+	}
+
+	return cheCtx.ClusterAPI.NonCachingClientWrapper
+}
+
+// setControllerReference sets the CheCluster as the controller owner of the object
+// if the object lives in the same namespace as the CR and no controller owner is
+// already set, so an owner set by another controller is never overwritten.
+// The CheCluster cannot own itself, and cross-namespace owner references are not
+// supported by Kubernetes.
+func setControllerReference(cheCtx *chetypes.CheContext, obj client.Object) error {
+	if cheCtx.CheCluster == nil || isCheCluster(obj) {
+		return nil
+	}
+
+	if metav1.GetControllerOf(obj) != nil {
+		return nil
+	}
+
+	if obj.GetNamespace() == cheCtx.CheCluster.Namespace {
+		if err := controllerutil.SetControllerReference(cheCtx.CheCluster, obj, cheCtx.ClusterAPI.Scheme); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -288,6 +350,20 @@ func isRootMetadata(p cmp.Path) bool {
 	return true
 }
 
+// hasEclipseCheSelector reports whether the list options carry a label selector
+// that requires the `app.kubernetes.io/part-of: che.eclipse.org` label.
+func hasEclipseCheSelector(opts ...client.ListOption) bool {
+	listOptions := &client.ListOptions{}
+	listOptions.ApplyOptions(opts)
+
+	if listOptions.LabelSelector == nil {
+		return false
+	}
+
+	value, matches := listOptions.LabelSelector.RequiresExactMatch(constants.KubernetesPartOfLabelKey)
+	return matches && value == constants.CheEclipseOrg
+}
+
 // isFieldImmutableError reports whether the API server rejected an update because it
 // touched an immutable field. Kubernetes exposes no structured signal for this, so the
 // message has to be matched; `validation.FieldImmutableErrorMsg` covers the generic
@@ -299,6 +375,10 @@ func isFieldImmutableError(err error) bool {
 
 func getSyncError(obj client.Object, cause error) error {
 	return fmt.Errorf("failed to sync %s %s/%s: %w", clientwrapper.GetObjectType(obj), obj.GetNamespace(), obj.GetName(), cause)
+}
+
+func getCreateError(obj client.Object, cause error) error {
+	return fmt.Errorf("failed to create %s %s/%s: %w", clientwrapper.GetObjectType(obj), obj.GetNamespace(), obj.GetName(), cause)
 }
 
 func isCheCluster(obj client.Object) bool {

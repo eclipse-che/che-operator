@@ -53,7 +53,7 @@ func getSpecObjectsForManager(t *testing.T, mgr *chev2.CheCluster, routing *dwo.
 	scheme := cheCtx.ClusterAPI.Scheme
 	cl := cheCtx.ClusterAPI.Client
 
-	solver, err := Getter(scheme).GetSolver(cl, "che")
+	solver, err := Getter().GetSolver(cl, "che")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2137,10 +2137,8 @@ func TestOverrideGatewayContainerProvisioning(t *testing.T) {
 	}
 
 	cheCtx := test.NewCheContextBuilder().WithCheCluster(cheCluster).Build()
-	scheme := cheCtx.ClusterAPI.Scheme
-	cl := cheCtx.ClusterAPI.Client
 
-	cheSolver := &CheRoutingSolver{client: cl, scheme: scheme}
+	cheSolver := &CheRoutingSolver{clusterAPI: cheCtx.ClusterAPI}
 	objs := &solvers.RoutingObjects{}
 
 	routing := &dwo.DevWorkspaceRouting{
@@ -2153,7 +2151,7 @@ func TestOverrideGatewayContainerProvisioning(t *testing.T) {
 		},
 	}
 
-	err := cheSolver.provisionPodAdditions(objs, cheCluster, routing)
+	err := cheSolver.provisionPodAdditions(cheCtx, objs, routing)
 	assert.NoError(t, err)
 
 	assert.Equal(t, overrideCpuRequest.String(), objs.PodAdditions.Containers[0].Resources.Requests.Cpu().String())
@@ -2193,10 +2191,8 @@ func TestOverridePartialLimitsGatewayContainerProvisioning(t *testing.T) {
 	}
 
 	cheCtx := test.NewCheContextBuilder().WithCheCluster(cheCluster).Build()
-	scheme := cheCtx.ClusterAPI.Scheme
-	cl := cheCtx.ClusterAPI.Client
 
-	cheSolver := &CheRoutingSolver{client: cl, scheme: scheme}
+	cheSolver := &CheRoutingSolver{clusterAPI: cheCtx.ClusterAPI}
 	objs := &solvers.RoutingObjects{}
 
 	routing := &dwo.DevWorkspaceRouting{
@@ -2209,7 +2205,7 @@ func TestOverridePartialLimitsGatewayContainerProvisioning(t *testing.T) {
 		},
 	}
 
-	err := cheSolver.provisionPodAdditions(objs, cheCluster, routing)
+	err := cheSolver.provisionPodAdditions(cheCtx, objs, routing)
 	assert.NoError(t, err)
 
 	assert.Equal(t, overrideCpuRequest.String(), objs.PodAdditions.Containers[0].Resources.Requests.Cpu().String())
@@ -2254,10 +2250,8 @@ func TestOverrideGatewayEmptyContainerProvisioning(t *testing.T) {
 	}
 
 	cheCtx := test.NewCheContextBuilder().WithCheCluster(cheCluster).Build()
-	scheme := cheCtx.ClusterAPI.Scheme
-	cl := cheCtx.ClusterAPI.Client
 
-	cheSolver := &CheRoutingSolver{client: cl, scheme: scheme}
+	cheSolver := &CheRoutingSolver{clusterAPI: cheCtx.ClusterAPI}
 	objs := &solvers.RoutingObjects{}
 
 	routing := &dwo.DevWorkspaceRouting{
@@ -2270,7 +2264,7 @@ func TestOverrideGatewayEmptyContainerProvisioning(t *testing.T) {
 		},
 	}
 
-	err := cheSolver.provisionPodAdditions(objs, cheCluster, routing)
+	err := cheSolver.provisionPodAdditions(cheCtx, objs, routing)
 	assert.NoError(t, err)
 
 	assert.Equal(t, overrideCpuRequest.String(), objs.PodAdditions.Containers[0].Resources.Requests.Cpu().String())
@@ -2300,10 +2294,8 @@ func TestDefaultGatewayContainerProvisioning(t *testing.T) {
 	}
 
 	cheCtx := test.NewCheContextBuilder().WithCheCluster(cheCluster).Build()
-	scheme := cheCtx.ClusterAPI.Scheme
-	cl := cheCtx.ClusterAPI.Client
 
-	cheSolver := &CheRoutingSolver{client: cl, scheme: scheme}
+	cheSolver := &CheRoutingSolver{clusterAPI: cheCtx.ClusterAPI}
 	objs := &solvers.RoutingObjects{}
 
 	routing := &dwo.DevWorkspaceRouting{
@@ -2316,7 +2308,7 @@ func TestDefaultGatewayContainerProvisioning(t *testing.T) {
 		},
 	}
 
-	err := cheSolver.provisionPodAdditions(objs, cheCluster, routing)
+	err := cheSolver.provisionPodAdditions(cheCtx, objs, routing)
 	assert.NoError(t, err)
 
 	assert.Equal(t, defaultCpuRequest.String(), objs.PodAdditions.Containers[0].Resources.Requests.Cpu().String())

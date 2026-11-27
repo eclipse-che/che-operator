@@ -30600,6 +30600,8 @@ rules:
   - consoles
   verbs:
   - get
+  - list
+  - watch
 - apiGroups:
   - config.openshift.io
   resourceNames:

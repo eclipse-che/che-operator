@@ -34,7 +34,7 @@ type clusterRoleBindingHandler struct {
 	diff               cmp.Options
 }
 
-func (h clusterRoleBindingHandler) Sync(cheCtx *chetypes.CheContext, clusterRoleBinding *rbac.ClusterRoleBinding) error {
+func (h *clusterRoleBindingHandler) Sync(cheCtx *chetypes.CheContext, clusterRoleBinding *rbac.ClusterRoleBinding) error {
 	return syncher.SyncObject(
 		cheCtx,
 		clusterRoleBinding,
@@ -44,11 +44,6 @@ func (h clusterRoleBindingHandler) Sync(cheCtx *chetypes.CheContext, clusterRole
 	)
 }
 
-func (h clusterRoleBindingHandler) Delete(cheCtx *chetypes.CheContext, name string) error {
-	return syncher.DeleteObject(
-		cheCtx,
-		name,
-		"",
-		&rbac.ClusterRoleBinding{},
-	)
+func (h *clusterRoleBindingHandler) Delete(cheCtx *chetypes.CheContext, name string) error {
+	return syncher.Delete(cheCtx, name, "", &rbac.ClusterRoleBinding{})
 }

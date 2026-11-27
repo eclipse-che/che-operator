@@ -34,7 +34,7 @@ type consoleLinkHandler struct {
 	diff               cmp.Options
 }
 
-func (h consoleLinkHandler) Sync(cheCtx *chetypes.CheContext, consoleLink *consolev1.ConsoleLink) error {
+func (h *consoleLinkHandler) Sync(cheCtx *chetypes.CheContext, consoleLink *consolev1.ConsoleLink) error {
 	return syncher.SyncObject(
 		cheCtx,
 		consoleLink,
@@ -44,11 +44,6 @@ func (h consoleLinkHandler) Sync(cheCtx *chetypes.CheContext, consoleLink *conso
 	)
 }
 
-func (h consoleLinkHandler) Delete(cheCtx *chetypes.CheContext, name string) error {
-	return syncher.DeleteObject(
-		cheCtx,
-		name,
-		"",
-		&consolev1.ConsoleLink{},
-	)
+func (h *consoleLinkHandler) Delete(cheCtx *chetypes.CheContext, name string) error {
+	return syncher.Delete(cheCtx, name, "", &consolev1.ConsoleLink{})
 }

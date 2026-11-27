@@ -57,7 +57,9 @@ func GetSpecRegistryDeployment(
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Selector: &metav1.LabelSelector{MatchLabels: labelSelector},
+			RevisionHistoryLimit:    new(int32(10)),
+			ProgressDeadlineSeconds: new(int32(600)),
+			Selector:                &metav1.LabelSelector{MatchLabels: labelSelector},
 			Strategy: appsv1.DeploymentStrategy{
 				Type: appsv1.RollingUpdateDeploymentStrategyType,
 				RollingUpdate: &appsv1.RollingUpdateDeployment{

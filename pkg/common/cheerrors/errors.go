@@ -14,7 +14,10 @@ package cheerrors
 
 import (
 	"fmt"
+	"reflect"
 	"time"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type RetryError struct {
@@ -35,4 +38,24 @@ func (e *RetryError) Error() string {
 
 func (e *RetryError) Unwrap() error {
 	return e.Err
+}
+
+type NotReadyError struct {
+	Kind         string
+	Name         string
+	Namespace    string
+	RequeueAfter time.Duration
+}
+
+func NewNotReadyError(obj client.Object, requeueAfter time.Duration) *NotReadyError {
+	return &NotReadyError{
+		Kind:         reflect.TypeOf(obj).Elem().Name(),
+		Name:         obj.GetName(),
+		Namespace:    obj.GetNamespace(),
+		RequeueAfter: requeueAfter,
+	}
+}
+
+func (e *NotReadyError) Error() string {
+	return fmt.Sprintf("%s %s/%s not ready", e.Kind, e.Namespace, e.Name)
 }

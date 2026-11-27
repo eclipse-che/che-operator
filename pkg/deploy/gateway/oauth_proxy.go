@@ -29,6 +29,7 @@ import (
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/provision/resources"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -219,12 +220,10 @@ func resolveOpenShiftOAuthProxyImage(cheCtx *chetypes.CheContext) string {
 		digest, _, _ := unstructured.NestedString(firstItem, "image")
 		if internalRegistry != "" && digest != "" {
 			ref := internalRegistry + "@" + digest
-			logrus.Infof("Resolved oauth-proxy image from cluster release payload: %s", ref)
 			return ref
 		}
 	}
 
-	logrus.Warn("openshift/oauth-proxy ImageStream found but contains no image reference, using default")
 	return ""
 }
 
@@ -327,14 +326,8 @@ func getOauthProxyContainerSpec(cheCtx *chetypes.CheContext) corev1.Container {
 
 func getOauthProxyConfigVolume() corev1.Volume {
 	return corev1.Volume{
-		Name: "oauth-proxy-config",
-		VolumeSource: corev1.VolumeSource{
-			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: "che-gateway-config-oauth-proxy",
-				},
-			},
-		},
+		Name:         "oauth-proxy-config",
+		VolumeSource: resources.VolumeSource.FromConfigMap("che-gateway-config-oauth-proxy"),
 	}
 }
 

@@ -34,7 +34,7 @@ type roleHandler struct {
 	diff               cmp.Options
 }
 
-func (h roleHandler) Sync(cheCtx *chetypes.CheContext, role *rbac.Role) error {
+func (h *roleHandler) Sync(cheCtx *chetypes.CheContext, role *rbac.Role) error {
 	return syncher.SyncObject(
 		cheCtx,
 		role,
@@ -44,11 +44,6 @@ func (h roleHandler) Sync(cheCtx *chetypes.CheContext, role *rbac.Role) error {
 	)
 }
 
-func (h roleHandler) Delete(cheCtx *chetypes.CheContext, name string, namespace string) error {
-	return syncher.DeleteObject(
-		cheCtx,
-		name,
-		namespace,
-		&rbac.Role{},
-	)
+func (h *roleHandler) Delete(cheCtx *chetypes.CheContext, name string, namespace string) error {
+	return syncher.Delete(cheCtx, name, namespace, &rbac.Role{})
 }

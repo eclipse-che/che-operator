@@ -30,7 +30,7 @@ var Job = &jobHandler{
 	diff: cmp.Options{
 		cmpopts.IgnoreFields(batchv1.Job{}, "TypeMeta", "Status"),
 		cmpopts.IgnoreFields(corev1.Container{}, "TerminationMessagePath", "TerminationMessagePolicy"),
-		cmpopts.IgnoreFields(corev1.PodSpec{}, "SchedulerName"),
+		cmpopts.IgnoreFields(corev1.PodSpec{}, "DNSPolicy", "SchedulerName", "DeprecatedServiceAccount"),
 		cmp.Comparer(func(x, y resource.Quantity) bool { return x.Cmp(y) == 0 }),
 	},
 }
@@ -41,7 +41,7 @@ type jobHandler struct {
 	diff               cmp.Options
 }
 
-func (h jobHandler) Sync(cheCtx *chetypes.CheContext, job *batchv1.Job) error {
+func (h *jobHandler) Sync(cheCtx *chetypes.CheContext, job *batchv1.Job) error {
 	return syncher.SyncObject(
 		cheCtx,
 		job,
@@ -51,7 +51,7 @@ func (h jobHandler) Sync(cheCtx *chetypes.CheContext, job *batchv1.Job) error {
 	)
 }
 
-func (h jobHandler) Get(cheCtx *chetypes.CheContext, name string, namespace string, job *batchv1.Job) (bool, error) {
+func (h *jobHandler) Get(cheCtx *chetypes.CheContext, name string, namespace string, job *batchv1.Job) (bool, error) {
 	return syncher.GetObject(
 		cheCtx,
 		name,
@@ -60,8 +60,8 @@ func (h jobHandler) Get(cheCtx *chetypes.CheContext, name string, namespace stri
 	)
 }
 
-func (h jobHandler) Delete(cheCtx *chetypes.CheContext, name string, namespace string) error {
-	return syncher.DeleteObject(
+func (h *jobHandler) Delete(cheCtx *chetypes.CheContext, name string, namespace string) error {
+	return syncher.Delete(
 		cheCtx,
 		name,
 		namespace,
@@ -70,16 +70,16 @@ func (h jobHandler) Delete(cheCtx *chetypes.CheContext, name string, namespace s
 	)
 }
 
-func (h jobHandler) IsFinished(job *batchv1.Job) bool {
+func (h *jobHandler) IsFinished(job *batchv1.Job) bool {
 	return h.GetCompletionCondition(job) != nil
 }
 
-func (h jobHandler) IsSucceeded(job *batchv1.Job) bool {
+func (h *jobHandler) IsSucceeded(job *batchv1.Job) bool {
 	condition := h.GetCompletionCondition(job)
 	return condition != nil && condition.Type == batchv1.JobComplete
 }
 
-func (h jobHandler) GetFailureReason(job *batchv1.Job) string {
+func (h *jobHandler) GetFailureReason(job *batchv1.Job) string {
 	condition := h.GetCompletionCondition(job)
 	if condition == nil || condition.Type != batchv1.JobFailed {
 		return ""
@@ -92,7 +92,7 @@ func (h jobHandler) GetFailureReason(job *batchv1.Job) string {
 	return condition.Reason
 }
 
-func (h jobHandler) GetCompletionCondition(job *batchv1.Job) *batchv1.JobCondition {
+func (h *jobHandler) GetCompletionCondition(job *batchv1.Job) *batchv1.JobCondition {
 	for i := range job.Status.Conditions {
 		condition := job.Status.Conditions[i]
 		if condition.Status != corev1.ConditionTrue {

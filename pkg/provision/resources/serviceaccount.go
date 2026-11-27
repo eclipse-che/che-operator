@@ -37,7 +37,7 @@ type serviceAccountHandler struct {
 	diff               cmp.Options
 }
 
-func (h serviceAccountHandler) Sync(cheCtx *chetypes.CheContext, serviceAccount *corev1.ServiceAccount) error {
+func (h *serviceAccountHandler) Sync(cheCtx *chetypes.CheContext, serviceAccount *corev1.ServiceAccount) error {
 	return syncher.SyncObject(
 		cheCtx,
 		serviceAccount,
@@ -47,11 +47,10 @@ func (h serviceAccountHandler) Sync(cheCtx *chetypes.CheContext, serviceAccount 
 	)
 }
 
-func (h serviceAccountHandler) Delete(cheCtx *chetypes.CheContext, name string, namespace string) error {
-	return syncher.DeleteObject(
-		cheCtx,
-		name,
-		namespace,
-		&corev1.ServiceAccount{},
-	)
+func (h *serviceAccountHandler) Create(cheCtx *chetypes.CheContext, serviceAccount *corev1.ServiceAccount) error {
+	return syncher.Create(cheCtx, serviceAccount)
+}
+
+func (h *serviceAccountHandler) Delete(cheCtx *chetypes.CheContext, name string, namespace string) error {
+	return syncher.Delete(cheCtx, name, namespace, &corev1.ServiceAccount{})
 }
