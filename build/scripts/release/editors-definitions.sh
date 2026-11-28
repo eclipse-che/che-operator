@@ -160,13 +160,56 @@ promoteEditorDefinitions() {
   done
 }
 
+tagImageWithReleaseVersion() {
+  local IMAGE=$1
+  local VERSIONED_IMAGE="${IMAGE%:*}:${VERSION}"
+
+  if skopeo inspect "docker://${VERSIONED_IMAGE}" >/dev/null 2>&1; then
+    echo "[INFO] tagImageWithReleaseVersion :: Image ${VERSIONED_IMAGE} already exists. Using the existing tag."
+    return
+  fi
+
+  if ! skopeo inspect "docker://${IMAGE}" >/dev/null 2>&1; then
+    echo "[ERROR] tagImageWithReleaseVersion :: Source image ${IMAGE} does not exist in the registry. Aborting."
+    exit 1
+  fi
+
+  if [[ "${DRY_RUN:-}" == "true" ]]; then
+    echo "[INFO] tagImageWithReleaseVersion :: Dry run is enabled. Skipping tagging of ${IMAGE} as ${VERSIONED_IMAGE}."
+    return
+  fi
+
+  local USERNAME=""
+  local PASSWORD=""
+  local CREDS_NAMES=""
+  if [[ "${IMAGE}" == quay.io/devfile/* ]]; then
+    USERNAME="${QUAY_DEVFILE_USERNAME:-}"
+    PASSWORD="${QUAY_DEVFILE_PASSWORD:-}"
+    CREDS_NAMES="QUAY_DEVFILE_USERNAME and QUAY_DEVFILE_PASSWORD"
+  else
+    USERNAME="${QUAY_CHE_INCUBATOR_USERNAME:-}"
+    PASSWORD="${QUAY_CHE_INCUBATOR_PASSWORD:-}"
+    CREDS_NAMES="QUAY_CHE_INCUBATOR_USERNAME and QUAY_CHE_INCUBATOR_PASSWORD"
+  fi
+
+  if [[ -z "${USERNAME}" || -z "${PASSWORD}" ]]; then
+    echo "[ERROR] tagImageWithReleaseVersion :: ${CREDS_NAMES} must be set to push ${VERSIONED_IMAGE}. Aborting."
+    exit 1
+  fi
+
+  echo "[INFO] tagImageWithReleaseVersion :: Tagging ${IMAGE} as ${VERSIONED_IMAGE}"
+  skopeo copy --all --preserve-digests \
+    --dest-creds "${USERNAME}:${PASSWORD}" \
+    "docker://${IMAGE}" "docker://${VERSIONED_IMAGE}"
+}
+
 tagEditorDefinitionImages() {
   VARIANTS_PATTERN=$(IFS='|'; echo "${EDITOR_DEFINITION_VARIANTS[*]}")
 
   EDITOR_IMAGES=$(
     for FILE in "${EDITORS_DEFINITIONS_DIR}"/*.yaml; do
       yq -r '.components[] | select(.container != null) | .container.image' "${FILE}"
-    done | sort -u | grep -E "^quay\.io/che-incubator/.+:(${VARIANTS_PATTERN}|latest)$" || true
+    done | sort -u | grep -E "^(quay\.io/che-incubator/.+|quay\.io/devfile/universal-developer-image):(${VARIANTS_PATTERN}|latest|ubi9-latest)$" || true
   )
 
   if [[ -z "${EDITOR_IMAGES}" ]]; then
@@ -175,29 +218,7 @@ tagEditorDefinitionImages() {
 
   while read -r IMAGE; do
     VERSIONED_IMAGE="${IMAGE%:*}:${VERSION}"
-
-    if skopeo inspect "docker://${VERSIONED_IMAGE}" >/dev/null 2>&1; then
-      echo "[INFO] tagEditorDefinitionImages :: Image ${VERSIONED_IMAGE} already exists. Using the existing tag."
-    else
-      if ! skopeo inspect "docker://${IMAGE}" >/dev/null 2>&1; then
-        echo "[ERROR] tagEditorDefinitionImages :: Source image ${IMAGE} does not exist in the registry. Aborting."
-        exit 1
-      fi
-
-      if [[ "${DRY_RUN:-}" == "true" ]]; then
-        echo "[INFO] tagEditorDefinitionImages :: Dry run is enabled. Skipping tagging of ${IMAGE} as ${VERSIONED_IMAGE}."
-      else
-        if [[ -z "${QUAY_CHE_INCUBATOR_USERNAME}" || -z "${QUAY_CHE_INCUBATOR_PASSWORD}" ]]; then
-          echo "[ERROR] tagEditorDefinitionImages :: QUAY_CHE_INCUBATOR_USERNAME and QUAY_CHE_INCUBATOR_PASSWORD must be set to push ${VERSIONED_IMAGE}. Aborting."
-          exit 1
-        fi
-
-        echo "[INFO] tagEditorDefinitionImages :: Tagging ${IMAGE} as ${VERSIONED_IMAGE}"
-        skopeo copy --all --preserve-digests  \
-          --dest-creds "${QUAY_CHE_INCUBATOR_USERNAME}:${QUAY_CHE_INCUBATOR_PASSWORD}" \
-          "docker://${IMAGE}" "docker://${VERSIONED_IMAGE}"
-      fi
-    fi
+    tagImageWithReleaseVersion "${IMAGE}"
 
     echo "[INFO] tagEditorDefinitionImages :: Update editor definitions to use ${VERSIONED_IMAGE}"
     for FILE in "${EDITORS_DEFINITIONS_DIR}"/*.yaml; do
