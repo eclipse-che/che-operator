@@ -36,6 +36,10 @@ init() {
   CHE_DASHBOARD_IMAGE=$(yq -r '.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_dashboard") | .value' "${MANAGER_YAML}" | sed -e "s/\(.*:\).*/\1${RELEASE}/")
   CHE_PLUGIN_REGISTRY_IMAGE=$(yq -r '.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_plugin_registry") | .value' "${MANAGER_YAML}" | sed -e "s/\(.*:\).*/\1${RELEASE}/")
   CHE_GATEWAY_IMAGE=$(yq -r '.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_single_host_gateway_config_sidecar") | .value' "${MANAGER_YAML}" | sed -e "s/\(.*:\).*/\1${RELEASE}/")
+  CHE_HEADER_REWRITE_PROXY_SOURCE=$(yq -r '.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_gateway_header_sidecar") | .value' "${MANAGER_YAML}")
+  CHE_HEADER_REWRITE_PROXY_IMAGE=$(echo "${CHE_HEADER_REWRITE_PROXY_SOURCE}" | sed -e "s/\(.*:\).*/\1${RELEASE}/")
+  CHE_DEFAULT_UDI_SOURCE=$(yq -r '.spec.template.spec.containers[0].env[] | select(.name=="CHE_DEFAULT_SPEC_DEVENVIRONMENTS_DEFAULTCOMPONENTS") | .value' "${MANAGER_YAML}" | yq -r '.[0].container.image')
+  CHE_DEFAULT_UDI_IMAGE=$(echo "${CHE_DEFAULT_UDI_SOURCE}" | sed -e "s/\(.*:\).*/\1${RELEASE}/")
 
   if [[ $# -lt 1 ]]; then usage; exit; fi
 
